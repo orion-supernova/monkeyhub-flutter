@@ -223,6 +223,57 @@ and report the result — a health check wearing a reconnect's name.
   deliberately longer than `ConvexConfig.operationTimeout` so Dart still wins
   normally. Dart's `.timeout()` does not cancel the future underneath it, so
   without this an op parked on a dead socket held a clone and deferred the abort.
+- **`subscribe` is bounded by the same `RUST_OP_TIMEOUT`** (2026-10-18, the
+  Wi-Fi → cellular call hang). convex-rs answers a subscribe only after its
+  socket worker has accepted the `ModifyQuerySet`, and the socket worker does
+  not read its queue while it sits in `connect_async`, which has no timeout
+  (DNS on a dying interface, a SYN into a dead route, a TLS handshake whose
+  path vanished: the OS TCP timeout or longer). Every subscribe issued in that
+  window parked with it, and the Dart side has no timeout on subscribe, so
+  whatever awaited `ConvexBackend.subscribe` (call signaling included) never
+  finished starting. Now it errors after 20s; `SubscriptionRegistry` re-binds
+  failed entries on the next verified reconnect. The Dart side needs no
+  codegen for this — no signature changed, and the FRB content hash is a
+  generated constant on both sides, not a hash of this file at load time.
+
+### Upstream convex-rs: take 0.10.3+ (recommended, not yet applied)
+
+`rust/Cargo.lock` pins **convex 0.10.2**. `Cargo.toml` says `"0.10"`, so the
+pin is the lockfile alone. 0.10.3 (2026-02-13) fixes a reconnect defect that
+matches the handover hang exactly, and 0.10.4 (2026-04-10) a subscription
+memory leak (convex-rs#15):
+
+> Reproduces the bug where repeated reconnection attempts accumulate stale
+> messages in the outgoing queue, causing the server to reject messages with
+> "Base version 0 passed up doesn't match the current version 1".
+
+In 0.10.2, `resend_ongoing_queries_mutations` APPENDS the restart messages to
+`outgoing_message_queue` without clearing it. When a reconnect attempt fails
+mid-drain (the norm on a network that is still coming up), the leftovers —
+and every `ModifyQuerySet` issued while disconnected, which the app's own
+health probes produce (each probe is a subscribe + unsubscribe) — go out
+first on the next socket with stale `base_version`s. The server rejects them
+and closes the socket, which is another failed attempt, during which the
+probes add more. It does not converge until the app tears the client down.
+
+The upgrade does not touch any patch here: every patch lives in
+`rust/src/lib.rs`, `cargokit/` and the Dart shims, and lib.rs uses only
+`ConvexClientBuilder::{new, with_client_id, with_on_state_change, build}` and
+`ConvexClient::{subscribe, query, mutation, action, set_auth}`, all unchanged.
+Verified with `cargo check` on a copy (rustc 1.94; 0.10.4 needs ≥ 1.85). It
+also moves `tokio-tungstenite`/`tungstenite` 0.26 → 0.28 and `imbl` 5 → 7.
+
+```sh
+cd third_party/convex_flutter/rust && cargo update -p convex --precise 0.10.4
+# then a clean native build (cargokit rebuilds on the lockfile change)
+```
+
+What upstream still does NOT fix, as of 0.10.4 (`web_socket_manager.rs` is
+byte-identical to 0.10.2): no connect/handshake timeout, and no
+client-initiated ping — inactivity is only detected after 30s of server
+silence on a monotonic clock. Both are covered app-side by
+`ConnectionHealth` (rebuild on a settled network change; probe + rebuild
+escalation) and by the subscribe bound above.
 
 Subscriptions do **not** survive a native rebuild — the fresh client starts with
 an empty query set. `ConvexBackend`'s `SubscriptionRegistry` re-registers them;

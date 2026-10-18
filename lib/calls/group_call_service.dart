@@ -10,6 +10,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/convex_client.dart';
 import '../backend/group_call_api.dart';
+import '../backend/signaling_status.dart';
 import '../data/settings_store.dart';
 import 'call_config.dart';
 import 'camera_health.dart';
@@ -58,6 +59,7 @@ class GroupPeer {
   Timer? restartTimer;
   int restartAttempt = 0;
   DateTime? outageStart;
+  DateTime? lastRestartAt;
   bool reconnecting = false;
 
   /// Full from-scratch link rebuilds consumed after recovery exhaustion.
@@ -114,6 +116,9 @@ class GroupPeer {
   /// Offer/answer bookkeeping for this link.
   final LinkNegotiation negotiation = LinkNegotiation();
 
+  /// When this peer last sent us any signal. See [shouldAbandonRestart].
+  DateTime? lastSignalAt;
+
   /// The drawing channel over a shared screen, opened by the offerer before
   /// its first offer so it rides the initial SDP. Both ends draw on it.
   RTCDataChannel? drawChannel;
@@ -127,9 +132,23 @@ class GroupPeer {
 /// STUN/TURN fallback as 1:1 calls. Capacity is capped server-side at 6.
 class GroupCallService extends ChangeNotifier
     implements CallOptionsController {
-  GroupCallService({required this.api}) {
+  GroupCallService({required this.api, SignalingStatus? signaling})
+      : _signaling = signaling ?? SignalingStatus.instance {
     _routeSub = callAudioRouteChanges.listen(handleCallAudioRoute);
+    _seenUpEdges = _signaling.upEdges;
+    _seenNetworkEpoch = _signaling.networkEpoch;
+    _signaling.addListener(_onSignalingStatus);
   }
+
+  /// Transport health published by `ConnectionHealth`. See [SignalingStatus].
+  final SignalingStatus _signaling;
+  int _seenUpEdges = 0;
+  int _seenNetworkEpoch = 0;
+
+  /// The clock link recovery reads. Recovery now ends on elapsed time rather
+  /// than an attempt count, so a fake-async test has to be able to move it.
+  @visibleForTesting
+  DateTime Function() recoveryNow = DateTime.now;
 
   static GroupCallService? _instance;
   static GroupCallService get instance => _instance!;
@@ -1001,6 +1020,7 @@ class GroupCallService extends ChangeNotifier
       'bundlePolicy': 'max-bundle',
       'rtcpMuxPolicy': 'require',
       'iceCandidatePoolSize': 2,
+      'continualGatheringPolicy': kIceGatheringPolicy,
     }, {});
 
     pc.onIceCandidate = (cand) {
@@ -1097,7 +1117,7 @@ class GroupCallService extends ChangeNotifier
   void _schedulePeerRestart(GroupPeer peer, int gen,
       {bool immediate = false, bool force = false}) {
     if (!inCall) return;
-    peer.outageStart ??= DateTime.now();
+    peer.outageStart ??= recoveryNow();
     if (!peer.reconnecting) {
       peer.reconnecting = true;
       notifyListeners();
@@ -1120,10 +1140,30 @@ class GroupCallService extends ChangeNotifier
       _notePeerRestored(peer);
       return;
     }
+    if (!force) peer.outageStart ??= recoveryNow();
+    final now = recoveryNow();
+    if (!force &&
+        restartStillSettling(
+          linkConnecting: pc.connectionState ==
+              RTCPeerConnectionState.RTCPeerConnectionStateConnecting,
+          lastRestartAt: peer.lastRestartAt,
+          now: now,
+        )) {
+      peer.restartTimer = Timer(
+        const Duration(seconds: 2),
+        () => _attemptPeerRestart(peer, gen),
+      );
+      return;
+    }
+    final outageStart = peer.outageStart;
     if (shouldAbandonRestart(
-      outageStart: peer.outageStart,
-      now: DateTime.now(),
+      outageStart: outageStart,
+      now: now,
       attemptsSoFar: peer.restartAttempt,
+      signalingDown: outageStart == null
+          ? Duration.zero
+          : _signaling.downtimeBetween(outageStart, now),
+      lastPeerSignal: peer.lastSignalAt,
     )) {
       // Rebuild the link from scratch — with a fresh recovery budget
       // (_disposePeerLink resets restartAttempt/outageStart; preserving
@@ -1148,17 +1188,19 @@ class GroupCallService extends ChangeNotifier
       return;
     }
     peer.restartAttempt++;
+    peer.lastRestartAt = now;
     try {
       if (_iOffer(peer.userId)) {
         await pc.restartIce();
         // An offer like any other: a re-offer sent on top of it would
         // answer a section list the peer never saw.
-        peer.negotiation.begin();
+        final seq = peer.negotiation.begin();
         final offer = await pc.createOffer({'iceRestart': true});
         await pc.setLocalDescription(offer);
         await _sendTo(peer, 'restart-offer', {
           'sdp': offer.sdp,
           'type': offer.type,
+          'seq': seq,
         });
       } else {
         await _sendTo(peer, 'restart-request', {});
@@ -1166,11 +1208,52 @@ class GroupCallService extends ChangeNotifier
     } catch (e) {
       debugPrint('GroupCallService._attemptPeerRestart: $e');
     }
-    final delay = nextRestartDelay(peer.restartAttempt);
     peer.restartTimer = Timer(
-      delay ?? const Duration(seconds: 8),
+      nextRestartDelay(peer.restartAttempt),
       () => _attemptPeerRestart(peer, gen),
     );
+  }
+
+  /// Run a restart attempt on [peer]'s link NOW, discarding any backoff wait.
+  /// Same contract as `CallService._kickIceRestart`: [proactive] restarts a
+  /// link that may still look healthy, without starting its outage clock.
+  void _kickPeerRestart(GroupPeer peer,
+      {bool force = false, bool proactive = false}) {
+    if (!inCall || peer.pc == null) return;
+    if (!proactive && !peer.reconnecting && !force) return;
+    if (!proactive) {
+      peer.outageStart ??= recoveryNow();
+      if (!peer.reconnecting) {
+        peer.reconnecting = true;
+        notifyListeners();
+      }
+    }
+    peer.restartTimer?.cancel();
+    final gen = peer.generation;
+    peer.restartTimer = Timer(
+      Duration.zero,
+      () => _attemptPeerRestart(peer, gen, force: force || proactive),
+    );
+  }
+
+  /// See `CallService._onSignalingStatus`: a network change restarts every
+  /// link proactively; the transport coming back restarts the links that are
+  /// waiting on it.
+  void _onSignalingStatus() {
+    final up = _signaling.upEdges;
+    final net = _signaling.networkEpoch;
+    final cameUp = up != _seenUpEdges;
+    final moved = net != _seenNetworkEpoch;
+    _seenUpEdges = up;
+    _seenNetworkEpoch = net;
+    if (!inCall) return;
+    for (final peer in _peers.values.toList(growable: false)) {
+      if (moved) {
+        _kickPeerRestart(peer, proactive: true);
+      } else if (cameUp && peer.reconnecting) {
+        _kickPeerRestart(peer);
+      }
+    }
   }
 
   // ───────── outbound signaling ─────────
@@ -1305,6 +1388,8 @@ class GroupCallService extends ChangeNotifier
     // The roster has not delivered this peer yet; look again next time.
     if (peer == null) return false;
     final parsed = jsonDecode(payload) as Map<String, dynamic>;
+    // Proof the peer is alive and can signal — see [shouldAbandonRestart].
+    peer.lastSignalAt = recoveryNow();
 
     switch (kind) {
       case 'offer':
@@ -1327,7 +1412,10 @@ class GroupCallService extends ChangeNotifier
         // A `reanswer` names the offer it answers; one for an offer an ICE
         // restart has since overtaken would be applied against the wrong
         // local description.
-        if (kind == 'reanswer' &&
+        // Restart answers too, now that restart offers are tagged: they
+        // repeat across a handover, and one delivered late carries the ICE
+        // credentials of an offer we have already replaced.
+        if ((kind == 'reanswer' || kind == 'restart-answer') &&
             !peer.negotiation.accepts((parsed['seq'] as num?)?.toInt())) {
           return true;
         }
@@ -1374,8 +1462,8 @@ class GroupCallService extends ChangeNotifier
         break;
       case 'restart-request':
         if (_iOffer(from)) {
-          _schedulePeerRestart(peer, peer.generation,
-              immediate: true, force: true);
+          // Kick, not schedule — see `CallService`'s restart-request.
+          _kickPeerRestart(peer, force: true);
         }
         break;
     }
@@ -1421,7 +1509,7 @@ class GroupCallService extends ChangeNotifier
     await _sendTo(peer, reply, {
       'sdp': answer.sdp,
       'type': answer.type,
-      if (kind == 'reoffer') 'seq': parsed['seq'],
+      if (kind == 'reoffer' || kind == 'restart-offer') 'seq': parsed['seq'],
     });
     // A track of ours still without a section — more slots than the offer
     // had room for — needs another round.
@@ -1636,6 +1724,7 @@ class GroupCallService extends ChangeNotifier
           audioMuted: localMuted,
           // A suspended camera is off as far as the peers can see.
           videoOff: localVideoOff || _camSuspended,
+          videoPaused: !localVideoOff && _camSuspended,
           screenSharing: localScreenSharing,
           camStreamId: _localStream?.id,
           screenStreamId: _screenStream?.id,
@@ -1747,14 +1836,25 @@ class GroupCallService extends ChangeNotifier
 
   // ───────── live controls ─────────
 
-  Future<void> toggleMute() async {
+  /// The in-app mic button.
+  Future<void> toggleMute() => setMuted(!localMuted);
+
+  /// Puts the mic in [muted], idempotently. [fromSystem] is CallKit's own
+  /// mute on this call's card, which is not reported back; an in-app change
+  /// is. Same contract as [CallService.setMuted].
+  Future<void> setMuted(bool muted, {bool fromSystem = false}) async {
     final ls = _localStream;
     if (ls == null) return;
-    localMuted = !localMuted;
     for (final t in ls.getAudioTracks()) {
-      t.enabled = !localMuted;
+      t.enabled = !muted;
     }
+    if (localMuted == muted) return;
+    localMuted = muted;
     notifyListeners();
+    final id = _groupCallId;
+    if (!fromSystem && id != null) {
+      unawaited(NativeCallHandler.instance.reportMuted(id, muted));
+    }
     await _broadcastState();
   }
 
@@ -2448,6 +2548,7 @@ class GroupCallService extends ChangeNotifier
   void dispose() {
     _disposed = true;
     _routeSub?.cancel();
+    _signaling.removeListener(_onSignalingStatus);
     _camWatch?.stop();
     _heartbeat?.cancel();
     _rosterSub?.cancel();

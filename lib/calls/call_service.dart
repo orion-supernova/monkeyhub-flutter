@@ -9,6 +9,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/call_api.dart';
 import '../backend/convex_client.dart';
+import '../backend/signaling_status.dart';
 import '../data/settings_store.dart';
 import 'call_config.dart';
 import 'camera_health.dart';
@@ -35,9 +36,23 @@ import 'screen_share.dart';
 /// subscription is wired by `SignalingSubscriber` which delivers signals into
 /// [handleRemoteSignal].
 class CallService extends ChangeNotifier implements CallOptionsController {
-  CallService({required this.api}) {
+  CallService({required this.api, SignalingStatus? signaling})
+      : _signaling = signaling ?? SignalingStatus.instance {
     _routeSub = callAudioRouteChanges.listen(handleCallAudioRoute);
+    _seenUpEdges = _signaling.upEdges;
+    _seenNetworkEpoch = _signaling.networkEpoch;
+    _signaling.addListener(_onSignalingStatus);
   }
+
+  /// Transport health published by `ConnectionHealth`. See [SignalingStatus].
+  final SignalingStatus _signaling;
+  int _seenUpEdges = 0;
+  int _seenNetworkEpoch = 0;
+
+  /// When the peer last sent us any signal for the live call. Held against
+  /// [kPeerAliveWindow] by [shouldAbandonRestart]: a peer still talking to us
+  /// is a call worth keeping.
+  DateTime? _lastPeerSignalAt;
 
   static CallService? _instance;
   static CallService get instance => _instance!;
@@ -434,6 +449,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   Timer? _restartTimer;
   int _restartAttempt = 0;
   DateTime? _outageStart;
+  DateTime? _lastRestartAt;
 
   /// Wall-clock ms of the last applied peer `state` signal (mute/video-off).
   /// Convex delivers `state` signals in server-insert order, not send order —
@@ -1220,16 +1236,39 @@ class CallService extends ChangeNotifier implements CallOptionsController {
 
   // ───────── live controls ─────────
 
+  /// The in-app mic button.
   Future<void> toggleMute() async {
+    final s = _session;
+    if (s == null) return;
+    await setMuted(!s.localMuted);
+  }
+
+  /// Puts the mic in [muted]: the local audio tracks, the flag the button
+  /// draws, and the peer's view of it. Idempotent, and the tracks are set
+  /// every time, so a call with the flag and the tracks apart is brought
+  /// back together by any request.
+  ///
+  /// [fromSystem] is CallKit's own mute (its call screen, an AirPods stem
+  /// press, iOS syncing a new route): CallKit already holds that state, so
+  /// it is not reported back. An in-app change is (see
+  /// [NativeCallHandler.reportMuted]), so CallKit's mute and the AirPods'
+  /// stay with the app's. CallKit's event used to be read as "toggle":
+  /// one carrying the state the call already had flipped the mic, the
+  /// button with it, and nothing ever told CallKit, so the two stayed
+  /// apart for the rest of the call.
+  Future<void> setMuted(bool muted, {bool fromSystem = false}) async {
     final ls = _localStream;
     final s = _session;
     if (ls == null || s == null) return;
-    final newMuted = !s.localMuted;
     for (final t in ls.getAudioTracks()) {
-      t.enabled = !newMuted;
+      t.enabled = !muted;
     }
-    _session = s.copyWith(localMuted: newMuted);
+    if (s.localMuted == muted) return;
+    _session = s.copyWith(localMuted: muted);
     notifyListeners();
+    if (!fromSystem) {
+      unawaited(NativeCallHandler.instance.reportMuted(s.callId, muted));
+    }
     await _sendState();
   }
 
@@ -1838,7 +1877,11 @@ class CallService extends ChangeNotifier implements CallOptionsController {
         payload: jsonEncode({
           'sdp': answer.sdp,
           'type': answer.type,
-          if (replyKind == 'reanswer') 'seq': parsed['seq'],
+          // Echoed on both in-place answers. A restart offer from a build
+          // that predates its `seq` carries none, and `null` here is what
+          // [LinkNegotiation.accepts] reads as "always current".
+          if (replyKind == 'reanswer' || replyKind == 'restart-answer')
+            'seq': parsed['seq'],
         }),
       );
       if (await hasUnassociatedVideoSender(pc)) {
@@ -2422,6 +2465,10 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       return;
     }
 
+    // Any signal for the live call is proof the peer is alive and its
+    // signaling works — see [shouldAbandonRestart]'s `lastPeerSignal`.
+    _lastPeerSignalAt = DateTime.now();
+
     switch (kind) {
       case 'answer':
         await _onRemoteAnswer(payload);
@@ -2460,15 +2507,19 @@ class CallService extends ChangeNotifier implements CallOptionsController {
         // Force past the connected-check — the outage may be asymmetric
         // (peer broken while our side still reads Connected).
         if (s.isCaller) {
-          _scheduleIceRestart(_pcGeneration, immediate: true, force: true);
+          // Kick, not schedule: a backoff timer armed while our own
+          // signaling was down must not make a peer that can reach us now
+          // wait out the rest of it.
+          _kickIceRestart(force: true);
         }
         break;
       case 'restart-offer':
         await _applyOfferInPlace(payload, replyKind: 'restart-answer');
         break;
       case 'restart-answer':
-        await _onRestartAnswer(payload);
-        _finishNegotiation();
+        // A stale answer (to a restart offer a later one superseded) must
+        // neither be applied nor close the round that is actually in flight.
+        if (await _onRestartAnswer(payload)) _finishNegotiation();
         break;
       case 'bye':
         await _teardown(CallStatus.ended);
@@ -3036,6 +3087,8 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     if (s == null || me == null) return;
     final batch = List<RTCIceCandidate>.of(_iceOutBuffer);
     _iceOutBuffer.clear();
+    final gen = _pcGeneration;
+    final callId = s.callId;
     try {
       await api.sendCallSignal(
         callId: s.callId,
@@ -3060,6 +3113,26 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       );
     } catch (e) {
       debugPrint('ice-batch send failed: $e');
+      // Put them back and try again shortly. These are the candidates a
+      // restart offer depends on: the offer goes out before gathering has
+      // found anything, so on a network change the new interface's
+      // candidates exist ONLY in these batches. Dropping a batch because
+      // the signaling socket was mid-rebuild left the restart with nothing
+      // to connect to, and the call failed on a network that worked.
+      if (gen == _pcGeneration && _session?.callId == callId) {
+        _iceOutBuffer.insertAll(0, batch);
+        // Bounded: a link that cannot signal for long enough to gather this
+        // many has newer candidates worth more than the oldest ones.
+        const cap = 48;
+        if (_iceOutBuffer.length > cap) {
+          _iceOutBuffer.removeRange(0, _iceOutBuffer.length - cap);
+        }
+        _iceFlushTimer?.cancel();
+        _iceFlushTimer = Timer(const Duration(seconds: 2), () {
+          _iceFlushTimer = null;
+          unawaited(_flushPendingLocalIce());
+        });
+      }
     }
   }
 
@@ -3107,6 +3180,9 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       'bundlePolicy': 'max-bundle',
       'rtcpMuxPolicy': 'require',
       'iceCandidatePoolSize': 2,
+      // See [kIceGatheringPolicy]: keep gathering when the phone changes
+      // networks, so a Wi-Fi → cellular move can heal without a restart.
+      'continualGatheringPolicy': kIceGatheringPolicy,
       // Full ICE — host > srflx > relay by priority, so TURN carries media
       // only when no direct path exists. Host (LAN) probing triggers iOS's
       // Local Network prompt; kAllowLanCandidates=false filters those out
@@ -3264,6 +3340,65 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     );
   }
 
+  /// Run a restart attempt NOW, discarding any backoff wait in progress.
+  ///
+  /// For moments that make a waiting timer stale: the peer asking us to
+  /// re-offer, our signaling socket coming back, the device changing
+  /// networks. The timer was armed for an attempt that, at the time, could
+  /// not have been delivered.
+  ///
+  /// [proactive]: the link may still look healthy (a network change libwebrtc
+  /// has not noticed yet). Restart without starting the outage clock or
+  /// showing "reconnecting" — if the link really is broken, ICE will report
+  /// `disconnected` and the ordinary path takes over with this restart
+  /// already in flight.
+  void _kickIceRestart({bool force = false, bool proactive = false}) {
+    final s = _session;
+    if (s == null) return;
+    if (s.status != CallStatus.active && s.status != CallStatus.connecting) {
+      return;
+    }
+    if (!proactive && !s.reconnecting && !force) return;
+    if (!proactive) {
+      _outageStart ??= DateTime.now();
+      if (!s.reconnecting) {
+        _session = s.copyWith(reconnecting: true);
+        notifyListeners();
+      }
+    }
+    _restartTimer?.cancel();
+    final gen = _pcGeneration;
+    _restartTimer = Timer(
+      Duration.zero,
+      () => _attemptIceRestart(gen, force: force || proactive),
+    );
+  }
+
+  /// [SignalingStatus] moved: the transport came back, or the network
+  /// changed. Cheap to run on every notification — it compares two counters.
+  void _onSignalingStatus() {
+    final up = _signaling.upEdges;
+    final net = _signaling.networkEpoch;
+    final cameUp = up != _seenUpEdges;
+    final moved = net != _seenNetworkEpoch;
+    _seenUpEdges = up;
+    _seenNetworkEpoch = net;
+    if (_pc == null || _session == null) return;
+    if (moved) {
+      // The phone is on a different network. The candidate pair carrying
+      // media is bound to the old interface and is dead whether or not ICE
+      // has said so yet (libwebrtc takes ~5s to call it `disconnected` and up
+      // to 30s to call it `failed`). Restart now. The offer may race the
+      // signaling socket's own rebuild and be lost — the up-edge below
+      // re-sends it once the socket is verified back.
+      debugPrint('CallService: network changed — proactive ICE restart');
+      _kickIceRestart(proactive: true);
+    } else if (cameUp && (_session?.reconnecting ?? false)) {
+      debugPrint('CallService: signaling back — restarting ICE now');
+      _kickIceRestart();
+    }
+  }
+
   Future<void> _attemptIceRestart(int gen, {bool force = false}) async {
     if (gen != _pcGeneration) return;
     final s = _session;
@@ -3276,10 +3411,33 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       _noteConnectionRestored();
       return;
     }
+    // A follow-up to a proactive restart that did not find the link healthy
+    // is an outage like any other — and an outage needs a clock, or
+    // [shouldAbandonRestart] could never end it.
+    if (!force) _outageStart ??= DateTime.now();
+    final now = DateTime.now();
+    if (!force &&
+        restartStillSettling(
+          linkConnecting: pc.connectionState ==
+              RTCPeerConnectionState.RTCPeerConnectionStateConnecting,
+          lastRestartAt: _lastRestartAt,
+          now: now,
+        )) {
+      _restartTimer = Timer(
+        const Duration(seconds: 2),
+        () => _attemptIceRestart(gen),
+      );
+      return;
+    }
+    final outageStart = _outageStart;
     if (shouldAbandonRestart(
-      outageStart: _outageStart,
-      now: DateTime.now(),
+      outageStart: outageStart,
+      now: now,
       attemptsSoFar: _restartAttempt,
+      signalingDown: outageStart == null
+          ? Duration.zero
+          : _signaling.downtimeBetween(outageStart, now),
+      lastPeerSignal: _lastPeerSignalAt,
     )) {
       await _teardown(
         CallStatus.failed,
@@ -3289,6 +3447,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       return;
     }
     _restartAttempt++;
+    _lastRestartAt = now;
     debugPrint(
       'CallService: ICE restart attempt $_restartAttempt '
       '(caller=${s.isCaller})',
@@ -3298,7 +3457,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
         await pc.restartIce();
         // An offer like any other: a re-offer on top of it would answer a
         // section list the peer never saw.
-        _negotiation.begin();
+        final seq = _negotiation.begin();
         // restartIce() flags the next offer natively; pass iceRestart too so
         // the intent survives platform quirks.
         final offer = await pc.createOffer({'iceRestart': true});
@@ -3310,7 +3469,17 @@ class CallService extends ChangeNotifier implements CallOptionsController {
           fromDeviceId: _deviceId,
           targetDeviceId: s.peerDeviceId,
           kind: 'restart-offer',
-          payload: jsonEncode({'sdp': offer.sdp, 'type': offer.type}),
+          // Tagged, so the answer can be matched to THIS offer. Restart
+          // offers now repeat across a handover, and an attempt whose
+          // mutation was queued behind a reconnecting socket can be
+          // delivered after a newer one — its answer carries the old ICE
+          // credentials, and applying it to the newer local offer breaks
+          // the very restart that would have worked.
+          payload: jsonEncode({
+            'sdp': offer.sdp,
+            'type': offer.type,
+            'seq': seq,
+          }),
         );
       } else {
         // Only the caller role re-offers (single deterministic restarter —
@@ -3328,33 +3497,43 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     } catch (e) {
       debugPrint('CallService._attemptIceRestart failed: $e');
     }
-    final delay = nextRestartDelay(_restartAttempt);
-    // A null delay means the schedule is spent — run one last pass that
-    // trips shouldAbandonRestart and tears down.
+    // The schedule never runs out; the outage budget in shouldAbandonRestart
+    // is what ends recovery.
     _restartTimer = Timer(
-      delay ?? const Duration(seconds: 8),
+      nextRestartDelay(_restartAttempt),
       () => _attemptIceRestart(gen),
     );
   }
 
-  Future<void> _onRestartAnswer(String payload) async {
+  /// Applies a `restart-answer`. Returns whether it answered the round in
+  /// flight — false for a stale or unusable one, which must not close that
+  /// round.
+  Future<bool> _onRestartAnswer(String payload) async {
     final pc = _pc;
-    if (pc == null) return;
+    if (pc == null) return false;
     // Only valid while our restart offer is pending — a stale answer after
     // we've moved on (new offer, recovered, handoff) is dropped.
     if (pc.signalingState !=
         RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
-      return;
+      // Nothing of ours is pending, so there is no round for this to hold
+      // open either — same outcome as before this returned a value.
+      return true;
     }
     try {
       final parsed = jsonDecode(payload) as Map<String, dynamic>;
+      if (!_negotiation.accepts((parsed['seq'] as num?)?.toInt())) {
+        debugPrint('CallService: dropping stale restart-answer '
+            '(seq ${parsed['seq']}, in flight ${_negotiation.seq})');
+        return false;
+      }
       final sdp = parsed['sdp'] as String?;
       final type = parsed['type'] as String?;
-      if (sdp == null || type == null) return;
+      if (sdp == null || type == null) return true;
       await pc.setRemoteDescription(RTCSessionDescription(sdp, type));
     } catch (e, st) {
       debugPrint('CallService._onRestartAnswer failed: $e\n$st');
     }
+    return true;
   }
 
   Future<void> _attachLocalMedia(CallMediaKind kind) async {
@@ -3460,6 +3639,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
             audioMuted: s.localMuted,
             // A suspended camera is off as far as the peer can see.
             videoOff: s.localVideoOff || _camSuspended,
+            videoPaused: !s.localVideoOff && _camSuspended,
             screenSharing: _localScreenSharing,
             camStreamId: _localStream?.id,
             screenStreamId: _screenStream?.id,
@@ -3757,6 +3937,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   @override
   void dispose() {
     _routeSub?.cancel();
+    _signaling.removeListener(_onSignalingStatus);
     _acceptWatchdog?.cancel();
     _ringWatch?.cancel();
     _callAudioLiveTimer?.cancel();

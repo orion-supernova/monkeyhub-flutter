@@ -733,6 +733,9 @@ void main() {
       fakeAsync((async) {
         final api = _FakeGroupApi();
         final service = _newGroupService(api);
+        // Recovery ends on elapsed outage time, so it must read the fake clock.
+        final t0 = DateTime(2026);
+        service.recoveryNow = () => t0.add(async.elapsed);
         final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
         service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
           return stream;
@@ -766,8 +769,9 @@ void main() {
               ?.call(RTCPeerConnectionState.RTCPeerConnectionStateFailed);
         }
 
-        // Each recovery cycle: 3 restart attempts (0s, 4s, 10s, +8s final
-        // pass) then abandon → rebuild. Fail the fresh link immediately.
+        // Each recovery cycle: restart attempts at 0s, 4s, 10s, then every
+        // 8s until the 30s outage budget is spent (~34s), then abandon →
+        // rebuild. Fail the fresh link immediately.
         var lastCount = 0;
         for (var cycle = 0; cycle < 6; cycle++) {
           if (pcs.length != lastCount) {

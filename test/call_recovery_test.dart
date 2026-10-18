@@ -4,12 +4,55 @@ import 'package:monkeyhub/calls/call_stats_monitor.dart';
 
 void main() {
   group('nextRestartDelay', () {
-    test('escalates 0s → 4s → 10s then exhausts', () {
+    test('escalates 0s → 4s → 6s, then 8s forever', () {
       expect(nextRestartDelay(0), Duration.zero);
       expect(nextRestartDelay(1), const Duration(seconds: 4));
-      expect(nextRestartDelay(2), const Duration(seconds: 10));
-      expect(nextRestartDelay(3), isNull);
-      expect(nextRestartDelay(7), isNull);
+      expect(nextRestartDelay(2), const Duration(seconds: 6));
+      expect(nextRestartDelay(3), const Duration(seconds: 8));
+      // Never exhausts: the outage budget ends recovery, not a count.
+      expect(nextRestartDelay(40), const Duration(seconds: 8));
+    });
+  });
+
+  group('restartStillSettling', () {
+    final t0 = DateTime(2026, 1, 1, 12);
+
+    test('a restart whose checks are running is left alone', () {
+      expect(
+        restartStillSettling(
+          linkConnecting: true,
+          lastRestartAt: t0,
+          now: t0.add(const Duration(seconds: 3)),
+        ),
+        isTrue,
+      );
+    });
+
+    test('but not forever, and not when the link is simply down', () {
+      expect(
+        restartStillSettling(
+          linkConnecting: true,
+          lastRestartAt: t0,
+          now: t0.add(kRestartSettle + const Duration(milliseconds: 1)),
+        ),
+        isFalse,
+      );
+      expect(
+        restartStillSettling(
+          linkConnecting: false,
+          lastRestartAt: t0,
+          now: t0.add(const Duration(seconds: 1)),
+        ),
+        isFalse,
+      );
+      expect(
+        restartStillSettling(
+          linkConnecting: true,
+          lastRestartAt: null,
+          now: t0,
+        ),
+        isFalse,
+      );
     });
   });
 
@@ -38,20 +81,83 @@ void main() {
       );
     });
 
-    test('gives up after 3 attempts regardless of clock', () {
+    test('attempt count alone no longer ends a call', () {
+      // The Wi-Fi → cellular bug: three attempts were spent into a signaling
+      // socket that was itself being rebuilt, and the call was torn down a
+      // second or two after the network was usable again.
       expect(
         shouldAbandonRestart(
           outageStart: t0,
           now: t0.add(const Duration(seconds: 1)),
           attemptsSoFar: 3,
         ),
+        isFalse,
+      );
+    });
+
+    test('time with the signaling transport down does not count', () {
+      // 50s outage, 25s of it with our own socket down: only 25s of it was
+      // time a restart could have been delivered in.
+      expect(
+        shouldAbandonRestart(
+          outageStart: t0,
+          now: t0.add(const Duration(seconds: 50)),
+          attemptsSoFar: 6,
+          signalingDown: const Duration(seconds: 25),
+        ),
+        isFalse,
+      );
+      expect(
+        shouldAbandonRestart(
+          outageStart: t0,
+          now: t0.add(const Duration(seconds: 50)),
+          attemptsSoFar: 6,
+          signalingDown: const Duration(seconds: 15),
+        ),
         isTrue,
       );
     });
 
-    test('null outageStart only limits by attempts', () {
+    test('a peer heard from recently holds the call open', () {
+      final now = t0.add(const Duration(seconds: 40));
       expect(
-        shouldAbandonRestart(outageStart: null, now: t0, attemptsSoFar: 0),
+        shouldAbandonRestart(
+          outageStart: t0,
+          now: now,
+          attemptsSoFar: 5,
+          lastPeerSignal: now.subtract(const Duration(seconds: 5)),
+        ),
+        isFalse,
+      );
+      // Heard from before the outage began: that proves nothing about now.
+      expect(
+        shouldAbandonRestart(
+          outageStart: t0,
+          now: now,
+          attemptsSoFar: 5,
+          lastPeerSignal: t0.subtract(const Duration(seconds: 1)),
+        ),
+        isTrue,
+      );
+    });
+
+    test('the hard ceiling wins over every excuse', () {
+      final now = t0.add(kHardCallOutage + const Duration(seconds: 1));
+      expect(
+        shouldAbandonRestart(
+          outageStart: t0,
+          now: now,
+          attemptsSoFar: 1,
+          signalingDown: kHardCallOutage,
+          lastPeerSignal: now,
+        ),
+        isTrue,
+      );
+    });
+
+    test('no outage clock means nothing to abandon', () {
+      expect(
+        shouldAbandonRestart(outageStart: null, now: t0, attemptsSoFar: 9),
         isFalse,
       );
     });

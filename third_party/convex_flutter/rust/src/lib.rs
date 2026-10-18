@@ -530,9 +530,38 @@ impl MobileConvexClient {
     ) -> anyhow::Result<SubscriptionHandle> {
         let mut client = self.connected_client().await?;
         debug!("New subscription");
-        let mut subscription = client
-            .subscribe(name.as_str(), parse_json_args(args))
-            .await?;
+        // ── monkeyhub patch ──────────────────────────────────────────────────
+        // Was an unbounded `client.subscribe(..).await`. convex-rs answers a
+        // subscribe only after its worker has handed the ModifyQuerySet to the
+        // socket worker, and the socket worker does not read its queue while
+        // it sits in `connect_async` — which has no timeout of its own. A
+        // connect started during a Wi-Fi/cellular handover (DNS on the dying
+        // interface, a SYN into a dead route, a TLS handshake whose path
+        // vanished) parks there for the OS TCP timeout or longer, and every
+        // subscribe issued meanwhile parked with it: the Dart `await` behind
+        // `ConvexBackend.subscribe` never returned, so whatever screen or
+        // service awaited it (call signaling included) never finished
+        // starting. The parked future also held a `ConvexClient` clone, which
+        // kept a torn-down socket worker alive across `force_reconnect`.
+        //
+        // Bounded like query/mutation/action: on timeout the future (and the
+        // clone) is dropped and Dart gets an error, which the app's
+        // SubscriptionRegistry already heals (`rebindFailed`) on the next
+        // verified reconnect.
+        let sub_name = name.clone();
+        let sub_args = parse_json_args(args);
+        let mut subscription = self
+            .rt
+            .spawn(async move {
+                tokio::time::timeout(
+                    RUST_OP_TIMEOUT,
+                    client.subscribe(sub_name.as_str(), sub_args),
+                )
+                .await
+            })
+            .await?
+            .map_err(|_| anyhow::anyhow!("SubscribeTimeout"))??;
+        // ── end monkeyhub patch ──────────────────────────────────────────────
         let (cancel_sender, cancel_receiver) = oneshot::channel::<()>();
         self.rt.spawn(async move {
             let cancel_fut = cancel_receiver.fuse();

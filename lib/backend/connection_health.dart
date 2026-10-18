@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 
 import '../diagnostics/diag_event.dart' show DiagSev;
 import '../diagnostics/diag_log.dart';
+import 'signaling_status.dart';
 
 /// What the UI should say about connectivity.
 enum ConnectionPhase {
@@ -146,10 +148,20 @@ class ConnectionHealth extends ChangeNotifier {
     this.maxStalledRearms = 2,
     this.minLoopInterval = const Duration(milliseconds: 750),
     this.tickInterval = const Duration(seconds: 5),
+    this.networkSettle = const Duration(milliseconds: 800),
+    this.backoffJitter = 0.0,
+    math.Random? random,
+    bool Function()? healInBackground,
+    SignalingStatus? signaling,
     DateTime Function() now = DateTime.now,
     Stream<bool>? connectivity,
+    Stream<Set<String>>? interfaces,
     bool watchConnectivity = true,
-  }) : initialGraceDelay =
+  }) : _random = random ?? math.Random(),
+       _healInBackground = healInBackground ?? _never,
+       _signaling = signaling ?? SignalingStatus.instance,
+       _interfaces = interfaces,
+       initialGraceDelay =
            initialGraceDelay ??
            (graceDelay == const Duration(milliseconds: 1200)
                ? const Duration(milliseconds: 2500)
@@ -271,11 +283,43 @@ class ConnectionHealth extends ChangeNotifier {
   /// runtime and drive the gap through the fake clock instead.
   final Duration tickInterval;
 
+  /// How long the OS's interface list must hold still before a change is
+  /// treated as the network having moved. A Wi-Fi → cellular handover arrives
+  /// as a burst (`wifi`, `none`, `mobile`, sometimes `wifi+mobile` in between),
+  /// and rebuilding on each step would build sockets onto interfaces that are
+  /// already leaving.
+  final Duration networkSettle;
+
+  /// ± fraction applied to every backoff wait. Zero in tests; the app passes a
+  /// small value so a fleet of phones that lost the server at the same moment
+  /// (a backend restart) does not come back at it in lockstep — the VPS is a
+  /// 1 GB box and a synchronized probe wave is exactly what it cannot absorb.
+  final double backoffJitter;
+  final math.Random _random;
+
+  /// Whether recovery may keep running while the app is backgrounded. True
+  /// during a call: the call signals over this socket, the OS keeps the
+  /// process running for it, and parking recovery there left a call whose
+  /// phone changed networks with the screen off unable to send its own ICE
+  /// restart.
+  final bool Function() _healInBackground;
+  static bool _never() => false;
+
+  /// Where transport up/down edges and settled network changes are published
+  /// for the call services. See [SignalingStatus].
+  final SignalingStatus _signaling;
+
   /// Injectable wall clock. Tests advance it instantly instead of waiting.
   final DateTime Function() _now;
 
   /// Injectable connectivity signal (true = a usable interface exists).
+  /// Legacy, boolean-only; when given it wins over [_interfaces].
   final Stream<bool>? _connectivity;
+
+  /// Injectable interface-set signal (e.g. `{'wifi'}`, `{'mobile'}`, `{}` or
+  /// `{'none'}` for nothing usable). Production derives it from
+  /// connectivity_plus.
+  final Stream<Set<String>>? _interfaces;
 
   final bool _watchConnectivity;
 
@@ -397,40 +441,139 @@ class ConnectionHealth extends ChangeNotifier {
   /// waiting out the backoff. Never a verdict — see the class doc.
   void _startConnectivityWatch() {
     try {
+      final legacy = _connectivity;
+      if (legacy != null) {
+        _connectivitySub = legacy.listen(
+          (usable) => _onInterfaces(usable ? const {'?'} : const <String>{}),
+        );
+        return;
+      }
       final stream =
-          _connectivity ??
+          _interfaces ??
           Connectivity().onConnectivityChanged.map(
-            (results) =>
-                results.isNotEmpty &&
-                !results.contains(ConnectivityResult.none),
+            (results) => {for (final r in results) r.name},
           );
-      _connectivitySub = stream.listen((usable) {
-        // Android emits these far more freely than iOS, so seeing the raw edges
-        // separates "the OS kept telling us the network changed" from "our own
-        // loop was thrashing".
-        DiagLog.connection('interface', usable ? 'usable' : 'lost');
-        if (!usable) {
-          _noteInterfaceLost();
-          return;
-        }
-        _offlineTimer?.cancel();
-        _offlineTimer = null;
-        // Throttled, and non-manual. Both matter. iOS and Android each emit a
-        // burst of interface transitions per unlock, and `manual: true` forces
-        // an interrupt — so unthrottled manual retries killed the in-flight
-        // probe over and over and the loop never got an answer out of any of
-        // them.
-        final n = _now();
-        final last = _lastConnectivityRetryAt;
-        if (last != null && n.difference(last) < connectivityRetryThrottle) {
-          return;
-        }
-        _lastConnectivityRetryAt = n;
-        _noteProgress();
-        retryNow(manual: false);
-      });
+      _connectivitySub = stream.listen(_onInterfaces);
     } catch (_) {
       // Unsupported platform — the backoff loop is the backstop.
+    }
+  }
+
+  /// The last interface set that was allowed to settle. The socket was built
+  /// on (one of) these.
+  Set<String>? _ifaceBaseline;
+  Timer? _settleTimer;
+
+  /// One OS interface report.
+  ///
+  /// Three outcomes, by what actually changed:
+  ///
+  ///  * **Nothing usable** — say so (see [_noteInterfaceLost]).
+  ///  * **Same set as before** (an unlock burst, `wifi → none → wifi`) — the
+  ///    old nudge: a throttled verify, never a verdict.
+  ///  * **An interface the socket may have been riding disappeared** (Wi-Fi →
+  ///    cellular, cellular → Wi-Fi, a VPN dropping) — once the burst settles,
+  ///    rebuild the transport on sight.
+  ///
+  /// The last case is the Wi-Fi → cellular bug. A TCP socket is bound to the
+  /// address it was opened from; when that interface goes, the socket is dead
+  /// whether or not anything on either side has said so. The OS reports the
+  /// new interface as "usable", which this class used to treat like any other
+  /// nudge: probe the old socket, wait out a 7s timeout, back off, probe again
+  /// for 10s, and only on the third failure rebuild — ~37s of a call's
+  /// signaling dead before recovery even began. The call's own recovery budget
+  /// was 30s, so it always lost that race.
+  void _onInterfaces(Set<String> ifaces) {
+    if (_disposed) return;
+    final usable = ifaces.isNotEmpty && !ifaces.contains('none');
+    // Android emits these far more freely than iOS, so seeing the raw edges
+    // separates "the OS kept telling us the network changed" from "our own
+    // loop was thrashing".
+    DiagLog.connection(
+      'interface',
+      usable ? 'usable (${(ifaces.toList()..sort()).join('+')})' : 'lost',
+    );
+    if (!usable) {
+      // A pending settle is about a network that has already gone again.
+      // The baseline stays: what comes back is compared against what the
+      // socket was actually built on.
+      _settleTimer?.cancel();
+      _settleTimer = null;
+      _noteInterfaceLost();
+      return;
+    }
+    _offlineTimer?.cancel();
+    _offlineTimer = null;
+    final base = _ifaceBaseline;
+    if (base == null || !base.difference(ifaces).isNotEmpty) {
+      // First report, or nothing we could have been using went away (the
+      // same set again, or one merely added — a `wifi` → `wifi+mobile`
+      // report leaves a Wi-Fi socket perfectly alive).
+      _ifaceBaseline = {...ifaces};
+      _settleTimer?.cancel();
+      _settleTimer = null;
+      _nudgeFromInterface();
+      return;
+    }
+    // Something we may have been riding went away. Let the burst settle,
+    // then compare once against the baseline: each report restarts the clock.
+    final latest = {...ifaces};
+    _settleTimer?.cancel();
+    _settleTimer = Timer(networkSettle, () {
+      _settleTimer = null;
+      if (_disposed) return;
+      final prev = _ifaceBaseline;
+      _ifaceBaseline = latest;
+      if (prev != null && prev.difference(latest).isNotEmpty) {
+        _onNetworkChanged(prev, latest);
+      } else {
+        _nudgeFromInterface();
+      }
+    });
+  }
+
+  /// The pre-existing response to a usable-interface report.
+  void _nudgeFromInterface() {
+    // Throttled, and non-manual. Both matter. iOS and Android each emit a
+    // burst of interface transitions per unlock, and `manual: true` forces
+    // an interrupt — so unthrottled manual retries killed the in-flight
+    // probe over and over and the loop never got an answer out of any of
+    // them.
+    final n = _now();
+    final last = _lastConnectivityRetryAt;
+    if (last != null && n.difference(last) < connectivityRetryThrottle) {
+      return;
+    }
+    _lastConnectivityRetryAt = n;
+    _noteProgress();
+    retryNow(manual: false);
+  }
+
+  /// The network the socket was built on is gone. Rebuild before probing —
+  /// probing a socket bound to a departed interface can only time out.
+  ///
+  /// Server cost: one socket and one re-registration of the live query set,
+  /// per genuine network change (settled, and a real loss — see
+  /// [_onInterfaces]), further capped by `ConvexBackend.reconnect`'s own
+  /// rate limit. That is far cheaper than the alternative it replaces, which
+  /// spent half a minute issuing probe queries into a dead socket.
+  void _onNetworkChanged(Set<String> from, Set<String> to) {
+    if (_disposed) return;
+    String fmt(Set<String> s) => (s.toList()..sort()).join('+');
+    DiagLog.connection(
+      'network',
+      '${fmt(from)} → ${fmt(to)}: rebuilding transport',
+    );
+    _signaling.noteNetworkChanged();
+    if (!_isActive()) return;
+    _wantRebuild = true;
+    _attempt = 0;
+    if (_healing) {
+      // Whatever is in flight is riding the departed interface.
+      _interruptAttempt(force: true);
+      _wake();
+    } else {
+      _beginHealing();
     }
   }
 
@@ -446,6 +589,7 @@ class ConnectionHealth extends ChangeNotifier {
     _connectivitySub?.cancel();
     _tickTimer?.cancel();
     _offlineTimer?.cancel();
+    _settleTimer?.cancel();
     _disarmUiTimers();
     _interruptAttempt(force: true);
     _wake();
@@ -731,6 +875,9 @@ class ConnectionHealth extends ChangeNotifier {
     _attempt = 0;
     _probeFailures = 0;
     _wakePending = false;
+    // Suspect, not proven — but nothing a call sends right now is going to
+    // arrive until a probe says otherwise, so its recovery clock pauses.
+    _signaling.markDown();
     // Note the loop itself arms the UI clocks, and only once it is genuinely
     // probing — see [_armUiTimers].
     _loop();
@@ -862,7 +1009,7 @@ class ConnectionHealth extends ChangeNotifier {
   Future<void> _loop() async {
     final gen = _loopGen;
     while (_healing && !_disposed && gen == _loopGen) {
-      if (!_foreground || !_isActive()) {
+      if ((!_foreground && !_healInBackground()) || !_isActive()) {
         _setRetrying(false);
         _isManualOrResumeRetry = false;
         _disarmUiTimers();
@@ -1004,7 +1151,16 @@ class ConnectionHealth extends ChangeNotifier {
   Duration _backoffFor(int attempt) {
     if (backoff.isEmpty) return const Duration(seconds: 15);
     final i = attempt - 1;
-    return i < backoff.length ? backoff[i] : backoff.last;
+    final base = i < backoff.length ? backoff[i] : backoff.last;
+    return jittered(base, backoffJitter, _random);
+  }
+
+  /// [base] scaled by a uniform factor in [1 - fraction, 1 + fraction].
+  @visibleForTesting
+  static Duration jittered(Duration base, double fraction, math.Random rng) {
+    if (fraction <= 0) return base;
+    final f = 1 + (rng.nextDouble() * 2 - 1) * fraction;
+    return Duration(microseconds: (base.inMicroseconds * f).round());
   }
 
   /// A [_wake] arrived while nothing was sleeping. Held so the next wait can
@@ -1076,6 +1232,7 @@ class ConnectionHealth extends ChangeNotifier {
     _disarmUiTimers();
     _wake();
     _setPhase(ConnectionPhase.online);
+    _signaling.markUp();
     // Fire-and-forget: a resubscribe failure must not stall the state machine,
     // and a socket that dies mid-resubscribe re-enters healing on its own.
     _onReconnected().catchError((Object e) {
