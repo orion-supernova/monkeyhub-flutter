@@ -135,9 +135,12 @@ class CallAudioRouteSheet extends StatelessWidget {
                       tone: r.isHeadset ? TileTone.blue : TileTone.gray,
                       title: callAudioRouteLabel(l10n, r.kind, r.name),
                       selected: r.selected,
+                      // The checked row too: picking it again re-applies
+                      // it, which is the way back from a route that only
+                      // half moved (the sound on AirPods, the mic on the
+                      // phone) or that something outside the app changed.
                       onTap: () {
                         Navigator.of(context).maybePop();
-                        if (r.selected) return;
                         unawaited(devices.selectRoute(
                           r,
                           setSpeaker: selectSpeaker,

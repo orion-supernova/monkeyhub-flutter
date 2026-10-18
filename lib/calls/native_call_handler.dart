@@ -60,6 +60,12 @@ class NativeCallHandler {
   static Future<void> Function() endAllCallsFn =
       () => FlutterCallkitIncoming.endAllCalls();
 
+  /// The plugin's `muteCall` (a CXSetMutedCallAction on iOS), swappable for
+  /// tests.
+  @visibleForTesting
+  static Future<void> Function(String uuid, bool muted) muteCallFn =
+      (uuid, muted) => FlutterCallkitIncoming.muteCall(uuid, isMuted: muted);
+
   /// Forces the "this device drives a native card" decision in tests, where
   /// `Platform` says macOS and every event would otherwise be dropped on the
   /// floor before the code under test.
@@ -426,8 +432,8 @@ class NativeCallHandler {
           event.eventName,
         );
         break;
-      case CallEventActionCallToggleMute():
-        await service.toggleMute();
+      case CallEventActionCallToggleMute(:final id, :final isMuted):
+        await _onCallKitMute(id, isMuted);
         break;
       case CallEventActionCallToggleAudioSession(:final isActive):
         // CallKit activated/deactivated the AVAudioSession. On activation
@@ -1389,8 +1395,102 @@ class NativeCallHandler {
   static Future<void> Function(String uuid) connectCallFn =
       (uuid) => FlutterCallkitIncoming.setCallConnected(uuid);
 
+  // ── mute, in step with CallKit ──
+
+  /// The mute changes this app asked CallKit for, so their echoes are not
+  /// read as the system's own.
+  final CallKitMuteLedger _muteSent = CallKitMuteLedger();
+
+  /// An in-app mute change of [callId] (1:1 callId or groupCallId), told
+  /// to its CallKit card, so the system's mute (its call screen, the AirPods
+  /// stem, a route change syncing the headset) starts from the app's state
+  /// instead of a stale one. iOS only: Android's plugin has no system mute
+  /// and its `muteCall` would only echo. No card known: nothing to tell.
+  Future<void> reportMuted(String callId, bool muted) async {
+    if (!_iosNative) return;
+    final uuid = _uuidByCallId[callId];
+    if (uuid == null) return;
+    _muteSent.sent(uuid, muted);
+    try {
+      await muteCallFn(uuid, muted);
+    } catch (e) {
+      debugPrint('NativeCallHandler.reportMuted failed: $e');
+    }
+  }
+
+  /// CallKit's CXSetMutedCallAction for card [uuid]: the state to be in,
+  /// not a toggle. Applied to the call that owns the card, and only to it:
+  /// a card for any other call (a second call ringing beside this one) says
+  /// nothing about this call's mic.
+  Future<void> _onCallKitMute(String uuid, bool muted) async {
+    if (_muteSent.isEcho(uuid, muted)) return;
+    final service = CallService.maybeInstance;
+    final live = service?.session;
+    if (service != null &&
+        live != null &&
+        _callIdForUuid(uuid, live.callId) == live.callId) {
+      debugPrint('NativeCallHandler: CallKit mute=$muted for ${live.callId}');
+      await service.setMuted(muted, fromSystem: true);
+      return;
+    }
+    final group = GroupCallService.maybeInstance;
+    final gid = group?.groupCallId;
+    if (group != null &&
+        gid != null &&
+        (_uuidByCallId[gid] ?? derivedUuid(gid)) == uuid) {
+      debugPrint('NativeCallHandler: CallKit mute=$muted for group $gid');
+      await group.setMuted(muted, fromSystem: true);
+      return;
+    }
+    debugPrint('NativeCallHandler: CallKit mute for unknown card $uuid ignored');
+  }
+
   /// Test-only: seed the native id [markConnected] targets.
   @visibleForTesting
   void debugRememberUuid(String callId, String uuid) =>
       _rememberUuid(callId, uuid);
+}
+
+/// The mute requests the app sent CallKit, per card, oldest first. The
+/// plugin answers each with an ACTION_CALL_TOGGLE_MUTE carrying the same
+/// state (CallKit's transactions run in order), and that echo must not be
+/// applied as the system's: a quick mute-unmute would otherwise come back
+/// as a mute after the unmute had landed, flickering the mic. Anything that
+/// is not the next expected echo is the system's own and clears the card's
+/// queue. Entries age out, since the plugin sends nothing for a card it
+/// cannot find.
+@visibleForTesting
+class CallKitMuteLedger {
+  CallKitMuteLedger({
+    this.ttl = const Duration(seconds: 3),
+    DateTime Function()? now,
+  }) : _now = now ?? DateTime.now;
+
+  final Duration ttl;
+  final DateTime Function() _now;
+  final List<({String uuid, bool muted, DateTime at})> _sent = [];
+
+  void sent(String uuid, bool muted) {
+    _prune();
+    _sent.add((uuid: uuid, muted: muted, at: _now()));
+  }
+
+  /// Whether CallKit's report of [muted] for [uuid] is the echo of the
+  /// oldest request still pending for that card. Consumes it if so.
+  bool isEcho(String uuid, bool muted) {
+    _prune();
+    final i = _sent.indexWhere((e) => e.uuid == uuid);
+    if (i < 0) return false;
+    if (_sent[i].muted == muted) {
+      _sent.removeAt(i);
+      return true;
+    }
+    _sent.removeWhere((e) => e.uuid == uuid);
+    return false;
+  }
+
+  void _prune() {
+    final now = _now();
+    _sent.removeWhere((e) => now.difference(e.at) > ttl);
+  }
 }

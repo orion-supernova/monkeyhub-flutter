@@ -1578,6 +1578,13 @@ import WebRTC
       DrawPip.shared.register(messenger: registrar.messenger())
     }
 
+    // monkeyhub/call_pip — the video call's Picture in Picture window, which
+    // is also what lets the camera keep running once the app leaves the
+    // screen. See CallPip.swift.
+    if let registrar = engine.registrar(forPlugin: "MonkeyHubCallPipPlugin") {
+      CallPip.shared.register(messenger: registrar.messenger())
+    }
+
     // monkeyhub/launcher_icon — swap the home-screen launcher icon at runtime.
     // Backs LauncherIconService in Dart. We talk to UIApplication directly
     // here because flutter_dynamic_icon_plus's Swift wrapper (SwiftTryCatch)
@@ -2446,6 +2453,20 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
   /// ([speaker]), so this coexists with headset-wins: a headset that
   /// connects later clears it ([routeChanged]), as does the call ending.
   private var preferredInputUID: String?
+  /// The pick is the phone's own mic ("iPhone" with a headset still
+  /// connected). The category then leaves out `.allowBluetoothA2DP`: with
+  /// it, iOS keeps the OUTPUT on the headset's A2DP side once its HFP mic
+  /// is let go, so the sound stayed in the AirPods, the mic moved to the
+  /// phone, and the AirPods row stayed checked with no way back. Without
+  /// A2DP the only Bluetooth route is HFP, which moves both directions
+  /// together, so the phone's mic brings the earpiece with it.
+  private var phonePinned = false
+  /// The headset inputs present when the pick was made. A `newDevice`
+  /// route change clears the pick only for a headset NOT among them: one
+  /// that really connected after it. A pick's own hand-over (the AirPods'
+  /// profile re-registering as the route leaves them) reported as
+  /// `newDevice` used to clear it and put the sound straight back.
+  private var pickInputs: Set<String> = []
 
   /// Main-thread only.
   private var channel: FlutterMethodChannel?
@@ -2555,8 +2576,19 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
   /// choice). Completes on main with whether the port was there to take.
   func selectInput(uid: String?, completion: @escaping (Bool) -> Void) {
     queue.async {
-      self.locked { self.preferredInputUID = uid }
-      let ok = self.applyPreferredInput(force: true)
+      let session = AVAudioSession.sharedInstance()
+      let inputs = session.availableInputs ?? []
+      let port = uid.flatMap { uid in inputs.first(where: { $0.uid == uid }) }
+      let headsets = Set(inputs.filter { Self.headsetPorts.contains($0.portType) }.map { $0.uid })
+      self.locked {
+        self.preferredInputUID = port?.uid
+        self.phonePinned = port?.portType == .builtInMic
+        self.pickInputs = headsets
+      }
+      // The category first (the A2DP bit follows [phonePinned]); it puts
+      // the pick on the session too. Then the pick, nil included.
+      self.write()
+      let ok = (uid == nil || port != nil) && self.applyPreferredInput(force: true)
       NSLog(
         "[call-audio] select input \(uid ?? "system") -> \(ok) route=\(Self.describe(AVAudioSession.sharedInstance()))"
       )
@@ -2587,7 +2619,13 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
     var port: AVAudioSessionPortDescription?
     if let uid = uid {
       guard let found = (session.availableInputs ?? []).first(where: { $0.uid == uid }) else {
-        locked { self.preferredInputUID = nil }
+        // Only a headset can go (the phone's own mic never does), so this
+        // is never a phone pin and the category needs no rewrite.
+        locked {
+          self.preferredInputUID = nil
+          self.phonePinned = false
+          self.pickInputs = []
+        }
         NSLog("[call-audio] preferred input \(uid) is gone; system choice")
         return false
       }
@@ -2616,7 +2654,7 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
   /// Returns at once: WebRTC's configuration (which its audio unit reads
   /// when it restarts) is updated here, the session write is queued.
   func reassert(isVideo: Bool?) {
-    let state: (video: Bool, speaker: Bool)? = locked {
+    let state: (video: Bool, speaker: Bool, a2dp: Bool)? = locked {
       if !self.claimed {
         guard let isVideo = isVideo else { return nil }
         self.video = isVideo
@@ -2625,10 +2663,10 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
         self.claimed = true
         self.claimGen &+= 1
       }
-      return (self.video, self.speaker)
+      return (self.video, self.speaker, !self.phonePinned)
     }
     guard let state = state else { return }
-    Self.configureWebRTC(video: state.video, speaker: state.speaker)
+    Self.configureWebRTC(video: state.video, speaker: state.speaker, a2dp: state.a2dp)
     queue.async {
       self.write()
       NSLog(
@@ -2702,13 +2740,15 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
       video = false
       speaker = false
       preferredInputUID = nil
+      phonePinned = false
+      pickInputs = []
       return true
     }
     guard current else {
       NSLog("[call-audio] restore skipped: a newer call claimed the session")
       return
     }
-    Self.configureWebRTC(video: false, speaker: false)
+    Self.configureWebRTC(video: false, speaker: false, a2dp: true)
     updateScreen(inCall: false, earpiece: false)
     let rtc = RTCAudioSession.sharedInstance()
     let session = AVAudioSession.sharedInstance()
@@ -2750,8 +2790,10 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
     NSLog("[call-audio] restored")
   }
 
-  private static func options(speaker: Bool) -> AVAudioSession.CategoryOptions {
-    var options: AVAudioSession.CategoryOptions = [.allowBluetoothHFP, .allowBluetoothA2DP]
+  /// [a2dp] is false only while the phone is pinned ([phonePinned]).
+  private static func options(speaker: Bool, a2dp: Bool) -> AVAudioSession.CategoryOptions {
+    var options: AVAudioSession.CategoryOptions = [.allowBluetoothHFP]
+    if a2dp { options.insert(.allowBluetoothA2DP) }
     if speaker { options.insert(.defaultToSpeaker) }
     return options
   }
@@ -2764,10 +2806,10 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
 
   /// WebRTC re-applies this whenever its audio unit (re)starts; left stale,
   /// the route would snap back at connect or after an interruption.
-  private static func configureWebRTC(video: Bool, speaker: Bool) {
+  private static func configureWebRTC(video: Bool, speaker: Bool, a2dp: Bool) {
     let config = RTCAudioSessionConfiguration.webRTC()
     config.category = AVAudioSession.Category.playAndRecord.rawValue
-    config.categoryOptions = options(speaker: speaker)
+    config.categoryOptions = options(speaker: speaker, a2dp: a2dp)
     config.mode = mode(video: video, speaker: speaker).rawValue
   }
 
@@ -2776,26 +2818,28 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
   /// when they differ, the port override every time (cheap, and it is what
   /// an outside category change drops).
   private func write() {
-    let state: (video: Bool, speaker: Bool)? = locked {
-      self.claimed ? (self.video, self.speaker) : nil
+    let state: (video: Bool, speaker: Bool, a2dp: Bool)? = locked {
+      self.claimed ? (self.video, self.speaker, !self.phonePinned) : nil
     }
-    guard let (video, speaker) = state else { return }
-    let options = Self.options(speaker: speaker)
+    guard let (video, speaker, a2dp) = state else { return }
+    let options = Self.options(speaker: speaker, a2dp: a2dp)
     let mode = Self.mode(video: video, speaker: speaker)
-    Self.configureWebRTC(video: video, speaker: speaker)
+    Self.configureWebRTC(video: video, speaker: speaker, a2dp: a2dp)
 
     let rtc = RTCAudioSession.sharedInstance()
     let session = AVAudioSession.sharedInstance()
     rtc.lockForConfiguration()
     do {
       // `videoChat` adds bits of its own, so compare what this call asks
-      // for (each option present, the speaker bit exactly) instead of
-      // equality, which would rewrite video-on-speaker on every reassert.
+      // for (each option present, the speaker and A2DP bits exactly)
+      // instead of equality, which would rewrite video-on-speaker on every
+      // reassert.
       let current = session.categoryOptions
       if session.category != .playAndRecord
         || session.mode != mode
         || !current.isSuperset(of: options)
-        || current.contains(.defaultToSpeaker) != speaker {
+        || current.contains(.defaultToSpeaker) != speaker
+        || current.contains(.allowBluetoothA2DP) != a2dp {
         try rtc.setCategory(.playAndRecord, mode: mode, options: options)
       }
     } catch {
@@ -2852,9 +2896,25 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
       let session = AVAudioSession.sharedInstance()
       // A headset connecting takes the sound (the product rule Dart's
       // policy follows), over an earlier pick in the route sheet.
+      // Only a headset that was not there when the pick was made: the
+      // pick's own hand-over can be reported as `newDevice` too.
       if reason == .newDeviceAvailable, self.locked({ self.preferredInputUID != nil }) {
-        self.locked { self.preferredInputUID = nil }
-        self.applyPreferredInput(force: true)
+        let known = self.locked { self.pickInputs }
+        let arrived = (session.availableInputs ?? []).contains {
+          Self.headsetPorts.contains($0.portType) && !known.contains($0.uid)
+        }
+        if arrived {
+          let wasPhone: Bool = self.locked {
+            let was = self.phonePinned
+            self.preferredInputUID = nil
+            self.phonePinned = false
+            self.pickInputs = []
+            return was
+          }
+          // A2DP back in the category before the pick is let go.
+          if wasPhone { self.write() }
+          self.applyPreferredInput(force: true)
+        }
       }
       var state = Self.snapshot(session)
       let echo = Date().timeIntervalSince(self.lastWrite) < Self.echoWindow
@@ -2933,6 +2993,7 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
   static func routes(_ session: AVAudioSession) -> [[String: Any]] {
     let current = session.currentRoute.outputs.first
     let currentKind = outputName(current?.portType)
+    let currentInput = session.currentRoute.inputs.first
     let inputs = session.availableInputs ?? []
     var list: [[String: Any]] = []
     if let receiverName = receiverName,
@@ -2953,9 +3014,13 @@ final class CallAudioRouter: NSObject, RTCAudioSessionDelegate {
       }
       // Wired: the output is "Headphones", the mic "Headset Microphone",
       // so the kind alone matches; wireless sets share a name across both.
-      let selected = currentKind == kind
+      let soundHere = currentKind == kind
         && (kind == "headphones" || current?.portName == input.portName)
-      if selected { matched = true }
+      if soundHere { matched = true }
+      // Checked only with the mic here too. The sound on a headset's A2DP
+      // side with the phone's mic is no one route: nothing is checked, and
+      // a tap on the headset takes both back.
+      let selected = soundHere && currentInput?.uid == input.uid
       list.append([
         "kind": kind, "uid": input.uid, "name": input.portName, "selected": selected,
       ])

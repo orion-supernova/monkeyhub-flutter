@@ -560,20 +560,17 @@ class CallAudioDevices extends ChangeNotifier {
   /// headset's mic and speaker together during a call, and choosing the
   /// phone means the phone's mic (`setPreferredInput`). Android's
   /// communication device is likewise one device for both directions.
+  ///
+  /// Nothing here is written ahead of the platform: the button, the mic
+  /// badge and the sheet's check all come from the route the platform
+  /// reports afterwards. They used to be set on the tap (the pick checked,
+  /// the mic assumed to follow), so a pick iOS did not take left them
+  /// showing a route the sound was not on until some later report.
   Future<void> selectRoute(
     CallAudioRouteOption route, {
     required Future<void> Function(bool on) setSpeaker,
   }) async {
     final toSpeaker = route.kind == CallAudioOutputKind.speaker;
-    // Answer on the tap; the next report confirms or corrects it.
-    _routes = [
-      for (final r in _routes) r.copyWith(selected: r == route),
-    ];
-    _output = route.kind;
-    _outputName = route.isHeadset ? route.name : null;
-    // The mic follows the pick until the platform says otherwise.
-    _input = null;
-    _bump();
     if (_ios) {
       await setSpeaker(toSpeaker);
       if (!toSpeaker) {
@@ -585,7 +582,9 @@ class CallAudioDevices extends ChangeNotifier {
           debugPrint('CallAudioDevices: selectCallAudioInput failed: $e');
         }
       }
-      unawaited(refresh());
+      // Now, and once the route has settled (a Bluetooth hand-over lands
+      // a beat after the write that asked for it).
+      _scheduleRefresh();
     } else if (_android) {
       pinAndroidCallOutput(toSpeaker ? null : route.id);
       await setSpeaker(toSpeaker);
