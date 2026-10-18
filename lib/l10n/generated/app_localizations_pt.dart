@@ -4244,6 +4244,17 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reportSheetUpdateActionReloads => 'Recarrega com a nova versão';
 
   @override
+  String get reportSheetUpdateActionInstallsInApp => 'Instala sem sair da app';
+
+  @override
+  String get reportSheetUpdateActionRestarts => 'Instala e reinicia a app';
+
+  @override
+  String reportSheetUpdateDownloading(int percent) {
+    return 'A transferir a atualização… $percent%';
+  }
+
+  @override
   String get reportSheetUpdateLaterSemanticLabel => 'Mais tarde';
 
   @override
@@ -18475,6 +18486,17 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get reportSheetUpdateActionReloads => 'Recarrega com a nova versão';
+
+  @override
+  String get reportSheetUpdateActionInstallsInApp => 'Instala sem sair do app';
+
+  @override
+  String get reportSheetUpdateActionRestarts => 'Instala e reinicia o app';
+
+  @override
+  String reportSheetUpdateDownloading(int percent) {
+    return 'Baixando a atualização… $percent%';
+  }
 
   @override
   String get reportSheetUpdateLaterSemanticLabel => 'Depois';

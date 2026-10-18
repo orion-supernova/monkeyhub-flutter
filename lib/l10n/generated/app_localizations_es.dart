@@ -4235,6 +4235,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get reportSheetUpdateActionReloads => 'Recarga con la nueva versión';
 
   @override
+  String get reportSheetUpdateActionInstallsInApp =>
+      'Instala sin salir de la app';
+
+  @override
+  String get reportSheetUpdateActionRestarts => 'Instala y reinicia la app';
+
+  @override
+  String reportSheetUpdateDownloading(int percent) {
+    return 'Descargando la actualización… $percent %';
+  }
+
+  @override
   String get reportSheetUpdateLaterSemanticLabel => 'Más tarde';
 
   @override

@@ -406,16 +406,16 @@ server is unreachable.
 
 | Channel | Who publishes it | How the app knows it's on that channel |
 |---|---|---|
-| `ios-testflight` | deploy.sh, after the ASC upload | its own receipt at runtime (`sandboxReceipt`) |
-| `ios-appstore` | **manual**, after Apple approves a version (an upload isn't a release). The row carries the store link, so publish only `version` (and `minSupported` to force) | its own receipt at runtime |
+| `ios-testflight` | deploy.sh, once Apple has **processed** the upload (`altool --build-status --wait` in the background, collected after the platform loop). A processing that never confirms is reported with the manual publish line, not announced | its own receipt at runtime (`sandboxReceipt`) |
+| `ios-appstore` | **nobody, for the version.** The app asks the App Store itself (public lookup, per storefront, `lib/update/apple_store.dart`), so approval reaches users with nothing to publish. The row only carries `minSupported`/notes; a mandatory update applies only once the store's version clears the minimum. Update opens the store page as an in-app sheet | its own receipt at runtime |
 | `android-apk` | deploy.sh, after each **Play** upload — it is a migration notice now, not a release. See [Retired: the APK](#retired-the-apk) | `--dart-define` baked into the retired APKs |
-| `android-play` | deploy.sh, after the fastlane upload. Only `minSupported` and notes matter now: whether a Play install is *offered* an update is Google Play's answer for its own track (In-App Updates, `lib/update/play_update.dart`), since internal and production installs are the same binary | `--dart-define`, and Play-vs-sideload at runtime |
+| `android-play` | deploy.sh, after the fastlane upload. Updates install in place (Play's immediate flow). Only `minSupported` and notes matter now: whether a Play install is *offered* an update is Google Play's answer for its own track (In-App Updates, `lib/update/play_update.dart`), since internal and production installs are the same binary | `--dart-define`, and Play-vs-sideload at runtime |
 | `web` | deploy.sh, after the web rsync | `--dart-define` |
-| `macos-testflight` | deploy.sh, after the ASC upload | `--dart-define` — see caveat below |
-| `macos-appstore` | **manual**, after approval, same as `ios-appstore` | `macos-testflight` define + StoreKit `AppTransaction.environment` at runtime (macOS 13+) |
+| `macos-testflight` | deploy.sh, once Apple has processed the upload, same as `ios-testflight` | `--dart-define` — see caveat below |
+| `macos-appstore` | **nobody, for the version**, same as `ios-appstore` (the lookup picks the `mac-software` record) | `macos-testflight` define + StoreKit `AppTransaction.environment` at runtime (macOS 13+) |
 | `macos-dmg` | **manual** (no self-hosted DMG build in deploy.sh yet) | `--dart-define` only |
-| `windows` | deploy.sh, after the `msstore` Store submission (manual until MS_STORE_* is set up) | `--dart-define` only |
-| `linux` | deploy.sh, after the tarball lands on `/downloads/` | `--dart-define` only |
+| `windows` | deploy.sh, after the `msstore` submission, for `minSupported`/notes and older builds. Current builds ask the Store (`StoreContext`, `windows/runner/store_update.cpp`), which offers the package only after certification, and install it in place | `--dart-define` only |
+| `linux` | deploy.sh, after the tarball lands on `/downloads/`. A tarball install in a folder the user owns updates itself (download, check the `sha256` in `artifacts.json`, swap, relaunch); the AUR install in `/opt` gets the download page | `--dart-define` only |
 
 The iOS build deliberately carries **no** `MH_CHANNEL` define: one binary serves
 both TestFlight and the App Store, so a stamped channel would be wrong for half
@@ -432,16 +432,15 @@ approval, so at runtime a `macos-testflight` build asks StoreKit
 (`AppTransaction.environment`, `macos/Runner/InstallerEnvironment.swift`) and
 reads `macos-appstore` when it is a store install.
 
-**After Apple approves a version**, move the store row (no server job polls
-Apple, by choice: it would be load on the VPS for something that changes a
-few times a month). Both rows already carry their store link, which `publish`
-keeps when it is omitted:
-
-```sh
-cd backend
-npx convex run releases:publish '{"channel":"ios-appstore","version":"1.3.130"}'
-npx convex run releases:publish '{"channel":"macos-appstore","version":"1.3.131"}'
-```
+**After Apple approves a version** there is nothing to do. App Store installs
+read the version from the App Store's own lookup, so they see the update as soon
+as their storefront serves it (Apple's cache can lag a few hours, which makes
+the prompt late, never early). The old `releases:publish` one-liner for
+`ios-appstore`/`macos-appstore` is only needed to change notes or the store
+link. Verify the macOS lookup once the Mac listing is live: if
+`https://itunes.apple.com/lookup?id=6739744338&entity=macSoftware` returns no
+`mac-software` record, macOS store installs get no answer and no prompt
+(safe, but silent).
 
 **Forcing an update on a store channel** works the usual way:
 `./deploy.sh --set-min-supported ios-appstore <version>` (or `macos-appstore`). A future

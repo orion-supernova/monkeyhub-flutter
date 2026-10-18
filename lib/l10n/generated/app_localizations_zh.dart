@@ -3989,6 +3989,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reportSheetUpdateActionReloads => '重新加载新版本';
 
   @override
+  String get reportSheetUpdateActionInstallsInApp => '无需离开应用即可安装';
+
+  @override
+  String get reportSheetUpdateActionRestarts => '安装并重新启动应用';
+
+  @override
+  String reportSheetUpdateDownloading(int percent) {
+    return '正在下载更新… $percent%';
+  }
+
+  @override
   String get reportSheetUpdateLaterSemanticLabel => '稍后';
 
   @override

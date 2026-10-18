@@ -4215,6 +4215,19 @@ class AppLocalizationsSv extends AppLocalizations {
       'Laddar om med den nya versionen';
 
   @override
+  String get reportSheetUpdateActionInstallsInApp =>
+      'Installerar utan att lämna appen';
+
+  @override
+  String get reportSheetUpdateActionRestarts =>
+      'Installerar och startar om appen';
+
+  @override
+  String reportSheetUpdateDownloading(int percent) {
+    return 'Laddar ned uppdateringen… $percent %';
+  }
+
+  @override
   String get reportSheetUpdateLaterSemanticLabel => 'Senare';
 
   @override

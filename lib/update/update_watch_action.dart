@@ -1,4 +1,5 @@
 import '../models/app_release.dart';
+import 'store_answer.dart';
 import 'version_compare.dart';
 
 /// What one delivery from `UpdateChecker.watch`'s subscription should cause.
@@ -59,6 +60,95 @@ enum UpdateWatchAction {
     action: mandatory && !isFirstDelivery
         ? UpdateWatchAction.badgeAndPrompt
         : UpdateWatchAction.badgeOnly,
+    mandatory: mandatory,
+  );
+}
+
+/// [decideWatchAction] with the store's own answer folded in — the one
+/// decision both `UpdateChecker.checkNow` and `watch` go through.
+///
+/// Where the store can answer ([StoreVerdict.notApplicable] aside), the row's
+/// `version` is no longer evidence of anything: it says what deploy.sh
+/// uploaded, and an upload in review, in certification, or on Play's internal
+/// track is not something this install can get. So the store decides *whether*
+/// there is an update and *which* version it is; the row only contributes what
+/// a store can't know — `minSupported`, the notes, an `updateUrl` override.
+///
+/// The returned release is the one to show: for a store channel it carries the
+/// store's version, so the sheet's "v1.3.9 → v1.3.10" names the build the
+/// button will actually install.
+///
+/// One rule beyond the row-only path: an update is mandatory only when what the
+/// store would install actually clears `minSupported`. Otherwise a minimum
+/// raised ahead of approval would lock users behind a sheet whose button leads
+/// to a build that is still too old — a trap, not a prompt.
+({UpdateWatchAction action, AppRelease? release, bool mandatory}) decideUpdate({
+  required AppRelease? release,
+  required StoreAnswer store,
+  required String currentVersion,
+  required bool isFirstDelivery,
+}) {
+  switch (store.verdict) {
+    case StoreVerdict.notApplicable:
+      final d = decideWatchAction(
+        release: release,
+        currentVersion: currentVersion,
+        isFirstDelivery: isFirstDelivery,
+      );
+      return (action: d.action, release: release, mandatory: d.mandatory);
+    case StoreVerdict.noAnswer:
+      return (action: UpdateWatchAction.ignore, release: null, mandatory: false);
+    case StoreVerdict.upToDate:
+      return (
+        action: UpdateWatchAction.clearBadge,
+        release: null,
+        mandatory: false,
+      );
+    case StoreVerdict.available:
+      break;
+  }
+
+  final storeVersion = store.version?.trim();
+  final hasStoreVersion = storeVersion != null && storeVersion.isNotEmpty;
+  // A store that names a version no newer than this one is contradicting
+  // itself (a stale cache on its side); believe the number, not the flag.
+  if (hasStoreVersion && compareVersions(currentVersion, storeVersion) >= 0) {
+    return (
+      action: UpdateWatchAction.clearBadge,
+      release: null,
+      mandatory: false,
+    );
+  }
+
+  final version = hasStoreVersion ? storeVersion : (release?.version ?? '');
+  // Notes are prose about one specific build. Shown only when the row is
+  // talking about the build the store is offering, so a note written for an
+  // upload still in review never decorates the previous one.
+  final notes = release != null && compareVersions(release.version, version) == 0
+      ? release.notes
+      : null;
+  final offered = AppRelease(
+    channel: release?.channel ?? '',
+    version: version,
+    minSupported: release?.minSupported,
+    updateUrl: release?.updateUrl,
+    notes: notes,
+    publishedAt: release?.publishedAt ?? 0,
+  );
+
+  final min = release?.minSupported;
+  final mandatory = min != null &&
+      min.isNotEmpty &&
+      compareVersions(currentVersion, min) < 0 &&
+      // Unknown store version (Play): trust the store's yes, as the Play gate
+      // always has. Known: it must actually reach the minimum.
+      (!hasStoreVersion || compareVersions(storeVersion, min) >= 0);
+
+  return (
+    action: mandatory && !isFirstDelivery
+        ? UpdateWatchAction.badgeAndPrompt
+        : UpdateWatchAction.badgeOnly,
+    release: offered,
     mandatory: mandatory,
   );
 }

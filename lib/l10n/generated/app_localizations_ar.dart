@@ -4276,6 +4276,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportSheetUpdateActionReloads => 'يعيد التحميل بالإصدار الجديد';
 
   @override
+  String get reportSheetUpdateActionInstallsInApp => 'يثبّت دون مغادرة التطبيق';
+
+  @override
+  String get reportSheetUpdateActionRestarts => 'يثبّت ويعيد تشغيل التطبيق';
+
+  @override
+  String reportSheetUpdateDownloading(int percent) {
+    return 'جارٍ تنزيل التحديث… $percent٪';
+  }
+
+  @override
   String get reportSheetUpdateLaterSemanticLabel => 'لاحقًا';
 
   @override

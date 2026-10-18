@@ -4205,6 +4205,19 @@ class AppLocalizationsHi extends AppLocalizations {
   String get reportSheetUpdateActionReloads => 'नए वर्शन के साथ रीलोड होगा';
 
   @override
+  String get reportSheetUpdateActionInstallsInApp =>
+      'ऐप छोड़े बिना इंस्टॉल होगा';
+
+  @override
+  String get reportSheetUpdateActionRestarts =>
+      'इंस्टॉल होकर ऐप फिर से शुरू होगा';
+
+  @override
+  String reportSheetUpdateDownloading(int percent) {
+    return 'अपडेट डाउनलोड हो रहा है… $percent%';
+  }
+
+  @override
   String get reportSheetUpdateLaterSemanticLabel => 'बाद में';
 
   @override

@@ -4691,6 +4691,23 @@
   "@reportSheetUpdateActionReloads": {
     "description": "Subtext under the UPDATE button for the web release channel."
   },
+  "reportSheetUpdateActionInstallsInApp": "Installs without leaving the app",
+  "@reportSheetUpdateActionInstallsInApp": {
+    "description": "Subtext under the UPDATE button when the store installs the update over the app (Google Play in-app updates, the Microsoft Store's installer), so the user never goes to a store listing."
+  },
+  "reportSheetUpdateActionRestarts": "Installs and restarts the app",
+  "@reportSheetUpdateActionRestarts": {
+    "description": "Subtext under the UPDATE button on Linux when the app downloads the new build, replaces itself and relaunches."
+  },
+  "reportSheetUpdateDownloading": "Downloading the update… {percent}%",
+  "@reportSheetUpdateDownloading": {
+    "description": "Replaces the subtext under the UPDATE button while the Linux self-update downloads. {percent} is a whole number from 0 to 100.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "reportSheetUpdateLaterSemanticLabel": "Later",
   "@reportSheetUpdateLaterSemanticLabel": {
     "description": "Screen-reader semanticLabel for the update sheet's dismiss/skip action."

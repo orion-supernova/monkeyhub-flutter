@@ -4052,6 +4052,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportSheetUpdateActionReloads => '새 버전으로 새로고침돼요';
 
   @override
+  String get reportSheetUpdateActionInstallsInApp => '앱을 떠나지 않고 설치돼요';
+
+  @override
+  String get reportSheetUpdateActionRestarts => '설치 후 앱이 다시 시작돼요';
+
+  @override
+  String reportSheetUpdateDownloading(int percent) {
+    return '업데이트 다운로드 중… $percent%';
+  }
+
+  @override
   String get reportSheetUpdateLaterSemanticLabel => '나중에';
 
   @override

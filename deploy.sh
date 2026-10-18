@@ -1970,6 +1970,85 @@ publish_release() {   # $1 = channel, $2 = updateUrl (optional), $3 = notes (opt
     fi
 }
 
+# ----- TestFlight: announce when Apple has processed the build -----
+# altool returning means Apple RECEIVED the upload, not that testers can
+# install it: processing takes 5-30 minutes, and until it's done TestFlight has
+# nothing to offer, so a row published at upload time sends testers to an empty
+# Update button. So the upload's delivery ID goes to `altool --build-status
+# --wait` in the background (the rest of the run carries on), and the row is
+# published when Apple says the build is processed. await_testflight_processing,
+# after the platform loop, collects the result.
+#
+# No delivery ID in the upload output (an altool that prints a different shape)
+# falls back to the old behaviour, announced at once, and says so.
+TESTFLIGHT_WAITS=""          # space-separated "channel|pid|logfile"
+TESTFLIGHT_UNANNOUNCED=""    # channels whose processing never confirmed
+TESTFLIGHT_WAIT_LIMIT=3600   # seconds; Apple calls >24h stuck, an hour is plenty
+
+asc_upload() {   # $1 = ios|macos, $2 = file, $3 = log
+    xcrun altool --upload-app \
+        --type "$1" \
+        --file "$2" \
+        --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+        --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
+        --apiKeyPath "$P8_FILE_PATH" >"$3" 2>&1
+}
+
+announce_when_processed() {   # $1 = channel, $2 = upload log
+    local channel="$1" log="$2" uuid delivery out
+    uuid='[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+    delivery=$(grep -ioE "delivery[^0-9a-fA-F]{0,40}$uuid" "$log" 2>/dev/null \
+        | grep -oE "$uuid" | head -n 1)
+    if [ -z "$delivery" ]; then
+        echo "  ⚠️  No delivery ID in the upload output ($log)."
+        echo "     Announcing $channel now, before Apple finishes processing."
+        publish_release "$channel"
+        return 0
+    fi
+    out="/tmp/monkeyhub_${channel}_processing.log"
+    rm -f "$out" "$out.rc"
+    (
+        xcrun altool --build-status --delivery-id "$delivery" --wait \
+            --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
+            --apiKeyPath "$P8_FILE_PATH" >"$out" 2>&1 &
+        local apid=$!
+        ( sleep "$TESTFLIGHT_WAIT_LIMIT"; kill "$apid" 2>/dev/null ) &
+        local kpid=$!
+        wait "$apid"
+        echo $? >"$out.rc"
+        kill "$kpid" 2>/dev/null
+    ) &
+    TESTFLIGHT_WAITS="$TESTFLIGHT_WAITS $channel|$!|$out"
+    echo "  ⏳ $channel: announced once Apple finishes processing (delivery $delivery)"
+}
+
+await_testflight_processing() {
+    [ -n "$TESTFLIGHT_WAITS" ] || return 0
+    local entry channel pid out rc
+    for entry in $TESTFLIGHT_WAITS; do
+        IFS='|' read -r channel pid out <<<"$entry"
+        if kill -0 "$pid" 2>/dev/null; then
+            echo "⏳ Waiting for Apple to process the $channel build..."
+            spinner "$pid" "Apple is processing the $channel build"
+        fi
+        wait "$pid" 2>/dev/null
+        rc=$(cat "$out.rc" 2>/dev/null || echo 1)
+        # Exit 0 alone isn't enough: altool has reported a failed processing
+        # state with a clean exit before. Any FAILED/INVALID/ERROR line vetoes.
+        if [ "$rc" = 0 ] && ! grep -qE 'FAILED|INVALID|ERROR' "$out"; then
+            echo "  ✅ $channel: processed, testers can install it"
+            publish_release "$channel"
+        else
+            echo "  ⚠️  $channel: Apple's processing didn't confirm (exit $rc). Log: $out"
+            echo "     Not announced. Once TestFlight shows the build, announce it with:"
+            echo "       (cd backend && npx convex run releases:publish '{\"channel\":\"$channel\",\"version\":\"$DISPLAY_VERSION\"}')"
+            echo "       ./deploy.sh --sync-releases"
+            TESTFLIGHT_UNANNOUNCED="$TESTFLIGHT_UNANNOUNCED $channel"
+        fi
+    done
+}
+
 # ----- the static pages -----
 # Two pages, one visual language, both generated from templates in hosting/:
 #   site.template.html      → /srv/monkeyhub/site      → the front door
@@ -2470,18 +2549,16 @@ run_ios() {
             return 1
         fi
         if [ "$RUN_UPLOAD" = true ]; then
+            local upload_log=/tmp/monkeyhub_ios_upload.log
             run_with_spinner "Uploading to App Store Connect" \
-                xcrun altool --upload-app \
-                    --type ios \
-                    --file "$IPA_PATH" \
-                    --apiKey "$APP_STORE_CONNECT_KEY_ID" \
-                    --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
-                    --apiKeyPath "$P8_FILE_PATH" || return 1
+                asc_upload ios "$IPA_PATH" "$upload_log" \
+                || { tail -n 20 "$upload_log"; echo "     Log: $upload_log"; return 1; }
 
-            # TestFlight only. An ASC upload is not a released App Store version, so
-            # the ios-appstore row stays where it is until a build is actually
-            # approved for sale — see DEPLOY.md for the one-liner that moves it.
-            publish_release ios-testflight
+            # TestFlight only, and only once Apple has processed the build. App
+            # Store installs don't read a row's version at all: they ask the
+            # App Store itself (lib/update/apple_store.dart), so approval
+            # reaches them with nothing to publish.
+            announce_when_processed ios-testflight "$upload_log"
             SHIPPED_SOMETHING=true
             free_platform_space ios
             IPA_PATH=""
@@ -2579,15 +2656,12 @@ run_macos() {
             return 1
         fi
         if [ "$RUN_UPLOAD" = true ]; then
+            local upload_log=/tmp/monkeyhub_macos_upload.log
             run_with_spinner "Uploading to App Store Connect" \
-                xcrun altool --upload-app \
-                    --type macos \
-                    --file "$PKG_PATH" \
-                    --apiKey "$APP_STORE_CONNECT_KEY_ID" \
-                    --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
-                    --apiKeyPath "$P8_FILE_PATH" || return 1
+                asc_upload macos "$PKG_PATH" "$upload_log" \
+                || { tail -n 20 "$upload_log"; echo "     Log: $upload_log"; return 1; }
 
-            publish_release macos-testflight
+            announce_when_processed macos-testflight "$upload_log"
             SHIPPED_SOMETHING=true
             free_platform_space macos
             PKG_PATH=""
@@ -2686,9 +2760,12 @@ run_android() {
 # .env.local. Until both exist the MSIX is handed over for a manual upload,
 # exactly how Android worked before Play was automated. See DEPLOY.md.
 #
-# Announced the moment the submission is in, like TestFlight, even though
-# certification takes hours to days: the release row points at the Store page,
-# which serves the update the moment it clears.
+# Announced the moment the submission is in, even though certification takes
+# hours to days. Current builds don't take the row's version as evidence of
+# anything: they ask the Store itself (StoreContext, see
+# lib/update/windows_store_update.dart), which offers the package only once it
+# has cleared, and install it in place. The row is still published for its
+# minSupported/notes, and for builds that predate that check.
 run_windows() {
     local do_build=false do_upload=false
     has_stage "$WINDOWS_STAGES" build && do_build=true
@@ -2750,12 +2827,15 @@ run_windows() {
 #
 # Older tarballs stay on the VM (the AUR's sha256 pins an exact file, and a
 # user mid-upgrade may still be fetching the previous one), pruned to three.
-dl_manifest_put() {   # $1 = key, $2 = file, $3 = size
+dl_manifest_put() {   # $1 = key, $2 = file, $3 = size, $4 = sha256 (optional)
+    # sha256 is what the Linux self-updater (lib/update/linux_self_update_io.dart)
+    # checks the download against; it refuses to install a tarball without one.
     local current
     current=$(dl_manifest_fetch)
     printf '%s' "$current" | jq --arg k "$1" --arg f "$2" --arg v "$DISPLAY_VERSION" \
-        --arg s "$3" --arg d "$STAMP_DATE" \
-        '.[$k] = {file: $f, version: $v, size: $s, updatedAt: $d}' \
+        --arg s "$3" --arg d "$STAMP_DATE" --arg h "${4:-}" \
+        '.[$k] = ({file: $f, version: $v, size: $s, updatedAt: $d}
+                  + (if $h == "" then {} else {sha256: $h} end))' \
         | vm_ssh "cat > $DL_MANIFEST.tmp && mv $DL_MANIFEST.tmp $DL_MANIFEST"
 }
 
@@ -2831,7 +2911,8 @@ run_linux() {
             run_with_spinner "Uploading $name to the VM" \
                 rsync -a -e "ssh $VM_SSH_OPTS" "$LINUX_TARBALL" "$VM_USER@$VM_HOST:$VM_DL_DIR/" || return 1
             vm_ssh "cd $VM_DL_DIR && ls -1t monkeyhub-linux-x64-*.tar.gz 2>/dev/null | tail -n +4 | xargs -r rm -f" || true
-            if ! dl_manifest_put linux "$name" "$size"; then
+            if ! dl_manifest_put linux "$name" "$size" \
+                    "$(shasum -a 256 "$LINUX_TARBALL" | cut -d' ' -f1)"; then
                 echo "  ❌ Uploaded, but could not record it in $DL_MANIFEST."
                 return 1
             fi
@@ -2994,6 +3075,11 @@ for p in $PLATFORM_ORDER; do
     ship_platform "$p"
 done
 
+# TestFlight rows wait on Apple's processing, which ran in the background while
+# the other platforms built. Before the git step, so a run that ends here has
+# every row it is going to publish.
+await_testflight_processing
+
 # ----- Landing + downloads pages -----
 # Last, so the downloads page renders from a manifest that already includes
 # anything this run just shipped. Isolated like every platform above: a failed
@@ -3069,7 +3155,11 @@ echo "  📱 Version:        $NEW_VERSION"
 [ "$RUN_CONVEX" = true ] && echo "  $(status_icon "$CONVEX_STATUS") Convex:            $CONVEX_STATUS"
 if [ "$DEPLOY_IOS" = true ]; then
     if [ "$IOS_STATUS" = ok ] && [ "$RUN_UPLOAD" = true ]; then
-        echo "  ✅ iOS:            App Store Connect (TestFlight shows the build in a few minutes)"
+        if [[ " $TESTFLIGHT_UNANNOUNCED " == *" ios-testflight "* ]]; then
+            echo "  ⚠️  iOS:            uploaded, but processing didn't confirm, so not announced (see above)"
+        else
+            echo "  ✅ iOS:            on TestFlight and announced; the App Store follows approval on its own"
+        fi
     elif [ "$IOS_STATUS" = ok ]; then
         echo "  ✅ iOS IPA:        $IPA_PATH"
     else
@@ -3078,7 +3168,11 @@ if [ "$DEPLOY_IOS" = true ]; then
 fi
 if [ "$DEPLOY_MACOS" = true ]; then
     if [ "$MACOS_STATUS" = ok ] && [ "$RUN_UPLOAD" = true ]; then
-        echo "  ✅ macOS:          App Store Connect (TestFlight shows the build in a few minutes)"
+        if [[ " $TESTFLIGHT_UNANNOUNCED " == *" macos-testflight "* ]]; then
+            echo "  ⚠️  macOS:          uploaded, but processing didn't confirm, so not announced (see above)"
+        else
+            echo "  ✅ macOS:          on TestFlight and announced; the Mac App Store follows approval on its own"
+        fi
     elif [ "$MACOS_STATUS" = ok ]; then
         echo "  ✅ macOS package:  $PKG_PATH"
     else

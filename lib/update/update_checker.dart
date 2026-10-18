@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../backend/convex_client.dart';
@@ -8,11 +9,12 @@ import '../backend/release_api.dart';
 import '../main.dart' show rootNavigatorKey;
 import '../models/app_release.dart';
 import '../widgets/update_sheet.dart';
-import 'play_update.dart';
+import 'linux_self_update.dart';
 import 'release_channel.dart';
+import 'store_answer.dart';
+import 'store_updates.dart';
 import 'update_availability.dart';
 import 'update_watch_action.dart';
-import 'version_compare.dart';
 
 export 'update_watch_action.dart' show UpdateWatchAction, decideWatchAction;
 
@@ -63,6 +65,27 @@ class UpdateChecker {
   /// Handle for the live subscription started by [watch].
   Subscription? _watchSub;
 
+  /// Re-asks the store on resume, for channels whose answer can change with
+  /// no release row moving. See [_onResume].
+  AppLifecycleListener? _resumeListener;
+
+  /// The last store answer, so a subscription delivery or a resume shortly
+  /// after a check doesn't ask again. The Microsoft Store in particular
+  /// throttles how often an app may ask.
+  ({ReleaseChannel channel, StoreAnswer answer, DateTime at})? _storeCache;
+  Future<StoreAnswer>? _storeInFlight;
+
+  /// The row the subscription last delivered, so a resume-time store answer
+  /// can be combined with the current `minSupported` and notes.
+  AppRelease? _lastRow;
+
+  /// Minimum gap between store asks that aren't a manual tap.
+  static const _storeTtl = Duration(minutes: 30);
+
+  /// Minimum gap between resume-time re-asks. An approval or a certification
+  /// lands a few times a month; checking more often than this buys nothing.
+  static const _resumeEvery = Duration(hours: 6);
+
   /// True while an update sheet is on screen. Before [watch] existed only one
   /// thing could ever raise the sheet, so nothing could stack on it; now a
   /// mandatory release can arrive over the socket while the cold-start sheet
@@ -74,13 +97,48 @@ class UpdateChecker {
     _ran = false;
     _watchSub?.cancel();
     _watchSub = null;
+    _resumeListener?.dispose();
+    _resumeListener = null;
+    _storeCache = null;
+    _storeInFlight = null;
+    _lastRow = null;
     _sheetOpen = false;
   }
 
   Future<void> ensure() async {
     if (_ran) return;
     _ran = true;
+    // First moment the folder a Linux self-update replaced is out of use.
+    LinuxSelfUpdate.sweep();
     await checkNow();
+  }
+
+  /// The store's answer for [channel], reused for [_storeTtl] unless [fresh].
+  Future<StoreAnswer> _askStore(
+    ReleaseChannel channel,
+    String current, {
+    bool fresh = false,
+  }) async {
+    final cached = _storeCache;
+    if (!fresh &&
+        cached != null &&
+        cached.channel == channel &&
+        DateTime.now().difference(cached.at) < _storeTtl) {
+      return cached.answer;
+    }
+    // ensure() and watch() start together at launch; the second ask joins
+    // the first instead of going to the store twice.
+    final inFlight = _storeInFlight;
+    if (inFlight != null) return inFlight;
+    final ask = askStore(channel, current).then((answer) {
+      // A non-answer isn't worth remembering: the next ask should try again.
+      if (answer.verdict != StoreVerdict.noAnswer) {
+        _storeCache = (channel: channel, answer: answer, at: DateTime.now());
+      }
+      return answer;
+    }).whenComplete(() => _storeInFlight = null);
+    _storeInFlight = ask;
+    return ask;
   }
 
   /// Runs a live check against the backend regardless of [ensure]'s
@@ -101,38 +159,52 @@ class UpdateChecker {
       final current = (await PackageInfo.fromPlatform()).version;
       if (current.isEmpty) return UpdateCheckOutcome.unsupported;
 
-      final release = await _api.latestRelease(channel.wire);
-      // Nothing published for this channel yet — the normal state for a channel
-      // whose store listing doesn't exist.
-      if (release == null || release.version.isEmpty) {
-        return UpdateCheckOutcome.upToDate;
+      // On a store channel the row only adds minSupported and notes, so a
+      // backend that can't be reached mustn't hide what the store says — the
+      // user on a build too old to talk to it is exactly who needs the prompt.
+      AppRelease? release;
+      try {
+        release = await _api.latestRelease(channel.wire);
+      } catch (e) {
+        if (!storeAnswers(channel)) rethrow;
+        debugPrint('UPDATE CHECK: no release row ($e), asking the store alone');
       }
-      if (compareVersions(current, release.version) >= 0) {
-        return UpdateCheckOutcome.upToDate;
+      // Every tap is a real round trip, to the store as much as the backend.
+      final store = await _askStore(channel, current, fresh: true);
+      final d = decideUpdate(
+        release: release,
+        store: store,
+        currentVersion: current,
+        isFirstDelivery: true,
+      );
+      switch (d.action) {
+        case UpdateWatchAction.ignore:
+          // Nothing published for a row-driven channel is the normal state
+          // for a channel with no listing yet. A store that didn't answer is
+          // a failed check, and the settings row should say so.
+          return store.verdict == StoreVerdict.noAnswer
+              ? UpdateCheckOutcome.error
+              : UpdateCheckOutcome.upToDate;
+        case UpdateWatchAction.clearBadge:
+          return UpdateCheckOutcome.upToDate;
+        case UpdateWatchAction.badgeOnly:
+        case UpdateWatchAction.badgeAndPrompt:
+          break;
       }
-      // Play decides for Play installs: the row says what was uploaded, not
-      // what this install's track can get. See play_update.dart.
-      if (channel == ReleaseChannel.androidPlay && !await playHasUpdate()) {
-        return UpdateCheckOutcome.upToDate;
-      }
-
-      final min = release.minSupported;
-      final mandatory = min != null &&
-          min.isNotEmpty &&
-          compareVersions(current, min) < 0;
+      final offered = d.release!;
 
       UpdateAvailability.instance.report(
-        release: release,
+        release: offered,
         channel: channel,
         currentVersion: current,
-        mandatory: mandatory,
+        mandatory: d.mandatory,
       );
 
       await _raiseSheet(
-        release: release,
+        release: offered,
         channel: channel,
         currentVersion: current,
-        mandatory: mandatory,
+        mandatory: d.mandatory,
       );
       return UpdateCheckOutcome.available;
     } catch (e) {
@@ -197,50 +269,95 @@ class UpdateChecker {
         onRelease: (release) async {
           final isFirst = firstDelivery;
           firstDelivery = false;
-          // Same gate as [checkNow]: a Play install only hears about a
-          // release its own track can actually install.
-          if (channel == ReleaseChannel.androidPlay &&
-              release != null &&
-              !await playHasUpdate()) {
-            UpdateAvailability.instance.clear();
-            return;
-          }
-          final decision = decideWatchAction(
-            release: release,
-            currentVersion: current,
-            isFirstDelivery: isFirst,
+          _lastRow = release;
+          // For a store channel the row only carries minSupported and notes;
+          // whether there is an update at all is the store's answer.
+          final store = await _askStore(channel, current);
+          _apply(
+            decideUpdate(
+              release: release,
+              store: store,
+              currentVersion: current,
+              isFirstDelivery: isFirst,
+            ),
+            channel: channel,
+            current: current,
           );
-
-          switch (decision.action) {
-            case UpdateWatchAction.ignore:
-              return;
-            case UpdateWatchAction.clearBadge:
-              UpdateAvailability.instance.clear();
-            case UpdateWatchAction.badgeOnly:
-            case UpdateWatchAction.badgeAndPrompt:
-              UpdateAvailability.instance.report(
-                release: release!,
-                channel: channel,
-                currentVersion: current,
-                mandatory: decision.mandatory,
-              );
-              if (decision.action == UpdateWatchAction.badgeAndPrompt) {
-                unawaited(
-                  _raiseSheet(
-                    release: release,
-                    channel: channel,
-                    currentVersion: current,
-                    mandatory: true,
-                  ),
-                );
-              }
-          }
         },
-      );
+              );
+
+      // An approval, a certification, a Play rollout reaching this track:
+      // none of them moves the row, so the subscription can't hear them. An
+      // app on iOS can stay warm for weeks, so ask again on the way back to
+      // the foreground, at most every [_resumeEvery].
+      _resumeListener?.dispose();
+      _resumeListener = null;
+      if (storeAnswers(channel)) {
+        var lastAsk = DateTime.now();
+        _resumeListener = AppLifecycleListener(
+          onResume: () {
+            if (DateTime.now().difference(lastAsk) < _resumeEvery) return;
+            lastAsk = DateTime.now();
+            unawaited(_onResume(channel, current));
+          },
+        );
+      }
     } catch (e) {
       // Same stance as [checkNow]: the update path is an extra and must never
       // be the reason a launch looks broken.
       debugPrint('UPDATE WATCH skipped: $e');
+    }
+  }
+
+  /// A resume-time store re-ask, combined with the row last delivered. A
+  /// later delivery in every sense, so a mandatory answer interrupts.
+  Future<void> _onResume(ReleaseChannel channel, String current) async {
+    try {
+      final store = await _askStore(channel, current, fresh: true);
+      _apply(
+        decideUpdate(
+          release: _lastRow,
+          store: store,
+          currentVersion: current,
+          isFirstDelivery: false,
+        ),
+        channel: channel,
+        current: current,
+      );
+    } catch (e) {
+      debugPrint('UPDATE RESUME check skipped: $e');
+    }
+  }
+
+  /// Turns a decision into badge state and, when it calls for one, the sheet.
+  void _apply(
+    ({UpdateWatchAction action, AppRelease? release, bool mandatory}) d, {
+    required ReleaseChannel channel,
+    required String current,
+  }) {
+    switch (d.action) {
+      case UpdateWatchAction.ignore:
+        return;
+      case UpdateWatchAction.clearBadge:
+        UpdateAvailability.instance.clear();
+      case UpdateWatchAction.badgeOnly:
+      case UpdateWatchAction.badgeAndPrompt:
+        UpdateAvailability.instance.report(
+          release: d.release!,
+          channel: channel,
+          currentVersion: current,
+          mandatory: d.mandatory,
+        );
+        if (d.action == UpdateWatchAction.badgeAndPrompt) {
+          unawaited(
+            _raiseSheet(
+              release: d.release!,
+              channel: channel,
+              currentVersion: current,
+              mandatory: true,
+            ),
+          );
+        }
     }
   }
 

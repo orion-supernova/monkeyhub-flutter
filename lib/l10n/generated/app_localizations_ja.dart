@@ -4043,6 +4043,17 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reportSheetUpdateActionReloads => '新しいバージョンで再読み込みします';
 
   @override
+  String get reportSheetUpdateActionInstallsInApp => 'アプリを離れずにインストールします';
+
+  @override
+  String get reportSheetUpdateActionRestarts => 'インストールしてアプリを再起動します';
+
+  @override
+  String reportSheetUpdateDownloading(int percent) {
+    return 'アップデートをダウンロード中… $percent%';
+  }
+
+  @override
   String get reportSheetUpdateLaterSemanticLabel => 'あとで';
 
   @override

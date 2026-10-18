@@ -1903,6 +1903,12 @@ import WebRTC
       VideoShrink.register(with: shrinkRegistrar.messenger())
     }
 
+    // monkeyhub/installer — the App Store side of the update check: the
+    // storefront to look the version up in, and the store page as a sheet.
+    if let installerRegistrar = engine.registrar(forPlugin: "MonkeyHubInstallerPlugin") {
+      InstallerEnvironment.register(with: installerRegistrar.messenger())
+    }
+
     // monkeyhub/media_compose — joins and trims the segments of a paused
     // voice or video note.
     if let composeRegistrar = engine.registrar(forPlugin: "MonkeyHubMediaComposePlugin") {

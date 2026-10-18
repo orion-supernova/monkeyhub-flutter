@@ -20,6 +20,16 @@ add_executable(${BINARY_NAME} WIN32
 # that need different build settings.
 apply_standard_settings(${BINARY_NAME})
 
+# monkeyhub/store_update (store_update.cpp) talks to the Microsoft Store through
+# C++/WinRT, whose headers need C++20 coroutines. Its own library, so the rest
+# of the runner keeps the C++17 the Flutter template is written for.
+add_library(store_update STATIC "store_update.cpp")
+apply_standard_settings(store_update)
+target_compile_features(store_update PRIVATE cxx_std_20)
+target_compile_definitions(store_update PRIVATE "NOMINMAX")
+target_link_libraries(store_update PRIVATE flutter flutter_wrapper_app)
+target_link_libraries(store_update PUBLIC "windowsapp.lib")
+
 # Add preprocessor definitions for the build version.
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION=\"${FLUTTER_VERSION}\"")
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_MAJOR=${FLUTTER_VERSION_MAJOR}")
@@ -36,6 +46,7 @@ target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
 target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
 # Taskbar overlay badge: ITaskbarList3 (ole32) + GDI+ icon rendering (gdiplus).
 target_link_libraries(${BINARY_NAME} PRIVATE "ole32.lib" "gdiplus.lib")
+target_link_libraries(${BINARY_NAME} PRIVATE store_update)
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/app_release.dart';
 import '../theme/theme_scope.dart';
+import '../update/linux_self_update.dart';
 import '../update/release_channel.dart';
 import '../update/update_destination.dart';
 import 'adaptive_sheet.dart';
@@ -46,7 +47,7 @@ Future<void> showUpdateSheet(
   );
 }
 
-class _UpdateSheet extends StatelessWidget {
+class _UpdateSheet extends StatefulWidget {
   const _UpdateSheet({
     required this.release,
     required this.channel,
@@ -59,10 +60,63 @@ class _UpdateSheet extends StatelessWidget {
   final String currentVersion;
   final bool mandatory;
 
+  @override
+  State<_UpdateSheet> createState() => _UpdateSheetState();
+}
+
+class _UpdateSheetState extends State<_UpdateSheet> {
+  /// A Linux self-update in flight: the sheet stays up and shows how far the
+  /// download has got, because a 70 MB download behind a closed sheet looks
+  /// exactly like a button that did nothing.
+  bool _installing = false;
+  double? _progress;
+
+  ReleaseChannel get channel => widget.channel;
+  AppRelease get release => widget.release;
+  bool get mandatory => widget.mandatory;
+
+  /// Probed once: it writes a file to find out.
+  late final bool _linuxInPlace =
+      channel == ReleaseChannel.linux && LinuxSelfUpdate.supported;
+
+  Future<void> _update() async {
+    if (_linuxInPlace) {
+      setState(() => _installing = true);
+      // Exits into the new build on success, so returning means it failed
+      // and the old build is untouched: fall back to the download page.
+      await LinuxSelfUpdate.run(
+        onProgress: (p) {
+          if (mounted) setState(() => _progress = p);
+        },
+      );
+      if (!mounted) return;
+      setState(() {
+        _installing = false;
+        _progress = null;
+      });
+    } else if (!mandatory) {
+      // Close first on an optional update so the user isn't left staring at
+      // the sheet behind the store. A mandatory one stays up: if they back
+      // out of the store without updating, the prompt is still there.
+      Navigator.of(context).pop();
+    }
+    await openUpdateDestination(
+      channel,
+      release.updateUrl,
+      version: release.version,
+    );
+  }
+
   /// What the update button actually does, in the user's terms — the button is
   /// only honest if it names where it's about to send them.
   String _actionSub(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    if (_installing) {
+      final p = _progress;
+      return l10n.reportSheetUpdateDownloading(
+        p == null ? 0 : (p * 100).clamp(0, 100).round(),
+      );
+    }
     switch (channel) {
       case ReleaseChannel.iosTestflight:
       case ReleaseChannel.macosTestflight:
@@ -71,11 +125,17 @@ class _UpdateSheet extends StatelessWidget {
       case ReleaseChannel.macosAppstore:
         return l10n.reportSheetUpdateActionOpensAppStore;
       case ReleaseChannel.androidPlay:
-        return l10n.reportSheetUpdateActionOpensGooglePlay;
+      case ReleaseChannel.windows:
+        // Play's and the Microsoft Store's own installers, over the app.
+        return l10n.reportSheetUpdateActionInstallsInApp;
+      case ReleaseChannel.linux:
+        return _linuxInPlace
+            ? l10n.reportSheetUpdateActionRestarts
+            // A package-managed install (the AUR): the download page's Linux
+            // card carries the package manager line.
+            : l10n.reportSheetUpdateActionOpensDownloadPage;
       case ReleaseChannel.androidApk:
       case ReleaseChannel.macosDmg:
-      case ReleaseChannel.windows:
-      case ReleaseChannel.linux:
         return l10n.reportSheetUpdateActionOpensDownloadPage;
       case ReleaseChannel.web:
         return l10n.reportSheetUpdateActionReloads;
@@ -148,26 +208,30 @@ class _UpdateSheet extends StatelessWidget {
               textAlign: TextAlign.center,
               style: groupedFooterStyle(theme),
             ),
-            const SizedBox(height: 12),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.ink.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  l10n.reportSheetUpdateVersionArrow(
-                    currentVersion,
-                    release.version,
+            // Play names no version, so a Play install with no release row
+            // has nothing to put after the arrow.
+            if (release.version.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
                   ),
-                  style: metaText(theme, color: theme.inkSoft),
+                  decoration: BoxDecoration(
+                    color: theme.ink.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    l10n.reportSheetUpdateVersionArrow(
+                      widget.currentVersion,
+                      release.version,
+                    ),
+                    style: metaText(theme, color: theme.inkSoft),
+                  ),
                 ),
               ),
-            ),
+            ],
             if (notes != null && notes.isNotEmpty) ...[
               const SizedBox(height: 14),
               // Centred with everything else on the card.
@@ -188,18 +252,8 @@ class _UpdateSheet extends StatelessWidget {
               // freshly-opened sheet updates — the inverse of a delete
               // confirmation.
               autofocus: true,
-              onTap: () {
-                // Close first on an optional update so the user isn't left
-                // staring at the sheet behind the store. A mandatory one stays
-                // up: if they back out of the store without updating, the
-                // prompt is still there.
-                if (!mandatory) Navigator.of(context).pop();
-                openUpdateDestination(
-                  channel,
-                  release.updateUrl,
-                  version: release.version,
-                );
-              },
+              busy: _installing,
+              onTap: _update,
             ),
             // Where the button is about to send them — the button is only
             // honest if it says so.

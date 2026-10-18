@@ -21,6 +21,7 @@ using std::min;
 #include <variant>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "store_update.h"
 
 // Windows 10 2004 SDK value; older SDK headers lack the name.
 #ifndef WDA_EXCLUDEFROMCAPTURE
@@ -189,6 +190,11 @@ bool FlutterWindow::OnCreate() {
         result->Success();
       });
 
+  // monkeyhub/store_update — the Microsoft Store's own update check and
+  // in-place installer (lib/update/windows_store_update.dart).
+  RegisterStoreUpdateChannel(flutter_controller_->engine()->messenger(),
+                             GetHandle());
+
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
   });
@@ -204,6 +210,7 @@ bool FlutterWindow::OnCreate() {
 void FlutterWindow::OnDestroy() {
   g_badge_channel = nullptr;
   g_capture_channel = nullptr;
+  UnregisterStoreUpdateChannel();
   if (g_taskbar != nullptr) {
     g_taskbar->Release();
     g_taskbar = nullptr;
@@ -232,6 +239,12 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
     if (result) {
       return *result;
     }
+  }
+
+  // A Store answer finishing on a WinRT thread, posted here to reach Dart
+  // from the platform thread.
+  if (HandleStoreUpdateMessage(message, lparam)) {
+    return 0;
   }
 
   switch (message) {

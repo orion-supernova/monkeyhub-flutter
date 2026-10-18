@@ -7127,6 +7127,24 @@ abstract class AppLocalizations {
   /// **'Reloads with the new version'**
   String get reportSheetUpdateActionReloads;
 
+  /// Subtext under the UPDATE button when the store installs the update over the app (Google Play in-app updates, the Microsoft Store's installer), so the user never goes to a store listing.
+  ///
+  /// In en, this message translates to:
+  /// **'Installs without leaving the app'**
+  String get reportSheetUpdateActionInstallsInApp;
+
+  /// Subtext under the UPDATE button on Linux when the app downloads the new build, replaces itself and relaunches.
+  ///
+  /// In en, this message translates to:
+  /// **'Installs and restarts the app'**
+  String get reportSheetUpdateActionRestarts;
+
+  /// Replaces the subtext under the UPDATE button while the Linux self-update downloads. {percent} is a whole number from 0 to 100.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading the update… {percent}%'**
+  String reportSheetUpdateDownloading(int percent);
+
   /// Screen-reader semanticLabel for the update sheet's dismiss/skip action.
   ///
   /// In en, this message translates to:

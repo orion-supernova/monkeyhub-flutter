@@ -4169,6 +4169,19 @@ class AppLocalizationsTr extends AppLocalizations {
   String get reportSheetUpdateActionReloads => 'Yeni sürümle yeniden yükler';
 
   @override
+  String get reportSheetUpdateActionInstallsInApp =>
+      'Uygulamadan çıkmadan yükler';
+
+  @override
+  String get reportSheetUpdateActionRestarts =>
+      'Yükler ve uygulamayı yeniden başlatır';
+
+  @override
+  String reportSheetUpdateDownloading(int percent) {
+    return 'Güncelleme indiriliyor… %$percent';
+  }
+
+  @override
   String get reportSheetUpdateLaterSemanticLabel => 'Sonra';
 
   @override

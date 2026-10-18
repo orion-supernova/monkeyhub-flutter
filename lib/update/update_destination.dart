@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'play_update.dart';
 import 'release_channel.dart';
+import 'store_updates.dart';
 import 'web_reload.dart';
 
 /// MonkeyHub's App Store Connect app id, shared by the iOS and macOS listings
@@ -44,9 +44,10 @@ Future<void> openUpdateDestination(
     return;
   }
 
-  // Play updates in place: no store hop, and mandatory updates can't be
-  // dodged by backing out of the listing.
-  if (channel == ReleaseChannel.androidPlay && await startPlayUpdate()) return;
+  // In place wherever the platform allows it: Play's and the Microsoft
+  // Store's installers, the App Store page as an in-app sheet. No store hop,
+  // and a mandatory update can't be dodged by backing out of a listing.
+  if (await startInAppUpdate(channel)) return;
 
   final candidates = <String>[
     if (updateUrl != null && updateUrl.trim().isNotEmpty) updateUrl.trim(),
