@@ -156,6 +156,7 @@ class ChatMatch {
     this.deadlineAt,
     this.nudgedAt,
     this.watching = 0,
+    this.watchers = const [],
     this.seatRequest,
     this.drawOfferSeat,
     this.drawOfferSeq,
@@ -200,6 +201,15 @@ class ChatMatch {
 
   /// Room members watching right now (not seated).
   final int watching;
+
+  /// Who they are, in the order they arrived: at most a dozen, so
+  /// [watching] can be the larger. Empty from a server that predates it.
+  final List<String> watchers;
+
+  /// [watchers] less anyone seated since the server last counted (a seat
+  /// swap lands before the next recount).
+  List<String> get watcherIds =>
+      [for (final w in watchers) if (!isSeated(w)) w];
   final SeatRequest? seatRequest;
   final int? drawOfferSeat;
   final int? drawOfferSeq;
@@ -280,6 +290,7 @@ class ChatMatch {
         deadlineAt: deadlineAt,
         nudgedAt: nudgedAt,
         watching: watching,
+        watchers: watchers,
         seatRequest: seatRequest,
         winner: winner,
         winners: winners,
@@ -324,6 +335,9 @@ class ChatMatch {
       deadlineAt: _at(j['deadlineAt']),
       nudgedAt: _at(j['nudgedAt']),
       watching: (j['watching'] as num?)?.toInt() ?? 0,
+      watchers: [
+        for (final w in (j['watchers'] as List?) ?? const []) w.toString(),
+      ],
       seatRequest: req is Map
           ? SeatRequest(
               userId: req['userId']?.toString() ?? '',

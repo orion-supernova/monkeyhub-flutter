@@ -13,6 +13,7 @@ import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../media/image_raster.dart' show sniffImageContentType;
+import '../media/photo_library_watch.dart';
 import '../theme/theme_scope.dart';
 import 'app_toast.dart';
 import 'glass_buttons.dart';
@@ -215,15 +216,20 @@ class _GalleryTrayState extends State<GalleryTray>
   int _shownCount = 1;
   bool _adding = false;
 
-  static final _filter = FilterOptionGroup(
+  /// Built per query, never kept: a filter's creation-date window closes at
+  /// the moment it was made, so a kept one hides every photo taken after it.
+  static FilterOptionGroup _filter() => FilterOptionGroup(
     orders: [const OrderOption(type: OrderOptionType.createDate, asc: false)],
   );
+
+  late final VoidCallback _unwatch;
 
   @override
   void initState() {
     super.initState();
     widget.controller._state = this;
     WidgetsBinding.instance.addObserver(this);
+    _unwatch = PhotoLibraryWatch.listen(_onLibraryChanged);
     unawaited(_refresh());
   }
 
@@ -247,6 +253,7 @@ class _GalleryTrayState extends State<GalleryTray>
   void dispose() {
     if (widget.controller._state == this) widget.controller._state = null;
     WidgetsBinding.instance.removeObserver(this);
+    _unwatch();
     _y.dispose();
     _grid.dispose();
     super.dispose();
@@ -257,6 +264,15 @@ class _GalleryTrayState extends State<GalleryTray>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) unawaited(_refresh());
+  }
+
+  /// A screenshot (or anything else) landed while the tray is up: read as
+  /// many photos as are already loaded again, so the new one slides in at
+  /// the front without the grid losing its place.
+  void _onLibraryChanged() {
+    if (_access == GalleryAccess.granted || _access == GalleryAccess.limited) {
+      unawaited(_load(reset: true, keep: true));
+    }
   }
 
   // ------------------------------------------------------------------ library
@@ -344,24 +360,29 @@ class _GalleryTrayState extends State<GalleryTray>
   /// (a mode switch mid-load) is dropped instead of landing in this one.
   int _generation = 0;
 
-  Future<void> _load({bool reset = false}) async {
+  /// [keep] (with [reset]) reads back as many as are loaded now, rounded up
+  /// to a page, instead of only the first page.
+  Future<void> _load({bool reset = false, bool keep = false}) async {
     if (_loadingMore && !reset) return;
     _loadingMore = true;
     if (reset) _generation++;
     final generation = _generation;
     final start = reset ? 0 : _assets.length;
+    final count = keep
+        ? math.max(_page, (_assets.length / _page).ceil() * _page)
+        : _page;
     try {
       final page = await PhotoManager.getAssetListRange(
         start: start,
-        end: start + _page,
+        end: start + count,
         type: widget.videos ? RequestType.video : RequestType.image,
-        filterOption: _filter,
+        filterOption: _filter(),
       );
       if (!mounted || generation != _generation) return;
       setState(() {
         if (reset) _assets.clear();
         _assets.addAll(page);
-        _hasMore = page.length == _page;
+        _hasMore = page.length == count;
       });
       widget.controller.latest.value = _assets.isEmpty ? null : _assets.first;
     } catch (e) {

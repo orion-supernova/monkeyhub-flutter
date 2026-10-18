@@ -131,6 +131,8 @@ export const BEAT_FRESH_MS = 25_000;
 export const LIVENESS_EVERY_MS = 15_000;
 /** A lobby nobody has had open for this long closes. */
 export const LOBBY_IDLE_MS = 90_000;
+/** The most watchers a game names; the rest are only counted. */
+export const WATCHERS_SHOWN = 12;
 /** How long a seat request stands before somebody else may ask instead. */
 export const SEAT_REQUEST_TTL_MS = 60_000;
 /** Finished games the room's list carries, for their cards. */
@@ -304,6 +306,7 @@ function view(match: any) {
     deadlineAt: match.deadlineAt,
     nudgedAt: match.nudgedAt,
     watching: match.watching ?? 0,
+    watchers: match.watchers ?? [],
     seatRequest: match.seatRequest,
     drawOffer: match.drawOffer,
     winner: match.winner,
@@ -1403,9 +1406,22 @@ export const liveness = internalMutation({
         .map((b: any) => b.userId),
     );
     const seated = new Set(match.seats.map((s: any) => s.userId));
-    const watching = [...fresh].filter((u) => !seated.has(u)).length;
+    const nowWatching = [...fresh].filter((u) => !seated.has(u));
+    const watching = nowWatching.length;
     const patch: Record<string, unknown> = {};
     if ((match.watching ?? 0) !== watching) patch.watching = watching;
+    // Those already shown keep their places; newcomers join at the end.
+    const before: string[] = match.watchers ?? [];
+    const watchers = [
+      ...before.filter((u) => nowWatching.includes(u as any)),
+      ...nowWatching.filter((u) => !before.includes(u as any)),
+    ].slice(0, WATCHERS_SHOWN);
+    if (
+      watchers.length !== before.length ||
+      watchers.some((u, i) => u !== before[i])
+    ) {
+      patch.watchers = watchers;
+    }
 
     if (match.status === "lobby") {
       const lastSeen = Math.max(

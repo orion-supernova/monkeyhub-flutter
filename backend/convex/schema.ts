@@ -2899,6 +2899,9 @@ export default defineSchema({
     // Room members watching the board right now, recounted by the liveness
     // job from `matchPresence` and written only when it changes.
     watching: v.optional(v.number()),
+    // Who they are, in the order they arrived, at most [WATCHERS_SHOWN]: the
+    // faces over the board. Written with `watching`, by the same job.
+    watchers: v.optional(v.array(v.id("users"))),
     // Somebody asking to take a seat from its holder. One at a time.
     seatRequest: v.optional(
       v.object({

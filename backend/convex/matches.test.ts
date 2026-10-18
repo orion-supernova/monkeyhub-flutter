@@ -299,6 +299,23 @@ describe("a live game", () => {
     expect((await read(t, a, matchId)).seq).toBe(2);
   });
 
+  test("a watcher is named over the board, and dropped once gone", async () => {
+    const t = convexTest(schema);
+    const { a, b, c, matchId } = await liveGame(t);
+    await t.mutation(api.matches.beat, { ...as(c), matchId });
+    await advance(t, 20_000, matchId, [a, b, c]);
+    let m = await read(t, a, matchId);
+    expect(m.watching).toBe(1);
+    expect(m.watchers).toEqual([c.userId]);
+    // Seated players are never watchers.
+    expect(m.watchers).not.toContain(a.userId);
+
+    await advance(t, 60_000, matchId, [a, b]);
+    m = await read(t, a, matchId);
+    expect(m.watching).toBe(0);
+    expect(m.watchers).toEqual([]);
+  });
+
   test("the last one out of a lobby closes it", async () => {
     const t = convexTest(schema);
     const a = await signUp(t, "ada");

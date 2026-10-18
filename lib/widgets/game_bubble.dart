@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../chat_games/match_copy.dart';
 import '../chat_games/match_face.dart';
+import '../chat_games/watcher_faces.dart';
 import '../data/matches_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -675,6 +676,10 @@ class _Footer extends StatelessWidget {
       children: [
         ?action,
         if (action != null && watching != null) const SizedBox(width: 10),
+        if (watching != null) ...[
+          WatcherStack(match: m!, ring: attachmentBubbleFill(theme)),
+          if (m.watcherIds.isNotEmpty) const SizedBox(width: 6),
+        ],
         if (watching != null)
           Flexible(
             child: Text(

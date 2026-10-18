@@ -12,6 +12,7 @@ import '../../chat_games/match_copy.dart';
 import '../../chat_games/match_face.dart';
 import '../../chat_games/move_notation.dart';
 import '../../chat_games/turn_panel.dart';
+import '../../chat_games/watcher_faces.dart';
 import '../../data/matches_store.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/text_case.dart';
@@ -1209,11 +1210,13 @@ class _Lobby extends StatelessWidget {
           style: groupedMetaStyle(theme).copyWith(color: theme.inkMuted),
         ),
         if (match.watching > 0) ...[
-          const SizedBox(height: 4),
-          Text(
-            l10n.chatGameWatchingCount(match.watching),
-            textAlign: TextAlign.center,
-            style: groupedMetaStyle(theme).copyWith(color: theme.inkMuted),
+          const SizedBox(height: 14),
+          Center(
+            child: WatcherRoster(
+              match: match,
+              viewerId: viewerId,
+              center: true,
+            ),
           ),
         ],
         const SizedBox(height: 18),
@@ -1513,11 +1516,8 @@ class _Sidebar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (m != null && m.watching > 0 && m.status.isOpen) ...[
-            Text(
-              l10n.chatGameWatchingCount(m.watching),
-              style: groupedMetaStyle(theme).copyWith(color: theme.inkMuted),
-            ),
-            const SizedBox(height: 8),
+            WatcherRoster(match: m, viewerId: viewerId),
+            const SizedBox(height: 14),
           ],
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,

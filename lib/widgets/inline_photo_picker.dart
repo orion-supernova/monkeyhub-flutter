@@ -15,6 +15,7 @@ import '../l10n/text_case.dart';
 import '../media/file_meta.dart' show formatFileSize, kMaxFileUploadBytes;
 import '../media/image_raster.dart' show CroppedImage;
 import '../media/media_send_options.dart';
+import '../media/photo_library_watch.dart';
 import '../media/photo_picking.dart' show kMaxPhotoSelection;
 import '../theme/theme_scope.dart';
 import 'app_toast.dart';
@@ -263,6 +264,7 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
   bool _loading = false;
   bool _exhausted = false;
   int _generation = 0;
+  late final VoidCallback _unwatch;
 
   @override
   void initState() {
@@ -270,12 +272,14 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
     WidgetsBinding.instance.addObserver(this);
     widget.controller.addListener(_onPicks);
     widget.controller.sheet.addListener(_onSheet);
+    _unwatch = PhotoLibraryWatch.listen(_onLibraryChanged);
     _refresh();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _unwatch();
     widget.controller.removeListener(_onPicks);
     widget.controller.sheet.removeListener(_onSheet);
     _size.dispose();
@@ -291,6 +295,15 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) _refresh();
+  }
+
+  /// A screenshot (or anything else) landed while the picker is up: read
+  /// back as many as are loaded, so the new one slides in at the front and
+  /// the grid keeps its place. The picks are held by id, so they survive.
+  void _onLibraryChanged() {
+    if (_access == _Access.granted || _access == _Access.limited) {
+      unawaited(_load(reset: true, keep: true));
+    }
   }
 
   _Access _accessOf(PermissionState s) => switch (s) {
@@ -332,20 +345,26 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
     }
   }
 
-  Future<void> _load({bool reset = false}) async {
+  /// [keep] (with [reset]) leaves the grid up until the new read lands, and
+  /// reads back as many as are loaded now, rounded up to a page.
+  Future<void> _load({bool reset = false, bool keep = false}) async {
+    final count = keep
+        ? math.max(_page, (_assets.length / _page).ceil() * _page)
+        : _page;
     if (reset) {
       _generation++;
-      _assets.clear();
+      if (!keep) _assets.clear();
       _exhausted = false;
       _loading = false;
     }
     if (_loading || _exhausted) return;
     _loading = true;
     final generation = _generation;
+    final start = keep ? 0 : _assets.length;
     try {
       final page = await PhotoManager.getAssetListRange(
-        start: _assets.length,
-        end: _assets.length + _page,
+        start: start,
+        end: start + count,
         type: RequestType.common,
         filterOption: FilterOptionGroup(
           orders: [
@@ -355,8 +374,9 @@ class _InlinePhotoPickerState extends State<InlinePhotoPicker>
       );
       if (!mounted || generation != _generation) return;
       setState(() {
+        if (keep) _assets.clear();
         _assets.addAll(page);
-        _exhausted = page.length < _page;
+        _exhausted = page.length < count;
       });
     } catch (e) {
       debugPrint('[inline_picker] load: $e');
