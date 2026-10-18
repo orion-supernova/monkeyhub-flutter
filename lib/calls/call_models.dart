@@ -77,9 +77,19 @@ class PeerMediaState {
     this.screenSharing = false,
     this.camStreamId,
     this.screenStreamId,
+    this.videoPaused = false,
   });
   final bool audioMuted;
   final bool videoOff;
+
+  /// The picture is off because the system stopped the camera, not because
+  /// the peer turned it off: their app left the screen with no Picture in
+  /// Picture up (iPhone locked, the window stashed at the screen's edge),
+  /// or another app took the camera. Always sent with [videoOff] true, so
+  /// a build that does not know this field shows a plain "camera off". The
+  /// picture comes back by itself; the UI can say "paused" instead of
+  /// "off".
+  final bool videoPaused;
   final bool screenSharing;
   final String? camStreamId;
   final String? screenStreamId;
@@ -90,6 +100,7 @@ class PeerMediaState {
     bool? screenSharing,
     String? camStreamId,
     String? screenStreamId,
+    bool? videoPaused,
   }) =>
       PeerMediaState(
         audioMuted: audioMuted ?? this.audioMuted,
@@ -97,6 +108,7 @@ class PeerMediaState {
         screenSharing: screenSharing ?? this.screenSharing,
         camStreamId: camStreamId ?? this.camStreamId,
         screenStreamId: screenStreamId ?? this.screenStreamId,
+        videoPaused: videoPaused ?? this.videoPaused,
       );
 
   Map<String, dynamic> toJson() => {
@@ -105,6 +117,7 @@ class PeerMediaState {
         'screenSharing': screenSharing,
         if (camStreamId != null) 'camStreamId': camStreamId,
         if (screenStreamId != null) 'screenStreamId': screenStreamId,
+        if (videoPaused) 'videoPaused': true,
       };
 
   /// Tolerant of the two-field payload older builds still send: a missing
@@ -115,6 +128,7 @@ class PeerMediaState {
         screenSharing: (j['screenSharing'] as bool?) ?? false,
         camStreamId: j['camStreamId'] as String?,
         screenStreamId: j['screenStreamId'] as String?,
+        videoPaused: (j['videoPaused'] as bool?) ?? false,
       );
 }
 

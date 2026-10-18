@@ -36,4 +36,30 @@ to Dart") ships. A bump must re-apply every patch below.
   The app disposes every closed connection through `releasePeerConnection`
   in `lib/calls/call_media.dart`.
 
-Android and Dart are byte-identical to pub.dev 1.4.1.
+- **W4, web view keeps its first renderer** (unchanged upstream in 1.5.2).
+  `lib/src/web/rtc_video_view_impl.dart` (the default, non
+  `WEBRTC_USE_HTML_ELEMENT_VIEW` path): the State looked the hidden
+  `<video>` up once in `initState`, so a parent that hands one slot a
+  different renderer (the 1:1 call screen's full-bleed slot: local camera
+  before the peer's video, then the peer; every PiP swap) kept painting the
+  first renderer. On web the caller saw their own camera in both tiles.
+  `didUpdateWidget` now moves the listener, the element and the frame loop
+  to the new renderer; `dispose` removes the listener and ends the loop
+  (it used to keep decoding a frame per video frame into images nobody
+  disposed); `shouldRepaint` compares the frame (it returned false, so a
+  new frame only reached the screen when something else repainted), and
+  the frame sits behind its own `RepaintBoundary`.
+
+- **W5, camera in Picture in Picture** (iOS only).
+  `FlutterRTCMediaStream.m` `getUserVideo`: right after the
+  `RTCCameraVideoCapturer` is created, and before its session starts
+  running, set `AVCaptureSession.multitaskingCameraAccessEnabled` when the
+  session reports it supported. Without it iOS interrupts the camera
+  (`videoDeviceNotAvailableInBackground`) the moment the app leaves the
+  screen, and the peer's picture of us freezes. Support is reported on
+  iPhone for apps linked against the iOS 18 SDK that declare the `voip`
+  background mode (Info.plist does), and the camera then runs only while a
+  video-call PiP is up (`ios/Runner/CallPip.swift`, `DrawPip.swift`).
+  Guarded by `TARGET_OS_IOS`, so the macOS copy compiles it out.
+
+Android and the rest of Dart are byte-identical to pub.dev 1.4.1.

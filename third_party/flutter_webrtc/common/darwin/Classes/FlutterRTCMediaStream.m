@@ -488,6 +488,22 @@ typedef void (^NavigatorUserMediaSuccessCallback)(RTCMediaStream* mediaStream);
       
     VideoProcessingAdapter *videoProcessingAdapter = [[VideoProcessingAdapter alloc] initWithRTCVideoSource:videoSource];
     self.videoCapturer = [[RTCCameraVideoCapturer alloc] initWithDelegate:videoProcessingAdapter];
+#if TARGET_OS_IOS
+    // MONKEYHUB PATCH W5: let the camera keep capturing while the app shows
+    // a video-call Picture in Picture (CallPip.swift / DrawPip.swift) from
+    // the background. Must be set before the session starts running, which
+    // startCaptureWithDevice below does. Apps linked against the iOS 18 SDK
+    // that declare the `voip` background mode report support on iPhone;
+    // anywhere it is not supported this is a no-op and iOS interrupts the
+    // session in the background exactly as before.
+    if (@available(iOS 16.0, *)) {
+      AVCaptureSession* captureSession = self.videoCapturer.captureSession;
+      if (captureSession.isMultitaskingCameraAccessSupported &&
+          !captureSession.isMultitaskingCameraAccessEnabled) {
+        captureSession.multitaskingCameraAccessEnabled = YES;
+      }
+    }
+#endif
       
     AVCaptureDeviceFormat* selectedFormat = [self selectFormatForDevice:videoDevice
                                                             targetWidth:targetWidth

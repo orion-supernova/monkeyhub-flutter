@@ -19,7 +19,11 @@ import WebRTC
 ///  * once someone draws, a dimmed still of the shared screen — taken from
 ///    the share's own video track, not a second capture — with the strokes
 ///    live over it, in each author's colour, fading on the same clock the
-///    in-app layer keeps.
+///    in-app layer keeps;
+///  * zoomed onto the ink: a whole phone screen in a window a third of its
+///    width makes a circle round an icon a few points across, so the board
+///    eases in on the part being drawn on (up to 2.5x) and back out once
+///    the last stroke has faded. See [DrawBoardView.focus].
 ///
 /// The board is UIKit and Core Animation only: every stroke a pair of shape
 /// layers, every fade a CA animation scheduled ahead of time, so nothing in
@@ -116,10 +120,15 @@ final class DrawPip: NSObject, AVPictureInPictureControllerDelegate {
     callVC = vc
     self.board = board
     controller = pip
+    // One window at a time: while this device presents, the board is it.
+    CallPip.shared.setYielded(true)
     return true
   }
 
   private func disarm() {
+    let wasArmed = controller != nil
+    // Off before the release, or the release itself can lift the window.
+    controller?.canStartPictureInPictureAutomaticallyFromInline = false
     if let pip = controller, pip.isPictureInPictureActive {
       pip.stopPictureInPicture()
     }
@@ -132,6 +141,7 @@ final class DrawPip: NSObject, AVPictureInPictureControllerDelegate {
     board = nil
     grabber.detach()
     lastStill = 0
+    if wasArmed { CallPip.shared.setYielded(false) }
   }
 
   private static func hostView() -> UIView? {
@@ -223,7 +233,8 @@ final class DrawPip: NSObject, AVPictureInPictureControllerDelegate {
     let now = CACurrentMediaTime()
     if board?.hasStill == true && now - lastStill < 1 { return }
     lastStill = now
-    grabber.snapshot(maxDimension: 540) { [weak self] image in
+    // Big enough to stay sharp at the board's deepest zoom.
+    grabber.snapshot(maxDimension: 960) { [weak self] image in
       guard let self = self, let image = image, let board = self.board else { return }
       let aspect = CGFloat(image.width) / CGFloat(max(1, image.height))
       if abs(aspect - board.frameAspect) > 0.01 {
@@ -251,9 +262,26 @@ final class DrawBoardView: UIView {
     let halo = CAShapeLayer()
     let ink = CAShapeLayer()
     let width: CGFloat
-    var points: [Float] = []
+    var points: [Float] = [] {
+      didSet { box = Self.bounds(points) }
+    }
+    /// The stroke's extent in frame fractions, kept with its points.
+    private(set) var box = CGRect.null
     var ended = false
     var removal: DispatchWorkItem?
+
+    static func bounds(_ pts: [Float]) -> CGRect {
+      var minX = Float.greatestFiniteMagnitude, minY = Float.greatestFiniteMagnitude
+      var maxX = -Float.greatestFiniteMagnitude, maxY = -Float.greatestFiniteMagnitude
+      var i = 0
+      while i + 1 < pts.count {
+        minX = min(minX, pts[i]); maxX = max(maxX, pts[i])
+        minY = min(minY, pts[i + 1]); maxY = max(maxY, pts[i + 1])
+        i += 2
+      }
+      guard minX <= maxX else { return .null }
+      return CGRect(x: CGFloat(minX), y: CGFloat(minY), width: CGFloat(maxX - minX), height: CGFloat(maxY - minY))
+    }
 
     init(color: UIColor, width: CGFloat) {
       self.width = width
@@ -270,8 +298,15 @@ final class DrawBoardView: UIView {
     }
   }
 
+  /// The still and the strokes, moved together when the board zooms.
+  private let canvas = CALayer()
   private let stillLayer = CALayer()
   private let strokesLayer = CALayer()
+
+  /// The deepest the board zooms, and the least of the frame it shows.
+  private static let maxZoom: CGFloat = 2.5
+  /// What the board is zoomed onto, in frame fractions (unit: the whole frame).
+  private var focusRect = CGRect(x: 0, y: 0, width: 1, height: 1)
   private let idleStack: UIStackView
   private var strokes: [String: Stroke] = [:]
 
@@ -302,8 +337,11 @@ final class DrawBoardView: UIView {
     stillLayer.contentsGravity = .resize
     stillLayer.opacity = 0
     stillLayer.minificationFilter = .trilinear
-    layer.addSublayer(stillLayer)
-    layer.addSublayer(strokesLayer)
+    canvas.masksToBounds = false
+    layer.masksToBounds = true
+    canvas.addSublayer(stillLayer)
+    canvas.addSublayer(strokesLayer)
+    layer.addSublayer(canvas)
     idleStack.translatesAutoresizingMaskIntoConstraints = false
     addSubview(idleStack)
     NSLayoutConstraint.activate([
@@ -334,10 +372,67 @@ final class DrawBoardView: UIView {
     CATransaction.begin()
     CATransaction.setDisableActions(true)
     let r = frameRect
-    stillLayer.frame = r
-    strokesLayer.frame = r
+    canvas.bounds = CGRect(origin: .zero, size: r.size)
+    canvas.position = CGPoint(x: r.midX, y: r.midY)
+    stillLayer.frame = canvas.bounds
+    strokesLayer.frame = canvas.bounds
     for s in strokes.values { rebuild(s) }
+    canvas.transform = transform(for: focusRect)
     CATransaction.commit()
+  }
+
+  // MARK: - focus
+
+  /// Zooms onto [target] (frame fractions), padded, never deeper than
+  /// [maxZoom] and never past the frame's edge, so no empty border shows.
+  private func transform(for target: CGRect) -> CATransform3D {
+    let w = canvas.bounds.width
+    let h = canvas.bounds.height
+    guard w > 0, h > 0, target.width < 1 || target.height < 1 else { return CATransform3DIdentity }
+    let k = max(1, min(Self.maxZoom, min(1 / max(target.width, 0.01), 1 / max(target.height, 0.01))))
+    if k <= 1.001 { return CATransform3DIdentity }
+    // The target's centre, from the canvas centre, in points.
+    let dx = (target.midX - 0.5) * w
+    let dy = (target.midY - 0.5) * h
+    let limitX = (k - 1) * w / 2
+    let limitY = (k - 1) * h / 2
+    let tx = max(-limitX, min(limitX, -k * dx))
+    let ty = max(-limitY, min(limitY, -k * dy))
+    return CATransform3DMakeAffineTransform(
+      CGAffineTransform(translationX: tx, y: ty).scaledBy(x: k, y: k)
+    )
+  }
+
+  /// Re-aims the zoom at every stroke on the board. [only] narrows it to
+  /// one stroke's start, for a stroke that begins outside the current view.
+  private func focus(onto only: CGRect? = nil) {
+    var box = only ?? .null
+    if only == nil {
+      for s in strokes.values where !s.box.isNull { box = box.union(s.box) }
+    }
+    let target: CGRect
+    if box.isNull {
+      target = CGRect(x: 0, y: 0, width: 1, height: 1)
+    } else {
+      // Room round the ink, and at least 1/maxZoom of the frame each way.
+      let pad: CGFloat = 0.08
+      let side = 1 / Self.maxZoom
+      let w = min(1, max(side, box.width + 2 * pad))
+      let h = min(1, max(side, box.height + 2 * pad))
+      target = CGRect(x: box.midX - w / 2, y: box.midY - h / 2, width: w, height: h)
+    }
+    if target == focusRect { return }
+    focusRect = target
+    CATransaction.begin()
+    CATransaction.setAnimationDuration(box.isNull ? 0.6 : 0.35)
+    CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeInEaseOut))
+    canvas.transform = transform(for: target)
+    CATransaction.commit()
+  }
+
+  /// Whether a frame-fraction point is on the board's current view.
+  private func inView(_ x: Float, _ y: Float) -> Bool {
+    focusRect.insetBy(dx: 0.04, dy: 0.04).contains(CGPoint(x: CGFloat(x), y: CGFloat(y)))
   }
 
   func begin(key: String, argb: UInt32, width: CGFloat, points: [Float]) {
@@ -357,6 +452,14 @@ final class DrawBoardView: UIView {
     rebuild(s)
     CATransaction.commit()
     setIdle(false)
+    // A stroke starting off the view brings the view to it; the rest of
+    // the aim waits for the finger to lift, so the board does not swim
+    // under a line being drawn.
+    if points.count >= 2, !inView(points[0], points[1]) {
+      focus(onto: CGRect(x: CGFloat(points[0]), y: CGFloat(points[1]), width: 0, height: 0))
+    } else if strokes.count == 1 {
+      focus()
+    }
   }
 
   func append(key: String, points: [Float]) {
@@ -373,6 +476,7 @@ final class DrawBoardView: UIView {
   func end(key: String, endedAgo: CFTimeInterval) {
     guard let s = strokes[key], !s.ended else { return }
     s.ended = true
+    focus()
     let wait = max(0, Self.lifetime - endedAgo)
     let into = max(0, endedAgo - Self.lifetime)
     let left = Self.dissolve - into
@@ -408,6 +512,7 @@ final class DrawBoardView: UIView {
   func reset() {
     for key in Array(strokes.keys) { remove(key: key, settle: false) }
     setIdle(true)
+    focus()
   }
 
   private func remove(key: String, settle: Bool = true) {
@@ -418,6 +523,7 @@ final class DrawBoardView: UIView {
     s.container.removeFromSuperlayer()
     CATransaction.commit()
     if settle && strokes.isEmpty { setIdle(true) }
+    if settle && strokes.isEmpty { focus() }
   }
 
   private func setIdle(_ idle: Bool) {

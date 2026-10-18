@@ -200,6 +200,28 @@ H. **Ongoing-call service survives its own failure**
    the placeholder stays, re-posted under the call's types (microphone,
    camera for video) best effort.
 
+I. **Ongoing call notification: CallStyle, mute, steady clock**
+   (2026-10-18; `CallkitNotificationManager.getOnGoingCallNotification`,
+   `CallkitIncomingBroadcastReceiver`). Upstream used CallStyle only for
+   `isCustomNotification` on Android 14+; every other call got a plain
+   notification with a text Hang up. On Android 12+ the default branch is
+   now `CallStyle.forOngoingCall` (status-bar call chip, system Hang up,
+   sorted first). A Mute/Unmute action is added when the app has set
+   `CallkitNotificationManager.ongoingMuted` and both labels (the app's
+   `CallNotificationBridge`, driven by Dart's `CallNotificationSync`); its
+   broadcast (`getIntentToggleMute`) only sends `ACTION_CALL_TOGGLE_MUTE`
+   `{id, isMuted: !current}` to Dart and flips nothing itself, the app
+   re-posts with the state the mic actually lands on. The chronometer's
+   start is remembered per notification id, so a re-post no longer resets
+   it to 0:00. `forgetOngoing()` runs when the last call ends.
+J. **Foreground types refresh** (`CallkitNotificationService`,
+   `ACTION_REFRESH_FOREGROUND`). Re-runs `startForeground` on the running
+   service with the bundle's types and connected state. The app sends it
+   (plain `startService`, app in front, CAMERA granted) when a call that
+   rang as voice turns its camera on: the service was typed without
+   `camera`, and Android cuts the camera of an app that leaves the screen
+   without a camera-typed foreground service.
+
 ## When bumping the plugin version
 
 Re-apply every `MONKEYHUB PATCH` block against the new version (or drop the

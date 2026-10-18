@@ -22,6 +22,14 @@ class CallkitNotificationService : Service() {
 
         private const val TAG = "CallkitNotificationService"
 
+        // MONKEYHUB PATCH J: re-run startForeground on the running service
+        // with the bundle's (possibly widened) types, for a voice call whose
+        // camera came on mid-call. Sent with plain startService while the
+        // app is in front; see the app's CallNotificationBridge.
+        const val ACTION_REFRESH_FOREGROUND =
+            "com.hiennv.flutter_callkit_incoming.MONKEYHUB_REFRESH_FOREGROUND"
+        const val EXTRA_MONKEYHUB_CONNECTED = "MONKEYHUB_CONNECTED"
+
         private val ActionForeground = listOf(
             CallkitConstants.ACTION_CALL_START,
             CallkitConstants.ACTION_CALL_ACCEPT
@@ -101,6 +109,16 @@ class CallkitNotificationService : Service() {
                         }
                 }
 
+                ACTION_REFRESH_FOREGROUND -> {
+                    // MONKEYHUB PATCH J
+                    bundle?.let {
+                        showOngoingCallNotification(
+                            it,
+                            it.getBoolean(EXTRA_MONKEYHUB_CONNECTED, false)
+                        )
+                    }
+                }
+
                 null -> {
                     // OS restarted the service after kill (START_STICKY with null intent).
                     // Flutter engine may not be running yet — create a standalone manager
@@ -146,10 +164,10 @@ class CallkitNotificationService : Service() {
     }
 
     @SuppressLint("MissingPermission")
-    private fun showOngoingCallNotification(bundle: Bundle) {
+    private fun showOngoingCallNotification(bundle: Bundle, isConnected: Boolean = false) {
 
         val callkitNotification =
-            getCallkitNotificationManager()?.getOnGoingCallNotification(bundle, false)
+            getCallkitNotificationManager()?.getOnGoingCallNotification(bundle, isConnected)
         if (callkitNotification != null) {
             val typeCall = bundle.getInt(CallkitConstants.EXTRA_CALLKIT_TYPE, -1)
             startForeground(

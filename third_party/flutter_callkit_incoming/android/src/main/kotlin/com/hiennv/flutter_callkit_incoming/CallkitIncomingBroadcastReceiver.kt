@@ -84,6 +84,16 @@ class CallkitIncomingBroadcastReceiver : BroadcastReceiver() {
                 addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
             }
 
+        /// MONKEYHUB PATCH I: the ongoing notification's Mute/Unmute.
+        fun getIntentToggleMute(context: Context, data: Bundle?) =
+            Intent().apply {
+                setClassName(context.packageName, "com.hiennv.flutter_callkit_incoming.CallkitIncomingBroadcastReceiver")
+                action = "${context.packageName}.${CallkitConstants.ACTION_CALL_TOGGLE_MUTE}"
+                putExtra(CallkitConstants.EXTRA_CALLKIT_INCOMING_DATA, data)
+                `package` = context.packageName
+                addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+            }
+
         fun getIntentTimeout(context: Context, data: Bundle?) =
             Intent().apply {
                 setClassName(context.packageName, "com.hiennv.flutter_callkit_incoming.CallkitIncomingBroadcastReceiver")
@@ -319,6 +329,9 @@ class CallkitIncomingBroadcastReceiver : BroadcastReceiver() {
                         return
                     }
                     Log.i(RING_TAG, "ENDED id=$endedId")
+                    // MONKEYHUB PATCH I: the next call starts with no mute
+                    // action and a fresh clock.
+                    if (others.isEmpty()) CallkitNotificationManager.forgetOngoing()
                     driveTelecomConnection(context, data, CallkitConstants.ACTION_CALL_ENDED)
                     FlutterCallkitIncomingPlugin.notifyEventCallbacks(CallkitEventCallback.CallEvent.END, data)
                     // clear notification and stop service
@@ -341,6 +354,22 @@ class CallkitIncomingBroadcastReceiver : BroadcastReceiver() {
                     notificationManager?.showMissCallNotification(data)
                     sendEventFlutter(CallkitConstants.ACTION_CALL_TIMEOUT, data)
                     removeCall(context, Data.fromBundle(data))
+                } catch (error: Exception) {
+                    Log.e(TAG, null, error)
+                }
+            }
+
+            "${context.packageName}.${CallkitConstants.ACTION_CALL_TOGGLE_MUTE}" -> {
+                // MONKEYHUB PATCH I: asks the app to flip the mic. The app owns
+                // the truth (it may refuse, or already be there) and re-posts
+                // the notification with the state it lands on, so nothing is
+                // flipped here. Dart: NativeCallHandler -> toggleMute.
+                val muted = CallkitNotificationManager.ongoingMuted ?: return
+                try {
+                    FlutterCallkitIncomingPlugin.sendEvent(
+                        CallkitConstants.ACTION_CALL_TOGGLE_MUTE,
+                        mapOf("id" to Data.fromBundle(data).id, "isMuted" to !muted)
+                    )
                 } catch (error: Exception) {
                     Log.e(TAG, null, error)
                 }

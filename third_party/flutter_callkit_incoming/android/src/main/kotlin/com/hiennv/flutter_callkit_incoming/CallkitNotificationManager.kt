@@ -56,6 +56,27 @@ class CallkitNotificationManager(
 
         private const val ACTION_VOLUME_CHANGED = "android.media.VOLUME_CHANGED_ACTION"
         private const val EXTRA_VOLUME_STREAM_TYPE = "android.media.EXTRA_VOLUME_STREAM_TYPE"
+
+        // MONKEYHUB PATCH I: the ongoing call's mute action. Null state: no
+        // action (a group call, or before the app has said anything). The
+        // app sets these through its own channel (CallNotificationBridge)
+        // from the call's real state, so the label never guesses.
+        @Volatile
+        var ongoingMuted: Boolean? = null
+        @Volatile
+        var ongoingMuteLabel: String? = null
+        @Volatile
+        var ongoingUnmuteLabel: String? = null
+
+        /// When each ongoing notification's call connected, so a re-post
+        /// (a mute toggle, a camera widening) keeps the chronometer where
+        /// it was instead of restarting it at zero.
+        private val connectedAt = HashMap<Int, Long>()
+
+        fun forgetOngoing() {
+            ongoingMuted = null
+            synchronized(connectedAt) { connectedAt.clear() }
+        }
     }
 
     private var dataNotificationPermission: Map<String, Any> = HashMap()
@@ -750,6 +771,43 @@ class CallkitNotificationManager(
                 notificationOngoingBuilder?.setCustomContentView(notificationOngoingSmallViews)
                 notificationOngoingBuilder?.setCustomBigContentView(notificationOngoingViews)
             }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // MONKEYHUB PATCH I: the system's call notification on Android
+            // 12+, not a plain one. CallStyle gets the status-bar call chip
+            // (tap to return), sorts above other notifications and draws its
+            // own red Hang up. Only allowed on a foreground-service
+            // notification, which this is.
+            val caller = data.getString(CallkitConstants.EXTRA_CALLKIT_NAME_CALLER, "")
+            val name = if (caller.isNullOrEmpty()) {
+                context.applicationInfo.loadLabel(context.packageManager).toString()
+            } else caller
+            val person = Person.Builder().setName(name).setImportant(true).build()
+            val callStyle = NotificationCompat.CallStyle.forOngoingCall(
+                person, getHangupPendingIntent(onGoingNotificationId, data)
+            ).setIsVideo(typeCall > 0)
+            notificationOngoingBuilder?.setStyle(callStyle)
+            notificationOngoingBuilder?.setContentTitle(name)
+            var avatarUrl = data.getString(CallkitConstants.EXTRA_CALLKIT_AVATAR, "")
+            if (!avatarUrl.isNullOrEmpty()) {
+                if (!avatarUrl.startsWith("http://", true) && !avatarUrl.startsWith(
+                        "https://",
+                        true
+                    )
+                ) {
+                    avatarUrl = String.format("file:///android_asset/flutter_assets/%s", avatarUrl)
+                }
+                val headers =
+                    data.getSerializable(CallkitConstants.EXTRA_CALLKIT_HEADERS) as HashMap<String, Any?>
+                if (targetOnGoingAvatarDefault == null) targetOnGoingAvatarDefault =
+                    createOnGoingAvatarTargetDefault(onGoingNotificationId)
+                ImageLoaderProvider.loadImage(
+                    context,
+                    avatarUrl,
+                    headers,
+                    targetOnGoingAvatarDefault
+                )
+            }
+            addMuteAction(onGoingNotificationId, data)
         } else {
             notificationOngoingBuilder?.setContentTitle(
                 data.getString(
@@ -797,6 +855,7 @@ class CallkitNotificationManager(
                 ).build()
                 notificationOngoingBuilder?.addAction(hangUpAction)
             }
+            addMuteAction(onGoingNotificationId, data)
         }
         notificationOngoingBuilder?.priority = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             NotificationManager.IMPORTANCE_HIGH
@@ -804,7 +863,13 @@ class CallkitNotificationManager(
             Notification.PRIORITY_HIGH
         }
         if (isConnected == true) {
-            notificationOngoingBuilder?.setWhen(System.currentTimeMillis())
+            // MONKEYHUB PATCH I: the first connect sets the clock; a re-post
+            // keeps it.
+            val start = synchronized(connectedAt) {
+                connectedAt.getOrPut(onGoingNotificationId) { System.currentTimeMillis() }
+            }
+            notificationOngoingBuilder?.setWhen(start)
+            notificationOngoingBuilder?.setShowWhen(true)
             notificationOngoingBuilder?.setUsesChronometer(true)
         } else {
             notificationOngoingBuilder?.setUsesChronometer(false)
@@ -992,6 +1057,20 @@ class CallkitNotificationManager(
         return PendingIntent.getActivity(context, id, intent, getFlagPendingIntent())
     }
 
+
+    /// MONKEYHUB PATCH I: Mute or Unmute, by the call's real state, when
+    /// the app has given both labels.
+    private fun addMuteAction(notificationId: Int, data: Bundle) {
+        val muted = ongoingMuted ?: return
+        val label = (if (muted) ongoingUnmuteLabel else ongoingMuteLabel) ?: return
+        val intent = CallkitIncomingBroadcastReceiver.getIntentToggleMute(context, data)
+        val pending = PendingIntent.getBroadcast(
+            context, notificationId + 1, intent, getFlagPendingIntent()
+        )
+        notificationOngoingBuilder?.addAction(
+            NotificationCompat.Action.Builder(R.drawable.transparent, label, pending).build()
+        )
+    }
 
     private fun getHangupPendingIntent(notificationId: Int, data: Bundle): PendingIntent {
         val endedIntent = CallkitIncomingBroadcastReceiver.getIntentEnded(context, data)

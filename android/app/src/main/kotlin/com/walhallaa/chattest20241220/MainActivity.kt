@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -125,6 +126,11 @@ class MainActivity : FlutterActivity() {
         // monkeyhub/call_window — keep-screen-on and the proximity sensor
         // for the length of a call.
         CallWindowBridge.register(this, flutterEngine)
+        // monkeyhub/call_pip — the video call's Picture in Picture window.
+        CallPipBridge.register(this, flutterEngine)
+        // monkeyhub/call_notification — the ongoing-call notification's mute
+        // action and its foreground service's camera type.
+        CallNotificationBridge.register(this, flutterEngine)
         // monkeyhub/phone_call — any call ringing or live on the phone; a
         // daily game's clock stops on it.
         PhoneCallBridge.register(this, flutterEngine)
@@ -596,6 +602,21 @@ class MainActivity : FlutterActivity() {
         // why "delete everything now" is not safe here.
         val ctx = applicationContext
         shareWorker.execute { ShareIntake.sweepStaging(ctx) }
+    }
+
+    /// Leaving the app with a video call armed for PiP (Android 8-11; 12+
+    /// enters on its own). See CallPipBridge.
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        CallPipBridge.onUserLeaveHint(this)
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: Configuration,
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        CallPipBridge.onPictureInPictureModeChanged(isInPictureInPictureMode)
     }
 
     /// A tap while the process is alive. `launchMode="singleTask"` routes it

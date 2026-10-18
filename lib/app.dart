@@ -26,7 +26,10 @@ import 'calls/live_calls_store.dart';
 import 'calls/screen_share.dart';
 import 'calls/call_media.dart' show logCallAudioState;
 import 'calls/call_models.dart';
+import 'calls/call_notification_sync.dart';
+import 'calls/call_pip.dart';
 import 'calls/call_screen.dart';
+import 'calls/widgets/system_pip_view.dart';
 import 'calls/call_service.dart';
 import 'calls/group_call_screen.dart';
 import 'calls/group_call_service.dart';
@@ -528,6 +531,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     backend: _cv,
     onReconnected: _resubscribeAll.call,
     isActive: () => _auth.session != null,
+    // A call signals over this socket and the OS keeps us running for it, so
+    // recovery must not park behind a locked screen mid-call.
+    healInBackground: () => _callService.inCall || _groupCallService.inCall,
+    // Desynchronise a fleet that lost the (single, small) server at once.
+    backoffJitter: 0.2,
   );
 
   /// Put the app back together after a verified reconnect. Wrapped in
@@ -1614,6 +1622,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         deviceId: deviceId,
       );
       _groupCallService.attach(userId: s.userId, deviceId: deviceId);
+      // The video call's Picture in Picture window, which is also what lets
+      // iOS keep our camera running once the app leaves the screen.
+      CallPip.instance.attach(call: _callService, group: _groupCallService);
+      // Android: the ongoing-call notification's Mute action and its
+      // foreground service's camera type follow the 1:1 call.
+      CallNotificationSync.instance.attach(_callService);
       // Asked now, so a call screen knows whether it has a share button
       // on its first frame (see ScreenShare.likelySupported).
       unawaited(ScreenShare.supported());
@@ -2218,6 +2232,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                               // like everything else. Inert (and free) on every
                               // platform without a desktop drag.
                               const DropChrome(),
+                              // Android's call Picture in Picture window: the
+                              // call's picture over every route while the
+                              // activity is shrunk into it. An empty box
+                              // otherwise. See SystemPipView.
+                              const SystemPipView(),
                               // Above EVERYTHING, the server mark included, so a
                               // screen recording cannot capture any of it.
                               const CaptureShield(),
