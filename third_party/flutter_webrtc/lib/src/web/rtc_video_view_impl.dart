@@ -37,21 +37,38 @@ class RTCVideoViewState extends State<RTCVideoView> {
 
   RTCVideoRenderer get videoRenderer => widget._renderer;
 
+  // MONKEYHUB PATCH W4: follow the renderer the widget names.
+  //
+  // Upstream looked the <video> element up once, in initState, and never
+  // again. A State outlives its widget's renderer whenever a parent swaps
+  // which renderer one slot shows (the call screen's full-bleed slot goes
+  // from the local camera to the peer when the peer's video lands, and a
+  // PiP tap swaps the two): the slot kept copying frames from the first
+  // renderer's element, so the web caller saw themselves in both tiles.
+  // It also kept listening to the first renderer, never removed that
+  // listener, and its frame loop outlived dispose(), decoding a frame per
+  // video frame into images nobody disposed.
   @override
   void initState() {
     super.initState();
+    _attach();
+  }
+
+  void _attach() {
     videoRenderer.addListener(_onRendererListener);
     videoRenderer.mirror = widget.mirror;
     videoRenderer.objectFit =
         widget.objectFit == RTCVideoViewObjectFit.RTCVideoViewObjectFitContain
             ? 'contain'
             : 'cover';
-
-    videoElement =
-        web.document.getElementById("video_${videoRenderer.viewType}")
-            as web.HTMLVideoElement?;
-    frameCallback(0.toJS, 0.toJS);
+    videoElement = _lookUpElement();
+    size = null;
+    _startFrames();
   }
+
+  web.HTMLVideoElement? _lookUpElement() =>
+      web.document.getElementById("video_${videoRenderer.viewType}")
+          as web.HTMLVideoElement?;
 
   void _onRendererListener() {
     if (mounted) setState(() {});
@@ -59,41 +76,51 @@ class RTCVideoViewState extends State<RTCVideoView> {
 
   int? callbackID;
 
-  void getFrame(web.HTMLVideoElement element) {
-    callbackID =
-        element.requestVideoFrameCallbackWithFallback(frameCallback.toJS);
+  /// Bumped per renderer attached and on dispose: a frame callback from an
+  /// older loop stops instead of re-arming.
+  int _loop = 0;
+
+  bool _live(int loop) => mounted && loop == _loop;
+
+  void _startFrames() {
+    final element = videoElement;
+    if (element != null) cancelFrame(element);
+    _frame(++_loop);
+  }
+
+  void _request(web.HTMLVideoElement element, int loop) {
+    if (!_live(loop)) return;
+    callbackID = element.requestVideoFrameCallbackWithFallback(
+        ((JSAny now, JSAny metadata) => _frame(loop)).toJS);
   }
 
   void cancelFrame(web.HTMLVideoElement element) {
     if (callbackID != null) {
       element.cancelVideoFrameCallbackWithFallback(callbackID!);
+      callbackID = null;
     }
   }
 
-  void frameCallback(JSAny now, JSAny metadata) {
-    final web.HTMLVideoElement? element = videoElement;
+  void _frame(int loop) {
+    if (!_live(loop)) return;
+    final web.HTMLVideoElement? element = videoElement ??= _lookUpElement();
     if (element != null) {
       // only capture frames if video is playing (optimization for RAF)
       if (element.readyState > 2) {
-        capture().then((_) async {
-          getFrame(element);
-        });
+        capture(element, loop).then((_) => _request(element, loop));
       } else {
-        getFrame(element);
+        _request(element, loop);
       }
     } else {
-      if (mounted) {
-        Future.delayed(Duration(milliseconds: 100)).then((_) {
-          frameCallback(0.toJS, 0.toJS);
-        });
-      }
+      // The renderer's element is not in the document yet (initialize()
+      // still running): look again shortly.
+      Future.delayed(Duration(milliseconds: 100)).then((_) => _frame(loop));
     }
   }
 
   ui.Image? capturedFrame;
   num? lastFrameTime;
-  Future<void> capture() async {
-    final element = videoElement!;
+  Future<void> capture(web.HTMLVideoElement element, int loop) async {
     if (lastFrameTime != element.currentTime) {
       lastFrameTime = element.currentTime;
       try {
@@ -102,11 +129,13 @@ class RTCVideoViewState extends State<RTCVideoView> {
             height: element.videoHeight,
             transferOwnership: true);
 
-        if (mounted) {
+        if (_live(loop)) {
           setState(() {
             capturedFrame?.dispose();
             capturedFrame = img;
           });
+        } else {
+          img.dispose();
         }
       } on web.DOMException catch (err) {
         lastFrameTime = null;
@@ -121,13 +150,14 @@ class RTCVideoViewState extends State<RTCVideoView> {
 
   @override
   void dispose() {
-    if (mounted) {
-      super.dispose();
-    }
-    capturedFrame?.dispose();
+    _loop++;
+    videoRenderer.removeListener(_onRendererListener);
     if (videoElement != null) {
       cancelFrame(videoElement!);
     }
+    capturedFrame?.dispose();
+    capturedFrame = null;
+    super.dispose();
   }
 
   Size? size;
@@ -142,6 +172,18 @@ class RTCVideoViewState extends State<RTCVideoView> {
   @override
   void didUpdateWidget(RTCVideoView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget._renderer, widget._renderer)) {
+      oldWidget._renderer.removeListener(_onRendererListener);
+      final old = videoElement;
+      if (old != null) cancelFrame(old);
+      // The last frame is the previous renderer's picture: drop it rather
+      // than show the wrong feed until the new one's first frame lands.
+      capturedFrame?.dispose();
+      capturedFrame = null;
+      lastFrameTime = null;
+      _attach();
+      return;
+    }
     Timer(
         Duration(milliseconds: 10), () => videoRenderer.mirror = widget.mirror);
     videoRenderer.objectFit =
@@ -165,7 +207,10 @@ class RTCVideoViewState extends State<RTCVideoView> {
         return Stack(children: [
           if (capturedFrame != null)
             Positioned.fill(
-                child: FittedBox(
+                // MONKEYHUB PATCH W4: every video frame repaints this layer
+                // alone, not whatever screen chrome shares its boundary.
+                child: RepaintBoundary(
+                    child: FittedBox(
                     fit: switch (widget.objectFit) {
                       RTCVideoViewObjectFit.RTCVideoViewObjectFitContain =>
                         BoxFit.contain,
@@ -181,7 +226,7 @@ class RTCVideoViewState extends State<RTCVideoView> {
                             painter: _ImageFlipPainter(
                               capturedFrame!,
                               widget.mirror,
-                            )))))
+                            ))))))
         ]);
       });
     }
@@ -249,8 +294,9 @@ class _ImageFlipPainter extends CustomPainter {
     }
   }
 
+  // MONKEYHUB PATCH W4: upstream returned false, so a new frame reached
+  // the screen only when something else repainted the same layer.
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    return false;
-  }
+  bool shouldRepaint(_ImageFlipPainter oldDelegate) =>
+      !identical(oldDelegate.image, image) || oldDelegate.flip != flip;
 }
