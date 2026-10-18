@@ -119,8 +119,8 @@
 		AD0200222044A3C60003C045 /* DocumentPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0200112044A3C60003C045 /* DocumentPreview.swift */; };
 		AD0300222044A3C60003C045 /* SubjectCutout.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0300112044A3C60003C045 /* SubjectCutout.swift */; };
 		AD0300242044A3C60003C045 /* VideoShrink.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0300132044A3C60003C045 /* VideoShrink.swift */; };
-		AD0400262044A3C60003C045 /* InstallerEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0400152044A3C60003C045 /* InstallerEnvironment.swift */; };
 		AD0300262044A3C60003C045 /* MediaCompose.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0300152044A3C60003C045 /* MediaCompose.swift */; };
+		AD0400262044A3C60003C045 /* InstallerEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0400152044A3C60003C045 /* InstallerEnvironment.swift */; };
 		AE4204BB7297ECE95217C1AB /* mh_monkey_ops_tech@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 19EB711C5D98EAD1D969A33A /* mh_monkey_ops_tech@3x.png */; };
 		B096C411A92FE8A841552CD8 /* basic@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 1990ED96E65A52386C3187B5 /* basic@3x.png */; };
 		B18B676E5C70CCFAE6D95381 /* mh_monkey_fields83.5x83.5@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = A6CDEC109E299C7181DF00C0 /* mh_monkey_fields83.5x83.5@2x~ipad.png */; };
@@ -352,8 +352,8 @@
 		AD0200112044A3C60003C045 /* DocumentPreview.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DocumentPreview.swift; sourceTree = "<group>"; };
 		AD0300112044A3C60003C045 /* SubjectCutout.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SubjectCutout.swift; sourceTree = "<group>"; };
 		AD0300132044A3C60003C045 /* VideoShrink.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VideoShrink.swift; sourceTree = "<group>"; };
-		AD0400152044A3C60003C045 /* InstallerEnvironment.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = InstallerEnvironment.swift; sourceTree = "<group>"; };
 		AD0300152044A3C60003C045 /* MediaCompose.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MediaCompose.swift; sourceTree = "<group>"; };
+		AD0400152044A3C60003C045 /* InstallerEnvironment.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = InstallerEnvironment.swift; sourceTree = "<group>"; };
 		AF52E4156B0C54BBEFB85570 /* mh_monkey_typing@3x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "mh_monkey_typing@3x.png"; sourceTree = "<group>"; };
 		AF925B6DB0B1B7E2C7B3F1C4 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		B09B50114C11B53E0185DC53 /* mh_monkey_astronaut83.5x83.5@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "mh_monkey_astronaut83.5x83.5@2x~ipad.png"; sourceTree = "<group>"; };
