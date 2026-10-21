@@ -8659,9 +8659,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get groupCallScreenYouAreSharing => 'أنت تشارك شاشتك';
 
   @override
-  String get groupCallScreenMinimizeLabel => 'إخفاء';
-
-  @override
   String get groupCallScreenDrawLabel => 'رسم';
 
   @override
@@ -8690,7 +8687,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get callScreenControlDraw => 'رسم';
 
   @override
-  String get callScreenControlMinimize => 'إخفاء';
+  String get callScreenControlMinimize => 'تصغير';
 
   @override
   String get inCallPillOngoingCall => 'مكالمة جارية';

@@ -8581,9 +8581,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get groupCallScreenYouAreSharing => 'Du delar din skärm';
 
   @override
-  String get groupCallScreenMinimizeLabel => 'Dölj';
-
-  @override
   String get groupCallScreenDrawLabel => 'Rita';
 
   @override
@@ -8612,7 +8609,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get callScreenControlDraw => 'Rita';
 
   @override
-  String get callScreenControlMinimize => 'Dölj';
+  String get callScreenControlMinimize => 'Minimera';
 
   @override
   String get inCallPillOngoingCall => 'Samtal pågår';

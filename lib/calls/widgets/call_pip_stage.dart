@@ -270,7 +270,7 @@ class _CallPipStageState extends State<CallPipStage>
     _settle
         .animateWith(
           SpringSimulation(
-            const SpringDescription(mass: 1, stiffness: 320, damping: 27),
+            kCallTileSpring,
             0,
             1,
             speed,
@@ -442,52 +442,18 @@ class _CallPipStageState extends State<CallPipStage>
     );
   }
 
-  static Rect _lerpRect(Rect a, Rect b, double t) => Rect.fromLTRB(
-        lerpDouble(a.left, b.left, t)!,
-        lerpDouble(a.top, b.top, t)!,
-        lerpDouble(a.right, b.right, t)!,
-        lerpDouble(a.bottom, b.bottom, t)!,
-      );
+  static Rect _lerpRect(Rect a, Rect b, double t) => lerpCallRect(a, b, t);
 
   Widget _layer(Key key, _Frame f, Widget child, _Spot spot) {
     final lift = _dragging || _lift.value > 0 ? _lift.value : 0.0;
     final isTile = spot == _Spot.pip;
     final scale = f.scale * (isTile ? 1 + 0.05 * lift : 1);
-    Widget body = ClipRRect(
-      borderRadius: BorderRadius.circular(f.radius),
-      clipBehavior: f.radius <= 0.01 ? Clip.none : Clip.antiAlias,
+    Widget body = CallTileFrame(
+      radius: f.radius,
+      shadow: f.shadow,
+      lift: lift,
       child: child,
     );
-    if (f.shadow > 0.01) {
-      // The tile's edge against a picture of the same colours: a deep soft
-      // shadow under it and a hairline rim drawn over it.
-      body = DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(f.radius),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(
-                alpha: (0.38 + 0.14 * lift) * f.shadow,
-              ),
-              blurRadius: 18 + 14 * lift,
-              offset: Offset(0, 4 + 6 * lift),
-            ),
-          ],
-        ),
-        position: DecorationPosition.background,
-        child: DecoratedBox(
-          position: DecorationPosition.foreground,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(f.radius),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.16 * f.shadow),
-              width: 0.8,
-            ),
-          ),
-          child: body,
-        ),
-      );
-    }
     if (scale != 1) {
       body = Transform.scale(scale: scale, child: body);
     }
@@ -528,6 +494,80 @@ class _CallPipStageState extends State<CallPipStage>
       body = IgnorePointer(child: body);
     }
     return Positioned.fromRect(key: key, rect: f.rect, child: body);
+  }
+}
+
+/// The spring a call picture settles into its corner on: a touch of give,
+/// no wobble.
+const SpringDescription kCallTileSpring =
+    SpringDescription(mass: 1, stiffness: 320, damping: 27);
+
+/// [a] to [b] at [t], unclamped: an overshooting curve carries the rect
+/// past [b] and back.
+Rect lerpCallRect(Rect a, Rect b, double t) => Rect.fromLTRB(
+      lerpDouble(a.left, b.left, t)!,
+      lerpDouble(a.top, b.top, t)!,
+      lerpDouble(a.right, b.right, t)!,
+      lerpDouble(a.bottom, b.bottom, t)!,
+    );
+
+/// A call picture floating over another: clipped to [radius], a deep soft
+/// shadow under it and a hairline rim over it, so its edge reads against a
+/// picture of the same colours. [shadow] fades both (0 full-bleed, 1 in a
+/// corner); [lift] deepens the shadow while a finger holds it.
+///
+/// The corner tile of a call and the floating call window are both this.
+class CallTileFrame extends StatelessWidget {
+  const CallTileFrame({
+    super.key,
+    required this.radius,
+    required this.child,
+    this.shadow = 1,
+    this.lift = 0,
+  });
+
+  final double radius;
+  final double shadow;
+  final double lift;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final body = ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      clipBehavior: radius <= 0.01 ? Clip.none : Clip.antiAlias,
+      child: child,
+    );
+    // One shape whatever [shadow] is, so the picture inside is never
+    // re-parented as it fades in or out; no shadow drawn at zero.
+    final on = shadow > 0.01;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: [
+          if (on)
+            BoxShadow(
+              color: Colors.black.withValues(
+                alpha: (0.38 + 0.14 * lift) * shadow,
+              ),
+              blurRadius: 18 + 14 * lift,
+              offset: Offset(0, 4 + 6 * lift),
+            ),
+        ],
+      ),
+      position: DecorationPosition.background,
+      child: DecoratedBox(
+        position: DecorationPosition.foreground,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radius),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: on ? 0.16 * shadow : 0),
+            width: 0.8,
+          ),
+        ),
+        child: body,
+      ),
+    );
   }
 }
 

@@ -18,6 +18,7 @@ import '../theme/motion.dart';
 import 'audio_level_monitor.dart';
 import 'call_audio_devices.dart';
 import 'call_audio_sheet.dart';
+import 'call_float.dart';
 import 'call_media.dart';
 import 'call_models.dart';
 import 'call_options_sheet.dart';
@@ -443,7 +444,7 @@ class _CallScreenState extends State<CallScreen>
     super.dispose();
   }
 
-  void _hide() => dismissCallRoute(context);
+  void _minimize() => unawaited(minimizeCallRoute(context));
 
   Future<void> _onShareTap() async {
     final svc = widget.service;
@@ -641,12 +642,6 @@ class _CallScreenState extends State<CallScreen>
           ),
         ),
         label: l10n.callScreenControlOptions,
-      ),
-      CallTrayAction(
-        icon: CallGlyphs.hide,
-        glyph: const CallTrayGlyph(CallGlyphKind.hide),
-        onTap: _hide,
-        label: l10n.callScreenControlMinimize,
       ),
     ];
   }
@@ -928,7 +923,8 @@ class _CallScreenState extends State<CallScreen>
                   Positioned(
                     key: const ValueKey('title'),
                     top: MediaQuery.paddingOf(context).top + 18,
-                    left: 24,
+                    // Beside Minimize.
+                    left: 68,
                     right: 132,
                     child: ControlsFade(
                       visible: controlsVisible,
@@ -967,6 +963,23 @@ class _CallScreenState extends State<CallScreen>
                       ),
                     ),
                   ),
+
+                // Minimize, top-leading: away from the tray, so it reads as
+                // leaving the screen rather than as one of the call's
+                // controls. See CallMinimizeButton.
+                Positioned(
+                  key: const ValueKey('minimize'),
+                  top: MediaQuery.paddingOf(context).top + 14,
+                  left: 16,
+                  child: ControlsFade(
+                    visible: controlsVisible,
+                    slide: const Offset(0, -0.3),
+                    child: CallMinimizeButton(
+                      onTap: _minimize,
+                      semanticLabel: l10n.callScreenControlMinimize,
+                    ),
+                  ),
+                ),
 
                 // Status chip row: device-switching renegotiation, ICE-restart
                 // recovery, or (via its own listenable, so no screen rebuild)
@@ -1092,6 +1105,28 @@ class _CallScreenState extends State<CallScreen>
       ),
     );
   }
+}
+
+/// The call screen's Minimize: the call floats in a window over the app
+/// when it has a picture to show, flying out of the feed it was on screen
+/// in while the screen fades from under it; otherwise the screen slides
+/// away as it always has, and the bar at the top is the way back. See
+/// [CallFloat].
+Future<void> minimizeCallRoute(BuildContext context) async {
+  final route = ModalRoute.of(context);
+  final float = CallFloat.instance;
+  if (route == null || !route.isActive || float.minimizing) return;
+  final spec = float.spec;
+  // Out of the feed showing that picture; a shared screen fills the
+  // screen's stage.
+  final from = CallFeedAnchors.rectOf(spec?.stream?.id) ??
+      (spec != null && spec.screen
+          ? Offset.zero & MediaQuery.sizeOf(context)
+          : null);
+  final floats = await float.minimize(from: from);
+  if (!context.mounted || !route.isActive) return;
+  if (floats && route is CallScreenRoute) route.fadeAway();
+  dismissCallRoute(context);
 }
 
 /// Takes the call screen (or ringer) [context] sits in off the navigator —

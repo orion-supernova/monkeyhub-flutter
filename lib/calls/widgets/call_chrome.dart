@@ -18,6 +18,8 @@ import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/capture_bloom.dart' show VoiceBlobPainter;
 import '../../widgets/fit_label.dart';
+import '../../widgets/glass_buttons.dart';
+import '../../widgets/liquid_glass.dart';
 import '../../widgets/route_landing.dart';
 import '../../widgets/user_avatar.dart';
 import '../call_stats_monitor.dart';
@@ -101,12 +103,57 @@ abstract final class CallGlyphs {
   static const draw = CupertinoIcons.scribble;
   static const flip = CupertinoIcons.camera_rotate_fill;
   static const more = CupertinoIcons.ellipsis;
-  static const hide = CupertinoIcons.chevron_down;
   static const voice = CupertinoIcons.phone_fill;
   static const end = CupertinoIcons.phone_down_fill;
   static const dismiss = CupertinoIcons.xmark;
   static const back = CupertinoIcons.chevron_up;
   static const moveHere = CupertinoIcons.arrow_right;
+}
+
+/// The call screen's way out that leaves the call running: top-leading,
+/// where every full-screen surface keeps its ×, and away from the tray, so
+/// it never reads as one of the call's own controls (the chevron it used to
+/// be, among them, read as "put the controls away").
+///
+/// The glyph is the call shrinking into the corner of the screen, which is
+/// what a tap does when there is a picture to float; with none (a voice
+/// call, your own screen going out) the call goes to the bar at the top.
+/// The app's media-tone disc, never blurred: it fades with the chrome.
+class CallMinimizeButton extends StatefulWidget {
+  const CallMinimizeButton({
+    super.key,
+    required this.onTap,
+    required this.semanticLabel,
+  });
+
+  final VoidCallback onTap;
+  final String semanticLabel;
+
+  @override
+  State<CallMinimizeButton> createState() => _CallMinimizeButtonState();
+}
+
+class _CallMinimizeButtonState extends State<CallMinimizeButton> {
+  int _taps = 0;
+
+  @override
+  Widget build(BuildContext context) => GlassIconButton(
+        tone: GlassTone.media,
+        still: true,
+        size: 40,
+        semanticLabel: widget.semanticLabel,
+        glyph: AnimatedCallGlyph(
+          glyph: const CallTrayGlyph(CallGlyphKind.minimize),
+          size: 22,
+          ink: MediaGlass.ink,
+          litInk: MediaGlass.ink,
+          taps: _taps,
+        ),
+        onTap: () {
+          setState(() => _taps++);
+          widget.onTap();
+        },
+      );
 }
 
 /// The glass tray the controls sit in: a frosted capsule over whatever is

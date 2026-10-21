@@ -27,8 +27,10 @@ import 'calls/screen_share.dart';
 import 'calls/call_media.dart' show logCallAudioState;
 import 'calls/call_models.dart';
 import 'calls/call_notification_sync.dart';
+import 'calls/call_float.dart';
 import 'calls/call_pip.dart';
 import 'calls/call_screen.dart';
+import 'calls/widgets/call_float_window.dart';
 import 'calls/widgets/system_pip_view.dart';
 import 'calls/call_service.dart';
 import 'calls/group_call_screen.dart';
@@ -1625,6 +1627,18 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       // The video call's Picture in Picture window, which is also what lets
       // iOS keep our camera running once the app leaves the screen.
       CallPip.instance.attach(call: _callService, group: _groupCallService);
+      // The same picture, floating over the app while the call screen is
+      // minimized; "Return" is the in-call bar's.
+      CallFloat.instance.attach(
+        screenUp: _callScreenUp,
+        reopen: () {
+          if (_callService.inCall) {
+            _callService.reopenTick.value++;
+          } else {
+            _groupCallService.reopenTick.value++;
+          }
+        },
+      );
       // Android: the ongoing-call notification's Mute action and its
       // foreground service's camera type follow the 1:1 call.
       CallNotificationSync.instance.attach(_callService);
@@ -2184,6 +2198,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                                                     call: _callService,
                                                     group: _groupCallService,
                                                     callScreenUp: _callScreenUp,
+                                                    floating: CallFloat
+                                                        .instance.wanted,
                                                   ),
                                                 ],
                                               ),
@@ -2232,6 +2248,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                               // like everything else. Inert (and free) on every
                               // platform without a desktop drag.
                               const DropChrome(),
+                              // A minimized call's floating window, over
+                              // every route. Nothing while there is none.
+                              const CallFloatWindow(),
                               // Android's call Picture in Picture window: the
                               // call's picture over every route while the
                               // activity is shrunk into it. An empty box
@@ -2698,8 +2717,9 @@ class _CallOverlayState extends State<_CallOverlay> {
     final nav = rootNavigatorKey.currentState;
     if (nav == null) return null;
     widget.screenUp.value = true;
-    final route = MaterialPageRoute<void>(
-      fullscreenDialog: true,
+    final route = CallScreenRoute<void>(
+      // Back from the floating window, which already fills the screen.
+      instant: CallFloat.instance.takeInstantPush(),
       settings: const RouteSettings(name: kProtectedRouteName),
       builder: (_) => CallScreen(service: widget.service, api: widget.api),
     );
@@ -2993,8 +3013,8 @@ class _GroupCallOverlayState extends State<_GroupCallOverlay> {
         widget.screenUp.value = true;
         nav
             .push(
-              MaterialPageRoute(
-                fullscreenDialog: true,
+              CallScreenRoute<void>(
+                instant: CallFloat.instance.takeInstantPush(),
                 settings: const RouteSettings(name: kProtectedRouteName),
                 builder: (_) =>
                     GroupCallScreen(service: widget.service, api: widget.api),

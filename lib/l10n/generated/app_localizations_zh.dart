@@ -8102,9 +8102,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get groupCallScreenYouAreSharing => '你正在共享屏幕';
 
   @override
-  String get groupCallScreenMinimizeLabel => '隐藏';
-
-  @override
   String get groupCallScreenDrawLabel => '绘制';
 
   @override
@@ -8132,7 +8129,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get callScreenControlDraw => '绘制';
 
   @override
-  String get callScreenControlMinimize => '隐藏';
+  String get callScreenControlMinimize => '最小化';
 
   @override
   String get inCallPillOngoingCall => '通话进行中';

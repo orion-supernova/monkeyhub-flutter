@@ -14431,12 +14431,6 @@ abstract class AppLocalizations {
   /// **'You are sharing your screen'**
   String get groupCallScreenYouAreSharing;
 
-  /// Label under the control that puts the call screen away while the call keeps going.
-  ///
-  /// In en, this message translates to:
-  /// **'Hide'**
-  String get groupCallScreenMinimizeLabel;
-
   /// Label under the pen control that lets the user draw on a shared screen.
   ///
   /// In en, this message translates to:
@@ -14491,10 +14485,10 @@ abstract class AppLocalizations {
   /// **'Draw'**
   String get callScreenControlDraw;
 
-  /// Label under the 1:1 call tray's button that puts the call screen away.
+  /// Accessibility label and hover hint of the top-leading button on the call screens that shrinks the call into a floating window over the app (or, with no picture to float, into the bar at the top) while it carries on.
   ///
   /// In en, this message translates to:
-  /// **'Hide'**
+  /// **'Minimize'**
   String get callScreenControlMinimize;
 
   /// Title of the pill shown at the top of the app while a call runs behind it.
