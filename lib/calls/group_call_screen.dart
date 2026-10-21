@@ -34,6 +34,7 @@ import 'widgets/call_auto_hide.dart';
 import 'widgets/call_chrome.dart';
 import 'widgets/call_pip_stage.dart';
 import 'widgets/call_tile_layout.dart';
+import 'widgets/call_video_fit.dart';
 import '../widgets/desktop_scroll.dart';
 
 /// Full-screen UI for an active mesh group call.
@@ -1146,6 +1147,9 @@ class _VoiceStage extends StatelessWidget {
 ///    swaps the two.
 ///  * **Three**: the other two share the screen, stacked (side by side on a
 ///    wide window), your camera floating over them.
+///
+/// From three up the tiles fill the whole screen, edge to edge under the
+/// header and tray, and each feed fits its tile by [callTileFit].
 ///  * **Four and more**: everyone in [CallTileLayout]'s balanced tiles, you
 ///    last, every tile filled.
 ///
@@ -1215,11 +1219,13 @@ class _VideoGridState extends State<_VideoGrid> {
       bleed: bleed,
       footer: footer,
       tag: tag,
+      // Full-screen and in the corner, fitted the way the 1:1 screen fits
+      // its feeds; in the grid, by [callTileFit].
       video: showLocal
-          ? RTCVideoView(
-              widget.localRenderer!,
+          ? CallFeedView(
+              renderer: widget.localRenderer!,
               mirror: !service.localCamFacingBack,
-              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+              tile: !bleed,
             )
           : null,
     );
@@ -1257,10 +1263,7 @@ class _VideoGridState extends State<_VideoGrid> {
               peer.remoteStream != null &&
               peer.remoteStream!.getVideoTracks().isNotEmpty &&
               renderer != null)
-          ? RTCVideoView(
-              renderer,
-              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-            )
+          ? CallFeedView(renderer: renderer, tile: !bleed)
           : null,
     );
   }
@@ -1320,10 +1323,29 @@ class _VideoGridState extends State<_VideoGrid> {
       for (final p in peers) _peerTile(p),
       if (!float || !camOn) _selfTile(),
     ];
-    final grid = SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(8, 76, 8, widget.bottomInset + 12),
-        child: CallTileLayout(children: tiles),
+    // Edge to edge, the way FaceTime and Meet tile a group on a phone: the
+    // tiles run under the header and the tray instead of being boxed into
+    // the band between them, which left two people as short, wide strips
+    // with a portrait camera zoomed into each. Hairline gaps, no margins
+    // but the notch's.
+    const edge = 4.0;
+    final grid = Padding(
+      padding: EdgeInsets.fromLTRB(
+        edge + pad.left,
+        edge,
+        edge + pad.right,
+        edge,
+      ),
+      child: CallTileLayout(
+        gap: edge,
+        covered: EdgeInsets.only(
+          top: pad.top + (widget.chromeVisible ? 72 : 0) - edge,
+          bottom: (widget.chromeVisible
+                  ? widget.bottomInset + pad.bottom
+                  : pad.bottom) -
+              edge,
+        ),
+        children: tiles,
       ),
     );
     // The same stage as the two-person layout, in the same slot: going
@@ -1340,6 +1362,8 @@ class _VideoGridState extends State<_VideoGrid> {
             bottom: pipBottom,
           ),
         ),
+        // The header reads over the top row.
+        const _TopScrim(key: ValueKey('scrim')),
       ],
     );
   }
@@ -1422,6 +1446,10 @@ class _Tile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The header and tray over this tile, inside a grid; the tag and the
+    // face keep clear of them, and glide as they hide.
+    final cover = CallTileCover.of(context);
+    final glide = MotionScope.of(context).d(const Duration(milliseconds: 280));
     return ValueListenableBuilder<double>(
       valueListenable: level,
       child: Stack(
@@ -1430,63 +1458,71 @@ class _Tile extends StatelessWidget {
           Container(color: const Color(0xFF17181C)),
           ?video,
           if (video == null)
-            Center(
-              child: LayoutBuilder(
-                builder: (context, c) {
-                  final size =
-                      (math.min(c.maxWidth, c.maxHeight) * 0.42)
-                          .clamp(48.0, bleed ? 140.0 : 96.0);
-                  final face = SpeakingRing(
-                    level: level,
-                    accent: accent,
-                    size: size,
-                    child: ClipOval(
-                      child: UserAvatar(
-                        user: user,
-                        api: api,
-                        size: size - 6,
-                        showStatus: false,
+            // Centred in what the header and tray leave of the tile.
+            AnimatedPadding(
+              duration: glide,
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.only(top: cover.top, bottom: cover.bottom),
+              child: Center(
+                child: LayoutBuilder(
+                  builder: (context, c) {
+                    final size =
+                        (math.min(c.maxWidth, c.maxHeight) * 0.42)
+                            .clamp(48.0, bleed ? 140.0 : 96.0);
+                    final face = SpeakingRing(
+                      level: level,
+                      accent: accent,
+                      size: size,
+                      child: ClipOval(
+                        child: UserAvatar(
+                          user: user,
+                          api: api,
+                          size: size - 6,
+                          showStatus: false,
+                        ),
                       ),
-                    ),
-                  );
-                  final note = cameraNote;
-                  if (note == null || c.maxHeight < size + 40) return face;
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      face,
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AnimatedCallGlyph(
-                            glyph: const CallTrayGlyph.camera(on: true),
-                            size: 14,
-                            ink: Colors.white60,
-                            litInk: Colors.white60,
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              note,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: callCaptionStyle(ThemeScope.of(context)),
+                    );
+                    final note = cameraNote;
+                    if (note == null || c.maxHeight < size + 40) return face;
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        face,
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AnimatedCallGlyph(
+                              glyph: const CallTrayGlyph.camera(on: true),
+                              size: 14,
+                              ink: Colors.white60,
+                              litInk: Colors.white60,
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                },
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                note,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: callCaptionStyle(ThemeScope.of(context)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           if (dimmed) Container(color: Colors.black.withValues(alpha: 0.45)),
           if (tag)
-            Positioned(
-              left: bleed ? 20 : 8,
-              right: bleed ? 20 : 8,
-              bottom: 8 + footer,
+            AnimatedPositioned(
+              duration: glide,
+              curve: Curves.easeOutCubic,
+              left: bleed ? 20 : 10,
+              right: bleed ? 20 : 10,
+              bottom: 8 + math.max(footer, cover.bottom),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,

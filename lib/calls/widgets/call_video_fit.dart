@@ -24,6 +24,24 @@ BoxFit callFeedFit(Size video, Size box) {
   return videoWide == boxWide ? BoxFit.cover : BoxFit.contain;
 }
 
+/// How a grid tile's feed fits it: fill the tile unless filling would cut
+/// away more than half the picture, then show all of it.
+///
+/// A tile's shape follows the head count, not the screen, so the 1:1 rule
+/// ([callFeedFit]) is the wrong question: two people stacked on a phone get
+/// near-square tiles, and a portrait phone camera filling one keeps 60% of
+/// its height, a normal FaceTime crop. What it guards against is the deep
+/// zoom: a laptop's 16:9 camera in a tall 2x2 tile would keep a quarter of
+/// its width, a nose where a face should be.
+BoxFit callTileFit(Size video, Size box) {
+  if (video.isEmpty || box.isEmpty) return BoxFit.cover;
+  final v = video.width / video.height;
+  final b = box.width / box.height;
+  // The share of the picture a cover fit keeps along its cropped axis.
+  final kept = v > b ? b / v : v / b;
+  return kept >= 0.5 ? BoxFit.cover : BoxFit.contain;
+}
+
 /// [renderer]'s picture size as shown: width and height swap for a frame
 /// the sender tagged as rotated a quarter turn.
 Size displayedVideoSize(RTCVideoValue v) {
@@ -31,14 +49,22 @@ Size displayedVideoSize(RTCVideoValue v) {
   return rotated ? Size(v.height, v.width) : Size(v.width, v.height);
 }
 
-/// A full-bleed [RTCVideoView] whose fit follows [callFeedFit]: it listens
-/// to [renderer] for the picture's size (a frame-size change, not every
-/// frame) and to its own box.
+/// A full-bleed [RTCVideoView] whose fit follows [callFeedFit] (or
+/// [callTileFit] in a grid [tile]): it listens to [renderer] for the
+/// picture's size (a frame-size change, not every frame) and to its own box.
 class CallFeedView extends StatelessWidget {
-  const CallFeedView({super.key, required this.renderer, this.mirror = false});
+  const CallFeedView({
+    super.key,
+    required this.renderer,
+    this.mirror = false,
+    this.tile = false,
+  });
 
   final RTCVideoRenderer renderer;
   final bool mirror;
+
+  /// A tile in a group grid rather than the whole screen.
+  final bool tile;
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +72,10 @@ class CallFeedView extends StatelessWidget {
       builder: (context, constraints) => ValueListenableBuilder<RTCVideoValue>(
         valueListenable: renderer,
         builder: (context, v, _) {
-          final fit = callFeedFit(displayedVideoSize(v), constraints.biggest);
+          final fit = (tile ? callTileFit : callFeedFit)(
+            displayedVideoSize(v),
+            constraints.biggest,
+          );
           return RTCVideoView(
             renderer,
             mirror: mirror,

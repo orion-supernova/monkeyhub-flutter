@@ -54,4 +54,31 @@ void main() {
     expect(callTileRects(0, phone), isEmpty);
     expect(callTileRects(3, Size.zero), isEmpty);
   });
+
+  testWidgets('each tile learns how much of the chrome covers it',
+      (tester) async {
+    final covers = <String, EdgeInsets>{};
+    Widget probe(String id) => Builder(
+          key: ValueKey(id),
+          builder: (context) {
+            covers[id] = CallTileCover.of(context);
+            return const SizedBox.expand();
+          },
+        );
+    await tester.pumpWidget(Directionality(
+      textDirection: TextDirection.ltr,
+      child: Center(
+        child: SizedBox.fromSize(
+          size: phone,
+          child: CallTileLayout(
+            covered: const EdgeInsets.only(top: 100, bottom: 250),
+            children: [probe('a'), probe('b')],
+          ),
+        ),
+      ),
+    ));
+    // Stacked: the header over the top one, the tray over the bottom one.
+    expect(covers['a'], const EdgeInsets.only(top: 100));
+    expect(covers['b'], const EdgeInsets.only(bottom: 250));
+  });
 }

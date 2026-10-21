@@ -9,6 +9,24 @@ void main() {
   const laptopCam = Size(1280, 720);
   const phoneCam = Size(720, 1280);
 
+  group('callTileFit', () {
+    test('a phone camera fills a near-square tile, as FaceTime crops it', () {
+      // Two people stacked on a phone.
+      expect(callTileFit(phoneCam, const Size(385, 420)), BoxFit.cover);
+      expect(callTileFit(laptopCam, const Size(385, 420)), BoxFit.cover);
+    });
+
+    test('a crop that would keep under half the picture shows all of it', () {
+      // A laptop camera in a tall 2x2 tile, a phone camera in a strip.
+      expect(callTileFit(laptopCam, const Size(190, 420)), BoxFit.contain);
+      expect(callTileFit(phoneCam, const Size(385, 270)), BoxFit.contain);
+    });
+
+    test('no frame yet fills', () {
+      expect(callTileFit(Size.zero, const Size(190, 420)), BoxFit.cover);
+    });
+  });
+
   group('callFeedFit', () {
     test('same shape fills the screen', () {
       expect(callFeedFit(phoneCam, phone), BoxFit.cover);

@@ -57,11 +57,24 @@ List<Rect> callTileRects(int count, Size area, {double gap = 8}) {
 /// others sliding and resizing around the newcomer, who pops in. Each tile
 /// starts its glide from wherever it is, so a second change mid-glide never
 /// jumps either. Calm motion snaps.
+///
+/// The tiles run under the call's header and tray, FaceTime-style, rather
+/// than being boxed into the band between them; [covered] says how far
+/// those reach in from each edge, and every tile reads its own share from
+/// [CallTileCover] so its name tag sits clear.
 class CallTileLayout extends StatelessWidget {
-  const CallTileLayout({super.key, required this.children, this.gap = 8});
+  const CallTileLayout({
+    super.key,
+    required this.children,
+    this.gap = 8,
+    this.covered = EdgeInsets.zero,
+  });
 
   final List<Widget> children;
   final double gap;
+
+  /// What lies over the area's top and bottom edges.
+  final EdgeInsets covered;
 
   static const Duration glide = Duration(milliseconds: 420);
 
@@ -70,7 +83,8 @@ class CallTileLayout extends StatelessWidget {
     final duration = MotionScope.of(context).d(glide);
     return LayoutBuilder(
       builder: (context, box) {
-        final rects = callTileRects(children.length, box.biggest, gap: gap);
+        final area = box.biggest;
+        final rects = callTileRects(children.length, area, gap: gap);
         return Stack(
           children: [
             for (var i = 0; i < rects.length; i++)
@@ -79,9 +93,18 @@ class CallTileLayout extends StatelessWidget {
                 rect: rects[i],
                 duration: duration,
                 curve: Curves.easeOutCubic,
-                child: _Arrival(
-                  animate: duration > Duration.zero,
-                  child: children[i],
+                child: CallTileCover(
+                  insets: EdgeInsets.only(
+                    top: math.max(0, covered.top - rects[i].top),
+                    bottom: math.max(
+                      0,
+                      covered.bottom - (area.height - rects[i].bottom),
+                    ),
+                  ),
+                  child: _Arrival(
+                    animate: duration > Duration.zero,
+                    child: children[i],
+                  ),
                 ),
               ),
           ],
@@ -89,6 +112,21 @@ class CallTileLayout extends StatelessWidget {
       },
     );
   }
+}
+
+/// How much of a tile's top and bottom edges the call's chrome covers.
+/// Zero outside a [CallTileLayout].
+class CallTileCover extends InheritedWidget {
+  const CallTileCover({super.key, required this.insets, required super.child});
+
+  final EdgeInsets insets;
+
+  static EdgeInsets of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<CallTileCover>()?.insets ??
+      EdgeInsets.zero;
+
+  @override
+  bool updateShouldNotify(CallTileCover old) => insets != old.insets;
 }
 
 /// A tile's entrance: in from a little smaller, fading up. Plays once, when
