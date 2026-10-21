@@ -11,6 +11,7 @@ import '../backend/call_api.dart';
 import '../backend/convex_client.dart';
 import '../backend/signaling_status.dart';
 import '../data/settings_store.dart';
+import '../media/file_url_cache.dart';
 import 'call_config.dart';
 import 'camera_health.dart';
 import 'call_media.dart';
@@ -866,6 +867,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
         calleeId: peerUserId,
         roomId: roomId,
         type: kind.wire,
+        callerDeviceId: _deviceId,
       );
     } catch (_) {
       if (identical(_dialing, dial)) {
@@ -2552,6 +2554,12 @@ class CallService extends ChangeNotifier implements CallOptionsController {
       final avatarStorageId = parsed['callerAvatarStorageId'] as String?;
       final avatarUrl = parsed['callerAvatarUrl'] as String?;
       final mediaKind = CallMediaKindWire.parse(type);
+      // The ringer is up for as little as a second; without this the photo
+      // waited on a `getFileUrl` round trip first and a quick answer on the
+      // Mac never showed it.
+      if (avatarStorageId != null && avatarUrl != null) {
+        FileUrlCache.instance.seed(avatarStorageId, avatarUrl);
+      }
 
       // NB: deliberately NOT calling _rememberLocalCall here. Merely ringing
       // isn't "holding" the call — if it's answered on another of my devices,

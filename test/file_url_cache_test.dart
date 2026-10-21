@@ -30,6 +30,19 @@ void main() {
     expect(cache.peek('abc'), 'https://example.test/api/storage/1');
   });
 
+  test('a URL handed over with its id (a call invite) skips the fetch', () async {
+    cache.seed('avatar', 'https://example.test/api/storage/2');
+    cache.seed('junk', 'null');
+    var calls = 0;
+    final url = await cache.resolve('avatar', () async {
+      calls++;
+      return 'wrong';
+    });
+    expect(url, 'https://example.test/api/storage/2');
+    expect(calls, 0);
+    expect(cache.peek('junk'), isNull);
+  });
+
   test('an unknown id peeks null rather than throwing', () {
     expect(cache.peek('never-seen'), isNull);
   });

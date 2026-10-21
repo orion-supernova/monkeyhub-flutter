@@ -70,8 +70,10 @@ class SignalingSubscriber {
       _markDispatched(id);
       // Device-targeted filter: signals carrying a targetDeviceId only
       // apply to the device whose id matches. Siblings of the same
-      // userId ignore them. Used during handoff. Still consume on the
-      // server (via the drain's batch) so the row clears out.
+      // userId ignore them. Used during handoff, and for the ring-phase
+      // rows `accept` hands to the answering device. Still offered to the
+      // drain's consume batch: the backend, told which device this is,
+      // only clears a row that is ours to clear.
       final target = sig['targetDeviceId'] as String?;
       final mine = target == null || myDevice == null || target == myDevice;
       _queue.add(mine ? sig : {'_id': id, '_skip': true});
@@ -100,7 +102,11 @@ class SignalingSubscriber {
           if (id != null) consumedIds.add(id);
         }
         try {
-          await api.consumeCallSignals(signalIds: consumedIds, userId: me);
+          await api.consumeCallSignals(
+            signalIds: consumedIds,
+            userId: me,
+            deviceId: _deviceId,
+          );
         } catch (e) {
           debugPrint('consumeCallSignals(${consumedIds.length}) failed: $e');
         }

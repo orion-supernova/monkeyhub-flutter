@@ -36,6 +36,7 @@ class _FakeCallApi extends Fake implements CallApi {
     required String calleeId,
     required String roomId,
     required String type,
+    String? callerDeviceId,
   }) async =>
       'call-1';
 

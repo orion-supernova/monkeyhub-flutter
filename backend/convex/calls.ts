@@ -290,19 +290,29 @@ export const purgeCallSignalsInternal = internalMutation({
   },
 });
 
-// Marks consumed every untargeted, still-unconsumed row to the callee that
-// was written while the call rang — the rows `heldForSiblings` kept visible
-// to all of the callee's devices. Bounded by [acceptedAt]: anything newer is
-// live-call traffic the answering device may not have read yet. The `taken`
-// row `accept` itself inserted stays: siblings still need it to stop ringing.
+// Retires every untargeted, still-unconsumed row to the callee that was
+// written while the call rang — the rows `heldFrom` kept visible to
+// all of the callee's devices. Bounded by [acceptedAt]: anything newer is
+// live-call traffic. The `taken` row `accept` itself inserted stays: siblings
+// still need it to stop ringing.
+//
+// Retired means addressed to [acceptingDeviceId], not consumed. Consuming
+// them hid the offer and the caller's early ICE from the device that had
+// just answered whenever its subscription had not delivered them yet (an
+// accept off the invite alone, or a Mac a beat behind): it answered nothing,
+// or answered with no candidates, and the call sat on "connecting" with
+// both self-previews up (2026-10-21). Targeted, the answering device still
+// reads them and its siblings skip them. Only a client that never sent a
+// device id falls back to the old consume.
 export const retireRingPhaseSignalsInternal = internalMutation({
   args: {
     callId: v.id("calls"),
     calleeId: v.id("users"),
     acceptedAt: v.number(),
+    acceptingDeviceId: v.optional(v.string()),
   },
   returns: v.null(),
-  handler: async (ctx, { callId, calleeId, acceptedAt }) => {
+  handler: async (ctx, { callId, calleeId, acceptedAt, acceptingDeviceId }) => {
     const rows = await ctx.db
       .query("callSignals")
       .withIndex("by_call", (q: any) => q.eq("callId", callId))
@@ -311,7 +321,12 @@ export const retireRingPhaseSignalsInternal = internalMutation({
       if (r.consumed || r.targetDeviceId || r.kind === "taken") continue;
       if (r.createdAt > acceptedAt) continue;
       if (r.toUserId.toString() !== calleeId.toString()) continue;
-      await ctx.db.patch(r._id, { consumed: true });
+      await ctx.db.patch(
+        r._id,
+        acceptingDeviceId
+          ? { targetDeviceId: acceptingDeviceId }
+          : { consumed: true },
+      );
     }
     return null;
   },
@@ -330,8 +345,11 @@ export const initiate = mutation({
     calleeId: v.id("users"),
     roomId: v.id("rooms"),
     type: v.string(), // "audio" | "video"
+    // The dialing device. Optional for older clients; `sendSignal` learns
+    // it from their first signal instead. See `calls.callerDeviceId`.
+    callerDeviceId: v.optional(v.string()),
   },
-  handler: async (ctx, { callerId, calleeId, roomId, type }) => {
+  handler: async (ctx, { callerId, calleeId, roomId, type, callerDeviceId }) => {
     if (callerId.toString() === calleeId.toString()) {
       throw new Error("CANNOT_CALL_SELF");
     }
@@ -469,6 +487,7 @@ export const initiate = mutation({
       type,
       status: "ringing",
       startedAt: Date.now(),
+      callerDeviceId: callerDeviceId ?? undefined,
     });
 
     // Surface an "invite" signal IMMEDIATELY. Every callee device with an
@@ -568,14 +587,19 @@ export const accept = mutation({
       consumed: false,
     });
     // The ring-phase rows every callee device was held to (see
-    // `heldForSiblings`) have done their job; a device that comes online
+    // `heldFrom`) have done their job; a device that comes online
     // now must not ring an answered call off them. Deferred for the same
     // OCC reason as `purgeCallSignals`: a `by_call` range read here would
     // conflict with the caller's ICE inserts.
     await ctx.scheduler.runAfter(
       0,
       internal.calls.retireRingPhaseSignalsInternal,
-      { callId, calleeId: call.calleeId, acceptedAt },
+      {
+        callId,
+        calleeId: call.calleeId,
+        acceptedAt,
+        acceptingDeviceId: acceptingDeviceId ?? undefined,
+      },
     );
     // For killed-iOS siblings (subscription not alive), fan a PushKit
     // payload with kind="taken" so CallKit can dismiss with
@@ -780,6 +804,16 @@ export const sendSignal = mutation({
     if (call.status !== "ringing" && call.status !== "active") {
       return; // idempotent silent drop
     }
+    // A caller on a build that predates `initiate`'s `callerDeviceId` names
+    // its device on its first signal (the offer). One patch per call.
+    if (
+      !isHandoffToSelf &&
+      fromDeviceId &&
+      !call.callerDeviceId &&
+      call.callerId.toString() === fromUserId.toString()
+    ) {
+      await ctx.db.patch(callId, { callerDeviceId: fromDeviceId });
+    }
     await ctx.db.insert("callSignals", {
       callId,
       fromUserId,
@@ -806,11 +840,23 @@ export const handoffCall = mutation({
   handler: async (ctx, { callId, userId, newDeviceId }) => {
     const call = await assertCallParticipant(ctx, callId, userId);
     if (call.status !== "active") throw new Error("CALL_NOT_ACTIVE");
-    const oldDeviceId = call.acceptingDeviceId;
+    // Each side's holder moves on its own field. This used to move
+    // `acceptingDeviceId` for a caller too, which pointed the takeover at the
+    // CALLEE's device (so the caller's old device never stood down) and left
+    // the callee's siblings reading the caller's device as the callee's.
+    const iAmCaller = call.callerId.toString() === userId.toString();
+    const oldDeviceId = iAmCaller
+      ? call.callerDeviceId
+      : call.acceptingDeviceId;
     if (oldDeviceId === newDeviceId) {
       return { oldDeviceId: oldDeviceId ?? null };
     }
-    await ctx.db.patch(callId, { acceptingDeviceId: newDeviceId });
+    await ctx.db.patch(
+      callId,
+      iAmCaller
+        ? { callerDeviceId: newDeviceId }
+        : { acceptingDeviceId: newDeviceId },
+    );
     // Tell the old device (if known) to tear down its PC quietly. Only
     // it acts because the signal is targetDeviceId-scoped.
     if (oldDeviceId) {
@@ -880,25 +926,55 @@ export const signalsForUser = query({
 // [retireRingPhaseSignalsInternal]. Terminal rows are not held: the purge
 // deletes the ring-phase rows anyway, and every device watches
 // `activeCallForUser` to stop ringing whoever consumed the `cancel`.
-async function heldForSiblings(ctx: any, sig: Doc<"callSignals">) {
-  if (sig.targetDeviceId) return false;
-  const call = await ctx.db.get(sig.callId);
-  return (
-    !!call &&
-    call.status === "ringing" &&
-    call.calleeId.toString() === sig.toUserId.toString()
-  );
+//
+// The same race outlived the ring. Once a call is live it is held by ONE
+// device per side (`acceptingDeviceId`, `callerDeviceId`), yet every sibling
+// still drained — and consumed — the answer and ICE meant for that device,
+// including the rows it skipped as someone else's. On 2026-10-21 a call
+// answered on a Mac, with the callee's iPhone still awake from the VoIP
+// push, never connected: both sides sat on their own preview. So a device
+// that names itself ([deviceId]) may only consume what is its own: a row
+// targeted at it, or an untargeted one on a side whose holder it is (or
+// whose holder is unknown). Everything else it leaves for the holder; the
+// purge at call end deletes what nobody consumed. A live call's `taken`
+// is held from everyone: it is the siblings' ring dismissal, and the
+// accepting device draining its own echo first used to take it from them.
+// A client that sends no device id keeps the old per-user consume.
+async function heldFrom(
+  ctx: any,
+  sig: Doc<"callSignals">,
+  deviceId: string | undefined,
+) {
+  const call: Doc<"calls"> | null = await ctx.db.get(sig.callId);
+  if (!call) return false;
+  const toCallee = call.calleeId.toString() === sig.toUserId.toString();
+  if (!sig.targetDeviceId && toCallee && call.status === "ringing") {
+    return true;
+  }
+  if (!deviceId) return false;
+  // Terminal rows go to whoever drains them: a holder that died would
+  // otherwise leave them unconsumed for a day, ahead of the next call's
+  // invite in `signalsForUser`'s oldest-first window.
+  if (call.status !== "ringing" && call.status !== "active") return false;
+  if (sig.targetDeviceId) return sig.targetDeviceId !== deviceId;
+  if (sig.kind === "taken") return call.status === "active";
+  const holder = toCallee ? call.acceptingDeviceId : call.callerDeviceId;
+  return !!holder && holder !== deviceId;
 }
 
 export const consumeSignal = mutation({
-  args: { signalId: v.id("callSignals"), userId: v.id("users") },
-  handler: async (ctx, { signalId, userId }) => {
+  args: {
+    signalId: v.id("callSignals"),
+    userId: v.id("users"),
+    deviceId: v.optional(v.string()),
+  },
+  handler: async (ctx, { signalId, userId, deviceId }) => {
     const sig = await ctx.db.get(signalId);
     if (!sig) return;
     if (sig.toUserId.toString() !== userId.toString()) {
       throw new Error("NOT_RECIPIENT");
     }
-    if (await heldForSiblings(ctx, sig)) return;
+    if (await heldFrom(ctx, sig, deviceId)) return;
     await ctx.db.patch(signalId, { consumed: true });
   },
 });
@@ -907,16 +983,18 @@ export const consumeSignals = mutation({
   args: {
     signalIds: v.array(v.id("callSignals")),
     userId: v.id("users"),
+    // The draining device. See [heldFrom].
+    deviceId: v.optional(v.string()),
   },
   returns: v.null(),
-  handler: async (ctx, { signalIds, userId }) => {
+  handler: async (ctx, { signalIds, userId, deviceId }) => {
     for (const signalId of signalIds) {
       const sig = await ctx.db.get(signalId);
       // Missing rows are fine — GC or purge may have raced us.
       if (!sig) continue;
       if (sig.toUserId.toString() !== userId.toString()) continue;
       if (sig.consumed) continue;
-      if (await heldForSiblings(ctx, sig)) continue;
+      if (await heldFrom(ctx, sig, deviceId)) continue;
       await ctx.db.patch(signalId, { consumed: true });
     }
   },

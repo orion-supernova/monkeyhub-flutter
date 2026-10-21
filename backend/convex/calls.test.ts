@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import { TAKEN_PUSH_GRACE_MS } from "./calls";
 import schema from "./schema";
+import type { Doc } from "./_generated/dataModel";
 
 // Native `taken` pushes are scheduled TAKEN_PUSH_GRACE_MS out (see calls.ts),
 // and convex-test runs scheduled work on real timers — so every drain below
@@ -794,12 +795,33 @@ describe("ring-phase signals reach every callee device", () => {
   async function consumeAll(
     t: ReturnType<typeof convexTest>,
     user: { token: string; userId: string },
+    deviceId?: string,
   ) {
     const rows = await unconsumedFor(t, user);
     await t.mutation(api.calls.consumeSignals, {
       sessionToken: user.token,
       signalIds: rows.map((r) => r._id),
       userId: user.userId as any,
+      deviceId,
+    });
+  }
+
+  async function signal(
+    t: ReturnType<typeof convexTest>,
+    from: { token: string; userId: string },
+    to: { userId: string },
+    callId: any,
+    kind: string,
+    fromDeviceId?: string,
+  ) {
+    await t.mutation(api.calls.sendSignal, {
+      sessionToken: from.token,
+      callId,
+      fromUserId: from.userId as any,
+      toUserId: to.userId as any,
+      kind,
+      payload: "{}",
+      fromDeviceId,
     });
   }
 
@@ -827,30 +849,15 @@ describe("ring-phase signals reach every callee device", () => {
   test("accept retires the ring-phase rows but keeps `taken` and later traffic", async () => {
     const t = convexTest(schema);
     const { caller, callee, callId } = await ringingCall(t);
-    await t.mutation(api.calls.sendSignal, {
-      sessionToken: caller.token,
-      callId,
-      fromUserId: caller.userId as any,
-      toUserId: callee.userId as any,
-      kind: "offer",
-      payload: "{}",
-    });
+    await signal(t, caller, callee, callId, "offer");
     await consumeAll(t, callee);
     await t.mutation(api.calls.accept, {
       sessionToken: callee.token,
       callId,
       userId: callee.userId as any,
-      acceptingDeviceId: "phone-b",
     });
     vi.advanceTimersByTime(1);
-    await t.mutation(api.calls.sendSignal, {
-      sessionToken: caller.token,
-      callId,
-      fromUserId: caller.userId as any,
-      toUserId: callee.userId as any,
-      kind: "ice",
-      payload: "{}",
-    });
+    await signal(t, caller, callee, callId, "ice");
     await drain(t);
     expect(
       (await unconsumedFor(t, callee)).map((r) => r.kind).sort(),
@@ -859,6 +866,143 @@ describe("ring-phase signals reach every callee device", () => {
     // A live call's rows consume normally again.
     await consumeAll(t, callee);
     expect(await unconsumedFor(t, callee)).toEqual([]);
+  });
+
+  test("accept from a named device hands it the ring-phase rows instead of consuming them", async () => {
+    const t = convexTest(schema);
+    const { caller, callee, callId } = await ringingCall(t);
+    await signal(t, caller, callee, callId, "offer");
+    await t.mutation(api.calls.accept, {
+      sessionToken: callee.token,
+      callId,
+      userId: callee.userId as any,
+      acceptingDeviceId: "mac-b",
+    });
+    await drain(t);
+    const rows = await unconsumedFor(t, callee);
+    const ring = rows.filter((r) => r.kind !== "taken");
+    expect(ring.map((r) => r.kind).sort()).toEqual(["invite", "offer"]);
+    expect(ring.every((r) => r.targetDeviceId === "mac-b")).toBe(true);
+
+    // The sibling that rang alongside it can no longer take them…
+    await consumeAll(t, callee, "phone-b");
+    expect((await unconsumedFor(t, callee)).map((r) => r.kind).sort()).toEqual(
+      ["invite", "offer", "taken"],
+    );
+    // …the answering device can. `taken` stays for the siblings.
+    await consumeAll(t, callee, "mac-b");
+    expect((await unconsumedFor(t, callee)).map((r) => r.kind)).toEqual([
+      "taken",
+    ]);
+  });
+
+  test("a live call's traffic is consumed only by the device holding each side", async () => {
+    const t = convexTest(schema);
+    const caller = await signUp(t, "caller");
+    const callee = await signUp(t, "callee");
+    const roomId = await makeRoom(t, caller);
+    await join(t, callee, roomId);
+    const callId = await t.mutation(api.calls.initiate, {
+      sessionToken: caller.token,
+      callerId: caller.userId as any,
+      calleeId: callee.userId as any,
+      roomId,
+      type: "video",
+      callerDeviceId: "phone-a",
+    });
+    await t.mutation(api.calls.accept, {
+      sessionToken: callee.token,
+      callId,
+      userId: callee.userId as any,
+      acceptingDeviceId: "mac-b",
+    });
+    await drain(t);
+    await consumeAll(t, callee, "mac-b");
+    vi.advanceTimersByTime(1);
+
+    // The callee's ICE after the answer; the callee's iPhone (woken by the
+    // VoIP push, never answered) drains first and must leave it.
+    await signal(t, caller, callee, callId, "ice-batch", "phone-a");
+    await consumeAll(t, callee, "phone-b");
+    expect((await unconsumedFor(t, callee)).map((r) => r.kind).sort()).toEqual(
+      ["ice-batch", "taken"],
+    );
+    await consumeAll(t, callee, "mac-b");
+    expect((await unconsumedFor(t, callee)).map((r) => r.kind)).toEqual([
+      "taken",
+    ]);
+
+    // The answer to the caller; the caller's idle Mac must leave it.
+    await signal(t, callee, caller, callId, "answer", "mac-b");
+    await consumeAll(t, caller, "mac-a");
+    expect((await unconsumedFor(t, caller)).map((r) => r.kind)).toEqual([
+      "answer",
+    ]);
+    await consumeAll(t, caller, "phone-a");
+    expect(await unconsumedFor(t, caller)).toEqual([]);
+
+    // A client that names no device keeps the old per-user consume.
+    await signal(t, caller, callee, callId, "ice-batch", "phone-a");
+    await consumeAll(t, callee);
+    expect(await unconsumedFor(t, callee)).toEqual([]);
+
+    // The end purges what was held.
+    await t.mutation(api.calls.end, {
+      sessionToken: caller.token,
+      callId,
+      userId: caller.userId as any,
+    });
+    await drain(t);
+    expect(
+      (await unconsumedFor(t, callee)).filter((r) => r.kind !== "bye"),
+    ).toEqual([]);
+  });
+
+  test("an older caller's device is learned from its first signal", async () => {
+    const t = convexTest(schema);
+    const { caller, callee, callId } = await ringingCall(t);
+    await signal(t, caller, callee, callId, "offer", "phone-a");
+    await signal(t, caller, callee, callId, "ice", "phone-z");
+    const row = (await t.run(async (ctx) => await ctx.db.get(callId))) as Doc<"calls"> | null;
+    expect(row?.callerDeviceId).toBe("phone-a");
+    await drain(t);
+  });
+
+  test("a caller's handoff moves the caller's device, not the callee's", async () => {
+    const t = convexTest(schema);
+    const caller = await signUp(t, "caller");
+    const callee = await signUp(t, "callee");
+    const roomId = await makeRoom(t, caller);
+    await join(t, callee, roomId);
+    const callId = await t.mutation(api.calls.initiate, {
+      sessionToken: caller.token,
+      callerId: caller.userId as any,
+      calleeId: callee.userId as any,
+      roomId,
+      type: "audio",
+      callerDeviceId: "phone-a",
+    });
+    await t.mutation(api.calls.accept, {
+      sessionToken: callee.token,
+      callId,
+      userId: callee.userId as any,
+      acceptingDeviceId: "mac-b",
+    });
+    const res = await t.mutation(api.calls.handoffCall, {
+      sessionToken: caller.token,
+      callId,
+      userId: caller.userId as any,
+      newDeviceId: "mac-a",
+    });
+    expect(res).toEqual({ oldDeviceId: "phone-a" });
+    const row = (await t.run(async (ctx) => await ctx.db.get(callId))) as Doc<"calls"> | null;
+    expect(row?.callerDeviceId).toBe("mac-a");
+    expect(row?.acceptingDeviceId).toBe("mac-b");
+    const takeover = (await unconsumedFor(t, caller)).find(
+      (r) => r.kind === "handoff-takeover",
+    );
+    expect(takeover?.targetDeviceId).toBe("phone-a");
+    await drain(t);
   });
 
   test("rows to the caller consume normally while ringing", async () => {

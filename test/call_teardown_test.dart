@@ -56,6 +56,7 @@ class _FakeCallApi extends Fake implements CallApi {
     required String calleeId,
     required String roomId,
     required String type,
+    String? callerDeviceId,
   }) async =>
       initiateResult ?? 'call-${terminalCalls.length}-$type-$roomId';
 

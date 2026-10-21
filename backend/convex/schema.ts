@@ -2444,6 +2444,12 @@ export default defineSchema({
     // watch this through `activeCallForUser` to render the global "Move
     // call here" pill (pill renders when this !== my deviceId).
     acceptingDeviceId: v.optional(v.string()),
+    // The caller-side twin of `acceptingDeviceId`: which of the CALLER's
+    // devices holds the call. Sent by `initiate` (or learned from the
+    // caller's first signal on older clients); moved by a caller handoff.
+    // `consumeSignals` reads both so a sibling device can't eat a signal
+    // meant for the device actually on the call.
+    callerDeviceId: v.optional(v.string()),
     // Set by `heartbeat` while status is "active"; `gcStuckActive` treats a
     // stale value as an abandoned call (crash, dead battery, OS jetsam) that
     // neither side ever explicitly ended.

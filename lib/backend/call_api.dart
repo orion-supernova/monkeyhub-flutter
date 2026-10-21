@@ -16,12 +16,16 @@ class CallApi {
     required String calleeId,
     required String roomId,
     required String type, // "audio" | "video"
+    // This device, so the backend knows which of the caller's devices
+    // holds the call — see `calls.callerDeviceId`.
+    String? callerDeviceId,
   }) async {
     final res = await _cv.mutation('calls:initiate', {
       'callerId': callerId,
       'calleeId': calleeId,
       'roomId': roomId,
       'type': type,
+      'callerDeviceId': ?callerDeviceId,
     });
     return res.toString();
   }
@@ -162,23 +166,31 @@ class CallApi {
   Future<void> consumeCallSignal({
     required String signalId,
     required String userId,
+    String? deviceId,
   }) async {
     await _cv.mutation('calls:consumeSignal', {
       'signalId': signalId,
       'userId': userId,
+      'deviceId': ?deviceId,
     });
   }
 
   /// Batch variant — one mutation for a whole drain pass instead of one per
   /// signal. Missing/foreign ids are skipped server-side.
+  ///
+  /// [deviceId] names the draining device. The backend then leaves a row
+  /// meant for the sibling holding the call unconsumed instead of taking it
+  /// from that sibling — the "answered on the Mac, never connected" bug.
   Future<void> consumeCallSignals({
     required List<String> signalIds,
     required String userId,
+    String? deviceId,
   }) async {
     if (signalIds.isEmpty) return;
     await _cv.mutation('calls:consumeSignals', {
       'signalIds': signalIds,
       'userId': userId,
+      'deviceId': ?deviceId,
     });
   }
 

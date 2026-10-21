@@ -128,6 +128,17 @@ class FileUrlCache {
     return future;
   }
 
+  /// Records a URL the backend already resolved and handed over alongside
+  /// [storageId] — a call invite carries the caller's avatar both ways — so
+  /// the first [RemoteImage] for it starts downloading at once instead of
+  /// spending a `getFileUrl` round trip of a ring that may last a second.
+  void seed(String storageId, String url) {
+    if (!url.startsWith('http') || _urls[storageId] == url) return;
+    _urls[storageId] = url;
+    _dirty = true;
+    _scheduleSave();
+  }
+
   /// Forgets [storageId] so the next [resolve] re-queries. For the case where a
   /// stored file was replaced under the same id, or a URL stopped working.
   void invalidate(String storageId) {

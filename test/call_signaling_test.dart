@@ -14,6 +14,7 @@ class _FakeSubscription extends Fake implements Subscription {
 class _FakeCallApi extends Fake implements CallApi {
   void Function(List<Map<String, dynamic>> signals)? emit;
   final List<List<String>> consumedBatches = [];
+  final List<String?> consumedAs = [];
 
   @override
   Future<Subscription> subscribeCallSignals({
@@ -29,8 +30,10 @@ class _FakeCallApi extends Fake implements CallApi {
   Future<void> consumeCallSignals({
     required List<String> signalIds,
     required String userId,
+    String? deviceId,
   }) async {
     consumedBatches.add(List.of(signalIds));
+    consumedAs.add(deviceId);
   }
 }
 
@@ -122,6 +125,17 @@ void main() {
       expect(api.consumedBatches.single, ['s1', 's2']);
     },
   );
+
+  // The backend decides which rows are this device's to clear (a sibling
+  // holding the call keeps its answer and ICE), so every batch says who
+  // is draining.
+  test('every consume batch names this device', () async {
+    api.emit!([_sig('s1', 'state')]);
+    await _pump();
+    api.emit!([_sig('s2', 'ice-batch', targetDeviceId: 'mac')]);
+    await _pump();
+    expect(api.consumedAs, ['dev1', 'dev1']);
+  });
 
   test('a throwing handler does not stall the queue', () async {
     service.gates['offer'] = Completer<void>()
