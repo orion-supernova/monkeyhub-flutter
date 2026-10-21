@@ -8643,9 +8643,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get groupCallScreenYouAreSharing => 'Está a partilhar o seu ecrã';
 
   @override
-  String get groupCallScreenMinimizeLabel => 'Ocultar';
-
-  @override
   String get groupCallScreenDrawLabel => 'Desenhar';
 
   @override
@@ -8674,7 +8671,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get callScreenControlDraw => 'Desenhar';
 
   @override
-  String get callScreenControlMinimize => 'Ocultar';
+  String get callScreenControlMinimize => 'Minimizar';
 
   @override
   String get inCallPillOngoingCall => 'Chamada em curso';
@@ -23061,9 +23058,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Você está compartilhando sua tela';
 
   @override
-  String get groupCallScreenMinimizeLabel => 'Ocultar';
-
-  @override
   String get groupCallScreenDrawLabel => 'Desenhar';
 
   @override
@@ -23092,7 +23086,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get callScreenControlDraw => 'Desenhar';
 
   @override
-  String get callScreenControlMinimize => 'Ocultar';
+  String get callScreenControlMinimize => 'Minimizar';
 
   @override
   String get inCallPillOngoingCall => 'Chamada em andamento';

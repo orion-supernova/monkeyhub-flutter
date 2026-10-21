@@ -23,6 +23,7 @@ import 'call_audio_devices.dart';
 import 'call_audio_sheet.dart';
 import 'call_media.dart';
 import 'call_options_sheet.dart';
+import 'call_screen.dart' show minimizeCallRoute;
 import 'call_stats_monitor.dart';
 import 'draw/draw_canvas.dart';
 import 'draw/draw_model.dart';
@@ -488,10 +489,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     setControlsVisible(show);
   }
 
-  void _hide() {
-    final nav = Navigator.of(context);
-    if (nav.canPop()) nav.pop();
-  }
+  void _minimize() => unawaited(minimizeCallRoute(context));
 
   Future<void> _onShareTap() async {
     final l10n = AppLocalizations.of(context);
@@ -656,10 +654,19 @@ class _GroupCallScreenState extends State<GroupCallScreen>
                     child: SafeArea(
                       bottom: false,
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+                        padding: const EdgeInsets.fromLTRB(16, 14, 20, 6),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Top-leading, away from the tray: see
+                            // CallMinimizeButton.
+                            Padding(
+                              padding: const EdgeInsets.only(right: 12),
+                              child: CallMinimizeButton(
+                                onTap: _minimize,
+                                semanticLabel: l10n.callScreenControlMinimize,
+                              ),
+                            ),
                             Expanded(
                               flex: 3,
                               child: Column(
@@ -880,12 +887,6 @@ class _GroupCallScreenState extends State<GroupCallScreen>
           ),
         ),
         label: l10n.callScreenControlOptions,
-      ),
-      CallTrayAction(
-        icon: CallGlyphs.hide,
-        glyph: const CallTrayGlyph(CallGlyphKind.hide),
-        onTap: _hide,
-        label: l10n.groupCallScreenMinimizeLabel,
       ),
     ];
   }

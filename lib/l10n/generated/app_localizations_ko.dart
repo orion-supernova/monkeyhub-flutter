@@ -8217,9 +8217,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get groupCallScreenYouAreSharing => '내 화면을 공유하고 있어요';
 
   @override
-  String get groupCallScreenMinimizeLabel => '숨기기';
-
-  @override
   String get groupCallScreenDrawLabel => '그리기';
 
   @override
@@ -8247,7 +8244,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get callScreenControlDraw => '그리기';
 
   @override
-  String get callScreenControlMinimize => '숨기기';
+  String get callScreenControlMinimize => '최소화';
 
   @override
   String get inCallPillOngoingCall => '통화 중';

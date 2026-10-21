@@ -8559,9 +8559,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get groupCallScreenYouAreSharing => 'आप अपनी स्क्रीन साझा कर रहे हैं';
 
   @override
-  String get groupCallScreenMinimizeLabel => 'छिपाएँ';
-
-  @override
   String get groupCallScreenDrawLabel => 'बनाएँ';
 
   @override
@@ -8590,7 +8587,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get callScreenControlDraw => 'बनाएँ';
 
   @override
-  String get callScreenControlMinimize => 'छिपाएँ';
+  String get callScreenControlMinimize => 'छोटा करें';
 
   @override
   String get inCallPillOngoingCall => 'कॉल जारी है';

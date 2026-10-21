@@ -27,14 +27,15 @@ import '../../widgets/capture_glyphs.dart';
 //    after the other).
 //  * Share: the arrow launches out of the screen and a stop square pops
 //    into the cut; stopping drops the square and the arrow rises back.
-//  * Flip, More, Hide, End: a one-off move per tap (the arrows spin half a
-//    lap, the dots hop in turn, the chevron dips, the handset is put down:
-//    it tips, drops and lands on its cradle).
+//  * Flip, More, Minimize, End: a one-off move per tap (the arrows spin
+//    half a lap, the dots hop in turn, the arrow pushes the picture into
+//    its corner, the handset is put down: it tips, drops and lands on its
+//    cradle).
 //
 // No idle loops: the tray is resting chrome. Reduce Motion snaps.
 
 /// Which drawn glyph a tray control shows.
-enum CallGlyphKind { mic, camera, audio, share, flip, more, hide, end }
+enum CallGlyphKind { mic, camera, audio, share, flip, more, minimize, end }
 
 /// Where the sound goes, as the audio control (and the mic's badge) draws
 /// it.
@@ -92,7 +93,7 @@ class CallTrayGlyph {
   bool get kicksOnTap =>
       kind == CallGlyphKind.flip ||
       kind == CallGlyphKind.more ||
-      kind == CallGlyphKind.hide ||
+      kind == CallGlyphKind.minimize ||
       kind == CallGlyphKind.end;
 
   @override
@@ -274,8 +275,8 @@ class _CallGlyphPainter extends GlyphGridPainter {
         _flip(canvas, line, fill);
       case CallGlyphKind.more:
         _more(canvas, fill);
-      case CallGlyphKind.hide:
-        _hide(canvas, line);
+      case CallGlyphKind.minimize:
+        _minimize(canvas, line, fill);
       case CallGlyphKind.end:
         _end(canvas, line, fill);
     }
@@ -748,21 +749,42 @@ class _CallGlyphPainter extends GlyphGridPainter {
     }
   }
 
-  void _hide(Canvas canvas, Paint line) {
+  /// The call shrinking into a picture in the corner of the screen (SF's
+  /// `pip.enter`): the screen's frame, the small picture filled in its
+  /// lower corner, and an arrow from the far corner pointing into it. A tap
+  /// pushes the arrow in and the picture pops, the move the call is about
+  /// to make.
+  void _minimize(Canvas canvas, Paint line, Paint fill) {
     final p = _push(kick.value);
-    final dip = 2.4 * p;
-    final heavy = Paint()
-      ..color = line.color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = line.strokeWidth * 1.2
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
+    canvas.drawRRect(
+      RRect.fromLTRBR(3.2, 5, 20.8, 19, const Radius.circular(3.2)),
+      line,
+    );
+    final pop = 1 + 0.18 * _push(glyphSpan(kick.value, 0.25, 1));
+    canvas.save();
+    canvas.translate(15.6, 14.4);
+    canvas.scale(pop);
+    canvas.translate(-15.6, -14.4);
+    _solid(
+      canvas,
+      Path()
+        ..addRRect(
+          RRect.fromLTRBR(12.4, 11.8, 18.8, 17, const Radius.circular(1.4)),
+        ),
+      line,
+      fill,
+    );
+    canvas.restore();
+    final d = 1.6 * p;
+    final tip = Offset(10 + d, 10.6 + d);
     canvas.drawPath(
       Path()
-        ..moveTo(5.2, 9 + dip)
-        ..lineTo(12, 15.6 + dip - 1.0 * p)
-        ..lineTo(18.8, 9 + dip),
-      heavy,
+        ..moveTo(6.4 + d, 7 + d)
+        ..lineTo(tip.dx, tip.dy)
+        ..moveTo(tip.dx - 3.2, tip.dy)
+        ..lineTo(tip.dx, tip.dy)
+        ..lineTo(tip.dx, tip.dy - 3.2),
+      line,
     );
   }
 

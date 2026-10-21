@@ -125,15 +125,17 @@ class _SystemPipViewState extends State<SystemPipView> {
                   r,
                   objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                 )
-              : _NameCard(title: spec?.title ?? ''),
+              : CallPipNameCard(title: spec?.title ?? ''),
         ),
       ),
     );
   }
 }
 
-class _NameCard extends StatelessWidget {
-  const _NameCard({required this.title});
+/// A picture-in-picture window with no picture: the initial in a disc, the
+/// name under it. The system window and the in-app floating one both.
+class CallPipNameCard extends StatelessWidget {
+  const CallPipNameCard({super.key, required this.title});
 
   final String title;
 

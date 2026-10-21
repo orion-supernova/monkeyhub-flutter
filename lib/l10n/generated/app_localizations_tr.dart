@@ -8515,9 +8515,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get groupCallScreenYouAreSharing => 'Ekranını paylaşıyorsun';
 
   @override
-  String get groupCallScreenMinimizeLabel => 'Gizle';
-
-  @override
   String get groupCallScreenDrawLabel => 'Çiz';
 
   @override
@@ -8546,7 +8543,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get callScreenControlDraw => 'Çiz';
 
   @override
-  String get callScreenControlMinimize => 'Gizle';
+  String get callScreenControlMinimize => 'Küçült';
 
   @override
   String get inCallPillOngoingCall => 'Arama sürüyor';

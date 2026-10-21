@@ -8537,9 +8537,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groupCallScreenYouAreSharing => 'You are sharing your screen';
 
   @override
-  String get groupCallScreenMinimizeLabel => 'Hide';
-
-  @override
   String get groupCallScreenDrawLabel => 'Draw';
 
   @override
@@ -8568,7 +8565,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get callScreenControlDraw => 'Draw';
 
   @override
-  String get callScreenControlMinimize => 'Hide';
+  String get callScreenControlMinimize => 'Minimize';
 
   @override
   String get inCallPillOngoingCall => 'Call in progress';

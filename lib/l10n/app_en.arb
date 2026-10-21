@@ -9885,10 +9885,6 @@
   "@groupCallScreenYouAreSharing": {
     "description": "Placeholder on the presenter's own screen tile (a phone cannot preview its own share without a mirror tunnel)."
   },
-  "groupCallScreenMinimizeLabel": "Hide",
-  "@groupCallScreenMinimizeLabel": {
-    "description": "Label under the control that puts the call screen away while the call keeps going."
-  },
   "groupCallScreenDrawLabel": "Draw",
   "@groupCallScreenDrawLabel": {
     "description": "Label under the pen control that lets the user draw on a shared screen."
@@ -9925,9 +9921,9 @@
   "@callScreenControlDraw": {
     "description": "Label under the 1:1 call tray's pen button, shown while a screen is shared."
   },
-  "callScreenControlMinimize": "Hide",
+  "callScreenControlMinimize": "Minimize",
   "@callScreenControlMinimize": {
-    "description": "Label under the 1:1 call tray's button that puts the call screen away."
+    "description": "Accessibility label and hover hint of the top-leading button on the call screens that shrinks the call into a floating window over the app (or, with no picture to float, into the bar at the top) while it carries on."
   },
   "inCallPillOngoingCall": "Call in progress",
   "@inCallPillOngoingCall": {

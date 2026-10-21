@@ -171,6 +171,10 @@ CallPipSpec? pipSpecForGroup({
 /// (`MainActivity`), and while it is in PiP [inPip] is true and the app
 /// shows [spec]'s picture full-bleed instead of its screens.
 ///
+/// [spec] is followed on every platform: it is also what the in-app
+/// floating window shows (see `CallFloat`). Only iOS and Android hear about
+/// it over the channel.
+///
 /// Rebuilds are deduped on [CallPipSpec.signature]: both services notify on
 /// every stats tick and roster fire, and the native side only hears about
 /// what changes what it draws.
@@ -200,7 +204,6 @@ class CallPip {
 
   /// Starts following both call stacks. Idempotent.
   void attach({required CallService call, required GroupCallService group}) {
-    if (!_supported) return;
     if (!identical(_call, call)) {
       _call?.removeListener(_sync);
       _call = call..addListener(_sync);
@@ -209,7 +212,7 @@ class CallPip {
       _group?.removeListener(_sync);
       _group = group..addListener(_sync);
     }
-    if (!_handlerSet) {
+    if (_supported && !_handlerSet) {
       _handlerSet = true;
       _channel.setMethodCallHandler(_onNative);
     }
@@ -245,6 +248,7 @@ class CallPip {
       );
     }
     if (spec.value != next) spec.value = next;
+    if (!_supported) return;
     final sig = next?.signature;
     if (sig == _sentSignature) return;
     final wasArmed = _sentSignature != null;

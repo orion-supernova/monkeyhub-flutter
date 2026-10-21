@@ -319,12 +319,18 @@ void main() {
               : 0),
       1,
     );
-    // The 1:1 tray's "More", right before Hide.
+    // The 1:1 tray's "More", last before Leave. Minimize is not one of
+    // the call's controls but the header's way out, top-leading.
     final labels = [
       for (final e in find.byType(CallControlButton).evaluate())
         (e.widget as CallControlButton).label,
     ];
-    expect(labels.indexOf('More'), labels.indexOf('Hide') - 1);
+    expect(labels[labels.length - 2], 'More');
+    expect(labels.last, 'Leave');
+    expect(labels, isNot(contains('Minimize')));
+    final minimize = find.byType(CallMinimizeButton);
+    expect(minimize, findsOneWidget);
+    expect(tester.getTopLeft(minimize).dx, lessThan(24));
 
     // A peer whose link is down is still on the call — the roster says so —
     // and the count must not dip while it comes back.

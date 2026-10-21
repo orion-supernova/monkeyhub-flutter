@@ -27,6 +27,7 @@ class InCallPill extends StatefulWidget {
     required this.call,
     required this.group,
     required this.callScreenUp,
+    this.floating,
   });
 
   final CallService call;
@@ -35,6 +36,11 @@ class InCallPill extends StatefulWidget {
   /// Whether a call screen is the top route right now — the overlays that
   /// push them know.
   final ValueListenable<bool> callScreenUp;
+
+  /// The floating call window has the floor (see `CallFloat.wanted`): the
+  /// pill stands down while it is up, and comes back when it is flung away
+  /// or there is no picture to float.
+  final ValueListenable<bool>? floating;
 
   @override
   State<InCallPill> createState() => _InCallPillState();
@@ -48,6 +54,7 @@ class _InCallPillState extends State<InCallPill> {
     widget.call.addListener(_changed);
     widget.group?.addListener(_changed);
     widget.callScreenUp.addListener(_changed);
+    widget.floating?.addListener(_changed);
     widget.call.drawArmed.addListener(_changed);
     widget.group?.drawArmed.addListener(_changed);
   }
@@ -57,6 +64,7 @@ class _InCallPillState extends State<InCallPill> {
     widget.call.removeListener(_changed);
     widget.group?.removeListener(_changed);
     widget.callScreenUp.removeListener(_changed);
+    widget.floating?.removeListener(_changed);
     widget.call.drawArmed.removeListener(_changed);
     widget.group?.drawArmed.removeListener(_changed);
     super.dispose();
@@ -74,6 +82,7 @@ class _InCallPillState extends State<InCallPill> {
     final s = call.session;
     return Object.hashAll([
       widget.callScreenUp.value,
+      widget.floating?.value,
       call.inCall,
       s?.status,
       s?.peerName,
@@ -112,7 +121,9 @@ class _InCallPillState extends State<InCallPill> {
         session.status != CallStatus.failed &&
         session.status != CallStatus.handedOff;
     final inGroup = group?.inCall ?? false;
-    final visible = (oneToOne || inGroup) && !widget.callScreenUp.value;
+    final visible = (oneToOne || inGroup) &&
+        !widget.callScreenUp.value &&
+        !(widget.floating?.value ?? false);
     final sharing = oneToOne ? call.localScreenSharing : (group?.localScreenSharing ?? false);
     final armed = oneToOne ? call.drawArmed : group?.drawArmed;
     final start = oneToOne

@@ -52,7 +52,11 @@ Size displayedVideoSize(RTCVideoValue v) {
 /// A full-bleed [RTCVideoView] whose fit follows [callFeedFit] (or
 /// [callTileFit] in a grid [tile]): it listens to [renderer] for the
 /// picture's size (a frame-size change, not every frame) and to its own box.
-class CallFeedView extends StatelessWidget {
+///
+/// Every one on screen can be found by its stream ([CallFeedAnchors]): the
+/// floating call window flies out of the feed it is about to show, and
+/// hands back to it once it has a picture.
+class CallFeedView extends StatefulWidget {
   const CallFeedView({
     super.key,
     required this.renderer,
@@ -67,18 +71,35 @@ class CallFeedView extends StatelessWidget {
   final bool tile;
 
   @override
+  State<CallFeedView> createState() => _CallFeedViewState();
+}
+
+class _CallFeedViewState extends State<CallFeedView> {
+  @override
+  void initState() {
+    super.initState();
+    CallFeedAnchors._live.add(this);
+  }
+
+  @override
+  void dispose() {
+    CallFeedAnchors._live.remove(this);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) => ValueListenableBuilder<RTCVideoValue>(
-        valueListenable: renderer,
+        valueListenable: widget.renderer,
         builder: (context, v, _) {
-          final fit = (tile ? callTileFit : callFeedFit)(
+          final fit = (widget.tile ? callTileFit : callFeedFit)(
             displayedVideoSize(v),
             constraints.biggest,
           );
           return RTCVideoView(
-            renderer,
-            mirror: mirror,
+            widget.renderer,
+            mirror: widget.mirror,
             objectFit: fit == BoxFit.contain
                 ? RTCVideoViewObjectFit.RTCVideoViewObjectFitContain
                 : RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
@@ -86,5 +107,34 @@ class CallFeedView extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+/// The [CallFeedView]s on screen, found by the stream they show.
+abstract final class CallFeedAnchors {
+  static final Set<_CallFeedViewState> _live = {};
+
+  static _CallFeedViewState? _find(String? streamId) {
+    if (streamId == null) return null;
+    for (final f in _live) {
+      if (f.mounted && f.widget.renderer.srcObject?.id == streamId) return f;
+    }
+    return null;
+  }
+
+  /// Where a feed of [streamId] is on screen, in global coordinates; null
+  /// when none is laid out.
+  static Rect? rectOf(String? streamId) {
+    final box = _find(streamId)?.context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize || !box.attached) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  /// A feed of [streamId] is on screen with a picture in it.
+  static bool showing(String? streamId) {
+    final f = _find(streamId);
+    if (f == null) return false;
+    final v = f.widget.renderer.value;
+    return v.width > 0 && v.height > 0;
   }
 }

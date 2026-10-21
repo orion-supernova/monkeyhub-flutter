@@ -49,7 +49,8 @@ Color chromeDiscFill(AppTheme theme) => theme.isLight
 class GlassIconButton extends StatelessWidget {
   const GlassIconButton({
     super.key,
-    required this.icon,
+    this.icon,
+    this.glyph,
     required this.onTap,
     this.semanticLabel,
     this.size,
@@ -59,9 +60,13 @@ class GlassIconButton extends StatelessWidget {
     this.tint,
     this.still = false,
     this.shortcut,
-  });
+  }) : assert(icon != null || glyph != null);
 
-  final IconData icon;
+  final IconData? icon;
+
+  /// A drawn glyph in place of [icon], for a control whose glyph moves (the
+  /// call screen's Minimize). Sized and inked by the caller.
+  final Widget? glyph;
   final VoidCallback? onTap;
   final String? semanticLabel;
 
@@ -118,7 +123,7 @@ class GlassIconButton extends StatelessWidget {
           tone: tone,
           tint: tint,
           onTap: onTap,
-          child: Icon(icon, size: iconSize, color: ink),
+          child: glyph ?? Icon(icon, size: iconSize, color: ink),
         ),
       );
     }
@@ -134,7 +139,7 @@ class GlassIconButton extends StatelessWidget {
           tint: tint,
           still: still,
           onTap: onTap,
-          child: Icon(icon, size: iconSize, color: ink),
+          child: glyph ?? Icon(icon, size: iconSize, color: ink),
         ),
       );
     }
@@ -152,7 +157,7 @@ class GlassIconButton extends StatelessWidget {
         still: still,
         tint: tint,
         onTap: onTap,
-        child: Icon(icon, size: iconSize, color: ink),
+        child: glyph ?? Icon(icon, size: iconSize, color: ink),
       ),
     );
   }
