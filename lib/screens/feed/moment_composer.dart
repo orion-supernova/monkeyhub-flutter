@@ -392,75 +392,66 @@ class _MomentComposerState extends State<_MomentComposer> {
     return SheetFrame(
       title: sentenceCaseOf(context, l10n.momentComposerTitle),
       padding: EdgeInsets.zero,
-      // Scrolls, and is bounded. A 9:16 photo previewed at full aspect ratio
-      // is taller than the viewport on its own, which pushed POST off the
-      // bottom of an unscrollable sheet with no way to reach it. Both halves
-      // of that are fixed: the preview is capped below, and what is left over
-      // scrolls.
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.82,
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _MediaSlot(
-                image: _image,
-                video: _video,
-                busy: _busy,
-                onCapture: _capture,
-                onLibrary: _pickFromLibrary,
-                onVideo: _pickVideo,
-                onEdit: _imageSource == null ? null : _editImage,
-                onClear: () => setState(() {
-                  _image = null;
-                  _imageSource = null;
-                  _video = null;
-                }),
-              ),
-              const SizedBox(height: 16),
-              // The shared composer field: filled, rounded, accent caret.
-              SheetTextField(
-                controller: _caption,
-                maxLines: 3,
-                minLines: 1,
-                enabled: !_busy,
-                hint: l10n.momentComposerCaptionHint,
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  const Spacer(),
-                  // Only warn as the limit approaches — a permanent counter on a
-                  // 280-character field is noise for the 280th of posts that get
-                  // anywhere near it.
-                  if (remaining <= 40)
-                    Text(
-                      '$remaining',
-                      style: metaText(
-                        theme,
-                        color: remaining < 0 ? theme.danger : theme.inkMuted,
-                      ),
+      // POST is the frame's pinned footer, not the last row of the body: a
+      // 9:16 photo plus a caption is taller than what a raised keyboard
+      // leaves, and a button at the end of the scroll was off screen until
+      // the reader scrolled for it. The body shrinks and scrolls first.
+      footer: SheetActionButton(
+        label: l10n.momentComposerPost,
+        busy: _busy,
+        onTap: _canPost && remaining >= 0 ? _post : null,
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _MediaSlot(
+              image: _image,
+              video: _video,
+              busy: _busy,
+              onCapture: _capture,
+              onLibrary: _pickFromLibrary,
+              onVideo: _pickVideo,
+              onEdit: _imageSource == null ? null : _editImage,
+              onClear: () => setState(() {
+                _image = null;
+                _imageSource = null;
+                _video = null;
+              }),
+            ),
+            const SizedBox(height: 16),
+            // The shared composer field: filled, rounded, accent caret.
+            SheetTextField(
+              controller: _caption,
+              maxLines: 3,
+              minLines: 1,
+              enabled: !_busy,
+              hint: l10n.momentComposerCaptionHint,
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Spacer(),
+                // Only warn as the limit approaches — a permanent counter on a
+                // 280-character field is noise for the 280th of posts that get
+                // anywhere near it.
+                if (remaining <= 40)
+                  Text(
+                    '$remaining',
+                    style: metaText(
+                      theme,
+                      color: remaining < 0 ? theme.danger : theme.inkMuted,
                     ),
-                ],
-              ),
-              if (_errorCode != null) ...[
-                const SizedBox(height: 12),
-                FormErrorBanner(_errorText(l10n)),
+                  ),
               ],
-              const SizedBox(height: 18),
-              // The shared primary; its spinner holds the button's size while
-              // the upload runs.
-              SheetActionButton(
-                label: l10n.momentComposerPost,
-                busy: _busy,
-                onTap: _canPost && remaining >= 0 ? _post : null,
-              ),
+            ),
+            if (_errorCode != null) ...[
+              const SizedBox(height: 12),
+              FormErrorBanner(_errorText(l10n)),
             ],
-          ),
+          ],
         ),
       ),
     );
