@@ -6,7 +6,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:photo_manager/photo_manager.dart' show AssetEntity, ThumbnailSize;
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
-import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, ValueListenable, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -287,7 +288,12 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   /// screen is written for. An unguarded `setFlashMode` would therefore escape
   /// and the camera would never open in a browser at all. The controls are
   /// simply absent there rather than present and inert.
-  static const _lensControls = !kIsWeb;
+  ///
+  /// Desktop is out too: `camera_desktop` has no flash and no zoom beyond 1x.
+  static final _lensControls =
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android);
 
   /// Memoized because the answer cannot change while the app is running, and
   /// the round-trip is otherwise paid on every single open.

@@ -56,6 +56,11 @@ dependencies:
   # does not exist.
   file_selector: ^1.1.0
   camera: ^0.12.0+2
+  # The `camera` implementation for macOS, Windows and Linux (AVFoundation,
+  # Media Foundation, GStreamer). `camera` itself only ships iOS, Android and
+  # web, so on a Mac the in-app camera found no cameras at all. No flash and
+  # no zoom there; see `_lensControls` in camera_screen.dart.
+  camera_desktop: ^2.0.0
   # The recents strip under the in-app camera. image_picker can only present
   # the system picker; it cannot list the library, so it cannot draw a row of
   # the last thirty photos to tap. iOS and Android only — see
