@@ -122,7 +122,7 @@ jobs:
       - name: System packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config \
+          sudo apt-get install -y --allow-downgrades clang cmake ninja-build pkg-config libunwind-dev \
             libgtk-3-dev liblzma-dev libstdc++-12-dev \
             libsecret-1-dev libjsoncpp-dev \
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
