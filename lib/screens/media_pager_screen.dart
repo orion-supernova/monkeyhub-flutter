@@ -1144,7 +1144,7 @@ class _Thumb extends StatelessWidget {
         ),
       );
     }
-    final thumb = RemoteImage(
+    final picture = RemoteImage(
       storageId: id,
       api: api,
       // The box is already tight from the rail, so this only steers the
@@ -1156,6 +1156,18 @@ class _Thumb extends StatelessWidget {
       borderRadius: BorderRadius.zero,
       onDark: true,
     );
+    // A spoiler must not show its face in the rail while the page above it is
+    // still under dust. Same key as the page, so the two open and close
+    // together.
+    final thumb = message.mediaSpoiler
+        ? MediaSpoilerCover(
+            interactive: false,
+            dust: false,
+            sigma: 6,
+            revealKey: message.id,
+            child: picture,
+          )
+        : picture;
     if (!video) return thumb;
     return Stack(
       fit: StackFit.expand,
