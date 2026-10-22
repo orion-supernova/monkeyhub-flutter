@@ -1,3 +1,4 @@
+import 'theme/low_power.dart';
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'dart:async';
 
@@ -581,6 +582,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(LowPowerMode.instance.refresh());
     _presenceChannel.setMethodCallHandler((call) async {
       if (call.method == 'willTerminate') await _awayOnTerminate();
       if (call.method == 'didEnterBackground') await _holdAwayInBackground();
@@ -1276,6 +1278,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // resume is the first moment the keychain will certainly answer. Above the
     // session check, because the login screen wears the theme too.
     if (state == AppLifecycleState.resumed) unawaited(_retrySettings());
+    // Low Power Mode is toggled where the app is backgrounded (Control Centre).
+    if (state == AppLifecycleState.resumed) unawaited(LowPowerMode.instance.refresh());
     if (state == AppLifecycleState.resumed) {
       unawaited(StorageService.instance.enforcePolicy());
     } else {
@@ -1996,6 +2000,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
             ],
             supportedLocales: AppLocalizations.supportedLocales,
             builder: (context, child) {
+              // Low Power Mode / Battery Saver calms the motion app-wide.
+              final Widget? calmed = child == null
+                  ? null
+                  : LowPowerCalm(child: child);
+              child = calmed;
               // The language the app SETTLED on, which is not knowable from
               // either of the two things that produce it: `locale:` above is
               // null whenever the user has not overridden anything, and the
