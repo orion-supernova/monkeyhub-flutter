@@ -177,6 +177,47 @@ void main() {
       expect(float.visible, isFalse);
       expect(renderers.single.disposed, isTrue);
     });
+
+    test('a tap on the system PiP puts the call screen up, instantly, '
+        'before the window is let go', () async {
+      pip.spec.value = face;
+      screenUp.value = false;
+      await settle();
+      expect(float.visible, isTrue, reason: 'minimized over a chat');
+      var restored = false;
+      final restore = pip.onRestore!().then((_) => restored = true);
+      await settle();
+      expect(reopened, 1);
+      expect(float.visible, isFalse,
+          reason: 'the floating window must not flash over the chat');
+      expect(restored, isFalse, reason: 'waits for the screen');
+      expect(float.takeInstantPush(), isTrue, reason: 'no slide');
+      screenUp.value = true;
+      await restore;
+      expect(restored, isTrue);
+      expect(float.visible, isFalse);
+    });
+
+    test('a PiP restore with the screen already up does nothing', () async {
+      pip.spec.value = face;
+      await settle();
+      await float.restoreFromSystemPip();
+      expect(reopened, 0);
+      expect(float.takeInstantPush(), isFalse);
+    });
+
+    test('a PiP restore that never gets a screen gives up and leaves the '
+        'next push animated', () async {
+      pip.spec.value = face;
+      screenUp.value = false;
+      await settle();
+      await float.restoreFromSystemPip(
+        timeout: const Duration(milliseconds: 20),
+      );
+      expect(reopened, 1);
+      expect(float.takeInstantPush(), isFalse);
+      expect(float.visible, isTrue, reason: 'back to floating');
+    });
   });
 
   group('CallFloatWindow', () {

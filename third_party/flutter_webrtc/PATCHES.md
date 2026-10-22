@@ -62,4 +62,16 @@ to Dart") ships. A bump must re-apply every patch below.
   video-call PiP is up (`ios/Runner/CallPip.swift`, `DrawPip.swift`).
   Guarded by `TARGET_OS_IOS`, so the macOS copy compiles it out.
 
+- **W6, screen share socket never closes** (iOS only; the Broadcast
+  sources exist only under `ios/Classes`).
+  `Broadcast/FlutterSocketConnection.m`: upstream "set"
+  `kCFStreamPropertyShouldCloseNativeSocket` with string literals, which
+  CFStream ignores, so `close` never closed the accepted client socket and
+  the extension never read EOF: the red status-bar pill outlived the share
+  (and the call) until iOS reaped the extension. `close` now shuts the
+  client fd itself, tears down even when no client ever connected (it used
+  to return early), and a second connect is refused instead of starting the
+  network thread twice. The extension side ends silently
+  (`ios/BroadcastExtension/SampleHandler.swift`).
+
 Android and the rest of Dart are byte-identical to pub.dev 1.4.1.

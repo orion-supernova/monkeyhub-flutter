@@ -13,6 +13,8 @@
 @interface FlutterSocketConnection ()
 
 @property(nonatomic, assign) int serverSocket;
+// MONKEYHUB PATCH W6: the extension's end of the socket, closed by hand.
+@property(nonatomic, assign) int clientSocket;
 @property(nonatomic, strong) dispatch_source_t listeningSource;
 
 @property(nonatomic, strong) NSThread* networkThread;
@@ -26,6 +28,7 @@
 
 - (instancetype)initWithFilePath:(nonnull NSString*)filePath {
   self = [super init];
+  self.clientSocket = -1;
 
   [self setupNetworkThread];
 
@@ -58,6 +61,12 @@
       NSLog(@"failure accepting connection");
       return;
     }
+    // MONKEYHUB PATCH W6: one client at a time; a second connect is refused.
+    if (self.clientSocket >= 0) {
+      close(clientSocket);
+      return;
+    }
+    self.clientSocket = clientSocket;
 
     CFReadStreamRef readStream;
     CFWriteStreamRef writeStream;
@@ -66,12 +75,11 @@
 
     self.inputStream = (__bridge_transfer NSInputStream*)readStream;
     self.inputStream.delegate = streamDelegate;
-    [self.inputStream setProperty:@"kCFBooleanTrue"
-                           forKey:@"kCFStreamPropertyShouldCloseNativeSocket"];
-
     self.outputStream = (__bridge_transfer NSOutputStream*)writeStream;
-    [self.outputStream setProperty:@"kCFBooleanTrue"
-                            forKey:@"kCFStreamPropertyShouldCloseNativeSocket"];
+    // MONKEYHUB PATCH W6: upstream "set" kCFStreamPropertyShouldCloseNativeSocket
+    // with the string literals @"kCFBooleanTrue" / @"kCFStreamPropertyShould
+    // CloseNativeSocket", which CFStream ignores, so closing the streams
+    // never closed the socket. The fd is ours: -close shuts it explicitly.
 
     [self.networkThread start];
     [self performSelector:@selector(scheduleStreams)
@@ -88,25 +96,42 @@
 }
 
 - (void)close {
-  if (![self.networkThread isExecuting]) {
-    return;
+  // MONKEYHUB PATCH W6: tear down even when no extension ever connected
+  // (upstream returned early and left the listening socket bound), and
+  // shut the client socket down so the extension reads EOF right away and
+  // ends the broadcast; upstream leaked it, so the red status-bar pill
+  // stayed up until iOS reaped the extension on its own.
+  if ([self.networkThread isExecuting]) {
+    [self performSelector:@selector(unscheduleStreams)
+                 onThread:self.networkThread
+               withObject:nil
+            waitUntilDone:true];
   }
-
-  [self performSelector:@selector(unscheduleStreams)
-               onThread:self.networkThread
-             withObject:nil
-          waitUntilDone:true];
 
   self.inputStream.delegate = nil;
   self.outputStream.delegate = nil;
 
   [self.inputStream close];
   [self.outputStream close];
+  self.inputStream = nil;
+  self.outputStream = nil;
 
   [self.networkThread cancel];
 
-  dispatch_source_cancel(self.listeningSource);
-  close(self.serverSocket);
+  if (self.clientSocket >= 0) {
+    shutdown(self.clientSocket, SHUT_RDWR);
+    close(self.clientSocket);
+    self.clientSocket = -1;
+  }
+
+  if (self.listeningSource) {
+    dispatch_source_cancel(self.listeningSource);
+    self.listeningSource = nil;
+  }
+  if (self.serverSocket >= 0) {
+    close(self.serverSocket);
+    self.serverSocket = -1;
+  }
 }
 
 // MARK: - Private Methods

@@ -220,11 +220,21 @@ class CallPip {
   }
 
   Future<Object?> _onNative(MethodCall call) async {
-    if (call.method == 'pipModeChanged') {
-      inPip.value = call.arguments == true;
+    switch (call.method) {
+      case 'pipModeChanged':
+        inPip.value = call.arguments == true;
+      case 'restore':
+        // iOS: the user tapped the window. The reply is what lets the
+        // window go, so it waits for the call screen. See
+        // CallFloat.restoreFromSystemPip.
+        await onRestore?.call();
     }
     return null;
   }
+
+  /// iOS: the user tapped the Picture in Picture window to come back to
+  /// the call. Set by `CallFloat`; completes once the call screen is up.
+  Future<void> Function()? onRestore;
 
   void _sync() {
     final call = _call;
@@ -275,5 +285,6 @@ class CallPip {
     _sentSignature = null;
     spec.value = null;
     inPip.value = false;
+    onRestore = null;
   }
 }

@@ -11,6 +11,9 @@ import Foundation
 enum DarwinNotification: String {
     case broadcastStarted = "iOS_BroadcastStarted"
     case broadcastStopped = "iOS_BroadcastStopped"
+    /// Posted by the app (AppDelegate, `endBroadcast`) when the user stops
+    /// sharing inside MonkeyHub or the call ends.
+    case broadcastStopRequested = "iOS_BroadcastStopRequested"
 }
 
 class DarwinNotificationCenter {

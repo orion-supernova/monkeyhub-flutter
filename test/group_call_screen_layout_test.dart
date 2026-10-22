@@ -151,8 +151,9 @@ Widget _host(GroupCallService svc) => ThemeScope(
 /// built with real async, since the service's link setup waits on the
 /// plugin's missing channels.
 Future<(GroupCallService, _FakeGroupApi, FakePeerConnection)> _call(
-  WidgetTester tester,
-) async {
+  WidgetTester tester, {
+  bool justBea = false,
+}) async {
   final api = _FakeGroupApi();
   final pcs = <FakePeerConnection>[];
   final svc = GroupCallService(api: api)
@@ -181,13 +182,15 @@ Future<(GroupCallService, _FakeGroupApi, FakePeerConnection)> _call(
       'participants': [
         {'userId': 'a', 'status': 'joined', 'name': 'A'},
         {'userId': 'b', 'status': 'joined', 'name': 'Bea'},
-        {'userId': 'c', 'status': 'joined', 'name': 'Cem'},
-        {'userId': 'd', 'status': 'invited', 'name': 'Dua'},
+        if (!justBea) ...[
+          {'userId': 'c', 'status': 'joined', 'name': 'Cem'},
+          {'userId': 'd', 'status': 'invited', 'name': 'Dua'},
+        ],
       ],
     });
     await _pump();
   });
-  expect(pcs, hasLength(2));
+  expect(pcs, hasLength(justBea ? 1 : 2));
   return (svc, api, pcs.first);
 }
 
@@ -491,6 +494,58 @@ void main() {
     await _settle(tester);
     expect(find.byType(ShareSurface), findsNothing);
     expect(find.byType(ParticipantOrb), findsNWidgets(4));
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(svc.leaveCall);
+  });
+
+  testWidgets("two on camera: the peer's name tag goes with the chrome",
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final (svc, api, pc) = await _call(tester, justBea: true);
+    await tester.pumpWidget(_host(svc));
+    await _settle(tester);
+
+    final cam = FakeMediaStream(
+      [
+        FakeMediaStreamTrack(kind: 'audio', id: 'b-mic'),
+        FakeMediaStreamTrack(kind: 'video', id: 'b-cam'),
+      ],
+      id: 'ls-b',
+    );
+    await tester.runAsync(() async {
+      _deliver(api, 'b', 'state', {
+        'videoOff': false,
+        'camStreamId': 'ls-b',
+        'ts': 1,
+      });
+      await _pump();
+      pc.onTrack!(RTCTrackEvent(
+        streams: [cam],
+        track: cam.getVideoTracks().single,
+      ));
+      await _pump();
+    });
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('grid')), findsOneWidget);
+
+    ControlsFade tagFade() => tester.widget<ControlsFade>(
+          find
+              .ancestor(of: find.text('Bea'), matching: find.byType(ControlsFade))
+              .first,
+        );
+    expect(tagFade().visible, isTrue, reason: 'up with the tray');
+
+    // A tap on the picture puts the chrome away; the tag goes with it
+    // instead of floating mid-picture where the tray was.
+    await tester.tapAt(const Offset(195, 420));
+    await _settle(tester);
+    expect(tagFade().visible, isFalse);
+
+    await tester.tapAt(const Offset(195, 420));
+    await _settle(tester);
+    expect(tagFade().visible, isTrue);
 
     await tester.pumpWidget(const SizedBox());
     await tester.runAsync(svc.leaveCall);

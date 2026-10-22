@@ -234,8 +234,28 @@ final class CallPip: NSObject, AVPictureInPictureControllerDelegate {
     _ pictureInPictureController: AVPictureInPictureController,
     restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void
   ) {
-    // The call screen is where the user left it; nothing to rebuild.
-    completionHandler(true)
+    // The user tapped the window: they want the call, whatever screen the
+    // app was on. iOS grows the window back over the source view (the
+    // whole app) and fades it once this completes, so Dart first puts the
+    // call screen up with no slide (CallFloat.restoreFromSystemPip), and
+    // only its reply lets the window go. Completing straight away showed
+    // the picture filling the screen, then the chat it was minimized over
+    // appearing from under it: two steps instead of one. A bound on the
+    // wait, so a busy engine never leaves the window stuck mid-restore.
+    var done = false
+    let finish = {
+      if done { return }
+      done = true
+      completionHandler(true)
+    }
+    guard let channel = channel else {
+      finish()
+      return
+    }
+    channel.invokeMethod("restore", arguments: nil) { _ in
+      DispatchQueue.main.async(execute: finish)
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: finish)
   }
 }
 

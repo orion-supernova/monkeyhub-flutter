@@ -114,6 +114,7 @@ class CallFloat extends ChangeNotifier with WidgetsBindingObserver {
     _attached = true;
     _pip = pip ?? CallPip.instance;
     _screenUp = screenUp;
+    _pip.onRestore = restoreFromSystemPip;
     _pip.spec.addListener(_sync);
     _pip.inPip.addListener(_sync);
     screenUp.addListener(_sync);
@@ -135,6 +136,11 @@ class CallFloat extends ChangeNotifier with WidgetsBindingObserver {
   int _handoff = 0;
 
   bool _onScreen = true;
+
+  /// The system PiP window is growing back into the app: the call screen is
+  /// on its way up instantly, and the floating window must not flash over
+  /// whatever screen the app was on in the meantime.
+  bool _restoring = false;
 
   RTCVideoRenderer? _renderer;
   bool _rendererReady = false;
@@ -163,6 +169,7 @@ class CallFloat extends ChangeNotifier with WidgetsBindingObserver {
   /// The window is on screen (or flying).
   bool get visible =>
       wanted.value &&
+      !_restoring &&
       (_handingOff ||
           (_minimizing ? _launchReady : !_screenIsUp));
 
@@ -253,6 +260,51 @@ class CallFloat extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     Timer(const Duration(milliseconds: 16), check);
+  }
+
+  /// The user tapped the system Picture in Picture window: they want the
+  /// call, not wherever the app was. iOS grows the window back to fill the
+  /// screen and then fades it out, so the call screen has to be up, with no
+  /// slide, before that ends; otherwise the picture filled the screen, then
+  /// the chat it was minimized over appeared from under it. Resolves once
+  /// the screen is up and has drawn a frame (or after [timeout]), which is
+  /// when the native side lets the window go.
+  Future<void> restoreFromSystemPip({
+    Duration timeout = const Duration(milliseconds: 600),
+  }) async {
+    _tucked = false;
+    if (_screenIsUp) return;
+    _restoring = true;
+    _instantPush = true;
+    notifyListeners();
+    try {
+      _reopen?.call();
+      final up = Completer<void>();
+      void check() {
+        if (_screenIsUp && !up.isCompleted) up.complete();
+      }
+
+      final screenUp = _screenUp;
+      screenUp?.addListener(check);
+      check();
+      try {
+        await up.future.timeout(timeout, onTimeout: () {});
+      } finally {
+        screenUp?.removeListener(check);
+      }
+      if (_screenIsUp) {
+        // The route is pushed; let its first frame reach the screen.
+        await WidgetsBinding.instance.endOfFrame
+            .timeout(const Duration(milliseconds: 150), onTimeout: () {});
+      } else {
+        // Nothing came up (no navigator yet): never leave the next push
+        // instant by accident.
+        _instantPush = false;
+      }
+    } finally {
+      _restoring = false;
+      _sync();
+    }
   }
 
   /// The window has faded off the handed-over screen.
@@ -362,8 +414,10 @@ class CallFloat extends ChangeNotifier with WidgetsBindingObserver {
       _pip.inPip.removeListener(_sync);
       _screenUp?.removeListener(_sync);
       WidgetsBinding.instance.removeObserver(this);
+      if (_pip.onRestore == restoreFromSystemPip) _pip.onRestore = null;
     }
     _attached = false;
+    _restoring = false;
     _screenUp = null;
     _reopen = null;
     _tucked = false;

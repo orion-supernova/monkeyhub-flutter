@@ -243,9 +243,26 @@ class ScreenShare {
     return getDisplayMediaFn(constraints);
   }
 
+  /// iOS: tell the Broadcast Upload Extension to end now. Closing the
+  /// capturer's socket already makes it hang up, but only once it has
+  /// connected (a share stopped during the countdown never did), and the
+  /// services stop the track only after a network round trip. The red
+  /// status-bar pill should go the moment the user taps Stop, so the
+  /// services call this first; [release] calls it too. No-op elsewhere,
+  /// and harmless when no broadcast is running.
+  static Future<void> endPlatformBroadcast() async {
+    if (kIsWeb || !Platform.isIOS) return;
+    try {
+      await invokeFn('endBroadcast');
+    } catch (e) {
+      debugPrint('ScreenShare.endPlatformBroadcast: $e');
+    }
+  }
+
   /// Undo [prepare]. Safe to call more than once and without a prepare.
   static Future<void> release() async {
     CaptureProtection.instance.resume();
+    await endPlatformBroadcast();
     if (!kIsWeb && Platform.isAndroid) {
       try {
         await invokeFn('stop');

@@ -31,6 +31,9 @@ class SampleHandler: RPBroadcastSampleHandler {
     private var uploader: SampleUploader?
 
     private var frameCount: Int = 0
+    /// Set once we asked ReplayKit to end; the stop request and the socket
+    /// closing usually both arrive.
+    fileprivate var finishing = false
 
     var socketFilePath: String {
       let sharedContainer = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: Constants.appGroupIdentifier)
@@ -48,11 +51,39 @@ class SampleHandler: RPBroadcastSampleHandler {
         os_log(.debug, log: broadcastLogger, "%{public}s", socketFilePath)
     }
 
+    deinit {
+        CFNotificationCenterRemoveEveryObserver(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            Unmanaged.passUnretained(self).toOpaque()
+        )
+    }
+
+    /// The app asks us to end: the user stopped sharing in MonkeyHub (or
+    /// the call ended). The socket closing says the same, but only once we
+    /// had connected, and only after the app tore its capture down.
+    private func observeStopRequest() {
+        let observer = Unmanaged.passUnretained(self).toOpaque()
+        let callback: CFNotificationCallback = { _, observer, _, _, _ in
+            guard let observer = observer else { return }
+            let me = Unmanaged<SampleHandler>.fromOpaque(observer).takeUnretainedValue()
+            DispatchQueue.main.async { me.finishBroadcastSilently() }
+        }
+        CFNotificationCenterAddObserver(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            observer,
+            callback,
+            DarwinNotification.broadcastStopRequested.rawValue as CFString,
+            nil,
+            .deliverImmediately
+        )
+    }
+
     override func broadcastStarted(withSetupInfo setupInfo: [String: NSObject]?) {
         // User has requested to start the broadcast. Setup info from the UI extension can be supplied but optional.
         frameCount = 0
 
         DarwinNotificationCenter.shared.postNotification(.broadcastStarted)
+        observeStopRequest()
         openConnection()
     }
 
@@ -89,12 +120,28 @@ private extension SampleHandler {
             if let error = error {
                 self?.finishBroadcastWithError(error)
             } else {
-                // the displayed failure message is more user friendly when using NSError instead of Error
-                let JMScreenSharingStopped = 10001
-                let customError = NSError(domain: RPRecordingErrorDomain, code: JMScreenSharingStopped, userInfo: [NSLocalizedDescriptionKey: "Screen sharing stopped"])
-                self?.finishBroadcastWithError(customError)
+                // The app closed its end: the user stopped sharing (or left
+                // the call) from inside MonkeyHub. End quietly, right now:
+                // `finishBroadcastWithError` with an error makes iOS put up
+                // a "Screen sharing stopped" alert for something the user
+                // just did themselves. A nil error ends the broadcast with
+                // no alert; Swift will not pass nil, so go through the
+                // selector (undocumented but long-standing behaviour).
+                DispatchQueue.main.async { self?.finishBroadcastSilently() }
             }
         }
+    }
+
+    func finishBroadcastSilently() {
+        guard !finishing else { return }
+        finishing = true
+        let selector = NSSelectorFromString("finishBroadcastWithError:")
+        guard responds(to: selector) else {
+            let JMScreenSharingStopped = 10001
+            finishBroadcastWithError(NSError(domain: RPRecordingErrorDomain, code: JMScreenSharingStopped, userInfo: [NSLocalizedDescriptionKey: "Screen sharing stopped"]))
+            return
+        }
+        perform(selector, with: nil)
     }
 
     func openConnection() {

@@ -421,6 +421,8 @@ import WebRTC
   // or live the one that fires is ours; Dart ignores them otherwise.
   private static let broadcastStartedName = "iOS_BroadcastStarted"
   private static let broadcastStoppedName = "iOS_BroadcastStopped"
+  // The other direction: the app asks the extension to end the broadcast.
+  private static let broadcastStopRequestName = "iOS_BroadcastStopRequested"
   private var broadcastObserversInstalled = false
 
   private func installBroadcastObservers() {
@@ -1564,6 +1566,16 @@ import WebRTC
           result(present)
         case "start", "stop":
           // Android's foreground service; nothing to do here.
+          result(nil)
+        case "endBroadcast":
+          // The extension observes this and ends the broadcast at once
+          // (SampleHandler.swift), so the red status-bar pill goes the
+          // moment the user stops sharing in the app.
+          CFNotificationCenterPostNotification(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            CFNotificationName(Self.broadcastStopRequestName as CFString),
+            nil, nil, true
+          )
           result(nil)
         default:
           result(FlutterMethodNotImplemented)

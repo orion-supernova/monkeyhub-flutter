@@ -1708,6 +1708,8 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     if (!_localScreenSharing) return;
     _localScreenSharing = false;
     ScreenShare.onPlatformStop = null;
+    // The status-bar pill goes now, not after the state round trip below.
+    unawaited(ScreenShare.endPlatformBroadcast());
     unawaited(drawMirror.stop());
     drawModel.clearAll();
     drawModel.flush();

@@ -2330,6 +2330,8 @@ class GroupCallService extends ChangeNotifier
     if (!localScreenSharing) return;
     localScreenSharing = false;
     ScreenShare.onPlatformStop = null;
+    // The status-bar pill goes now, not after the state round trip below.
+    unawaited(ScreenShare.endPlatformBroadcast());
     unawaited(drawMirror.stop());
     // The drawings were about this screen; they go with it, for everyone.
     drawModel.clearAll();

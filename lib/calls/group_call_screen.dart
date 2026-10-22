@@ -1205,7 +1205,12 @@ class _VideoGridState extends State<_VideoGrid> {
 
   GroupCallService get service => widget.service;
 
-  Widget _selfTile({bool bleed = false, double footer = 0, bool tag = true}) {
+  Widget _selfTile({
+    bool bleed = false,
+    double footer = 0,
+    bool tag = true,
+    bool tagShown = true,
+  }) {
     final l10n = AppLocalizations.of(context);
     final showLocal = service.localCamActive && widget.localRenderer != null;
     return _Tile(
@@ -1220,6 +1225,7 @@ class _VideoGridState extends State<_VideoGrid> {
       bleed: bleed,
       footer: footer,
       tag: tag,
+      tagShown: tagShown,
       // Full-screen and in the corner, fitted the way the 1:1 screen fits
       // its feeds; in the grid, by [callTileFit].
       video: showLocal
@@ -1237,6 +1243,7 @@ class _VideoGridState extends State<_VideoGrid> {
     bool bleed = false,
     double footer = 0,
     bool tag = true,
+    bool tagShown = true,
   }) {
     final renderer = widget.renderers[peer.userId];
     return _Tile(
@@ -1260,6 +1267,7 @@ class _VideoGridState extends State<_VideoGrid> {
       bleed: bleed,
       footer: footer,
       tag: tag,
+      tagShown: tagShown,
       video: (!peer.mediaState.videoOff &&
               peer.remoteStream != null &&
               peer.remoteStream!.getVideoTracks().isNotEmpty &&
@@ -1288,8 +1296,11 @@ class _VideoGridState extends State<_VideoGrid> {
     if (float && peers.length == 1) {
       // A 1:1 call in a group room: one picture, full bleed, like the 1:1
       // screen, on the same stage, so the swap is the same flight. The
-      // name tag sits above the tray on the full picture only.
-      final footer = widget.bottomInset + pad.bottom;
+      // name tag sits above the tray on the full picture only, and goes
+      // with the chrome: with the tray away it would float mid-picture
+      // over nothing, the one control-like thing left on a clean video.
+      final chrome = widget.chromeVisible;
+      final footer = chrome ? widget.bottomInset + pad.bottom : pad.bottom;
       return Stack(
         fit: StackFit.expand,
         children: [
@@ -1301,9 +1312,15 @@ class _VideoGridState extends State<_VideoGrid> {
                 bleed: true,
                 footer: footer,
                 tag: !_swapped,
+                tagShown: chrome,
               ),
               pip: camOn
-                  ? _selfTile(bleed: true, footer: footer, tag: _swapped)
+                  ? _selfTile(
+                      bleed: true,
+                      footer: footer,
+                      tag: _swapped,
+                      tagShown: chrome,
+                    )
                   : null,
               swapped: _swapped && camOn,
               onPipTap: () => setState(() => _swapped = !_swapped),
@@ -1414,6 +1431,7 @@ class _Tile extends StatelessWidget {
     this.bleed = false,
     this.footer = 0,
     this.tag = true,
+    this.tagShown = true,
     this.cameraNote,
   });
 
@@ -1439,6 +1457,10 @@ class _Tile extends StatelessWidget {
 
   /// The name tag; off in the small corner tile.
   final bool tag;
+
+  /// Whether the tag is showing right now: the full-screen picture fades
+  /// it out with the call chrome. Grid tiles keep theirs.
+  final bool tagShown;
 
   /// Under the face while there is no picture: "Camera paused" when their
   /// phone paused it (backgrounded, locked), so the empty tile does not read
@@ -1524,7 +1546,10 @@ class _Tile extends StatelessWidget {
               left: bleed ? 20 : 10,
               right: bleed ? 20 : 10,
               bottom: 8 + math.max(footer, cover.bottom),
-              child: Column(
+              child: ControlsFade(
+               visible: tagShown,
+               slide: const Offset(0, 0.3),
+               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1552,6 +1577,7 @@ class _Tile extends StatelessWidget {
                     ],
                   ),
                 ],
+               ),
               ),
             ),
         ],
