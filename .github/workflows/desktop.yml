@@ -104,7 +104,7 @@ jobs:
           name: windows-msix
           path: build/msix/MonkeyHub.msix
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 2
 
   linux:
     needs: meta
@@ -124,7 +124,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang cmake ninja-build pkg-config \
             libgtk-3-dev liblzma-dev libstdc++-12-dev \
-            libsecret-1-dev libjsoncpp-dev
+            libsecret-1-dev libjsoncpp-dev \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -164,4 +165,4 @@ jobs:
           name: linux-tarball
           path: monkeyhub-linux-x64-*.tar.gz
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 2
