@@ -26,6 +26,7 @@ import '../widgets/media_filmstrip.dart';
 import '../widgets/media_grid_tile.dart' show roomMediaHeroTag;
 import '../widgets/photo_chrome.dart' show MediaDurationBadge, MediaPlayDisc;
 import '../widgets/photo_dismiss_area.dart';
+import '../widgets/media_spoiler.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
 import '../widgets/spring_press.dart';
@@ -1303,20 +1304,22 @@ class _Page extends StatelessWidget {
           child: mediaFlight(
             heroTag,
             _shaped(
-              PhotoSharpOnZoom(
-                // The same file at a bigger decode, from the disk copy the
-                // screen-sized one was decoded from. Quiet: while it decodes
-                // the picture underneath simply stays.
-                sharp: (w) => RemoteImage(
-                  storageId: id,
-                  api: api,
-                  fit: BoxFit.contain,
-                  borderRadius: BorderRadius.zero,
-                  decodeWidth: w,
-                  onDark: true,
-                  quiet: true,
+              _spoilered(
+                PhotoSharpOnZoom(
+                  // The same file at a bigger decode, from the disk copy the
+                  // screen-sized one was decoded from. Quiet: while it decodes
+                  // the picture underneath simply stays.
+                  sharp: (w) => RemoteImage(
+                    storageId: id,
+                    api: api,
+                    fit: BoxFit.contain,
+                    borderRadius: BorderRadius.zero,
+                    decodeWidth: w,
+                    onDark: true,
+                    quiet: true,
+                  ),
+                  child: image,
                 ),
-                child: image,
               ),
             ),
           ),
@@ -1324,6 +1327,14 @@ class _Page extends StatelessWidget {
       ],
     );
   }
+
+  /// [child] under the chat's own spoiler cover when the sender sent it as
+  /// one. Keyed by the message id, so it shares [SpoilerStore] with the bubble
+  /// and the shared-media tile: open in one is open in all, and when the dust
+  /// closes back over it, it closes here too.
+  Widget _spoilered(Widget child) => message.mediaSpoiler
+      ? MediaSpoilerCover(revealKey: message.id, child: child)
+      : child;
 
   /// The picture's width÷height, when anybody knows it.
   ///
