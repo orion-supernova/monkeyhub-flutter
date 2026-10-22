@@ -10,7 +10,7 @@ import 'message_action_menu.dart';
 import 'sheet_kit.dart';
 
 /// Carries out a moderator's choice on a report card in the moderation room:
-/// remove the reported message for everyone, ban or unban the reported
+/// remove the reported message, moment or comment for everyone, ban or unban the reported
 /// person, or dismiss the report.
 ///
 /// Shared by the room screen and the thread overlay (an outcome line is a
@@ -44,6 +44,11 @@ Future<void> runModeratorAction(
       confirmTitle = l10n.moderationConfirmRemoveTitle;
       confirmBody = l10n.moderationConfirmRemoveBody;
       confirmLabel = l10n.moderationActionRemoveMessage;
+    case MessageAction.modRemoveContent:
+      wire = 'removeContent';
+      confirmTitle = l10n.moderationConfirmRemoveContentTitle;
+      confirmBody = l10n.moderationConfirmRemoveContentBody;
+      confirmLabel = l10n.moderationActionRemoveContent;
     case MessageAction.modBanUser:
       wire = 'ban';
       confirmTitle = l10n.moderationConfirmBanTitle;

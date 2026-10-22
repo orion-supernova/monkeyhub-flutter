@@ -184,3 +184,133 @@ export async function purgeRecordsOf(
     if (records.length < tuning.pageRows) return true;
   }
 }
+
+// ── Yearly rollups (retention.ts folds old daily results into these) ────────
+
+/** What `records:backfill` tracks per player and game while it replays results. */
+export type RecordTally = {
+  best?: number;
+  dayKey: string;
+  achievedAt: number;
+  solves: number;
+};
+
+/**
+ * Folds [add] into [into] by the rule `noteSolve` and the backfill share: solves
+ * add up; a CLEAN best replaces the standing one when strictly better, or on a
+ * tie when set earlier. Before any clean solve, `dayKey`/`achievedAt` name the
+ * first solve seen. One solve is `{best?, dayKey, achievedAt, solves: 1}`; a
+ * yearly rollup is the same shape, so folding a year equals replaying its days.
+ */
+export function mergeTally(
+  into: RecordTally | undefined,
+  add: RecordTally,
+): RecordTally {
+  if (!into) return { ...add };
+  const out = { ...into, solves: into.solves + add.solves };
+  if (
+    add.best !== undefined &&
+    (into.best === undefined ||
+      add.best < into.best ||
+      (add.best === into.best && add.achievedAt < into.achievedAt))
+  ) {
+    out.best = add.best;
+    out.dayKey = add.dayKey;
+    out.achievedAt = add.achievedAt;
+  }
+  return out;
+}
+
+/** A streak as `extendStreak` keeps it. */
+export type StreakState = {
+  streak?: number;
+  bestStreak?: number;
+  lastSolvedDayKey?: string;
+};
+
+/** The year a day key belongs to, or null when it is not `YYYY-MM-DD`. */
+export function yearOfDayKey(dayKey: string): string | null {
+  return /^\d{4}-\d{2}-\d{2}$/.test(dayKey) ? dayKey.slice(0, 4) : null;
+}
+
+/**
+ * The fields of a `gameResultYears` row after one more solve. Solves must be
+ * fed in day order (the fold walks `gameResults.by_day` oldest first); a day at
+ * or before the last one counts as a solve but leaves the streaks alone, like
+ * `extendStreak`.
+ */
+export function foldSolveIntoYear(
+  row: Doc<"gameResultYears"> | null,
+  solve: { best?: number; dayKey: string; achievedAt: number },
+) {
+  if (!row) {
+    return {
+      solves: 1,
+      ...(solve.best !== undefined ? { best: solve.best } : {}),
+      dayKey: solve.dayKey,
+      achievedAt: solve.achievedAt,
+      firstSolvedDayKey: solve.dayKey,
+      firstRun: 1,
+      lastSolvedDayKey: solve.dayKey,
+      streak: 1,
+      bestStreak: 1,
+    };
+  }
+  const tally = mergeTally(row, { ...solve, solves: 1 });
+  const ext = extendStreak(row, solve.dayKey) as {
+    streak?: number;
+    bestStreak?: number;
+    lastSolvedDayKey?: string;
+  };
+  // The first run is still open while it spans the whole year so far, and
+  // grows with the streak while it does.
+  const open =
+    dayOrdinal(row.lastSolvedDayKey) - dayOrdinal(row.firstSolvedDayKey) + 1 ===
+    row.firstRun;
+  return {
+    solves: tally.solves,
+    ...(tally.best !== undefined ? { best: tally.best } : {}),
+    dayKey: tally.dayKey,
+    achievedAt: tally.achievedAt,
+    ...ext,
+    firstRun:
+      open && ext.streak !== undefined && ext.streak === row.streak + 1
+        ? ext.streak
+        : row.firstRun,
+  };
+}
+
+/**
+ * The streak [state] holds after the days a yearly rollup [year] summarises,
+ * as if they had been replayed one by one. Years must be applied oldest first.
+ */
+export function applyYearToStreak(
+  state: StreakState,
+  year: Pick<
+    Doc<"gameResultYears">,
+    "firstSolvedDayKey" | "firstRun" | "lastSolvedDayKey" | "streak" | "bestStreak"
+  >,
+): StreakState {
+  const last = state.lastSolvedDayKey;
+  if (last === undefined) {
+    return {
+      streak: year.streak,
+      bestStreak: year.bestStreak,
+      lastSolvedDayKey: year.lastSolvedDayKey,
+    };
+  }
+  const gap = dayOrdinal(year.firstSolvedDayKey) - dayOrdinal(last);
+  // Out of order (a clock hop): the days would have been skipped one by one.
+  if (gap <= 0) {
+    return { ...state, bestStreak: Math.max(state.bestStreak ?? 0, year.bestStreak) };
+  }
+  const oneRun =
+    dayOrdinal(year.lastSolvedDayKey) - dayOrdinal(year.firstSolvedDayKey) + 1 ===
+    year.firstRun;
+  const joined = gap === 1 ? (state.streak ?? 0) + year.firstRun : 0;
+  return {
+    streak: oneRun && gap === 1 ? joined : year.streak,
+    bestStreak: Math.max(state.bestStreak ?? 0, year.bestStreak, joined),
+    lastSolvedDayKey: year.lastSolvedDayKey,
+  };
+}

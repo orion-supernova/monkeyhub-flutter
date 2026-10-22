@@ -396,4 +396,23 @@ crons.interval(
   {},
 );
 
+// Retention (retention.ts): each sweep is a paged mutation that reschedules
+// itself while its page comes back full, so one firing drains any backlog.
+// Daily is plenty for periods measured in days to months.
+for (const [name, fn] of [
+  ["retention.gcExpiredRoomBans", internal.retention.gcExpiredRoomBans],
+  ["retention.gcIdleTyping", internal.retention.gcIdleTyping],
+  ["retention.gcMomentViews", internal.retention.gcMomentViews],
+  ["retention.gcFinishedMatches", internal.retention.gcFinishedMatches],
+  ["retention.foldOldResults", internal.retention.foldOldResults],
+  ["retention.gcFailedScheduled", internal.retention.gcFailedScheduled],
+  ["retention.gcDecidedRequests", internal.retention.gcDecidedRequests],
+  ["retention.gcDeadInvites", internal.retention.gcDeadInvites],
+  ["retention.gcFamilyCodes", internal.retention.gcFamilyCodes],
+  ["retention.gcLogRoomMessages", internal.retention.gcLogRoomMessages],
+  ["retention.gcIntegrityRuns", internal.retention.gcIntegrityRuns],
+] as const) {
+  crons.interval(name, { hours: 24 }, fn, {});
+}
+
 export default crons;

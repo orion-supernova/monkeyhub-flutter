@@ -25,7 +25,8 @@ import { deleteCapped, enqueueDeletion, getLiveRoom, tuning } from "./deletionCo
 import { forkInteraction, purgeInteraction } from "./interactionCore";
 import { purgeChallengeForMessage, purgeMatchForMessage } from "./matchCore";
 import { lensFor } from "./visibility";
-import { appendReceiptLog, receiptTimeFor } from "./receiptLog";
+import { receiptTimeFor } from "./receiptLog";
+import { receiptEntries, writeReceiptLog } from "./receipts";
 import {
   assertRoomAllows,
   postKindOf,
@@ -1389,11 +1390,12 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
       if (replyToAlbum === true && typeof parent.albumId === "string") {
         const members = await ctx.db
           .query("messages")
-          .withIndex("by_album", (q: any) => q.eq("albumId", parent.albumId))
-          .collect();
-        const count = members.filter(
-          (m: any) => m.roomId.toString() === roomId.toString()
-        ).length;
+          .withIndex("by_room_album", (q: any) =>
+            q.eq("roomId", roomId).eq("albumId", parent.albumId)
+          )
+          .take(101);
+        // An album is a handful of items; the cap only guards a corrupt id.
+        const count = Math.min(members.length, 100);
         if (count > 1) replyToPreview.albumCount = count;
       } else if (replyToAlbum === true && typeof replyAlbumCount === "number") {
         // An older album, grouped on the client by timing: take its count,
@@ -3610,27 +3612,28 @@ export const markRoomRead = mutation({
     // what delivered the message (no earlier delivery report reached us)
     // gives it the same time for both, which is the truth as far as anyone
     // can know it.
+    // The logs go to `receiptLogs`; the member row keeps only the cursors and
+    // sheds any legacy log it still carries (receipts.ts).
+    const readClear = await writeReceiptLog(ctx, membership, "read", {
+      before: membership.lastReadAt ?? 0,
+      upTo: cursor,
+      at: clock,
+    });
+    const deliveredClear = await writeReceiptLog(
+      ctx,
+      membership,
+      "delivered",
+      cursor > deliveredBefore
+        ? { before: deliveredBefore, upTo: cursor, at: clock }
+        : null,
+    );
     await ctx.db.patch(membership._id, {
       lastReadAt: cursor,
       lastReadClock: clock,
-      readLog: appendReceiptLog(
-        membership.readLog,
-        membership.lastReadAt ?? 0,
-        cursor,
-        clock,
-      ),
       lastDeliveredAt: Math.max(deliveredBefore, cursor),
-      ...(cursor > deliveredBefore
-        ? {
-            lastDeliveredClock: clock,
-            deliveredLog: appendReceiptLog(
-              membership.deliveredLog,
-              deliveredBefore,
-              cursor,
-              clock,
-            ),
-          }
-        : {}),
+      ...(cursor > deliveredBefore ? { lastDeliveredClock: clock } : {}),
+      ...readClear,
+      ...deliveredClear,
     });
 
     // Reading the room retires its outstanding notifications. The device that
@@ -3740,15 +3743,15 @@ async function advanceDelivered(
   if (cursor >= target) return;
 
   const clock = Date.now();
+  const legacyClear = await writeReceiptLog(ctx, membership, "delivered", {
+    before: cursor,
+    upTo: target,
+    at: clock,
+  });
   await ctx.db.patch(membership._id, {
     lastDeliveredAt: target,
     lastDeliveredClock: clock,
-    deliveredLog: appendReceiptLog(
-      membership.deliveredLog,
-      cursor,
-      target,
-      clock,
-    ),
+    ...legacyClear,
   });
 }
 
@@ -3895,15 +3898,21 @@ export const getReceiptTimes = query({
       if (lens.isSelf(m.userId)) continue;
       const subject = { _id: m.userId, visibility: { seen: m.seenVisibility } };
       if (!lens.canSee(subject, "seen")) continue;
+      // One point read per log actually needed (cursor past the message),
+      // only for members the viewer may see; `receiptLogs` first, legacy
+      // member-row log as the fallback (receipts.ts).
       out.push({
         userId: m.userId,
         readAt:
           (m.lastReadAt ?? 0) >= createdAt
-            ? receiptTimeFor(m.readLog, createdAt)
+            ? receiptTimeFor(await receiptEntries(ctx, m, "read"), createdAt)
             : null,
         deliveredAt:
           (m.lastDeliveredAt ?? 0) >= createdAt
-            ? receiptTimeFor(m.deliveredLog, createdAt)
+            ? receiptTimeFor(
+                await receiptEntries(ctx, m, "delivered"),
+                createdAt,
+              )
             : null,
       });
     }

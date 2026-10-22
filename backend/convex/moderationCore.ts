@@ -267,6 +267,7 @@ async function postAsReporter(
   card: {
     reportId: any;
     hasMessage: boolean;
+    hasContent?: boolean;
     hasUser: boolean;
     userBanned: boolean;
   } | null,
@@ -442,11 +443,14 @@ export async function fileContentReport(
   // What a moment or comment report shows the moderator, in place of a
   // message: the words, and what kind of media came with them.
   const feedLines: string[] = [];
+  // A moment or comment that exists, so the card can offer to remove it.
+  let hasContent = false;
   const db = ctx.db;
   if (targetType === "moment") {
     const id = db.normalizeId("moments", targetId);
     const moment = id ? await db.get(id) : null;
     if (moment) {
+      hasContent = true;
       reportedUserId = moment.userId;
       feedLines.push(
         "",
@@ -461,6 +465,7 @@ export async function fileContentReport(
     const id = db.normalizeId("momentComments", targetId);
     const comment = id ? await db.get(id) : null;
     if (comment) {
+      hasContent = true;
       reportedUserId = comment.userId;
       const on = await db.get(comment.momentId);
       feedLines.push(
@@ -558,6 +563,9 @@ export async function fileContentReport(
       {
         reportId,
         hasMessage: message !== null,
+        ...(targetType === "moment" || targetType === "comment"
+          ? { hasContent }
+          : {}),
         hasUser: reportedUserId !== null,
         userBanned: await isSuspended(ctx, reportedUserId),
       },

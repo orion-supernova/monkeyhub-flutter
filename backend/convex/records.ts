@@ -4,7 +4,15 @@ import { mutation, query } from "./functions";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { GAMES } from "./games";
-import { CODE_GAME, extendStreak, reactionsOn } from "./recordBook";
+import {
+  CODE_GAME,
+  applyYearToStreak,
+  extendStreak,
+  mergeTally,
+  reactionsOn,
+  type RecordTally,
+  type StreakState,
+} from "./recordBook";
 import { lensFor } from "./visibility";
 import { isTombstoned } from "./deletionCore";
 import { byNameThenId, competitionPlaces, shownSeconds } from "./ranking";
@@ -308,10 +316,29 @@ export const backfill = internalMutation({
 
     for (const user of page.page) {
       totalUsers++;
-      type Tally = { best?: number; dayKey: string; achievedAt: number; solves: number };
-      const tally = new Map<string, Tally>();
+      const tally = new Map<string, RecordTally>();
       // Every day each game was solved on, for the streaks below.
       const days = new Map<string, string[]>();
+      // Results older than a year are folded into `gameResultYears` and their
+      // day rows deleted (retention.ts). They are applied first, oldest year
+      // first, so the replay below continues from exactly where the days that
+      // are gone would have left it.
+      const streaks = new Map<string, StreakState>();
+      for (const y of await ctx.db
+        .query("gameResultYears")
+        .withIndex("by_user_game_year", (q: any) => q.eq("userId", user._id))
+        .collect()) {
+        tally.set(
+          y.game,
+          mergeTally(tally.get(y.game), {
+            ...(y.best !== undefined ? { best: y.best } : {}),
+            dayKey: y.dayKey,
+            achievedAt: y.achievedAt,
+            solves: y.solves,
+          }),
+        );
+        streaks.set(y.game, applyYearToStreak(streaks.get(y.game) ?? {}, y));
+      }
       const note = (
         game: string,
         score: number,
@@ -320,29 +347,15 @@ export const backfill = internalMutation({
         clean: boolean,
       ) => {
         days.set(game, [...(days.get(game) ?? []), dayKey]);
-        const t = tally.get(game);
-        if (!t) {
-          tally.set(game, {
+        tally.set(
+          game,
+          mergeTally(tally.get(game), {
             ...(clean ? { best: score } : {}),
             dayKey,
             achievedAt: at,
             solves: 1,
-          });
-          return;
-        }
-        t.solves++;
-        // Same rule as `noteSolve`: a hinted solve never sets the best;
-        // strictly better replaces; a tie keeps the earlier.
-        if (!clean) return;
-        if (
-          t.best === undefined ||
-          score < t.best ||
-          (score === t.best && at < t.achievedAt)
-        ) {
-          t.best = score;
-          t.dayKey = dayKey;
-          t.achievedAt = at;
-        }
+          }),
+        );
       };
 
       for (const row of await ctx.db
@@ -376,8 +389,8 @@ export const backfill = internalMutation({
         // The streaks, replayed through the same rule `noteSolve` applies one
         // solve at a time, in day order: what the row would hold had streaks
         // existed from the first solve.
-        let run: { streak?: number; bestStreak?: number; lastSolvedDayKey?: string } = {};
-        for (const day of [...days.get(game)!].sort()) {
+        let run: StreakState = streaks.get(game) ?? {};
+        for (const day of [...(days.get(game) ?? [])].sort()) {
           run = { ...run, ...extendStreak(run, day) };
         }
         const t = { ...base, ...run };

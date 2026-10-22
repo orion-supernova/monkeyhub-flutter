@@ -310,6 +310,15 @@ describe("delivery reported by the push", () => {
       sig: fields.rcptSig,
     });
     expect(again.status).toBe(204);
-    expect((await readerRow(t, roomId, reader.userId))!.deliveredLog!.length).toBe(1);
+    const logs: any[] = await t.run((ctx: any) =>
+      ctx.db
+        .query("receiptLogs")
+        .withIndex("by_room_user_kind", (q: any) =>
+          q.eq("roomId", roomId).eq("userId", reader.userId).eq("kind", "delivered"),
+        )
+        .collect(),
+    );
+    expect(logs.length).toBe(1);
+    expect(logs[0].entries.length).toBe(1);
   });
 });

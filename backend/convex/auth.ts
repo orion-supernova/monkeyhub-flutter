@@ -28,6 +28,7 @@ import {
 } from "./systemAccount";
 import { assertCleanName } from "./contentFilter";
 import { termsStamp } from "./terms";
+import { searchNameOf } from "./userSearch";
 import {
   assertNotLocked,
   clearFailures,
@@ -160,6 +161,7 @@ export const signup = publicMutation({
     const userId = await ctx.db.insert("users", {
       username,
       name,
+      searchName: searchNameOf(username, name),
       passwordHash: await hashPassword(passwordHash),
       recoveryKeyHash,
       email,

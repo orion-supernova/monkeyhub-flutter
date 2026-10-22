@@ -13974,6 +13974,17 @@ class AppLocalizationsEs extends AppLocalizations {
       'Se borra para todos en la conversación. La tarjeta de la denuncia conserva su copia.';
 
   @override
+  String get moderationActionRemoveContent => 'Eliminar momento o comentario';
+
+  @override
+  String get moderationConfirmRemoveContentTitle =>
+      '¿Eliminar este momento o comentario?';
+
+  @override
+  String get moderationConfirmRemoveContentBody =>
+      'Se elimina para todos, junto con sus respuestas y archivos. La tarjeta del informe conserva su copia.';
+
+  @override
   String get moderationConfirmBanTitle => '¿Suspender esta cuenta?';
 
   @override

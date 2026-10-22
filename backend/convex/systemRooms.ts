@@ -7,6 +7,7 @@ import {
   isSystemAccount,
 } from "./systemAccount";
 import { grantRoomAccess } from "./roomAccess";
+import { incrementRoomCount } from "./roomCounts";
 import { isTombstoned } from "./deletionCore";
 
 /**
@@ -267,7 +268,7 @@ async function shareAccountAvatar(ctx: any, roomId: any, storageId: any): Promis
 // the cap would make a reader at 500 rooms silently stop receiving reports,
 // and `addMembership` would double-count `memberCount`, which is reconciled
 // from the row set at the end of this function.
-async function reconcileSystemRoomMembers(
+export async function reconcileSystemRoomMembers(
   ctx: any,
   roomId: any,
   accountId: any,
@@ -293,6 +294,7 @@ async function reconcileSystemRoomMembers(
       role: "owner",
       seenVisibility: await seenVisibilityOf(ctx, accountId),
     });
+    await incrementRoomCount(ctx, accountId);
     await grantRoomAccess(ctx, roomId, accountId);
     present.add(accountId.toString());
   } else if (botRow.role !== "owner") {
@@ -311,6 +313,7 @@ async function reconcileSystemRoomMembers(
       // responsible for reading it, which is the honest number.
       seenVisibility: await seenVisibilityOf(ctx, readerId),
     });
+    await incrementRoomCount(ctx, readerId);
     await grantRoomAccess(ctx, roomId, readerId);
     present.add(key);
   }

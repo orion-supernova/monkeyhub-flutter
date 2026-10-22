@@ -2,6 +2,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
+import { searchNameOf } from "./userSearch";
 import { ERR_FILTER_BLOCKED } from "./contentFilter";
 import {
   REPORTER_USERNAME,
@@ -84,6 +85,18 @@ async function scene(t: ReturnType<typeof convexTest>) {
   return { staff, ada, bob, roomId };
 }
 
+/**
+ * Rows written with `ctx.db.insert` (system accounts) carry no `searchName`;
+ * real Convex skips them in a search index but convex-test's fake throws on a
+ * missing search field, so give them an real one before a search runs, so the filters still have to do their job.
+ */
+const fillSearchNames = (t: any) =>
+  t.run(async (ctx: any) => {
+    for (const u of await ctx.db.query("users").collect()) {
+      if (u.searchName === undefined) await ctx.db.patch(u._id, { searchName: searchNameOf(u.username, u.name) });
+    }
+  });
+
 describe("filing a report", () => {
   test("posts a card with the reported message and its context", async () => {
     const t = convexTest(schema);
@@ -156,6 +169,7 @@ describe("filing a report", () => {
         .first(),
     );
     expect(isSystemAccount(bot)).toBe(true);
+    await fillSearchNames(t);
     const found = await t.query(api.users.searchUsers, {
       ...tok(ada),
       query: "reporter",
@@ -317,6 +331,7 @@ describe("moderator actions", () => {
         .first(),
     );
     expect(membership).toBeNull();
+    await fillSearchNames(t);
     const found = await t.query(api.users.searchUsers, {
       ...tok(staff),
       query: "bob",

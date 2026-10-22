@@ -13780,6 +13780,17 @@ class AppLocalizationsTr extends AppLocalizations {
       'Sohbetteki herkes için silinir. Şikayet kartı kendi kopyasını saklar.';
 
   @override
+  String get moderationActionRemoveContent => 'An ya da yorumu kaldır';
+
+  @override
+  String get moderationConfirmRemoveContentTitle =>
+      'Bu an ya da yorum kaldırılsın mı?';
+
+  @override
+  String get moderationConfirmRemoveContentBody =>
+      'Yanıtları ve medyasıyla birlikte herkes için silinir. Şikayet kartı kendi kopyasını saklar.';
+
+  @override
   String get moderationConfirmBanTitle => 'Bu hesap yasaklansın mı?';
 
   @override

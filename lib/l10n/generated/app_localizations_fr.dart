@@ -14034,6 +14034,18 @@ class AppLocalizationsFr extends AppLocalizations {
       'Il est supprimé pour tout le monde dans la conversation. La fiche du signalement en garde une copie.';
 
   @override
+  String get moderationActionRemoveContent =>
+      'Supprimer le moment ou le commentaire';
+
+  @override
+  String get moderationConfirmRemoveContentTitle =>
+      'Supprimer ce moment ou ce commentaire ?';
+
+  @override
+  String get moderationConfirmRemoveContentBody =>
+      'Il est supprimé pour tout le monde, avec ses réponses et ses médias. La carte du signalement garde sa copie.';
+
+  @override
   String get moderationConfirmBanTitle => 'Bannir ce compte ?';
 
   @override

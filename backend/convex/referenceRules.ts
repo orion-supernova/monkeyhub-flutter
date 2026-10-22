@@ -103,6 +103,7 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
 
   // ── gameRecords / gameResults ─────────────────────────────────────────────
   "gameRecords.userId": { rule: "cascade", index: "by_user_game", why: "All-time records are the user's own (user plan, `records` step)." },
+  "gameResultYears.userId": { rule: "cascade", index: "by_user_game_year", why: "Yearly rollup of the user's own old daily results (retention.foldOldResults)." },
   "gameResults.userId": { rule: "cascade", index: "by_user_day_game", why: "Daily results are the user's own; retention policy is a separate decision (plan section 7)." },
 
   // ── groupCalls and friends ────────────────────────────────────────────────
@@ -186,7 +187,7 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "moments.mediaStorageId": { rule: "file", fileHold: "ref", index: "by_media", why: "Owner: the moment; refcounted across moments." },
   "moments.posterStorageId": { rule: "file", fileHold: "ref", index: "by_poster", why: "Owner: the moment; checked against its own by_poster index." },
   "moments.userId": { rule: "cascade", index: "by_user", why: "A person's moments, with children first, go with the account." },
-  "momentViews.momentId": { rule: "cascade", index: "by_moment_viewer", why: "deleteMomentCore; also should go when the moment expires.", today: "views of expired moments are kept forever" },
+  "momentViews.momentId": { rule: "cascade", index: "by_moment_viewer", why: "deleteMomentCore; views of a moment expired for 7 days are swept (retention.gcMomentViews)." },
   "momentViews.viewerId": { rule: "cascade", index: "by_viewer", why: "A viewer's footprints go with their account." },
 
   // ── family codes ──────────────────────────────────────────────────────────
@@ -213,6 +214,8 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "recordReactions.userId": { rule: "cascade", index: "by_user", why: "User plan, `records` step." },
 
   // ── rooms and membership ──────────────────────────────────────────────────
+  "receiptLogs.roomId": { rule: "cascade", index: "by_room_user_kind", why: "Room teardown; the log of a deleted room means nothing." },
+  "receiptLogs.userId": { rule: "cascade", index: "by_user", why: "A deleted account's receipt history goes with it." },
   "roomAccess.roomId": { rule: "cascade", index: "by_room_user", why: "revokeAllRoomAccess on teardown." },
   "roomAccess.userId": { rule: "cascade", index: "by_user", why: "revokeUserRoomAccess on account deletion." },
   "roomBans.roomId": { rule: "cascade", index: "by_room_user", why: "A ban on a deleted room means nothing." },
@@ -236,7 +239,7 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "rooms.createdBy": { rule: "history", why: "Required attribution; the owner SEAT is roomMembers.role, and ensureOwner re-points createdBy when it re-seats.", today: "a creator who had already left the room and later deletes their account leaves a dead id (the user plan re-points it only for rooms they are still in; field is required so it cannot be nulled)" },
   "rooms.lastMessageSenderId": { rule: "softRef", why: "Denormalized from the newest message; repaired when that message is deleted (removeMessageImmediate)." },
   "scheduledMessages.jobId": { rule: "ephemeral", why: "Points at the scheduler's `_scheduled_functions`; dropJob cancels it whenever the row goes, and it is gone once fired." },
-  "scheduledMessages.mediaStorageId": { rule: "file", fileHold: "ref", why: "Owner: the scheduled row (a queued photo) until it is sent.", today: "failed rows keep their file forever" },
+  "scheduledMessages.mediaStorageId": { rule: "file", fileHold: "ref", why: "Owner: the scheduled row (a queued photo) until it is sent; a failed row is deleted after 30 days and releases it (retention.gcFailedScheduled)." },
   "scheduledMessages.mentionedUserIds[]": { rule: "history", why: "Re-validated at send time; a dead id is simply dropped.", today: "unverified" },
   "scheduledMessages.replyToId": { rule: "softRef", why: "Parent may vanish before sending; the send goes out as a plain message.", today: "the sender is not told that the reply tether was lost" },
   "scheduledMessages.roomId": { rule: "cascade", index: "by_room_user_due", why: "purgeScheduledForRoom (also on leave, via purgeScheduledForRoomUser)." },
@@ -257,6 +260,7 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "userExpressions.recents[].stickerId": { rule: "softRef", why: "Recents/favourites are snapshots; the picker filters missing stickers on read.", today: "the server never checks the sticker exists; other people's lists keep dead stickers" },
   "userExpressions.recents[].storageId": { rule: "file", fileHold: "copy", why: "Owner: the sticker row (borrowed copy in a snapshot)." },
   "userExpressions.userId": { rule: "cascade", index: "by_user", why: "User plan, `expressions` step." },
+  "userRoomCounts.userId": { rule: "cascade", index: "by_user", why: "The per-user room counter (roomCounts.ts) dies with the account; generic step, after memberships." },
 
   // ── typing, uploads, users ────────────────────────────────────────────────
   "typingIndicators.avatarStorageId": { rule: "file", fileHold: "copy", why: "Owner: users.avatarStorageId (borrowed copy); Phase 6 profiles remove it." },

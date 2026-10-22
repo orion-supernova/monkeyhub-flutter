@@ -182,6 +182,13 @@ describe("the room cap holds everywhere", () => {
           role: "member",
         });
       }
+      // Rows inserted by hand bypass `addMembership`, so keep the counter (the
+      // thing the cap actually reads) in step with them.
+      const counter = await ctx.db
+        .query("userRoomCounts")
+        .withIndex("by_user", (q: any) => q.eq("userId", who.userId))
+        .first();
+      if (counter) await ctx.db.patch(counter._id, { count: counter.count + MAX_ROOMS_PER_USER });
     });
   }
 

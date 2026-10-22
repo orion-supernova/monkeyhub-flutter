@@ -1139,6 +1139,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
         );
         break;
       case MessageAction.modRemoveMessage:
+      case MessageAction.modRemoveContent:
       case MessageAction.modBanUser:
       case MessageAction.modUnbanUser:
       case MessageAction.modDismiss:

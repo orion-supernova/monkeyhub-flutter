@@ -1,4 +1,5 @@
 import { assertCleanName } from "./contentFilter";
+import { searchNameOf } from "./userSearch";
 import { TERMS_VERSION } from "./terms";
 import { mutation, publicMutation, query } from "./functions";
 import { mintSession, revokeSessionsForDevice } from "./sessionCore";
@@ -164,6 +165,7 @@ export const createChildAccount = mutation({
       termsVersion: TERMS_VERSION,
       username: handle,
       name: name.trim() || handle,
+      searchName: searchNameOf(handle, name.trim() || handle),
       passwordHash: CHILD_PASSWORD_SENTINEL,
       createdAt: Date.now(),
       status: "offline",

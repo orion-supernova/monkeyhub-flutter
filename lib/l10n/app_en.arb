@@ -16577,6 +16577,18 @@
   "@moderationConfirmRemoveBody": {
     "description": "Confirmation body before a moderator removes a reported message."
   },
+  "moderationActionRemoveContent": "Remove moment or comment",
+  "@moderationActionRemoveContent": {
+    "description": "Moderator menu row on a report card: delete the reported moment or moment comment for everyone."
+  },
+  "moderationConfirmRemoveContentTitle": "Remove this moment or comment?",
+  "@moderationConfirmRemoveContentTitle": {
+    "description": "Confirmation title before a moderator removes a reported moment or moment comment."
+  },
+  "moderationConfirmRemoveContentBody": "It's deleted for everyone, along with its replies and media. The report card keeps its copy.",
+  "@moderationConfirmRemoveContentBody": {
+    "description": "Confirmation body before a moderator removes a reported moment or moment comment."
+  },
   "moderationConfirmBanTitle": "Ban this account?",
   "@moderationConfirmBanTitle": {
     "description": "Confirmation title before a moderator bans an account."

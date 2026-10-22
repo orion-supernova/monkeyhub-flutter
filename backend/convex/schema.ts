@@ -145,8 +145,13 @@ export default defineSchema({
     // until `terms.accept` runs. See `terms.ts` for the version number.
     termsAcceptedAt: v.optional(v.number()),
     termsVersion: v.optional(v.number()),
+    // Lowercased "<username> <name>", the one field `search_users` indexes.
+    // Derived: every write of `name` or `username` goes through
+    // `userSearch.searchNameOf`; `userSearch.backfillSearchName` fills the rest.
+    searchName: v.optional(v.string()),
   })
     .index("by_username", ["username"])
+    .searchIndex("search_users", { searchField: "searchName" })
     // Presence staleness sweep (users.sweepStalePresence) ranges over lastSeen
     // to find clients that stopped heartbeating. See presence.ts.
     //
@@ -381,6 +386,16 @@ export default defineSchema({
     .index("by_room_user", ["roomId", "userId"])
     .index("by_user", ["userId"]),
 
+  // How many rooms each user is in, so `addMembership` checks the per-user cap
+  // with one point read instead of reading up to 500 `roomMembers` rows. Its own
+  // table (not a field on `users`) so a join never re-runs a subscription that
+  // reads the user. A MISSING row means "not counted yet", never zero. See
+  // `roomCounts.ts`.
+  userRoomCounts: defineTable({
+    userId: v.id("users"),
+    count: v.number(),
+  }).index("by_user", ["userId"]),
+
   roomMembers: defineTable({
     roomId: v.id("rooms"),
     userId: v.id("users"),
@@ -436,8 +451,10 @@ export default defineSchema({
     lastDeliveredClock: v.optional(v.number()),
     // Each cursor's recent moves, so a message's own delivered/read time can
     // be found again after the cursor has moved past it — the clocks above
-    // only ever hold the newest move. Bounded; see receiptLog.ts. Absent on
-    // rows not advanced since it was added.
+    // only ever hold the newest move. Bounded; see receiptLog.ts. DEPRECATED:
+    // the logs live in `receiptLogs` now; these are read as a fallback and
+    // unset by writers and `receipts:moveLogs`. Remove in a later deploy once
+    // the backfill has run.
     readLog: v.optional(
       v.array(v.object({ upTo: v.number(), at: v.number() })),
     ),
@@ -507,6 +524,22 @@ export default defineSchema({
     // admin or member, without reading the whole room.
     .index("by_room_role", ["roomId", "role"]),
 
+  // Each member's receipt history per cursor (was `roomMembers.readLog` /
+  // `deliveredLog`). Out of the membership row because that row is rewritten by
+  // every receipt and read whole, for every member, by `getReadState`. Written
+  // only by the owner's own receipt; read only by `getReceiptTimes`, one point
+  // read per visible member. See receipts.ts and receiptLog.ts. Prefix
+  // `roomId` on the index serves room teardown; `by_user` serves account
+  // deletion.
+  receiptLogs: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    kind: v.union(v.literal("read"), v.literal("delivered")),
+    entries: v.array(v.object({ upTo: v.number(), at: v.number() })),
+  })
+    .index("by_room_user_kind", ["roomId", "userId", "kind"])
+    .index("by_user", ["userId"]),
+
   // ── Group invites ─────────────────────────────────────────────────────────
 
   // The room's join token. ONE row is live per room at a time — see
@@ -547,8 +580,15 @@ export default defineSchema({
   })
     .index("by_code", ["code"])
     .index("by_room", ["roomId"])
+    // The room's live link: `revokedAt` unset sorts lowest, so
+    // `eq("revokedAt", undefined)` reads exactly the un-revoked rows.
+    .index("by_room_revoked", ["roomId", "revokedAt"])
     // Account teardown: links this user issued.
-    .index("by_creator", ["createdBy"]),
+    .index("by_creator", ["createdBy"])
+    // Retention sweeps (retention.ts): links revoked or expired 90+ days ago.
+    // Both fields are optional, so the sweeps bound both ends.
+    .index("by_revoked", ["revokedAt"])
+    .index("by_expires", ["expiresAt"]),
 
   // A directed invite: one member naming one person, who then accepts or
   // rejects. Deliberately the same shape as a friend request in `friendships`
@@ -582,7 +622,9 @@ export default defineSchema({
     .index("by_inviter", ["inviterId"])
     // Guardian queues, mirroring `friendships`.
     .index("by_stage_invitee", ["stage", "inviteeId"])
-    .index("by_stage_inviter", ["stage", "inviterId"]),
+    .index("by_stage_inviter", ["stage", "inviterId"])
+    // Retention sweep (retention.ts): decided rows only, never "pending".
+    .index("by_status_responded", ["status", "respondedAt"]),
 
   // Someone redeemed the link on a room whose `linkJoinPolicy` is "approval".
   // They are not a member yet and cannot read anything; this row is only the
@@ -607,7 +649,9 @@ export default defineSchema({
     // Account teardown: requests this user ruled on.
     .index("by_decider", ["decidedBy"])
     // A deleted link clears the pointer on the requests that came in on it.
-    .index("by_invite", ["inviteId"]),
+    .index("by_invite", ["inviteId"])
+    // Retention sweep (retention.ts): decided rows only, never "pending".
+    .index("by_status_decided", ["status", "decidedAt"]),
 
   // A member who may NOT edit the room asking for it to be edited anyway —
   // "use this photo instead", "call it Trip 2026". See `roomChangeRequests.ts`
@@ -654,7 +698,9 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_decider", ["decidedBy"])
     // "Does another request hold this file?" See `files.fileInUse`.
-    .index("by_storage", ["storageId"]),
+    .index("by_storage", ["storageId"])
+    // Retention sweep (retention.ts): decided rows only, never "pending".
+    .index("by_status_decided", ["status", "decidedAt"]),
 
   // ── Family ────────────────────────────────────────────────────────────────
 
@@ -685,7 +731,9 @@ export default defineSchema({
     .index("by_child", ["childId"])
     .index("by_codeHash", ["codeHash"])
     // Account teardown: codes a departing guardian minted for other children.
-    .index("by_creator", ["createdByGuardianId"]),
+    .index("by_creator", ["createdByGuardianId"])
+    // Retention sweep (retention.ts): a consumed code is past its expiry too.
+    .index("by_expires", ["expiresAt"]),
 
   // Short-lived, single-use codes that hand a child's device BACK — the exact
   // inverse of `pairingCodes`, and deliberately a separate table rather than a
@@ -706,7 +754,9 @@ export default defineSchema({
   })
     .index("by_child", ["childId"])
     .index("by_codeHash", ["codeHash"])
-    .index("by_creator", ["createdByGuardianId"]),
+    .index("by_creator", ["createdByGuardianId"])
+    // Retention sweep (retention.ts): a consumed code is past its expiry too.
+    .index("by_expires", ["expiresAt"]),
 
   // QR / short-code sign-in for a signed-out web or desktop client — the
   // "scan this with your phone" pattern, and the third member of this
@@ -810,7 +860,10 @@ export default defineSchema({
     .index("by_decider", ["decidedByGuardianId"])
     // Room teardown: the rows asking about a room that is going (SET NULL on
     // decided ones, delete pending ones). See `referenceRules.ts`.
-    .index("by_target_room", ["targetRoomId"]),
+    .index("by_target_room", ["targetRoomId"])
+    // Retention sweep (retention.ts): denied and revoked rows only. Approved
+    // rows are live permissions and are never ranged over.
+    .index("by_status_decided", ["status", "decidedAt"]),
 
   blocks: defineTable({
     userId: v.id("users"),         // who is doing the blocking
@@ -1338,6 +1391,10 @@ export default defineSchema({
       v.object({
         reportId: v.id("reports"),
         hasMessage: v.boolean(),
+        // A reported moment or comment that can still be removed
+        // (`moderation.act` "removeContent"). Absent on older cards and on
+        // message/user cards; false once it is gone.
+        hasContent: v.optional(v.boolean()),
         hasUser: v.boolean(),
         // Whether that person is banned right now, so the card offers Ban or
         // Unban, never both. Kept current on every card for the person by
@@ -1357,6 +1414,8 @@ export default defineSchema({
     .index("by_root_time", ["rootId", "createdAt"])
     // An album's members, to count them for a reply to the whole album.
     .index("by_album", ["albumId", "createdAt"])
+    // Album size within one room (the send path's reply-to-album count).
+    .index("by_room_album", ["roomId", "albumId"])
     // Account teardown walks every message a user ever sent.
     .index("by_user", ["userId"])
     // The expired-view-once sweep. `viewOnceLive` MUST lead: Convex has no
@@ -1505,7 +1564,10 @@ export default defineSchema({
     // Account teardown, and the room teardown's per-sender pass.
     .index("by_user", ["userId"])
     // Room teardown: everything staged for a room that no longer exists.
-    .index("by_room", ["roomId"]),
+    .index("by_room", ["roomId"])
+    // Retention sweep (retention.ts): failed rows past 30 days. Optional
+    // field, so the sweep bounds both ends.
+    .index("by_failed_at", ["failedAt"]),
 
   // Who has opened which view-once message. A side table rather than a
   // `readBy` array on `messages`, for the reason the roomMembers comment gives:
@@ -2129,7 +2191,9 @@ export default defineSchema({
     .index("by_moment_viewer", ["momentId", "viewerId"])
     .index("by_moment", ["momentId"])
     // Account teardown.
-    .index("by_viewer", ["viewerId"]),
+    .index("by_viewer", ["viewerId"])
+    // Retention sweep (retention.ts): views of long-expired moments.
+    .index("by_viewed_at", ["viewedAt"]),
 
   // Reactions on a moment. Mirrors `reactions` on messages exactly, including
   // the one-row-per-(moment,user,emoji) idempotency.
@@ -2254,7 +2318,9 @@ export default defineSchema({
     // do not re-run every board subscribed to them, only their finish does.
     .index("by_user_day_finished", ["userId", "dayKey", "finishedAt"])
     // Account teardown (auth.ts purgeUser).
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    // Retention fold (retention.ts): oldest days first, across users.
+    .index("by_day", ["dayKey"]),
 
   // One row per player per day per daily GAME — Queens, Tango, Zip, Mini
   // Sudoku. Same model as `puzzleResults` above and for the same reasons: the
@@ -2317,7 +2383,9 @@ export default defineSchema({
     // range. Without it every start, hint and autosave a friend makes re-ran
     // the board of everyone subscribed to them, for rows the board then
     // skipped anyway.
-    .index("by_user_day_finished", ["userId", "dayKey", "finishedAt"]),
+    .index("by_user_day_finished", ["userId", "dayKey", "finishedAt"])
+    // Retention fold (retention.ts): oldest days first, across users.
+    .index("by_day", ["dayKey"]),
 
   // One row per player per game, ALL TIME: their best, and how many times they
   // have solved it. Kept by `records.noteSolve` from `games.submit` and
@@ -2327,6 +2395,33 @@ export default defineSchema({
   // `gameResults` is a scan of each friend's entire history — a year of four
   // games a day is ~1,500 rows per person, times two hundred friends, on every
   // open of a screen. Here it is one indexed read per person.
+  // Yearly rollup of daily results older than a year (retention.ts folds
+  // `gameResults` and `puzzleResults` into this, then deletes the rows). One
+  // row per player per game per calendar year of the result's `dayKey`; the code
+  // puzzle uses game "code". It holds exactly what `records:backfill` needs to
+  // rebuild `gameRecords` (best, solve count, streaks) without the day rows.
+  // Every other reader looks at one named day and never sees a folded one.
+  gameResultYears: defineTable({
+    userId: v.id("users"),
+    game: v.string(),
+    year: v.string(), // "2025"
+    // The `gameRecords` tally for this year: solves counted, the best CLEAN
+    // score (lower wins) with the day and moment it was set. Before a clean
+    // solve exists, `dayKey`/`achievedAt` name the first solve of the year.
+    solves: v.number(),
+    best: v.optional(v.number()),
+    dayKey: v.string(),
+    achievedAt: v.number(),
+    // Streak state of this year alone, replayed with `extendStreak`: the run
+    // ending on `lastSolvedDayKey`, the longest run, and the run that began on
+    // `firstSolvedDayKey` (so a run crossing New Year joins its two halves).
+    firstSolvedDayKey: v.string(),
+    firstRun: v.number(),
+    lastSolvedDayKey: v.string(),
+    streak: v.number(),
+    bestStreak: v.number(),
+  }).index("by_user_game_year", ["userId", "game", "year"]),
+
   // "Beat my time": a daily result sent into a chat as a challenge. The card
   // is a `messages` row of type "challenge" whose `content` is a readable
   // line; this is its body — immutable once written, which is why the card
@@ -2441,7 +2536,9 @@ export default defineSchema({
     // "typing indicators in this room" read as a prefix scan on `roomId`.
     .index("by_room_user", ["roomId", "userId"])
     // Account teardown clears every room this user was typing in.
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    // Retention sweep (retention.ts): rows idle for a day.
+    .index("by_updated", ["updatedAt"]),
 
   friendRequestMessages: defineTable({
     requestId: v.id("friendships"),
@@ -3073,7 +3170,9 @@ export default defineSchema({
     .index("by_room_status", ["roomId", "status"])
     .index("by_message", ["messageId"])
     // "Games where it is your move", for the room list's dot.
-    .index("by_turn_user_status", ["turnUserId", "status"]),
+    .index("by_turn_user_status", ["turnUserId", "status"])
+    // Retention sweep (retention.ts): finished games past 90 days.
+    .index("by_status_finished", ["status", "finishedAt"]),
 
   // Every move ever applied, in order. History and idempotency: a resent move
   // carries the `clientMoveId` it was first sent with, and finding it here is
@@ -3149,7 +3248,8 @@ export default defineSchema({
     restarts: v.number(),
     pages: v.number(),
     rowsScanned: v.number(),
-  }).index("by_status", ["status"]),
+  }).index("by_status", ["status"])
+    .index("by_started", ["startedAt"]),
 
   // Per-table counters of a run, split out of `integrityRuns` so a page
   // rewrites only its own table's small row, not every path's. An array and

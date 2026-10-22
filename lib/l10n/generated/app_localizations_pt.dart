@@ -13978,6 +13978,17 @@ class AppLocalizationsPt extends AppLocalizations {
       'É eliminada para todos na conversa. O cartão da denúncia mantém a sua cópia.';
 
   @override
+  String get moderationActionRemoveContent => 'Remover momento ou comentário';
+
+  @override
+  String get moderationConfirmRemoveContentTitle =>
+      'Remover este momento ou comentário?';
+
+  @override
+  String get moderationConfirmRemoveContentBody =>
+      'É apagado para todos, junto com as respostas e os ficheiros. O cartão da denúncia mantém a sua cópia.';
+
+  @override
   String get moderationConfirmBanTitle => 'Banir esta conta?';
 
   @override
@@ -28450,6 +28461,17 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get moderationConfirmRemoveBody =>
       'Ela é apagada para todos na conversa. O cartão da denúncia guarda a cópia dele.';
+
+  @override
+  String get moderationActionRemoveContent => 'Remover momento ou comentário';
+
+  @override
+  String get moderationConfirmRemoveContentTitle =>
+      'Remover este momento ou comentário?';
+
+  @override
+  String get moderationConfirmRemoveContentBody =>
+      'É apagado para todos, junto com as respostas e os arquivos. O cartão da denúncia mantém a cópia dele.';
 
   @override
   String get moderationConfirmBanTitle => 'Banir esta conta?';

@@ -22,6 +22,7 @@
  * the same ID token — stateless, and no extra table.
  */
 
+import { searchNameOf } from "./userSearch";
 import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { action, mutation, publicAction, query } from "./functions";
 import { assertIdentityNotBanned, mintSession } from "./sessionCore";
@@ -752,6 +753,7 @@ export const createWithIdentity = internalMutation({
     const userId = await ctx.db.insert("users", {
       username,
       name: name && name.length > 0 ? name : username,
+      searchName: searchNameOf(username, name && name.length > 0 ? name : username),
       // No password, ever, unless the user later sets one. See the sentinel.
       passwordHash: SOCIAL_ONLY_PASSWORD_SENTINEL,
       // Deliberately no recoveryKeyHash: the provider IS the recovery path, and

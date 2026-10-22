@@ -1,8 +1,8 @@
 # Data integrity and scale plan (2026-10-22)
 
-**Status:** Phases 0 to 3 and part A of Phase 4 are **Done in code**
+**Status:** Phases 0 to 4 are **Done in code**
 (2026-10-22, committed on `dev`, not deployed; see each phase's status
-note). The rest of Phase 4 and Phases 5 and 6 are designed, not started:
+note). Phases 5 and 6 are designed in `docs/data-integrity-phase5-6-design.md`:
 **a new session should start with `docs/data-integrity-handoff.md`.** Built from a live scan of every reference in the production
 database and five code audits (accounts, rooms, messages, feed/games/calls/
 stickers, files/copies/crons), with every high-severity claim re-checked by
@@ -963,6 +963,20 @@ refreshed once a day from the heartbeat, with a grace floor
 (`SESSION_GRACE_FLOOR`) so nobody is signed out before 2027-01-20. The rest
 (retention sweeps, receipts table, point reads, search index, room counts)
 is designed in `docs/data-integrity-handoff.md` section 4.
+
+**Phase 4 status (2026-10-23): all parts Done in code, not deployed.**
+B: 11 retention sweeps in `retention.ts` (bans, idle typing, moment views,
+finished games after 90 days, results folded into `gameResultYears` after 1
+year with identical streaks, failed scheduled messages, decided requests
+after 90 days with approved guardian permissions kept, dead invite links,
+family codes, log-room messages, old integrity runs). C: receipt logs live in
+`receiptLogs`; a 1,000-member room's read state no longer reads ~8 MB of
+logs. D: point reads for blocks, DM lookup, albums and invite links; user
+search uses a search index (word-prefix, exact handle first) instead of
+loading every user. E: `userRoomCounts` makes the room cap one point read.
+G: staff can remove a reported moment or comment from its card. One review,
+no data-loss findings; the fixes it asked for are in. Backfills are in the
+handoff runbook (section 3, step 5b).
 
 1. Every cron in section 5 reschedules itself while pages come back full,
    and ranges on an index (no fixed "first 50").

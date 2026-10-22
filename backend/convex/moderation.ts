@@ -10,6 +10,8 @@ import {
   isSystemRoom,
 } from "./systemAccount";
 import { postOutcome } from "./moderationCore";
+import { deleteMomentCore } from "./momentCleanup";
+import { deleteCommentCore } from "./momentComments";
 import { REPORT_RETENTION_MS } from "./users";
 
 /**
@@ -118,6 +120,33 @@ async function syncCardBanState(ctx: any, userId: any, banned: boolean) {
 }
 
 /**
+ * Sets `hasContent` on every card about the moment or comment [targetId], so
+ * a second report about something already removed stops offering Remove.
+ */
+async function syncCardContentState(
+  ctx: any,
+  targetType: string,
+  targetId: string,
+  hasContent: boolean,
+) {
+  const reports = await ctx.db
+    .query("reports")
+    .withIndex("by_target", (q: any) =>
+      q.eq("targetType", targetType).eq("targetId", targetId),
+    )
+    .take(100);
+  for (const r of reports) {
+    const card = r.cardMessageId ? await ctx.db.get(r.cardMessageId) : null;
+    if (!card?.moderationCard || card.moderationCard.hasContent === hasContent) {
+      continue;
+    }
+    await ctx.db.patch(card._id, {
+      moderationCard: { ...card.moderationCard, hasContent },
+    });
+  }
+}
+
+/**
  * The one moderator mutation. One entry point with an `action` rather than
  * four mutations, so the staff check, the report lookup and the outcome line
  * cannot be forgotten by whichever action is added fifth.
@@ -128,6 +157,7 @@ export const act = mutation({
     reportId: v.id("reports"),
     action: v.union(
       v.literal("removeMessage"),
+      v.literal("removeContent"),
       v.literal("ban"),
       v.literal("unban"),
       v.literal("dismiss"),
@@ -153,6 +183,31 @@ export const act = mutation({
         } else {
           outcome = "ℹ️ Message was already gone. Checked by MonkeyHub.";
         }
+        break;
+      }
+      case "removeContent": {
+        // A reported moment or comment, through the same delete cores the
+        // author's own delete uses, so children and files go with it. The
+        // author's account may be mid-deletion; nothing here reads it. The
+        // card's excerpt is its own text and stays as the evidence.
+        if (report.targetType !== "moment" && report.targetType !== "comment") {
+          throw new Error("NOT_REMOVABLE");
+        }
+        const isMoment = report.targetType === "moment";
+        const id = ctx.db.normalizeId(
+          isMoment ? "moments" : "momentComments",
+          report.targetId,
+        );
+        const row = id ? await ctx.db.get(id) : null;
+        if (row) {
+          if (isMoment) await deleteMomentCore(ctx, row);
+          else await deleteCommentCore(ctx, row);
+        }
+        await syncCardContentState(ctx, report.targetType, report.targetId, false);
+        const noun = isMoment ? "Moment" : "Comment";
+        outcome = row
+          ? `✅ ${noun} removed for everyone by MonkeyHub.`
+          : `ℹ️ ${noun} was already gone. Checked by MonkeyHub.`;
         break;
       }
       case "ban": {

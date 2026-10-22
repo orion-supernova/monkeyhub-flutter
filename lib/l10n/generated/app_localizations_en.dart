@@ -13841,6 +13841,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'It\'s deleted for everyone in the conversation. The report card keeps its copy.';
 
   @override
+  String get moderationActionRemoveContent => 'Remove moment or comment';
+
+  @override
+  String get moderationConfirmRemoveContentTitle =>
+      'Remove this moment or comment?';
+
+  @override
+  String get moderationConfirmRemoveContentBody =>
+      'It\'s deleted for everyone, along with its replies and media. The report card keeps its copy.';
+
+  @override
   String get moderationConfirmBanTitle => 'Ban this account?';
 
   @override

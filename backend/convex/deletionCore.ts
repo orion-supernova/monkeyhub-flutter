@@ -407,6 +407,10 @@ export async function startUserDeletion(
       // Legacy push tokens on the row itself: a ghost must not ring.
       voipToken: undefined,
       fcmToken: undefined,
+      // The search index copy of the name goes with it. Emptied rather than
+      // unset: an empty field matches no search, and keeps the row valid for
+      // the search index in every runtime.
+      searchName: "",
       // The rest of what describes the person. No plan step reads any of it:
       // birth year, the child's policy, privacy settings, the nudge and
       // rename bookkeeping, and the terms they accepted.

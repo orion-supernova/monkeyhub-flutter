@@ -130,15 +130,19 @@ function invalidReason(invite: any, now: number): string | null {
 
 /** The room's one live link, or null. */
 async function activeInviteFor(ctx: any, roomId: any) {
+  // Only un-revoked rows (`revokedAt` unset sorts lowest in the index), newest
+  // first by creation time: rotation guarantees at most one, but reading in
+  // this order means a half-applied rotation (a crash between the two writes)
+  // resolves to the NEW link rather than resurrecting the old one. Every
+  // revoked link the room ever had is never read.
   const rows = await ctx.db
     .query("roomInvites")
-    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
-    .collect();
-  // Newest first: rotation guarantees at most one un-revoked row, but reading
-  // in this order means a half-applied rotation (a crash between the two
-  // writes) resolves to the NEW link rather than resurrecting the old one.
-  rows.sort((a: any, b: any) => b.createdAt - a.createdAt);
-  return rows.find((r: any) => !r.revokedAt) ?? null;
+    .withIndex("by_room_revoked", (q: any) =>
+      q.eq("roomId", roomId).eq("revokedAt", undefined)
+    )
+    .order("desc")
+    .take(5);
+  return rows[0] ?? null;
 }
 
 function publicInviteView(invite: any) {

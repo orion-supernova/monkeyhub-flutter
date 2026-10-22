@@ -23077,6 +23077,24 @@ abstract class AppLocalizations {
   /// **'It\'s deleted for everyone in the conversation. The report card keeps its copy.'**
   String get moderationConfirmRemoveBody;
 
+  /// Moderator menu row on a report card: delete the reported moment or moment comment for everyone.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove moment or comment'**
+  String get moderationActionRemoveContent;
+
+  /// Confirmation title before a moderator removes a reported moment or moment comment.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this moment or comment?'**
+  String get moderationConfirmRemoveContentTitle;
+
+  /// Confirmation body before a moderator removes a reported moment or moment comment.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s deleted for everyone, along with its replies and media. The report card keeps its copy.'**
+  String get moderationConfirmRemoveContentBody;
+
   /// Confirmation title before a moderator bans an account.
   ///
   /// In en, this message translates to:

@@ -13819,6 +13819,16 @@ class AppLocalizationsHi extends AppLocalizations {
       'यह बातचीत में सभी के लिए डिलीट हो जाएगा। रिपोर्ट कार्ड में इसकी कॉपी बनी रहेगी।';
 
   @override
+  String get moderationActionRemoveContent => 'मोमेंट या कमेंट हटाएँ';
+
+  @override
+  String get moderationConfirmRemoveContentTitle => 'यह मोमेंट या कमेंट हटाएँ?';
+
+  @override
+  String get moderationConfirmRemoveContentBody =>
+      'यह जवाबों और मीडिया समेत सबके लिए हट जाएगा। रिपोर्ट कार्ड अपनी कॉपी रखता है।';
+
+  @override
   String get moderationConfirmBanTitle => 'इस अकाउंट को बैन करें?';
 
   @override

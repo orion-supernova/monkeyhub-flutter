@@ -43,6 +43,12 @@ import { grantRoomAccess, revokeRoomAccess } from "./roomAccess";
 import { removeUserFromRoomGroupCall } from "./groupCalls";
 import { purgeScheduledForRoomUser } from "./scheduledMessages";
 import { isTombstoned } from "./deletionCore";
+import {
+  MAX_ROOMS_PER_USER,
+  currentRoomCount,
+  decrementRoomCount,
+  recordJoin,
+} from "./roomCounts";
 
 export const ROLE_OWNER = "owner";
 export const ROLE_ADMIN = "admin";
@@ -114,8 +120,8 @@ export function linkJoinPolicyOf(room: any): string {
 
 /** Members per room. WhatsApp allows 1024, Signal 1000. */
 export const MAX_ROOM_MEMBERS = 1000;
-/** Rooms one account may be in at once, DMs included. */
-export const MAX_ROOMS_PER_USER = 500;
+// Rooms one account may be in at once, DMs included. Defined beside the counter.
+export { MAX_ROOMS_PER_USER };
 /** How long a removed member is kept from rejoining on their own. */
 const REMOVAL_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 export const ERR_ROOM_FULL = "ROOM_FULL";
@@ -226,14 +232,11 @@ export async function addMembership(
   if (target && target.memberCount >= MAX_ROOM_MEMBERS) {
     throw new Error(ERR_ROOM_FULL);
   }
-  if (!skipRoomCap) {
-    const joined = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_user", (q: any) => q.eq("userId", userId))
-      .take(MAX_ROOMS_PER_USER);
-    if (joined.length >= MAX_ROOMS_PER_USER) {
-      throw new Error(ERR_TOO_MANY_ROOMS);
-    }
+  // One point read of `userRoomCounts`; a user not counted yet (no row) falls
+  // back to the old bounded count. See `roomCounts.ts`.
+  const before = await currentRoomCount(ctx, userId);
+  if (!skipRoomCap && before.count >= MAX_ROOMS_PER_USER) {
+    throw new Error(ERR_TOO_MANY_ROOMS);
   }
   await ctx.db.insert("roomMembers", {
     roomId,
@@ -243,6 +246,7 @@ export async function addMembership(
     seenVisibility: await seenVisibilityOf(ctx, userId),
     ...extra,
   });
+  await recordJoin(ctx, userId, before);
   await grantRoomAccess(ctx, roomId, userId);
   const room = await ctx.db.get(roomId);
   if (room) await ctx.db.patch(roomId, { memberCount: room.memberCount + 1 });
@@ -269,6 +273,7 @@ export async function removeMembership(
   if (!member) return "absent";
 
   await ctx.db.delete(member._id);
+  await decrementRoomCount(ctx, userId);
   await revokeRoomAccess(ctx, roomId, userId);
 
   // Their typing row. It names them in a room they have left, and the last
@@ -280,6 +285,17 @@ export async function removeMembership(
     )
     .first();
   if (typing) await ctx.db.delete(typing._id);
+
+  // Their receipt logs (read and delivered), so a rejoin starts clean.
+  for (const kind of ["read", "delivered"]) {
+    const log = await ctx.db
+      .query("receiptLogs")
+      .withIndex("by_room_user_kind", (q: any) =>
+        q.eq("roomId", roomId).eq("userId", userId).eq("kind", kind),
+      )
+      .first();
+    if (log) await ctx.db.delete(log._id);
+  }
 
   // A live group call in this room: they are no longer entitled to be in it.
   // Through the call's own leave path, so the roster, the pair signals and

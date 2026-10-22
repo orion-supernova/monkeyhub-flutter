@@ -13228,6 +13228,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get moderationConfirmRemoveBody => '会話の全員から削除されます。通報カードにはコピーが残ります。';
 
   @override
+  String get moderationActionRemoveContent => 'モーメントまたはコメントを削除';
+
+  @override
+  String get moderationConfirmRemoveContentTitle => 'このモーメントまたはコメントを削除しますか？';
+
+  @override
+  String get moderationConfirmRemoveContentBody =>
+      '返信とメディアも含め、全員から削除されます。報告カードにはコピーが残ります。';
+
+  @override
   String get moderationConfirmBanTitle => 'このアカウントを停止しますか？';
 
   @override

@@ -13259,6 +13259,16 @@ class AppLocalizationsKo extends AppLocalizations {
       '대화의 모든 사람에게서 삭제됩니다. 신고 카드에는 사본이 남습니다.';
 
   @override
+  String get moderationActionRemoveContent => '모멘트 또는 댓글 삭제';
+
+  @override
+  String get moderationConfirmRemoveContentTitle => '이 모멘트 또는 댓글을 삭제할까요?';
+
+  @override
+  String get moderationConfirmRemoveContentBody =>
+      '답글과 미디어를 포함해 모두에게서 삭제돼요. 신고 카드에는 사본이 남아요.';
+
+  @override
   String get moderationConfirmBanTitle => '이 계정을 정지할까요?';
 
   @override

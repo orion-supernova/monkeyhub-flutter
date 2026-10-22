@@ -13874,6 +13874,18 @@ class AppLocalizationsSv extends AppLocalizations {
       'Det raderas för alla i konversationen. Rapportkortet behåller sin kopia.';
 
   @override
+  String get moderationActionRemoveContent =>
+      'Ta bort ögonblick eller kommentar';
+
+  @override
+  String get moderationConfirmRemoveContentTitle =>
+      'Ta bort det här ögonblicket eller den här kommentaren?';
+
+  @override
+  String get moderationConfirmRemoveContentBody =>
+      'Det tas bort för alla, tillsammans med svar och media. Rapportkortet behåller sin kopia.';
+
+  @override
   String get moderationConfirmBanTitle => 'Stäng av det här kontot?';
 
   @override

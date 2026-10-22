@@ -18,6 +18,7 @@ import { deleteMomentCore } from "../momentCleanup";
 import { purgeRecordsOf } from "../recordBook";
 import { ensureOwner, ROLE_OWNER } from "../roomAdmin";
 import { revokeRoomAccess } from "../roomAccess";
+import { decrementRoomCount } from "../roomCounts";
 import { purgeScheduledForRoomUser, purgeScheduledForUser } from "../scheduledMessages";
 import { purgeSpeakerColorsForUser } from "../speakerColors";
 import { deleteFriendshipRow } from "../users";
@@ -181,6 +182,7 @@ export const userSteps: Step[] = [
       if (!userId || !membership) return;
       const roomId: Id<"rooms"> = membership.roomId;
       await ctx.db.delete(membership._id);
+      await decrementRoomCount(ctx, userId);
       await revokeRoomAccess(ctx, roomId, userId);
       // Before the room can go: forfeiting writes to the games.
       await leaveMatchesInRoom(ctx, roomId, userId);

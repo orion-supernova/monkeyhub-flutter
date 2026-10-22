@@ -116,7 +116,9 @@ export const clearTyping = mutation({
       .first();
     // Hidden, not deleted: an absent row let the next `setTyping` skip the
     // refresh throttle, so a set/clear loop wrote on every call. `writtenAt`
-    // is left alone so the throttle still counts the last real write.
+    // is left alone so the throttle still counts the last real write. Zeroed
+    // and idle rows are swept after a day (`retention.gcIdleTyping`), so the
+    // table no longer keeps a row for everyone who ever typed.
     if (existing && existing.updatedAt !== 0) {
       await ctx.db.patch(existing._id, { updatedAt: 0 });
     }
@@ -126,18 +128,28 @@ export const clearTyping = mutation({
 /// Returns { roomId: [typerName, …] } for all rooms the user belongs to.
 /// A single subscription gives live typing state for the whole room list.
 ///
+/// With `roomId` it reads that one room only (still keyed by room id, empty
+/// when the user is not in it or nobody else is typing), so a screen that shows
+/// one conversation does not subscribe to every room of the user. Without it
+/// the old whole-session behaviour stays, for app builds that do not send it.
+///
 /// Intentionally still plain names, not the richer `typistOf` shape: the room
 /// list only renders a label, and changing this to objects would garble the
 /// typing text on every app build already in users' hands. The in-room
 /// indicator, which does need avatars, uses `getTypingUsers` below.
 export const getTypingForUser = query({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
+  args: { userId: v.id("users"), roomId: v.optional(v.id("rooms")) },
+  handler: async (ctx, { userId, roomId }) => {
     const now = Date.now();
-    const memberships = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
+    const memberships = roomId
+      ? await ctx.db
+          .query("roomMembers")
+          .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
+          .take(1)
+      : await ctx.db
+          .query("roomMembers")
+          .withIndex("by_user", (q) => q.eq("userId", userId))
+          .collect();
 
     const result: Record<string, string[]> = {};
     for (const m of memberships) {

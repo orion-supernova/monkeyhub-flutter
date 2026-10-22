@@ -20,9 +20,9 @@ Source documents (all in `docs/`):
 | 1 reference rules + guard + weekly integrity scan | Done in code | `2e847111` |
 | 2 batched deletion engine | Done in code | `c7d48262`, `bed88907` |
 | 3 file references | Done in code; rollout runbook in the plan's Phase 3 status | see `git log` ("phase 3") |
-| 4 cleanups keep up | Part A done (crons self-reschedule, `liveInMyRooms` per room, 90-day session expiry); the rest is designed below | see `git log` |
-| 5 presence | Designed below, not started | |
-| 6 profiles | Designed below, not started | |
+| 4 cleanups keep up | Done in code: A crons + sessions, B retention, C receipts table, D point reads + search index, E room counts, G moderator removal of moments/comments | see `git log` ("phase 4") |
+| 5 presence | Designed in `data-integrity-phase5-6-design.md`; see `git log` for progress | |
+| 6 profiles | Designed in `data-integrity-phase5-6-design.md`; after Phase 5 | |
 
 **Nothing is deployed.** Everything is committed on `dev` only, not pushed.
 Verify with `git log --oneline origin/dev..dev`.
@@ -68,6 +68,15 @@ Deploy order matters. Do these in order, asking the user before step 1.
 5. **Phase 3:** follow the numbered runbook in the plan's Phase 3 status
    note exactly (backfill, verify, report, mark, enable reaper, enforce,
    lift epoch). Nothing irreversible runs without a human step.
+5b. **Phase 4 backfills** (each pages itself, safe to re-run; run right
+   after the deploy, before the new app ships):
+   - `npx convex run userSearch:backfillSearchName '{}'`: until it finishes,
+     existing users are findable by exact handle only.
+   - `npx convex run roomCounts:backfill '{}'`: until then the room cap
+     falls back to the old bounded count (correct, just slower).
+   - `npx convex run receipts:moveLogs '{}'`: re-run until it logs
+     `moved: 0`. A later deploy removes `roomMembers.readLog` /
+     `deliveredLog` from the schema.
 6. **App release** only after the backend is live: the new app sends
    `deviceSecret` on sign-in, which an old backend rejects.
 7. Optional app follow-up from Phase 4A: send `roomIds` to
@@ -238,12 +247,48 @@ away with no change to the board.
    is free; keeping the old one means storing it on purpose. Ask the user
    before building step 3.
 
-## 7. Still-open product decisions (ask the user)
+## 7. Decisions and questions
 
-From plan section 7: names on old posts after a rename (needed for Phase 6);
-DMs after one side deletes their account (keep, like WhatsApp, is today's
-behaviour); a moderator "remove" action for reported moments and comments
-(worth adding before App Review looks at user-generated content).
+The user delegated these on 2026-10-23 ("decide what's best for a
+production-ready app; make the 24 GB Ampere VPS last"). Decided by the
+orchestrator with the big apps as reference. **The user may overrule any of
+them; that is the only place questions live (7.3).**
+
+### 7.1 Product decisions (made)
+
+| Question | Decision | Reference |
+|---|---|---|
+| Old posts after a rename | **Current name** everywhere (messages, moments, reactions, comments). Phase 6 makes it free. | WhatsApp, Telegram, Signal, Slack, Instagram, Discord all show the current profile name on old content |
+| DMs after one side deletes their account | **Keep the DM** for the other person, shown as "Deleted account" (no photo, no profile link), read-only | WhatsApp, Telegram ("Deleted Account"), Signal |
+| Moderator "remove" for reported moments and comments | **Add it** (Phase 4G): App Store guideline 1.2 requires a way to remove objectionable UGC and act on reports within 24 h | Instagram/Facebook takedown, Slack admin delete |
+| Personal stickers | Anyone may forward (user decided 2026-10-22) | Telegram, WhatsApp |
+| Session lifetime, game history, receipts, old requests | As decided 2026-10-22 (plan section 7) | |
+| Presence privacy | Keep today's visibility rules; presence is sent only for people on screen; "last seen" is an exact time only to those allowed to see it | Telegram (on-screen, throttled), WhatsApp |
+| Presence freshness | Heartbeat stays at the current 90 s throttle; status flips to offline when the heartbeat stops (TTL), not by a client write | WhatsApp, Slack |
+| Profile cache on the device | Profiles cached by `userId` + `updatedAt`, refreshed when a subscribed `updatedAt` changes | Slack, Discord |
+
+### 7.2 Infrastructure stance (made)
+
+One Oracle Ampere A1 (24 GB) runs self-hosted Convex. Every design choice
+favours fewer re-runs and smaller rows over convenience:
+- Hot rows (`users`, `roomMembers`, `rooms`) are written only when what
+  subscribers display changes. Heartbeats go to `presence`, receipts to
+  `receiptLogs`, counts to `userRoomCounts`.
+- Subscriptions are scoped to what is on screen (typing per open room,
+  presence for visible ids, group calls per room).
+- Every cleanup pages and reschedules; nothing reads a whole table.
+
+### 7.3 Questions for the user
+
+Answer when convenient; nothing is blocked on them (each has a default that
+is already being built).
+1. **Minimum app version for the cutovers.** Phases 5 and 6 keep writing the
+   old fields until old builds are gone. Default: strip the old fields once
+   the store-driven minimum supported version (see memory "Store-driven
+   updates") is at or above the first build that has presence and profiles.
+   Tell us if testers on old builds should be cut off sooner.
+2. **Deploy timing.** Everything is committed on `dev`, not deployed. The
+   runbook (section 3) is ready; say when.
 
 ## 8. Known small follow-ups (not in any phase)
 

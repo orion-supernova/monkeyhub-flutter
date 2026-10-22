@@ -104,6 +104,7 @@ enum MessageAction {
   /// [MessageCapabilities.canModerate] and `widgets/moderation_actions.dart`,
   /// which carries them out. Never offered anywhere else.
   modRemoveMessage,
+  modRemoveContent,
   modBanUser,
   modUnbanUser,
   modDismiss,
@@ -1518,6 +1519,13 @@ List<MessageActionSpec> messageActionSpecs({
         action: MessageAction.modRemoveMessage,
         icon: CupertinoIcons.trash,
         label: l10n.moderationActionRemoveMessage,
+        destructive: true,
+      ),
+    if (caps.canModerate && caps.canModerateContent)
+      MessageActionSpec(
+        action: MessageAction.modRemoveContent,
+        icon: CupertinoIcons.trash,
+        label: l10n.moderationActionRemoveContent,
         destructive: true,
       ),
     if (caps.canModerate && caps.canModerateUser && !caps.moderatedUserBanned)

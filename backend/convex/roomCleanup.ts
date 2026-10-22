@@ -184,14 +184,31 @@ export const gcOrphanedRoomMemberships = internalMutation({
 const GC_PAGE = 200;
 
 /**
+ * Every room name a DM between [a] and [b] can have, exactly as
+ * `rooms.getOrCreateDM` / `friends` build them: `dm:regular:` and `dm:secret:`
+ * with the two ids sorted, the legacy unkeyed `dm:<a>:<b>`, and, when [a] and
+ * [b] are the same person, their Saved Messages room `dm:self:<id>`.
+ */
+export function dmRoomNamesBetween(a: any, b: any): string[] {
+  const ids = [a.toString(), b.toString()].sort();
+  const names = [
+    `dm:regular:${ids[0]}:${ids[1]}`,
+    `dm:secret:${ids[0]}:${ids[1]}`,
+    `dm:${ids[0]}:${ids[1]}`,
+  ];
+  if (ids[0] === ids[1]) names.push(`dm:self:${ids[0]}`);
+  return names;
+}
+
+/**
  * Every DM room shared by [a] and [b].
  *
  * Returns a list, not a single room, on purpose: DM rooms are named
  * `dm:<roomKey>:<sortedIdA>:<sortedIdB>` (see `rooms.getOrCreateDM`), so a
  * pair can legitimately hold two at once — a regular one and a Chamber of
  * Secrets one — plus a legacy `dm:<a>:<b>` from before the roomKey existed.
- * We don't know which variants exist, so we walk [a]'s memberships and keep
- * the `dm:`-prefixed rooms [b] is also in.
+ * The names are deterministic, so each variant is one `rooms.by_name` point
+ * read (see `dmRoomNamesBetween`), then a membership check for both people.
  */
 export async function findDmRoomsBetween(
   ctx: any,
@@ -199,21 +216,32 @@ export async function findDmRoomsBetween(
   b: any,
 ): Promise<any[]> {
   const out: any[] = [];
-  const mine = await ctx.db
-    .query("roomMembers")
-    .withIndex("by_user", (q: any) => q.eq("userId", a))
-    .collect();
-  for (const m of mine) {
-    const room = await ctx.db.get(m.roomId);
-    if (!room || !room.name?.startsWith("dm:")) continue;
-    const otherMember = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q: any) =>
-        q.eq("roomId", m.roomId).eq("userId", b),
-      )
-      .first();
-    if (!otherMember) continue;
-    out.push(m.roomId);
+  const seen = new Set<string>();
+  for (const name of dmRoomNamesBetween(a, b)) {
+    const rooms = await ctx.db
+      .query("rooms")
+      .withIndex("by_name", (q: any) => q.eq("name", name))
+      .take(5);
+    for (const room of rooms) {
+      if (seen.has(room._id.toString())) continue;
+      // Both must still be in it: a DM row outlives either member leaving.
+      const inA = await ctx.db
+        .query("roomMembers")
+        .withIndex("by_room_user", (q: any) =>
+          q.eq("roomId", room._id).eq("userId", a),
+        )
+        .first();
+      if (!inA) continue;
+      const inB = await ctx.db
+        .query("roomMembers")
+        .withIndex("by_room_user", (q: any) =>
+          q.eq("roomId", room._id).eq("userId", b),
+        )
+        .first();
+      if (!inB) continue;
+      seen.add(room._id.toString());
+      out.push(room._id);
+    }
   }
   return out;
 }

@@ -33,12 +33,14 @@ import {
   isSystemAccount,
 } from "./systemAccount";
 import { lensFor } from "./visibility";
+import { searchNameOf } from "./userSearch";
 import { assertCleanName, isObjectionableName } from "./contentFilter";
 import { fileContentReport } from "./moderationCore";
 import { isRetiredHandle } from "./retiredHandles";
 import { consume } from "./rateLimit";
 import { continueSweep, sweepArgs } from "./sweep";
 import { touchSessions } from "./sessionCore";
+import { restampSeenPage } from "./receipts";
 
 /**
  * Returns a user's profile, with per-field redaction based on the viewer's
@@ -381,18 +383,21 @@ export const updateVisibility = mutation({
     await ctx.db.patch(userId, { visibility: next });
 
     // Keep `roomMembers.seenVisibility` — the denormalized copy
-    // `messages:getReadState` reads instead of the full `users` row, see
-    // schema.ts — in sync whenever the setting that owns it actually changes.
-    // Fans out over every room this user is in; rare (a settings screen edit)
-    // and self-scoped, unlike the presence heartbeat this denormalization
-    // exists to stop coupling `getReadState` to.
+    // `messages:getReadState` / `getReceiptTimes` read instead of the full
+    // `users` row, see schema.ts — in sync. It cannot be read from the owner's
+    // row at read time: `users` also carries presence, so every member's
+    // heartbeat would re-run those queries again (Phase 5 moves presence out,
+    // and this can go then). So the fan-out stays, paged: the first page
+    // inline, so a tightening takes effect for the first rooms at once, and
+    // the rest chained through the scheduler. Each page stamps the user's
+    // CURRENT level, so overlapping edits converge.
     if (seen !== undefined) {
-      const memberships = await ctx.db
-        .query("roomMembers")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .collect();
-      for (const m of memberships) {
-        await ctx.db.patch(m._id, { seenVisibility: next.seen as string | undefined });
+      const next = await restampSeenPage(ctx, userId, null);
+      if (next !== null) {
+        await ctx.scheduler.runAfter(0, internal.receipts.restampSeenVisibility, {
+          userId,
+          cursor: next,
+        });
       }
     }
   },
@@ -426,6 +431,7 @@ export const updateProfile = mutation({
     // have silently deleted the user's email on a name change.
     await ctx.db.patch(userId, {
       name: name.trim(),
+      searchName: searchNameOf(user.username, name.trim()),
       ...(email !== undefined
         ? { email: email.trim().length > 0 ? email.trim() : undefined }
         : {}),
@@ -608,6 +614,7 @@ export const applyUsernameChange = internalMutation({
 
     await ctx.db.patch(userId, {
       username: next,
+      searchName: searchNameOf(next, user.name),
       usernameChangedAt: Date.now(),
     });
     // Handed back so the caller can put the NORMALISED handle into the session
@@ -664,8 +671,11 @@ export const updateAvatar = mutation({
   },
 });
 
+/** Search-index window read per query; the window is filtered down to `limit`. */
+const SEARCH_CANDIDATES = 100;
+
 /**
- * The one scan behind both `users.searchUsers` and `friends.searchUsers`.
+ * The one search behind both `users.searchUsers` and `friends.searchUsers`.
  *
  * These used to be two independent copies of the same `.collect()`-and-filter
  * over `users`, and had already drifted: only this one applied the blocking
@@ -676,13 +686,14 @@ export const updateAvatar = mutation({
  * about while still doing nothing about it. There is now exactly one
  * implementation; `[limit]` is the only thing callers vary.
  *
- * Full, unbounded `.collect()` over `users` is deliberate, not an oversight:
- * this is a small, invite-only friends/family app, not internet-scale, so
- * it sits inside Convex's own stated exception for `.collect()` ("unless
- * potentially unbounded, 1000+" — see the Best Practices guide). Revisit with
- * a `.searchIndex` (token/prefix search — note it would narrow the current
- * true-substring match, a real UX change, not just a perf one) if the `users`
- * table ever approaches that range.
+ * Never reads the `users` table. An exact `by_username` point read comes first
+ * (so the handle you were given always surfaces, first), then the
+ * `search_users` index (token prefix match over "<handle> <name>", see
+ * `userSearch.ts`), then the same filters as ever. A child reads its short
+ * reachable list directly instead. The old match was a true substring; the
+ * index matches word prefixes ("ann" finds "Anna", "x_anna" and "Hi Anna" but
+ * "nna" no longer finds "Anna"), and results are ordered exact handle first,
+ * then by relevance rather than by signup order.
  */
 export async function searchUsersCore(
   ctx: any,
@@ -734,10 +745,51 @@ export async function searchUsersCore(
 
   const lens = await lensFor(ctx, currentUserId);
   const now = Date.now();
-  const needle = rawQuery.trim().toLowerCase();
-  const users = await ctx.db.query("users").collect();
-  const filtered = users
-    .filter((u: any) => {
+  const trimmed = rawQuery.trim();
+  const needle = trimmed.toLowerCase();
+  // Nothing typed matches nothing: the old scan answered an empty query with
+  // the first rows of the table, which is an enumeration, not a search. The
+  // app never sends one (the people tab shows nothing until you type).
+  if (needle.length === 0) return [];
+
+  // Candidates, in the order they will be shown. Exact handles first: they are
+  // the one result a person who was told a handle in person is looking for, and
+  // a child may only ever reach a stranger this way. `by_username` is
+  // case-sensitive and handles may be mixed-case, so both spellings are read;
+  // a stored "Bob" typed as "bob" also arrives through the search below and is
+  // lifted by the `handle === needle` check.
+  const found = new Map<string, any>();
+  for (const handle of new Set([needle, trimmed])) {
+    const exact = await ctx.db
+      .query("users")
+      .withIndex("by_username", (qu: any) => qu.eq("username", handle))
+      .first();
+    if (exact) found.set(exact._id.toString(), exact);
+  }
+  if (reachable === null) {
+    // An adult: token/prefix search over "<handle> <name>", a bounded window of
+    // the best matches. Oversampled because children, the viewer, blocked and
+    // suspended accounts are dropped below. A row not yet backfilled with
+    // `searchName` is findable by its exact handle only.
+    const hits = await ctx.db
+      .query("users")
+      .withSearchIndex("search_users", (qs: any) =>
+        qs.search("searchName", needle.slice(0, 64))
+      )
+      .take(SEARCH_CANDIDATES);
+    for (const u of hits) found.set(u._id.toString(), u);
+  } else {
+    // A child: fuzzy only within people they already have, which is a short,
+    // known list. Reading it directly beats searching the whole table and then
+    // throwing every stranger away.
+    for (const id of reachable) {
+      if (found.has(id)) continue;
+      const u = await ctx.db.get(id as any);
+      if (u) found.set(id, u);
+    }
+  }
+
+  const matched = [...found.values()].filter((u: any) => {
       if (u._id === currentUserId) return false;
       // Being deleted: the row lingers until its teardown finishes.
       if (isTombstoned(u)) return false;
@@ -759,15 +811,20 @@ export async function searchUsersCore(
         // An adult finds a child only by their exact handle, given to them
         // in person: browsing a substring must not list children to anyone.
         if (u.accountType === "child") {
-          return needle.length > 0 && handle === needle;
+          return handle === needle;
         }
         return fuzzy;
       }
       // Child: fuzzy within the people they already have, exact anywhere.
       if (reachable.has(u._id.toString())) return fuzzy;
-      return needle.length > 0 && handle === needle;
-    })
-    .slice(0, limit);
+      return handle === needle;
+    });
+  // Stable: exact handles first, everything else in relevance order.
+  const isExact = (u: any) => u.username.toLowerCase() === needle;
+  const filtered = [
+    ...matched.filter(isExact),
+    ...matched.filter((u: any) => !isExact(u)),
+  ].slice(0, limit);
 
   return Promise.all(
     filtered.map(async (u: any) => {
@@ -919,24 +976,22 @@ export async function blockCore(
     }
 
     // Tear down any existing friendship so the block is binding.
-    const friendships = await ctx.db
+    // Point reads on the pair index, one per direction: the cost is the pair's
+    // own rows, not everything either account has ever sent or received.
+    const forward = await ctx.db
       .query("friendships")
-      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .withIndex("by_pair", (q: any) =>
+        q.eq("userId", userId).eq("friendId", targetUserId)
+      )
       .collect();
-    for (const f of friendships) {
-      if (f.friendId.toString() === targetUserId.toString()) {
-        await deleteFriendshipRow(ctx, f);
-      }
-    }
+    for (const f of forward) await deleteFriendshipRow(ctx, f);
     const reverse = await ctx.db
       .query("friendships")
-      .withIndex("by_user", (q: any) => q.eq("userId", targetUserId))
+      .withIndex("by_pair", (q: any) =>
+        q.eq("userId", targetUserId).eq("friendId", userId)
+      )
       .collect();
-    for (const f of reverse) {
-      if (f.friendId.toString() === userId.toString()) {
-        await deleteFriendshipRow(ctx, f);
-      }
-    }
+    for (const f of reverse) await deleteFriendshipRow(ctx, f);
 
     if (deleteDm) {
       // A pair can hold more than one DM (regular + Chamber of Secrets), so

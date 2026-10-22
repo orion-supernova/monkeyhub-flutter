@@ -12,6 +12,7 @@ import {
 } from "../deletionCore";
 import { releaseMessageBlobs, releaseRowFiles } from "../files";
 import { endGroupCallsInRoom } from "../groupCalls";
+import { decrementRoomCount } from "../roomCounts";
 import { purgeScheduledForRoom } from "../scheduledMessages";
 
 /**
@@ -253,7 +254,14 @@ export const roomSteps: Step[] = [
             .query("roomMembers")
             .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
             .take(n),
-        (row) => ctx.db.delete(row._id),
+        async (row) => {
+          await ctx.db.delete(row._id);
+          // Each member's room count goes down with their row; a member
+          // already gone (no counter row) is a no-op.
+          await decrementRoomCount(ctx, row.userId);
+        },
+        // The delete plus the counter's read and patch.
+        2,
       );
       return { done };
     },

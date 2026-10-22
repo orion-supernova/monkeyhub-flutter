@@ -14021,6 +14021,17 @@ class AppLocalizationsAr extends AppLocalizations {
       'ستُحذف لدى الجميع في المحادثة. تحتفظ بطاقة البلاغ بنسختها.';
 
   @override
+  String get moderationActionRemoveContent => 'إزالة اللحظة أو التعليق';
+
+  @override
+  String get moderationConfirmRemoveContentTitle =>
+      'هل تريد إزالة هذه اللحظة أو التعليق؟';
+
+  @override
+  String get moderationConfirmRemoveContentBody =>
+      'سيُحذف للجميع مع ردوده ووسائطه. تحتفظ بطاقة البلاغ بنسختها.';
+
+  @override
   String get moderationConfirmBanTitle => 'حظر هذا الحساب؟';
 
   @override

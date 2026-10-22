@@ -13104,6 +13104,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get moderationConfirmRemoveBody => '这条消息会对对话中的所有人删除。举报卡片会保留副本。';
 
   @override
+  String get moderationActionRemoveContent => '移除瞬间或评论';
+
+  @override
+  String get moderationConfirmRemoveContentTitle => '移除此瞬间或评论？';
+
+  @override
+  String get moderationConfirmRemoveContentBody =>
+      '将对所有人删除，包括其回复和媒体。举报卡片会保留自己的副本。';
+
+  @override
   String get moderationConfirmBanTitle => '要封禁此账号吗？';
 
   @override

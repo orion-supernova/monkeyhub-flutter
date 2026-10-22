@@ -62,6 +62,7 @@ class MessageCapabilities {
     this.canReact = true,
     this.canModerate = false,
     this.canModerateMessage = false,
+    this.canModerateContent = false,
     this.canModerateUser = false,
     this.moderatedUserBanned = false,
   });
@@ -141,6 +142,9 @@ class MessageCapabilities {
   /// Of [canModerate]: the card names a message there is to remove.
   final bool canModerateMessage;
 
+  /// Of [canModerate]: the card names a moment or comment there is to remove.
+  final bool canModerateContent;
+
   /// Of [canModerate]: the card names a person there is to ban or unban.
   final bool canModerateUser;
 
@@ -186,6 +190,7 @@ class MessageCapabilities {
     bool? canReact,
     bool? canModerate,
     bool? canModerateMessage,
+    bool? canModerateContent,
     bool? canModerateUser,
     bool? moderatedUserBanned,
   }) =>
@@ -208,6 +213,7 @@ class MessageCapabilities {
         canReact: canReact ?? this.canReact,
         canModerate: canModerate ?? this.canModerate,
         canModerateMessage: canModerateMessage ?? this.canModerateMessage,
+        canModerateContent: canModerateContent ?? this.canModerateContent,
         canModerateUser: canModerateUser ?? this.canModerateUser,
         moderatedUserBanned: moderatedUserBanned ?? this.moderatedUserBanned,
       );
@@ -348,6 +354,8 @@ MessageCapabilities messageCapabilitiesFor({
     canModerate: room.canModerate && message.moderationCard != null,
     canModerateMessage:
         room.canModerate && (message.moderationCard?.hasMessage ?? false),
+    canModerateContent:
+        room.canModerate && (message.moderationCard?.hasContent ?? false),
     canModerateUser:
         room.canModerate && (message.moderationCard?.hasUser ?? false),
     moderatedUserBanned: message.moderationCard?.userBanned ?? false,

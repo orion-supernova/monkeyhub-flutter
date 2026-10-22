@@ -797,12 +797,17 @@ class ModerationCard {
     required this.hasMessage,
     required this.hasUser,
     this.userBanned = false,
+    this.hasContent = false,
   });
 
   final String reportId;
 
   /// There is a reported message to remove.
   final bool hasMessage;
+
+  /// There is a reported moment or comment still there to remove. False once
+  /// it is gone, and on cards posted before it existed.
+  final bool hasContent;
 
   /// There is a reported person to ban or unban.
   final bool hasUser;
@@ -819,6 +824,7 @@ class ModerationCard {
     return ModerationCard(
       reportId: id,
       hasMessage: raw['hasMessage'] == true,
+      hasContent: raw['hasContent'] == true,
       hasUser: raw['hasUser'] == true,
       userBanned: raw['userBanned'] == true,
     );
@@ -827,6 +833,7 @@ class ModerationCard {
   Map<String, dynamic> toJson() => {
         'reportId': reportId,
         'hasMessage': hasMessage,
+        'hasContent': hasContent,
         'hasUser': hasUser,
         'userBanned': userBanned,
       };
