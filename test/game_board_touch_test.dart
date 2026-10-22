@@ -130,7 +130,7 @@ void main() {
     });
   }
 
-  test('the clock waits for the first touch', () async {
+  test('the clock starts as soon as the board is ready', () async {
     await GamesStore.instance.load('u1');
     final play = GamePlayController(game: DailyGame.queens, userId: 'u1');
     addTearDown(() {
@@ -139,21 +139,9 @@ void main() {
     });
     await play.begin();
     expect(play.ready, isTrue);
-
-    await Future<void>.delayed(const Duration(milliseconds: 40));
-    expect(play.started, isFalse);
-    expect(play.elapsed, Duration.zero);
-
-    // Pausing and resuming an untouched board does not start it either.
-    play
-      ..pause()
-      ..resume();
-    await Future<void>.delayed(const Duration(milliseconds: 20));
-    expect(play.elapsed, Duration.zero);
-
-    play.startClock();
-    await Future<void>.delayed(const Duration(milliseconds: 40));
     expect(play.started, isTrue);
+
+    await Future<void>.delayed(const Duration(milliseconds: 40));
     expect(play.elapsed, greaterThan(Duration.zero));
   });
 }

@@ -121,10 +121,9 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
   /// a tap cannot land before there is a clock to time it against.
   bool get ready => _ready;
 
-  /// Whether the player has touched the board yet. The clock waits for it —
-  /// opening a game is not starting it, and a stopwatch that ran while the
-  /// screen was still settling, or while somebody read the rules, would time
-  /// the walk in rather than the solve.
+  /// Whether the clock has been started. It starts the moment the board has
+  /// loaded, not on the first touch: waiting for a touch let people study the
+  /// puzzle in their heads for free and only then put a finger down.
   bool get started => _started;
 
   /// A server round trip is in flight. Submit and hint disable themselves.
@@ -224,14 +223,14 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
       // ceiling from its own row regardless.
       _ready = true;
     }
+    // Opening the board is starting it: looking at the puzzle is solving it.
+    startClock();
     notifyListeners();
   }
 
-  /// Starts the clock on the player's first touch of the board. Every later
-  /// call is a no-op, so the board can call it on every touch.
-  ///
-  /// A board restored mid-solve waits for a touch too: its saved time carries
-  /// on from where it stopped, not from the moment the screen opened.
+  /// Starts the clock. Every later call is a no-op, so the board can still
+  /// call it on every touch. [begin] calls it as soon as the board is ready;
+  /// a restored board carries on from its saved time.
   void startClock() {
     if (!_ready || _started || _finished || _paused) return;
     _started = true;
@@ -478,7 +477,9 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
   /// Failures are swallowed: losing an autosave is a disappointment, and an
   /// error toast on a screen the player has already left is worse.
   void checkpoint(List<int> board) {
-    if (!_ready || _finished || board.isEmpty) return;
+    // An untouched board is saved too: its clock has been running since it
+    // opened, and leaving and coming back must not reset it.
+    if (!_ready || _finished) return;
     unawaited(
       _api
           .saveProgress(

@@ -208,7 +208,7 @@ void main() {
     end(play, calls);
   });
 
-  testWidgets('a call before the first touch leaves the board alone',
+  testWidgets('a call right after opening still pauses the board',
       (tester) async {
     wall = DateTime(2026, 10, 13, 9);
     final calls = ValueNotifier(false);
@@ -225,8 +225,7 @@ void main() {
     await play.begin();
     calls.value = true;
     await tester.pump();
-    expect(play.paused, isFalse);
-    expect(play.elapsed, Duration.zero);
+    expect(play.paused, isTrue);
   });
 
   testWidgets('a route pushed over the board holds the clock, and the '

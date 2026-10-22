@@ -97,8 +97,8 @@ class _GameScaffoldState extends State<GameScaffold> {
   @override
   void initState() {
     super.initState();
-    // The first time anyone opens this game, the guide comes up by itself,
-    // before the first touch has started the clock.
+    // The first time anyone opens this game, the guide comes up by itself.
+    // The clock is already running behind it, and the open guide holds it.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || widget.controller.finished) return;
       showHowToPlayOnce(
@@ -191,8 +191,8 @@ class _GameScaffoldState extends State<GameScaffold> {
         ClipRRect(
           borderRadius: BorderRadius.circular(theme.radiusMd),
           // Sees every touch before the board's own recognizers do, and
-          // never competes with them: the first touch starts the clock,
-          // and any finger down holds the page still until it lifts.
+          // never competes with them: the clock is already running, and
+          // any finger down holds the page still until it lifts.
           child: Listener(
             onPointerDown: (e) {
               if (!controller.ready ||
@@ -429,8 +429,8 @@ class _TopBar extends StatelessWidget {
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0,
-                  // Muted until the first touch, so a clock waiting on the
-                  // player reads as waiting rather than stuck.
+                  // Muted until the clock has started, so a clock waiting on
+                  // the board to load reads as waiting rather than stuck.
                   color: controller.finished
                       ? theme.success
                       : controller.started
