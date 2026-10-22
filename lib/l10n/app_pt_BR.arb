@@ -3945,5 +3945,13 @@
   "streakCelebrateTier1": "Embalado",
   "streakCelebrateTier2": "Pegando fogo",
   "streakCelebrateTier3": "Imparável",
-  "streakCelebrateTier4": "Lendário"
+  "streakCelebrateTier4": "Lendário",
+  "powerSavingHeader": "Economia de energia",
+  "powerSavingAuto": "Automático",
+  "powerSavingAutoOffSub": "Acalma as animações quando o Modo de baixo consumo ou a Economia de bateria está ligada",
+  "powerSavingAutoOnSub": "Ativo agora: seu celular está economizando energia",
+  "powerSavingNever": "Nunca",
+  "powerSavingNeverSub": "Movimento total, mesmo no Modo de baixo consumo",
+  "powerSavingAlways": "Sempre",
+  "powerSavingAlwaysSub": "Movimento calmo para poupar bateria, independente do celular"
 }

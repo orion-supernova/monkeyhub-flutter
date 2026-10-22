@@ -14346,4 +14346,30 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get streakCelebrateTier4 => 'Legendarisk';
+
+  @override
+  String get powerSavingHeader => 'Strömsparläge';
+
+  @override
+  String get powerSavingAuto => 'Automatiskt';
+
+  @override
+  String get powerSavingAutoOffSub =>
+      'Dämpar animationer när lågenergiläge eller batterisparläge är på';
+
+  @override
+  String get powerSavingAutoOnSub => 'På just nu: din telefon sparar ström';
+
+  @override
+  String get powerSavingNever => 'Aldrig';
+
+  @override
+  String get powerSavingNeverSub => 'Full rörelse, även i lågenergiläge';
+
+  @override
+  String get powerSavingAlways => 'Alltid';
+
+  @override
+  String get powerSavingAlwaysSub =>
+      'Lugn rörelse för att spara batteri, oavsett vad telefonen säger';
 }

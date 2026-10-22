@@ -3945,5 +3945,13 @@
   "streakCelebrateTier1": "På gång",
   "streakCelebrateTier2": "Brinner",
   "streakCelebrateTier3": "Ostoppbar",
-  "streakCelebrateTier4": "Legendarisk"
+  "streakCelebrateTier4": "Legendarisk",
+  "powerSavingHeader": "Strömsparläge",
+  "powerSavingAuto": "Automatiskt",
+  "powerSavingAutoOffSub": "Dämpar animationer när lågenergiläge eller batterisparläge är på",
+  "powerSavingAutoOnSub": "På just nu: din telefon sparar ström",
+  "powerSavingNever": "Aldrig",
+  "powerSavingNeverSub": "Full rörelse, även i lågenergiläge",
+  "powerSavingAlways": "Alltid",
+  "powerSavingAlwaysSub": "Lugn rörelse för att spara batteri, oavsett vad telefonen säger"
 }

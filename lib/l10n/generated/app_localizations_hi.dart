@@ -14289,4 +14289,30 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get streakCelebrateTier4 => 'पौराणिक';
+
+  @override
+  String get powerSavingHeader => 'पावर सेविंग';
+
+  @override
+  String get powerSavingAuto => 'स्वचालित';
+
+  @override
+  String get powerSavingAutoOffSub =>
+      'लो पावर मोड या बैटरी सेवर चालू होने पर एनिमेशन शांत करता है';
+
+  @override
+  String get powerSavingAutoOnSub => 'अभी चालू: आपका फ़ोन पावर बचा रहा है';
+
+  @override
+  String get powerSavingNever => 'कभी नहीं';
+
+  @override
+  String get powerSavingNeverSub => 'लो पावर मोड में भी पूरी गति';
+
+  @override
+  String get powerSavingAlways => 'हमेशा';
+
+  @override
+  String get powerSavingAlwaysSub =>
+      'फ़ोन की सेटिंग जो भी हो, बैटरी बचाने के लिए शांत गति';
 }

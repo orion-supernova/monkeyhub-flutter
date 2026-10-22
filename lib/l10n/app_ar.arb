@@ -3945,5 +3945,13 @@
   "streakCelebrateTier1": "أنت في تقدم",
   "streakCelebrateTier2": "مشتعل",
   "streakCelebrateTier3": "لا يمكن إيقافك",
-  "streakCelebrateTier4": "أسطوري"
+  "streakCelebrateTier4": "أسطوري",
+  "powerSavingHeader": "توفير الطاقة",
+  "powerSavingAuto": "تلقائي",
+  "powerSavingAutoOffSub": "يهدئ الحركات عند تشغيل وضع الطاقة المنخفضة أو توفير البطارية",
+  "powerSavingAutoOnSub": "قيد التشغيل الآن: هاتفك يوفر الطاقة",
+  "powerSavingNever": "أبدًا",
+  "powerSavingNeverSub": "حركة كاملة حتى في وضع الطاقة المنخفضة",
+  "powerSavingAlways": "دائمًا",
+  "powerSavingAlwaysSub": "حركة هادئة لتوفير البطارية مهما كان إعداد الهاتف"
 }

@@ -17168,5 +17168,37 @@
   "streakCelebrateTier4": "Legendary",
   "@streakCelebrateTier4": {
     "description": "Headline of the streak celebration for a streak of 20 days or more. Playful, two words at most."
+  },
+  "powerSavingHeader": "Power saving",
+  "@powerSavingHeader": {
+    "description": "Header of the power saving section on the Motion settings page. It decides when the app calms its decorative animations to save battery."
+  },
+  "powerSavingAuto": "Automatic",
+  "@powerSavingAuto": {
+    "description": "Option: the app calms its animations by itself whenever the phone is in Low Power Mode (iPhone) or Battery Saver (Android)."
+  },
+  "powerSavingAutoOffSub": "Calms animations when Low Power Mode or Battery Saver is on",
+  "@powerSavingAutoOffSub": {
+    "description": "Subtitle of the Automatic power saving option while the phone is NOT saving power: explains what Automatic does."
+  },
+  "powerSavingAutoOnSub": "On right now: your phone is saving power",
+  "@powerSavingAutoOnSub": {
+    "description": "Subtitle of the Automatic power saving option while the phone IS in Low Power Mode or Battery Saver and the app is therefore calm right now."
+  },
+  "powerSavingNever": "Never",
+  "@powerSavingNever": {
+    "description": "Option: never calm the animations because of battery, even when the phone is in Low Power Mode."
+  },
+  "powerSavingNeverSub": "Full motion, even in Low Power Mode",
+  "@powerSavingNeverSub": {
+    "description": "Subtitle of the Never power saving option."
+  },
+  "powerSavingAlways": "Always",
+  "@powerSavingAlways": {
+    "description": "Option: always calm the animations to save battery, whatever the phone's own power mode says."
+  },
+  "powerSavingAlwaysSub": "Calm motion to save battery, whatever the phone says",
+  "@powerSavingAlwaysSub": {
+    "description": "Subtitle of the Always power saving option."
   }
 }

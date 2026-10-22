@@ -14482,4 +14482,30 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get streakCelebrateTier4 => 'أسطوري';
+
+  @override
+  String get powerSavingHeader => 'توفير الطاقة';
+
+  @override
+  String get powerSavingAuto => 'تلقائي';
+
+  @override
+  String get powerSavingAutoOffSub =>
+      'يهدئ الحركات عند تشغيل وضع الطاقة المنخفضة أو توفير البطارية';
+
+  @override
+  String get powerSavingAutoOnSub => 'قيد التشغيل الآن: هاتفك يوفر الطاقة';
+
+  @override
+  String get powerSavingNever => 'أبدًا';
+
+  @override
+  String get powerSavingNeverSub => 'حركة كاملة حتى في وضع الطاقة المنخفضة';
+
+  @override
+  String get powerSavingAlways => 'دائمًا';
+
+  @override
+  String get powerSavingAlwaysSub =>
+      'حركة هادئة لتوفير البطارية مهما كان إعداد الهاتف';
 }

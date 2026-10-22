@@ -3945,5 +3945,13 @@
   "streakCelebrateTier1": "Bien lancé",
   "streakCelebrateTier2": "En feu",
   "streakCelebrateTier3": "Inarrêtable",
-  "streakCelebrateTier4": "Légendaire"
+  "streakCelebrateTier4": "Légendaire",
+  "powerSavingHeader": "Économie d'énergie",
+  "powerSavingAuto": "Automatique",
+  "powerSavingAutoOffSub": "Apaise les animations quand le mode économie d'énergie est activé",
+  "powerSavingAutoOnSub": "Actif : ton téléphone économise l'énergie",
+  "powerSavingNever": "Jamais",
+  "powerSavingNeverSub": "Animations complètes, même en économie d'énergie",
+  "powerSavingAlways": "Toujours",
+  "powerSavingAlwaysSub": "Animations calmes pour économiser la batterie, quoi que dise le téléphone"
 }

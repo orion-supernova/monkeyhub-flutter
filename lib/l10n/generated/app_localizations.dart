@@ -23832,6 +23832,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Legendary'**
   String get streakCelebrateTier4;
+
+  /// Header of the power saving section on the Motion settings page. It decides when the app calms its decorative animations to save battery.
+  ///
+  /// In en, this message translates to:
+  /// **'Power saving'**
+  String get powerSavingHeader;
+
+  /// Option: the app calms its animations by itself whenever the phone is in Low Power Mode (iPhone) or Battery Saver (Android).
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get powerSavingAuto;
+
+  /// Subtitle of the Automatic power saving option while the phone is NOT saving power: explains what Automatic does.
+  ///
+  /// In en, this message translates to:
+  /// **'Calms animations when Low Power Mode or Battery Saver is on'**
+  String get powerSavingAutoOffSub;
+
+  /// Subtitle of the Automatic power saving option while the phone IS in Low Power Mode or Battery Saver and the app is therefore calm right now.
+  ///
+  /// In en, this message translates to:
+  /// **'On right now: your phone is saving power'**
+  String get powerSavingAutoOnSub;
+
+  /// Option: never calm the animations because of battery, even when the phone is in Low Power Mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get powerSavingNever;
+
+  /// Subtitle of the Never power saving option.
+  ///
+  /// In en, this message translates to:
+  /// **'Full motion, even in Low Power Mode'**
+  String get powerSavingNeverSub;
+
+  /// Option: always calm the animations to save battery, whatever the phone's own power mode says.
+  ///
+  /// In en, this message translates to:
+  /// **'Always'**
+  String get powerSavingAlways;
+
+  /// Subtitle of the Always power saving option.
+  ///
+  /// In en, this message translates to:
+  /// **'Calm motion to save battery, whatever the phone says'**
+  String get powerSavingAlwaysSub;
 }
 
 class _AppLocalizationsDelegate

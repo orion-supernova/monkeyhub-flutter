@@ -14516,4 +14516,32 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get streakCelebrateTier4 => 'Légendaire';
+
+  @override
+  String get powerSavingHeader => 'Économie d\'énergie';
+
+  @override
+  String get powerSavingAuto => 'Automatique';
+
+  @override
+  String get powerSavingAutoOffSub =>
+      'Apaise les animations quand le mode économie d\'énergie est activé';
+
+  @override
+  String get powerSavingAutoOnSub =>
+      'Actif : ton téléphone économise l\'énergie';
+
+  @override
+  String get powerSavingNever => 'Jamais';
+
+  @override
+  String get powerSavingNeverSub =>
+      'Animations complètes, même en économie d\'énergie';
+
+  @override
+  String get powerSavingAlways => 'Toujours';
+
+  @override
+  String get powerSavingAlwaysSub =>
+      'Animations calmes pour économiser la batterie, quoi que dise le téléphone';
 }

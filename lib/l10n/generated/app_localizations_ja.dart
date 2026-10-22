@@ -13667,4 +13667,28 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get streakCelebrateTier4 => '伝説級';
+
+  @override
+  String get powerSavingHeader => '省電力';
+
+  @override
+  String get powerSavingAuto => '自動';
+
+  @override
+  String get powerSavingAutoOffSub => '低電力モードやバッテリーセーバーがオンのときにアニメーションを抑えます';
+
+  @override
+  String get powerSavingAutoOnSub => '現在オン：iPhone が省電力中です';
+
+  @override
+  String get powerSavingNever => 'しない';
+
+  @override
+  String get powerSavingNeverSub => '低電力モードでも通常のアニメーション';
+
+  @override
+  String get powerSavingAlways => '常にする';
+
+  @override
+  String get powerSavingAlwaysSub => '端末の設定に関わらず、バッテリー節約のためアニメーションを抑えます';
 }

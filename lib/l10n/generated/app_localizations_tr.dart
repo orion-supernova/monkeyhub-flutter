@@ -14246,4 +14246,30 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get streakCelebrateTier4 => 'Efsane';
+
+  @override
+  String get powerSavingHeader => 'Güç tasarrufu';
+
+  @override
+  String get powerSavingAuto => 'Otomatik';
+
+  @override
+  String get powerSavingAutoOffSub =>
+      'Düşük Güç Modu veya Pil Tasarrufu açıkken animasyonları sakinleştirir';
+
+  @override
+  String get powerSavingAutoOnSub => 'Şu an açık: telefonun güç tasarrufunda';
+
+  @override
+  String get powerSavingNever => 'Asla';
+
+  @override
+  String get powerSavingNeverSub => 'Düşük Güç Modunda bile tam hareket';
+
+  @override
+  String get powerSavingAlways => 'Her zaman';
+
+  @override
+  String get powerSavingAlwaysSub =>
+      'Telefon ne derse desin pil için sakin hareket';
 }

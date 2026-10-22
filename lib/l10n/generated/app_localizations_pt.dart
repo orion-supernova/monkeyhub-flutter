@@ -14453,6 +14453,34 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get streakCelebrateTier4 => 'Lendário';
+
+  @override
+  String get powerSavingHeader => 'Poupança de energia';
+
+  @override
+  String get powerSavingAuto => 'Automático';
+
+  @override
+  String get powerSavingAutoOffSub =>
+      'Acalma as animações quando o Modo de baixo consumo ou a Poupança de bateria está ativa';
+
+  @override
+  String get powerSavingAutoOnSub =>
+      'Ativo agora: o telemóvel está a poupar energia';
+
+  @override
+  String get powerSavingNever => 'Nunca';
+
+  @override
+  String get powerSavingNeverSub =>
+      'Movimento total, mesmo no Modo de baixo consumo';
+
+  @override
+  String get powerSavingAlways => 'Sempre';
+
+  @override
+  String get powerSavingAlwaysSub =>
+      'Movimento calmo para poupar bateria, seja qual for a definição do telemóvel';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -28886,4 +28914,32 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get streakCelebrateTier4 => 'Lendário';
+
+  @override
+  String get powerSavingHeader => 'Economia de energia';
+
+  @override
+  String get powerSavingAuto => 'Automático';
+
+  @override
+  String get powerSavingAutoOffSub =>
+      'Acalma as animações quando o Modo de baixo consumo ou a Economia de bateria está ligada';
+
+  @override
+  String get powerSavingAutoOnSub =>
+      'Ativo agora: seu celular está economizando energia';
+
+  @override
+  String get powerSavingNever => 'Nunca';
+
+  @override
+  String get powerSavingNeverSub =>
+      'Movimento total, mesmo no Modo de baixo consumo';
+
+  @override
+  String get powerSavingAlways => 'Sempre';
+
+  @override
+  String get powerSavingAlwaysSub =>
+      'Movimento calmo para poupar bateria, independente do celular';
 }

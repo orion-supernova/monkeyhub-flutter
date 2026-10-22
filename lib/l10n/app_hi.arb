@@ -3945,5 +3945,13 @@
   "streakCelebrateTier1": "जोश में हो",
   "streakCelebrateTier2": "धधक रहे हो",
   "streakCelebrateTier3": "रुकना नामुमकिन",
-  "streakCelebrateTier4": "पौराणिक"
+  "streakCelebrateTier4": "पौराणिक",
+  "powerSavingHeader": "पावर सेविंग",
+  "powerSavingAuto": "स्वचालित",
+  "powerSavingAutoOffSub": "लो पावर मोड या बैटरी सेवर चालू होने पर एनिमेशन शांत करता है",
+  "powerSavingAutoOnSub": "अभी चालू: आपका फ़ोन पावर बचा रहा है",
+  "powerSavingNever": "कभी नहीं",
+  "powerSavingNeverSub": "लो पावर मोड में भी पूरी गति",
+  "powerSavingAlways": "हमेशा",
+  "powerSavingAlwaysSub": "फ़ोन की सेटिंग जो भी हो, बैटरी बचाने के लिए शांत गति"
 }

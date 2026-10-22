@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../theme/low_power.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/settings_pickers.dart';
@@ -72,6 +73,39 @@ class MotionScreen extends StatelessWidget {
                   label: l10n.settingsScreenValueMotionCalm,
                   preview: const _DriftPreview(animated: false),
                 ),
+              ],
+            ),
+            GroupedSection(
+              header: l10n.powerSavingHeader,
+              children: [
+                for (final (mode, title, sub) in [
+                  (
+                    PowerSaving.auto,
+                    l10n.powerSavingAuto,
+                    LowPowerMode.instance.value
+                        ? l10n.powerSavingAutoOnSub
+                        : l10n.powerSavingAutoOffSub,
+                  ),
+                  (
+                    PowerSaving.off,
+                    l10n.powerSavingNever,
+                    l10n.powerSavingNeverSub,
+                  ),
+                  (
+                    PowerSaving.on,
+                    l10n.powerSavingAlways,
+                    l10n.powerSavingAlwaysSub,
+                  ),
+                ])
+                  GroupedRow.choice(
+                    title: title,
+                    subtitle: sub,
+                    selected: SettingsStore.instance.powerSaving == mode,
+                    onTap: () {
+                      pickFeedback();
+                      SettingsStore.instance.setPowerSaving(mode);
+                    },
+                  ),
               ],
             ),
             GroupedFooter(

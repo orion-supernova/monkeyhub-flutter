@@ -3945,5 +3945,13 @@
   "streakCelebrateTier1": "Em grande",
   "streakCelebrateTier2": "Em chamas",
   "streakCelebrateTier3": "Imparável",
-  "streakCelebrateTier4": "Lendário"
+  "streakCelebrateTier4": "Lendário",
+  "powerSavingHeader": "Poupança de energia",
+  "powerSavingAuto": "Automático",
+  "powerSavingAutoOffSub": "Acalma as animações quando o Modo de baixo consumo ou a Poupança de bateria está ativa",
+  "powerSavingAutoOnSub": "Ativo agora: o telemóvel está a poupar energia",
+  "powerSavingNever": "Nunca",
+  "powerSavingNeverSub": "Movimento total, mesmo no Modo de baixo consumo",
+  "powerSavingAlways": "Sempre",
+  "powerSavingAlwaysSub": "Movimento calmo para poupar bateria, seja qual for a definição do telemóvel"
 }

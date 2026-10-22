@@ -13541,4 +13541,28 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get streakCelebrateTier4 => '传奇';
+
+  @override
+  String get powerSavingHeader => '省电';
+
+  @override
+  String get powerSavingAuto => '自动';
+
+  @override
+  String get powerSavingAutoOffSub => '开启低电量模式或省电模式时减少动画';
+
+  @override
+  String get powerSavingAutoOnSub => '当前已开启：手机正在省电';
+
+  @override
+  String get powerSavingNever => '从不';
+
+  @override
+  String get powerSavingNeverSub => '即使在低电量模式下也保持完整动效';
+
+  @override
+  String get powerSavingAlways => '始终';
+
+  @override
+  String get powerSavingAlwaysSub => '无论手机如何设置，都减少动效以省电';
 }

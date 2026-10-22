@@ -3945,5 +3945,13 @@
   "streakCelebrateTier1": "İvmeni yakaladın",
   "streakCelebrateTier2": "Alev alev",
   "streakCelebrateTier3": "Durdurulamaz",
-  "streakCelebrateTier4": "Efsane"
+  "streakCelebrateTier4": "Efsane",
+  "powerSavingHeader": "Güç tasarrufu",
+  "powerSavingAuto": "Otomatik",
+  "powerSavingAutoOffSub": "Düşük Güç Modu veya Pil Tasarrufu açıkken animasyonları sakinleştirir",
+  "powerSavingAutoOnSub": "Şu an açık: telefonun güç tasarrufunda",
+  "powerSavingNever": "Asla",
+  "powerSavingNeverSub": "Düşük Güç Modunda bile tam hareket",
+  "powerSavingAlways": "Her zaman",
+  "powerSavingAlwaysSub": "Telefon ne derse desin pil için sakin hareket"
 }

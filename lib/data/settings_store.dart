@@ -78,6 +78,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kGlassEngine = 'mh.glass.engine';
   static const _kLocale = 'mh.locale';
   static const _kMotionLevel = 'mh.motionLevel';
+  static const _kPowerSaving = 'mh.powerSaving';
   static const _kScheduledIndicator = 'mh.schedule.indicator';
   static const _kDiagHidden = 'mh.diag.hidden';
 
@@ -103,7 +104,7 @@ class SettingsStore extends ChangeNotifier {
     _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd, _kTipsSeen,
     _kVideoQualityTier, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
-    _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel,
+    _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel, _kPowerSaving,
     _kScheduledIndicator, _kSebastianEnabled, _kTranslationTarget,
     _kTranslatedRoomIds, _kMarloweBrainId, _kCompanionForceCpu,
   };
@@ -179,6 +180,7 @@ class SettingsStore extends ChangeNotifier {
 
   // Null means "follow the OS accessibility setting" — see [motionLevel].
   MotionLevel? _motionLevel;
+  PowerSaving _powerSaving = PowerSaving.auto;
   ScheduledIndicator _scheduledIndicator = ScheduledIndicator.pill;
 
   // Off until asked for. Sebastian costs a 328 MB download, and a default-on
@@ -399,6 +401,10 @@ class SettingsStore extends ChangeNotifier {
   /// Resolve it with [MotionScope.of] — never read this getter directly in a
   /// widget, or the OS half of the contract is lost.
   MotionLevel? get motionLevel => _motionLevel;
+
+  /// When the app calms itself to save battery. See [PowerSaving] and
+  /// `LowPowerMode.active`, which is what the rest of the app reads.
+  PowerSaving get powerSaving => _powerSaving;
 
   /// How a room announces that it is holding messages you have not sent yet.
   ///
@@ -706,6 +712,7 @@ class SettingsStore extends ChangeNotifier {
     // Absent (and unrecognised) reads back as null = "follow the OS", which
     // is the default every fresh install wants.
     _motionLevel = MotionLevel.parse(s[_kMotionLevel]);
+    _powerSaving = PowerSaving.parse(s[_kPowerSaving]);
     _scheduledIndicator = ScheduledIndicator.parse(s[_kScheduledIndicator]);
     _sebastianEnabled = s[_kSebastianEnabled] == 'true';
     _translationTarget = s[_kTranslationTarget];
@@ -818,6 +825,13 @@ class SettingsStore extends ChangeNotifier {
     } else {
       await _storage.write(key: _kMotionLevel, value: m.name);
     }
+  }
+
+  Future<void> setPowerSaving(PowerSaving v) async {
+    if (_powerSaving == v) return;
+    _powerSaving = v;
+    notifyListeners();
+    await _storage.write(key: _kPowerSaving, value: v.name);
   }
 
   Future<void> setGlassEngine(GlassEngine e) async {
@@ -1443,6 +1457,25 @@ enum MotionLevel {
   /// [HomeSection.parse]: the switch form compiles cleanly when a member is
   /// added and silently dumps everyone onto the fallback.
   static MotionLevel? parse(String? s) => s == null ? null : _byName[s];
+}
+
+/// When the app calms its decorative motion to save battery.
+///
+/// * `auto` (the default): while the phone is in Low Power Mode (iOS) or
+///   Battery Saver (Android).
+/// * `off`: never because of battery, whatever the phone says.
+/// * `on`: always.
+///
+/// An explicit [SettingsStore.motionLevel] still outranks all of it.
+enum PowerSaving {
+  auto,
+  off,
+  on;
+
+  static final Map<String, PowerSaving> _byName = values.asNameMap();
+
+  /// Absent and unknown both mean [auto].
+  static PowerSaving parse(String? s) => _byName[s] ?? auto;
 }
 
 /// Which affordance tells you a room is holding scheduled messages.

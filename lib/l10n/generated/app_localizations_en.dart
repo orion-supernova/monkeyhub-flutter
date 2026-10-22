@@ -14311,4 +14311,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get streakCelebrateTier4 => 'Legendary';
+
+  @override
+  String get powerSavingHeader => 'Power saving';
+
+  @override
+  String get powerSavingAuto => 'Automatic';
+
+  @override
+  String get powerSavingAutoOffSub =>
+      'Calms animations when Low Power Mode or Battery Saver is on';
+
+  @override
+  String get powerSavingAutoOnSub => 'On right now: your phone is saving power';
+
+  @override
+  String get powerSavingNever => 'Never';
+
+  @override
+  String get powerSavingNeverSub => 'Full motion, even in Low Power Mode';
+
+  @override
+  String get powerSavingAlways => 'Always';
+
+  @override
+  String get powerSavingAlwaysSub =>
+      'Calm motion to save battery, whatever the phone says';
 }

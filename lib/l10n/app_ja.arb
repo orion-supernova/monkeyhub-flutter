@@ -3945,5 +3945,13 @@
   "streakCelebrateTier1": "いい調子",
   "streakCelebrateTier2": "燃えてる",
   "streakCelebrateTier3": "止まらない",
-  "streakCelebrateTier4": "伝説級"
+  "streakCelebrateTier4": "伝説級",
+  "powerSavingHeader": "省電力",
+  "powerSavingAuto": "自動",
+  "powerSavingAutoOffSub": "低電力モードやバッテリーセーバーがオンのときにアニメーションを抑えます",
+  "powerSavingAutoOnSub": "現在オン：iPhone が省電力中です",
+  "powerSavingNever": "しない",
+  "powerSavingNeverSub": "低電力モードでも通常のアニメーション",
+  "powerSavingAlways": "常にする",
+  "powerSavingAlwaysSub": "端末の設定に関わらず、バッテリー節約のためアニメーションを抑えます"
 }

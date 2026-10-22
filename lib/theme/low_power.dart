@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../data/settings_store.dart';
+
 /// Whether the phone is in Low Power Mode (iOS) or Battery Saver (Android).
 ///
 /// When it is, the app stops decorating: [LowPowerCalm] turns on
@@ -20,6 +22,19 @@ class LowPowerMode extends ValueNotifier<bool> {
   LowPowerMode._() : super(false);
 
   static final LowPowerMode instance = LowPowerMode._();
+
+  /// Whether the app should be calm for power right now: the user's
+  /// [PowerSaving] choice, with Automatic following the phone.
+  ///
+  /// An explicit Motion choice outranks it: someone who pinned Full motion
+  /// gets it, power saving or not (and Calm needs no help from here).
+  static bool get active =>
+      SettingsStore.instance.motionLevel == null &&
+      switch (SettingsStore.instance.powerSaving) {
+        PowerSaving.on => true,
+        PowerSaving.off => false,
+        PowerSaving.auto => instance.value,
+      };
 
   static const MethodChannel _device = MethodChannel('monkeyhub/device');
 
@@ -43,9 +58,9 @@ class LowPowerCalm extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
-    valueListenable: LowPowerMode.instance,
-    builder: (context, saving, _) => saving
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: Listenable.merge([LowPowerMode.instance, SettingsStore.instance]),
+    builder: (context, _) => LowPowerMode.active
         ? MediaQuery(
             data: MediaQuery.of(context).copyWith(disableAnimations: true),
             child: child,

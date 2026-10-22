@@ -13701,4 +13701,28 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get streakCelebrateTier4 => '전설';
+
+  @override
+  String get powerSavingHeader => '절전';
+
+  @override
+  String get powerSavingAuto => '자동';
+
+  @override
+  String get powerSavingAutoOffSub => '저전력 모드나 배터리 세이버가 켜져 있으면 애니메이션을 줄입니다';
+
+  @override
+  String get powerSavingAutoOnSub => '지금 켜짐: 휴대폰이 절전 중입니다';
+
+  @override
+  String get powerSavingNever => '사용 안 함';
+
+  @override
+  String get powerSavingNeverSub => '저전력 모드에서도 모든 모션 유지';
+
+  @override
+  String get powerSavingAlways => '항상';
+
+  @override
+  String get powerSavingAlwaysSub => '휴대폰 설정과 상관없이 배터리를 아끼기 위해 모션을 줄입니다';
 }

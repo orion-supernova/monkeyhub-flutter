@@ -3945,5 +3945,13 @@
   "streakCelebrateTier1": "En racha",
   "streakCelebrateTier2": "Ardiendo",
   "streakCelebrateTier3": "Imparable",
-  "streakCelebrateTier4": "Legendario"
+  "streakCelebrateTier4": "Legendario",
+  "powerSavingHeader": "Ahorro de energía",
+  "powerSavingAuto": "Automático",
+  "powerSavingAutoOffSub": "Calma las animaciones cuando el Modo de bajo consumo o el Ahorro de batería está activo",
+  "powerSavingAutoOnSub": "Activo ahora: tu teléfono está ahorrando energía",
+  "powerSavingNever": "Nunca",
+  "powerSavingNeverSub": "Movimiento completo, incluso en Modo de bajo consumo",
+  "powerSavingAlways": "Siempre",
+  "powerSavingAlwaysSub": "Movimiento calmado para ahorrar batería, diga lo que diga el teléfono"
 }
