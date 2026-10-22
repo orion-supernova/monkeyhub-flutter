@@ -26,6 +26,7 @@ import '../widgets/media_filmstrip.dart';
 import '../widgets/media_grid_tile.dart' show roomMediaHeroTag;
 import '../widgets/photo_chrome.dart' show MediaDurationBadge, MediaPlayDisc;
 import '../widgets/photo_dismiss_area.dart';
+import '../widgets/dust/spoiler_dust.dart';
 import '../widgets/media_spoiler.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
@@ -1162,8 +1163,8 @@ class _Thumb extends StatelessWidget {
     final thumb = message.mediaSpoiler
         ? MediaSpoilerCover(
             interactive: false,
-            dust: false,
             sigma: 6,
+            dustDensity: SpoilerDust.defaultDensity / 3,
             revealKey: message.id,
             child: picture,
           )
