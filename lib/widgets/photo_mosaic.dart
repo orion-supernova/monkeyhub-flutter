@@ -495,6 +495,7 @@ class MosaicTile extends StatelessWidget {
         // it for both directions at once — Flutter resolves the destination's
         // shuttle first, and the destination is this tile on the way home.
         flightShuttleBuilder: mediaFlightShuttle(
+          spoilerId: message.mediaSpoiler ? message.id : null,
           image: image(borderRadius: BorderRadius.zero),
           radius: radius,
         ),

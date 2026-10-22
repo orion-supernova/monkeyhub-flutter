@@ -3079,6 +3079,8 @@ class _ImageTileState extends State<_ImageTile> {
                 // laid out at the picture's own ratio and so has little crop to
                 // animate; the corners and the warm decode are the whole of it.
                 flightShuttleBuilder: mediaFlightShuttle(
+                  spoilerId:
+                      widget.message.mediaSpoiler ? widget.message.id : null,
                   image: RemoteImage(
                     storageId: widget.storageId,
                     api: widget.api,

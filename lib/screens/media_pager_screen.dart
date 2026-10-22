@@ -1164,7 +1164,7 @@ class _Thumb extends StatelessWidget {
         ? MediaSpoilerCover(
             interactive: false,
             sigma: 6,
-            dustDensity: SpoilerDust.defaultDensity / 3,
+            dustDensity: SpoilerDust.defaultDensity / 5,
             revealKey: message.id,
             child: picture,
           )
@@ -1346,7 +1346,11 @@ class _Page extends StatelessWidget {
   /// and the shared-media tile: open in one is open in all, and when the dust
   /// closes back over it, it closes here too.
   Widget _spoilered(Widget child) => message.mediaSpoiler
-      ? MediaSpoilerCover(revealKey: message.id, child: child)
+      ? MediaSpoilerCover(
+          revealKey: message.id,
+          resealOnDispose: true,
+          child: child,
+        )
       : child;
 
   /// The picture's width÷height, when anybody knows it.

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../data/spoiler_store.dart';
+import 'media_spoiler.dart';
+
 /// The shuttle a picture is painted with while it is between the thumbnail it
 /// was tapped in and the fullscreen view of it.
 ///
@@ -32,9 +35,18 @@ import 'package:flutter/material.dart';
 HeroFlightShuttleBuilder mediaFlightShuttle({
   required Widget image,
   BorderRadius radius = BorderRadius.zero,
+  String? spoilerId,
 }) {
   return (flightContext, animation, direction, fromHeroContext, toHeroContext) {
-    if (radius == BorderRadius.zero) return image;
+    // A spoiler flies under its cover while it is sealed, or the sharp
+    // picture flashes across the screen between two covered ends. Read when
+    // the flight starts, so a reveal made since the tile was built counts.
+    final sealed = spoilerId != null &&
+        !SpoilerStore.instance.isRevealed(MediaSpoilerCover.storeKey(spoilerId));
+    final flown = sealed
+        ? MediaSpoilerCover(interactive: false, child: image)
+        : image;
+    if (radius == BorderRadius.zero) return flown;
     final tween = BorderRadiusTween(begin: radius, end: BorderRadius.zero);
     final curved = CurvedAnimation(parent: animation, curve: Curves.easeInOut);
     return AnimatedBuilder(
@@ -44,7 +56,7 @@ HeroFlightShuttleBuilder mediaFlightShuttle({
         borderRadius: tween.evaluate(curved) ?? BorderRadius.zero,
         child: child,
       ),
-      child: image,
+      child: flown,
     );
   };
 }

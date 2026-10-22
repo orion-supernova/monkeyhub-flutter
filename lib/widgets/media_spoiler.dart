@@ -80,6 +80,7 @@ class MediaSpoilerCover extends StatefulWidget {
     this.sigma = 20,
     this.dustDensity = kMediaSpoilerDensity,
     this.dust = true,
+    this.resealOnDispose = false,
     this.onRevealed,
   });
 
@@ -103,6 +104,12 @@ class MediaSpoilerCover extends StatefulWidget {
   /// False keeps the blur and the shade and leaves the dust out: for a
   /// thumbnail too small for grains to read (a reply's 18pt quote).
   final bool dust;
+
+  /// Leaving this widget (the gallery page closing) seals the picture in
+  /// [SpoilerStore] again, so coming back finds the dust over it instead of
+  /// an open picture on a fresh hold. A bubble leaves this off: a row
+  /// scrolled away and back is meant to still be open.
+  final bool resealOnDispose;
   final VoidCallback? onRevealed;
 
   /// The store key for [messageId]'s picture.
@@ -319,6 +326,7 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
 
   @override
   void dispose() {
+    if (widget.resealOnDispose && _open) _conceal();
     _healTimer?.cancel();
     _recoverTimer?.cancel();
     _fieldTicker?.dispose();

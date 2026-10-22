@@ -145,6 +145,7 @@ class MediaGridTile extends StatelessWidget {
               flightShuttleBuilder: imageId == null
                   ? null
                   : mediaFlightShuttle(
+                      spoilerId: message.mediaSpoiler ? message.id : null,
                       image: RemoteImage(
                         storageId: imageId,
                         api: api,
