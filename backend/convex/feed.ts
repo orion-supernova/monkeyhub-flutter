@@ -511,7 +511,7 @@ export const board = query({
 
     // Solved first, then fewest guesses; every unsolved X/6 is one group
     // below. Only what the board shows decides a place: equal results SHARE a
-    // `place` (1, 1, 3) and are never split by finish time or id. Within a tie
+    // `place` (1, 1, 2) and are never split by finish time or id. Within a tie
     // the order is by name, only so rows hold still between renders (the
     // leaderboard animates by identity); the client re-sorts tied names in its
     // own locale. The viewer's own row sorts as "" here: reading their users

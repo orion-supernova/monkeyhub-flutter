@@ -2,13 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/games/ranking.dart';
 
 /// The one tie rule every board uses: an exact tie shares the place
-/// ("1, 1, 3"), and a tie is listed A to Z by name.
+/// ("1, 1, 2"), and a tie is listed A to Z by name.
 void main() {
   group('rankedPlaces', () {
     bool same(int a, int b) => a == b;
 
-    test('competition places: a tie shares, the next skips', () {
-      expect(rankedPlaces([5, 5, 3, 2, 2, 2, 1], same), [1, 1, 3, 4, 4, 4, 7]);
+    test('dense places: a tie shares, the next takes the next place', () {
+      expect(rankedPlaces([5, 5, 3, 2, 2, 2, 1], same), [1, 1, 2, 3, 3, 3, 4]);
     });
 
     test('no ties is 1..n, and empty is empty', () {
@@ -85,36 +85,7 @@ void main() {
       expect([for (final e in out) e.row.name], [
         'ada', 'Zed', 'Mia', 'Can', 'Öykü',
       ]);
-      expect([for (final e in out) e.place], [1, 1, 3, 4, 4]);
-    });
-
-    test("uses the data's places when every row carries one", () {
-      final rows = [
-        (name: 'b', place: 1),
-        (name: 'a', place: 1),
-        (name: 'c', place: 3),
-      ];
-      final out = rankByPlace(
-        rows,
-        // Would say nobody ties, but the server's places win.
-        sameScore: (a, b) => false,
-        nameOf: (r) => r.name,
-        placeOf: (r) => r.place,
-      );
-      expect([for (final e in out) e.row.name], ['a', 'b', 'c']);
-      expect([for (final e in out) e.place], [1, 1, 3]);
-    });
-
-    test('a row without a place falls back to computing all of them', () {
-      final rows = [(name: 'b', place: 1), (name: 'a', place: null)];
-      final out = rankByPlace(
-        rows,
-        sameScore: (a, b) => true,
-        nameOf: (r) => r.name,
-        placeOf: (r) => r.place,
-      );
-      expect([for (final e in out) e.place], [1, 1]);
-      expect([for (final e in out) e.row.name], ['a', 'b']);
+      expect([for (final e in out) e.place], [1, 1, 2, 3, 3]);
     });
   });
 }

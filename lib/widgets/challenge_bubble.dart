@@ -272,7 +272,6 @@ List<({GameResult row, int place})> _ranked(
     results.rows,
     sameScore: sameGameScore,
     nameOf: (r) => r.userId == viewerId ? you : r.name,
-    placeOf: (r) => r.place,
   );
 }
 

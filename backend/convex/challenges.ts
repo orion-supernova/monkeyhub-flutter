@@ -214,7 +214,7 @@ const MAX_COUNTED_MEMBERS = 500;
  *    their own row.
  *  * Faces through the viewer's own lens; names as the standings send them,
  *    the viewer's blanked to "" (the client says "you").
- *  * Solved first, then whole seconds, competition places (1, 1, 3); a
+ *  * Solved first, then whole seconds, shared places (1, 1, 2); a
  *    surrender is one group below every solver.
  *
  * Every row comes back (at most [MAX_RESULT_MEMBERS]): the card shows the top

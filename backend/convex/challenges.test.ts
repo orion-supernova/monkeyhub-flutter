@@ -188,7 +188,7 @@ describe("who played", () => {
       ["dan", 1, true],
       ["", 2, true], // the viewer, nameless, tied with bob on 0:41
       ["bob", 2, true],
-      ["cat", 4, false],
+      ["cat", 3, false],
     ]);
     expect(r.rows[3].durationMs).toBeUndefined();
 

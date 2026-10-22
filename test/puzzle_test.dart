@@ -161,15 +161,11 @@ void main() {
         ],
       );
       expect([for (final id in ['a', 'b', 'c', 'x', 'y']) s.rankOf(id)], [
-        1, 1, 3, 4, 4,
+        1, 1, 2, 3, 3,
       ]);
     });
 
-    test("the server's place wins when it sends one", () {
-      final s = PuzzleState(
-        scores: [score('a', place: 1), score('b', guesses: 4, place: 1)],
-      );
-      expect(s.rankOf('b'), 1);
+    test('the place a server sends still parses', () {
       expect(
         PuzzleScore.fromJson({'userId': 'q', 'place': 2}).place,
         2,

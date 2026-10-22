@@ -181,7 +181,7 @@ class PuzzleScore {
   final DateTime finishedAt;
   final List<PuzzlePegs> feedback;
 
-  /// This row's shared place ("1, 1, 3"), when the server ranked it. Null
+  /// This row's shared place ("1, 1, 2"), when the server ranked it. Null
   /// from an older server; [PuzzleState] computes it then.
   final int? place;
 
@@ -218,11 +218,11 @@ class PuzzleState {
   final List<PuzzleScore> scores;
 
   /// Where [userId] placed among those who have finished, 1-based and shared
-  /// on a tie ("1, 1, 3"), or null if they have not finished.
+  /// on a tie ("1, 1, 2"), or null if they have not finished.
   int? rankOf(String userId) {
     final i = scores.indexWhere((s) => s.userId == userId);
     if (i < 0) return null;
-    return scores[i].place ?? rankedPlaces(scores, samePuzzleScore)[i];
+    return rankedPlaces(scores, samePuzzleScore)[i];
   }
 
   /// [scores] with each row's shared place, ties A to Z. The viewer's row is
@@ -234,7 +234,6 @@ class PuzzleState {
     scores,
     sameScore: samePuzzleScore,
     nameOf: (s) => s.userId == viewerId ? you : s.name,
-    placeOf: (s) => s.place,
   );
 
   static PuzzleState fromJson(Map<String, dynamic>? j) {

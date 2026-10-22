@@ -47,7 +47,7 @@ class LeaderRow {
   /// empty board is not a win.
   final int wins;
 
-  /// Their place on this board, shared on a tie ("1, 1, 3").
+  /// Their place on this board, shared on a tie ("1, 1, 2").
   final int place;
 
   /// Solved or not, per game, in [kLeaderboardGames] order — the row's dots.
@@ -148,7 +148,7 @@ List<LeaderRow> overallStandings(
 }
 
 /// One timed board as [overallStandings] reads it: each row's shared place,
-/// the server's when it sent one, else computed at display precision.
+/// computed at display precision.
 List<({String userId, String name, bool solved, int place})> _timedBoard(
   List<GameResult> rows,
 ) {
@@ -159,7 +159,7 @@ List<({String userId, String name, bool solved, int place})> _timedBoard(
         userId: r.userId,
         name: r.name,
         solved: r.solved,
-        place: r.place ?? places[i],
+        place: places[i],
       ),
   ];
 }
@@ -175,7 +175,7 @@ List<({String userId, String name, bool solved, int place})> _codeBoard(
         userId: s.userId,
         name: s.name,
         solved: s.solved,
-        place: s.place ?? places[i],
+        place: places[i],
       ),
   ];
 }

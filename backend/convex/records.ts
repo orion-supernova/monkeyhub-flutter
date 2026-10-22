@@ -146,7 +146,7 @@ export const board = query({
       const rows = byGame.get(g)!;
       // Best first, compared at the precision the board prints: guesses for
       // the code, whole seconds for a timed game. Equal shown bests SHARE a
-      // `rank` (1, 1, 3); who set it first, the milliseconds and the id are
+      // `rank` (1, 1, 2); who set it first, the milliseconds and the id are
       // hidden and decide nothing. Within a tie the order is by name for
       // stability; the client re-sorts tied names in its own locale.
       const shown = (x: { r: Doc<"gameRecords"> }) =>

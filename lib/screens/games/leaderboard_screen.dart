@@ -474,7 +474,7 @@ class _Entry {
   final String name;
   final bool isViewer;
 
-  /// Their place on the board, shared on a tie ("1, 1, 3").
+  /// Their place on the board, shared on a tie ("1, 1, 2").
   final int place;
 
   /// Earned a place at all: solved something. A podium needs it.

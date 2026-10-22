@@ -496,9 +496,9 @@ describe("ties share a place", () => {
     expect(places).toEqual([
       ["bea", 1],
       ["", 1],
-      ["cal", 3],
-      ["dan", 4],
-      ["eve", 4],
+      ["cal", 2],
+      ["dan", 3],
+      ["eve", 3],
     ]);
   });
 
@@ -573,7 +573,7 @@ describe("ties share a place", () => {
     expect(board.puzzle.scores.map((s: any) => [s.name, s.place])).toEqual([
       ["bea", 1],
       ["cal", 1],
-      ["dan", 3],
+      ["dan", 2],
     ]);
   });
 
@@ -593,7 +593,7 @@ describe("ties share a place", () => {
     expect(out.games.queens.map((r: any) => [r.name, r.rank])).toEqual([
       ["bea", 1],
       ["cal", 1],
-      ["", 3],
+      ["", 2],
     ]);
   });
 });

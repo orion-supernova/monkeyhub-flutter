@@ -68,26 +68,7 @@ void main() {
     final out = overall(s);
     expect(out.map((r) => r.userId), ['x', 'y', 'z']);
     expect(out.map((r) => r.wins), [1, 1, 0]);
-    expect(out.map((r) => r.place), [1, 1, 3]);
-  });
-
-  test("the server's place decides a win when it sends one", () {
-    GameResult placed(String id, int ms, int place) => GameResult(
-      game: DailyGame.zip,
-      solved: true,
-      gaveUp: false,
-      finished: true,
-      durationMs: ms,
-      userId: id,
-      name: id,
-      place: place,
-    );
-    final out = overall(
-      GameStandings(boards: {
-        DailyGame.zip: [placed('p', 1000, 1), placed('q', 5000, 1)],
-      }),
-    );
-    expect(out.map((r) => r.wins), [1, 1]);
+    expect(out.map((r) => r.place), [1, 1, 2]);
   });
 
   test('a tie sorts the viewer by "You", not first for an empty name', () {
@@ -192,22 +173,11 @@ void main() {
     });
     expect(s.rankOf(DailyGame.zip, 'me'), 1);
     expect(s.rankOf(DailyGame.zip, 'b'), 1);
-    expect(s.rankOf(DailyGame.zip, 'a'), 3);
-    expect(s.rankOf(DailyGame.zip, 'g'), 4);
+    expect(s.rankOf(DailyGame.zip, 'a'), 2);
+    expect(s.rankOf(DailyGame.zip, 'g'), 3);
     final r = s.ranked(DailyGame.zip, viewerId: 'me', you: 'You');
     expect([for (final e in r) e.row.userId], ['b', 'me', 'a', 'g']);
-    expect([for (final e in r) e.place], [1, 1, 3, 4]);
-
-    // A server that ranked the board is trusted as sent.
-    final placed = GameStandings.fromJson({
-      'boards': {
-        'zip': [
-          {'userId': 'a', 'solved': true, 'durationMs': 1000, 'place': 1},
-          {'userId': 'b', 'solved': true, 'durationMs': 9000, 'place': 1},
-        ],
-      },
-    });
-    expect(placed.rankOf(DailyGame.zip, 'b'), 1);
+    expect([for (final e in r) e.place], [1, 1, 2, 3]);
   });
 
   test('a streak ranking is longest first, the viewer in it, lapsed absent', () {

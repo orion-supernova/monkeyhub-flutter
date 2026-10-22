@@ -61,7 +61,7 @@ class PodiumEntry {
 /// and are swiped through there, the face turning away a little in 3D as the
 /// next turns in, A to Z, starting on you when you are among them. So two
 /// tied for first are one gold seat holding two, the next place (third,
-/// under "1, 1, 3") takes the side seat, and a third seat with no place left
+/// under "1, 1, 2") takes the side seat, and a third seat with no place left
 /// to give is empty with a dash. No medal ever spills into the list.
 ///
 /// No pedestal blocks. Steps under the faces read as clip art; the height
@@ -103,7 +103,7 @@ class LeaderPodium extends StatelessWidget {
       if (i < seats.length) {
         final place = seats[i].first.place ?? next;
         places.add(place);
-        next = place + seats[i].length;
+        next = place + 1;
       } else {
         places.add(next <= 3 ? next : 0);
         next++;

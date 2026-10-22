@@ -625,7 +625,7 @@ class GameResult {
   /// server would now refuse with `ALREADY_SHARED`.
   final bool shared;
 
-  /// This row's shared place on its board ("1, 1, 3"), when the server
+  /// This row's shared place on its board ("1, 1, 2"), when the server
   /// ranked it. Null from an older server; [GameStandings] computes it then.
   final int? place;
 
@@ -721,13 +721,13 @@ class GameStandings {
   int streakOf(String userId, DailyGame? game) => streaks[userId]?[game] ?? 0;
 
   /// Where [userId] placed on [game], 1-based and shared on a tie
-  /// ("1, 1, 3"), or null if unfinished.
+  /// ("1, 1, 2"), or null if unfinished.
   int? rankOf(DailyGame game, String userId) {
     final rows = boards[game];
     if (rows == null) return null;
     final i = rows.indexWhere((r) => r.userId == userId);
     if (i < 0) return null;
-    return rows[i].place ?? rankedPlaces(rows, sameGameScore)[i];
+    return rankedPlaces(rows, sameGameScore)[i];
   }
 
   /// [game]'s board with each row's shared place, ties A to Z. The viewer's
@@ -740,7 +740,6 @@ class GameStandings {
     boards[game] ?? const <GameResult>[],
     sameScore: sameGameScore,
     nameOf: (r) => r.userId == viewerId ? you : r.name,
-    placeOf: (r) => r.place,
   );
 
   static GameStandings fromJson(dynamic raw) {

@@ -323,7 +323,7 @@ class MomentTally {
   }
 
   /// The 1-based place of each of [tallies] (in their order), equal totals
-  /// sharing one: "1, 1, 3". A tie is a tie, and ranking one of two equal
+  /// sharing one: "1, 1, 2". A tie is a tie, and ranking one of two equal
   /// scores higher would be inventing an order the board does not have.
   static List<int> placesOf(List<MomentTally> tallies) =>
       rankedPlaces(tallies, (a, b) => a.total == b.total);

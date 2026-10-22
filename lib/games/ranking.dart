@@ -1,7 +1,8 @@
 /// How every board in the app places people: one rule, one helper.
 ///
-/// An exact tie SHARES the spot. Places are competition places ("1, 1, 3"),
-/// medals follow the place (two golds, then a bronze), and a tie is judged on
+/// An exact tie SHARES the spot. Places are dense ("1, 1, 2"):
+/// three golds are followed by a SILVER, never a 4th place. Medals follow the
+/// place (two golds, then a silver), and a tie is judged on
 /// what people can SEE on the row: whole seconds for a timed game (the clock
 /// reads to the second, see `formatGameTime`), the guess count for the code.
 /// Hidden data (milliseconds, finish time, user ids) never decides a place.
@@ -11,37 +12,34 @@
 /// placed higher.
 library;
 
-/// The competition place of each of [sorted] (best first), 1-based: a row
-/// that [sameScore] says equals the one above it shares that row's place, and
-/// the next different score skips the places the tie used ("1, 1, 3").
+/// The place of each of [sorted] (best first), 1-based: a row that
+/// [sameScore] says equals the one above it shares that row's place, and the
+/// next different score takes the very next place ("1, 1, 2").
 ///
 /// [sameScore] is only ever asked about neighbours, so [sorted] must already
 /// hold equal scores together, which any sort by that score does.
 List<int> rankedPlaces<T>(List<T> sorted, bool Function(T a, T b) sameScore) {
   final out = <int>[];
   for (var i = 0; i < sorted.length; i++) {
-    out.add(i > 0 && sameScore(sorted[i - 1], sorted[i]) ? out[i - 1] : i + 1);
+    out.add(
+      i == 0 ? 1 : (sameScore(sorted[i - 1], sorted[i]) ? out[i - 1] : out[i - 1] + 1),
+    );
   }
   return out;
 }
 
 /// [sorted] with each row's place, ties listed by name.
 ///
-/// Places come from [placeOf] when the data carries one for EVERY row (a
-/// server that already ranked the board), else they are computed here with
-/// [rankedPlaces] and [sameScore], so an older server still ranks correctly.
-/// Then each tie is re-ordered A to Z by [nameOf]; rows that are not tied keep
+/// Places are always computed here with [rankedPlaces] and [sameScore], never
+/// taken from the server, so an older server's skipping places ("1, 1, 3")
+/// cannot leak onto a board. Then each tie is re-ordered A to Z by [nameOf]; rows that are not tied keep
 /// the order they came in.
 List<({T row, int place})> rankByPlace<T>(
   List<T> sorted, {
   required bool Function(T a, T b) sameScore,
   required String Function(T row) nameOf,
-  int? Function(T row)? placeOf,
 }) {
-  final given = placeOf == null ? null : [for (final r in sorted) placeOf(r)];
-  final places = given != null && given.every((p) => p != null && p > 0)
-      ? given.cast<int>()
-      : rankedPlaces(sorted, sameScore);
+  final places = rankedPlaces(sorted, sameScore);
   final indexed = [
     for (var i = 0; i < sorted.length; i++)
       (i: i, row: sorted[i], place: places[i], key: foldName(nameOf(sorted[i]))),

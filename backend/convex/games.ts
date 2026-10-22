@@ -480,7 +480,7 @@ export const standings = query({
 
     // Solved first, then fastest AT THE PRECISION SHOWN (whole seconds). Every
     // surrender is one group below the solvers. A tie on what is shown shares
-    // a `place` (1, 1, 3) and is never split by milliseconds, finish time or
+    // a `place` (1, 1, 2) and is never split by milliseconds, finish time or
     // id; within it the order is by name for stability, and the client
     // re-sorts tied names in its own locale.
     // -1 marks the surrender group: distinct from any solver's seconds, and
