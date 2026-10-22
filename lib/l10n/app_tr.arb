@@ -3959,5 +3959,6 @@
   "powerSavingNever": "Asla",
   "powerSavingNeverSub": "Düşük Güç Modunda bile tam hareket",
   "powerSavingAlways": "Her zaman",
-  "powerSavingAlwaysSub": "Telefon ne derse desin pil için sakin hareket"
+  "powerSavingAlwaysSub": "Telefon ne derse desin pil için sakin hareket",
+  "profileDeletedAccount": "Silinmiş hesap"
 }

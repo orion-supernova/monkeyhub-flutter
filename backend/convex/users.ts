@@ -45,6 +45,7 @@ import {
   type PresenceStatus,
 } from "./presenceCore";
 import { restampSeenPage } from "./receipts";
+import { syncProfile } from "./profilesCore";
 
 /**
  * Returns a user's profile, with per-field redaction based on the viewer's
@@ -395,6 +396,7 @@ export const updateVisibility = mutation({
         : {}),
     };
     await ctx.db.patch(userId, { visibility: next });
+    await syncProfile(ctx, userId);
     if (status !== undefined || lastSeen !== undefined) {
       await syncLevels(ctx, userId, next as any);
     }
@@ -453,6 +455,7 @@ export const updateProfile = mutation({
         ? { email: email.trim().length > 0 ? email.trim() : undefined }
         : {}),
     });
+    await syncProfile(ctx, userId);
   },
 });
 
@@ -634,6 +637,7 @@ export const applyUsernameChange = internalMutation({
       searchName: searchNameOf(next, user.name),
       usernameChangedAt: Date.now(),
     });
+    await syncProfile(ctx, userId);
     // Handed back so the caller can put the NORMALISED handle into the session
     // rather than the raw string the user typed — otherwise a trailing space
     // would live on in the keychain and in the settings header.
@@ -668,6 +672,7 @@ export const updateAvatar = mutation({
     await claimUpload(ctx, storageId, userId, "avatar");
     const previous = user.avatarStorageId;
     await ctx.db.patch(userId, { avatarStorageId: storageId });
+    await syncProfile(ctx, userId);
     // The old file's ref is dropped by the avatar job, once its copies moved.
     await attachFile(ctx, storageId, {
       table: "users",

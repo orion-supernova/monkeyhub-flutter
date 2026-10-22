@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
+import '../data/profile_overlay.dart';
 import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -456,14 +457,17 @@ class _ReactorRowState extends State<_ReactorRow>
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // Live name, handle and face from the profile cache, the repo's copy as
+    // the fallback.
+    final user = overlayProfile(context, widget.user);
     // Your own row goes nowhere: the profile behind it is the one you're
     // already signed into.
-    final open = widget.isMe ? null : () => widget.onOpenProfile(widget.user);
+    final open = widget.isMe ? null : () => widget.onOpenProfile(user);
 
     final row = Row(
       children: [
         _BadgedAvatar(
-          user: widget.user,
+          user: user,
           api: widget.api,
           emoji: widget.emoji,
         ),
@@ -476,7 +480,7 @@ class _ReactorRowState extends State<_ReactorRow>
                 children: [
                   Flexible(
                     child: Text(
-                      widget.user.displayName,
+                      user.displayName,
                       style: groupedTitleStyle(theme),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -508,7 +512,7 @@ class _ReactorRowState extends State<_ReactorRow>
               ),
               const SizedBox(height: 2),
               Text(
-                '@${widget.user.username}',
+                '@${user.username}',
                 style: groupedSubtitleStyle(theme),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -542,7 +546,7 @@ class _ReactorRowState extends State<_ReactorRow>
         onTap: open,
         radius: theme.radiusMd,
         semanticLabel:
-            '${widget.user.displayName} ${widget.emoji} ${widget.time}',
+            '${user.displayName} ${widget.emoji} ${widget.time}',
         child: GestureDetector(
           onTap: open,
           onTapDown: open == null ? null : (_) => setState(() => _pressed = true),

@@ -139,7 +139,7 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
                           Text(
                             AppLocalizations.of(context)
                                 .composerReplyCardReplyingToLabel(
-                              m.senderName,
+                              m.resolvedSenderName(context),
                             ),
                             style: theme.bodySoft.copyWith(
                               fontSize: 15,

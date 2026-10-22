@@ -3,6 +3,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { isSystemAccount } from "./systemAccount";
 import { attachFile, claimUpload, releaseFile } from "./files";
+import { syncProfile } from "./profilesCore";
 
 /**
  * Sets a system account's picture, or the picture of the system rooms it
@@ -187,6 +188,7 @@ export const apply = internalMutation({
       field: "avatarStorageId",
     };
     await ctx.db.patch(holderRow._id, { avatarStorageId: storageId });
+    if (kind === "account") await syncProfile(ctx, holderRow._id);
     await attachFile(ctx, storageId, holder);
     if (previous && previous !== storageId) {
       await releaseFile(ctx, previous, holder);

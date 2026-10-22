@@ -14567,4 +14567,7 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get powerSavingAlwaysSub =>
       'Animations calmes pour économiser la batterie, quoi que dise le téléphone';
+
+  @override
+  String get profileDeletedAccount => 'Compte supprimé';
 }

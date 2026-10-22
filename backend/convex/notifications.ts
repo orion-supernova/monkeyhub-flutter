@@ -3,6 +3,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { lensFor } from "./visibility";
 import { challengePushBody } from "./challengeCopy";
+import { displayName } from "./profileCopyGate";
 
 // What each kind of event says on a lock screen.
 //
@@ -609,6 +610,14 @@ export const _reactionPushPlan = internalQuery({
 
     const reactor = await ctx.db.get(r.userId);
     if (!reactor) return null;
+    // The name as of now, built at send time. A deleted reactor has none, and
+    // a push titled with nothing is worse than no push.
+    const reactorName = await displayName(
+      ctx,
+      r.userId,
+      reactor.name ?? reactor.username ?? "",
+    );
+    if (reactorName === "") return null;
     const room = await ctx.db.get(msg.roomId);
     // The same rule `rooms.getMemberIds` uses, so the two cannot disagree.
     const isGroup = !!room && !room.name.startsWith("dm:");
@@ -628,7 +637,7 @@ export const _reactionPushPlan = internalQuery({
       messageId: msg._id,
       recipientId: msg.userId,
       reactorId: r.userId,
-      reactorName: reactor.name ?? reactor.username ?? "",
+      reactorName,
       reactorAvatarUrl,
       emoji: r.emoji,
       isGroup,

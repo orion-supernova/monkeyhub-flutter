@@ -1193,7 +1193,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
         ? null
         : (author?.displayName.trim().isNotEmpty ?? false
               ? author!.displayName
-              : (m.senderName.trim().isEmpty ? null : m.senderName));
+              : m.senderName.trim());
     // The same two cursors the transcript reads, and read the same way. The
     // overlay is always opened over the room that is already open, so the
     // repository's active read/delivery state is this thread's room's. Left

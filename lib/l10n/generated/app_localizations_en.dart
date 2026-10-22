@@ -14359,4 +14359,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get powerSavingAlwaysSub =>
       'Calm motion to save battery, whatever the phone says';
+
+  @override
+  String get profileDeletedAccount => 'Deleted account';
 }

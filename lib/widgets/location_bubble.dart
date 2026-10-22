@@ -544,7 +544,7 @@ class _LocationBubbleState extends State<LocationBubble>
         longitude: share.longitude,
         label: widget.message.senderName.isEmpty
             ? null
-            : widget.message.senderName,
+            : widget.message.resolvedSenderName(context),
       );
       if (result == MapOpenResult.failed) {
         toast.show(failed, tone: ToastTone.danger);

@@ -22,6 +22,7 @@ import { internalMutation, internalQuery } from "./_generated/server";
 import { Budget, meter, testHooks, tuning } from "./deletionCore";
 import { planFor } from "./deletionPlans";
 import { postOutcome } from "./moderationCore";
+import { displayName } from "./profileCopyGate";
 
 /** Consecutive failures before the link stops rescheduling itself (the cron takes over). */
 export const MAX_ATTEMPTS = 5;
@@ -268,7 +269,8 @@ export const alertFailed = internalMutation({
       roomId: msg.roomId,
       messageId,
       senderId: msg.userId,
-      senderName: msg.senderName ?? "Monkey Reporter",
+      senderName:
+        (await displayName(ctx, msg.userId, msg.senderName)) || "Monkey Reporter",
       content: headline,
       type: "text",
     });

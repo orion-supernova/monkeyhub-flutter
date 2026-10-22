@@ -1,3 +1,6 @@
+import 'package:flutter/widgets.dart' show BuildContext;
+
+import '../data/profile_scope.dart';
 import 'expression_item.dart';
 import 'moment.dart' show MomentReactor;
 
@@ -62,6 +65,15 @@ class MomentComment {
   final List<MomentReactor> reactors;
 
   bool get isReply => parentId != null;
+
+  /// The commenter's live name from the profile cache, [userName] (the copy)
+  /// as fallback. A deleted account reads "Deleted account".
+  String nameIn(BuildContext context) =>
+      context.profileName(userId, fallback: userName);
+
+  /// The commenter's live face; the copy only when no profile is known.
+  String? avatarIn(BuildContext context) =>
+      context.profileAvatar(userId, fallback: userAvatarStorageId);
 
   static MomentComment fromJson(Map<String, dynamic> j) {
     // A list of {emoji, count}, never an emoji-keyed map — see

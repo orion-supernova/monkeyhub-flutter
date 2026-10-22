@@ -3959,5 +3959,6 @@
   "powerSavingNever": "从不",
   "powerSavingNeverSub": "即使在低电量模式下也保持完整动效",
   "powerSavingAlways": "始终",
-  "powerSavingAlwaysSub": "无论手机如何设置，都减少动效以省电"
+  "powerSavingAlwaysSub": "无论手机如何设置，都减少动效以省电",
+  "profileDeletedAccount": "已删除的账户"
 }

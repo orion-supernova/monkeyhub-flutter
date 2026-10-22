@@ -40,6 +40,7 @@ import 'cache_store.dart';
 import 'ordered_send_queue.dart';
 import 'pending_reconcile.dart';
 import 'presence_store.dart';
+import 'profile_cache.dart';
 import 'room_filter.dart';
 import 'settings_store.dart';
 import '../transcripts/language_hint.dart';
@@ -815,6 +816,9 @@ class ChatRepository extends ChangeNotifier {
     // chat screen rebuilds and the SEEN indicator appears/disappears live.
     SettingsStore.instance.removeListener(_onSettingsChanged);
     SettingsStore.instance.addListener(_onSettingsChanged);
+    // Names and avatars by id: load this account's disk cache. Fire-and-forget;
+    // reads never block and a miss just shows the stamped copy meanwhile.
+    unawaited(ProfileCache.instance.attach(userId));
     // Fire-and-forget: nothing below depends on it, and [attach] re-runs on
     // every reconnect, so a sample lost to a dead socket is retaken by the
     // reconnect that revives it.
@@ -1332,6 +1336,8 @@ class ChatRepository extends ChangeNotifier {
   Future<void> _detach() async {
     // Presence is the departing account's friends; forget it all.
     PresenceStore.instance.clear();
+    // Profiles are viewer-dependent (avatars), so they leave with the account.
+    ProfileCache.instance.clear();
     SettingsStore.instance.removeListener(_onSettingsChanged);
     _roomsSub?.cancel();
     _friendsSub?.cancel();

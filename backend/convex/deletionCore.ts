@@ -17,6 +17,7 @@
  * There is no time budget: `Date.now()` is frozen inside a mutation, so a
  * `Budget` counts reads and writes instead.
  */
+import { tombstoneProfile } from "./profilesCore";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -431,6 +432,7 @@ export async function startUserDeletion(
       // readers still ask), `suspendedAt` / `suspendedBy` (the ban survives
       // the deletion), `createdAt` (required), and `deletingAt` itself.
     });
+    await tombstoneProfile(ctx, userId);
 
     // Revoke rather than delete, so a device's next call gets SESSION_REVOKED.
     // `requireSession` also refuses a tombstone, so any left over are dead too.

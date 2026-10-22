@@ -2,6 +2,7 @@ import { mutation, query } from "./functions";
 import { v } from "convex/values";
 import { lensFor } from "./visibility";
 import { canReadRoom } from "./roomAccess";
+import { copiesOn, nameResolver } from "./profileCopyGate";
 
 const TYPING_TTL_MS = 8000; // safety net — clearTyping fires after 3s inactivity, heartbeat every 2s
 
@@ -44,16 +45,32 @@ const TYPING_REFRESH_MS = 4000;
  * from the row supplies, so this reuses the one real privacy check in
  * `visibility.ts` rather than re-deriving it.
  */
-function typistOf(lens: any, row: any) {
-  const subject = { _id: row.userId, visibility: { avatar: row.avatarVisibility } };
+function typistOf(lens: any, row: any, name: string, face: any) {
+  const subject = { _id: row.userId, visibility: { avatar: face.level } };
   return {
     _id: row.userId,
     username: "",
-    name: row.userName ?? "",
+    name,
     avatarStorageId: lens.canSee(subject, "avatar")
-      ? row.avatarStorageId
+      ? face.avatarStorageId
       : undefined,
   };
+}
+
+/**
+ * A typist's avatar and its visibility level: the profile row (a point read,
+ * and profiles rarely change, so safe in a subscription), else the copy on the
+ * typing row while it is written. Never a `users` read.
+ */
+async function faceOf(ctx: any, row: any) {
+  const profile = await ctx.db
+    .query("profiles")
+    .withIndex("by_user", (q: any) => q.eq("userId", row.userId))
+    .first();
+  if (profile) {
+    return { avatarStorageId: profile.avatarStorageId, level: profile.avatarLevel };
+  }
+  return { avatarStorageId: row.avatarStorageId, level: row.avatarVisibility };
 }
 
 export const setTyping = mutation({
@@ -84,11 +101,15 @@ export const setTyping = mutation({
     // typist's `users` document — see `typistOf`. Read here, in a mutation,
     // where a read creates no subscription.
     const user = await ctx.db.get(userId);
-    const stamp = {
-      userName: user?.name ?? user?.username ?? "",
-      avatarStorageId: user?.avatarStorageId,
-      avatarVisibility: user?.visibility?.avatar,
-    };
+    // Only while the copies are written (PROFILE_COPIES); the readers resolve
+    // name and face through the profile.
+    const stamp = copiesOn()
+      ? {
+          userName: user?.name ?? user?.username ?? "",
+          avatarStorageId: user?.avatarStorageId,
+          avatarVisibility: user?.visibility?.avatar,
+        }
+      : {};
 
     if (existing) {
       await ctx.db.patch(existing._id, { updatedAt: now, writtenAt: now, ...stamp });
@@ -152,6 +173,8 @@ export const getTypingForUser = query({
           .collect();
 
     const result: Record<string, string[]> = {};
+    // One profile lookup per distinct typist across every room.
+    const nameFor = nameResolver(ctx);
     for (const m of memberships) {
       const indicators = await ctx.db
         .query("typingIndicators")
@@ -168,9 +191,9 @@ export const getTypingForUser = query({
         // Legacy rows written a moment before this field existed have no
         // `userName` yet — they age out of the TTL within seconds, same as
         // any other stale row, rather than being resolved with a users read.
-        const names = active
-          .map((t) => t.userName)
-          .filter((n): n is string => Boolean(n));
+        const names = (
+          await Promise.all(active.map((t) => nameFor(t.userId, t.userName)))
+        ).filter((n): n is string => Boolean(n));
         if (names.length > 0) result[m.roomId.toString()] = names;
       }
     }
@@ -199,8 +222,15 @@ export const getTypingUsers = query({
     // Legacy rows written a moment before this field existed have no
     // `userName` yet — they age out of the TTL within seconds, same as any
     // other stale row, rather than being resolved with a users read.
-    return active
-      .filter((t) => t.userName != null)
-      .map((t) => typistOf(lens, t));
+    const nameFor = nameResolver(ctx);
+    const typists = await Promise.all(
+      active.map(async (t) => {
+        const name = await nameFor(t.userId, t.userName);
+        // A deleted (or unresolvable) typist is not shown.
+        if (name === "") return null;
+        return typistOf(lens, t, name, await faceOf(ctx, t));
+      }),
+    );
+    return typists.filter((x) => x !== null);
   },
 });

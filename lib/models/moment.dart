@@ -10,6 +10,10 @@
 /// you just took is one tap rather than a second feature.
 library;
 
+import 'package:flutter/widgets.dart' show BuildContext;
+
+import '../data/profile_scope.dart';
+
 import '../games/ranking.dart';
 
 /// The scoring categories.
@@ -149,6 +153,20 @@ class Moment {
   final String authorName;
   final String authorUsername;
   final String? authorAvatarStorageId;
+
+  /// The author's live name from the profile cache, [authorName] (the copy
+  /// stored on the row) as fallback. A deleted account reads "Deleted account".
+  String nameIn(BuildContext context) =>
+      context.profileName(userId, fallback: authorName);
+
+  /// The author's live handle, [authorUsername] as fallback.
+  String usernameIn(BuildContext context) =>
+      context.profileUsername(userId, fallback: authorUsername);
+
+  /// The author's face as this viewer may see it; the copy only when no
+  /// profile is known.
+  String? avatarIn(BuildContext context) =>
+      context.profileAvatar(userId, fallback: authorAvatarStorageId);
 
   /// Whether the viewer wrote this.
   final bool mine;

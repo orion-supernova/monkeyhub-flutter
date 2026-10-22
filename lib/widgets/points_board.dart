@@ -159,8 +159,8 @@ class _Standings extends StatelessWidget {
     final names = <String, String>{};
     final faces = <String, String?>{};
     for (final m in points) {
-      names.putIfAbsent(m.userId, () => m.authorName);
-      faces.putIfAbsent(m.userId, () => m.authorAvatarStorageId);
+      names.putIfAbsent(m.userId, () => m.nameIn(context));
+      faces.putIfAbsent(m.userId, () => m.avatarIn(context));
     }
 
     final places = MomentTally.placesOf(tallies);
@@ -325,7 +325,7 @@ class PointRow extends StatelessWidget {
     // Turkish, Japanese, Korean and others; two keys, one per person.
     final who = mine
         ? l10n.pointLineSelf(tagLabel)
-        : l10n.pointLineOther(moment.authorName, tagLabel);
+        : l10n.pointLineOther(moment.nameIn(context), tagLabel);
     final caption = moment.caption?.trim() ?? '';
     final title = caption.isEmpty ? who : caption;
     final subtitle = [
@@ -340,9 +340,9 @@ class PointRow extends StatelessWidget {
         builder: (context) => PersonRow(
           avatar: PlayerFace(
             userId: moment.userId,
-            label: mine ? l10n.momentRailYouLabel : moment.authorName,
+            label: mine ? l10n.momentRailYouLabel : moment.nameIn(context),
             size: kPersonRowAvatar,
-            storageId: moment.authorAvatarStorageId,
+            storageId: moment.avatarIn(context),
             dot: !moment.mine && !moment.seen,
             badge: Icon(
               MomentTagChip.iconFor(tag),

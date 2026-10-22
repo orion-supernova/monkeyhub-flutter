@@ -1136,7 +1136,7 @@ export default defineSchema({
     replyToPreview: v.optional(
       v.object({
         senderId: v.id("users"),
-        senderName: v.string(),
+        senderName: v.optional(v.string()),
         contentPreview: v.string(),
         type: v.string(),
         mediaStorageId: v.optional(v.id("_storage")),
@@ -1898,7 +1898,7 @@ export default defineSchema({
               // snapshots a handle beside its id and for the same reason: a
               // card must render with no roster available — from the disk
               // cache, in history containing someone who has since left.
-              name: v.string(),
+              name: v.optional(v.string()),
               at: v.number(),
             })
           )
@@ -2021,7 +2021,7 @@ export default defineSchema({
     // live would re-read a `users` row per voter inside a reactive query — the
     // precise mistake `messages:list`'s header warns about, where one person
     // going offline refires the query for everyone.
-    userName: v.string(),
+    userName: v.optional(v.string()),
     createdAt: v.number(),
   })
     // Four reads off one index, because Convex indexes are prefix-scannable:
@@ -2149,8 +2149,8 @@ export default defineSchema({
     // Cost of the copy: a renamed user's older moments keep the old name until
     // they post again. That is the right trade, and it is also how
     // `messages.senderName` already behaves.
-    authorName: v.string(),
-    authorUsername: v.string(),
+    authorName: v.optional(v.string()),
+    authorUsername: v.optional(v.string()),
     authorAvatarStorageId: v.optional(v.id("_storage")),
 
     // How many rows `momentComments` holds for this moment, replies included.
@@ -2240,7 +2240,7 @@ export default defineSchema({
     momentId: v.id("moments"),
     userId: v.id("users"),
     // Denormalized at write time, as `momentReactions.userName` is.
-    userName: v.string(),
+    userName: v.optional(v.string()),
     // The thread root this replies to. Absent on a top-level comment.
     parentId: v.optional(v.id("momentComments")),
     // Who a reply answers, when it answers a reply rather than the root —
@@ -3350,4 +3350,19 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_live_beat", ["live", "beatAt"]),
+
+  // Phase 6: the one place a person's name and face live for readers. Written
+  // by profilesCore.syncProfile in the same transaction as every `users` change
+  // to those fields; a deleted account keeps a tombstone (deleted: true, name
+  // and username empty, no avatar). `avatarLevel` copies users.visibility.avatar.
+  profiles: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    username: v.string(),
+    avatarStorageId: v.optional(v.id("_storage")),
+    avatarLevel: v.optional(v.string()),
+    deleted: v.optional(v.boolean()),
+    isSystem: v.optional(v.boolean()),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
 });

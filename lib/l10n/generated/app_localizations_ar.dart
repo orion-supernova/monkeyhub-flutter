@@ -14530,4 +14530,7 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get powerSavingAlwaysSub =>
       'حركة هادئة لتوفير البطارية مهما كان إعداد الهاتف';
+
+  @override
+  String get profileDeletedAccount => 'حساب محذوف';
 }

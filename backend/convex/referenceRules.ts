@@ -196,6 +196,10 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "releaseCodes.childId": { rule: "cascade", index: "by_child", why: "Codes minted for a child go with the child." },
   "releaseCodes.createdByGuardianId": { rule: "cascade", index: "by_creator", why: "A code outlives neither its creator nor its life." },
 
+  // ── profiles ──────────────────────────────────────────────────────────────
+  "profiles.userId": { rule: "history", why: "Kept as a tombstone (deleted: true, name and username emptied) so old rows still resolve to \"deleted user\"." },
+  "profiles.avatarStorageId": { rule: "file", fileHold: "copy", why: "Owner: users.avatarStorageId (borrowed copy, kept current by profilesCore.syncProfile); cleared by tombstoneProfile." },
+
   // ── presence ──────────────────────────────────────────────────────────────
   "presence.userId": { rule: "cascade", index: "by_user", why: "A person's status goes with their account (presenceCore.clearPresence)." },
   "presenceBeats.userId": { rule: "cascade", index: "by_user", why: "A person's liveness beat goes with their account (presenceCore.clearPresence)." },

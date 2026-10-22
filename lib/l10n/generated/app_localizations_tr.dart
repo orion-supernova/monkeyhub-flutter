@@ -14294,4 +14294,7 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get powerSavingAlwaysSub =>
       'Telefon ne derse desin pil için sakin hareket';
+
+  @override
+  String get profileDeletedAccount => 'Silinmiş hesap';
 }

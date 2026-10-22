@@ -14,6 +14,7 @@ import {
   type StreakState,
 } from "./recordBook";
 import { lensFor } from "./visibility";
+import { copiesOn, nameResolver } from "./profileCopyGate";
 import { isTombstoned } from "./deletionCore";
 import { byNameThenId, competitionPlaces, shownSeconds } from "./ranking";
 
@@ -120,6 +121,10 @@ export const board = query({
     const avatars: Record<string, string> = {};
     const me: any = await ctx.db.get(userId);
     // The viewer's REAL name, for ordering a tie; emitted as "" below.
+    // Live names by id, from rows this loop already reads; a cheerer outside
+    // that set costs one `nameOf` point read, once.
+    const nameById = new Map<string, string>();
+    nameById.set(userId.toString(), me?.name ?? me?.username ?? "");
     const people: Person[] = [
       { id: userId, name: me?.name ?? me?.username ?? "", isMe: true },
     ];
@@ -130,6 +135,7 @@ export const board = query({
       if (friend.avatarStorageId && lens.canSee(friend, "avatar")) {
         avatars[friendId] = friend.avatarStorageId;
       }
+      nameById.set(friendId.toString(), friend.name ?? friend.username ?? "");
       people.push({
         id: friendId,
         name: friend.name ?? friend.username ?? "",
@@ -149,6 +155,10 @@ export const board = query({
         if (r.best !== undefined) byGame.get(r.game)?.push({ r, p });
       }
     }
+
+    const resolve = nameResolver(ctx);
+    const reactorName = async (x: any): Promise<string> =>
+      nameById.get(x.userId.toString()) ?? (await resolve(x.userId, x.userName));
 
     const games: Record<string, any[]> = {};
     for (const g of RECORD_GAMES) {
@@ -196,14 +206,16 @@ export const board = query({
           reactions: [...counts.entries()]
             .sort((a, b) => b[1] - a[1])
             .map(([emoji, count]) => ({ emoji, count })),
-          reactors: live
-            .sort((a: any, b: any) => b.createdAt - a.createdAt)
-            .slice(0, MAX_REACTORS)
-            .map((x: any) => ({
-              userId: x.userId,
-              name: x.userName ?? "",
-              emoji: x.emoji,
-            })),
+          reactors: await Promise.all(
+            live
+              .sort((a: any, b: any) => b.createdAt - a.createdAt)
+              .slice(0, MAX_REACTORS)
+              .map(async (x: any) => ({
+                userId: x.userId,
+                name: await reactorName(x),
+                emoji: x.emoji,
+              })),
+          ),
           mine: live.find((x: any) => x.userId === userId)?.emoji ?? null,
         });
       }
@@ -258,12 +270,12 @@ export const react = mutation({
       });
       return null;
     }
-    const reactor = await ctx.db.get(userId);
+    const reactor = copiesOn() ? await ctx.db.get(userId) : null;
     await ctx.db.insert("recordReactions", {
       recordId,
       achievedAt: record.achievedAt,
       userId,
-      userName: reactor?.name ?? reactor?.username,
+      ...(copiesOn() ? { userName: reactor?.name ?? reactor?.username } : {}),
       emoji,
       createdAt: now,
     });

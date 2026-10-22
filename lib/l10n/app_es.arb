@@ -3959,5 +3959,6 @@
   "powerSavingNever": "Nunca",
   "powerSavingNeverSub": "Movimiento completo, incluso en Modo de bajo consumo",
   "powerSavingAlways": "Siempre",
-  "powerSavingAlwaysSub": "Movimiento calmado para ahorrar batería, diga lo que diga el teléfono"
+  "powerSavingAlwaysSub": "Movimiento calmado para ahorrar batería, diga lo que diga el teléfono",
+  "profileDeletedAccount": "Cuenta eliminada"
 }

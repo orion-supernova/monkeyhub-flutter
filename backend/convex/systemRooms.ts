@@ -1,3 +1,4 @@
+import { syncProfile } from "./profilesCore";
 import { attachShared } from "./fileShare";
 import { seenVisibilityOf } from "./visibility";
 import { LOG_ROOM_POSTING_PRESET } from "./roomPolicy";
@@ -87,6 +88,7 @@ export async function ensureSystemAccount(
     // Only ever our own row: a real account on an old handle is not adopted.
     if (old && isSystemAccount(old)) {
       await ctx.db.patch(old._id, { username: spec.username });
+      await syncProfile(ctx, old._id);
       existing = { ...old, username: spec.username };
     }
   }
@@ -100,15 +102,17 @@ export async function ensureSystemAccount(
     // post.
     if (existing.visibility?.avatar !== SYSTEM_VISIBILITY.avatar) {
       await ctx.db.patch(existing._id, { visibility: SYSTEM_VISIBILITY });
+      await syncProfile(ctx, existing._id);
     }
     // And a display name changed in code since the row was written.
     if (existing.name !== spec.displayName) {
       await ctx.db.patch(existing._id, { name: spec.displayName });
+      await syncProfile(ctx, existing._id);
     }
     return existing._id;
   }
 
-  return await ctx.db.insert("users", {
+  const systemId = await ctx.db.insert("users", {
     username: spec.username,
     name: spec.displayName,
     passwordHash: SYSTEM_PASSWORD_PREFIX + randomHex(16),
@@ -127,6 +131,8 @@ export async function ensureSystemAccount(
     // blob, so the avatar is deployment data, set with `systemAvatars:set`.
     // Until then the client draws its usual monogram.
   });
+  await syncProfile(ctx, systemId);
+  return systemId;
 }
 
 /**

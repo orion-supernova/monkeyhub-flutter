@@ -8,6 +8,8 @@ import '../backend/chat_api.dart';
 import 'filter_capsule.dart';
 import 'ios_kit.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../data/profile_scope.dart';
+import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/message_interaction.dart';
@@ -197,12 +199,13 @@ class _InteractionRespondentsSheetState
   }
 
   ChatUser _userFor(String id, String fallbackName) =>
-      widget.resolveUser(id) ??
+      (widget.resolveUser(id) ??
       // Answered, then left the room, and never was a friend. The stored name
       // is the snapshot taken when they answered — which is why the response
       // row carries one — and the id still seeds a stable avatar gradient, so
       // the row does not look broken.
-      ChatUser(id: id, username: fallbackName, name: fallbackName);
+      ChatUser(id: id, username: fallbackName, name: fallbackName))
+          .withLiveProfile(context);
 
   void _select(String? choiceId) {
     if (_choiceId == choiceId) return;
@@ -336,7 +339,7 @@ class _InteractionRespondentsSheetState
                               theme: theme,
                               api: widget.api,
                               user: _userFor(r.userId, r.name),
-                              name: r.name,
+                              name: context.profileName(r.userId, fallback: r.name),
                               time: formatClockTime(r.at),
                               choiceLabel: selected == null
                                   ? labelFor(r.choiceId)

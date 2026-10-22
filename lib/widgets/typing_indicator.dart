@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -24,7 +25,7 @@ import 'user_avatar.dart';
 String typingLabel(BuildContext context, List<ChatUser> typists) {
   if (typists.isEmpty) return '';
   final l10n = AppLocalizations.of(context);
-  final names = typists.map((u) => u.displayName).toList();
+  final names = typists.map((u) => u.withLiveProfile(context).displayName).toList();
   if (names.length == 1) return l10n.typingIndicatorOnePersonTyping(names[0]);
   if (names.length == 2) {
     return l10n.typingIndicatorTwoPeopleTyping(names[0], names[1]);

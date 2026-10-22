@@ -3959,5 +3959,6 @@
   "powerSavingNever": "しない",
   "powerSavingNeverSub": "低電力モードでも通常のアニメーション",
   "powerSavingAlways": "常にする",
-  "powerSavingAlwaysSub": "端末の設定に関わらず、バッテリー節約のためアニメーションを抑えます"
+  "powerSavingAlwaysSub": "端末の設定に関わらず、バッテリー節約のためアニメーションを抑えます",
+  "profileDeletedAccount": "削除されたアカウント"
 }

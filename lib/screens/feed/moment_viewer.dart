@@ -15,6 +15,7 @@ import '../../keyboard/focusable_tap.dart';
 import '../../keyboard/viewer_keys.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../media/media_aspect_cache.dart';
+import '../../data/profile_overlay.dart';
 import '../../models/chat_user.dart';
 import '../../models/expression_item.dart';
 import '../../models/family.dart';
@@ -1411,8 +1412,9 @@ class _MomentStageState extends State<_MomentStage>
                     onOpenAuthor: current.mine || widget.onOpenProfile == null
                         ? null
                         : () => widget.onOpenProfile!(
-                              ChatUser(
-                                id: current.userId,
+                              profileUser(
+                                context,
+                                userId: current.userId,
                                 username: current.authorUsername,
                                 name: current.authorName,
                                 avatarStorageId: current.authorAvatarStorageId,
@@ -2210,7 +2212,7 @@ class _StageTopBar extends StatelessWidget {
         onToggleFill != null || onDelete != null || onReport != null;
     final name = moment.mine
         ? sentenceCaseOf(context, l10n.momentRailYouLabel)
-        : moment.authorName;
+        : moment.nameIn(context);
 
     final author = Row(
       mainAxisSize: MainAxisSize.min,
@@ -2353,10 +2355,9 @@ class _AuthorDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final id = moment.authorAvatarStorageId;
-    final initial = moment.authorName.isEmpty
-        ? '?'
-        : moment.authorName.characters.first.toUpperCase();
+    final id = moment.avatarIn(context);
+    final shown = moment.nameIn(context);
+    final initial = shown.isEmpty ? '?' : shown.characters.first.toUpperCase();
 
     return Container(
       width: _size,
@@ -3322,7 +3323,7 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
           // pattern for everything of yours: a trash at the top-trailing
           // edge, then a confirm — the same as the photo viewer's.
           SheetBar(
-            title: m.mine ? sentenceCaseOf(context, l10n.momentRailYouLabel) : m.authorName,
+            title: m.mine ? sentenceCaseOf(context, l10n.momentRailYouLabel) : m.nameIn(context),
             subtitle: _StageTopBar._ago(l10n, m.createdAt),
             leading: SheetCloseButton(
               onTap: () => Navigator.of(context).maybePop(),

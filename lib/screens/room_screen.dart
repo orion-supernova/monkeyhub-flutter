@@ -6289,7 +6289,10 @@ class _RoomScreenState extends State<_RoomView>
                     ? null
                     : (author?.displayName.trim().isNotEmpty ?? false
                         ? author!.displayName
-                        : (m.senderName.trim().isEmpty ? null : m.senderName));
+                        // Non-null even with no copy: the bubble resolves the
+                        // name by senderId, which is how a sender who left the
+                        // room (no roster entry, copy stripped) still gets one.
+                        : m.senderName.trim());
                 // Both receipts are room-wide cursors measured against THIS
                 // message's timestamp — "somebody's cursor is at or past you".
                 // Group rooms therefore read as "at least one other member",

@@ -14395,4 +14395,7 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get powerSavingAlwaysSub =>
       'Lugn rörelse för att spara batteri, oavsett vad telefonen säger';
+
+  @override
+  String get profileDeletedAccount => 'Raderat konto';
 }

@@ -1,3 +1,4 @@
+import { syncProfile } from "./profilesCore";
 import { assertCleanName } from "./contentFilter";
 import { searchNameOf } from "./userSearch";
 import { TERMS_VERSION } from "./terms";
@@ -175,6 +176,7 @@ export const createChildAccount = mutation({
       birthYear,
       childPolicy: { ...DEFAULT_CHILD_POLICY },
     });
+    await syncProfile(ctx, childId);
 
     // Existing siblings, captured BEFORE the new guardianship row exists so
     // the new child isn't in the list.

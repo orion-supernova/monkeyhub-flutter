@@ -37,6 +37,7 @@ import { ERR_FILTER_BLOCKED, hasHit } from "./contentFilter";
 import { FilterBlockedError, screenAndReport } from "./moderationCore";
 import { isSystemAccount, isSystemRoom } from "./systemAccount";
 import { canReadRoom } from "./roomAccess";
+import { copiesOn } from "./profileCopyGate";
 import { consume } from "./rateLimit";
 
 // ── Delivery-receipt tuning ─────────────────────────────────────────────────
@@ -1332,7 +1333,7 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
   // parent isn't reachable from the same room — never store a dangling id.
   let replyToPreview: {
     senderId: any;
-    senderName: string;
+    senderName?: string;
     contentPreview: string;
     type: string;
     mediaStorageId?: any;
@@ -1361,7 +1362,9 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
       const parentIsViewOnce = parent.viewOnce === true;
       replyToPreview = {
         senderId: parent.userId,
-        senderName: parent.senderName ?? "unknown",
+        // A copy: stripped once PROFILE_COPIES is off; clients resolve the
+        // name from `senderId` through the profile cache.
+        ...(copiesOn() ? { senderName: parent.senderName ?? "unknown" } : {}),
         // Spoilers masked: the quote is a permanent copy shown above the
         // reply, untouched and un-revealable, so the hidden words would
         // otherwise sit in the open on every reply to them.
@@ -1597,7 +1600,7 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
       ? { hasLink: true }
       : {}),
     ...(fmt ? { formatting: fmt } : {}),
-    senderName: resolvedSenderName,
+    ...(copiesOn() ? { senderName: resolvedSenderName } : {}),
     expiresAt,
     // Stored so the retry that arrives after this one commits can find it.
     clientId,
@@ -2644,7 +2647,7 @@ export const forwardToRoom = mutation({
         // A spoiler photo forwards as a spoiler: the sender hid it, and
         // forwarding is not a reason to un-hide it in somebody else's room.
         ...(msg.mediaSpoiler === true ? { mediaSpoiler: true } : {}),
-        senderName: resolvedSenderName,
+        ...(copiesOn() ? { senderName: resolvedSenderName } : {}),
         expiresAt,
         ...(clientId !== undefined ? { clientId } : {}),
       });

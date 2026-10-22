@@ -14503,6 +14503,9 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get powerSavingAlwaysSub =>
       'Movimento calmo para poupar bateria, seja qual for a definição do telemóvel';
+
+  @override
+  String get profileDeletedAccount => 'Conta eliminada';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -28986,4 +28989,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get powerSavingAlwaysSub =>
       'Movimento calmo para poupar bateria, independente do celular';
+
+  @override
+  String get profileDeletedAccount => 'Conta excluída';
 }

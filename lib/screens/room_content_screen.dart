@@ -1228,7 +1228,7 @@ class _ContentRow extends StatelessWidget {
     final sub = [
       if (message.fileSize != null && message.fileSize! > 0)
         formatFileSize(message.fileSize!),
-      message.senderName,
+      message.resolvedSenderName(context),
     ].join(' · ');
 
     return _SelectableRow(
@@ -1279,12 +1279,12 @@ class _ContentRow extends StatelessWidget {
       onLongPress: onLongPress,
       semanticLabel: AppLocalizations.of(
         context,
-      ).roomContentScreenVoiceMessageFrom(message.senderName),
+      ).roomContentScreenVoiceMessageFrom(message.resolvedSenderName(context)),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            message.senderName,
+            message.resolvedSenderName(context),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: groupedSubtitleStyle(theme),
@@ -1401,7 +1401,7 @@ class _SavedRow extends StatelessWidget {
       selecting: selecting,
       onTap: onTap,
       onLongPress: onLongPress,
-      semanticLabel: l10n.roomContentScreenSavedJumpSemantic(m.senderName),
+      semanticLabel: l10n.roomContentScreenSavedJumpSemantic(m.resolvedSenderName(context)),
       leading: hasThumb
           ? ClipRRect(
               borderRadius: BorderRadius.circular(theme.radiusSm),
@@ -1448,7 +1448,7 @@ class _SavedRow extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  m.senderName,
+                  m.resolvedSenderName(context),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.bodyEmph.copyWith(color: theme.ink),
@@ -1478,7 +1478,7 @@ class _SavedRow extends StatelessWidget {
       trailing: FocusableTap(
         onTap: onUnsave,
         radius: theme.radiusSm,
-        semanticLabel: l10n.roomContentScreenUnsaveSemantic(m.senderName),
+        semanticLabel: l10n.roomContentScreenUnsaveSemantic(m.resolvedSenderName(context)),
         child: GestureDetector(
           onTap: onUnsave,
           behavior: HitTestBehavior.opaque,

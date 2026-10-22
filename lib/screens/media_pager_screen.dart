@@ -1664,7 +1664,7 @@ class _TopBar extends StatelessWidget {
       closeLabel: l10n.photoChromeCloseSemanticLabel,
       title: message.senderName.isEmpty
           ? l10n.photoChromeMediaYouLabel
-          : message.senderName,
+          : message.resolvedSenderName(context),
       subtitle: viewerWhenLabel(context, message.createdAt),
       subtitleSemanticLabel:
           '${viewerWhenLabel(context, message.createdAt)}, $position',

@@ -3,7 +3,12 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
 import { ACCOUNT_CHILD, assertChildPolicy } from "./childGuard";
-import { canSeeMoment, isReactionEmoji, MAX_MOMENT_REACTIONS_PER_PERSON } from "./feed";
+import {
+  canSeeMoment,
+  isReactionEmoji,
+  MAX_MOMENT_REACTIONS_PER_PERSON,
+} from "./feed";
+import { copiesOn, nameResolver } from "./profileCopyGate";
 import { expressionFieldsFor } from "./messages";
 import { lensFor } from "./visibility";
 import { hasHit } from "./contentFilter";
@@ -216,6 +221,29 @@ export const list = query({
       byComment.get(k)!.push(r);
     }
 
+    // Names: a `users` row this read already holds, else the memoised
+    // profile lookup (one point read per distinct person). The stored copy is
+    // used only for a live account; a deleted one is "" and the client labels it.
+    const resolve = nameResolver(ctx);
+    const nameFor = async (id: any, copy?: string | null): Promise<string> => {
+      const row = people.get(id.toString());
+      if (!row) return await resolve(id, copy);
+      // A row being deleted is an empty name, never its internal handle.
+      return row.deletingAt !== undefined ? "" : (row.name ?? row.username ?? "");
+    };
+    const authorName = new Map<string, string>();
+    const replyName = new Map<string, string>();
+    const reactorName = new Map<string, string>();
+    for (const c of visible) {
+      authorName.set(c._id.toString(), await nameFor(c.userId, c.userName));
+      if (c.replyToUserId) {
+        replyName.set(c._id.toString(), await nameFor(c.replyToUserId, c.replyToName));
+      }
+    }
+    for (const r of reactions) {
+      reactorName.set(r._id.toString(), await nameFor(r.userId, r.userName));
+    }
+
     const comments = visible.map((c: any) => {
       const author = people.get(c.userId.toString());
       const rs = byComment.get(c._id.toString()) ?? [];
@@ -229,14 +257,16 @@ export const list = query({
         userId: c.userId,
         // The live name where there is one, so a rename shows; the stored one
         // for an account that has since gone.
-        userName: author?.name ?? author?.username ?? c.userName,
+        userName: authorName.get(c._id.toString()) ?? "",
         userAvatarStorageId:
           author && lens.canSee(author, "avatar")
             ? author.avatarStorageId
             : undefined,
         parentId: c.parentId,
         replyToUserId: c.replyToUserId,
-        replyToName: c.replyToName,
+        replyToName: c.replyToUserId
+          ? replyName.get(c._id.toString())
+          : c.replyToName,
         text: c.text,
         expressionKind: c.expressionKind,
         mediaSource: c.mediaSource,
@@ -260,8 +290,12 @@ export const list = query({
           .filter((r: any) => r.userId === userId)
           .map((r: any) => r.emoji),
         reactors: rs
-          .filter((r: any) => typeof r.userName === "string" && r.userName)
-          .map((r: any) => ({ emoji: r.emoji, userId: r.userId, name: r.userName })),
+          .map((r: any) => ({
+            emoji: r.emoji,
+            userId: r.userId,
+            name: reactorName.get(r._id.toString()) ?? "",
+          }))
+          .filter((r: any) => r.name),
       };
     });
     return { comments };
@@ -358,20 +392,21 @@ export const add = mutation({
         parentId = target.parentId ?? target._id;
         if (target.parentId !== undefined && target.userId !== userId) {
           replyToUserId = target.userId;
-          replyToName = target.userName;
+          if (copiesOn()) replyToName = target.userName;
         }
       }
     }
 
-    const me = await ctx.db.get(userId);
+    // The name copies are written only until the strip.
+    const me = copiesOn() ? await ctx.db.get(userId) : null;
     const userName = me?.name ?? me?.username ?? "";
     const id = await ctx.db.insert("momentComments", {
       momentId,
       userId,
-      userName,
+      ...(copiesOn() ? { userName } : {}),
       parentId,
       replyToUserId,
-      replyToName,
+      ...(copiesOn() ? { replyToName } : {}),
       text,
       ...(expression
         ? {
@@ -459,12 +494,12 @@ export const react = mutation({
       throw new Error("REACTION_LIMIT");
     }
 
-    const me = await ctx.db.get(userId);
+    const me = copiesOn() ? await ctx.db.get(userId) : null;
     const id = await ctx.db.insert("momentCommentReactions", {
       commentId,
       momentId: c.momentId,
       userId,
-      userName: me?.name ?? me?.username,
+      ...(copiesOn() ? { userName: me?.name ?? me?.username } : {}),
       emoji,
       createdAt: Date.now(),
     });

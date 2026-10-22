@@ -967,7 +967,7 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 2),
                         child: Text(
-                          m.senderName,
+                          m.resolvedSenderName(context),
                           style: groupedMetaStyle(theme).copyWith(
                             fontWeight: FontWeight.w600,
                             color: theme.accent,

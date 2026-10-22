@@ -14,6 +14,7 @@ import '../expressions/expression_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
+import '../data/profile_overlay.dart';
 import '../models/chat_user.dart';
 import '../models/expression_item.dart';
 import '../models/family.dart';
@@ -610,7 +611,7 @@ class _MomentConversationState extends State<MomentConversation> {
           focus: _focus,
           hint: replyTo == null
               ? l10n.momentCommentHint
-              : l10n.momentCommentReplyHint(replyTo.userName),
+              : l10n.momentCommentReplyHint(replyTo.nameIn(context)),
           // Budgeted against THIS widget's box, not the screen: hosted in a
           // sheet it is shorter than the window, and a panel sized for the
           // window overflowed it.
@@ -629,7 +630,7 @@ class _MomentConversationState extends State<MomentConversation> {
                     children: [
                       Expanded(
                         child: Text(
-                          l10n.momentCommentReplyingTo(replyTo.userName),
+                          l10n.momentCommentReplyingTo(replyTo.nameIn(context)),
                           style: theme.caption.copyWith(color: theme.inkMuted),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -766,8 +767,9 @@ class _MomentConversationState extends State<MomentConversation> {
       onOpenProfile: widget.onOpenProfile == null || c.mine
           ? null
           : () => widget.onOpenProfile!(
-                ChatUser(
-                  id: c.userId,
+                profileUser(
+                  context,
+                  userId: c.userId,
                   username: c.userName,
                   name: c.userName,
                   avatarStorageId: c.userAvatarStorageId,
@@ -1219,7 +1221,7 @@ class _CommentRow extends StatelessWidget {
     final item = c.expression;
     final name = c.mine && c.userName.isEmpty
         ? sentenceCaseOf(context, l10n.momentRailYouLabel)
-        : c.userName;
+        : c.nameIn(context);
     // The chat's own reaction chips, fed the comment's reactors.
     final reactions = [
       for (final (i, r) in c.reactors.indexed)
@@ -1239,8 +1241,9 @@ class _CommentRow extends StatelessWidget {
           onTap: onOpenProfile,
           label: name,
           child: UserAvatar(
-            user: ChatUser(
-              id: c.userId,
+            user: profileUser(
+              context,
+              userId: c.userId,
               username: c.userName,
               name: name,
               avatarStorageId: c.userAvatarStorageId,

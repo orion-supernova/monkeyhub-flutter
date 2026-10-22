@@ -14336,4 +14336,7 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get powerSavingAlwaysSub =>
       'फ़ोन की सेटिंग जो भी हो, बैटरी बचाने के लिए शांत गति';
+
+  @override
+  String get profileDeletedAccount => 'हटाया गया खाता';
 }

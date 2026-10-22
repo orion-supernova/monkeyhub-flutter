@@ -13584,4 +13584,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get powerSavingAlwaysSub => '无论手机如何设置，都减少动效以省电';
+
+  @override
+  String get profileDeletedAccount => '已删除的账户';
 }

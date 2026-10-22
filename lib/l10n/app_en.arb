@@ -17224,5 +17224,9 @@
   "powerSavingAlwaysSub": "Calm motion to save battery, whatever the phone says",
   "@powerSavingAlwaysSub": {
     "description": "Subtitle of the Always power saving option."
+  },
+  "profileDeletedAccount": "Deleted account",
+  "@profileDeletedAccount": {
+    "description": "Name shown in place of a person whose account has been deleted, wherever their name appears (message senders, replies, comments, reactions)."
   }
 }

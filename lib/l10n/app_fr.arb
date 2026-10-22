@@ -3959,5 +3959,6 @@
   "powerSavingNever": "Jamais",
   "powerSavingNeverSub": "Animations complètes, même en économie d'énergie",
   "powerSavingAlways": "Toujours",
-  "powerSavingAlwaysSub": "Animations calmes pour économiser la batterie, quoi que dise le téléphone"
+  "powerSavingAlwaysSub": "Animations calmes pour économiser la batterie, quoi que dise le téléphone",
+  "profileDeletedAccount": "Compte supprimé"
 }

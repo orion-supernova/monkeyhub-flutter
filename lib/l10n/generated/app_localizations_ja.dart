@@ -13711,4 +13711,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get powerSavingAlwaysSub => '端末の設定に関わらず、バッテリー節約のためアニメーションを抑えます';
+
+  @override
+  String get profileDeletedAccount => '削除されたアカウント';
 }

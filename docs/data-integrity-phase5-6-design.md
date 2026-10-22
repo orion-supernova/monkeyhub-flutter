@@ -10,6 +10,41 @@ suspension continues past 100 sessions; one sign-in brings any account to the
 it; an earlier ban's sessions can't pass `allowSuspended`. W0 to W5 below are
 operator steps after the deploy.
 
+**Phase 6 status (2026-10-23): Done in code, not deployed** (backend 6A to
+6E, app 6F to 6H). `profiles` is synced by every name, username, avatar and
+visibility write (guarded by `profileWriters.test.ts`) and tombstoned on
+deletion; `profiles:get` / `profiles:versions` apply avatar privacy with point
+probes and never read `users`. Copies are still written (`PROFILE_COPIES` /
+`profileCopyGate.copyFlags`) so old builds keep working; every server reader
+already resolves the current name (`displayName` / `nameResolver`), pushes
+build names at send time and skip deleted actors. The app resolves names and
+faces through `ProfileCache` (per-user disk cache, `ProfileScope`), shows
+"Deleted account" for tombstones in 12 languages. One review; fixes applied
+(tombstones never fall back to a copied face or handle, a known profile's
+avatar wins, failed refetches retry, fewer resubscribes while scrolling, a
+departed group sender still gets a name, the board no longer reads the
+viewer's `users` row, deleted accounts never surface `deleted:<id>`).
+
+**Phase 6 runbook (operator):**
+1. In the same deploy window as the Phase 6 backend: run
+   `npx convex run profileMigrations:backfillProfiles '{}'` and check
+   `profileMigrations:countMissingProfiles '{"numItems":10000}'` sums to 0.
+   Until it finishes, readers fall back to `users` rows (correct, but they
+   follow `users` churn).
+2. Ship the app (profiles in the cache).
+3. W3, once the minimum supported version is at or above that build: set
+   `PROFILE_COPIES = false` in `profilesCore.ts`, deploy, then per table
+   `npx convex run profileMigrations:stripCopies '{"table":"<t>"}'` for
+   messages, messageInteractions, interactionResponses, moments,
+   momentReactions, momentComments, momentCommentReactions, recordReactions,
+   typingIndicators; check `profileMigrations:countCopies` sums to 0 each.
+4. 6Z, after the strip: `users.updateAvatar` releases the old file directly;
+   delete `deletionSteps/avatarSteps.ts`, the `avatar` deletion kind and plan,
+   and the copy rules for `moments.authorAvatarStorageId` /
+   `momentReactions.userAvatarStorageId`; a later deploy removes the copy
+   fields from `schema.ts`. Not done yet on purpose: old builds still need the
+   copies and the repoint job until then.
+
 **Runbook for the `SESSION_TRUSTS_ROW` flip (W1):** run
 `npx convex run sessions:auditLiveVsAccounts '{}'` (repeat with
 `{"cursor":"<nextCursor>"}` until `isDone`, sum the counts). Fix: `missing` ->

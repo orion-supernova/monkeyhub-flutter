@@ -3959,5 +3959,6 @@
   "powerSavingNever": "कभी नहीं",
   "powerSavingNeverSub": "लो पावर मोड में भी पूरी गति",
   "powerSavingAlways": "हमेशा",
-  "powerSavingAlwaysSub": "फ़ोन की सेटिंग जो भी हो, बैटरी बचाने के लिए शांत गति"
+  "powerSavingAlwaysSub": "फ़ोन की सेटिंग जो भी हो, बैटरी बचाने के लिए शांत गति",
+  "profileDeletedAccount": "हटाया गया खाता"
 }

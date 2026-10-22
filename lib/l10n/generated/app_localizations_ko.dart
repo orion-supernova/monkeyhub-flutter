@@ -13746,4 +13746,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get powerSavingAlwaysSub => '휴대폰 설정과 상관없이 배터리를 아끼기 위해 모션을 줄입니다';
+
+  @override
+  String get profileDeletedAccount => '삭제된 계정';
 }

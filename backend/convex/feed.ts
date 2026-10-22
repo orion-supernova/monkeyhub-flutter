@@ -12,6 +12,7 @@ import { getLiveUser } from "./deletionCore";
 import { deleteMomentCore } from "./momentCleanup";
 import { lensFor } from "./visibility";
 import { byNameThenId, competitionPlaces } from "./ranking";
+import { copiesOn } from "./profileCopyGate";
 
 /**
  * The Feed board — "TODAY".
@@ -109,6 +110,12 @@ function momentView(
      */
     authorAvatarVisible: boolean;
     /**
+     * The author's live name and handle (see [identityOfRow] and
+     * [identityOfProfile]), so a rename shows and a moment written without
+     * copies still has a name.
+     */
+    author?: Identity;
+    /**
      * Each reactor, resolved by [reactorLens] before this runs. Their face and
      * name follow the reactor's LIVE settings (`lens.canSee` on the users
      * row), not a copy frozen onto the reaction when they reacted, so a
@@ -148,8 +155,8 @@ function momentView(
     mediaKind: m.mediaKind,
     createdAt: m.createdAt,
     expiresAt: m.expiresAt,
-    authorName: m.authorName,
-    authorUsername: m.authorUsername,
+    authorName: opts.author ? opts.author.name : (m.authorName ?? ""),
+    authorUsername: opts.author ? opts.author.username : (m.authorUsername ?? ""),
     authorAvatarStorageId: opts.authorAvatarVisible
       ? m.authorAvatarStorageId
       : undefined,
@@ -164,9 +171,12 @@ function momentView(
     reactors: opts.reactions
       .filter(
         (r: any) =>
-          typeof r.userName === "string" &&
-          r.userName &&
-          !opts.reactors.hidden(r.userId)
+          !opts.reactors.hidden(r.userId) &&
+          // With copies on, a row with no stored name stays out (the old
+          // rule). With them off the live row is the only source.
+          (copiesOn()
+            ? typeof r.userName === "string" && r.userName
+            : opts.reactors.user(r.userId))
       )
       .map((r: any) => {
         const person = opts.reactors.user(r.userId);
@@ -175,8 +185,13 @@ function momentView(
         return {
           emoji: r.emoji,
           userId: r.userId,
-          name: person?.name ?? person?.username ?? r.userName,
-          username: person?.username ?? r.userUsername,
+          // A row being deleted is an empty name, never its internal handle.
+          name: person
+            ? identityOfRow(person).name
+            : (r.userName ?? ""),
+          username: person
+            ? identityOfRow(person).username
+            : (r.userUsername ?? ""),
           avatarStorageId:
             person && opts.reactors.lens.canSee(person, "avatar")
               ? person.avatarStorageId
@@ -193,6 +208,36 @@ function momentView(
     seen: opts.seen,
     mine: opts.mine,
   };
+}
+
+/** What a moment shows for its author: a live name and handle. */
+type Identity = { name: string; username: string };
+
+/**
+ * From a `users` row the caller already holds. A row being deleted gives
+ * empty strings (the client says "Deleted account"), never its internal handle.
+ */
+function identityOfRow(row: any): Identity {
+  if (!row || row.deletingAt !== undefined) return { name: "", username: "" };
+  return { name: row.name ?? row.username ?? "", username: row.username ?? "" };
+}
+
+/**
+ * From the `profiles` point read, so a subscribed query does not follow the
+ * `users` row (which presence and profile edits write). Falls back to the
+ * `users` row only until the backfill has made the profile.
+ */
+async function identityOfProfile(ctx: any, userId: any): Promise<Identity> {
+  const p = await ctx.db
+    .query("profiles")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .first();
+  if (p) {
+    return p.deleted
+      ? { name: "", username: "" }
+      : { name: p.name, username: p.username };
+  }
+  return identityOfRow(await ctx.db.get(userId));
 }
 
 /** What [momentView] needs to shape reactors; see [reactorLens]. */
@@ -358,6 +403,7 @@ export const board = query({
     const reactorRows = new Map<string, any>();
     const reactors = await reactorLens(ctx, userId, lens, reactorRows);
 
+    let viewerIdentity: Identity | undefined;
     const out: any[] = [];
     for (const authorId of authorIds) {
       const mine = authorId === userId;
@@ -370,7 +416,11 @@ export const board = query({
       let allowHighlights = true;
       let allowPoints = true;
       let authorAvatarVisible = true;
-      if (!mine) {
+      if (mine) {
+        // The viewer's own name from their profile, once per run: the board
+        // must not subscribe to the viewer's `users` row.
+        viewerIdentity ??= await identityOfProfile(ctx, userId);
+      } else {
         // One users read per FRIEND (not per moment). This is the one place
         // the board touches a users row, and it is the reason `board` re-fires
         // on a friend's presence heartbeat. Accepted as the cost of the
@@ -452,6 +502,7 @@ export const board = query({
             mine,
             viewerId: userId,
             authorAvatarVisible,
+            author: mine ? viewerIdentity : identityOfRow(authors.get(authorId)),
           })
         );
       }
@@ -712,10 +763,15 @@ export const post = mutation({
       ...(mediaKind ? { mediaKind } : {}),
       createdAt: now,
       expiresAt: now + VISIBLE_MS,
-      authorName: user.name ?? user.username,
-      authorUsername: user.username,
-      ...(user.avatarStorageId
-        ? { authorAvatarStorageId: user.avatarStorageId }
+      // Copies, until the strip (stage W3); readers resolve the live row.
+      ...(copiesOn()
+        ? {
+            authorName: user.name ?? user.username,
+            authorUsername: user.username,
+            ...(user.avatarStorageId
+              ? { authorAvatarStorageId: user.avatarStorageId }
+              : {}),
+          }
         : {}),
     });
     for (const [field, storageId] of [
@@ -809,6 +865,9 @@ export const moment = query({
       mine,
       viewerId: userId,
       authorAvatarVisible,
+      author: authorRow
+        ? identityOfRow(authorRow)
+        : await identityOfProfile(ctx, m.userId),
     });
   },
 });
@@ -914,18 +973,22 @@ export const react = mutation({
 
     // Safe to read here — this is a mutation, not the subscribed `board`
     // query, so it doesn't join anyone's invalidation set.
-    const reactor = await ctx.db.get(userId);
-    const userName = reactor?.name ?? reactor?.username;
+    // Copies (name, handle, face, face setting) only until the strip.
+    const reactor = copiesOn() ? await ctx.db.get(userId) : null;
 
     const id = await ctx.db.insert("momentReactions", {
       momentId,
       userId,
       emoji,
       createdAt: Date.now(),
-      userName,
-      userUsername: reactor?.username,
-      userAvatarStorageId: reactor?.avatarStorageId,
-      userAvatarLevel: reactor?.visibility?.avatar,
+      ...(copiesOn()
+        ? {
+            userName: reactor?.name ?? reactor?.username,
+            userUsername: reactor?.username,
+            userAvatarStorageId: reactor?.avatarStorageId,
+            userAvatarLevel: reactor?.visibility?.avatar,
+          }
+        : {}),
     });
     // Off the transaction; every gate is in `socialPush._reactionAudience`.
     await ctx.scheduler.runAfter(0, internal.socialPush.sendReactionPush, {
@@ -1006,8 +1069,10 @@ export const archive = query({
     const lens = await lensFor(ctx, userId);
     const reactorRows = new Map<string, any>();
     const reactors = await reactorLens(ctx, userId, lens, reactorRows);
+    let authorRow: any = null;
     if (!mine) {
       const author = await ctx.db.get(target);
+      authorRow = author;
       reactorRows.set(target.toString(), author);
       const vis = visibilityOf(author);
       allowHighlights = vis.feed;
@@ -1029,6 +1094,9 @@ export const archive = query({
 
     const page = rows.slice(0, take);
     const items = [];
+    // Your own page: one read of your row, only if there is a row to name.
+    let own: Identity | undefined;
+    const ownRow = async () => (own ??= await identityOfProfile(ctx, target));
     for (const m of page) {
       if (!mine && !(m.tag === undefined ? allowHighlights : allowPoints)) {
         continue;
@@ -1046,6 +1114,7 @@ export const archive = query({
           mine,
           viewerId: userId,
           authorAvatarVisible,
+          author: authorRow ? identityOfRow(authorRow) : await ownRow(),
         })
       );
     }

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
-import '../models/chat_user.dart';
+import '../data/profile_overlay.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/media_aspect_cache.dart';
@@ -320,10 +320,10 @@ class _MomentCard extends StatelessWidget {
     return items[(at + depth) % items.length];
   }
 
-  String _semantics(AppLocalizations l10n) {
+  String _semantics(BuildContext context, AppLocalizations l10n) {
     final fresh = group.items.where((m) => !m.mine && !m.seen).length;
     return [
-      group.mine ? l10n.momentRailYouLabel : group.latest.authorName,
+      group.mine ? l10n.momentRailYouLabel : group.latest.nameIn(context),
       l10n.momentRailPersonCount(group.items.length),
       if (fresh > 0) l10n.momentRailPersonNewCount(fresh),
     ].join(', ');
@@ -374,7 +374,7 @@ class _MomentCard extends StatelessWidget {
                   api: api,
                   name: group.mine
                       ? l10n.momentRailYouLabel
-                      : group.latest.authorName,
+                      : group.latest.nameIn(context),
                 ),
               ),
             ],
@@ -409,7 +409,7 @@ class _MomentCard extends StatelessWidget {
               child: SpringPress(
                 onTap: onTap,
                 haptic: false,
-                semanticLabel: _semantics(l10n),
+                semanticLabel: _semantics(context, l10n),
                 focusRadius: _storyRadius,
                 child: ExcludeSemantics(
                   child: Stack(
@@ -617,8 +617,9 @@ class _Byline extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: UserAvatar(
-                user: ChatUser(
-                  id: group.userId,
+                user: profileUser(
+                  context,
+                  userId: group.userId,
                   username: author.authorUsername,
                   name: author.authorName,
                   avatarStorageId: author.authorAvatarStorageId,
@@ -753,7 +754,7 @@ class _Thumb extends StatelessWidget {
           // author's own colour.
           Container(
             decoration: BoxDecoration(
-              gradient: monogramGradient(theme, moment.authorName.hashCode),
+              gradient: monogramGradient(theme, moment.nameIn(context).hashCode),
             ),
             padding: const EdgeInsets.fromLTRB(10, 12, 10, 30),
             alignment: Alignment.center,

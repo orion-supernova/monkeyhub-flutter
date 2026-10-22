@@ -3959,5 +3959,6 @@
   "powerSavingNever": "Nunca",
   "powerSavingNeverSub": "Movimento total, mesmo no Modo de baixo consumo",
   "powerSavingAlways": "Sempre",
-  "powerSavingAlwaysSub": "Movimento calmo para poupar bateria, independente do celular"
+  "powerSavingAlwaysSub": "Movimento calmo para poupar bateria, independente do celular",
+  "profileDeletedAccount": "Conta excluída"
 }

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../models/chat_message.dart';
 import '../models/message_preview.dart';
 import '../models/room_pin.dart';
 import '../theme/theme_scope.dart';
@@ -384,7 +385,7 @@ class _Label extends StatelessWidget {
         child: Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            preview.isEmpty ? m.senderName : '${m.senderName}  $preview',
+            preview.isEmpty ? m.resolvedSenderName(context) : '${m.resolvedSenderName(context)}  $preview',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.bodySoft.copyWith(color: theme.ink),

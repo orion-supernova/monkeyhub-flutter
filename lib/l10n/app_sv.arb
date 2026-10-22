@@ -3959,5 +3959,6 @@
   "powerSavingNever": "Aldrig",
   "powerSavingNeverSub": "Full rörelse, även i lågenergiläge",
   "powerSavingAlways": "Alltid",
-  "powerSavingAlwaysSub": "Lugn rörelse för att spara batteri, oavsett vad telefonen säger"
+  "powerSavingAlwaysSub": "Lugn rörelse för att spara batteri, oavsett vad telefonen säger",
+  "profileDeletedAccount": "Raderat konto"
 }

@@ -1,3 +1,4 @@
+import { syncProfile } from "./profilesCore";
 import { internalMutation, mutation as rawMutation } from "./_generated/server";
 import {  mutation, publicMutation, query  } from "./functions";
 import {
@@ -171,6 +172,7 @@ export const signup = publicMutation({
       lastSeen: Date.now(),
       ...terms,
     });
+    await syncProfile(ctx, userId);
     await markOnline(ctx, userId, { now: Date.now(), mirror: false });
     return { userId, username, name, token: await mintSession(ctx, userId, deviceId, deviceSecret) };
   },

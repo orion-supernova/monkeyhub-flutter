@@ -1,3 +1,4 @@
+import { syncProfile } from "./profilesCore";
 /**
  * Sign in with Apple / Google.
  *
@@ -767,6 +768,7 @@ export const createWithIdentity = internalMutation({
       lastSeen: now,
       ...terms,
     });
+    await syncProfile(ctx, userId);
     await markOnline(ctx, userId, { now, mirror: false });
 
     await ctx.db.insert("socialIdentities", {

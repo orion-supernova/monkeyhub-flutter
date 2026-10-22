@@ -13,6 +13,7 @@ import '../models/enums.dart';
 import '../models/message_formatting.dart';
 import '../models/message_interaction.dart';
 import '../models/pending_upload.dart';
+import '../data/profile_scope.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../media/media_aspect_cache.dart';
@@ -433,8 +434,15 @@ class MessageBubble extends StatelessWidget {
     // the card that earns its own space, keeps a sender's name and face
     // around the one thing they actually said. The compact marker never hits
     // this: it draws a thin tether, not a card tall enough to matter.
+    // The sender's current name, not the one stamped into the message; the
+    // passed [senderName] stays the "show no name here" switch and the fallback.
+    final resolvedName = senderName == null
+        ? null
+        : context.profileName(message.senderId, fallback: senderName!);
+    // Nothing known yet (no copy, profile still loading): no label, not "…".
+    final liveName = resolvedName == kProfileNamePlaceholder ? null : resolvedName;
     final showInlineName =
-        marker == ReplyMarker.full && (senderName?.isNotEmpty ?? false);
+        marker == ReplyMarker.full && (liveName?.isNotEmpty ?? false);
     final Widget bubbleArea;
     if (marker == ReplyMarker.none) {
       bubbleArea = keyed;
@@ -474,7 +482,7 @@ class MessageBubble extends StatelessWidget {
             ),
           if (showInlineName)
             _SenderNameLabel(
-              name: senderName!,
+              name: liveName!,
               color: nameColor,
               left: (isMine ? 0 : tailGutter) + 4,
             ),
@@ -491,7 +499,7 @@ class MessageBubble extends StatelessWidget {
       child: _BubbleLayout(
         isMine: isMine,
         showAvatarSlot: showAvatarSlot,
-        senderName: showInlineName ? null : senderName,
+        senderName: showInlineName ? null : liveName,
         nameColor: nameColor,
         tailGutter: tailGutter,
         avatar: _AvatarSlot(
@@ -1010,8 +1018,15 @@ class EphemeralMessageBubble extends StatelessWidget {
     final tailGutter = theme.bubbleTailGutter(bubbleStyle);
     // See the twin in [MessageBubble] for why a full quote card pulls the
     // name down beside the bubble instead of leaving it to float above.
+    // The sender's current name, not the one stamped into the message; the
+    // passed [senderName] stays the "show no name here" switch and the fallback.
+    final resolvedName = senderName == null
+        ? null
+        : context.profileName(message.senderId, fallback: senderName!);
+    // Nothing known yet (no copy, profile still loading): no label, not "…".
+    final liveName = resolvedName == kProfileNamePlaceholder ? null : resolvedName;
     final showInlineName =
-        marker == ReplyMarker.full && (senderName?.isNotEmpty ?? false);
+        marker == ReplyMarker.full && (liveName?.isNotEmpty ?? false);
     final Widget bubbleArea;
     if (marker == ReplyMarker.none) {
       bubbleArea = keyed;
@@ -1052,7 +1067,7 @@ class EphemeralMessageBubble extends StatelessWidget {
             ),
           if (showInlineName)
             _SenderNameLabel(
-              name: senderName!,
+              name: liveName!,
               color: nameColor,
               left: (isMine ? 0 : tailGutter) + 4,
             ),
@@ -1069,7 +1084,7 @@ class EphemeralMessageBubble extends StatelessWidget {
       child: _BubbleLayout(
         isMine: isMine,
         showAvatarSlot: showAvatarSlot,
-        senderName: showInlineName ? null : senderName,
+        senderName: showInlineName ? null : liveName,
         nameColor: nameColor,
         tailGutter: tailGutter,
         avatar: _AvatarSlot(
@@ -3522,10 +3537,11 @@ class _AvatarSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = author;
-    if (collapsed || user == null) {
+    final raw = author;
+    if (collapsed || raw == null) {
       return const SizedBox(width: _size, height: _size);
     }
+    final user = raw.withLiveProfile(context);
     // The face is the one part of a row that is unmistakably one person, so the
     // ring is where the colour and the person get introduced to each other. It
     // is also what makes the colour legible to a reader who cannot tell two

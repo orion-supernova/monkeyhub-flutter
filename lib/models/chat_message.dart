@@ -1,3 +1,7 @@
+import 'package:flutter/widgets.dart';
+
+import '../data/profile_scope.dart';
+import 'chat_user.dart';
 import 'enums.dart';
 import 'expression_item.dart';
 import 'game_move.dart';
@@ -837,4 +841,42 @@ class ModerationCard {
         'hasUser': hasUser,
         'userBanned': userBanned,
       };
+}
+
+
+/// The sender's CURRENT name: the profile cache by id, the copy stamped into
+/// the message as the fallback. A deleted account reads "Deleted account".
+extension ChatMessageProfileName on ChatMessage {
+  String resolvedSenderName(BuildContext context) =>
+      context.profileName(senderId, fallback: senderName);
+}
+
+/// Same for the quoted parent of a reply.
+extension ReplyPreviewProfileName on ReplyPreview {
+  String resolvedName(BuildContext context) =>
+      context.profileName(senderId, fallback: senderName);
+}
+
+/// A person as the profile cache knows them now, over the copy this object was
+/// built from (a room roster entry, or a synthetic user made from a message).
+extension ChatUserLiveProfile on ChatUser {
+  /// This user with the cache's name and avatar laid over the copy; a
+  /// tombstone becomes "Deleted account" with no avatar. Returns `this` when
+  /// nothing differs, so it is free to call in a build.
+  ChatUser withLiveProfile(BuildContext context) {
+    final cache = ProfileScope.maybeOf(context);
+    if (cache == null) return this;
+    final deleted = cache.isDeleted(id);
+    final liveName = context.profileName(id, fallback: name);
+    final liveAvatar = deleted
+        ? null
+        : context.profileAvatar(id, fallback: avatarStorageId);
+    if (liveName == name && liveAvatar == avatarStorageId) return this;
+    final out = copyWith(
+      name: liveName == kProfileNamePlaceholder ? name : liveName,
+      avatarStorageId: liveAvatar,
+    );
+    if (deleted) out.avatarStorageId = null;
+    return out;
+  }
 }

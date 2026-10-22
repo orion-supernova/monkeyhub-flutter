@@ -22,7 +22,7 @@ Source documents (all in `docs/`):
 | 3 file references | Done in code; rollout runbook in the plan's Phase 3 status | see `git log` ("phase 3") |
 | 4 cleanups keep up | Done in code: A crons + sessions, B retention, C receipts table, D point reads + search index, E room counts, G moderator removal of moments/comments | see `git log` ("phase 4") |
 | 5 presence | Done in code (backend + app); runbook in the Phase 5 status of `data-integrity-phase5-6-design.md` | see `git log` ("phase 5") |
-| 6 profiles | Designed in `data-integrity-phase5-6-design.md`; after Phase 5 | |
+| 6 profiles | Done in code (backend + app); runbook and 6Z in the Phase 6 status of `data-integrity-phase5-6-design.md` | see `git log` ("phase 6") |
 
 **Nothing is deployed.** Everything is committed on `dev` only, not pushed.
 Verify with `git log --oneline origin/dev..dev`.
@@ -308,6 +308,13 @@ is already being built).
   looking for `MutedBadge`, `social_username_screen_test` "success dismisses
   the route"); likely the in-progress design work (the user's StatusChip
   stash). Verified on a clean worktree of HEAD on 2026-10-23.
+- `room_scroll_rebuild_test` ("Saved Messages date scrolling does not
+  rebuild the transcript") failed once under full-suite load on 2026-10-23
+  and passes alone (4/4); the reviewer found no Phase 6 dependency in it.
+  Watch for flakiness.
+- Operator steps still open after deploy, all documented: Phase 3 file-ref
+  rollout, Phase 4 backfills, Phase 5 W1 (`SESSION_TRUSTS_ROW`) and W3-W5,
+  Phase 6 backfill, W3 strip and 6Z.
 - Phase 5F: on a legacy server (no `presenceApi`), roster `ChatUser.status`
   is no longer refreshed by presence changes; presence dots read the store.
 - Phase 4A: the heartbeat refreshes all of a user's live sessions (the

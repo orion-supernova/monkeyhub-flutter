@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors;
 
 import '../backend/chat_api.dart';
+import '../data/profile_scope.dart';
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
@@ -367,7 +368,7 @@ class ReplyTether extends StatelessWidget {
                   // accessibility tree with it.
                   label: AppLocalizations.of(
                     context,
-                  ).replyIndicatorInReplyToSemanticLabel(preview.senderName),
+                  ).replyIndicatorInReplyToSemanticLabel(preview.resolvedName(context)),
                   button: !deleted,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
@@ -523,6 +524,7 @@ String _previewLabel(BuildContext context, ReplyPreview preview) {
 }
 
 Widget _smallAvatar({
+  required BuildContext context,
   required ReplyPreview preview,
   required ChatApi api,
   required ChatUser? parentAuthor,
@@ -537,7 +539,7 @@ Widget _smallAvatar({
 }) {
   if (parentAuthor != null) {
     return UserAvatar(
-      user: parentAuthor,
+      user: parentAuthor.withLiveProfile(context),
       api: api,
       size: size,
       showStatus: false,
@@ -555,9 +557,9 @@ Widget _smallAvatar({
       border: Border.all(color: accentTone.withValues(alpha: 0.45), width: 1),
     ),
     child: Text(
-      preview.senderName.isEmpty
+      preview.resolvedName(context) == kProfileNamePlaceholder
           ? '?'
-          : preview.senderName.characters.first.toUpperCase(),
+          : preview.resolvedName(context).characters.first.toUpperCase(),
       style: theme.bodySoft.copyWith(
         fontSize: 13,
         fontWeight: FontWeight.w600,
@@ -935,6 +937,7 @@ class _PhantomBody extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _smallAvatar(
+          context: context,
           preview: preview,
           api: api,
           parentAuthor: parentAuthor,
@@ -950,7 +953,7 @@ class _PhantomBody extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                preview.senderName,
+                preview.resolvedName(context),
                 style: replyNameStyle(theme).copyWith(
                   color: deleted ? phantomMuted : tone.ink,
                 ),
@@ -1077,6 +1080,7 @@ class _StickyNote extends StatelessWidget {
                           if (onViewThread != null && !deleted && isMine)
                             const SizedBox(width: 28),
                           _smallAvatar(
+                            context: context,
                             preview: preview,
                             api: api,
                             parentAuthor: parentAuthor,
@@ -1092,7 +1096,7 @@ class _StickyNote extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  preview.senderName,
+                                  preview.resolvedName(context),
                                   style: replyNameStyle(theme).copyWith(
                                     color: deleted ? theme.inkMuted : tone.ink,
                                   ),
@@ -1271,6 +1275,7 @@ class _ComicTail extends StatelessWidget {
                       if (onViewThread != null && !deleted && isMine)
                         const SizedBox(width: 30),
                       _smallAvatar(
+                        context: context,
                         preview: preview,
                         api: api,
                         parentAuthor: parentAuthor,
@@ -1286,7 +1291,7 @@ class _ComicTail extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              preview.senderName,
+                              preview.resolvedName(context),
                               style: replyNameStyle(theme).copyWith(
                                 color: deleted ? theme.inkMuted : tone.ink,
                               ),
@@ -1490,6 +1495,7 @@ class _ClassicQuote extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: _smallAvatar(
+                      context: context,
                       preview: preview,
                       api: api,
                       parentAuthor: parentAuthor,
@@ -1512,7 +1518,7 @@ class _ClassicQuote extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            preview.senderName,
+                            preview.resolvedName(context),
                             style: replyNameStyle(theme).copyWith(
                               color: deleted ? mutedInk : tone.ink,
                             ),
@@ -1672,7 +1678,7 @@ class InlineReplyQuote extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            preview.senderName,
+                            preview.resolvedName(context),
                             style: replyNameStyle(theme).copyWith(
                               color: deleted ? theme.inkMuted : nameInk,
                             ),

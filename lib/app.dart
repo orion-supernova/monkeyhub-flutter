@@ -44,6 +44,8 @@ import 'calls/phone_call_activity.dart';
 import 'calls/signaling_subscriber.dart';
 import 'data/chat_repository.dart';
 import 'data/feed_store.dart';
+import 'data/profile_cache.dart';
+import 'data/profile_scope.dart';
 import 'expressions/expression_store.dart';
 import 'data/games_store.dart';
 import 'data/challenges_store.dart';
@@ -2055,7 +2057,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
               final Widget? calmed = child == null
                   ? null
                   : LowPowerCalm(child: child);
-              child = calmed;
+              child = calmed == null
+                  ? null
+                  : ProfileScope(cache: ProfileCache.instance, child: calmed);
               // The language the app SETTLED on, which is not knowable from
               // either of the two things that produce it: `locale:` above is
               // null whenever the user has not overridden anything, and the

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../data/profile_scope.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../models/message_interaction.dart';
@@ -1053,7 +1054,7 @@ class _RespondentLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final names = choice.respondents.map((r) => r.name).join(', ');
+    final names = choice.respondents.map((r) => context.profileName(r.userId, fallback: r.name)).join(', ');
     final hidden = choice.hiddenCount;
     // Alphabetical argument order again — `count` then `names`. See the note in
     // [_ChoiceRow._semanticLabel].

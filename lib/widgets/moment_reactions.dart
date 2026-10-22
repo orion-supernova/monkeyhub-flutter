@@ -6,6 +6,8 @@ import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
+import '../data/profile_overlay.dart';
+import '../data/profile_scope.dart';
 import '../models/chat_user.dart';
 import '../models/moment.dart';
 import '../theme/theme_scope.dart';
@@ -37,9 +39,20 @@ class MomentReactorGroup {
   final List<String> emojis = [];
   DateTime latest = DateTime.fromMillisecondsSinceEpoch(0);
 
-  ChatUser asUser() => ChatUser(
-        id: userId,
-        username: username ?? name,
+  /// Live name from the profile cache; the copy [name] as fallback.
+  String nameIn(BuildContext context) =>
+      context.profileName(userId, fallback: name);
+
+  /// Live handle from the profile cache; the copy [username] as fallback.
+  String? usernameIn(BuildContext context) {
+    final u = context.profileUsername(userId, fallback: username ?? '');
+    return u.isEmpty ? null : u;
+  }
+
+  ChatUser asUser(BuildContext context) => profileUser(
+        context,
+        userId: userId,
+        username: username,
         name: name,
         avatarStorageId: avatarStorageId,
       );
@@ -104,7 +117,7 @@ class MomentReactorStack extends StatelessWidget {
     final first = groups.first;
     final firstName = first.userId == viewerId
         ? sentenceCaseOf(context, l10n.reactionDetailsSheetYouBadge)
-        : first.name;
+        : first.nameIn(context);
     final label = groups.length == 1
         ? firstName
         : l10n.momentReactorsSummary(groups.length - 1, firstName);
@@ -199,7 +212,7 @@ class _BadgedFace extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: UserAvatar(
-              user: group.asUser(),
+              user: group.asUser(context),
               api: api,
               size: size - 3,
               showStatus: false,
@@ -378,7 +391,7 @@ class _MomentReactionsSheetState extends State<_MomentReactionsSheet>
                                 rows[i].userId == widget.viewerId
                             ? null
                             : () {
-                                final user = rows[i].asUser();
+                                final user = rows[i].asUser(context);
                                 Navigator.of(context).pop();
                                 widget.onOpenProfile!(user);
                               },
@@ -437,12 +450,12 @@ class _ReactorRow extends StatelessWidget {
     final emojis = highlight == null
         ? group.emojis
         : [highlight!, ...group.emojis.where((e) => e != highlight)];
-    final handle = group.username;
+    final handle = group.usernameIn(context);
     final row = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: [
-          UserAvatar(user: group.asUser(), api: api, size: 40, showStatus: false),
+          UserAvatar(user: group.asUser(context), api: api, size: 40, showStatus: false),
           const SizedBox(width: 12),
           // The name takes everything the emoji do not need: they are at
           // most five (the per-person cap), the name is the thing to read.
@@ -453,7 +466,7 @@ class _ReactorRow extends StatelessWidget {
                 Text(
                   you
                       ? sentenceCaseOf(context, l10n.reactionDetailsSheetYouBadge)
-                      : group.name,
+                      : group.nameIn(context),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.bodyEmph.copyWith(fontSize: 16, color: theme.ink),
@@ -494,7 +507,7 @@ class _ReactorRow extends StatelessWidget {
     if (tap == null) return row;
     return FocusableTap(
       onTap: tap,
-      semanticLabel: group.name,
+      semanticLabel: group.nameIn(context),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: tap,

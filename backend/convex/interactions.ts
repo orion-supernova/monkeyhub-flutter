@@ -5,6 +5,7 @@ import { isAdminRole, roleOf } from "./roomAdmin";
 import { assertRoomAllowsById } from "./roomPolicy";
 import { canReadRoom } from "./roomAccess";
 import { ERR_FILTER_BLOCKED, hasHit } from "./contentFilter";
+import { copiesOn, nameResolver } from "./profileCopyGate";
 
 // `purgeInteraction` and `forkInteraction` deliberately live in
 // `interactionCore.ts` and not here — see that file's header for the cycle
@@ -159,10 +160,16 @@ async function assertMember(ctx: any, roomId: any, userId: any) {
 
 /** The display name to snapshot onto a response row. Read from `users` here
  * and NEVER inside a reactive query — see the note on
- * `interactionResponses.userName`. */
-async function nameOf(ctx: any, userId: any): Promise<string> {
+ * `interactionResponses.userName`. Only called while the copies are written. */
+async function snapshotName(ctx: any, userId: any): Promise<string> {
   const user = await ctx.db.get(userId);
   return (user?.name ?? user?.username ?? "unknown") as string;
+}
+
+/** The `userName` field of a new response row: present only while copies are
+ * written. */
+async function nameCopy(ctx: any, userId: any) {
+  return copiesOn() ? { userName: await snapshotName(ctx, userId) } : {};
 }
 
 /**
@@ -240,7 +247,9 @@ async function recount(ctx: any, interaction: any) {
               .slice(0, RESPONDENT_PREVIEW_CAP)
               .map((r: any) => ({
                 userId: r.userId,
-                name: r.userName,
+                // The `respondents[].name` copy: written only while
+                // PROFILE_COPIES is on. Clients resolve the name from `userId`.
+                ...(copiesOn() ? { name: r.userName } : {}),
                 at: r.createdAt,
               })),
           }),
@@ -574,7 +583,7 @@ export const respond = mutation({
           roomId: msg.roomId,
           userId,
           choiceId,
-          userName: await nameOf(ctx, userId),
+          ...(await nameCopy(ctx, userId)),
           createdAt: Date.now(),
         });
       }
@@ -606,7 +615,7 @@ export const respond = mutation({
       roomId: msg.roomId,
       userId,
       choiceId,
-      userName: await nameOf(ctx, userId),
+      ...(await nameCopy(ctx, userId)),
       createdAt: Date.now(),
     });
     await recount(ctx, interaction);
@@ -963,11 +972,16 @@ export const respondents = query({
       .withIndex("by_message_user", (q) => q.eq("messageId", messageId))
       .collect();
     rows.sort((a, b) => a.createdAt - b.createdAt);
-    return rows.map((r) => ({
-      userId: r.userId,
-      name: r.userName,
-      choiceId: r.choiceId,
-      at: r.createdAt,
-    }));
+    // Current names via the profile (deleted account: ""), one lookup per
+    // distinct voter, the stored copy only as a fallback.
+    const nameFor = nameResolver(ctx);
+    return await Promise.all(
+      rows.map(async (r) => ({
+        userId: r.userId,
+        name: await nameFor(r.userId, r.userName),
+        choiceId: r.choiceId,
+        at: r.createdAt,
+      })),
+    );
   },
 });

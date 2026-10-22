@@ -21,7 +21,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const drain = (t: T) => t.finishAllScheduledFunctions(vi.runAllTimers);
+// One page per table at minimum; the table count keeps growing, so give it room.
+const drain = (t: T) => t.finishAllScheduledFunctions(vi.runAllTimers, 400);
 
 async function seed(t: T) {
   return await t.run(async (ctx) => {

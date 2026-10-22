@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/message_preview.dart';
@@ -145,13 +146,14 @@ class _PinRow extends StatelessWidget {
     final hasThumb = !m.viewOnce &&
         m.mediaStorageId != null &&
         (m.type == MessageType.image || m.type == MessageType.video);
-    final sender = repo.userById(m.senderId) ??
-        ChatUser(
-          id: m.senderId,
-          username: '',
-          name: m.senderName,
-          lastSeen: m.createdAt,
-        );
+    final sender = (repo.userById(m.senderId) ??
+            ChatUser(
+              id: m.senderId,
+              username: '',
+              name: m.resolvedSenderName(context),
+              lastSeen: m.createdAt,
+            ))
+        .withLiveProfile(context);
 
     return PersonRow(
       avatar: hasThumb
@@ -171,18 +173,18 @@ class _PinRow extends StatelessWidget {
               api: api,
               showStatus: false,
             ),
-      title: m.senderName,
+      title: m.resolvedSenderName(context),
       titleTrailing: Text(formatClockTime(m.createdAt), style: _meta(theme)),
       subtitle: messagePreviewLine(m, hasThumbnail: hasThumb),
       semanticLabel: l10n.activeCallPillJumpToMessageSemanticLabel(
-        m.senderName,
+        m.resolvedSenderName(context),
       ),
       onTap: onTap,
       trailing: SpringPress(
         onTap: onUnpin,
         haptic: false,
         semanticLabel: l10n.activeCallPillUnpinMessageSemanticLabel(
-          m.senderName,
+          m.resolvedSenderName(context),
         ),
         child: SizedBox.square(
           dimension: 40,

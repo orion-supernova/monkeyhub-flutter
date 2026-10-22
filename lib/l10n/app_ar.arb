@@ -3959,5 +3959,6 @@
   "powerSavingNever": "أبدًا",
   "powerSavingNeverSub": "حركة كاملة حتى في وضع الطاقة المنخفضة",
   "powerSavingAlways": "دائمًا",
-  "powerSavingAlwaysSub": "حركة هادئة لتوفير البطارية مهما كان إعداد الهاتف"
+  "powerSavingAlwaysSub": "حركة هادئة لتوفير البطارية مهما كان إعداد الهاتف",
+  "profileDeletedAccount": "حساب محذوف"
 }

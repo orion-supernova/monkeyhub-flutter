@@ -268,9 +268,9 @@ class ActivityRow extends StatelessWidget {
                   MomentTagChip.labelFor(l10n, tag),
                 ))
         : (tag == null
-              ? l10n.momentActivityPostedHighlight(moment.authorName)
+              ? l10n.momentActivityPostedHighlight(moment.nameIn(context))
               : l10n.momentActivityScored(
-                  moment.authorName,
+                  moment.nameIn(context),
                   MomentTagChip.labelFor(l10n, tag),
                 ));
 
@@ -280,9 +280,9 @@ class ActivityRow extends StatelessWidget {
       builder: (context) => PersonRow(
         avatar: PlayerFace(
           userId: moment.userId,
-          label: moment.authorName,
+          label: moment.nameIn(context),
           size: kPersonRowAvatar,
-          storageId: moment.authorAvatarStorageId,
+          storageId: moment.avatarIn(context),
           dot: !moment.mine && !moment.seen,
           badge: tag == null
               ? null
@@ -672,7 +672,7 @@ class _MomentRunState extends State<_MomentRun>
     final w = widget;
     final who = w.moments.first;
     final headline =
-        l10n.momentActivityHighlightsPosted(w.moments.length, who.authorName);
+        l10n.momentActivityHighlightsPosted(w.moments.length, who.nameIn(context));
     final pictured = _pictured;
     final thumbs = [
       for (final m in pictured.take(_ThumbStack.most)) m.thumbStorageId!,
@@ -692,9 +692,9 @@ class _MomentRunState extends State<_MomentRun>
       child: PersonRow(
         avatar: PlayerFace(
           userId: who.userId,
-          label: who.authorName,
+          label: who.nameIn(context),
           size: kPersonRowAvatar,
-          storageId: who.authorAvatarStorageId,
+          storageId: who.avatarIn(context),
           dot: w.moments.any((m) => !m.seen),
         ),
         title: headline,

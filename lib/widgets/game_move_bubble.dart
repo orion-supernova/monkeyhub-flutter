@@ -72,7 +72,7 @@ class GameMoveBubble extends StatelessWidget {
     final name = snap == null ? '' : chatGameName(l10n, snap.game);
     final who = isMine
         ? l10n.chatGameMvYouPlayed
-        : l10n.chatGameMvTheyPlayed(message.senderName);
+        : l10n.chatGameMvTheyPlayed(message.resolvedSenderName(context));
     final notation = snap == null
         ? null
         : moveNotation(l10n, snap.game, snap.move);

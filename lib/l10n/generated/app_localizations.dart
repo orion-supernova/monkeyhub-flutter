@@ -23916,6 +23916,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Calm motion to save battery, whatever the phone says'**
   String get powerSavingAlwaysSub;
+
+  /// Name shown in place of a person whose account has been deleted, wherever their name appears (message senders, replies, comments, reactions).
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted account'**
+  String get profileDeletedAccount;
 }
 
 class _AppLocalizationsDelegate

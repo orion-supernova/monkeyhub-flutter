@@ -6,6 +6,7 @@ import type { AlertSpec } from "./push";
 import { liveSessionDeviceIds } from "./sessionCore";
 import { MAX_GUESSES } from "./puzzle";
 import { levelOf } from "./visibility";
+import { displayName } from "./profileCopyGate";
 
 /**
  * Friend activity — the two pushes another PERSON causes on your phone.
@@ -699,9 +700,18 @@ export const _momentAudience = internalQuery({
       )
       .collect();
 
+    // Built now, from the profile: a rename shows in the push, and a moment
+    // written without copies still has a name. A deleted author: no push.
+    const authorName = await displayName(
+      ctx,
+      m.userId,
+      m.authorName || m.authorUsername,
+    );
+    if (!authorName) return null;
+
     return {
       authorId: m.userId,
-      authorName: m.authorName || m.authorUsername,
+      authorName,
       authorAvatarUrl: await actorFace(ctx, author),
       dayKey: m.dayKey,
       tag: m.tag ?? null,
@@ -894,10 +904,13 @@ export const _commentAudience = internalQuery({
     }
     if (recipients.length === 0) return null;
 
+    const commenterName = await displayName(ctx, commenter._id, c.userName);
+    if (!commenterName) return null;
+
     return {
       momentId: m._id,
       authorId: m.userId,
-      commenterName: commenter.name ?? commenter.username ?? c.userName,
+      commenterName,
       commenterAvatarUrl: commenter.avatarStorageId
         ? await ctx.storage.getUrl(commenter.avatarStorageId)
         : null,
@@ -1030,11 +1043,14 @@ export const _reactionAudience = internalQuery({
     const level = levelOf(reactor, "avatar");
     const face = level === "public" || (level === "friends" && friend);
 
+    const reactorName = await displayName(ctx, reactor._id, r.userName);
+    if (!reactorName) return null;
+
     return {
       momentId: m._id,
       authorId: m.userId,
       reactorId: reactor._id,
-      reactorName: reactor.name ?? reactor.username ?? r.userName ?? "",
+      reactorName,
       reactorAvatarUrl:
         face && reactor.avatarStorageId
           ? await ctx.storage.getUrl(reactor.avatarStorageId)
