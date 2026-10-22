@@ -3940,5 +3940,10 @@
   "howToPatchesControls": "Yama kesmek için köşeden köşeye sürükle. Yeniden şekillendirmek için yamanın kenarını ya da köşesini sürükle. Kaldırmak için yamaya dokun.",
   "dropConfirmTitle": "{room} sohbetine gönderilsin mi?",
   "dropConfirmMore": "ve {count} tane daha",
-  "dropConfirmSend": "Gönder"
+  "dropConfirmSend": "Gönder",
+  "streakCelebrateLabel": "gün seri",
+  "streakCelebrateTier1": "İvmeni yakaladın",
+  "streakCelebrateTier2": "Alev alev",
+  "streakCelebrateTier3": "Durdurulamaz",
+  "streakCelebrateTier4": "Efsane"
 }

@@ -8,6 +8,7 @@ import '../calls/phone_call_activity.dart';
 import '../data/feed_store.dart';
 import '../data/games_store.dart';
 import '../models/daily_game.dart';
+import '../screens/games/streak_celebration.dart';
 
 /// The clock, the server round trips and the lifecycle rules that every daily
 /// game shares.
@@ -325,6 +326,8 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
     // Read once, here. Every resend reports the time the board was solved at,
     // not the time the connection came back.
+    final streakBefore =
+        GamesStore.instance.standings.myStreaks[game]?.current ?? 0;
     final elapsedMs = elapsed.inMilliseconds;
     final hints = _hints;
     final mistakes = _mistakes;
@@ -372,7 +375,10 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
       // Behind the optimistic row above, so the leaderboard settles into the
       // authoritative ordering without the player watching a dash where their
       // own time should be.
-      unawaited(GamesStore.instance.refreshStandings());
+      final refreshed = GamesStore.instance.refreshStandings();
+      if (outcome.solved && !outcome.replay) {
+        unawaited(_celebrateStreak(refreshed, streakBefore));
+      }
       _notify();
       return outcome.solved;
     } catch (e) {
@@ -386,6 +392,22 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
       notifyListeners();
       return false;
     }
+  }
+
+  /// The full-screen flame, once the server has said where the streak stands:
+  /// only when this solve is what grew it to 2 or more. Held back a beat so the
+  /// board's own win sweep finishes first, and independent of this controller:
+  /// the player may already have left the screen.
+  Future<void> _celebrateStreak(Future<void> refreshed, int before) async {
+    try {
+      await refreshed.timeout(const Duration(seconds: 5));
+    } catch (_) {
+      return;
+    }
+    final days = GamesStore.instance.standings.myStreaks[game]?.current ?? 0;
+    if (days < 2 || days <= before) return;
+    await Future<void>.delayed(const Duration(milliseconds: 1400));
+    StreakCelebration.play(from: before, days: days);
   }
 
   /// Gives up. Returns the answer, or null if the server refused.

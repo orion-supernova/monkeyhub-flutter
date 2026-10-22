@@ -13652,4 +13652,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get dropConfirmSend => '送信';
+
+  @override
+  String get streakCelebrateLabel => '日連続';
+
+  @override
+  String get streakCelebrateTier1 => 'いい調子';
+
+  @override
+  String get streakCelebrateTier2 => '燃えてる';
+
+  @override
+  String get streakCelebrateTier3 => '止まらない';
+
+  @override
+  String get streakCelebrateTier4 => '伝説級';
 }

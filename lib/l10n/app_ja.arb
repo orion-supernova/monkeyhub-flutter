@@ -3940,5 +3940,10 @@
   "howToPatchesControls": "角から角へドラッグしてパッチを切り取ろう。パッチの辺や角をドラッグすると形を変えられるよ。パッチをタップすると外せるよ。",
   "dropConfirmTitle": "{room} に送信しますか？",
   "dropConfirmMore": "ほか {count} 件",
-  "dropConfirmSend": "送信"
+  "dropConfirmSend": "送信",
+  "streakCelebrateLabel": "日連続",
+  "streakCelebrateTier1": "いい調子",
+  "streakCelebrateTier2": "燃えてる",
+  "streakCelebrateTier3": "止まらない",
+  "streakCelebrateTier4": "伝説級"
 }

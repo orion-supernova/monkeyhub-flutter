@@ -14438,6 +14438,21 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get dropConfirmSend => 'Enviar';
+
+  @override
+  String get streakCelebrateLabel => 'dias de sequência';
+
+  @override
+  String get streakCelebrateTier1 => 'Em grande';
+
+  @override
+  String get streakCelebrateTier2 => 'Em chamas';
+
+  @override
+  String get streakCelebrateTier3 => 'Imparável';
+
+  @override
+  String get streakCelebrateTier4 => 'Lendário';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -28856,4 +28871,19 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get dropConfirmSend => 'Enviar';
+
+  @override
+  String get streakCelebrateLabel => 'dias de sequência';
+
+  @override
+  String get streakCelebrateTier1 => 'Embalado';
+
+  @override
+  String get streakCelebrateTier2 => 'Pegando fogo';
+
+  @override
+  String get streakCelebrateTier3 => 'Imparável';
+
+  @override
+  String get streakCelebrateTier4 => 'Lendário';
 }

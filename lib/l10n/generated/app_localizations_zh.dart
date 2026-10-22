@@ -13526,4 +13526,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dropConfirmSend => '发送';
+
+  @override
+  String get streakCelebrateLabel => '天连胜';
+
+  @override
+  String get streakCelebrateTier1 => '渐入佳境';
+
+  @override
+  String get streakCelebrateTier2 => '火力全开';
+
+  @override
+  String get streakCelebrateTier3 => '势不可挡';
+
+  @override
+  String get streakCelebrateTier4 => '传奇';
 }

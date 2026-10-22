@@ -3940,5 +3940,10 @@
   "howToPatchesControls": "Arrastra de esquina a esquina para cortar un parche. Arrastra un lado o una esquina de un parche para cambiarle la forma. Toca un parche para quitarlo.",
   "dropConfirmTitle": "¿Enviar a {room}?",
   "dropConfirmMore": "y {count} más",
-  "dropConfirmSend": "Enviar"
+  "dropConfirmSend": "Enviar",
+  "streakCelebrateLabel": "días de racha",
+  "streakCelebrateTier1": "En racha",
+  "streakCelebrateTier2": "Ardiendo",
+  "streakCelebrateTier3": "Imparable",
+  "streakCelebrateTier4": "Legendario"
 }

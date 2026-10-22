@@ -14274,4 +14274,19 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get dropConfirmSend => 'भेजें';
+
+  @override
+  String get streakCelebrateLabel => 'दिन की स्ट्रीक';
+
+  @override
+  String get streakCelebrateTier1 => 'जोश में हो';
+
+  @override
+  String get streakCelebrateTier2 => 'धधक रहे हो';
+
+  @override
+  String get streakCelebrateTier3 => 'रुकना नामुमकिन';
+
+  @override
+  String get streakCelebrateTier4 => 'पौराणिक';
 }

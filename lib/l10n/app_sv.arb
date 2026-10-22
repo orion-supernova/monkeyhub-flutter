@@ -3940,5 +3940,10 @@
   "howToPatchesControls": "Dra från hörn till hörn för att klippa ut en lapp. Dra i en lapps sida eller hörn för att ändra formen. Tryck på en lapp för att ta bort den.",
   "dropConfirmTitle": "Skicka till {room}?",
   "dropConfirmMore": "och {count} till",
-  "dropConfirmSend": "Skicka"
+  "dropConfirmSend": "Skicka",
+  "streakCelebrateLabel": "dagars svit",
+  "streakCelebrateTier1": "På gång",
+  "streakCelebrateTier2": "Brinner",
+  "streakCelebrateTier3": "Ostoppbar",
+  "streakCelebrateTier4": "Legendarisk"
 }

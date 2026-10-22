@@ -17148,5 +17148,25 @@
   "dropConfirmSend": "Send",
   "@dropConfirmSend": {
     "description": "The confirming button of the drop confirmation: sends the dragged files into the chat."
+  },
+  "streakCelebrateLabel": "day streak",
+  "@streakCelebrateLabel": {
+    "description": "Small caption under the big number of the full-screen streak celebration shown after finishing a daily game that extends the player's streak. The number above is how many days in a row. Keep it short, lowercase-friendly, no number in it."
+  },
+  "streakCelebrateTier1": "On a roll",
+  "@streakCelebrateTier1": {
+    "description": "Headline of the streak celebration for a streak of 2 to 4 days. Playful, two words at most."
+  },
+  "streakCelebrateTier2": "Blazing",
+  "@streakCelebrateTier2": {
+    "description": "Headline of the streak celebration for a streak of 5 to 9 days. Playful, two words at most."
+  },
+  "streakCelebrateTier3": "Unstoppable",
+  "@streakCelebrateTier3": {
+    "description": "Headline of the streak celebration for a streak of 10 to 19 days. Playful, two words at most."
+  },
+  "streakCelebrateTier4": "Legendary",
+  "@streakCelebrateTier4": {
+    "description": "Headline of the streak celebration for a streak of 20 days or more. Playful, two words at most."
   }
 }

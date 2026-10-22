@@ -13686,4 +13686,19 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dropConfirmSend => '보내기';
+
+  @override
+  String get streakCelebrateLabel => '일 연속';
+
+  @override
+  String get streakCelebrateTier1 => '좋은 흐름';
+
+  @override
+  String get streakCelebrateTier2 => '불타오른다';
+
+  @override
+  String get streakCelebrateTier3 => '멈출 수 없다';
+
+  @override
+  String get streakCelebrateTier4 => '전설';
 }

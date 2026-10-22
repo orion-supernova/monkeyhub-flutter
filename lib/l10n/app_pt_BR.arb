@@ -3940,5 +3940,10 @@
   "howToPatchesControls": "Arraste de canto a canto pra cortar um retalho. Arraste um lado ou um canto de um retalho pra mudar a forma dele. Toque num retalho pra tirar.",
   "dropConfirmTitle": "Enviar para {room}?",
   "dropConfirmMore": "e mais {count}",
-  "dropConfirmSend": "Enviar"
+  "dropConfirmSend": "Enviar",
+  "streakCelebrateLabel": "dias de sequência",
+  "streakCelebrateTier1": "Embalado",
+  "streakCelebrateTier2": "Pegando fogo",
+  "streakCelebrateTier3": "Imparável",
+  "streakCelebrateTier4": "Lendário"
 }

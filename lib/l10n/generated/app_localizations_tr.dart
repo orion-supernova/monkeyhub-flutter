@@ -14231,4 +14231,19 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get dropConfirmSend => 'Gönder';
+
+  @override
+  String get streakCelebrateLabel => 'gün seri';
+
+  @override
+  String get streakCelebrateTier1 => 'İvmeni yakaladın';
+
+  @override
+  String get streakCelebrateTier2 => 'Alev alev';
+
+  @override
+  String get streakCelebrateTier3 => 'Durdurulamaz';
+
+  @override
+  String get streakCelebrateTier4 => 'Efsane';
 }

@@ -14467,4 +14467,19 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get dropConfirmSend => 'إرسال';
+
+  @override
+  String get streakCelebrateLabel => 'أيام متتالية';
+
+  @override
+  String get streakCelebrateTier1 => 'أنت في تقدم';
+
+  @override
+  String get streakCelebrateTier2 => 'مشتعل';
+
+  @override
+  String get streakCelebrateTier3 => 'لا يمكن إيقافك';
+
+  @override
+  String get streakCelebrateTier4 => 'أسطوري';
 }

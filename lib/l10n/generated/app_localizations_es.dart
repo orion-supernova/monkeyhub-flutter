@@ -14433,4 +14433,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get dropConfirmSend => 'Enviar';
+
+  @override
+  String get streakCelebrateLabel => 'días de racha';
+
+  @override
+  String get streakCelebrateTier1 => 'En racha';
+
+  @override
+  String get streakCelebrateTier2 => 'Ardiendo';
+
+  @override
+  String get streakCelebrateTier3 => 'Imparable';
+
+  @override
+  String get streakCelebrateTier4 => 'Legendario';
 }

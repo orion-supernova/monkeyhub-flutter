@@ -3940,5 +3940,10 @@
   "howToPatchesControls": "모서리에서 모서리로 드래그해서 패치를 잘라요. 패치의 변이나 모서리를 드래그하면 모양이 바뀌어요. 패치를 탭하면 떼어져요.",
   "dropConfirmTitle": "{room}에 보낼까요?",
   "dropConfirmMore": "외 {count}개",
-  "dropConfirmSend": "보내기"
+  "dropConfirmSend": "보내기",
+  "streakCelebrateLabel": "일 연속",
+  "streakCelebrateTier1": "좋은 흐름",
+  "streakCelebrateTier2": "불타오른다",
+  "streakCelebrateTier3": "멈출 수 없다",
+  "streakCelebrateTier4": "전설"
 }

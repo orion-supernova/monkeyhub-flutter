@@ -14296,4 +14296,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dropConfirmSend => 'Send';
+
+  @override
+  String get streakCelebrateLabel => 'day streak';
+
+  @override
+  String get streakCelebrateTier1 => 'On a roll';
+
+  @override
+  String get streakCelebrateTier2 => 'Blazing';
+
+  @override
+  String get streakCelebrateTier3 => 'Unstoppable';
+
+  @override
+  String get streakCelebrateTier4 => 'Legendary';
 }

@@ -3940,5 +3940,10 @@
   "howToPatchesControls": "Glisse d’un coin à l’autre pour découper un patch. Fais glisser un côté ou un coin d’un patch pour changer sa forme. Touche un patch pour l’enlever.",
   "dropConfirmTitle": "Envoyer à {room} ?",
   "dropConfirmMore": "et {count} de plus",
-  "dropConfirmSend": "Envoyer"
+  "dropConfirmSend": "Envoyer",
+  "streakCelebrateLabel": "jours de série",
+  "streakCelebrateTier1": "Bien lancé",
+  "streakCelebrateTier2": "En feu",
+  "streakCelebrateTier3": "Inarrêtable",
+  "streakCelebrateTier4": "Légendaire"
 }

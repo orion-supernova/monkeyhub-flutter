@@ -3940,5 +3940,10 @@
   "howToPatchesControls": "اسحب من زاوية إلى زاوية لتقصّ رقعة. اسحب جانب الرقعة أو زاويتها لتغيّر شكلها. اضغط على رقعة لإزالتها.",
   "dropConfirmTitle": "هل تريد الإرسال إلى {room}؟",
   "dropConfirmMore": "و{count} أخرى",
-  "dropConfirmSend": "إرسال"
+  "dropConfirmSend": "إرسال",
+  "streakCelebrateLabel": "أيام متتالية",
+  "streakCelebrateTier1": "أنت في تقدم",
+  "streakCelebrateTier2": "مشتعل",
+  "streakCelebrateTier3": "لا يمكن إيقافك",
+  "streakCelebrateTier4": "أسطوري"
 }

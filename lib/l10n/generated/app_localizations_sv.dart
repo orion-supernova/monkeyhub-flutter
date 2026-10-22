@@ -14331,4 +14331,19 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get dropConfirmSend => 'Skicka';
+
+  @override
+  String get streakCelebrateLabel => 'dagars svit';
+
+  @override
+  String get streakCelebrateTier1 => 'På gång';
+
+  @override
+  String get streakCelebrateTier2 => 'Brinner';
+
+  @override
+  String get streakCelebrateTier3 => 'Ostoppbar';
+
+  @override
+  String get streakCelebrateTier4 => 'Legendarisk';
 }

@@ -23802,6 +23802,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Send'**
   String get dropConfirmSend;
+
+  /// Small caption under the big number of the full-screen streak celebration shown after finishing a daily game that extends the player's streak. The number above is how many days in a row. Keep it short, lowercase-friendly, no number in it.
+  ///
+  /// In en, this message translates to:
+  /// **'day streak'**
+  String get streakCelebrateLabel;
+
+  /// Headline of the streak celebration for a streak of 2 to 4 days. Playful, two words at most.
+  ///
+  /// In en, this message translates to:
+  /// **'On a roll'**
+  String get streakCelebrateTier1;
+
+  /// Headline of the streak celebration for a streak of 5 to 9 days. Playful, two words at most.
+  ///
+  /// In en, this message translates to:
+  /// **'Blazing'**
+  String get streakCelebrateTier2;
+
+  /// Headline of the streak celebration for a streak of 10 to 19 days. Playful, two words at most.
+  ///
+  /// In en, this message translates to:
+  /// **'Unstoppable'**
+  String get streakCelebrateTier3;
+
+  /// Headline of the streak celebration for a streak of 20 days or more. Playful, two words at most.
+  ///
+  /// In en, this message translates to:
+  /// **'Legendary'**
+  String get streakCelebrateTier4;
 }
 
 class _AppLocalizationsDelegate
