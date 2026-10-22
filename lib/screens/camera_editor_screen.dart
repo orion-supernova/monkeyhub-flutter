@@ -248,7 +248,7 @@ class CameraEditorScreen extends StatefulWidget {
     return Navigator.of(context).push<EditorOutcome>(
       overCamera
           ? reviewRoute<EditorOutcome>(screen)
-          : MaterialPageRoute(builder: (_) => screen),
+          : editorRoute<EditorOutcome>(screen),
     );
   }
 
