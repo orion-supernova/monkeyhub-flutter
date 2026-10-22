@@ -1,8 +1,9 @@
 # Data integrity and scale plan (2026-10-22)
 
-**Status:** Phases 0 to 4 are **Done in code**
+**Status:** Phases 0 to 6 are **Done in code**
 (2026-10-22, committed on `dev`, not deployed; see each phase's status
-note). Phases 5 and 6 are designed in `docs/data-integrity-phase5-6-design.md`:
+note; Phases 5 and 6 in `docs/data-integrity-phase5-6-design.md`). What is
+left is deploying and the operator steps in the runbooks:
 **a new session should start with `docs/data-integrity-handoff.md`.** Built from a live scan of every reference in the production
 database and five code audits (accounts, rooms, messages, feed/games/calls/
 stickers, files/copies/crons), with every high-severity claim re-checked by
