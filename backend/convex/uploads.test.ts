@@ -51,6 +51,57 @@ describe("file ownership", () => {
     expect(await t.run((ctx) => ctx.db.system.get(photo))).not.toBeNull();
   });
 
+  test("changing my avatar moves its copies on my posts and reactions", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "me");
+    const set = (storageId: any) =>
+      t.mutation(api.users.updateAvatar, {
+        sessionToken: me.token,
+        userId: me.userId as any,
+        storageId,
+      });
+    const first = await store(t, 1000);
+    await set(first);
+
+    const ids = await t.run(async (ctx) => {
+      const moment = (author: any) =>
+        ctx.db.insert("moments", {
+          userId: me.userId as any,
+          dayKey: "2026-10-22",
+          createdAt: 0,
+          expiresAt: 1,
+          authorName: "me",
+          authorUsername: "me",
+          ...(author ? { authorAvatarStorageId: author } : {}),
+        });
+      const withFace = await moment(first);
+      // Posted before there was any avatar: stays on initials.
+      const bare = await moment(undefined);
+      const reaction = await ctx.db.insert("momentReactions", {
+        momentId: withFace,
+        userId: me.userId as any,
+        emoji: "🔥",
+        createdAt: 0,
+        userAvatarStorageId: first,
+      });
+      return { withFace, bare, reaction };
+    });
+
+    const second = await store(t, 1000);
+    await set(second);
+
+    const after = await t.run(async (ctx) => ({
+      withFace: await ctx.db.get(ids.withFace),
+      bare: await ctx.db.get(ids.bare),
+      reaction: await ctx.db.get(ids.reaction),
+      old: await ctx.db.system.get(first),
+    }));
+    expect(after.withFace?.authorAvatarStorageId).toBe(second);
+    expect(after.bare?.authorAvatarStorageId).toBeUndefined();
+    expect(after.reaction?.userAvatarStorageId).toBe(second);
+    expect(after.old).toBeNull();
+  });
+
   test("a file over the cap is refused", async () => {
     const t = convexTest(schema);
     const me = await signUp(t, "me");

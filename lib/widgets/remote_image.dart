@@ -157,6 +157,15 @@ class _RemoteImageState extends State<RemoteImage> {
   /// that was already on disk just reads as a flicker.
   bool _wasCold = false;
 
+  /// Whether this mount has already thrown its copy away and fetched again.
+  /// One retry per mount, so a file that is genuinely undecodable settles on
+  /// the broken tile instead of downloading in a loop.
+  bool _retried = false;
+
+  /// Bumped by [_recover] so the retry is a fresh [CachedNetworkImage], not
+  /// the old one still holding its failed stream for the same URL.
+  int _attempt = 0;
+
   @override
   void initState() {
     super.initState();
@@ -168,8 +177,46 @@ class _RemoteImageState extends State<RemoteImage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.storageId != widget.storageId) {
       _error = null;
+      _retried = false;
       _bind();
     }
+  }
+
+  /// Drops every local copy of a picture that failed to show, then fetches it
+  /// again from scratch.
+  ///
+  /// Without this one bad download is permanent for that device. The server
+  /// sends a 30-day `max-age`, so the cache manager hands back its disk copy
+  /// without asking again, and nothing ever deletes a file that fails to
+  /// decode. A download cut off once (a dropped connection, the app killed
+  /// mid-write) showed the broken tile for that one person while everyone else
+  /// saw the face. The same goes for a remembered URL that stopped serving.
+  /// So the URL, the bytes on disk and the decodes in memory all go, and
+  /// [_bind] starts over as if the image had never been seen.
+  void _recover(String url, ({int? width, int? height}) decode) {
+    if (_retried) return;
+    _retried = true;
+    final id = widget.storageId;
+    // The error builder runs mid-build; the rebuild it ends in cannot.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      FileUrlCache.instance.invalidate(id);
+      final provider =
+          CachedNetworkImageProvider(url, cacheManager: MediaImageCache.manager);
+      try {
+        await Future.wait<Object?>([
+          MediaImageCache.remove(url),
+          provider.evict(),
+          ResizeImage.resizeIfNeeded(decode.width, decode.height, provider)
+              .evict(),
+        ]);
+      } catch (_) {/* refetching is still the right next step */}
+      if (!mounted || widget.storageId != id) return;
+      setState(() {
+        _attempt++;
+        _measured = null;
+        _bind();
+      });
+    });
   }
 
   /// Resolves the serving URL, synchronously when [FileUrlCache] already knows
@@ -303,6 +350,7 @@ class _RemoteImageState extends State<RemoteImage> {
     return ClipRRect(
       borderRadius: radius,
       child: CachedNetworkImage(
+        key: ValueKey(_attempt),
         imageUrl: _url!,
         cacheManager: MediaImageCache.manager,
         width: widget.width,
@@ -318,9 +366,19 @@ class _RemoteImageState extends State<RemoteImage> {
         placeholder: (_, url) => widget.quiet
             ? const SizedBox.shrink()
             : _placeholder(url, radius),
-        errorWidget: (_, _, _) => widget.quiet
-            ? const SizedBox.shrink()
-            : _broken(theme, radius),
+        errorWidget: (_, url, _) {
+          _recover(url, decode);
+          // While the retry is under way it is still loading, not broken.
+          if (widget.quiet) return const SizedBox.shrink();
+          return _retried && _attempt == 0
+              ? _ShimmerBox(
+                  width: widget.width,
+                  height: widget.height,
+                  borderRadius: radius,
+                  onDark: widget.onDark,
+                )
+              : _broken(theme, radius);
+        },
       ),
     );
   }

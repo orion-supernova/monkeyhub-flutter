@@ -632,10 +632,45 @@ export const updateAvatar = mutation({
     // Guard against re-submitting the id already stored: that would delete the
     // file the row now points at and leave the user with a broken avatar.
     if (previous && previous !== storageId) {
+      await repointAvatarCopies(ctx, userId, previous, storageId);
       await deleteStored(ctx, previous);
     }
   },
 });
+
+/**
+ * Moves every denormalized copy of [userId]'s avatar from [from] to [to].
+ *
+ * `moments.authorAvatarStorageId` and `momentReactions.userAvatarStorageId`
+ * are stamped at write time so the subscribed `feed:board` never reads a
+ * `users` row. Deleting the old blob without moving them left every earlier
+ * post and reaction pointing at a file that no longer exists, which the client
+ * can only draw as a broken tile.
+ *
+ * Only rows still carrying [from] move: a row stamped before the user had any
+ * avatar keeps drawing initials, exactly as it did. `typingIndicators` is left
+ * alone, since its 2s re-stamp and 8s TTL replace it on their own.
+ */
+export async function repointAvatarCopies(ctx: any, userId: any, from: any, to: any) {
+  const moments = await ctx.db
+    .query("moments")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .collect();
+  for (const m of moments) {
+    if (m.authorAvatarStorageId === from) {
+      await ctx.db.patch(m._id, { authorAvatarStorageId: to });
+    }
+  }
+  const reactions = await ctx.db
+    .query("momentReactions")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .collect();
+  for (const r of reactions) {
+    if (r.userAvatarStorageId === from) {
+      await ctx.db.patch(r._id, { userAvatarStorageId: to });
+    }
+  }
+}
 
 /**
  * The one scan behind both `users.searchUsers` and `friends.searchUsers`.
