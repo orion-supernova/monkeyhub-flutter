@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
+import { drainDeletions } from "./deletionTestUtils";
 import { MAX_FILE_BYTES, MAX_UPLOAD_URLS_PER_HOUR } from "./files";
 import schema from "./schema";
 
@@ -52,6 +53,8 @@ describe("file ownership", () => {
   });
 
   test("changing my avatar moves its copies on my posts and reactions", async () => {
+    // The copies move, and the old file goes, in an `avatar` job.
+    vi.useFakeTimers();
     const t = convexTest(schema);
     const me = await signUp(t, "me");
     const set = (storageId: any) =>
@@ -89,6 +92,7 @@ describe("file ownership", () => {
 
     const second = await store(t, 1000);
     await set(second);
+    await drainDeletions(t, vi.runAllTimers);
 
     const after = await t.run(async (ctx) => ({
       withFace: await ctx.db.get(ids.withFace),

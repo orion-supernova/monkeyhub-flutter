@@ -16,6 +16,7 @@ import { unreadForRoom } from "./badges";
 import { MUTE_ALWAYS, resolveMute } from "./mute";
 import { deleteStored, claimUpload } from "./files";
 import { wipeRoomCompletely } from "./roomCleanup";
+import { getLiveUser, isTombstoned } from "./deletionCore";
 import {
   ROLE_MEMBER,
   ROLE_OWNER,
@@ -122,7 +123,7 @@ export const join = mutation({
   },
   handler: async (ctx, { roomId, userId, passwordHash }) => {
     const room = await ctx.db.get(roomId);
-    if (!room) throw new Error("ROOM_NOT_FOUND");
+    if (!room || isTombstoned(room)) throw new Error("ROOM_NOT_FOUND");
 
     // This is the DISCOVER door, and Discover lists public rooms only. A
     // private room is reachable here solely by knowing its id, and room ids
@@ -193,6 +194,9 @@ export const deleteRoom = mutation({
   handler: async (ctx, { roomId, userId }) => {
     const room = await ctx.db.get(roomId);
     if (!room) throw new Error("ROOM_NOT_FOUND");
+    // Already on its way out (a double tap, or the other side of a DM): the
+    // teardown is queued, so a second delete has nothing left to do.
+    if (isTombstoned(room)) return;
     // Before the DM branch below, which would otherwise wave this through:
     // the report room IS a DM, so "either side may end it" would apply to it.
     await assertNotSystemRoom(ctx, roomId);
@@ -227,7 +231,7 @@ export const updatePassword = mutation({
   },
   handler: async (ctx, { roomId, userId, passwordHash }) => {
     const room = await ctx.db.get(roomId);
-    if (!room) throw new Error("ROOM_NOT_FOUND");
+    if (!room || isTombstoned(room)) throw new Error("ROOM_NOT_FOUND");
     // Any admin, not just the creator. A room password is a door key like the
     // invite link is, and the people trusted to rotate one are the people
     // trusted to rotate the other.
@@ -249,7 +253,7 @@ export const updateRoom = mutation({
   },
   handler: async (ctx, { roomId, userId, name, description, isPrivate, messageLifetime }) => {
     const room = await ctx.db.get(roomId);
-    if (!room) throw new Error("ROOM_NOT_FOUND");
+    if (!room || isTombstoned(room)) throw new Error("ROOM_NOT_FOUND");
     // A system room's name is load-bearing (`ensureReportRoom` looks it up by
     // the exact `dm:regular:<a>:<b>` string), and it has no description or
     // visibility a user should be setting. The client hides the fields; this
@@ -301,7 +305,7 @@ export const updateRoomAvatar = mutation({
   },
   handler: async (ctx, { roomId, userId, storageId }) => {
     const room = await ctx.db.get(roomId);
-    if (!room) throw new Error("ROOM_NOT_FOUND");
+    if (!room || isTombstoned(room)) throw new Error("ROOM_NOT_FOUND");
     await claimUpload(ctx, storageId, userId, "avatar");
     // Same rule as `updateRoom`, for the same reason — the avatar is the most
     // visible thing about a group, and it is the one a griefer reaches for.
@@ -390,7 +394,9 @@ export const listUserRooms = query({
     const rooms = await Promise.all(
       memberships.map(async (m) => {
         const room = await ctx.db.get(m.roomId);
-        if (!room) return null;
+        // A room being deleted vanishes from the list at once (its membership
+        // rows go in the first teardown step); the row is in hand, so free.
+        if (!room || isTombstoned(room)) return null;
 
         // Participant ids, for DMs ONLY. The narrowing is a fan-out fix, not a
         // payload saving.
@@ -665,7 +671,8 @@ export const getMembers = query({
     const users = await Promise.all(
       members.map(async (m) => {
         const user = await ctx.db.get(m.userId);
-        if (!user) return null;
+        // A scrubbed ghost (account deletion in flight) is not a member to show.
+        if (!user || isTombstoned(user)) return null;
         return {
           // No `email`. Sharing a room with someone is not consent to hand
           // them your address — a public room would have leaked it to every
@@ -783,6 +790,10 @@ export const getMemberIds = internalQuery({
 
     if (resolvePushContext) {
       const room = await ctx.db.get(roomId);
+      // Nobody is pushed for a room being deleted. Only here, where the room is
+      // read anyway: the dismiss path (no `resolvePushContext`) must still reach
+      // everyone, and gains no read.
+      if (isTombstoned(room)) return { exists: false, members: [] };
       isGroup = !!room && !room.name.startsWith("dm:");
       roomName = isGroup ? room!.name : undefined;
       if (isGroup && room?.avatarStorageId) {
@@ -846,7 +857,7 @@ export const getRoom = query({
   args: { roomId: v.id("rooms") },
   handler: async (ctx, { roomId, userId }) => {
     const room = await ctx.db.get(roomId);
-    if (!room) return null;
+    if (!room || isTombstoned(room)) return null;
     const members = await ctx.db
       .query("roomMembers")
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
@@ -867,6 +878,9 @@ export const getOrCreateDM = mutation({
   },
   handler: async (ctx, { userId, friendId, roomType, messageLifetime }) => {
     if (userId.toString() === friendId.toString()) throw new Error("CANNOT_DM_SELF");
+    // No DM with an account being deleted (the friendship row outlives the
+    // tombstone until the teardown's social step).
+    if (!(await getLiveUser(ctx, friendId))) throw new Error("USER_NOT_FOUND");
 
     // Either party being a child gates the DM: family is always fine, anyone
     // else has to have cleared the guardian relay into an accepted contact.
@@ -1063,7 +1077,7 @@ export const listShared = query({
         .first();
       if (!otherMembership) continue;
       const room = await ctx.db.get(m.roomId);
-      if (!room) continue;
+      if (!room || isTombstoned(room)) continue;
       if (room.name?.startsWith("dm:")) {
         hasDm = true;
       } else {

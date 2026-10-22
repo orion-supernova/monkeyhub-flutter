@@ -6,6 +6,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { GAMES } from "./games";
 import { CODE_GAME, extendStreak, reactionsOn } from "./recordBook";
 import { lensFor } from "./visibility";
+import { isTombstoned } from "./deletionCore";
 import { byNameThenId, competitionPlaces, shownSeconds } from "./ranking";
 
 /**
@@ -117,7 +118,7 @@ export const board = query({
     if (me?.avatarStorageId) avatars[userId] = me.avatarStorageId;
     for (const friendId of await acceptedFriendIds(ctx, userId)) {
       const friend: any = await ctx.db.get(friendId);
-      if (!friend || isHidden(friend)) continue;
+      if (!friend || isTombstoned(friend) || isHidden(friend)) continue;
       if (friend.avatarStorageId && lens.canSee(friend, "avatar")) {
         avatars[friendId] = friend.avatarStorageId;
       }
@@ -227,7 +228,9 @@ export const react = mutation({
       throw new Error("NOT_FRIENDS");
     }
     const holder = await ctx.db.get(record.userId);
-    if (!holder || isHidden(holder)) throw new Error("RECORD_PRIVATE");
+    if (!holder || isTombstoned(holder) || isHidden(holder)) {
+      throw new Error("RECORD_PRIVATE");
+    }
 
     const now = Date.now();
     const existing = await ctx.db

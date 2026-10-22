@@ -6,9 +6,10 @@ import type { Id } from "./_generated/dataModel";
 import { ACCOUNT_CHILD, assertChildPolicy } from "./childGuard";
 import { hasHit } from "./contentFilter";
 import { screenAndReport } from "./moderationCore";
-import { deleteStored, claimUpload } from "./files";
+import { claimUpload } from "./files";
 import { MAX_GUESSES, SLOTS, answerFor, pegsForSlots, score } from "./puzzle";
-import { purgeMomentComments } from "./momentComments";
+import { getLiveUser } from "./deletionCore";
+import { deleteMomentCore } from "./momentCleanup";
 import { lensFor } from "./visibility";
 import { byNameThenId, competitionPlaces } from "./ranking";
 
@@ -376,7 +377,9 @@ export const board = query({
         // settings being real; denormalizing a privacy flag onto every moment
         // would mean a change to it silently not applying to older rows.
         const author = await ctx.db.get(authorId);
-        if (!author) continue;
+        // A friend being deleted drops off the board at once (the row is
+        // already in hand, so this costs no read).
+        if (!author || author.deletingAt !== undefined) continue;
         authors.set(authorId, author);
         reactorRows.set(authorId, author);
         const vis = visibilityOf(author);
@@ -654,7 +657,7 @@ export const post = mutation({
     ctx,
     { userId, dayKey, tag, caption, mediaStorageId, posterStorageId, mediaKind }
   ) => {
-    const user = await ctx.db.get(userId);
+    const user = await getLiveUser(ctx, userId);
     if (!user) throw new Error("USER_NOT_FOUND");
     await claimUpload(ctx, mediaStorageId, userId, "media");
     await claimUpload(ctx, posterStorageId, userId, "media");
@@ -803,13 +806,10 @@ export const moment = query({
 });
 
 /**
- * Removes a moment and everything hanging off it.
- *
- * The blob goes too — this is the author asking for it to be gone, which is a
- * different act from a moment merely expiring off friends' boards. Released
- * through `deleteStored` (never `ctx.storage.delete`, which throws on an
- * already-deleted blob and would abort the rest of this teardown), and only
- * when no other moment still points at the same bytes.
+ * Removes a moment and everything hanging off it (`deleteMomentCore`: bounded,
+ * with a `moment` job for a long tail of reactions, views or comments). The
+ * blob goes too: this is the author asking for it to be gone, which is a
+ * different act from a moment merely expiring off friends' boards.
  */
 export const remove = mutation({
   args: { userId: v.id("users"), momentId: v.id("moments") },
@@ -817,49 +817,7 @@ export const remove = mutation({
     const m = await ctx.db.get(momentId);
     if (!m) return;
     if (m.userId !== userId) throw new Error("NOT_YOUR_MOMENT");
-
-    for (const r of await ctx.db
-      .query("momentReactions")
-      .withIndex("by_moment", (q: any) => q.eq("momentId", momentId))
-      .collect()) {
-      await ctx.db.delete(r._id);
-    }
-    for (const vw of await ctx.db
-      .query("momentViews")
-      .withIndex("by_moment", (q: any) => q.eq("momentId", momentId))
-      .collect()) {
-      await ctx.db.delete(vw._id);
-    }
-    await purgeMomentComments(ctx, momentId);
-    await ctx.db.delete(momentId);
-
-    // The two fields are different columns and must be checked against their
-    // own. The poster used to be looked up in `by_media`, which only finds a
-    // moment using these bytes as its PICTURE, so a poster shared with another
-    // moment's poster was deleted out from under it.
-    if (m.mediaStorageId) {
-      const others = await ctx.db
-        .query("moments")
-        .withIndex("by_media", (q: any) =>
-          q.eq("mediaStorageId", m.mediaStorageId)
-        )
-        .first();
-      if (!others) await deleteStored(ctx, m.mediaStorageId);
-    }
-    if (m.posterStorageId) {
-      // Kept while any other moment uses these bytes as its poster or its
-      // picture.
-      const poster = m.posterStorageId;
-      const asMedia = await ctx.db
-        .query("moments")
-        .withIndex("by_media", (q: any) => q.eq("mediaStorageId", poster))
-        .first();
-      const asPoster = await ctx.db
-        .query("moments")
-        .withIndex("by_poster", (q: any) => q.eq("posterStorageId", poster))
-        .first();
-      if (!asMedia && !asPoster) await deleteStored(ctx, poster);
-    }
+    await deleteMomentCore(ctx, m);
   },
 });
 
@@ -1020,7 +978,7 @@ export const archive = query({
         .first();
       if (!link || link.status !== "accepted") throw new Error("NOT_A_FRIEND");
 
-      const author = await ctx.db.get(target);
+      const author = await getLiveUser(ctx, target);
       if (!author) throw new Error("USER_NOT_FOUND");
       const vis = visibilityOf(author);
       // History is gated first — it is the setting that says "you may look

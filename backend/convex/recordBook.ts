@@ -1,5 +1,6 @@
 import type { Doc, Id } from "./_generated/dataModel";
 import { dayOrdinal } from "./dayKeys";
+import { Budget, tuning } from "./deletionCore";
 
 /**
  * The write side of the all-time records (`records.ts`), in a module of its own.
@@ -125,20 +126,61 @@ export function liveStreak(
 
 /**
  * Deletes [userId]'s records, the reactions on them, and the reactions they
- * left on other people's. For account teardown (`auth.purgeUser`).
+ * left on other people's. For the user teardown (`deletionSteps/userSteps.ts`).
+ *
+ * One bounded slice per call: true when nothing is left, false when the budget
+ * ran out first. No cursor, a deleted row leaves its range; a record goes only
+ * after the last reaction on it.
  */
-export async function purgeRecordsOf(ctx: any, userId: Id<"users">) {
-  for (const r of await ctx.db
-    .query("recordReactions")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .collect()) {
-    await ctx.db.delete(r._id);
+export async function purgeRecordsOf(
+  ctx: any,
+  userId: Id<"users">,
+  b: Budget = new Budget(),
+): Promise<boolean> {
+  // `eq(undefined)` would match every row whose field is unset.
+  if (!userId) return true;
+  for (;;) {
+    if (b.spent()) return false;
+    const rows = await ctx.db
+      .query("recordReactions")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .take(tuning.pageRows);
+    b.read(Math.max(rows.length, 1));
+    for (const r of rows) {
+      if (b.spent()) return false;
+      await ctx.db.delete(r._id);
+      b.write();
+    }
+    if (rows.length < tuning.pageRows) break;
   }
-  for (const record of await ctx.db
-    .query("gameRecords")
-    .withIndex("by_user_game", (q: any) => q.eq("userId", userId))
-    .collect()) {
-    for (const r of await reactionsOn(ctx, record._id)) await ctx.db.delete(r._id);
-    await ctx.db.delete(record._id);
+  for (;;) {
+    if (b.spent()) return false;
+    const records = await ctx.db
+      .query("gameRecords")
+      .withIndex("by_user_game", (q: any) => q.eq("userId", userId))
+      .take(tuning.pageRows);
+    b.read(Math.max(records.length, 1));
+    for (const record of records) {
+      // The reactions go first, a page at a time; a record with more left
+      // stays, and the next call picks it up again.
+      for (;;) {
+        if (b.spent()) return false;
+        const left = await ctx.db
+          .query("recordReactions")
+          .withIndex("by_record_user", (q: any) => q.eq("recordId", record._id))
+          .take(tuning.pageRows);
+        b.read(Math.max(left.length, 1));
+        for (const r of left) {
+          if (b.spent()) return false;
+          await ctx.db.delete(r._id);
+          b.write();
+        }
+        if (left.length < tuning.pageRows) break;
+      }
+      if (b.spent()) return false;
+      await ctx.db.delete(record._id);
+      b.write();
+    }
+    if (records.length < tuning.pageRows) return true;
   }
 }

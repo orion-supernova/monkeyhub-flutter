@@ -19,6 +19,7 @@ import {
   discardUpload,
   isMicroPoster,
 } from "./files";
+import { deleteCapped, enqueueDeletion, getLiveRoom, tuning } from "./deletionCore";
 import { forkInteraction, purgeInteraction } from "./interactionCore";
 import { purgeChallengeForMessage, purgeMatchForMessage } from "./matchCore";
 import { lensFor } from "./visibility";
@@ -1978,115 +1979,75 @@ export const gcExpiredLiveShares = internalMutation({
 });
 
 /**
- * Everything that has to happen when a message stops existing, whether the
- * user deleted it, it self-destructed, or its author's account is going. The
- * ONE per-message delete: `deleteMessage`, `deleteMany`, `expireMessage` and
- * `auth.purgeUser` all come through here, so a dependent added below (a
- * game, a poll, a pin) is torn down on every path at once. Those paths ran
- * verbatim copies of this before; they had already drifted (neither repaired
- * the room preview, and account deletion left a game's card-less row live).
+ * Marks one reply's denormalized preview as deleted, so its inline tether keeps
+ * rendering ("message removed") instead of pointing at a vanished parent.
+ * Returns whether it patched; a reply that is already marked, or has no
+ * preview, is left alone, which is what makes the job's paging safe to repeat.
  *
- * The only bulk exception is wiping a whole room (`roomCleanup`), which sweeps
- * each dependent table by `roomId` instead, through the same per-table
- * teardown (`purgeMatchesForRoom` → `eraseMatch`).
- *
- * Ordering matters: this must run BEFORE `ctx.db.delete(messageId)`, because
- * it reads the message's siblings to re-derive the room preview. [msg] must
- * still exist; a caller that may hold a stale copy re-reads it first.
+ * The preview's copied `mediaStorageId` is a snapshot of the parent's id (see
+ * `send`). It is dropped only when that file was REALLY deleted
+ * (`deletedStorageIds`, what `releaseMessageBlobs` returned): a forward that
+ * keeps the bytes alive keeps the picture in the quote alive too, and dropping
+ * the id there would make a live file look unreferenced to
+ * `files.gcOrphanedFiles` and blank the quote.
  */
-export async function removeMessageAndFanout(
+export async function markReplyDeleted(
+  ctx: any,
+  child: any,
+  deletedStorageIds: ReadonlySet<string>,
+): Promise<boolean> {
+  const existing = child.replyToPreview;
+  if (!existing || existing.contentPreview === "__DELETED__") return false;
+  const stale = existing.mediaStorageId;
+  const drop = stale !== undefined && deletedStorageIds.has(stale.toString());
+  const { mediaStorageId: _kept, ...rest } = existing;
+  await ctx.db.patch(child._id, {
+    replyToPreview: {
+      ...(drop ? rest : existing),
+      contentPreview: "__DELETED__",
+    },
+  });
+  return true;
+}
+
+/**
+ * The bounded part of a message ending, whether the user deleted it, it
+ * self-destructed, or its author's account or room is going. Every table is
+ * capped at `tuning.inlineCap` rows, so one call is about 150 writes and 300
+ * reads however popular the message was and a self-destruct on a message with
+ * a million reactions cannot fail. `overflow` says something was left (more
+ * reactions, answers, replies, a long move history, ...) and the caller must
+ * hand the rest to a `message` job; use `removeMessageBounded` to do both.
+ *
+ * `deletedStorageIds` are the blobs really deleted (a shared file is kept), and
+ * ride on the job so its reply sweep strips only those from previews.
+ *
+ * What it does, all in this transaction: delete the row; repair the room
+ * preview (only when it was the newest); release the media; the poll body and
+ * the first answers; the game behind a card and its first move bubbles; the
+ * challenge body; clear `matchMoves.messageId`; the first reactions, pins,
+ * bookmarks and view-once rows; mark the first replies' previews deleted.
+ *
+ * [msg] must still exist; a caller that may hold a stale copy re-reads it first.
+ */
+export async function removeMessageImmediate(
   ctx: any,
   msg: any,
   messageId: any,
-) {
-  // Reactions.
-  const reactions = await ctx.db
-    .query("reactions")
-    .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
-    .collect();
-  for (const r of reactions) await ctx.db.delete(r._id);
-
-  // Pins. Room state, but it points at this message — a pin outliving its
-  // message is a banner entry that can be neither opened nor cleared. Being
-  // here rather than in `deleteMessage` is what makes a pinned message in a
-  // Chamber of Secrets room clean itself up when it self-destructs.
-  const pins = await ctx.db
-    .query("pinnedMessages")
-    .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
-    .collect();
-  for (const p of pins) await ctx.db.delete(p._id);
-
-  // Bookmarks. Personal rather than room state, but with the same defect if
-  // left behind: `bookmarks:listForRoom` would drop the dangling row on read
-  // and the reader would be left with a saved message that silently isn't
-  // there, and no way to clear it — `bookmarks:unsave` can't find a row for a
-  // message it can no longer load. Here rather than in `deleteMessage` for the
-  // reason the pins above are: this is also the path a Chamber of Secrets
-  // message takes when it self-destructs, and a saved message expiring out from
-  // under its reader is the ordinary case, not the exotic one.
-  const bookmarks = await ctx.db
-    .query("messageBookmarks")
-    .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
-    .collect();
-  for (const b of bookmarks) await ctx.db.delete(b._id);
-
-  // Media, and the video poster that rides with it. Via `releaseMessageBlobs`
-  // rather than a bare `deleteStored` because forwarding re-references a file
-  // instead of copying it, so this message may not be the last one pointing at
-  // its bytes. That helper is also what tolerates a file some other path
-  // already removed — a throw here would abort the fanout below half-done,
-  // leaving children tethered to a deleted parent.
-  //
-  // Not used on the two view-once burn paths: an armed message can be neither
-  // forwarded nor given a poster, so there is nothing there to share.
-  await releaseMessageBlobs(ctx, msg);
-
-  // View-once ledger. Also runs for messages that were never armed, where the
-  // scan is a single empty index range.
-  await purgeViewOnceViews(ctx, messageId);
-
-  // The poll/checklist/event body and every answer to it. Here rather than in
-  // `deleteMessage` for the reason the pins and bookmarks above are: this is
-  // also the path a Chamber of Secrets message takes when it self-destructs,
-  // and a poll outliving the message that posed the question would be a row
-  // nothing renders and nothing can reach. Unconditional, like the line above
-  // it — only three message types find anything.
-  await purgeInteraction(ctx, messageId);
-  // An in-chat game's card: the game goes with it, and so do its move
-  // bubbles. One level deep: a move bubble has no game of its own.
-  for (const moveId of await purgeMatchForMessage(ctx, messageId)) {
-    const move = await ctx.db.get(moveId);
-    if (move) await removeMessageAndFanout(ctx, move, moveId);
-  }
-  await purgeChallengeForMessage(ctx, messageId);
-
-  // Mark every child reply's denormalized preview as deleted so their inline
-  // tether keeps rendering ("message removed") instead of pointing at a
-  // vanished parent.
-  const children = await ctx.db
-    .query("messages")
-    .withIndex("by_replyTo", (q: any) => q.eq("replyToId", messageId))
-    .collect();
-  for (const child of children) {
-    const existing = child.replyToPreview;
-    if (!existing) continue;
-    // Drop the copied `mediaStorageId` too. It's a snapshot of the parent's id
-    // (see `send`), and the file it named was just deleted — leaving it set
-    // points the preview at a blob that no longer exists, and makes the file
-    // look referenced to `files.gcOrphanedFiles`.
-    const { mediaStorageId: _stale, ...rest } = existing;
-    await ctx.db.patch(child._id, {
-      replyToPreview: { ...rest, contentPreview: "__DELETED__" },
-    });
-  }
+): Promise<{ overflow: boolean; deletedStorageIds: string[] }> {
+  const cap = tuning.inlineCap;
+  let overflow = false;
+  const capped = async (query: any) => {
+    const r = await deleteCapped(ctx, query, cap);
+    if (r.overflow) overflow = true;
+  };
 
   await ctx.db.delete(messageId);
 
   // Repair the room's last-message preview. Only when the removed message was
-  // actually the newest — a mid-history delete would otherwise re-write the
+  // actually the newest: a mid-history delete would otherwise re-write the
   // room doc and needlessly invalidate every member's listUserRooms
-  // subscription. Previously nothing did this at all, so deleting the newest
-  // message left its text on the room card forever.
+  // subscription.
   const room = await ctx.db.get(msg.roomId);
   if (room && room.lastMessageTime === msg.createdAt) {
     const newest = await ctx.db
@@ -2100,6 +2061,125 @@ export async function removeMessageAndFanout(
       lastMessageSenderId: newest ? newest.userId : undefined,
     });
   }
+
+  // Media, and the video poster that rides with it. Via `releaseMessageBlobs`
+  // rather than a bare `deleteStored` because forwarding re-references a file
+  // instead of copying it, so this message may not be the last one pointing at
+  // its bytes. That helper also tolerates a file some other path already
+  // removed. Not used on the two view-once burn paths: an armed message can be
+  // neither forwarded nor given a poster, so there is nothing there to share.
+  const deletedStorageIds = await releaseMessageBlobs(ctx, msg);
+
+  // The poll/checklist/event body and the first answers to it. Unconditional:
+  // only three message types find anything.
+  if (await purgeInteraction(ctx, messageId, cap)) overflow = true;
+
+  // An in-chat game's card: the game goes with it, and so do its move
+  // bubbles (the first page here, the rest in the game's own job). One level
+  // deep: a move bubble has no game of its own.
+  for (const moveId of await purgeMatchForMessage(ctx, messageId, cap)) {
+    const move = await ctx.db.get(moveId);
+    if (move) await removeMessageBounded(ctx, move, moveId);
+  }
+  await purgeChallengeForMessage(ctx, messageId);
+
+  // A move whose bubble was just deleted must not keep naming it.
+  if (messageId) {
+    const moves = await ctx.db
+      .query("matchMoves")
+      .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
+      .take(5);
+    for (const m of moves) await ctx.db.patch(m._id, { messageId: undefined });
+  }
+
+  await capped(
+    ctx.db
+      .query("reactions")
+      .withIndex("by_message", (q: any) => q.eq("messageId", messageId)),
+  );
+  // Pins. Room state, but it points at this message: a pin outliving its
+  // message is a banner entry that can be neither opened nor cleared.
+  await capped(
+    ctx.db
+      .query("pinnedMessages")
+      .withIndex("by_message", (q: any) => q.eq("messageId", messageId)),
+  );
+  // Bookmarks. Personal rather than room state, but with the same defect if
+  // left behind: a saved message that silently isn't there, and no way to clear
+  // it, since `bookmarks:unsave` can't find a row for a message it can no
+  // longer load.
+  await capped(
+    ctx.db
+      .query("messageBookmarks")
+      .withIndex("by_message", (q: any) => q.eq("messageId", messageId)),
+  );
+  // View-once ledger. Also runs for messages that were never armed, where the
+  // scan is a single empty index range.
+  await capped(
+    ctx.db
+      .query("viewOnceViews")
+      .withIndex("by_message", (q: any) => q.eq("messageId", messageId)),
+  );
+
+  // Child replies, by their `replyToId`.
+  const children = await ctx.db
+    .query("messages")
+    .withIndex("by_replyTo", (q: any) => q.eq("replyToId", messageId))
+    .take(cap + 1);
+  const gone = new Set(deletedStorageIds);
+  for (const child of children.slice(0, cap)) {
+    await markReplyDeleted(ctx, child, gone);
+  }
+  if (children.length > cap) overflow = true;
+
+  return { overflow, deletedStorageIds };
+}
+
+/**
+ * [removeMessageImmediate], and a `message` job for whatever it left. No push
+ * revoke: account and room teardown use this (their messages' pushes are moot).
+ */
+export async function removeMessageBounded(
+  ctx: any,
+  msg: any,
+  messageId: any,
+): Promise<void> {
+  const { overflow, deletedStorageIds } = await removeMessageImmediate(
+    ctx,
+    msg,
+    messageId,
+  );
+  if (overflow) {
+    await enqueueDeletion(ctx, {
+      kind: "message",
+      targetId: messageId.toString(),
+      args: { deletedStorageIds },
+    });
+  }
+}
+
+/**
+ * Everything that has to happen when a message stops existing. The ONE
+ * per-message delete for a user's own action: `deleteMessage`, `deleteMany`,
+ * `expireMessage` and the moderation paths all come through here, so a
+ * dependent added to `removeMessageImmediate` is torn down on every path at
+ * once.
+ *
+ * Bounded (`removeMessageBounded`: the immediate part, a `message` job for the
+ * rest), then the push revoke.
+ *
+ * The only bulk exception is wiping a whole room (`roomCleanup`), which sweeps
+ * each dependent table by `roomId` instead, through the same per-table
+ * teardown (`purgeMatchesForRoom` -> `eraseMatch`).
+ *
+ * [msg] must still exist; a caller that may hold a stale copy re-reads it first.
+ */
+export async function removeMessageAndFanout(
+  ctx: any,
+  msg: any,
+  messageId: any,
+) {
+  await removeMessageBounded(ctx, msg, messageId);
 
   // A game move was posted quietly (`sendCore`'s `quiet`): no push of its
   // own to take back, and a long game would schedule one job per move.
@@ -2201,7 +2281,9 @@ export const editMessage = mutation({
       return "EDIT_WINDOW_EXPIRED";
     }
 
-    const room = await ctx.db.get(msg.roomId);
+    // A room being deleted takes no rewrites (tombstoned counts as gone).
+    const room = await getLiveRoom(ctx, msg.roomId);
+    if (!room) throw new Error("ROOM_NOT_FOUND");
     // An edit is a post of text, and a room that no longer takes text (a room
     // made read-only after the message was sent) takes no rewrites either.
     await assertRoomAllows(ctx, room, userId, { kinds: ["text"] });
@@ -2378,8 +2460,9 @@ export const forwardToRoom = mutation({
     // `guardOutgoing` derives `expiresAt` from the TARGET room, so a message
     // written to self-destruct in an hour would land in an ordinary room as a
     // permanent one — the sender's expiry silently laundered away by a reader.
-    const sourceRoom = await ctx.db.get(sourceRoomId);
-    if (sourceRoom?.messageLifetime) throw new Error("SOURCE_IS_EPHEMERAL");
+    const sourceRoom = await getLiveRoom(ctx, sourceRoomId);
+    if (!sourceRoom) throw new Error("ROOM_NOT_FOUND");
+    if (sourceRoom.messageLifetime) throw new Error("SOURCE_IS_EPHEMERAL");
 
     const sources = await Promise.all(messageIds.map((id) => ctx.db.get(id)));
 
@@ -3472,7 +3555,7 @@ export const markRoomRead = mutation({
     if (upTo !== undefined) {
       newest = Math.min(upTo, Date.now());
     } else {
-      const room = await ctx.db.get(roomId);
+      const room = await getLiveRoom(ctx, roomId);
       newest = room?.lastMessageTime ?? 0;
     }
     if ((membership.lastReadAt ?? 0) >= newest) return;
@@ -3601,7 +3684,7 @@ async function advanceDelivered(
     .first();
   if (!membership) return; // not a member, silently no-op
 
-  const room = await ctx.db.get(roomId);
+  const room = await getLiveRoom(ctx, roomId);
 
   // Above this many members the receipt stops being worth its fan-out: one
   // patch re-runs `getReadState` for every member, so the cost climbs with

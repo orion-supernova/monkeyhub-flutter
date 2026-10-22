@@ -105,6 +105,9 @@ export async function mintSession(
   if (account?.suspendedAt !== undefined && account !== null) {
     throw new Error(ERR_ACCOUNT_SUSPENDED);
   }
+  // A scrubbed ghost (`deletionCore.startUserDeletion`) must not sign in. Inline
+  // rather than `isTombstoned`: deletionCore imports this file.
+  if (account?.deletingAt !== undefined) throw new Error(ERR_SESSION_REVOKED);
   const now = Date.now();
   const previous = await ctx.db
     .query("sessions")
@@ -231,6 +234,10 @@ export async function requireSession(
   // extra `get`, on a path that ends in a sign-out anyway.
   if (row.revokedAt !== undefined) {
     const owner = await ctx.db.get(row.userId);
+    // Deleting beats suspended: a suspended user who deleted themselves gets the
+    // plain sign-out, and a second `deleteAccount` call ends here (not allowed
+    // through `allowSuspended`). `deletingAt` is checked inline, see `mintSession`.
+    if (owner?.deletingAt !== undefined) throw new Error(ERR_SESSION_REVOKED);
     if (owner?.suspendedAt !== undefined && owner !== null) {
       // The one exception, for `auth.deleteAccount` alone: the session the BAN
       // revoked still proves who is asking. Only that one — a token revoked
@@ -259,6 +266,9 @@ export async function requireSession(
   // is a session layer that cannot tell a live account from a deleted one.
   const user = await ctx.db.get(row.userId);
   if (!user) throw new Error(ERR_SESSION_REVOKED);
+  // Free: a tombstoned account (deletion in flight) is signed out, even for
+  // `allowSuspended`: the delete has started and cannot be asked for twice.
+  if (user.deletingAt !== undefined) throw new Error(ERR_SESSION_REVOKED);
   // Free: the row is already in hand. See `moderation.suspendAccount`.
   if (user.suspendedAt !== undefined && !opts?.allowSuspended) {
     throw new Error(ERR_ACCOUNT_SUSPENDED);

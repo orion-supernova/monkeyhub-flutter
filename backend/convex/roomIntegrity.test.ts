@@ -1,7 +1,8 @@
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "./_generated/api";
 import { MAX_ROOMS_PER_USER } from "./roomAdmin";
+import { drainDeletions } from "./deletionTestUtils";
 import schema from "./schema";
 
 /**
@@ -15,6 +16,20 @@ import schema from "./schema";
  */
 
 type T = ReturnType<typeof convexTest>;
+
+// Deleting an account or a room finishes in the background (the lifecycle
+// engine's scheduled steps), so assertions about the end state drain first.
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
+// Only the zero-delay links fire: `runAllTimers` would also fire the 30 s ring
+// timeouts of the calls under test, racing the teardown that is supposed to end
+// them (a real call's timeout is 30 s away, the teardown's first step is not).
+const drain = (t: ReturnType<typeof convexTest>) =>
+  drainDeletions(t, () => vi.advanceTimersByTime(0));
 type Who = { token: string; userId: string };
 
 const signUp = (t: T, username: string): Promise<Who> =>
@@ -126,6 +141,7 @@ describe("calls follow membership", () => {
     });
 
     await t.mutation(api.rooms.deleteRoom, { ...as(owner), roomId } as any);
+    await drain(t);
 
     expect(((await get(t, groupCallId)) as any).status).toBe("ended");
     expect((await participant(t, groupCallId, alice)).status).toBe("left");

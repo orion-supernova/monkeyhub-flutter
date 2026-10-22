@@ -2,6 +2,7 @@ import { mutation } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { CODE_GAME, noteSolve } from "./recordBook";
+import { getLiveUser } from "./deletionCore";
 
 /**
  * The daily puzzle.
@@ -327,7 +328,7 @@ export const shareResult = mutation({
     }
     if (row.sharedAt !== undefined) throw new Error("ALREADY_SHARED");
 
-    const player = await ctx.db.get(userId);
+    const player = await getLiveUser(ctx, userId);
     if (!player) throw new Error("USER_NOT_FOUND");
     if ((player.visibility?.puzzle ?? "friends") === "nobody") {
       throw new Error("RESULT_PRIVATE");

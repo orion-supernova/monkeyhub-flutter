@@ -1,5 +1,6 @@
 import { mutation, query } from "./functions";
 import { v } from "convex/values";
+import { Budget, tuning } from "./deletionCore";
 
 /**
  * Manual per-speaker colour choices — "make jun the teal one".
@@ -190,29 +191,45 @@ export async function purgeSpeakerColorsForMember(
   for (const r of aboutThem) await ctx.db.delete(r._id);
 }
 
-/** Every override in a room, for `roomCleanup.wipeRoomContents`. */
-export async function purgeSpeakerColorsForRoom(ctx: any, roomId: any) {
-  const rows = await ctx.db
-    .query("speakerColors")
-    .withIndex("by_room_subject", (q: any) => q.eq("roomId", roomId))
-    .collect();
-  for (const r of rows) await ctx.db.delete(r._id);
-}
-
 /**
- * Every override this account is either side of, for `auth.purgeUser` — the
- * ones they set, and the ones other people set about them.
+ * Every override this account is either side of, for the user teardown (the
+ * `speakerColors` claims in `deletionSteps/userSteps.ts`): the ones they set,
+ * and the ones other people set about them.
+ *
+ * One bounded slice per call: true when both ranges are empty, false when the
+ * budget ran out first. No cursor, a deleted row leaves its range.
  */
-export async function purgeSpeakerColorsForUser(ctx: any, userId: any) {
-  const theirs = await ctx.db
-    .query("speakerColors")
-    .withIndex("by_viewer_room_subject", (q: any) => q.eq("viewerId", userId))
-    .collect();
-  for (const r of theirs) await ctx.db.delete(r._id);
-
-  const aboutThem = await ctx.db
-    .query("speakerColors")
-    .withIndex("by_subject", (q: any) => q.eq("subjectId", userId))
-    .collect();
-  for (const r of aboutThem) await ctx.db.delete(r._id);
+export async function purgeSpeakerColorsForUser(
+  ctx: any,
+  userId: any,
+  b: Budget = new Budget(),
+): Promise<boolean> {
+  // `eq(undefined)` would match every row whose field is unset.
+  if (!userId) return true;
+  const ranges: ((n: number) => Promise<any[]>)[] = [
+    (n) =>
+      ctx.db
+        .query("speakerColors")
+        .withIndex("by_viewer_room_subject", (q: any) => q.eq("viewerId", userId))
+        .take(n),
+    (n) =>
+      ctx.db
+        .query("speakerColors")
+        .withIndex("by_subject", (q: any) => q.eq("subjectId", userId))
+        .take(n),
+  ];
+  for (const fetch of ranges) {
+    for (;;) {
+      if (b.spent()) return false;
+      const rows = await fetch(tuning.pageRows);
+      b.read(Math.max(rows.length, 1));
+      for (const r of rows) {
+        if (b.spent()) return false;
+        await ctx.db.delete(r._id);
+        b.write();
+      }
+      if (rows.length < tuning.pageRows) break;
+    }
+  }
+  return true;
 }

@@ -42,6 +42,7 @@ import { leaveMatchesInRoom } from "./matchCore";
 import { grantRoomAccess, revokeRoomAccess } from "./roomAccess";
 import { removeUserFromRoomGroupCall } from "./groupCalls";
 import { purgeScheduledForRoomUser } from "./scheduledMessages";
+import { isTombstoned } from "./deletionCore";
 
 export const ROLE_OWNER = "owner";
 export const ROLE_ADMIN = "admin";
@@ -123,10 +124,13 @@ export const ERR_REMOVED = "REMOVED_FROM_ROOM";
 
 // ──────────────────────────── assertions ────────────────────────────
 
-/** Loads the room or throws. Every mutation below starts here. */
+/**
+ * Loads the room or throws. Every mutation below starts here. A room being
+ * deleted (tombstoned) is as good as gone.
+ */
 export async function getRoomOrThrow(ctx: any, roomId: any) {
   const room = await ctx.db.get(roomId);
-  if (!room) throw new Error(ERR_ROOM_NOT_FOUND);
+  if (!room || isTombstoned(room)) throw new Error(ERR_ROOM_NOT_FOUND);
   return room;
 }
 
@@ -213,7 +217,12 @@ export async function addMembership(
 ): Promise<boolean> {
   const existing = await membershipOf(ctx, roomId, userId);
   if (existing) return false;
+  // A user being deleted is admitted nowhere: their memberships step may have
+  // run already, and nothing would revisit a row added after it.
+  if (isTombstoned(await ctx.db.get(userId))) throw new Error("USER_NOT_FOUND");
   const target = await ctx.db.get(roomId);
+  // A room being deleted takes no new members: its teardown is deleting them.
+  if (isTombstoned(target)) throw new Error(ERR_ROOM_NOT_FOUND);
   if (target && target.memberCount >= MAX_ROOM_MEMBERS) {
     throw new Error(ERR_ROOM_FULL);
   }
@@ -262,6 +271,16 @@ export async function removeMembership(
   await ctx.db.delete(member._id);
   await revokeRoomAccess(ctx, roomId, userId);
 
+  // Their typing row. It names them in a room they have left, and the last
+  // member out would otherwise leave it for the room teardown to find.
+  const typing = await ctx.db
+    .query("typingIndicators")
+    .withIndex("by_room_user", (q: any) =>
+      q.eq("roomId", roomId).eq("userId", userId),
+    )
+    .first();
+  if (typing) await ctx.db.delete(typing._id);
+
   // A live group call in this room: they are no longer entitled to be in it.
   // Through the call's own leave path, so the roster, the pair signals and
   // "last one out ends the call" all behave as if they had hung up.
@@ -298,17 +317,19 @@ export async function removeMembership(
     await ctx.db.patch(roomId, { memberCount: room.memberCount - 1 });
   }
 
-  const remaining = await ctx.db
+  // Emptiness only needs one row, however big the room was.
+  const anyLeft = await ctx.db
     .query("roomMembers")
     .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
-    .collect();
-  if (remaining.length === 0) {
+    .take(1);
+  if (anyLeft.length === 0) {
     await wipeRoomCompletely(ctx, roomId);
     return "wiped";
   }
 
-  // The room outlives them, so the owner seat must not leave with them.
-  await ensureOwner(ctx, roomId, remaining);
+  // The room outlives them, so the owner seat must not leave with them. Only
+  // an owner's departure can vacate it.
+  if (member.role === ROLE_OWNER) await ensureOwner(ctx, roomId);
 
   await ctx.scheduler.runAfter(
     0,
@@ -446,28 +467,29 @@ export async function clearReleasedAvatarRequests(
  * A room with no owner is not merely untidy — nobody can delete it, transfer
  * it, or demote a rogue admin, and there is no admin surface anywhere that can
  * repair that. The heir is the longest-standing ADMIN if there is one, else
- * the longest-standing member, which is the same rule `auth.purgeUser` applies
+ * the longest-standing member, which is the same rule the user teardown applies
  * when an owner deletes their account, extended to prefer people who were
- * already trusted.
+ * already trusted. A few index probes, however big the room is.
  *
  * `rooms.createdBy` is dragged along so it keeps describing someone who is
  * actually still here. It grants nothing either way.
  */
-export async function ensureOwner(ctx: any, roomId: any, members?: any[]) {
-  const rows =
-    members ??
-    (await ctx.db
+export async function ensureOwner(ctx: any, roomId: any) {
+  const byRole = (role?: string) =>
+    ctx.db
       .query("roomMembers")
-      .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
-      .collect());
-  if (rows.length === 0) return;
-  if (rows.some((m: any) => m.role === ROLE_OWNER)) return;
+      .withIndex("by_room_role", (q: any) =>
+        role === undefined
+          ? q.eq("roomId", roomId)
+          : q.eq("roomId", roomId).eq("role", role),
+      );
+  if (await byRole(ROLE_OWNER).first()) return;
 
-  const admins = rows.filter((m: any) => m.role === ROLE_ADMIN);
-  const pool = admins.length > 0 ? admins : rows;
-  const heir = pool.reduce((a: any, b: any) =>
-    (a.joinedAt ?? 0) <= (b.joinedAt ?? 0) ? a : b,
-  );
+  // `by_room_role` lists a role's rows in the order they were created, which
+  // is the order people joined. With no owner, the first row of the whole room
+  // is a plain member (or a legacy row), the longest-standing one.
+  const heir = (await byRole(ROLE_ADMIN).first()) ?? (await byRole().first());
+  if (!heir) return;
   await ctx.db.patch(heir._id, { role: ROLE_OWNER });
   await ctx.db.patch(roomId, { createdBy: heir.userId });
 }

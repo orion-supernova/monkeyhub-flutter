@@ -1,7 +1,7 @@
 # Data integrity and scale plan (2026-10-22)
 
-**Status:** Phase 0 is **Done in code** (2026-10-22, uncommitted, not
-deployed; see the Phase 0 status note). Later phases are not implemented
+**Status:** Phases 0, 1 and 2 are **Done in code** (2026-10-22, committed
+on `dev`, not deployed; see each phase's status note). Later phases are not implemented
 except where a line says **Done**. Built from a live scan of every reference in the production
 database and five code audits (accounts, rooms, messages, feed/games/calls/
 stickers, files/copies/crons), with every high-severity claim re-checked by
@@ -704,6 +704,31 @@ cleanup differs from the rule (31 entries on 2026-10-22, 2 still
 on purpose (sticker files, decided in Phase 0).
 
 ### Phase 2: a lifecycle engine for deletes (backend only)
+
+**Phase 2 status (2026-10-22): Done in code, not deployed.** Account,
+room, message, moment, comment, game and avatar-copy deletion all run on the
+engine: a small first transaction (sessions revoked, account scrubbed, or
+room renamed and hidden), then budgeted pages, parent row last, re-driven
+every 5 minutes. Each heavy row runs in its own sub-transaction; a row that
+fails twice is skipped and reported to the moderation inbox (ids only), so an
+account deletion always finishes. The budget halves on each failed attempt.
+Deleted accounts and rooms disappear from sessions, lists, search, invites and
+requests at once, without extra reads. An independent review found nine
+issues, all fixed (the main ones: a deleting user could still be admitted to
+a room, `LAST_GUARDIAN` counted guardians already being deleted, and a
+poison row could fail a deletion forever). 841 backend tests pass.
+`REFERENCE_RULES` keeps a `today` note only where the gap is deliberate or
+deferred: sticker copies (Phase 3), scheduled-message retention and
+`momentViews` (Phase 4), poll tallies, `matches.watchers`,
+`matchPresence` on a plain leave, a creator who left before deleting, and
+expiring session rows. Deploy notes: the shims `auth.purgeMessagesLater` and
+`roomCleanup.wipeMessagesLater` finish jobs scheduled before the deploy; drop
+them one release later. Retire `gcOrphanedRoomMemberships` (now paged) after
+the first clean integrity run.
+
+Still open from review, small: `roomInvitations.respond` deletes a row and
+then throws, so the delete is rolled back (pre-existing); other people's
+reply previews keep a deleted user's name until Phase 6 profiles.
 
 **Detailed design:** `docs/data-integrity-phase2-design.md` (reviewed
 2026-10-22; its Decisions section is binding). Built in four packages: A

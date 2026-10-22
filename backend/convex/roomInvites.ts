@@ -30,6 +30,7 @@ import {
   isChild,
 } from "./childGuard";
 import { lensFor, publicUserView } from "./visibility";
+import { isTombstoned } from "./deletionCore";
 import {
   JOIN_APPROVAL,
   addMembership,
@@ -311,7 +312,10 @@ export const preview = query({
     if (reason) return { status: reason, room: null };
 
     const room = await ctx.db.get(invite!.roomId);
-    if (!room) return { status: ERR_INVITE_NOT_FOUND, room: null };
+    // A room being deleted still has its invites until the first teardown step.
+    if (!room || isTombstoned(room)) {
+      return { status: ERR_INVITE_NOT_FOUND, room: null };
+    }
 
     const membership = userId
       ? await membershipOf(ctx, room._id, userId)
@@ -497,7 +501,7 @@ export const listJoinRequests = query({
     const out = [];
     for (const r of rows) {
       const user = await ctx.db.get(r.userId);
-      if (!user) continue;
+      if (!user || isTombstoned(user)) continue;
       out.push({
         requestId: r._id,
         createdAt: r.createdAt,
@@ -529,7 +533,9 @@ export const decideJoinRequest = mutation({
     if (!request || request.status !== "pending") {
       throw new Error(ERR_REQUEST_NOT_FOUND);
     }
-    await assertAdministrableRoom(ctx, request.roomId);
+    const adminRoom = await assertAdministrableRoom(ctx, request.roomId);
+    // Deciding into a room being deleted would admit someone to a ghost.
+    if (isTombstoned(adminRoom)) throw new Error(ERR_REQUEST_NOT_FOUND);
     await assertAdmin(ctx, request.roomId, userId);
 
     const now = Date.now();

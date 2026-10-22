@@ -45,6 +45,14 @@ export interface Step {
    * mid-way is safe) and must return `done: false` once `b.spent()`.
    */
   run(ctx: MutationCtx, job: Job, b: Budget): Promise<StepResult>;
+  /**
+   * The work for ONE row of a heavy per-row step, run in its own nested
+   * mutation (`runRow`) so a row that always throws can be skipped instead of
+   * failing the whole job. Idempotent like `run`: a row already gone is a
+   * no-op. Return `"more"` when the row made progress but is not finished
+   * (the step stops and the next slice comes back to it).
+   */
+  row?(ctx: MutationCtx, job: Job, rowId: string): Promise<void | "more">;
 }
 
 /**
@@ -90,7 +98,14 @@ export class Budget {
 /** Hooks for tests; always empty in production. */
 export const testHooks: {
   /** Called before every step runs; throw to simulate a failing step. */
-  beforeStep?: (ctx: MutationCtx, job: Job, step: Step) => Promise<void> | void;
+  beforeStep?: (
+    ctx: MutationCtx,
+    job: Job,
+    step: Step,
+    b: Budget,
+  ) => Promise<void> | void;
+  /** Called before one isolated row's work (`runRow`); throw to poison the row. */
+  beforeRow?: (ctx: MutationCtx, job: Job, stepId: string, rowId: string) => Promise<void> | void;
 } = {};
 
 // ── Tombstones ──────────────────────────────────────────────────────────────
@@ -117,6 +132,163 @@ export async function getLiveUser(
 ): Promise<Doc<"users"> | null> {
   const user = await ctx.db.get(userId);
   return user !== null && !isTombstoned(user) ? user : null;
+}
+
+// ── Cursors over rows that stay in range ────────────────────────────────────
+
+/**
+ * A resume point for a walk over an index range whose rows are NOT removed as
+ * they are handled: the creation time and id of the last row done.
+ *
+ * `paginate` would do, but Convex allows ONE paginated query per function
+ * execution and a transaction here runs several steps, so a step cannot use it.
+ * A bare `gt("_creationTime", t)` is not safe either, since rows that share a
+ * timestamp would be skipped. This resumes AT `t` (`gte`) and steps over the
+ * rows up to and including the cursor row by identity. Should that row be gone
+ * (deleted meanwhile), the rows at `t` are simply handled again: every step
+ * that uses this is idempotent.
+ */
+export function cursorOf(row: { _id: string; _creationTime: number }): string {
+  return JSON.stringify({ t: row._creationTime, id: row._id });
+}
+
+/**
+ * The next up to `n` rows after `cursor` (null: from the start). `fetch(t, k)`
+ * must return up to `k` rows of the range with `_creationTime >= t`, oldest
+ * first (`q.eq(...).gte("_creationTime", t)`).
+ */
+export async function pageAfter<R extends { _id: string; _creationTime: number }>(
+  fetch: (t: number, k: number) => Promise<R[]>,
+  cursor: string | null,
+  n: number,
+): Promise<R[]> {
+  const c: { t: number; id: string } | null = cursor ? JSON.parse(cursor) : null;
+  let limit = n + (c ? 1 : 0);
+  for (;;) {
+    const rows = await fetch(c ? c.t : 0, limit);
+    let fresh = rows;
+    if (c) {
+      const at = rows.findIndex((r) => r._id === c.id);
+      fresh = at >= 0 ? rows.slice(at + 1) : rows.filter((r) => r._creationTime > c.t);
+    }
+    // Enough rows, or the range ended; otherwise look further (many rows tie at `t`).
+    if (fresh.length >= n || rows.length < limit) return fresh.slice(0, n);
+    limit *= 2;
+  }
+}
+
+// ── Metering ────────────────────────────────────────────────────────────────
+
+/**
+ * A `ctx` whose database calls are counted, so a step can charge its budget
+ * what a row of work REALLY cost instead of a guess (a game card removes its
+ * move bubbles, a moment its children: the cost varies by orders of magnitude).
+ * Writes are insert/patch/replace/delete; reads are documents returned.
+ */
+export function meter(ctx: MutationCtx): {
+  ctx: MutationCtx;
+  writes(): number;
+  reads(): number;
+} {
+  let writes = 0;
+  let reads = 0;
+  const wrap = (obj: any): any =>
+    new Proxy(obj, {
+      get(target, prop) {
+        const v = target[prop];
+        if (typeof v !== "function") return v;
+        return (...args: any[]) => {
+          if (prop === "insert" || prop === "patch" || prop === "replace" || prop === "delete") {
+            writes++;
+          }
+          const out = v.apply(target, args);
+          if (out && typeof out.then === "function") {
+            return out.then((r: any) => {
+              if (prop === "get") reads++;
+              else if (Array.isArray(r)) reads += r.length;
+              else if (r && Array.isArray(r.page)) reads += r.page.length;
+              else if (r && typeof r === "object" && "_id" in r) reads++;
+              return r;
+            });
+          }
+          // Query builders chain (query -> withIndex -> order -> take ...).
+          if (
+            out &&
+            typeof out === "object" &&
+            ("take" in out || "collect" in out || "first" in out || "withIndex" in out)
+          ) {
+            return wrap(out);
+          }
+          return out;
+        };
+      },
+    });
+  return {
+    ctx: { ...ctx, db: wrap(ctx.db) } as MutationCtx,
+    writes: () => writes,
+    reads: () => reads,
+  };
+}
+
+/** Rows remembered as failed once, and as given up on. */
+const MAX_FAILED_ROWS = 20;
+export const MAX_SKIPPED_ROWS = 50;
+
+/**
+ * Run one row of a heavy step in its own nested mutation (`deletions.runRow`)
+ * and charge the budget what it cost.
+ *
+ *  - "ok": done, or nothing left to do for the row.
+ *  - "more": progress, the row is not finished; the caller stops its slice.
+ *  - "retry": the row threw (its sub-transaction rolled back). It is
+ *    remembered on the job and the caller stops; the next slice tries it once
+ *    more, so a transient failure costs a re-run.
+ *  - "skipped": it threw twice. Its id goes on the job's `skipped` list (ids
+ *    only, logged) and the job carries on without it, so one poison row can
+ *    never block an account deletion forever. The job finishes `done` and
+ *    alerts staff (`deletions.alertFailed`); the integrity scan will surface
+ *    the row too. Past `MAX_SKIPPED_ROWS` the error is rethrown: that is not
+ *    one poison row any more.
+ */
+export async function runRow(
+  ctx: MutationCtx,
+  job: Job,
+  stepId: string,
+  rowId: string,
+  b: Budget,
+): Promise<"ok" | "more" | "retry" | "skipped"> {
+  try {
+    const r = await ctx.runMutation(internal.deletions.runRow, {
+      jobId: job._id,
+      stepId,
+      rowId,
+    });
+    b.read(r.reads);
+    b.write(r.writes);
+    return r.more ? "more" : "ok";
+  } catch (e) {
+    const fresh = await ctx.db.get(job._id);
+    if (!fresh) return "ok";
+    const failed = fresh.failedRows ?? [];
+    if (!failed.includes(rowId)) {
+      await ctx.db.patch(job._id, {
+        failedRows: [...failed, rowId].slice(-MAX_FAILED_ROWS),
+      });
+      b.write();
+      return "retry";
+    }
+    const skipped = fresh.skipped ?? [];
+    if (skipped.length >= MAX_SKIPPED_ROWS) throw e;
+    console.error(
+      `deletion row SKIPPED kind=${job.kind} id=${job.targetId} step=${stepId} row=${rowId} job=${job._id}`,
+    );
+    await ctx.db.patch(job._id, {
+      failedRows: failed.filter((id) => id !== rowId),
+      skipped: [...skipped, rowId],
+    });
+    b.write();
+    return "skipped";
+  }
 }
 
 // ── Capped inline deletes ───────────────────────────────────────────────────
@@ -235,6 +407,19 @@ export async function startUserDeletion(
       // Legacy push tokens on the row itself: a ghost must not ring.
       voipToken: undefined,
       fcmToken: undefined,
+      // The rest of what describes the person. No plan step reads any of it:
+      // birth year, the child's policy, privacy settings, the nudge and
+      // rename bookkeeping, and the terms they accepted.
+      birthYear: undefined,
+      childPolicy: undefined,
+      visibility: undefined,
+      usernameChangedAt: undefined,
+      lastNudgedDayKey: undefined,
+      termsAcceptedAt: undefined,
+      termsVersion: undefined,
+      // Kept on purpose: `accountType` (the guardian checks and child-only
+      // readers still ask), `suspendedAt` / `suspendedBy` (the ban survives
+      // the deletion), `createdAt` (required), and `deletingAt` itself.
     });
 
     // Revoke rather than delete, so a device's next call gets SESSION_REVOKED.

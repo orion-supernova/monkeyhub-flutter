@@ -26,36 +26,47 @@
  * that two layers both need lives under both of them.
  */
 
+import { deleteCapped, tuning } from "./deletionCore";
+
 /**
- * Removes an interaction and every answer to it.
+ * Removes an interaction's body and, up to `cap`, the answers to it. True when
+ * answers are left over: the caller hands them to the message job, whose
+ * generic `interactionResponses.messageId` step finishes the range.
  *
- * Called from `removeMessageAndFanout`, so it runs on all four ways a message
+ * Called from `removeMessageImmediate`, so it runs on all four ways a message
  * can go: the sender deleting it, a batch delete, a Chamber-of-Secrets expiry,
- * and the room being wiped. One cascade rather than one per path, for the
- * reason that function's own header gives — the paths cannot then disagree
- * about what a dead message leaves behind.
+ * and the account or room being torn down. One cascade rather than one per
+ * path, for the reason that function's own header gives: the paths cannot then
+ * disagree about what a dead message leaves behind.
  *
- * Responses first, then the definition. The other order would leave answer rows
- * pointing at an interaction that no longer exists if the transaction were ever
- * split; it is not, but the order costs nothing and means the intermediate
- * state is never the nonsensical one.
+ * The body goes first, in full: it is the part readers resolve, and a poll
+ * with a million answers must not make deleting its message fail. Orphan
+ * answers are unreachable (they are read through the interaction) and are
+ * swept by the job.
  *
  * A no-op on the overwhelming majority of messages, where both lookups are a
  * single empty index range. Same posture as `purgeViewOnceViews`, which also
  * runs for every message and finds nothing for nearly all of them.
  */
-export async function purgeInteraction(ctx: any, messageId: any) {
-  const rows = await ctx.db
-    .query("interactionResponses")
-    .withIndex("by_message_user", (q: any) => q.eq("messageId", messageId))
-    .collect();
-  for (const r of rows) await ctx.db.delete(r._id);
-
+export async function purgeInteraction(
+  ctx: any,
+  messageId: any,
+  cap: number = tuning.inlineCap,
+): Promise<boolean> {
   const interaction = await ctx.db
     .query("messageInteractions")
     .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
     .first();
   if (interaction) await ctx.db.delete(interaction._id);
+
+  const { overflow } = await deleteCapped(
+    ctx,
+    ctx.db
+      .query("interactionResponses")
+      .withIndex("by_message_user", (q: any) => q.eq("messageId", messageId)),
+    cap,
+  );
+  return overflow;
 }
 
 /**

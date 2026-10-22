@@ -6,6 +6,7 @@ import {
   isSystemAccount,
 } from "./systemAccount";
 import { grantRoomAccess } from "./roomAccess";
+import { isTombstoned } from "./deletionCore";
 
 /**
  * A system account and the one private staff room it posts into, created on
@@ -150,7 +151,9 @@ async function findSystemRoom(ctx: any, spec: SystemRoomSpec, accountId: any) {
   let legacy: any = null;
   for (const m of memberships) {
     const room = await ctx.db.get(m.roomId);
-    if (!room) continue;
+    // A tombstoned system room is as good as gone: skip it so a fresh one is
+    // made rather than reviving a room that is mid-teardown.
+    if (!room || isTombstoned(room)) continue;
     if (room.system === spec.slug) return room;
     if (spec.isLegacyRoom?.(room, accountId)) legacy = room;
   }

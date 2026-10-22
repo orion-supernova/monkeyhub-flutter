@@ -15,6 +15,7 @@ import * as hints from "./games/hints";
 import * as zip from "./games/zip";
 import { liveStreak, noteSolve } from "./recordBook";
 import { lensFor } from "./visibility";
+import { getLiveUser, isTombstoned } from "./deletionCore";
 import { MAX_FANOUT } from "./feed";
 import { byNameThenId, competitionPlaces, shownSeconds } from "./ranking";
 
@@ -440,7 +441,8 @@ export const standings = query({
       // to be skipped afterwards. One `users` read per friend; `standings` is
       // served one-shot, so it does not re-run on their presence heartbeat.
       const friend: any = await ctx.db.get(friendId);
-      if (!friend) continue;
+      // A ghost (account deletion in flight) is not on the board.
+      if (!friend || isTombstoned(friend)) continue;
       // The same `visibility.puzzle` switch the symbol-code scoreboard obeys.
       // Deliberately not a new thirteenth setting: a user who said "my daily
       // score is not comparable" said it about dailies, and splitting that into
@@ -843,7 +845,7 @@ export const shareResult = mutation({
     if (row.finishedAt === undefined) throw new Error("NOT_FINISHED");
     if (row.sharedAt !== undefined) throw new Error("ALREADY_SHARED");
 
-    const player = await ctx.db.get(userId);
+    const player = await getLiveUser(ctx, userId);
     if (!player) throw new Error("USER_NOT_FOUND");
     if ((player.visibility?.puzzle ?? "friends") === "nobody") {
       throw new Error("RESULT_PRIVATE");

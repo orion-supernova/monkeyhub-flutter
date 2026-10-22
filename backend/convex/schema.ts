@@ -3136,6 +3136,11 @@ export default defineSchema({
     attempts: v.number(),
     // At most 200 chars, ids only.
     lastError: v.optional(v.string()),
+    // Rows whose isolated work failed once (capped at 20), and rows given up
+    // on after failing twice (capped at 50, ids only). A job finishes with
+    // its skipped rows left behind and tells staff; see `deletionCore.runRow`.
+    failedRows: v.optional(v.array(v.string())),
+    skipped: v.optional(v.array(v.string())),
     pages: v.number(),
     writes: v.number(),
   })

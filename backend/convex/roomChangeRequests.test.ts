@@ -1,7 +1,18 @@
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "./_generated/api";
+import { drainDeletions } from "./deletionTestUtils";
 import schema from "./schema";
+
+// Deleting an account or a room finishes in the background (the lifecycle
+// engine's scheduled steps), so assertions about the end state drain first.
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
+const drain = (t: ReturnType<typeof convexTest>) => drainDeletions(t, vi.runAllTimers);
 
 /**
  * A member suggesting a change to a group they cannot edit, actually executed.
@@ -541,6 +552,7 @@ describe("a suggestion cannot outlive the standing that produced it", () => {
       userId: owner.userId as any,
       roomId,
     });
+    await drain(t);
 
     expect(await stored(t, storageId)).toBe(false);
     const rows = await t.run(
@@ -570,6 +582,7 @@ describe("a suggestion cannot outlive the standing that produced it", () => {
       sessionToken: member.token,
       userId: member.userId as any,
     });
+    await drain(t);
 
     // The approved row goes; the file it handed the room does NOT. Freeing it
     // here would leave a group everybody is still in with a broken picture.

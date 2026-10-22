@@ -67,6 +67,7 @@ import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as moderation from "../moderation.js";
 import type * as moderationCore from "../moderationCore.js";
+import type * as momentCleanup from "../momentCleanup.js";
 import type * as momentComments from "../momentComments.js";
 import type * as mute from "../mute.js";
 import type * as notifications from "../notifications.js";
@@ -196,6 +197,7 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   moderation: typeof moderation;
   moderationCore: typeof moderationCore;
+  momentCleanup: typeof momentCleanup;
   momentComments: typeof momentComments;
   mute: typeof mute;
   notifications: typeof notifications;

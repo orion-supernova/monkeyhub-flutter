@@ -8,6 +8,7 @@ import { expressionFieldsFor } from "./messages";
 import { lensFor } from "./visibility";
 import { hasHit } from "./contentFilter";
 import { screenAndReport } from "./moderationCore";
+import { deleteCapped, enqueueDeletion, tuning } from "./deletionCore";
 
 /**
  * Comments on a highlight — and their replies, and the reactions on both.
@@ -60,29 +61,67 @@ const MAX_COMMENT = 500;
 const MAX_COMMENTS_PER_MOMENT = 500;
 
 /**
- * Removes one comment, its replies when it is a thread root, and every
- * reaction on any of them. Returns how many comments went, for the counter.
+ * Removes one comment, bounded: the comment, up to `cap` of its reactions and,
+ * for a thread root, up to `cap` replies (each with up to the remaining budget
+ * of its own reactions), then moves the moment's counter by what went. Whatever
+ * did not fit goes to a `comment` job (`commentSteps`): the root's id for
+ * leftover replies and reactions, a reply's id for that reply's leftover
+ * reactions. The counter is moved by the job for the replies it deletes.
+ *
+ * The same comment is never read twice: a row already gone is skipped by the
+ * caller (`remove` re-reads it; the user teardown walks `by_user`).
  */
-async function deleteCommentCascade(ctx: any, c: any): Promise<number> {
-  const doomed = [c];
-  if (c.parentId === undefined) {
-    doomed.push(
-      ...(await ctx.db
-        .query("momentComments")
-        .withIndex("by_parent", (q: any) => q.eq("parentId", c._id))
-        .collect()),
+export async function deleteCommentCore(
+  ctx: any,
+  comment: any,
+  cap: number = tuning.inlineCap,
+): Promise<void> {
+  let removed = 0;
+  let reactionBudget = cap;
+  let rootOverflow = false;
+
+  // Reactions on one comment, up to what is left of the inline budget.
+  const dropReactions = async (id: any): Promise<boolean> => {
+    const r = await deleteCapped(
+      ctx,
+      ctx.db
+        .query("momentCommentReactions")
+        .withIndex("by_comment", (q: any) => q.eq("commentId", id)),
+      reactionBudget,
     );
-  }
-  for (const row of doomed) {
-    for (const r of await ctx.db
-      .query("momentCommentReactions")
-      .withIndex("by_comment", (q: any) => q.eq("commentId", row._id))
-      .collect()) {
-      await ctx.db.delete(r._id);
+    reactionBudget -= r.deleted;
+    return r.overflow;
+  };
+
+  if (comment.parentId === undefined) {
+    const replies = await ctx.db
+      .query("momentComments")
+      .withIndex("by_parent", (q: any) => q.eq("parentId", comment._id))
+      .take(cap + 1);
+    if (replies.length > cap) rootOverflow = true;
+    for (const reply of replies.slice(0, cap)) {
+      const more = await dropReactions(reply._id);
+      await ctx.db.delete(reply._id);
+      removed++;
+      if (more) {
+        await enqueueDeletion(ctx, {
+          kind: "comment",
+          targetId: reply._id.toString(),
+        });
+      }
     }
-    await ctx.db.delete(row._id);
   }
-  return doomed.length;
+  if (await dropReactions(comment._id)) rootOverflow = true;
+  await ctx.db.delete(comment._id);
+  removed++;
+
+  if (rootOverflow) {
+    await enqueueDeletion(ctx, {
+      kind: "comment",
+      targetId: comment._id.toString(),
+    });
+  }
+  await bumpCount(ctx, comment.momentId, -removed);
 }
 
 /** Moves a moment's comment counter, never below zero. */
@@ -92,48 +131,6 @@ async function bumpCount(ctx: any, momentId: any, delta: number) {
   const next = Math.max(0, (m.commentCount ?? 0) + delta);
   if (next !== (m.commentCount ?? 0)) {
     await ctx.db.patch(momentId, { commentCount: next });
-  }
-}
-
-/**
- * Everything hanging off one moment's conversation, for `feed.remove` and the
- * account purge. Does not touch the counter — the moment is going too.
- */
-export async function purgeMomentComments(ctx: any, momentId: any) {
-  for (const r of await ctx.db
-    .query("momentCommentReactions")
-    .withIndex("by_moment", (q: any) => q.eq("momentId", momentId))
-    .collect()) {
-    await ctx.db.delete(r._id);
-  }
-  for (const c of await ctx.db
-    .query("momentComments")
-    .withIndex("by_moment_created", (q: any) => q.eq("momentId", momentId))
-    .collect()) {
-    await ctx.db.delete(c._id);
-  }
-}
-
-/**
- * Everything one person said under OTHER people's moments, for the account
- * purge — their comments (with the replies under them, which would otherwise
- * hang off nothing), and their reactions to comments.
- */
-export async function purgeUserComments(ctx: any, userId: any) {
-  for (const r of await ctx.db
-    .query("momentCommentReactions")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .collect()) {
-    await ctx.db.delete(r._id);
-  }
-  for (const c of await ctx.db
-    .query("momentComments")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .collect()) {
-    // Already gone as part of an earlier root's cascade in this same loop.
-    if ((await ctx.db.get(c._id)) === null) continue;
-    const n = await deleteCommentCascade(ctx, c);
-    await bumpCount(ctx, c.momentId, -n);
   }
 }
 
@@ -178,6 +175,8 @@ export const list = query({
     );
     const shown = (c: any) => {
       const authorId = c.userId;
+      // Being deleted: the row lingers until the account's teardown finishes.
+      if (people.get(authorId.toString())?.deletingAt !== undefined) return false;
       if (blocked.has(authorId.toString())) return false;
       if (lens.isSelf(authorId) || authorId === m.userId) return true;
       if (viewerIsChild && !lens.isFriend(authorId)) return false;
@@ -412,8 +411,7 @@ export const remove = mutation({
     if (c.userId !== userId && m?.userId !== userId) {
       throw new Error("NOT_YOUR_COMMENT");
     }
-    const n = await deleteCommentCascade(ctx, c);
-    await bumpCount(ctx, c.momentId, -n);
+    await deleteCommentCore(ctx, c);
   },
 });
 

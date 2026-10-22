@@ -5,7 +5,8 @@ import {
   PRESENCE_OFFLINE_MS,
   PRESENCE_WRITE_INTERVAL_MS,
 } from "./presence";
-import { deleteStored, claimUpload } from "./files";
+import { claimUpload } from "./files";
+import { enqueueDeletion, getLiveUser, isTombstoned } from "./deletionCore";
 import {
   SOCIAL_ONLY_PASSWORD_SENTINEL,
   normaliseUsername, assertNoCaseTwin,
@@ -66,7 +67,8 @@ export const getProfile = query({
   },
   handler: async (ctx, { userId, viewerUserId }) => {
     const user = await ctx.db.get(userId);
-    if (!user) return null;
+    // A tombstoned account (being deleted) is gone as far as a viewer can tell.
+    if (!user || isTombstoned(user)) return null;
 
     const lens = await lensFor(ctx, viewerUserId);
     const isSelf = lens.isSelf(userId);
@@ -331,7 +333,7 @@ export const updateVisibility = mutation({
       pointsPast,
     }
   ) => {
-    const user = await ctx.db.get(userId);
+    const user = await getLiveUser(ctx, userId);
     if (!user) throw new Error("USER_NOT_FOUND");
     // A child can't loosen or tighten their own visibility — the guardian
     // bypass in getProfile makes it moot for parents, and letting a child
@@ -396,7 +398,7 @@ export const updateProfile = mutation({
     email: v.optional(v.string()),
   },
   handler: async (ctx, { userId, name, email }) => {
-    const user = await ctx.db.get(userId);
+    const user = await getLiveUser(ctx, userId);
     if (!user) throw new Error("USER_NOT_FOUND");
     // The display name is what renders on every chat bubble, friend request and
     // room list row, so this is the check that actually stops somebody passing
@@ -526,7 +528,7 @@ export const applyUsernameChange = internalMutation({
   },
   returns: v.object({ username: v.string() }),
   handler: async (ctx, { userId, username }) => {
-    const user = await ctx.db.get(userId);
+    const user = await getLiveUser(ctx, userId);
     if (!user) throw new Error("USER_NOT_FOUND");
 
     // Belt and braces: both callers refuse a child first, but this is the only
@@ -609,12 +611,18 @@ export const applyUsernameChange = internalMutation({
 });
 
 /**
- * Points the user at a freshly uploaded avatar and frees the one it replaces.
+ * Points the user at a freshly uploaded avatar and hands the clean-up to an
+ * `avatar` job.
  *
  * Convex bills for stored files, not for the rows referencing them, so dropping
- * the old id without deleting the blob leaks it permanently — and invisibly,
- * since `_storage` is a system table nothing in the app ever walks. Every
- * avatar change used to cost another copy forever.
+ * the old id without deleting the blob leaks it permanently, and invisibly,
+ * since `_storage` is a system table nothing in the app ever walks. But a user
+ * with years of moments and reactions has thousands of denormalized copies of
+ * the old id (`moments.authorAvatarStorageId`,
+ * `momentReactions.userAvatarStorageId`), so this mutation only patches the
+ * row. The job (`avatarSteps`) moves the copies, and deletes the old file as
+ * its LAST step, only if it is no longer the current avatar: deleting it here
+ * would leave every earlier post pointing at nothing until the job finished.
  */
 export const updateAvatar = mutation({
   args: {
@@ -622,55 +630,26 @@ export const updateAvatar = mutation({
     storageId: v.id("_storage"),
   },
   handler: async (ctx, { userId, storageId }) => {
-    const user = await ctx.db.get(userId);
+    const user = await getLiveUser(ctx, userId);
     if (!user) throw new Error("USER_NOT_FOUND");
     // Before anything else: an id somebody else uploaded must not become this
     // avatar, or replacing it later would delete their file.
     await claimUpload(ctx, storageId, userId, "avatar");
     const previous = user.avatarStorageId;
     await ctx.db.patch(userId, { avatarStorageId: storageId });
-    // Guard against re-submitting the id already stored: that would delete the
-    // file the row now points at and leave the user with a broken avatar.
+    // Guard against re-submitting the id already stored: the job would find it
+    // is still current and do nothing, but there is no point queueing it.
     if (previous && previous !== storageId) {
-      await repointAvatarCopies(ctx, userId, previous, storageId);
-      await deleteStored(ctx, previous);
+      // One job per change (`to` is a fresh upload), so a second change while
+      // the first is running is not folded into it.
+      await enqueueDeletion(ctx, {
+        kind: "avatar",
+        targetId: `${userId}:${storageId}`,
+        args: { userId, from: previous, to: storageId },
+      });
     }
   },
 });
-
-/**
- * Moves every denormalized copy of [userId]'s avatar from [from] to [to].
- *
- * `moments.authorAvatarStorageId` and `momentReactions.userAvatarStorageId`
- * are stamped at write time so the subscribed `feed:board` never reads a
- * `users` row. Deleting the old blob without moving them left every earlier
- * post and reaction pointing at a file that no longer exists, which the client
- * can only draw as a broken tile.
- *
- * Only rows still carrying [from] move: a row stamped before the user had any
- * avatar keeps drawing initials, exactly as it did. `typingIndicators` is left
- * alone, since its 2s re-stamp and 8s TTL replace it on their own.
- */
-export async function repointAvatarCopies(ctx: any, userId: any, from: any, to: any) {
-  const moments = await ctx.db
-    .query("moments")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .collect();
-  for (const m of moments) {
-    if (m.authorAvatarStorageId === from) {
-      await ctx.db.patch(m._id, { authorAvatarStorageId: to });
-    }
-  }
-  const reactions = await ctx.db
-    .query("momentReactions")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .collect();
-  for (const r of reactions) {
-    if (r.userAvatarStorageId === from) {
-      await ctx.db.patch(r._id, { userAvatarStorageId: to });
-    }
-  }
-}
 
 /**
  * The one scan behind both `users.searchUsers` and `friends.searchUsers`.
@@ -747,6 +726,8 @@ export async function searchUsersCore(
   const filtered = users
     .filter((u: any) => {
       if (u._id === currentUserId) return false;
+      // Being deleted: the row lingers until its teardown finishes.
+      if (isTombstoned(u)) return false;
       if (hidden.has(u._id.toString())) return false;
       // System accounts are not people and cannot be addressed — see
       // `systemAccount.ts`. Search is the main way one could be found at all,
@@ -906,6 +887,9 @@ export async function blockCore(
     if (userId.toString() === targetUserId.toString()) {
       throw new Error("CANT_BLOCK_SELF");
     }
+    // A block on an account being deleted would dangle: the teardown's blocks
+    // step may have run already.
+    if (!(await getLiveUser(ctx, targetUserId))) throw new Error("USER_NOT_FOUND");
     // Idempotent: don't insert if a pair row already exists.
     const existing = await ctx.db
       .query("blocks")

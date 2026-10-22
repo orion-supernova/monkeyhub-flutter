@@ -15,6 +15,7 @@ import {
 import { ERR_SYSTEM_ACCOUNT, isSystemAccount } from "./systemAccount";
 import { lensFor, publicUserView } from "./visibility";
 import { ROLE_OWNER, addMembership } from "./roomAdmin";
+import { getLiveUser, isTombstoned } from "./deletionCore";
 import {
   clearFriendRequestMessages,
   deleteFriendshipRow,
@@ -199,7 +200,9 @@ export const sendRequest = mutation({
     if (friend) {
       await consume(ctx, `freqpair:${userId}:${friend._id}`, 3, 7 * DAY_MS);
     }
-    if (!friend) throw new Error("USER_NOT_FOUND");
+    // A ghost (account deletion in flight) is not there to be asked. Its handle
+    // is already scrubbed, so this is belt and braces on the row in hand.
+    if (!friend || isTombstoned(friend)) throw new Error("USER_NOT_FOUND");
     if (friend._id === userId) throw new Error("CANNOT_ADD_SELF");
     // Nobody befriends a system account. This path resolves its target from a
     // typed USERNAME, so unlike everywhere else it is reachable without the
@@ -284,6 +287,8 @@ export const acceptRequest = mutation({
     // denied one is not acceptable at all. Same gate as `approveDirectRequest`.
     if (!request || request.status !== "pending") throw new Error("REQUEST_NOT_FOUND");
     if (!isReleasedToRecipient(request.stage)) throw new Error("REQUEST_NOT_FOUND");
+    // The requester's account is being deleted: nothing to accept.
+    if (!(await getLiveUser(ctx, requesterId))) throw new Error("USER_NOT_FOUND");
 
     // A crossed request leaves a row each way. Reuse the reverse one only when
     // it is itself a live, released request (or already accepted); a reverse
@@ -347,9 +352,9 @@ export const listFriends = query({
       .collect();
     const friendships = rows.filter((f) => f.status === "accepted");
 
-    const friends = await Promise.all(
-      friendships.map((f) => ctx.db.get(f.friendId))
-    );
+    const friends = (
+      await Promise.all(friendships.map((f) => ctx.db.get(f.friendId)))
+    ).filter((u) => !isTombstoned(u));
     // Everyone here IS a friend of the viewer, so "friends" passes and only a
     // "nobody" setting redacts — but the lens is still what decides that, not
     // an assumption made in this handler.
@@ -383,7 +388,7 @@ export const listPendingRequests = query({
     const requesters = await Promise.all(
       incoming.map(async (f) => {
         const user = await ctx.db.get(f.userId);
-        return user
+        return user && !isTombstoned(user)
           ? { ...publicUserView(lens, user, now), friendshipId: f._id }
           : null;
       })
@@ -405,7 +410,7 @@ export const createDirectRequest = mutation({
     await consume(ctx, `freq:${userId}`, MAX_FRIEND_REQUESTS_PER_DAY, DAY_MS);
     await consume(ctx, `freqpair:${userId}:${friendId}`, 3, 7 * DAY_MS);
 
-    const target = await ctx.db.get(friendId);
+    const target = await getLiveUser(ctx, friendId);
     if (!target) throw new Error("USER_NOT_FOUND");
     // See `sendRequest`. Redundant with `SYSTEM_VISIBILITY.friendRequests`, which
     // the check further down already honours — kept because that one is a data
@@ -532,6 +537,9 @@ export const approveDirectRequest = mutation({
       )
       .first();
     if (!request || request.status !== "pending") throw new Error("REQUEST_NOT_FOUND");
+    // The requester's account is being deleted: nothing to approve (and no DM
+    // to open with a ghost).
+    if (!(await getLiveUser(ctx, requesterId))) throw new Error("USER_NOT_FOUND");
     // A child cannot release their own request. Until a guardian has advanced
     // it to `awaitingRecipient` this row isn't theirs to accept — and they
     // can't even see it, so reaching here means a hand-crafted call.
@@ -690,7 +698,7 @@ export const listIncomingDirectRequests = query({
     const requests = await Promise.all(
       incoming.map(async (request) => {
         const requester = await ctx.db.get(request.userId);
-        if (!requester) return null;
+        if (!requester || isTombstoned(requester)) return null;
 
         const messages = await ctx.db
           .query("friendRequestMessages")
@@ -731,7 +739,7 @@ export const listOutgoingDirectRequests = query({
     const requests = await Promise.all(
       outgoing.map(async (request) => {
         const receiver = await ctx.db.get(request.friendId);
-        if (!receiver) return null;
+        if (!receiver || isTombstoned(receiver)) return null;
 
         const messages = await ctx.db
           .query("friendRequestMessages")

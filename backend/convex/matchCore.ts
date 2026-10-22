@@ -1,4 +1,5 @@
 import { internal } from "./_generated/api";
+import { deleteCapped, enqueueDeletion, tuning } from "./deletionCore";
 import { rulesFor } from "./turnGames/registry";
 import { partyRulesFor, type AnyPartyRules } from "./partyGames/registry";
 
@@ -21,6 +22,9 @@ import { partyRulesFor, type AnyPartyRules } from "./partyGames/registry";
  */
 
 /** A game still being played or waiting to be: the ones teardown must end. */
+/** Open games per status looked at when someone leaves a room. */
+const OPEN_GAMES_SCAN_CAP = 200;
+
 export const OPEN_STATUSES = ["lobby", "active", "paused"] as const;
 
 export function isOpen(status: string): boolean {
@@ -198,12 +202,14 @@ export async function commitState(
  */
 export async function leaveMatchesInRoom(ctx: any, roomId: any, userId: any) {
   for (const status of OPEN_STATUSES) {
+    // Bounded: a room holds a handful of open games, and a teardown that
+    // walked an unbounded range could never be sure to fit in a transaction.
     const rows = await ctx.db
       .query("matches")
       .withIndex("by_room_status", (q: any) =>
         q.eq("roomId", roomId).eq("status", status),
       )
-      .collect();
+      .take(OPEN_GAMES_SCAN_CAP);
     for (const match of rows) {
       const seat = match.seats.findIndex(
         (s: any) => s.userId === userId,
@@ -392,6 +398,16 @@ async function forfeitPartySeat(
  * history and its heartbeats. The ONE teardown every path that removes a game
  * goes through (a deleted or expired card, a wiped room).
  *
+ * Bounded: each child table is deleted up to `cap` rows, then the row itself
+ * goes, and anything left over becomes a `match` job (`matchSteps`) keyed by
+ * the dead id. The job pages the rest, including the move bubbles unless
+ * `skipBubbles` says they are swept some other way (a room being wiped removes
+ * every message itself).
+ *
+ * Returns the move bubbles of the moves deleted here, for the caller
+ * (`messages.ts`, which owns message teardown) to remove; empty when
+ * `skipBubbles`. A bubble left behind would open a game that no longer exists.
+ *
  * Seats, the turn, offers and requests live on the row itself, so they go with
  * it. Scheduled jobs (`liveness`, `graceExpire`, `asyncRemind`, `asyncExpire`,
  * `partyTick`, `sendMatchPush`) are not cancelled: every one of them re-reads
@@ -399,32 +415,59 @@ async function forfeitPartySeat(
  * that re-arms itself, stops re-arming. Cancelling would mean scanning
  * `_scheduled_functions`, which has no index on a job's arguments.
  */
-export async function eraseMatch(ctx: any, matchId: any) {
-  for (const h of await ctx.db
-    .query("matchHidden")
-    .withIndex("by_match", (q: any) => q.eq("matchId", matchId))
-    .collect()) {
-    await ctx.db.delete(h._id);
-  }
-  for (const m of await ctx.db
+export async function eraseMatch(
+  ctx: any,
+  matchId: any,
+  opts: { cap?: number; skipBubbles?: boolean } = {},
+): Promise<{ bubbles: any[]; overflow: boolean }> {
+  const cap = opts.cap ?? tuning.inlineCap;
+  const skipBubbles = opts.skipBubbles === true;
+
+  const hidden = await deleteCapped(
+    ctx,
+    ctx.db
+      .query("matchHidden")
+      .withIndex("by_match", (q: any) => q.eq("matchId", matchId)),
+    cap,
+  );
+
+  const bubbles: any[] = [];
+  const moves = await ctx.db
     .query("matchMoves")
     .withIndex("by_match_seq", (q: any) => q.eq("matchId", matchId))
-    .collect()) {
+    .take(cap + 1);
+  for (const m of moves.slice(0, cap)) {
+    if (!skipBubbles && m.messageId) bubbles.push(m.messageId);
     await ctx.db.delete(m._id);
   }
-  for (const p of await ctx.db
-    .query("matchPresence")
-    .withIndex("by_match_user", (q: any) => q.eq("matchId", matchId))
-    .collect()) {
-    await ctx.db.delete(p._id);
-  }
+
+  const presence = await deleteCapped(
+    ctx,
+    ctx.db
+      .query("matchPresence")
+      .withIndex("by_match_user", (q: any) => q.eq("matchId", matchId)),
+    cap,
+  );
+
   await ctx.db.delete(matchId);
+
+  const overflow = hidden.overflow || moves.length > cap || presence.overflow;
+  if (overflow) {
+    await enqueueDeletion(ctx, {
+      kind: "match",
+      targetId: matchId.toString(),
+      args: skipBubbles ? { skipBubbles: true } : {},
+    });
+  }
+  return { bubbles, overflow };
 }
 
 /**
  * The game behind a card that is being deleted. Returns its move bubbles'
- * message ids, for the caller (`messages.ts`, which owns message teardown)
- * to remove: a move left behind would open a game that no longer exists.
+ * message ids (the first page of them; a longer history goes to the `match`
+ * job, which removes the rest), for the caller (`messages.ts`, which owns
+ * message teardown) to remove: a move left behind would open a game that no
+ * longer exists.
  *
  * A move bubble is never a card, so deleting one finds nothing here and the
  * game plays on. That matters for a card-less turn by turn game
@@ -434,6 +477,7 @@ export async function eraseMatch(ctx: any, matchId: any) {
 export async function purgeMatchForMessage(
   ctx: any,
   messageId: any,
+  cap: number = tuning.inlineCap,
 ): Promise<any[]> {
   // `eq(undefined)` would match every row whose `messageId` is unset.
   if (!messageId) return [];
@@ -445,24 +489,24 @@ export async function purgeMatchForMessage(
     .take(10);
   const bubbles: any[] = [];
   for (const match of rows) {
-    for (const m of await ctx.db
-      .query("matchMoves")
-      .withIndex("by_match_seq", (q: any) => q.eq("matchId", match._id))
-      .collect()) {
-      if (m.messageId) bubbles.push(m.messageId);
-    }
-    await eraseMatch(ctx, match._id);
+    bubbles.push(...(await eraseMatch(ctx, match._id, { cap })).bubbles);
   }
   return bubbles;
 }
 
-/** Every game a room ever held, when the room itself is going. */
+/**
+ * Every game a room ever held, when the room itself is going. The room's
+ * messages (move bubbles included) are swept by the room, so no bubble is
+ * removed here.
+ */
 export async function purgeMatchesForRoom(ctx: any, roomId: any) {
   const rows = await ctx.db
     .query("matches")
     .withIndex("by_room_status", (q: any) => q.eq("roomId", roomId))
     .collect();
-  for (const match of rows) await eraseMatch(ctx, match._id);
+  for (const match of rows) {
+    await eraseMatch(ctx, match._id, { skipBubbles: true });
+  }
 }
 
 // ── Challenge cards ("Beat my time", `challenges.ts`) ───────────────────────

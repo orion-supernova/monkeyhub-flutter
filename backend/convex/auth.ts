@@ -2,7 +2,6 @@ import { internalMutation, mutation as rawMutation } from "./_generated/server";
 import {  mutation, publicMutation, query  } from "./functions";
 import {
   ERR_SESSION_REVOKED,
-  identityBanHash,
   mintSession,
   requireSession,
   revokeOtherSessions,
@@ -22,25 +21,13 @@ import {
   assertNoCaseTwin,
   normaliseUsername,
 } from "./socialAuth";
-import { wipeRoomCompletely } from "./roomCleanup";
-import { purgeSpeakerColorsForUser } from "./speakerColors";
-import { ensureOwner } from "./roomAdmin";
-import { removeUserFromRoomGroupCall } from "./groupCalls";
-import { purgeScheduledForUser } from "./scheduledMessages";
-import { purgeRecordsOf } from "./recordBook";
-import { leaveMatchesInRoom, purgeChallengesOfUser } from "./matchCore";
 import {
   ERR_DISPLAY_NAME_RESERVED,
   ERR_USERNAME_RESERVED,
   isReservedName,
 } from "./systemAccount";
-import { deleteStored } from "./files";
 import { assertCleanName } from "./contentFilter";
 import { termsStamp } from "./terms";
-import { removeMessageAndFanout } from "./messages";
-import { purgeUserExpressions } from "./expressions";
-import { deleteFriendshipRow } from "./users";
-import { purgeMomentComments, purgeUserComments } from "./momentComments";
 import {
   assertNotLocked,
   clearFailures,
@@ -51,9 +38,13 @@ import {
   refusal,
   throttleSignup,
 } from "./rateLimit";
-import { revokeUserRoomAccess } from "./roomAccess";
-import { isRetiredHandle, retireIfStaff } from "./retiredHandles";
+import { isRetiredHandle } from "./retiredHandles";
+import { enqueueDeletion, getLiveUser, isTombstoned, startUserDeletion } from "./deletionCore";
 import { hashPassword, upgradeIfLegacy, verifyPassword } from "./passwords";
+
+/** A guardian supervises a handful of children, a child has a few guardians. */
+const MAX_SUPERVISED = 100;
+const MAX_GUARDIANS_PER_CHILD = 20;
 
 /**
  * Who the caller actually is, resolved from the bearer token alone.
@@ -75,12 +66,15 @@ import { hashPassword, upgradeIfLegacy, verifyPassword } from "./passwords";
  */
 export const whoami = query({
   args: {},
-  returns: v.object({
-    userId: v.id("users"),
-    username: v.string(),
-    name: v.string(),
-    accountType: v.string(),
-  }),
+  returns: v.union(
+    v.object({
+      userId: v.id("users"),
+      username: v.string(),
+      name: v.string(),
+      accountType: v.string(),
+    }),
+    v.null(),
+  ),
   handler: async (ctx, { userId }) => {
     const user = await ctx.db.get(userId);
     // Unreachable: `requireSession` already refuses a token whose account is
@@ -88,6 +82,10 @@ export const whoami = query({
     // `null` that the client would file under "offline" — the exact failure
     // mode this function exists to end.
     if (!user) throw new Error(ERR_SESSION_REVOKED);
+    // An account being deleted (tombstoned) is already gone to everyone else.
+    // `requireSession` refuses its sessions first, so this is the belt to that
+    // pair of braces.
+    if (isTombstoned(user)) return null;
     return {
       userId: user._id,
       username: user.username,
@@ -490,665 +488,59 @@ export const deleteAccount = rawMutation({
     const supervising = await ctx.db
       .query("guardianships")
       .withIndex("by_guardian", (q) => q.eq("guardianId", userId))
-      .collect();
+      .take(MAX_SUPERVISED);
     for (const link of supervising) {
+      // Guardianship rows go in the background when an account is deleted, so a
+      // row alone proves nothing: count only guardians who are still live. A
+      // co-guardian's stuck deletion must not block this one, and two
+      // co-guardians must not both leave the child with nobody.
       const guardians = await ctx.db
         .query("guardianships")
         .withIndex("by_child", (q) => q.eq("childId", link.childId))
-        .take(2);
-      if (guardians.length <= 1) throw new Error(ERR_LAST_GUARDIAN);
+        .take(MAX_GUARDIANS_PER_CHILD);
+      let others = 0;
+      for (const g of guardians) {
+        if (g.guardianId === userId) continue;
+        if (await getLiveUser(ctx, g.guardianId)) others++;
+      }
+      if (others === 0) throw new Error(ERR_LAST_GUARDIAN);
     }
 
-    await purgeUser(ctx, userId);
+    await startUserDeletion(ctx, userId, { reason: "self" });
   },
 });
 
 /**
  * The teardown itself, callable from other modules. Split out of
  * `deleteAccount` so `family.deleteChildAccount` doesn't have to duplicate it.
+ *
+ * Starts the deletion (`deletionCore.startUserDeletion`: scrub the row, revoke
+ * sessions, queue the job) and returns; the lifecycle engine finishes it in
+ * bounded slices, the user row last (`deletionSteps/userSteps.ts`).
  */
 export const purgeAccount = internalMutation({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
-    await purgeUser(ctx, userId);
+    await startUserDeletion(ctx, userId, { reason: "guardian" });
   },
 });
 
 /**
- * Deletes every row across the given groups, skipping ids already seen.
- *
- * Most of the teardown below queries a table from two directions at once
- * (`by_user` + `by_friend`, `by_caller` + `by_callee`, …). Those can return
- * the same row twice, and a second `ctx.db.delete` on one id throws — so the
- * dedupe is load-bearing, not defensive.
+ * Shim for one release: the old teardown scheduled this to finish a removed
+ * account's messages, so a job already in the queue names it. The account row
+ * is gone by then; the engine's user plan finishes the messages (and anything
+ * else left) by id. Delete once nothing is scheduled.
  */
-async function deleteRows(ctx: any, ...groups: any[][]) {
-  const seen = new Set<string>();
-  for (const rows of groups) {
-    for (const row of rows) {
-      const key = row._id.toString();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      await ctx.db.delete(row._id);
-    }
-  }
-}
-
-const byUser = (userId: any) => (q: any) => q.eq("userId", userId);
-
-/**
- * Removes every trace of an account.
- *
- * Convex has no foreign keys and no cascade deletes, so this has to name every
- * table that can point at a user. Anything missed is not merely untidy: an
- * orphaned `blocks` row keeps two people invisible to each other, a stale
- * `userDevices` row keeps pushing to a dead account, and undeleted
- * `mediaStorageId` files bill forever with nothing referencing them.
- *
- * Ordering matters in one place only — rooms go first, because wiping a room
- * takes its messages with it and leaves the per-message pass less to walk.
- */
-/** Messages removed per transaction when an account is deleted. */
-const PURGE_BATCH = 200;
-
-/** Finishes deleting a removed account's messages, one batch at a time. */
 export const purgeMessagesLater = internalMutation({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
-    const batch = await ctx.db
-      .query("messages")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .take(PURGE_BATCH + 1);
-    for (const msg of batch.slice(0, PURGE_BATCH)) {
-      const live = await ctx.db.get(msg._id);
-      if (live) await removeMessageAndFanout(ctx, live, msg._id);
-    }
-    if (batch.length > PURGE_BATCH) {
-      await ctx.scheduler.runAfter(0, internal.auth.purgeMessagesLater, { userId });
-    }
+    // A live account is not this shim's to touch (an id reused by mistake).
+    const row = await ctx.db.get(userId);
+    if (row && !isTombstoned(row)) return;
+    await enqueueDeletion(ctx, {
+      kind: "user",
+      targetId: userId,
+      reason: "legacy",
+    });
   },
 });
-
-async function purgeUser(ctx: any, userId: any) {
-  const user = await ctx.db.get(userId);
-  await retireIfStaff(ctx, user?.username);
-
-  // "Beat my time" bodies this account sent, wherever they were sent.
-  await purgeChallengesOfUser(ctx, userId);
-
-  // ── Rooms ────────────────────────────────────────────────────────────────
-  const memberships = await ctx.db
-    .query("roomMembers")
-    .withIndex("by_user", byUser(userId))
-    .collect();
-  await revokeUserRoomAccess(ctx, userId);
-
-  for (const membership of memberships) {
-    const roomId = membership.roomId;
-    await ctx.db.delete(membership._id);
-    // Before the room can be wiped below: forfeiting writes to the games.
-    await leaveMatchesInRoom(ctx, roomId, userId);
-    // And out of the room's live group call, the way `removeMembership` does
-    // it: otherwise the deleted account stays on the roster.
-    await removeUserFromRoomGroupCall(ctx, roomId, userId);
-
-    const remaining = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
-      .collect();
-
-    if (remaining.length === 0) {
-      // Last one out. `wipeRoomCompletely` is the same teardown the block and
-      // "take back" flows use — it takes the room's media too.
-      await wipeRoomCompletely(ctx, roomId);
-      continue;
-    }
-
-    const room = await ctx.db.get(roomId);
-    if (!room) continue;
-
-    // Recount rather than decrement: `remaining` is the truth, so a count
-    // that had already drifted heals here.
-    const patch: any = { memberCount: remaining.length };
-
-    await ctx.db.patch(roomId, patch);
-
-    // The owner SEAT, not `rooms.createdBy`, is what would otherwise be left
-    // pointing at a deleted user — and a room with no owner is frozen for
-    // everyone still in it: nobody can rename it, delete it, or demote a rogue
-    // admin, and no screen anywhere can repair that.
-    //
-    // `ensureOwner` is the same re-seating that runs when an owner simply
-    // leaves, and it prefers the longest-standing ADMIN over the
-    // longest-standing member — people the departing owner had already
-    // trusted. It drags `createdBy` along so that record keeps naming somebody
-    // who is actually still here; it grants nothing either way.
-    await ensureOwner(ctx, roomId, remaining);
-  }
-
-  // ── Messages this user sent in rooms that survived ───────────────────────
-  // In batches: a heavy user's history did not fit one transaction, and the
-  // deletion Apple requires simply failed. The rest finishes in
-  // [purgeMessagesLater]; the account itself is gone when this returns.
-  const userMessages = await ctx.db
-    .query("messages")
-    .withIndex("by_user", byUser(userId))
-    .take(PURGE_BATCH + 1);
-  if (userMessages.length > PURGE_BATCH) {
-    userMessages.length = PURGE_BATCH;
-    await ctx.scheduler.runAfter(0, internal.auth.purgeMessagesLater, { userId });
-  }
-  // Through the same per-message teardown every other delete path uses
-  // (`messages.removeMessageAndFanout`): reactions and pins and bookmarks
-  // OTHER people put on these messages, the refcounted media, the view-once
-  // ledger, a posed poll's answers, a game's card taking its game (and the
-  // other player's move bubbles) with it, reply tethers, and the room preview.
-  //
-  // Re-read first: a game card earlier in this list takes its move bubbles
-  // with it, and some of those may be this user's own, still in the list.
-  // A second delete of one id throws.
-  for (const msg of userMessages) {
-    const live = await ctx.db.get(msg._id);
-    if (!live) continue;
-    await removeMessageAndFanout(ctx, live, msg._id);
-  }
-  await deleteStored(ctx, user?.avatarStorageId);
-
-  // Reactions left on other people's messages, which outlive the above.
-  await deleteRows(
-    ctx,
-    await ctx.db.query("reactions").withIndex("by_user", byUser(userId)).collect(),
-  );
-
-  // Pins this user put on other people's messages. Same shape as the reactions
-  // case overhead, and the only reason `pinnedMessages.by_user` exists.
-  //
-  // Note this is account DELETION, not leaving a room: a pin survives its
-  // author walking out of a group, because a pin is room state like the room's
-  // name. Only the user row vanishing takes it, and then only because a
-  // dangling `userId` would be a broken reference.
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("pinnedMessages")
-      .withIndex("by_user", byUser(userId))
-      .collect(),
-  );
-
-  // Bookmarks this user put on other people's messages. Same shape as the pins
-  // directly overhead, and the only reason `messageBookmarks.by_user` exists.
-  //
-  // The policy the pins comment sets out is deliberately NOT copied. A pin is
-  // room state, so it survives its author walking out of a group and only the
-  // user row vanishing takes it. A bookmark is that user's own private mark, so
-  // it dies whenever their access does — `rooms:leave` sweeps it too, and this
-  // is only the tail of that same rule for the rooms they never left.
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("messageBookmarks")
-      .withIndex("by_user", byUser(userId))
-      .collect(),
-  );
-
-  // Votes, ticks and RSVPs this user left on other people's polls, which
-  // outlive the loop above. Same shape as the reactions case, and the only
-  // reason `interactionResponses.by_user` exists.
-  //
-  // Note what this leaves behind, deliberately: the interaction rows those
-  // answers belonged to keep their tallies until somebody next writes to them,
-  // at which point `recount` derives the truth from the surviving rows. A sweep
-  // that patched every affected poll here would be a fan-out over every room
-  // this account ever voted in, to correct a number nobody is looking at — and
-  // it could not be complete anyway, since the same drift already follows a
-  // member simply leaving a room.
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("interactionResponses")
-      .withIndex("by_user", byUser(userId))
-      .collect(),
-  );
-
-  // Manual speaker colours, both directions: the ones this user set, and the
-  // ones other people set about them in rooms that outlive this account. The
-  // second direction is why `speakerColors.by_subject` exists — the room pass
-  // above only reaches rooms this user was still in.
-  await purgeSpeakerColorsForUser(ctx, userId);
-
-  // View-once rows where this user was the VIEWER. These hang off other
-  // people's messages, so the loop above never reaches them — same shape as
-  // the reactions case directly overhead.
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("viewOnceViews")
-      .withIndex("by_user", byUser(userId))
-      .collect(),
-  );
-
-  // Messages this account had queued for later, in every room — including the
-  // rooms that survived it above, which the room pass never touched. Not merely
-  // a dangling row: each one still holds a live scheduler job that would wake up
-  // days or months from now and post in a deleted person's name.
-  //
-  // Not `deleteRows`, because these carry a job that has to be cancelled with
-  // them. See `purgeScheduledForUser`.
-  await purgeScheduledForUser(ctx, userId);
-
-  // ── Social graph ─────────────────────────────────────────────────────────
-  // Through `deleteFriendshipRow`: a pending request carries messages, and the
-  // OTHER person's rows (requests they sent this user, or received from them)
-  // would otherwise leave theirs behind. The `by_user` pass below only reaches
-  // the ones this user wrote.
-  for (const f of [
-    ...(await ctx.db
-      .query("friendships")
-      .withIndex("by_user", byUser(userId))
-      .collect()),
-    ...(await ctx.db
-      .query("friendships")
-      .withIndex("by_friend", (q: any) => q.eq("friendId", userId))
-      .collect()),
-  ]) {
-    await deleteFriendshipRow(ctx, f);
-  }
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("friendRequestMessages")
-      .withIndex("by_user", byUser(userId))
-      .collect(),
-  );
-
-  // ── Group invites ────────────────────────────────────────────────────────
-  //
-  // Every direction each table can point at this user. Missed rows here are
-  // not cosmetic: a surviving `roomInvitations` row addressed to a deleted
-  // account is a pending invite nobody can ever answer, and one SENT by a
-  // deleted account still shows their name to the person deciding.
-  //
-  // The links this user issued go too. A live `roomInvites` row outliving its
-  // creator is a working join token for a room, attributed to somebody who no
-  // longer exists — the rooms themselves survive (they have other members, or
-  // the loop above already wiped them), so the token would keep admitting
-  // people with no admin able to explain where it came from.
-  const invitationGroups = [];
-  for (const status of ["pending", "accepted", "rejected", "cancelled"]) {
-    invitationGroups.push(
-      await ctx.db
-        .query("roomInvitations")
-        .withIndex("by_invitee_status", (q: any) =>
-          q.eq("inviteeId", userId).eq("status", status),
-        )
-        .collect(),
-    );
-  }
-  invitationGroups.push(
-    await ctx.db
-      .query("roomInvitations")
-      .withIndex("by_inviter", (q: any) => q.eq("inviterId", userId))
-      .collect(),
-  );
-  await deleteRows(ctx, ...invitationGroups);
-
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("roomJoinRequests")
-      .withIndex("by_user", byUser(userId))
-      .collect(),
-  );
-  // Requests this account DECIDED belong to other people and stay: only the
-  // pointer to the decider is cleared (SET NULL).
-  for (const row of await ctx.db
-    .query("roomJoinRequests")
-    .withIndex("by_decider", (q: any) => q.eq("decidedBy", userId))
-    .collect()) {
-    await ctx.db.patch(row._id, { decidedBy: undefined });
-  }
-
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("roomInvites")
-      .withIndex("by_creator", (q: any) => q.eq("createdBy", userId))
-      .collect(),
-  );
-
-  // Suggestions this account made about a room's name, description or picture
-  // — see `roomChangeRequests.ts`. A pending row addressed to nobody is a queue
-  // item no admin can ever resolve. The ones it only RULED on are other
-  // people's history and are kept, with the decider cleared, below.
-  //
-  // The blob is released for PENDING rows ONLY, and that distinction is
-  // load-bearing rather than tidy. A pending proposal's file is referenced by
-  // nothing else, so it must go. An APPROVED one's file is the room's live
-  // avatar — the room survives this account, and freeing that blob would leave
-  // a group everybody is still in with a broken picture.
-  const proposals = await ctx.db
-    .query("roomChangeRequests")
-    .withIndex("by_user", byUser(userId))
-    .collect();
-  for (const row of proposals) {
-    if (row.status === "pending" && row.storageId) {
-      await deleteStored(ctx, row.storageId);
-    }
-  }
-  await deleteRows(ctx, proposals);
-  // Other people's proposals this account ruled on stay (an approved one is the
-  // room's live picture); only the decider pointer is cleared.
-  for (const row of await ctx.db
-    .query("roomChangeRequests")
-    .withIndex("by_decider", (q: any) => q.eq("decidedBy", userId))
-    .collect()) {
-    await ctx.db.patch(row._id, { decidedBy: undefined });
-  }
-  await deleteRows(
-    ctx,
-    await ctx.db.query("blocks").withIndex("by_user", byUser(userId)).collect(),
-    await ctx.db
-      .query("blocks")
-      .withIndex("by_blocked", (q: any) => q.eq("blockedUserId", userId))
-      .collect(),
-  );
-
-  // ── Feed board ───────────────────────────────────────────────────────────
-  // Moments last, after their children, so a failure part-way through never
-  // leaves reactions or view records pointing at a row that is already gone.
-  // Blobs are released explicitly: `deleteRows` only removes documents, and a
-  // moment's media would otherwise survive as an invisible billed orphan that
-  // `gcOrphanedFiles` cannot attribute to anyone.
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("momentReactions")
-      .withIndex("by_user", byUser(userId))
-      .collect(),
-  );
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("momentViews")
-      .withIndex("by_viewer", (q: any) => q.eq("viewerId", userId))
-      .collect(),
-  );
-  // What they said under other people's highlights, and their reactions to
-  // comments. Their own moments' conversations go with the moments below.
-  await purgeUserComments(ctx, userId);
-  // Their personal stickers are cut out of their own photos, so they go with
-  // the account — rows and blobs — along with their recents and favourites.
-  await purgeUserExpressions(ctx, userId);
-  const moments = await ctx.db
-    .query("moments")
-    .withIndex("by_user", byUser(userId))
-    .collect();
-  for (const m of moments) {
-    // Reactions and views left by OTHER people on this user's moments — the
-    // by_user/by_viewer sweeps above only caught the ones this user authored.
-    for (const r of await ctx.db
-      .query("momentReactions")
-      .withIndex("by_moment", (q: any) => q.eq("momentId", m._id))
-      .collect()) {
-      await ctx.db.delete(r._id);
-    }
-    for (const vw of await ctx.db
-      .query("momentViews")
-      .withIndex("by_moment", (q: any) => q.eq("momentId", m._id))
-      .collect()) {
-      await ctx.db.delete(vw._id);
-    }
-    await purgeMomentComments(ctx, m._id);
-    await deleteStored(ctx, m.mediaStorageId);
-    await deleteStored(ctx, m.posterStorageId);
-  }
-  await deleteRows(ctx, moments);
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("puzzleResults")
-      .withIndex("by_user", byUser(userId))
-      .collect(),
-  );
-  // `by_user_day_game`'s leading field is userId, so its prefix is the
-  // teardown index — no second index exists purely to be deleted through.
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("gameResults")
-      .withIndex("by_user_day_game", byUser(userId))
-      .collect(),
-  );
-  // All-time records: theirs, the reactions on them, and the reactions they
-  // left on everybody else's.
-  await purgeRecordsOf(ctx, userId);
-
-  // ── Family ───────────────────────────────────────────────────────────────
-  // Both directions: this user may be the child OR the guardian.
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("guardianships")
-      .withIndex("by_guardian", (q: any) => q.eq("guardianId", userId))
-      .collect(),
-    await ctx.db
-      .query("guardianships")
-      .withIndex("by_child", (q: any) => q.eq("childId", userId))
-      .collect(),
-  );
-  for (const table of ["pairingCodes", "releaseCodes"]) {
-    await deleteRows(
-      ctx,
-      await ctx.db
-        .query(table)
-        .withIndex("by_child", (q: any) => q.eq("childId", userId))
-        .collect(),
-      await ctx.db
-        .query(table)
-        .withIndex("by_creator", (q: any) => q.eq("createdByGuardianId", userId))
-        .collect(),
-    );
-  }
-  // Device-login requests (QR / short-code sign-in for web and desktop) this
-  // user approved from their phone. An unapproved row belongs to no account
-  // there is to purge — it's reaped by its own short expiry instead; see
-  // deviceLogin.gcExpiredDeviceLoginRequests.
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("deviceLoginRequests")
-      .withIndex("by_approver", (q: any) => q.eq("approvedByUserId", userId))
-      .collect(),
-  );
-
-  const approvalGroups = [];
-  for (const status of ["pending", "approved", "denied", "revoked"]) {
-    approvalGroups.push(
-      await ctx.db
-        .query("approvalRequests")
-        .withIndex("by_child_status", (q: any) =>
-          q.eq("childId", userId).eq("status", status),
-        )
-        .collect(),
-    );
-  }
-  approvalGroups.push(
-    await ctx.db
-      .query("approvalRequests")
-      .withIndex("by_target_user", (q: any) => q.eq("targetUserId", userId))
-      .collect(),
-  );
-  await deleteRows(ctx, ...approvalGroups);
-  // What this guardian DECIDED is the child's live permission set (approved
-  // contacts and rooms). Deleting those rows revoked them silently whenever a
-  // co-guardian deleted their account, so they stay and only the pointer is
-  // cleared (SET NULL). Nothing reads `decidedByGuardianId` as present: it is
-  // written on decide/revoke and never read. Runs after the delete above, so a
-  // row for this user's own child-side teardown is already gone.
-  for (const row of await ctx.db
-    .query("approvalRequests")
-    .withIndex("by_decider", (q: any) => q.eq("decidedByGuardianId", userId))
-    .collect()) {
-    await ctx.db.patch(row._id, { decidedByGuardianId: undefined });
-  }
-
-  // ── Calls ────────────────────────────────────────────────────────────────
-  const calls = [
-    ...(await ctx.db
-      .query("calls")
-      .withIndex("by_caller", (q: any) => q.eq("callerId", userId))
-      .collect()),
-    ...(await ctx.db
-      .query("calls")
-      .withIndex("by_callee", (q: any) => q.eq("calleeId", userId))
-      .collect()),
-  ];
-  const signalGroups = [];
-  for (const call of calls) {
-    signalGroups.push(
-      await ctx.db
-        .query("callSignals")
-        .withIndex("by_call", (q: any) => q.eq("callId", call._id))
-        .collect(),
-    );
-  }
-  // Strays whose call row is already gone (a cron trims old calls).
-  signalGroups.push(
-    await ctx.db
-      .query("callSignals")
-      .withIndex("by_from", (q: any) => q.eq("fromUserId", userId))
-      .collect(),
-  );
-  signalGroups.push(
-    await ctx.db
-      .query("callSignals")
-      .withIndex("by_to", (q: any) => q.eq("toUserId", userId))
-      .collect(),
-  );
-  await deleteRows(ctx, ...signalGroups);
-  await deleteRows(ctx, calls);
-
-  // ── Devices ──────────────────────────────────────────────────────────────
-  // Left behind, these keep waking a phone for an account that no longer exists.
-  await deleteRows(
-    ctx,
-    await ctx.db.query("userDevices").withIndex("by_user", byUser(userId)).collect(),
-  );
-
-  // ── Sessions ─────────────────────────────────────────────────────────────
-  // The one omission that let a deleted account keep signing in. `sessions`
-  // landed after this teardown was written, so every purge before this line
-  // existed left a live bearer token pointing at a row that was about to
-  // vanish — and `requireSession` handed that dangling id straight to callers.
-  //
-  // REVOKED rather than deleted, so the device's next call gets the honest
-  // SESSION_REVOKED ("you were signed out") instead of SESSION_UNKNOWN, and so
-  // `gcRevokedSessions` collects the rows on the schedule it already owns
-  // rather than this becoming a second disposal path.
-  const now = Date.now();
-  for (const row of await ctx.db
-    .query("sessions")
-    .withIndex("by_user", byUser(userId))
-    .collect()) {
-    if (row.revokedAt === undefined) {
-      await ctx.db.patch(row._id, { revokedAt: now });
-    }
-  }
-
-  // ── Group calls ──────────────────────────────────────────────────────────
-  // Same class of omission as `sessions`: three tables carrying `v.id("users")`
-  // that arrived after this teardown was written.
-  //
-  // Only the indexed edges are swept. `groupCallSignals.fromUserId` and
-  // `groupCalls.startedBy` have no index, and unlike `rooms.createdBy` — which
-  // must be re-seated because a room outlives everyone in it — both belong to
-  // a record that is already ephemeral: `gcTerminalGroupCalls` reaps ended
-  // calls and `gcConsumedSignals` their signals, so a dangling id there has a
-  // bounded life and nothing reads it for authorization. A purge-only full
-  // table scan to beat the sweep to it is the worse trade.
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("groupCallParticipants")
-      .withIndex("by_user_status", (q: any) => q.eq("userId", userId))
-      .collect(),
-  );
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("groupCallSignals")
-      .withIndex("by_to_unconsumed", (q: any) => q.eq("toUserId", userId))
-      .collect(),
-  );
-
-  // ── Social identities ────────────────────────────────────────────────────
-  // Missing these would be worse than untidy: the (provider, subject) row is
-  // what `socialAuth.signIn` looks up, so an orphan left pointing at a deleted
-  // user would let that Apple ID sign straight into a ghost account — and would
-  // also block the same person from ever creating a fresh one.
-  //
-  // Apple additionally requires that deleting the account revokes the grant
-  // (5.1.1(v) / TN3194). Revocation needs `fetch`, which a mutation cannot do,
-  // so it is SCHEDULED — and the token is passed by value because the row it
-  // came from is deleted in this same transaction.
-  const identities = await ctx.db
-    .query("socialIdentities")
-    .withIndex("by_user", byUser(userId))
-    .collect();
-  // A SUSPENDED account may delete itself (it is their data), but that must
-  // not be a way to shed the ban: `users` (where `suspendedAt` lives) and these
-  // identities go, so the same Apple or Google ID could simply sign up again.
-  // Remember a hash of each identity; sign-in, sign-up and link refuse them.
-  if (user?.suspendedAt !== undefined) {
-    for (const identity of identities) {
-      await ctx.db.insert("bannedIdentities", {
-        hash: await identityBanHash(identity.provider, identity.subject),
-        createdAt: Date.now(),
-      });
-    }
-  }
-  for (const identity of identities) {
-    if (identity.appleRefreshToken) {
-      await ctx.scheduler.runAfter(0, internal.socialAuth.revokeAppleGrant, {
-        refreshToken: identity.appleRefreshToken,
-      });
-    }
-  }
-  await deleteRows(ctx, identities);
-
-  // ── Reports ──────────────────────────────────────────────────────────────
-  // Kept, not deleted: a moderation record has to outlive the person who filed
-  // it, or anyone could erase their own report trail by deleting their account.
-  // Tombstone the author instead of leaving a dangling id.
-  const reports = await ctx.db
-    .query("reports")
-    .withIndex("by_reporter", (q: any) => q.eq("reporterId", userId))
-    .collect();
-  for (const r of reports) {
-    await ctx.db.patch(r._id, { reporterId: undefined });
-  }
-
-  // Problem reports, tombstoned for a different reason than moderation ones:
-  // the row is the rate-limit ledger keyed on `deviceId`, so deleting it would
-  // hand anyone a way to reset their own throttle by deleting an account. The
-  // delivered chat message is not touched here either — it lives in the log
-  // account's DM and is a bug report about the app, not personal data about
-  // whoever happened to file it.
-  const problems = await ctx.db
-    .query("problemReports")
-    .withIndex("by_reporter", (q: any) => q.eq("reporterId", userId))
-    .collect();
-  for (const p of problems) {
-    await ctx.db.patch(p._id, { reporterId: undefined });
-  }
-
-  // ── Finally ──────────────────────────────────────────────────────────────
-  await deleteRows(
-    ctx,
-    await ctx.db
-      .query("typingIndicators")
-      .withIndex("by_user", byUser(userId))
-      .collect(),
-  );
-  await ctx.db.delete(userId);
-}

@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { guardOutgoing, permissionsFor, sendCore } from "./messages";
 import { deleteStored, claimUpload } from "./files";
+import { Budget, isTombstoned, tuning } from "./deletionCore";
 
 // ── Tuning ──────────────────────────────────────────────────────────────────
 
@@ -276,8 +277,11 @@ export const schedule = mutation({
     ) {
       throw new Error("SCHEDULE_BAD_MEDIA");
     }
+    // A room being deleted takes nothing new. Before the claim, so a photo is
+    // not pinned to a room that is about to take its files with it.
+    const target = await ctx.db.get(roomId);
+    if (isTombstoned(target)) throw new Error("ROOM_NOT_FOUND");
     if (mediaStorageId !== undefined) {
-      const target = await ctx.db.get(roomId);
       await claimUpload(ctx, mediaStorageId, userId, "media", {
         solo: (target?.memberCount ?? 0) <= 1,
       });
@@ -594,49 +598,85 @@ export const gcOverdue = internalMutation({
 });
 
 /**
- * Everything one user has queued, anywhere. Account teardown.
+ * Drops every row `fetch` returns, with its job and its unsent photo, a page at
+ * a time until the range is empty or the budget is spent. True when empty.
+ *
+ * No cursor: a deleted row leaves the range, so each probe starts from the top
+ * and a re-run is a no-op. Shared by the two teardown sweeps below.
+ */
+async function dropQueued(
+  ctx: any,
+  fetch: (n: number) => Promise<any[]>,
+  b: Budget,
+): Promise<boolean> {
+  for (;;) {
+    if (b.spent()) return false;
+    const rows = await fetch(tuning.pageRows);
+    b.read(Math.max(rows.length, 1));
+    for (const row of rows) {
+      if (b.spent()) return false;
+      await ctx.db.delete(row._id);
+      await dropJob(ctx, row.jobId);
+      // Unsent, so this row is the photo's only pointer.
+      await deleteStored(ctx, row.mediaStorageId);
+      b.write(2);
+    }
+    if (rows.length < tuning.pageRows) return true;
+  }
+}
+
+/**
+ * Everything one user has queued, anywhere. Account teardown, one bounded slice
+ * per call: true when nothing is left, false when the budget ran out first.
  *
  * Jobs are dropped as well as rows: a departing account's year-out message must
  * not leave an invocation behind that wakes up to find nothing.
  *
  * A plain helper taking the caller's `ctx`, matching `roomCleanup`'s convention
- * and for its reason — teardown runs inside somebody else's transaction, and a
- * separate mutation would commit the deletions apart from the rest of it.
+ * and for its reason: the caller owns the transaction.
  */
-export async function purgeScheduledForUser(ctx: any, userId: any) {
-  const rows = await ctx.db
-    .query("scheduledMessages")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .collect();
-  for (const row of rows) {
-    await ctx.db.delete(row._id);
-    await dropJob(ctx, row.jobId);
-    // Unsent, so this row is the photo's only pointer.
-    await deleteStored(ctx, row.mediaStorageId);
-  }
-  return rows.length;
+export async function purgeScheduledForUser(
+  ctx: any,
+  userId: any,
+  b: Budget = new Budget(),
+): Promise<boolean> {
+  // `eq(undefined)` would match every row whose field is unset.
+  if (!userId) return true;
+  return await dropQueued(
+    ctx,
+    (n) =>
+      ctx.db
+        .query("scheduledMessages")
+        .withIndex("by_user", (q: any) => q.eq("userId", userId))
+        .take(n),
+    b,
+  );
 }
 
 /**
- * Everything queued for one room, from every sender. Room teardown.
+ * Everything queued for one room, from every sender. Room teardown, paged like
+ * [purgeScheduledForUser].
  *
  * Not covered by [purgeScheduledForUser]: a deleted room's OTHER members have
  * queued messages of their own, and without this each would fail its membership
  * guard at release and sit in that person's list as a permanent error for a
  * room that no longer exists.
  */
-export async function purgeScheduledForRoom(ctx: any, roomId: any) {
-  const rows = await ctx.db
-    .query("scheduledMessages")
-    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
-    .collect();
-  for (const row of rows) {
-    await ctx.db.delete(row._id);
-    await dropJob(ctx, row.jobId);
-    // Unsent, so this row is the photo's only pointer.
-    await deleteStored(ctx, row.mediaStorageId);
-  }
-  return rows.length;
+export async function purgeScheduledForRoom(
+  ctx: any,
+  roomId: any,
+  b: Budget = new Budget(),
+): Promise<boolean> {
+  if (!roomId) return true;
+  return await dropQueued(
+    ctx,
+    (n) =>
+      ctx.db
+        .query("scheduledMessages")
+        .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+        .take(n),
+    b,
+  );
 }
 
 /**

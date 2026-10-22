@@ -59,45 +59,18 @@ export const PARENT_TIER = 1000;
 export const PARENT_STEP_ID = "parent";
 
 /**
- * TEMPORARY. Rule keys that must NOT get a generic step because a custom step
- * will handle them (releasing files, running a leave, paging a subtree), or
- * because they are never a plan step. Packages WP-B and WP-C delete an entry
- * when their step claims the key (the test fails if a key is both claimed and
- * exempt), so this map shrinks to the few entries that are exempt for good.
- *
- * TODO(WP-B/WP-C/WP-D): empty this out; what remains should carry a lasting reason.
+ * Rule keys that never get a generic step, and why. A key a custom step
+ * handles is listed in that step's `claims` instead (the coverage test fails
+ * if a key is both claimed and exempt), so what is left here is exempt for a
+ * lasting reason.
  */
-const CLAIMED_LATER = "claimed by WP-B/C";
 export const PLAN_EXEMPT: Record<string, string> = {
-  // Never a plan step: refused before the deletion starts.
-  "guardianships.guardianId":
-    "restrict: refused as LAST_GUARDIAN in auth.deleteAccount before startUserDeletion",
-
-  // Not indexable by the path (via walks, arrays): a custom step walks the rows.
-  "matches.seatRequest.userId": CLAIMED_LATER,
-  "matches.watchers[]": CLAIMED_LATER,
-  "messageInteractions.createdBy": CLAIMED_LATER,
-
-  // Deleting the row alone is wrong: it needs eraseMatch / its bubbles.
-  "matches.messageId": CLAIMED_LATER,
-  "matches.roomId": CLAIMED_LATER,
-  "matchMoves.matchId": CLAIMED_LATER,
-  "momentComments.parentId": CLAIMED_LATER,
-
-  // Deleting the row alone would leak files or skip the leave logic.
-  "messages.roomId": CLAIMED_LATER,
-  "messages.userId": CLAIMED_LATER,
-  "roomMembers.userId": CLAIMED_LATER,
-  "scheduledMessages.roomId": CLAIMED_LATER,
-  "scheduledMessages.userId": CLAIMED_LATER,
-  "roomChangeRequests.roomId": CLAIMED_LATER,
-  "roomChangeRequests.userId": CLAIMED_LATER,
-  "friendships.userId": CLAIMED_LATER,
-  "friendships.friendId": CLAIMED_LATER,
-  "moments.userId": CLAIMED_LATER,
-  "momentComments.userId": CLAIMED_LATER,
-  "userExpressions.userId": CLAIMED_LATER,
-  "gameRecords.userId": CLAIMED_LATER,
+  // Not indexable by the path (a nested array), so no generic step can find the rows.
+  "matches.watchers[]":
+    "live viewers on the match row; not worth a walk of every match, and a dead id in a finished game is harmless (Phase 4, optional)",
+  // Found through the message, not by the user id.
+  "messageInteractions.createdBy":
+    "the poll body is the author's message: removeMessageBounded deletes it (capped, rest in the `message` job) when the user plan removes that message",
 };
 
 const REFS = new Map<string, SchemaRef>(

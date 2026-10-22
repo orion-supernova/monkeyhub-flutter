@@ -6,6 +6,7 @@ import { GAMES } from "./games";
 import { lensFor } from "./visibility";
 import { byNameThenId, competitionPlaces, shownSeconds } from "./ranking";
 import { challengeContent } from "./challengeCopy";
+import { isTombstoned } from "./deletionCore";
 
 /**
  * "Beat my time" — a finished daily result sent into a chat as a dare.
@@ -113,7 +114,10 @@ export const forMessages = query({
   handler: async (ctx, { messageIds, viewerUserId }) => {
     if (!viewerUserId || messageIds.length > 100) return [];
     const allowed = new Map<string, boolean>();
-    const rooms = new Map<string, { isGroup: boolean; roomName?: string }>();
+    const rooms = new Map<
+      string,
+      { isGroup: boolean; roomName?: string; gone: boolean }
+    >();
     const out: any[] = [];
     for (const messageId of messageIds) {
       const c = await ctx.db
@@ -141,9 +145,12 @@ export const forMessages = query({
         rooms.set(key, {
           isGroup,
           roomName: isGroup ? (room.name as string) : undefined,
+          // Challenge rows outlive the tombstone until the first teardown step.
+          gone: isTombstoned(room),
         });
       }
       const r = rooms.get(key)!;
+      if (r.gone) continue;
       out.push({
         messageId: c.messageId,
         roomId: c.roomId,
@@ -240,6 +247,7 @@ export const roomResults = query({
       .first();
     if (!mine) return null;
     const room: any = await ctx.db.get(roomId);
+    if (isTombstoned(room)) return null;
     const isGroup = !!room && !String(room.name ?? "").startsWith("dm:");
 
     const members = await ctx.db
@@ -261,7 +269,7 @@ export const roomResults = query({
     for (const id of ids) {
       const self = id === viewerUserId;
       const user: any = await ctx.db.get(id);
-      if (!user) continue;
+      if (!user || isTombstoned(user)) continue;
       if (!self && (user.visibility?.puzzle ?? "friends") === "nobody") continue;
       const row: any = await ctx.db
         .query("gameResults")

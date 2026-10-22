@@ -269,7 +269,7 @@ describe("failure, re-drive, give-up", () => {
     const staff = await mkUser(t, "muratcankoc");
     const { roomId } = await seedRoom(t, 3);
     const jobId = (await t.run((ctx) => startRoomDeletion(ctx, roomId)))!;
-    failAt("generic:roomAccess.roomId");
+    failAt("access"); // WP-C: roomAccess.roomId is a custom step now
     await drain(t);
     for (let i = 0; i < MAX_RESTARTS; i++) {
       later(STALL_MS + 1000);

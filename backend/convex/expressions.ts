@@ -9,6 +9,7 @@ import { internal } from "./_generated/api";
 import { expressionRef } from "./schema";
 import { claimUpload, deleteStored } from "./files";
 import { isKlipyUrl } from "./messages";
+import { Budget, tuning } from "./deletionCore";
 
 /**
  * GIFs and stickers — everything the composer's expression panel reads and
@@ -452,7 +453,8 @@ export const deletePersonalSticker = mutation({
 
 /**
  * Account teardown: the user's personal pack, FILES deleted and rows
- * tombstoned, and their recents row deleted. Called from `auth.ts`'s purge.
+ * tombstoned, and their recents row deleted. Run by the user plan's
+ * `expressions` step (`deletionSteps/userSteps.ts`).
  *
  * A personal sticker is a cut-out of the owner's own photo (often their face),
  * so the files go with the account. The rows stay, soft-deleted exactly as
@@ -464,30 +466,67 @@ export const deletePersonalSticker = mutation({
  * `expressionFieldsFor`), the catalog skips it, and `ctx.storage.getUrl` on a
  * deleted file answers null. The pack loses its owner (SET NULL) so nothing
  * points at a deleted user, and no longer lists.
+ *
+ * One bounded slice per call: true when nothing is left, false when the budget
+ * ran out first. No cursor. A pack leaves the `by_owner` range once its owner
+ * is cleared, which happens only after its last live sticker is tombstoned; the
+ * `deletedAt` filter keeps a re-run from touching a tombstone twice.
  */
-export async function purgeUserExpressions(ctx: any, userId: any) {
-  const packs = await ctx.db
-    .query("stickerPacks")
-    .withIndex("by_owner", (q: any) => q.eq("ownerId", userId))
-    .collect();
-  const now = Date.now();
-  for (const pack of packs) {
-    const rows = await ctx.db
-      .query("stickers")
-      .withIndex("by_pack_order", (q: any) => q.eq("packId", pack._id))
-      .collect();
-    for (const s of rows) {
-      await deleteStored(ctx, s.storageId);
-      if (s.deletedAt === undefined) await ctx.db.patch(s._id, { deletedAt: now });
+export async function purgeUserExpressions(
+  ctx: any,
+  userId: any,
+  b: Budget = new Budget(),
+): Promise<boolean> {
+  // `eq(undefined)` would match every row whose field is unset.
+  if (!userId) return true;
+  for (;;) {
+    if (b.spent()) return false;
+    const packs = await ctx.db
+      .query("stickerPacks")
+      .withIndex("by_owner", (q: any) => q.eq("ownerId", userId))
+      .take(PACKS_PER_PAGE);
+    b.read(Math.max(packs.length, 1));
+    for (const pack of packs) {
+      const now = Date.now();
+      for (;;) {
+        if (b.spent()) return false;
+        const live = await ctx.db
+          .query("stickers")
+          .withIndex("by_pack_order", (q: any) => q.eq("packId", pack._id))
+          .filter((q: any) => q.eq(q.field("deletedAt"), undefined))
+          .take(tuning.pageRows);
+        b.read(Math.max(live.length, 1));
+        for (const s of live) {
+          if (b.spent()) return false;
+          await deleteStored(ctx, s.storageId);
+          await ctx.db.patch(s._id, { deletedAt: now });
+          b.write(2);
+        }
+        if (live.length < tuning.pageRows) break;
+      }
+      await ctx.db.patch(pack._id, { ownerId: undefined });
+      b.write();
     }
-    await ctx.db.patch(pack._id, { ownerId: undefined });
+    if (packs.length < PACKS_PER_PAGE) break;
   }
-  const state = await ctx.db
-    .query("userExpressions")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .collect();
-  for (const row of state) await ctx.db.delete(row._id);
+  for (;;) {
+    if (b.spent()) return false;
+    const state = await ctx.db
+      .query("userExpressions")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .take(tuning.pageRows);
+    b.read(Math.max(state.length, 1));
+    for (const row of state) {
+      if (b.spent()) return false;
+      await ctx.db.delete(row._id);
+      b.write();
+    }
+    if (state.length < tuning.pageRows) return true;
+  }
 }
+
+/** A user has one personal pack; a handful covers legacy duplicates. */
+const PACKS_PER_PAGE = 5;
 
 // ─── Official packs ─────────────────────────────────────────────────────────
 //

@@ -39,6 +39,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { deleteStored, claimUpload } from "./files";
 import { lensFor, publicUserView } from "./visibility";
+import { isTombstoned } from "./deletionCore";
 import {
   assertAdministrableRoom,
   assertMember,
@@ -434,7 +435,7 @@ export const listPending = query({
     const role = await roleOf(ctx, roomId, userId);
     if (!isAdminRole(role)) return [];
     const room = await ctx.db.get(roomId);
-    if (!room) return [];
+    if (!room || isTombstoned(room)) return [];
 
     // Through the viewer's lens like every other roster in the app — a
     // suggestion is not a reason to hand an admin fields its author set to
@@ -443,8 +444,8 @@ export const listPending = query({
     const now = Date.now();
     const out = [];
     for (const row of await pendingFor(ctx, roomId)) {
-      const user = await ctx.db.get(row.userId);
-      if (!user) continue;
+      const user: any = await ctx.db.get(row.userId);
+      if (!user || isTombstoned(user)) continue;
       out.push({
         requestId: row._id,
         field: row.field,

@@ -13,6 +13,7 @@ import { assertRoomAllowsById } from "./roomPolicy";
 import { lensFor, levelOf } from "./visibility";
 import { TAKEN_PUSH_GRACE_MS } from "./calls";
 import { consume } from "./rateLimit";
+import { isTombstoned } from "./deletionCore";
 
 // ────────────────────────────── constants ──────────────────────────────
 
@@ -683,6 +684,8 @@ async function inflateParticipants(ctx: any, viewerUserId: any, groupCallId: any
   const out = [] as any[];
   for (const r of rows) {
     const u = await ctx.db.get(r.userId);
+    // A ghost (account deletion in flight) is not shown in the grid.
+    if (isTombstoned(u)) continue;
     out.push({
       userId: r.userId,
       status: r.status,
@@ -769,6 +772,10 @@ export const roster = query({
   handler: async (ctx, { groupCallId, userId }) => {
     const call = await ctx.db.get(groupCallId);
     if (!call) return null;
+    // Read up front (it was read below anyway): a room being deleted has no
+    // roster to show, and its calls are ended by the first teardown step.
+    const room = await ctx.db.get(call.roomId);
+    if (isTombstoned(room)) return null;
     await requireMember(ctx, call.roomId, userId);
     const participants = await inflateParticipants(ctx, userId, groupCallId);
     // The in-call screen is titled with the room. Joining from an invite the
@@ -776,7 +783,6 @@ export const roster = query({
     // not carry it across, and a screen headed "Group video call" leaves the
     // one question a person in three rooms has — which one is this? — to be
     // guessed. A room's own picture is not lensed: every member may see it.
-    const room = await ctx.db.get(call.roomId);
     return {
       groupCallId,
       roomId: call.roomId,
@@ -845,6 +851,8 @@ export const pendingInviteForUser = query({
     if (!best) return null;
     const starter = await ctx.db.get(best.call.startedBy);
     const room = await ctx.db.get(best.call.roomId);
+    // Never ring for a room, or a starter, that is being deleted.
+    if (isTombstoned(room) || isTombstoned(starter)) return null;
     const joined = await joinedParticipants(ctx, best.call._id);
     const live = joined.filter((p: any) => isLive(p, now));
     // Everyone who was in the call is gone — nothing to join, don't ring.

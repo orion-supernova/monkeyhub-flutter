@@ -1,11 +1,12 @@
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import * as auth from "./auth";
 import { MAX_ROOM_MEMBERS, addMembership } from "./roomAdmin";
 import { STAGE_RECIPIENT_GUARDIAN } from "./childGuard";
 import { suspendAccount } from "./moderation";
+import { drainDeletions } from "./deletionTestUtils";
 import schema from "./schema";
 
 /**
@@ -17,6 +18,16 @@ import schema from "./schema";
  */
 
 type T = ReturnType<typeof convexTest>;
+
+// Deleting an account or a room finishes in the background (the lifecycle
+// engine's scheduled steps), so assertions about the end state drain first.
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
+const drain = (t: ReturnType<typeof convexTest>) => drainDeletions(t, vi.runAllTimers);
 
 async function signUp(
   t: T,
@@ -116,6 +127,7 @@ describe("item 1: the only guardian cannot delete their account", () => {
       sessionToken: parent.token,
       userId: parent.userId,
     });
+    await drain(t);
     expect(await t.run((ctx) => ctx.db.get(parent.userId))).toBeNull();
     // The child is still supervised, by the other guardian.
     const links = await t.run((ctx) =>
@@ -180,6 +192,7 @@ describe("item 2: a co-guardian deleting their account keeps the child's permiss
       sessionToken: other.token,
       userId: other.userId,
     });
+    await drain(t);
 
     const after = await t.run(async (ctx) => ({
       approvals: await ctx.db
@@ -389,6 +402,7 @@ describe("item 7 (reversed): deleting an account deletes its stickers' files", (
       sessionToken: me.token,
       userId: me.userId,
     });
+    await drain(t);
 
     const after = await t.run(async (ctx) => ({
       sticker: await ctx.db.get(stickerId),
@@ -444,6 +458,7 @@ describe("item 15: a suspended user can still delete their account", () => {
       sessionToken: me.token,
       userId: me.userId,
     });
+    await drain(t);
     expect(await t.run((ctx) => ctx.db.get(me.userId))).toBeNull();
   });
 
@@ -680,6 +695,7 @@ describe("item 15b: a suspended account cannot shed its ban by deleting itself",
       sessionToken: me.token,
       userId: me.userId,
     });
+    await drain(t);
 
     await expect(
       t.query(internal.socialAuth.findIdentity, {
@@ -715,6 +731,7 @@ describe("item 15b: a suspended account cannot shed its ban by deleting itself",
       sessionToken: me.token,
       userId: me.userId,
     });
+    await drain(t);
     expect(await t.run((ctx) => ctx.db.query("bannedIdentities").collect())).toHaveLength(0);
     await expect(
       t.query(internal.socialAuth.findIdentity, {
@@ -837,6 +854,7 @@ describe("item 18: friend-request messages go with their request", () => {
       sessionToken: b.token,
       userId: b.userId,
     });
+    await drain(t);
     expect(await leftover(t, id)).toHaveLength(0);
   });
 });
@@ -985,6 +1003,7 @@ describe("deleting an account leaves the room's live group call", () => {
       sessionToken: starter.token,
       userId: starter.userId,
     });
+    await drain(t);
 
     const call = await t.run((ctx) => ctx.db.get(res.groupCallId as any));
     expect((call as any).status).toBe("ended");

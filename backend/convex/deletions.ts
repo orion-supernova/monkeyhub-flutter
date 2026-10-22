@@ -19,7 +19,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
-import { Budget, testHooks } from "./deletionCore";
+import { Budget, meter, testHooks, tuning } from "./deletionCore";
 import { planFor } from "./deletionPlans";
 import { postOutcome } from "./moderationCore";
 
@@ -32,6 +32,8 @@ export const MAX_RESTARTS = 6;
 /** Finished rows are kept this long. */
 export const KEEP_DONE_MS = 30 * 24 * 60 * 60 * 1000;
 
+/** Reads a shrunk budget never goes below: a step's fixed probes must fit. */
+const MIN_READS = 25;
 const REDRIVE_BATCH = 50;
 const PRUNE_BATCH = 200;
 
@@ -87,11 +89,21 @@ export const stepInner = internalMutation({
       cursor = null;
     }
 
-    const b = new Budget();
+    // A step that keeps failing is probably too big for one transaction (a
+    // deterministic overrun fails every retry). Halve the budget per failed
+    // attempt, down to one row's worth of writes (and enough reads for a
+    // step's fixed probes), so the retry gets smaller each time.
+    const shrink = 2 ** Math.min(job.attempts, 10);
+    const b = new Budget(
+      Math.max(1, Math.floor(tuning.maxWrites / shrink)),
+      Math.max(MIN_READS, Math.floor(tuning.maxReads / shrink)),
+    );
+    const startIdx = idx;
+    const startCursor = cursor;
     let finished = plan.length === 0;
     while (!finished) {
       const s = plan[idx];
-      await testHooks.beforeStep?.(ctx, job, s);
+      await testHooks.beforeStep?.(ctx, job, s, b);
       const r = await s.run(ctx, { ...job, stepId: s.id, cursor }, b);
       if (!r.done) {
         cursor = r.cursor ?? null;
@@ -104,21 +116,61 @@ export const stepInner = internalMutation({
     }
 
     const now = Date.now();
+    // Real progress: a step finished, a cursor moved, or something was written.
+    // A slice that did none of that (a shrunk budget too small to get anywhere,
+    // a step that returns "not done" without doing anything) must not reset the
+    // failure count, or a job could alternate between failing and idling for
+    // ever; it counts as a failed attempt instead.
+    const progressed =
+      finished || idx !== startIdx || cursor !== startCursor || b.writes > 0;
     const patch = {
       stepId: finished ? (plan[plan.length - 1]?.id ?? "") : plan[idx].id,
       cursor,
       lastProgressAt: now,
       pages: job.pages + 1,
       writes: job.writes + b.writes,
-      attempts: 0,
-      lastError: undefined,
+      attempts: progressed ? 0 : job.attempts + 1,
+      lastError: progressed ? undefined : "NO_PROGRESS",
     };
     if (finished) {
       await ctx.db.patch(jobId, { ...patch, state: "done" as const, finishedAt: now });
+      // Done, but not whole: rows were given up on. Staff hear about it the
+      // same way they hear about a failed job.
+      const left = (await ctx.db.get(jobId))?.skipped;
+      if (left && left.length > 0) {
+        await ctx.scheduler.runAfter(0, internal.deletions.alertFailed, { jobId });
+      }
     } else {
       await ctx.db.patch(jobId, patch);
-      await ctx.scheduler.runAfter(0, internal.deletions.step, { jobId, gen });
+      // Stalled with attempts to spare: back off like a failure. Out of them:
+      // left for `redrive`.
+      if (progressed) {
+        await ctx.scheduler.runAfter(0, internal.deletions.step, { jobId, gen });
+      } else if (patch.attempts < MAX_ATTEMPTS) {
+        await ctx.scheduler.runAfter(2 ** patch.attempts * 1000, internal.deletions.step, {
+          jobId,
+          gen,
+        });
+      }
     }
+  },
+});
+
+/**
+ * One row of a heavy step, in its own sub-transaction (see
+ * `deletionCore.runRow`). Returns what it cost, counted from the database
+ * calls it made, so the caller's budget is honest.
+ */
+export const runRow = internalMutation({
+  args: { jobId: v.id("deletions"), stepId: v.string(), rowId: v.string() },
+  handler: async (ctx, { jobId, stepId, rowId }) => {
+    const job = await ctx.db.get(jobId);
+    const step = job ? planFor(job.kind).find((s) => s.id === stepId) : undefined;
+    if (!job || !step?.row) throw new Error(`NO_ROW_HANDLER ${stepId}`);
+    await testHooks.beforeRow?.(ctx, job, stepId, rowId);
+    const m = meter(ctx);
+    const more = (await step.row(m.ctx, job, rowId)) === "more";
+    return { writes: m.writes(), reads: m.reads(), more };
   },
 });
 
@@ -162,38 +214,62 @@ export const redrive = internalMutation({
   },
 });
 
+/** Alert attempts when nobody is there to hear it, an hour apart. */
+export const ALERT_RETRIES = 3;
+export const ALERT_RETRY_MS = 60 * 60 * 1000;
+
 /**
- * Tell staff a job gave up. Ids only: the job, what it was deleting and where
- * it stopped. It goes where staff already get alerts (the moderation inbox,
- * posted as Monkey Reporter, with the same push a report card sends). A
- * separate mutation so a failure here cannot undo marking the job failed.
+ * Tell staff a job gave up, or finished with rows it had to skip. Ids only:
+ * the job, what it was deleting, where it stopped and the skipped row ids. It
+ * goes where staff already get alerts (the moderation inbox, posted as Monkey
+ * Reporter, with the same push a report card sends). A separate mutation so a
+ * failure here cannot undo marking the job failed. When there is no inbox to
+ * post in (no staff resolved) it tries again an hour later, up to
+ * `ALERT_RETRIES` times, then stops with a `console.error`.
  */
 export const alertFailed = internalMutation({
-  args: { jobId: v.id("deletions") },
-  handler: async (ctx, { jobId }) => {
+  args: { jobId: v.id("deletions"), attempt: v.optional(v.number()) },
+  handler: async (ctx, { jobId, attempt }) => {
     const job = await ctx.db.get(jobId);
-    if (!job || job.state !== "failed") return;
+    if (!job) return;
+    const skipped = job.skipped ?? [];
+    const failed = job.state === "failed";
+    if (!failed && !(job.state === "done" && skipped.length > 0)) return;
+    const headline = failed
+      ? "Deletion job gave up"
+      : "Deletion job finished with skipped rows";
     const text = [
-      "Deletion job gave up",
+      headline,
       `Kind: ${job.kind}`,
       `Target: ${job.targetId}`,
       `Step: ${job.stepId || "(not started)"}`,
       `Re-drives: ${job.restarts}`,
       `Job: ${job._id}`,
-      "Retry: internal.deletions.retry with this job id.",
+      ...(skipped.length > 0 ? [`Skipped rows: ${skipped.join(", ")}`] : []),
+      ...(failed ? ["Retry: internal.deletions.retry with this job id."] : []),
     ].join("\n");
     const messageId = (await postOutcome(ctx, {}, text)) as
       | Id<"messages">
       | undefined;
-    if (!messageId) return;
-    const msg = await ctx.db.get(messageId);
-    if (!msg) return;
+    const msg = messageId ? await ctx.db.get(messageId) : null;
+    if (!messageId || !msg) {
+      const tried = attempt ?? 0;
+      if (tried < ALERT_RETRIES) {
+        await ctx.scheduler.runAfter(ALERT_RETRY_MS, internal.deletions.alertFailed, {
+          jobId,
+          attempt: tried + 1,
+        });
+      } else {
+        console.error(`deletion alert undeliverable (no staff) job=${job._id} kind=${job.kind} id=${job.targetId}`);
+      }
+      return;
+    }
     await ctx.scheduler.runAfter(0, internal.notifications.sendMessagePush, {
       roomId: msg.roomId,
       messageId,
       senderId: msg.userId,
       senderName: msg.senderName ?? "Monkey Reporter",
-      content: "Deletion job gave up",
+      content: headline,
       type: "text",
     });
   },

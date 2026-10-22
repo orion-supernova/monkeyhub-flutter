@@ -3,6 +3,7 @@ import {
   isReleasedToRecipient,
 } from "./childGuard";
 import { resolveMute } from "./mute";
+import { isTombstoned } from "./deletionCore";
 
 /**
  * Per-room unread counts and the single "needs attention" number that drives
@@ -121,7 +122,8 @@ export async function badgeTotalFor(
   for (const m of memberships) {
     if (resolveMute(m, now).badges) continue;
     const room = await ctx.db.get(m.roomId);
-    if (!room) continue;
+    // A room being deleted counts for nothing (row already in hand).
+    if (!room || isTombstoned(room)) continue;
     const { count } = await unreadForRoom(
       ctx,
       m.roomId,

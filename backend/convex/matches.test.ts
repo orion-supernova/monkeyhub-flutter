@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
+import { drainDeletions } from "./deletionTestUtils";
 import schema from "./schema";
 import {
   ASYNC_EXPIRE_MS,
@@ -861,6 +862,9 @@ describe("the room around it", () => {
       sessionToken: a.token,
       userId: a.userId,
     });
+    // The account goes in the background now (the user plan's messages step
+    // takes the card, and the card takes the game).
+    await drainDeletions(t, vi.runAllTimers);
     // Before: the creator's seat was vacated, the lobby stayed open for the
     // others, and its card was gone — a banner entry that could not open.
     await t.run(async (ctx) => {

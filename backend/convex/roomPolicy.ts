@@ -264,17 +264,25 @@ export function policyAllows(policy: PostingPolicy, write: RoomWrite): boolean {
  * (preset `open`, which refuses nothing) costs this zero reads. Pass [sender]
  * when it is already in hand to skip even that one.
  *
- * A missing room is not this function's refusal to make: every caller already
+ * A tombstoned room (`deletingAt`) is `ROOM_NOT_FOUND`. A missing room is not
+ * this function's refusal to make: every caller already
  * has its own `ROOM_NOT_FOUND` / membership answer, and a null here resolves to
  * `open` so that answer is the one the client sees.
  */
 export async function assertRoomAllows(
   ctx: any,
-  room: { postingPolicy?: string; system?: string } | null | undefined,
+  room:
+    | { postingPolicy?: string; system?: string; deletingAt?: number }
+    | null
+    | undefined,
   userId: any,
   write: RoomWrite,
   sender?: { passwordHash?: string } | null,
 ): Promise<void> {
+  // A room being deleted takes nothing new (send, schedule, forward all pass
+  // here). The row is already in hand, so this costs no read. Inline rather
+  // than `deletionCore.isTombstoned`: this file imports nothing on purpose.
+  if (room?.deletingAt !== undefined) throw new Error("ROOM_NOT_FOUND");
   if (policyAllows(postingPolicyOf(room), write)) return;
   const who = sender !== undefined ? sender : userId ? await ctx.db.get(userId) : null;
   if (isSystemAccount(who)) return;

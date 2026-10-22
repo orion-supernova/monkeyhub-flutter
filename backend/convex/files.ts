@@ -406,12 +406,17 @@ const SWEEP_LIMIT = 200;
  * `mediaStorageId` of another (a poster re-sent as a photo, a forward that
  * keeps one field), and then "is anyone else using my video" and "is anyone
  * else using my poster" differ. Each blob is checked against both columns.
+ *
+ * Returns the storage ids it really deleted (as strings), so the caller can
+ * strip a reply preview's copy of the id only when the file is gone: a forward
+ * that keeps the bytes alive keeps the preview's picture alive too.
  */
-export async function releaseMessageBlobs(ctx: any, msg: any) {
+export async function releaseMessageBlobs(ctx: any, msg: any): Promise<string[]> {
+  const deleted: string[] = [];
   const storageId = msg?.mediaStorageId;
   if (!storageId) {
     // No media means no poster: a poster is never written without one.
-    return;
+    return deleted;
   }
 
   const selfId = msg._id.toString();
@@ -432,11 +437,18 @@ export async function releaseMessageBlobs(ctx: any, msg: any) {
     );
   };
 
-  if (!(await usedElsewhere(storageId))) await deleteStored(ctx, storageId);
+  if (!(await usedElsewhere(storageId))) {
+    await deleteStored(ctx, storageId);
+    deleted.push(storageId.toString());
+  }
   const poster = msg.posterStorageId;
   if (poster && poster.toString() !== storageId.toString()) {
-    if (!(await usedElsewhere(poster))) await deleteStored(ctx, poster);
+    if (!(await usedElsewhere(poster))) {
+      await deleteStored(ctx, poster);
+      deleted.push(poster.toString());
+    }
   }
+  return deleted;
 }
 
 /**

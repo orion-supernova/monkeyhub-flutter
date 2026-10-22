@@ -42,6 +42,7 @@ import {
   roleOf,
 } from "./roomAdmin";
 import { consume } from "./rateLimit";
+import { getLiveUser, isTombstoned } from "./deletionCore";
 
 export const ERR_ALREADY_MEMBER = "ALREADY_MEMBER";
 export const ERR_ALREADY_INVITED = "ALREADY_INVITED";
@@ -81,7 +82,7 @@ export const invite = mutation({
       throw new Error(ERR_CANNOT_INVITE_SELF);
     }
 
-    const invitee = await ctx.db.get(inviteeId);
+    const invitee = await getLiveUser(ctx, inviteeId);
     if (!invitee) throw new Error("USER_NOT_FOUND");
     if (isSystemAccount(invitee)) throw new Error(ERR_SYSTEM_ACCOUNT);
 
@@ -217,7 +218,9 @@ export const respond = mutation({
     // The room can have been deleted, or the invitee added by another route,
     // between the invite and the answer. Neither is an error worth showing.
     const room = await ctx.db.get(row.roomId);
-    if (!room) {
+    // A room being deleted has its invitations swept in the first teardown
+    // step; until then it is as good as gone.
+    if (!room || isTombstoned(room)) {
       await ctx.db.delete(invitationId);
       throw new Error("ROOM_NOT_FOUND");
     }
@@ -324,6 +327,11 @@ export const advance = mutation({
       return { stage: null, status: "rejected" };
     }
 
+    // Read once, up front: approving into a room being deleted would grant
+    // access to a ghost. A missing room keeps its old fallback name below.
+    const room = await ctx.db.get(row.roomId);
+    if (isTombstoned(room)) throw new Error("ROOM_NOT_FOUND");
+
     let nextStage: string;
     if (row.stage === STAGE_SENDER_GUARDIAN) {
       nextStage = (await isChild(ctx, row.inviteeId))
@@ -335,10 +343,12 @@ export const advance = mutation({
     await ctx.db.patch(invitationId, { stage: nextStage });
 
     if (row.stage === STAGE_RECIPIENT_GUARDIAN) {
+      // The grant is a row about the child; one written for a child being
+      // deleted would outlive the teardown that sweeps them.
+      if (!(await getLiveUser(ctx, row.inviteeId))) throw new Error("USER_NOT_FOUND");
       await grantRoomAccess(ctx, row.inviteeId, row.roomId, guardianId);
     }
 
-    const room = await ctx.db.get(row.roomId);
     const roomName = room?.name ?? "a group";
     const notify =
       nextStage === STAGE_RECIPIENT_GUARDIAN
@@ -428,6 +438,8 @@ export const listIncoming = query({
       const room = await ctx.db.get(r.roomId);
       const inviter = await ctx.db.get(r.inviterId);
       if (!room || !inviter) continue;
+      // Rows survive until the teardown's first step; hide them at once.
+      if (isTombstoned(room) || isTombstoned(inviter)) continue;
       out.push({
         invitationId: r._id,
         createdAt: r.createdAt,
@@ -528,7 +540,7 @@ export const invitableFriends = query({
       if (f.status !== "accepted") continue;
       if (taken.has(f.friendId.toString())) continue;
       const friend = await ctx.db.get(f.friendId);
-      if (!friend || isSystemAccount(friend)) continue;
+      if (!friend || isSystemAccount(friend) || isTombstoned(friend)) continue;
       out.push(publicUserView(lens, friend, now));
     }
     return out;

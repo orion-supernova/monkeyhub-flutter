@@ -99,8 +99,11 @@ describe("delete plans", () => {
 
   test("the room plan is built from the rules, not hand-listed", () => {
     const ids = planFor("room").map((s) => s.id);
-    expect(ids).toContain("generic:roomAccess.roomId");
+    expect(ids).toContain("generic:roomBans.roomId"); // roomAccess.roomId is a custom step (WP-C)
     expect(ids).toContain("generic:friendships.roomId");
-    expect(planFor("avatar")).toEqual([]);
+    // No rule targets an avatar repoint, so its plan is custom steps only.
+    const avatar = planFor("avatar").map((s) => s.id);
+    expect(avatar.some((id) => id.startsWith("generic:"))).toBe(false);
+    expect(avatar[avatar.length - 1]).toBe("deleteOld");
   });
 });

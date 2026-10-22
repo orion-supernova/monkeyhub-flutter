@@ -12,6 +12,7 @@ import { assertNoSystemAccount } from "./systemAccount";
 import { assertRoomAllowsById } from "./roomPolicy";
 import { lensFor } from "./visibility";
 import { consume } from "./rateLimit";
+import { getLiveUser, isTombstoned } from "./deletionCore";
 
 // ────────────────────────────── helpers ──────────────────────────────
 
@@ -390,6 +391,9 @@ export const initiate = mutation({
     await consume(ctx, `ring:${callerId}:${calleeId}`, 3, 2 * 60 * 1000);
     await consume(ctx, `ringh:${callerId}`, 30, 60 * 60 * 1000);
     if (type !== "audio" && type !== "video") throw new Error("BAD_CALL_TYPE");
+
+    // Nobody rings an account being deleted (its devices are already gone).
+    if (!(await getLiveUser(ctx, calleeId))) throw new Error("USER_NOT_FOUND");
 
     // A system account has no device to ring. The membership check below would
     // pass for the report DM — both parties really are in it — and the call would
@@ -1073,6 +1077,9 @@ export const activeCallForUser = query({
         ? call.calleeId
         : call.callerId;
     const peer = await ctx.db.get(peerId);
+    // The other side is being deleted: its call rows go in the first teardown
+    // step, and until then there is nothing to re-attach to.
+    if (isTombstoned(peer)) return null;
     const peerName = peer?.name ?? peer?.username ?? "Unknown";
     // The deviceName for the device currently holding the call — for the
     // "Move call here · On Bob's MacBook" label. Falls back to platform.

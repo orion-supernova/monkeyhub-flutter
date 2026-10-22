@@ -37,6 +37,7 @@ import {
   wipeRoomCompletely,
 } from "./roomCleanup";
 import { addMembership, removeMembership } from "./roomAdmin";
+import { getLiveUser, isTombstoned } from "./deletionCore";
 import {
   assertNotLocked,
   loginKey,
@@ -126,7 +127,7 @@ export const createChildAccount = mutation({
     birthYear: v.optional(v.number()),
   },
   handler: async (ctx, { guardianId, username, name, birthYear }) => {
-    const guardian = await ctx.db.get(guardianId);
+    const guardian = await getLiveUser(ctx, guardianId);
     if (!guardian) throw new Error("USER_NOT_FOUND");
     // A child cannot itself become a guardian.
     if (await isChild(ctx, guardianId)) throw new Error(ERR_NOT_ALLOWED);
@@ -211,7 +212,7 @@ export const addGuardian = mutation({
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", newGuardianUsername.trim()))
       .first();
-    if (!target) throw new Error("USER_NOT_FOUND");
+    if (!target || isTombstoned(target)) throw new Error("USER_NOT_FOUND");
     if (await isChild(ctx, target._id)) throw new Error(ERR_NOT_ALLOWED);
     if (await isGuardianOf(ctx, target._id, childId)) return;
 
@@ -357,7 +358,7 @@ export const redeemPairingCode = publicMutation({
       return refusal(ERR_CODE_INVALID);
     }
 
-    const child = await ctx.db.get(row.childId);
+    const child = await getLiveUser(ctx, row.childId);
     if (!child) throw new Error("USER_NOT_FOUND");
 
     await ctx.db.patch(row._id, {
@@ -564,7 +565,7 @@ export const setChildPolicy = mutation({
   },
   handler: async (ctx, { guardianId, childId, ...flags }) => {
     await assertGuardian(ctx, guardianId, childId);
-    const child = await ctx.db.get(childId);
+    const child = await getLiveUser(ctx, childId);
     if (!child) throw new Error("USER_NOT_FOUND");
 
     const prev = child.childPolicy ?? DEFAULT_CHILD_POLICY;
@@ -685,7 +686,7 @@ export const listGuardianQueue = query({
 
     for (const childId of kids) {
       const child: any = await ctx.db.get(childId);
-      if (!child) continue;
+      if (!child || isTombstoned(child)) continue;
       const childBrief = {
         _id: child._id,
         username: child.username,
@@ -703,7 +704,7 @@ export const listGuardianQueue = query({
       for (const r of outgoing) {
         if (r.status !== "pending") continue;
         const other = await ctx.db.get(r.friendId);
-        if (!other) continue;
+        if (!other || isTombstoned(other)) continue;
         items.push({
           type: "contactOutgoing",
           _id: r._id,
@@ -724,7 +725,7 @@ export const listGuardianQueue = query({
       for (const r of incoming) {
         if (r.status !== "pending") continue;
         const other = await ctx.db.get(r.userId);
-        if (!other) continue;
+        if (!other || isTombstoned(other)) continue;
         items.push({
           type: "contactIncoming",
           _id: r._id,
@@ -744,6 +745,8 @@ export const listGuardianQueue = query({
         .collect();
       for (const a of approvals) {
         const room = a.targetRoomId ? await ctx.db.get(a.targetRoomId) : null;
+        // The room is being deleted: nothing left to approve.
+        if (isTombstoned(room)) continue;
         items.push({
           type: a.kind,
           _id: a._id,
@@ -765,7 +768,7 @@ export const listGuardianQueue = query({
         if (r.status !== "pending") continue;
         const other = await ctx.db.get(r.inviteeId);
         const room = await ctx.db.get(r.roomId);
-        if (!other || !room) continue;
+        if (!other || !room || isTombstoned(other) || isTombstoned(room)) continue;
         items.push({
           type: "roomInviteOutgoing",
           _id: r._id,
@@ -794,7 +797,7 @@ export const listGuardianQueue = query({
         if (r.status !== "pending") continue;
         const other = await ctx.db.get(r.inviterId);
         const room = await ctx.db.get(r.roomId);
-        if (!other || !room) continue;
+        if (!other || !room || isTombstoned(other) || isTombstoned(room)) continue;
         items.push({
           type: "roomInviteIncoming",
           _id: r._id,
@@ -873,6 +876,11 @@ export const requestApproval = mutation({
     );
     if (live) return live._id;
 
+    // Read before the insert (it is read below for the push anyway): a room
+    // being deleted takes no new requests.
+    const room = await ctx.db.get(targetRoomId);
+    if (isTombstoned(room)) throw new Error("ROOM_NOT_FOUND");
+
     const id = await ctx.db.insert("approvalRequests", {
       childId,
       kind,
@@ -883,7 +891,6 @@ export const requestApproval = mutation({
     });
 
     const child = await ctx.db.get(childId);
-    const room = await ctx.db.get(targetRoomId);
     const guardians = await guardiansOf(ctx, childId);
     await ctx.scheduler.runAfter(0, internal.notifications.sendApprovalPush, {
       userIds: guardians.map((g: any) => g.toString()),
@@ -924,10 +931,14 @@ export const decideApproval = mutation({
       return null;
     }
 
+    // A child being deleted takes no new permission: their approvals are
+    // swept by the teardown and one decided now would never be revisited.
+    if (!(await getLiveUser(ctx, req.childId))) throw new Error("REQUEST_NOT_FOUND");
+
     const targetRoomId = req.targetRoomId;
     if (req.kind === "joinRoom" && targetRoomId) {
       const room = await ctx.db.get(targetRoomId);
-      if (!room) throw new Error("ROOM_NOT_FOUND");
+      if (!room || isTombstoned(room)) throw new Error("ROOM_NOT_FOUND");
       // The shared join: member cap, per-user room cap, `seenVisibility` and
       // the access grant. Idempotent, so an already-member child is a no-op.
       await addMembership(ctx, targetRoomId, req.childId);
@@ -1014,7 +1025,7 @@ export const allowContactByUsername = mutation({
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", username.trim()))
       .first();
-    if (!target) throw new Error("USER_NOT_FOUND");
+    if (!target || isTombstoned(target)) throw new Error("USER_NOT_FOUND");
     if (target._id.toString() === childId.toString()) {
       throw new Error("CANNOT_ADD_SELF");
     }
@@ -1184,7 +1195,7 @@ export const previewContactRemoval = query({
     const sharedGroupRooms: any[] = [];
     for (const m of childMemberships) {
       const room = await ctx.db.get(m.roomId);
-      if (!room || room.name?.startsWith("dm:")) continue;
+      if (!room || isTombstoned(room) || room.name?.startsWith("dm:")) continue;
       const other = await ctx.db
         .query("roomMembers")
         .withIndex("by_room_user", (q) =>
@@ -1284,6 +1295,7 @@ export const listMyApprovals = query({
     const out = [];
     for (const r of rows) {
       const room = r.targetRoomId ? await ctx.db.get(r.targetRoomId) : null;
+      if (isTombstoned(room)) continue;
       out.push({
         _id: r._id,
         kind: r.kind,
@@ -1348,7 +1360,7 @@ export const grantableRooms = query({
     for (const m of mine) {
       if (taken.has(m.roomId.toString())) continue;
       const room: any = await ctx.db.get(m.roomId);
-      if (!room) continue;
+      if (!room || isTombstoned(room)) continue;
       // DMs and the system log room are not places to add a child to.
       if (typeof room.name === "string" && room.name.startsWith("dm:")) continue;
       if (room.system) continue;
@@ -1385,9 +1397,10 @@ export const grantRoomToChild = mutation({
   },
   handler: async (ctx, { guardianId, childId, roomId }) => {
     await assertGuardian(ctx, guardianId, childId);
+    if (!(await getLiveUser(ctx, childId))) throw new Error("USER_NOT_FOUND");
 
     const room: any = await ctx.db.get(roomId);
-    if (!room) throw new Error("ROOM_NOT_FOUND");
+    if (!room || isTombstoned(room)) throw new Error("ROOM_NOT_FOUND");
     if (typeof room.name === "string" && room.name.startsWith("dm:")) {
       throw new Error(ERR_NOT_ALLOWED);
     }
@@ -1467,7 +1480,7 @@ export const listChildGrants = query({
     for (const a of approved) {
       if (a.kind === "joinRoom" && a.targetRoomId) {
         const room = await ctx.db.get(a.targetRoomId);
-        if (room) {
+        if (room && !isTombstoned(room)) {
           rooms.push({
             approvalId: a._id,
             _id: room._id,
@@ -1504,7 +1517,7 @@ export const listChildGrants = query({
       if (family.has(id)) continue;
       seen.add(id);
       const u: any = await ctx.db.get(id as any);
-      if (!u) continue;
+      if (!u || isTombstoned(u)) continue;
       contacts.push({
         ...briefOf(lens, u),
         connected: connected.has(id),
