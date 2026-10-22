@@ -347,4 +347,23 @@ crons.interval(
   {},
 );
 
+// Delete jobs (deletions.ts): a running job that has made no progress for 10
+// minutes lost its chain (a deploy, a crash, five failures in a row). This
+// restarts it under a new generation, and after 6 restarts marks it failed and
+// alerts staff. With nothing stalled it is one index probe.
+crons.interval(
+  "deletions.redrive",
+  { minutes: 5 },
+  internal.deletions.redrive,
+  {},
+);
+
+// Finished delete jobs are kept 30 days for the dashboard, then dropped.
+crons.interval(
+  "deletions.prune",
+  { hours: 24 },
+  internal.deletions.prune,
+  {},
+);
+
 export default crons;

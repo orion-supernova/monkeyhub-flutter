@@ -676,7 +676,13 @@ Known limits, left for later phases:
    drift is seen within a week instead of by users.
 5. Replace `ACCOUNT_LIFECYCLE_AUDIT.md` with a pointer to this document.
 
-**Phase 1 status (2026-10-22): items 1 to 3 Done in code.**
+**Phase 1 status (2026-10-22): Done in code** (commit `2e847111`, not
+deployed). Items 4 and 5: `integrity.ts` scans every reference weekly
+(Sunday 04:30 UTC) in 200-row pages, keeps one small counter row per table
+(`integrityCounts`), resumes a stalled run hourly (3 tries, then failed
+with a warning), and splits expected dead ids (history/softRef) from
+violations; read the result with `internal.integrity.latest`.
+`ACCOUNT_LIFECYCLE_AUDIT.md` is now a pointer here.
 `backend/convex/schemaRefs.ts` walks the schema (163 reference paths across
 56 tables; the other 8 tables hold none). `backend/convex/referenceRules.ts`
 gives each path a rule: cascade 95, setNull 14, history 16, softRef 12,
@@ -698,6 +704,12 @@ cleanup differs from the rule (31 entries on 2026-10-22, 2 still
 on purpose (sticker files, decided in Phase 0).
 
 ### Phase 2: a lifecycle engine for deletes (backend only)
+
+**Detailed design:** `docs/data-integrity-phase2-design.md` (reviewed
+2026-10-22; its Decisions section is binding). Built in four packages: A
+(engine core) first, then B (messages, moments, comments, matches, avatar
+copies), C (room and user teardown, caller migration) and D (read side,
+retirements) in parallel.
 
 One mechanism for every parent with a big history: users, rooms, messages,
 moments, games.
@@ -745,7 +757,8 @@ moments, games.
 1. Every cron in section 5 reschedules itself while pages come back full,
    and ranges on an index (no fixed "first 50").
 2. Retention sweeps for the tables in section 5, with the periods decided in
-   section 7.
+   section 7. Also old `integrityRuns` and their `integrityCounts` (about 100
+   small rows a week).
 3. `typingIndicators` rows are deleted on stop and on leave.
 4. Read receipts: the 200-entry logs move to their own `receiptLogs` table,
    read only by `getReceiptTimes`. Membership rows shrink from ~17 KB to a

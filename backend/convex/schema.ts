@@ -36,6 +36,11 @@ export default defineSchema({
     lastSeen: v.optional(v.number()),
     email: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
+    // Tombstone: set by `deletionCore.startUserDeletion`. From then on the
+    // account is gone for every reader (`requireSession` refuses it, the row is
+    // scrubbed) while the id keeps resolving until `deletions` has swept the
+    // rest. Not indexed: it is checked on rows already in hand.
+    deletingAt: v.optional(v.number()),
     // When the handle was last changed. Absent on every account still using the
     // name it signed up with, which is why it is optional rather than
     // backfilled — "never renamed" and "renamed long ago" want the same answer
@@ -353,6 +358,9 @@ export default defineSchema({
     //     rooms where holding the link should not be the whole test.
     membersCanInvite: v.optional(v.boolean()),
     linkJoinPolicy: v.optional(v.string()), // "open" | "approval"
+    // Tombstone: set by `deletionCore.startRoomDeletion`, which also renames
+    // the room and makes it private. Checked on rows already in hand; no index.
+    deletingAt: v.optional(v.number()),
   })
     .index("by_name", ["name"])
     .index("by_last_activity", ["lastMessageTime"])
@@ -494,7 +502,10 @@ export default defineSchema({
     // No standalone `by_room` — `by_room_user` alone serves every "all
     // members of this room" read as a prefix scan on `roomId`.
     .index("by_user", ["userId"])
-    .index("by_room_user", ["roomId", "userId"]),
+    .index("by_room_user", ["roomId", "userId"])
+    // Owner re-seating when the owner leaves or is deleted: the longest-standing
+    // admin or member, without reading the whole room.
+    .index("by_room_role", ["roomId", "role"]),
 
   // ── Group invites ─────────────────────────────────────────────────────────
 
@@ -3086,4 +3097,49 @@ export default defineSchema({
       }),
     ),
   }).index("by_run_table", ["runId", "table"]),
+
+  // Teardown jobs for parents with big histories (docs/data-integrity-phase2-design.md).
+  // One row per `[kind, targetId]`; `deletions.step` walks the kind's plan
+  // (`deletionPlans.planFor`) a bounded page at a time, persisting where it is
+  // here, and deletes the parent last. `targetId` is a string because the
+  // parent is usually gone by the time the sweep ends.
+  deletions: defineTable({
+    kind: v.union(
+      v.literal("user"),
+      v.literal("room"),
+      v.literal("message"),
+      v.literal("moment"),
+      v.literal("match"),
+      v.literal("avatar"),
+      v.literal("comment"),
+    ),
+    targetId: v.string(),
+    state: v.union(
+      v.literal("running"),
+      v.literal("done"),
+      v.literal("failed"),
+    ),
+    // The plan step the job is on, and its paginate cursor (null: none).
+    stepId: v.string(),
+    cursor: v.union(v.string(), v.null()),
+    // user {avatarStorageId?, suspended?}; room {avatarStorageId?, system?};
+    // message {deletedStorageIds?}; match {skipBubbles?}; avatar {userId, from, to}.
+    args: v.optional(v.record(v.string(), v.any())),
+    // self | guardian | lastMember | blockDm | cutoff | owner
+    reason: v.optional(v.string()),
+    createdAt: v.number(),
+    lastProgressAt: v.number(),
+    finishedAt: v.optional(v.number()),
+    // Cron re-drives; also the chain "generation" a stale `step` checks.
+    restarts: v.number(),
+    // Consecutive failures, reset on success.
+    attempts: v.number(),
+    // At most 200 chars, ids only.
+    lastError: v.optional(v.string()),
+    pages: v.number(),
+    writes: v.number(),
+  })
+    .index("by_target", ["kind", "targetId"])
+    .index("by_state_progress", ["state", "lastProgressAt"])
+    .index("by_state_finished", ["state", "finishedAt"]),
 });
