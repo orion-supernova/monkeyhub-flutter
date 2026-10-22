@@ -14,7 +14,7 @@ import { assertCleanName, assertCleanText } from "./contentFilter";
 import { lensFor, levelOf, publicUserView, seenVisibilityOf } from "./visibility";
 import { unreadForRoom } from "./badges";
 import { MUTE_ALWAYS, resolveMute } from "./mute";
-import { deleteStored, claimUpload } from "./files";
+import { attachFile, claimUpload, releaseFile } from "./files";
 import { wipeRoomCompletely } from "./roomCleanup";
 import { getLiveUser, isTombstoned } from "./deletionCore";
 import {
@@ -22,7 +22,6 @@ import {
   ROLE_OWNER,
   addMembership,
   clearReleasedAvatarRequests,
-  releaseRoomPhoto,
   assertAdmin,
   assertOwner,
   isGroupRoom,
@@ -316,11 +315,13 @@ export const updateRoomAvatar = mutation({
     }
     const previous = room.avatarStorageId;
     await ctx.db.patch(roomId, { avatarStorageId: storageId });
+    const holder = { table: "rooms", id: roomId.toString(), field: "avatarStorageId" };
+    await attachFile(ctx, storageId, holder);
     // Free the blob we just stopped pointing at, or it bills forever with
     // nothing referencing it. Skip when the id is unchanged — deleting that
     // file would leave the room with a broken avatar.
     if (previous && previous !== storageId) {
-      await releaseRoomPhoto(ctx, previous, { roomId });
+      await releaseFile(ctx, previous, holder);
       await clearReleasedAvatarRequests(ctx, roomId, previous);
     }
   },

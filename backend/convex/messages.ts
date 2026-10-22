@@ -13,12 +13,14 @@ import {
   childPolicyOfUser,
 } from "./childGuard";
 import {
-  deleteStored,
+  attachFile,
   releaseMessageBlobs,
+  releaseRowFiles,
   claimUpload,
   discardUpload,
   isMicroPoster,
 } from "./files";
+import { attachShared } from "./fileShare";
 import { deleteCapped, enqueueDeletion, getLiveRoom, tuning } from "./deletionCore";
 import { forkInteraction, purgeInteraction } from "./interactionCore";
 import { purgeChallengeForMessage, purgeMatchForMessage } from "./matchCore";
@@ -1216,7 +1218,7 @@ export const send = mutation({
  * the insert, the `scheduler` calls and the room patch all commit in the same
  * transaction as whoever called this.
  */
-export async function sendCore(ctx: any, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, mediaSpoiler, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs, formatting, mediaSource, mediaUrl, mediaPreviewUrl, mediaRef, stickerId, albumId, replyToAlbum, replyAlbumCount, gameMove, quiet }: any) {
+export async function sendCore(ctx: any, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, mediaSpoiler, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs, formatting, mediaSource, mediaUrl, mediaPreviewUrl, mediaRef, stickerId, albumId, replyToAlbum, replyAlbumCount, gameMove, quiet, fileMode }: any) {
   if (typeof content === "string" && content.length > MAX_CONTENT_CHARS) {
     throw new Error(ERR_TOO_LONG);
   }
@@ -1623,6 +1625,31 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     // passes it through. See the schema field.
     ...(msgType === "gameMove" && gameMove ? { gameMove } : {}),
   });
+
+  // The message's own refs, in the transaction that wrote it. Exclusive for a
+  // fresh upload; `fileMode: "share"` is the scheduled release, whose file the
+  // scheduled row still holds until the caller lets it go. The poster is the
+  // one the row kept, not the one the caller offered (an armed send drops it).
+  const shareFiles = fileMode === "share";
+  const attach = (storageId: any, field: string) =>
+    shareFiles
+      ? attachShared(ctx, storageId, { table: "messages", id: messageId.toString(), field })
+      : attachFile(ctx, storageId, { table: "messages", id: messageId.toString(), field });
+  if (mediaStorageId !== undefined) await attach(mediaStorageId, "mediaStorageId");
+  const keptPoster = armed && !armedPosterOk ? undefined : posterStorageId;
+  if (keptPoster !== undefined) await attach(keptPoster, "posterStorageId");
+  // A sticker is always a share: the sticker row's file is used by every send.
+  // Official pack art is permanent and never ref'd.
+  if (
+    expressionFields.stickerStorageId !== undefined &&
+    expressionFields.mediaSource !== "pack"
+  ) {
+    await attachShared(ctx, expressionFields.stickerStorageId, {
+      table: "messages",
+      id: messageId.toString(),
+      field: "stickerStorageId",
+    });
+  }
 
   // Schedule server-side deletion for self-destructing messages
   if (expiresAt !== undefined) {
@@ -2063,7 +2090,7 @@ export async function removeMessageImmediate(
   }
 
   // Media, and the video poster that rides with it. Via `releaseMessageBlobs`
-  // rather than a bare `deleteStored` because forwarding re-references a file
+  // rather than a bare delete because forwarding re-references a file
   // instead of copying it, so this message may not be the last one pointing at
   // its bytes. That helper also tolerates a file some other path already
   // removed. Not used on the two view-once burn paths: an armed message can be
@@ -2619,6 +2646,16 @@ export const forwardToRoom = mutation({
         expiresAt,
         ...(clientId !== undefined ? { clientId } : {}),
       });
+
+      // The copy shares the source's bytes: its own ref per field, so the file
+      // outlives whichever message goes first.
+      for (const field of ["mediaStorageId", "posterStorageId", "stickerStorageId"]) {
+        await attachShared(ctx, (msg as any)[field], {
+          table: "messages",
+          id: newId.toString(),
+          field,
+        });
+      }
 
       // A poll, checklist or event forwards as a FRESH one: same question,
       // same options, no answers. Called unconditionally because the lookup is
@@ -3331,12 +3368,11 @@ export const resolveViewOnceGrant = internalQuery({
  * The poster goes too: a video note's micro poster is part of the message,
  * and the ghost bubble has nothing left to draw it for. A row armed by an
  * older server, or by a path nobody has written yet, must not keep a frame
- * after the media it was taken from is gone either. `deleteStored` tolerates an
+ * after the media it was taken from is gone either. `releaseRowFiles` skips an
  * absent id, so the common case costs nothing.
  */
 async function burnBlobs(ctx: any, msg: any): Promise<Record<string, any>> {
-  await deleteStored(ctx, msg.mediaStorageId);
-  await deleteStored(ctx, msg.posterStorageId);
+  await releaseRowFiles(ctx, "messages", msg);
   return {
     mediaStorageId: undefined,
     posterStorageId: undefined,

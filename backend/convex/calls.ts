@@ -13,6 +13,7 @@ import { assertRoomAllowsById } from "./roomPolicy";
 import { lensFor } from "./visibility";
 import { consume } from "./rateLimit";
 import { getLiveUser, isTombstoned } from "./deletionCore";
+import { continueSweep, sweepArgs } from "./sweep";
 
 // ────────────────────────────── helpers ──────────────────────────────
 
@@ -1270,34 +1271,70 @@ export const sendCallPush = internalAction({
 });
 
 // ────────────────────────── GC sweeps ──────────────────────────
-// These run on a schedule from crons.ts. Each one bounds its work with
-// `.take(200)` so a single tick can't run away — if more is pending, the
-// next tick picks it up.
+// These run on a schedule from crons.ts. Each one bounds a run to one page so
+// a single transaction can't run away. The ones that delete what they range
+// over (gcConsumedSignals, gcTerminalCalls) schedule the next page themselves
+// while pages come back full; see sweep.ts.
 
 const CONSUMED_SIGNAL_RETENTION_MS = 60 * 1000;      // 1 min
 const TERMINAL_CALL_RETENTION_MS = 24 * 60 * 60 * 1000; // 1 day
 const STUCK_RINGING_MS = 90 * 1000;                  // 90s safety net
+const SIGNAL_GC_PAGE = 200;       // rows per run of gcConsumedSignals
+const TERMINAL_CALL_PAGE = 50;    // calls per status per run of gcTerminalCalls
+const TERMINAL_CALL_STATUSES = ["ended", "rejected", "cancelled", "missed", "failed"];
 
-// Delete callSignals where consumed=true and createdAt is older than 1 min.
+// Delete callSignals where consumed=true and createdAt is older than 1 min,
+// and the unconsumed ones left behind by a call that is over.
 export const gcConsumedSignals = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    const cutoff = Date.now() - CONSUMED_SIGNAL_RETENTION_MS;
+  args: sweepArgs,
+  handler: async (ctx, { chain }) => {
+    const now = Date.now();
+    const cutoff = now - CONSUMED_SIGNAL_RETENTION_MS;
     // Index-backed: by_consumed = (consumed, createdAt) hits exactly the
     // consumed=true partition older than the cutoff — no table scan.
-    // Cap each run at 200 deletes; the next tick picks up the rest.
     const rows = await ctx.db
       .query("callSignals")
       .withIndex("by_consumed", (q) =>
         q.eq("consumed", true).lt("createdAt", cutoff),
       )
-      .take(200);
+      .take(SIGNAL_GC_PAGE);
     for (const r of rows) {
       await ctx.db.delete(r._id);
     }
-    if (rows.length > 0) {
-      console.log(`gcConsumedSignals: deleted ${rows.length} row(s)`);
+    // Unconsumed rows are normally removed with their call (purgeCallSignals
+    // when it goes terminal, gcTerminalCalls a day later). This is the cover
+    // for the ones neither reached: a peer that never came back for its
+    // `cancel`/`bye`, or a signal whose call row is already gone. A signal as
+    // old as a terminal call's retention belongs to a call that long over, so
+    // only a missing or terminal call is deleted; a live one is left alone.
+    const staleUnconsumed = await ctx.db
+      .query("callSignals")
+      .withIndex("by_consumed", (q) =>
+        q
+          .eq("consumed", false)
+          .lt("createdAt", now - TERMINAL_CALL_RETENTION_MS),
+      )
+      .take(SIGNAL_GC_PAGE);
+    let orphaned = 0;
+    for (const r of staleUnconsumed) {
+      const call = await ctx.db.get(r.callId);
+      if (call && !TERMINAL_CALL_STATUSES.includes(call.status)) continue;
+      await ctx.db.delete(r._id);
+      orphaned++;
     }
+    const total = rows.length + orphaned;
+    if (total > 0) {
+      console.log(`gcConsumedSignals: deleted ${total} row(s)`);
+    }
+    // Chain only on progress: a full page of unconsumed rows that all belong to
+    // live calls deletes nothing and must not reschedule itself.
+    await continueSweep(
+      ctx,
+      internal.calls.gcConsumedSignals,
+      rows.length === SIGNAL_GC_PAGE ||
+        (staleUnconsumed.length === SIGNAL_GC_PAGE && orphaned > 0),
+      chain,
+    );
   },
 });
 
@@ -1305,18 +1342,19 @@ export const gcConsumedSignals = internalMutation({
 // signals (defense in depth — purgeCallSignals should have already cleaned
 // them at terminal time).
 export const gcTerminalCalls = internalMutation({
-  args: {},
-  handler: async (ctx) => {
+  args: sweepArgs,
+  handler: async (ctx, { chain }) => {
     const cutoff = Date.now() - TERMINAL_CALL_RETENTION_MS;
-    const terminal = ["ended", "rejected", "cancelled", "missed", "failed"];
     let totalDeleted = 0;
-    for (const status of terminal) {
+    let full = false;
+    for (const status of TERMINAL_CALL_STATUSES) {
       const rows = await ctx.db
         .query("calls")
         .withIndex("by_status_started", (q) =>
           q.eq("status", status).lt("startedAt", cutoff),
         )
-        .take(50);
+        .take(TERMINAL_CALL_PAGE);
+      if (rows.length === TERMINAL_CALL_PAGE) full = true;
       for (const call of rows) {
         // Cascade — sweep any signals that survived purge-on-terminal.
         const sigs = await ctx.db
@@ -1331,6 +1369,7 @@ export const gcTerminalCalls = internalMutation({
     if (totalDeleted > 0) {
       console.log(`gcTerminalCalls: deleted ${totalDeleted} call(s)`);
     }
+    await continueSweep(ctx, internal.calls.gcTerminalCalls, full, chain);
   },
 });
 

@@ -37,7 +37,7 @@ import { assertNotSystemRoom } from "./systemAccount";
 import { seenVisibilityOf } from "./visibility";
 import { wipeRoomCompletely } from "./roomCleanup";
 import { purgeSpeakerColorsForMember } from "./speakerColors";
-import { deleteStored } from "./files";
+import { releaseRowFiles } from "./files";
 import { leaveMatchesInRoom } from "./matchCore";
 import { grantRoomAccess, revokeRoomAccess } from "./roomAccess";
 import { removeUserFromRoomGroupCall } from "./groupCalls";
@@ -382,56 +382,9 @@ export async function clearPendingFor(ctx: any, roomId: any, userId: any) {
     .collect();
   for (const row of proposals) {
     if (row.status !== "pending") continue;
-    if (row.storageId) {
-      await releaseRoomPhoto(ctx, row.storageId, { requestId: row._id });
-    }
+    await releaseRowFiles(ctx, "roomChangeRequests", row);
     await ctx.db.delete(row._id);
   }
-}
-
-/**
- * Is [storageId] still a room's photo, or held by another pending proposal?
- * [exceptRoomId] / [exceptRequestId] exclude the caller's own pointer.
- */
-export async function roomPhotoInUse(
-  ctx: any,
-  storageId: any,
-  except: { roomId?: any; requestId?: any } = {},
-): Promise<boolean> {
-  const rooms = await ctx.db
-    .query("rooms")
-    .withIndex("by_avatar", (q: any) => q.eq("avatarStorageId", storageId))
-    .take(3);
-  if (rooms.some((r: any) => r._id.toString() !== except.roomId?.toString())) {
-    return true;
-  }
-  const holders = await ctx.db
-    .query("roomChangeRequests")
-    .withIndex("by_storage", (q: any) => q.eq("storageId", storageId))
-    .take(5);
-  return holders.some(
-    (r: any) =>
-      r.status === "pending" &&
-      r._id.toString() !== except.requestId?.toString(),
-  );
-}
-
-/**
- * Delete a room-photo file unless something else still points at it.
- *
- * The one release path for proposals and replaced avatars. `claimUpload` is
- * idempotent per owner, so the same blob can be proposed twice, in two rooms,
- * or be the photo a room already shows; deleting it on the first release would
- * leave the other pointer broken.
- */
-export async function releaseRoomPhoto(
-  ctx: any,
-  storageId: any,
-  except: { roomId?: any; requestId?: any } = {},
-) {
-  if (!storageId) return;
-  if (await roomPhotoInUse(ctx, storageId, except)) return;
-  await deleteStored(ctx, storageId);
 }
 
 /**

@@ -1,5 +1,5 @@
 import { cursorOf, pageAfter, tuning, type Job, type Step } from "../deletionCore";
-import { deleteStored } from "../files";
+import { releaseFile } from "../files";
 import type { MutationCtx } from "../_generated/server";
 
 /**
@@ -98,10 +98,14 @@ export const avatarSteps: Step[] = [
       if (!from) return { done: true };
       const cur = await currentAvatar(ctx, job);
       b.read();
-      // `deleteStored` tolerates a file that is already gone, so a re-run is safe.
+      // A release with no ref left is a no-op, so a re-run is safe.
       if (cur === null || cur.id?.toString() !== from) {
-        await deleteStored(ctx, from);
-        b.write();
+        await releaseFile(ctx, from, {
+          table: "users",
+          id: job.args?.userId,
+          field: "avatarStorageId",
+        });
+        b.write(5);
       }
       return { done: true };
     },

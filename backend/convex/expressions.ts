@@ -7,7 +7,7 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { expressionRef } from "./schema";
-import { claimUpload, deleteStored } from "./files";
+import { attachFile, claimUpload, forceDeleteFile, releaseFile } from "./files";
 import { isKlipyUrl } from "./messages";
 import { Budget, tuning } from "./deletionCore";
 
@@ -171,9 +171,27 @@ export const state = query({
       .query("userExpressions")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
+    // A personal sticker whose row is gone or soft-deleted (its owner deleted
+    // it, or the account was deleted) would sit in the strip and fail to send.
+    // Official and KLIPY entries are never looked up.
+    const live = new Map<string, boolean>();
+    const alive = async (r: any) => {
+      if (r.source !== "personal" || !r.stickerId) return true;
+      const key = r.stickerId.toString();
+      if (!live.has(key)) {
+        const s = await ctx.db.get(r.stickerId);
+        live.set(key, s !== null && (s as any).deletedAt === undefined);
+      }
+      return live.get(key)!;
+    };
+    const kept = async (list: any[]) => {
+      const out = [];
+      for (const r of list) if (await alive(r)) out.push(r);
+      return out;
+    };
     return {
-      recents: row?.recents ?? [],
-      favorites: row?.favorites ?? [],
+      recents: await kept(row?.recents ?? []),
+      favorites: await kept(row?.favorites ?? []),
       installedPackIds: await installedPackIdsFor(ctx, row),
     };
   },
@@ -359,7 +377,7 @@ export const createPersonalSticker = mutation({
   handler: async (ctx, { userId, storageId, emoji, width, height }) => {
     // Refusals below throw WITHOUT deleting the upload: a throw rolls back
     // every write in the mutation, the delete included, so the blob is left
-    // for `files:gcOrphanedFiles`, which reclaims unreferenced files after a
+    // for `files:reapUnreferenced`, which reclaims unreferenced files after a
     // day either way.
     const meta = await ctx.db.system.get(storageId);
     if (!meta) throw new Error("FILE_NOT_FOUND");
@@ -403,7 +421,7 @@ export const createPersonalSticker = mutation({
       existing.reduce((m, s) => Math.max(m, s.order), -1) + 1;
     const clamp = (n: number) =>
       Number.isFinite(n) && n > 0 ? Math.min(Math.round(n), 2048) : 512;
-    return await ctx.db.insert("stickers", {
+    const stickerId = await ctx.db.insert("stickers", {
       packId: pack._id,
       storageId,
       format: "image",
@@ -413,6 +431,12 @@ export const createPersonalSticker = mutation({
       order,
       createdAt: Date.now(),
     });
+    await attachFile(ctx, storageId, {
+      table: "stickers",
+      id: stickerId.toString(),
+      field: "storageId",
+    });
+    return stickerId;
   },
 });
 
@@ -433,6 +457,21 @@ export const deletePersonalSticker = mutation({
       throw new Error("NOT_AUTHORIZED");
     }
     await ctx.db.patch(stickerId, { deletedAt: Date.now() });
+    // The sticker row's ref goes; the file stays while any message or comment
+    // still holds a ref of its own, and is freed with the last. A file from
+    // before refs (untracked) is kept as it always was: no index here can tell
+    // whether a message still uses it.
+    const ledger = await ctx.db
+      .query("uploads")
+      .withIndex("by_storage", (q) => q.eq("storageId", sticker.storageId))
+      .first();
+    if (ledger?.tracked === true) {
+      await releaseFile(ctx, sticker.storageId, {
+        table: "stickers",
+        id: stickerId.toString(),
+        field: "storageId",
+      });
+    }
     // Scrubbed from the owner's own lists too, or the tile would sit in
     // RECENT and fail to send.
     const row = await ctx.db
@@ -498,7 +537,7 @@ export async function purgeUserExpressions(
         b.read(Math.max(live.length, 1));
         for (const s of live) {
           if (b.spent()) return false;
-          await deleteStored(ctx, s.storageId);
+          await forceDeleteFile(ctx, s.storageId);
           await ctx.db.patch(s._id, { deletedAt: now });
           b.write(2);
         }
@@ -790,8 +829,8 @@ export const insertOfficialSticker = internalMutation({
     format: v.optional(v.string()),
   },
   handler: async (ctx, { format, ...args }) => {
-    // Server-owned, so the unclaimed-file sweep leaves it alone.
-    await claimUpload(ctx, args.storageId, undefined, "media");
+    // Server-owned and shared by every send: permanent, never ref'd or freed.
+    await claimUpload(ctx, args.storageId, undefined, "media", { permanent: true });
     await ctx.db.insert("stickers", {
       ...args,
       format: format === "image" ? "image" : "lottie",
@@ -803,7 +842,7 @@ export const insertOfficialSticker = internalMutation({
 /**
  * Takes an official pack's stickers out of circulation, for art being
  * replaced. Soft: the rows stay, so stickers already sent keep their files
- * (the storage GC scans this table), and a pack with no live stickers drops
+ * (official art is permanent), and a pack with no live stickers drops
  * out of [packs] until new art is seeded into it. Operator-only:
  *
  *   npx convex run expressions:retireOfficialStickers '{"slug":"…"}'

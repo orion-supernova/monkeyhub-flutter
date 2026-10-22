@@ -1,11 +1,12 @@
 import { internalMutation } from "./_generated/server";
 import { mutation, publicQuery, query } from "./functions";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import {
   PRESENCE_OFFLINE_MS,
   PRESENCE_WRITE_INTERVAL_MS,
 } from "./presence";
-import { claimUpload } from "./files";
+import { attachFile, claimUpload } from "./files";
 import { enqueueDeletion, getLiveUser, isTombstoned } from "./deletionCore";
 import {
   SOCIAL_ONLY_PASSWORD_SENTINEL,
@@ -36,6 +37,8 @@ import { assertCleanName, isObjectionableName } from "./contentFilter";
 import { fileContentReport } from "./moderationCore";
 import { isRetiredHandle } from "./retiredHandles";
 import { consume } from "./rateLimit";
+import { continueSweep, sweepArgs } from "./sweep";
+import { touchSessions } from "./sessionCore";
 
 /**
  * Returns a user's profile, with per-field redaction based on the viewer's
@@ -243,6 +246,10 @@ export const updateStatus = mutation({
 export const heartbeat = mutation({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
+    // Session idle expiry's "refreshed on use": at most one write a day per
+    // session, an empty index probe otherwise. Before the early returns below,
+    // which are about presence and say nothing about the session being used.
+    await touchSessions(ctx, userId);
     const user = await ctx.db.get(userId);
     if (!user || user.status === "offline") return;
     // Usually a pure read. Clients beat every 30s because the round-trip is
@@ -637,6 +644,12 @@ export const updateAvatar = mutation({
     await claimUpload(ctx, storageId, userId, "avatar");
     const previous = user.avatarStorageId;
     await ctx.db.patch(userId, { avatarStorageId: storageId });
+    // The old file's ref is dropped by the avatar job, once its copies moved.
+    await attachFile(ctx, storageId, {
+      table: "users",
+      id: userId.toString(),
+      field: "avatarStorageId",
+    });
     // Guard against re-submitting the id already stored: the job would find it
     // is still current and do nothing, but there is no point queueing it.
     if (previous && previous !== storageId) {
@@ -1077,6 +1090,9 @@ export const report = mutation({
 /** How long a moderation report is kept. Stated in the privacy policy. */
 export const REPORT_RETENTION_MS = 24 * 30 * 24 * 60 * 60 * 1000; // ~24 months
 
+/** Rows per run of [gcExpiredReports]; a full page schedules the next. */
+const REPORTS_GC_PAGE = 200;
+
 /**
  * Deletes reports past the retention period.
  *
@@ -1096,13 +1112,19 @@ export const REPORT_RETENTION_MS = 24 * 30 * 24 * 60 * 60 * 1000; // ~24 months
  * function limit on a box that is also serving live traffic.
  */
 export const gcExpiredReports = internalMutation({
-  args: {},
-  handler: async (ctx) => {
+  args: sweepArgs,
+  handler: async (ctx, { chain }) => {
     const cutoff = Date.now() - REPORT_RETENTION_MS;
     const expired = await ctx.db
       .query("reports")
       .withIndex("by_createdAt", (q) => q.lt("createdAt", cutoff))
-      .take(200);
+      .take(REPORTS_GC_PAGE);
     for (const r of expired) await ctx.db.delete(r._id);
+    await continueSweep(
+      ctx,
+      internal.users.gcExpiredReports,
+      expired.length === REPORTS_GC_PAGE,
+      chain,
+    );
   },
 });

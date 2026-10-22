@@ -23,6 +23,15 @@
  *    (up to 3 times, then marks it failed and begins a fresh run), and the
  *    hourly `resumeStalled` cron does the same without ever starting one.
  *
+ * File refs (Phase 3): beyond dangling ids the scan also checks the `fileRefs`
+ * table against its holders, as two more counters per run:
+ *  - `<table>.<field>#missingRef`: a strong file field (`FILE_FIELDS`) whose
+ *    file exists but has no ref row for that holder (not for official art,
+ *    deleted stickers or answered change requests, which hold none).
+ *  - `fileRefs#staleRef`: a ref whose holder row is gone or whose field no
+ *    longer points at the file.
+ * Both are violations; `fileBackfill.markTracked` refuses while either is non-zero.
+ *
  * Ephemeral rules get a grace period: a dangling id on a short-lived row
  * younger than EPHEMERAL_GRACE_MS is counted as `inGrace`, not `dangling`,
  * because its TTL sweep has not had its turn yet.
@@ -38,7 +47,7 @@ import {
   internalQuery,
   type MutationCtx,
 } from "./_generated/server";
-import { REFERENCE_RULES } from "./referenceRules";
+import { FILE_FIELDS, REFERENCE_RULES } from "./referenceRules";
 import schema from "./schema";
 import { refKey, schemaRefs, type SchemaRef } from "./schemaRefs";
 
@@ -89,6 +98,21 @@ export function valuesAt(doc: any, path: string): string[] {
   return level.filter((x) => typeof x === "string");
 }
 
+/** Counter key for a strong file field with no ref row. */
+export const missingRefKey = (table: string, field: string) => `${table}.${field}#missingRef`;
+/** Counter key for a ref whose holder or field is gone. */
+export const STALE_REF_KEY = "fileRefs#staleRef";
+
+/** Whether [key] is one of the file-ref counters above. */
+export const isFileRefKey = (key: string) => key.endsWith("#missingRef") || key === STALE_REF_KEY;
+
+/** The counters a table's `integrityCounts` row carries beyond its reference paths. */
+function fileRefKeys(table: string): string[] {
+  const keys = (FILE_FIELDS[table] ?? []).map((f) => missingRefKey(table, f));
+  if (table === "fileRefs") keys.push(STALE_REF_KEY);
+  return keys;
+}
+
 const pageSizeFor = (refs: SchemaRef[], override?: number) =>
   override ?? (refs.some((r) => r.array) ? PAGE_SIZE_ARRAYS : PAGE_SIZE);
 
@@ -122,10 +146,11 @@ export interface PathReport extends Count {
 export function summarize(run: { counts: Count[] }) {
   const targetOf = new Map(ALL_REFS.map((r) => [refKey(r), r.target]));
   const paths: PathReport[] = run.counts.map((c) => {
-    const rule = REFERENCE_RULES[c.key]?.rule ?? "unruled";
+    const fileRef = isFileRefKey(c.key);
+    const rule = fileRef ? "fileRef" : (REFERENCE_RULES[c.key]?.rule ?? "unruled");
     return {
       ...c,
-      target: targetOf.get(c.key) ?? "?",
+      target: fileRef ? "fileRefs" : (targetOf.get(c.key) ?? "?"),
       rule,
       expected: EXPECTED_RULES.has(rule),
     };
@@ -136,11 +161,58 @@ export function summarize(run: { counts: Count[] }) {
   return {
     expectedDangling: sum(expected),
     violationDangling: sum(violations),
+    fileRefViolations: sum(paths.filter((p) => isFileRefKey(p.key))),
     expected,
     violations,
     cleanPaths: paths.filter((p) => p.dangling === 0).length,
     paths,
   };
+}
+
+/**
+ * Rows of a strong-file table that legitimately hold no ref for their field:
+ * a deleted personal sticker released it, a decided change request handed the
+ * file to the room, and a sent official-pack sticker is never ref'd (hot,
+ * permanent art). Shared with `fileBackfill`, which skips the same rows.
+ */
+export function holdsRef(table: string, doc: any, field: string): boolean {
+  if (field === "stickerStorageId" && doc.mediaSource === "pack") return false;
+  if (table === "stickers") return doc.deletedAt === undefined;
+  if (table === "roomChangeRequests") return doc.status === "pending";
+  return true;
+}
+
+/** Whether [holderId]'s [field] has a ref on the file, or the file is permanent art. */
+async function hasRef(ctx: MutationCtx, storageId: string, holderId: string, field: string) {
+  const ref = await ctx.db
+    .query("fileRefs")
+    .withIndex("by_file_holder", (q) =>
+      q.eq("storageId", storageId as Id<"_storage">).eq("holderId", holderId).eq("field", field),
+    )
+    .first();
+  if (ref) return true;
+  const ledger = await ctx.db
+    .query("uploads")
+    .withIndex("by_storage", (q) => q.eq("storageId", storageId as Id<"_storage">))
+    .first();
+  return ledger?.permanent === true;
+}
+
+/** Counts [ref] when its holder row is gone or its field no longer holds the file. */
+async function checkStale(ctx: MutationCtx, ref: Doc<"fileRefs">, c: Count) {
+  c.checked++;
+  let holder: any = null;
+  try {
+    const id = ctx.db.normalizeId(ref.holderTable as any, ref.holderId);
+    holder = id ? await ctx.db.get(id as Id<any>) : null;
+  } catch {
+    // An unknown table cannot hold anything.
+  }
+  if (holder && holder[ref.field]?.toString() === ref.storageId.toString()) return;
+  c.dangling++;
+  if (c.examples.length < MAX_EXAMPLES) {
+    c.examples.push(`${ref.holderTable}:${ref.holderId}.${ref.field}->${ref.storageId}`);
+  }
 }
 
 async function resumeOrFail(
@@ -160,6 +232,22 @@ async function resumeOrFail(
       `${SCAN_TABLES[run.tableIdx]?.table ?? "(finish)"} at cursor ${run.cursor ?? "(start)"}`,
   );
   return "failed";
+}
+
+/**
+ * What `fileBackfill.markTracked` asks of a finished run: whether it carried the
+ * file-ref counters at all (an older run did not) and how many violations they
+ * hold (`missingRef` plus `staleRef`).
+ */
+export async function fileRefViolations(
+  ctx: { db: any },
+  runId: Id<"integrityRuns">,
+): Promise<{ counted: boolean; violations: number }> {
+  const fileCounts = (await countsOf(ctx, runId)).filter((c) => isFileRefKey(c.key));
+  return {
+    counted: fileCounts.some((c) => c.key === STALE_REF_KEY),
+    violations: fileCounts.reduce((n, c) => n + c.dangling, 0),
+  };
 }
 
 async function countsOf(ctx: { db: any }, runId: Id<"integrityRuns">): Promise<Count[]> {
@@ -218,8 +306,8 @@ export const start = internalMutation({
       await ctx.db.insert("integrityCounts", {
         runId,
         table,
-        counts: refs.map((r) => ({
-          key: refKey(r),
+        counts: [...refs.map((r) => refKey(r)), ...fileRefKeys(table)].map((key) => ({
+          key,
           checked: 0,
           dangling: 0,
           inGrace: 0,
@@ -260,7 +348,10 @@ export const step = internalMutation({
       countRow.counts.map((c) => [c.key, { ...c, examples: [...c.examples] }]),
     );
     const seen = new Map<string, boolean>();
+    const strong = new Set(FILE_FIELDS[entry.table] ?? []);
+    const stale = entry.table === "fileRefs" ? counts.get(STALE_REF_KEY) : undefined;
     for (const doc of page.page as any[]) {
+      if (stale) await checkStale(ctx, doc, stale);
       for (const ref of entry.refs) {
         const key = refKey(ref);
         const c = counts.get(key)!;
@@ -273,7 +364,19 @@ export const step = internalMutation({
             ok = await exists(ctx, ref.target, id);
             seen.set(cacheKey, ok);
           }
-          if (ok) continue;
+          if (ok) {
+            if (strong.has(ref.path) && holdsRef(entry.table, doc, ref.path)) {
+              const m = counts.get(missingRefKey(entry.table, ref.path));
+              if (m) {
+                m.checked++;
+                if (!(await hasRef(ctx, id, doc._id, ref.path))) {
+                  m.dangling++;
+                  if (m.examples.length < MAX_EXAMPLES) m.examples.push(`${doc._id}->${id}`);
+                }
+              }
+            }
+            continue;
+          }
           if (ephemeral && now - doc._creationTime < EPHEMERAL_GRACE_MS) {
             c.inGrace++;
             continue;
@@ -340,6 +443,7 @@ export const latest = internalQuery({
       },
       expectedDangling: s.expectedDangling,
       violationDangling: s.violationDangling,
+      fileRefViolations: s.fileRefViolations,
       violations: s.violations,
       expected: s.expected,
       cleanPaths: s.cleanPaths,

@@ -1,5 +1,7 @@
 import { internalMutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { continueSweep, sweepArgs } from "./sweep";
 
 /**
  * Failed-attempt throttling for the credential paths.
@@ -133,6 +135,9 @@ export async function clearFailures(
   if (row) await ctx.db.delete(row._id);
 }
 
+/** Rows per run of [gcAuthAttempts]; a full page schedules the next. */
+export const AUTH_ATTEMPTS_PAGE = 200;
+
 /**
  * Reaps rows nobody has touched in a day.
  *
@@ -143,14 +148,22 @@ export async function clearFailures(
  * working and nobody notices.
  */
 export const gcAuthAttempts = internalMutation({
-  args: {},
-  handler: async (ctx) => {
+  args: sweepArgs,
+  handler: async (ctx, { chain }) => {
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
     const stale = await ctx.db
       .query("authAttempts")
       .withIndex("by_updatedAt", (q) => q.lt("updatedAt", cutoff))
-      .take(200);
+      .take(AUTH_ATTEMPTS_PAGE);
     for (const r of stale) await ctx.db.delete(r._id);
+    // A full page means more may be waiting: take the next one now rather than
+    // at the next firing. See sweep.ts.
+    await continueSweep(
+      ctx,
+      internal.rateLimit.gcAuthAttempts,
+      stale.length === AUTH_ATTEMPTS_PAGE,
+      chain,
+    );
   },
 });
 
@@ -189,16 +202,25 @@ export async function consume(
   await ctx.db.patch(row._id, { count: row.count + 1 });
 }
 
+/** Rows per run of [gcRateBuckets]; a full page schedules the next. */
+export const RATE_BUCKETS_PAGE = 500;
+
 /** Drops counter rows idle for a day; scheduled from `crons.ts`. */
 export const gcRateBuckets = internalMutation({
-  args: {},
-  handler: async (ctx) => {
+  args: sweepArgs,
+  handler: async (ctx, { chain }) => {
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
     const stale = await ctx.db
       .query("rateBuckets")
       .withIndex("by_window", (q) => q.lt("windowStart", cutoff))
-      .take(500);
+      .take(RATE_BUCKETS_PAGE);
     for (const row of stale) await ctx.db.delete(row._id);
+    await continueSweep(
+      ctx,
+      internal.rateLimit.gcRateBuckets,
+      stale.length === RATE_BUCKETS_PAGE,
+      chain,
+    );
   },
 });
 

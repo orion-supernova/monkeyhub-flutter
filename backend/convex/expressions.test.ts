@@ -419,7 +419,7 @@ describe("personal stickers", () => {
   test("the sweep keeps sticker blobs", async () => {
     const { t } = await setup();
     const { storageId } = await officialSticker(t);
-    await t.mutation(internal.files.gcOrphanedFiles, { graceMs: 0 });
+    await t.mutation(internal.files.reapUnreferenced, {});
     const meta = await t.run((ctx) => ctx.db.system.get(storageId));
     expect(meta).not.toBeNull();
   });
@@ -543,7 +543,7 @@ describe("official packs", () => {
     expect(retired).toBe(1);
     expect(await t.query(api.expressions.packs, { sessionToken: me.token })).toEqual([]);
     // Stickers already sent still point at the old file.
-    await t.mutation(internal.files.gcOrphanedFiles, { graceMs: 0 });
+    await t.mutation(internal.files.reapUnreferenced, {});
     expect(await t.run((ctx) => ctx.db.system.get(storageId))).not.toBeNull();
 
     // The seeder sees the old positions as free.

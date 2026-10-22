@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
 
@@ -143,11 +143,45 @@ describe("scheduled photos", () => {
     const file = await upload(t);
     await schedulePhoto(t, me, roomId, file);
 
-    const report: any = await t.query(internal.files.listOrphans, {});
-    const orphanIds = (report.orphans ?? []).map((o: any) =>
-      o.storageId.toString()
+    // The reaper, switched on and run two days on: the scheduled row's ref is
+    // what keeps the photo, so it must be there and the file must survive.
+    const refs = await t.run(async (ctx: any) =>
+      ctx.db
+        .query("fileRefs")
+        .withIndex("by_file_holder", (q: any) => q.eq("storageId", file))
+        .collect()
     );
-    expect(orphanIds).not.toContain(file.toString());
+    expect(refs).toHaveLength(1);
+    expect(refs[0].holderTable).toBe("scheduledMessages");
+
+    process.env.FILE_REFS_REAP = "1";
+    vi.useFakeTimers();
+    try {
+      await t.run(async (ctx: any) => {
+        await ctx.db.insert("fileBackfill", {
+          startedAt: 0,
+          lastProgressAt: 0,
+          status: "done",
+          tableIdx: 0,
+          cursor: null,
+          restarts: 0,
+          pages: 0,
+          rowsScanned: 0,
+          inserted: 0,
+          existed: 0,
+          missingFile: 0,
+          markedAt: 1,
+        });
+      });
+      vi.setSystemTime(Date.now() + 2 * 24 * 60 * 60 * 1000);
+      const out: any = await t.mutation(internal.files.reapUnreferenced, {});
+      expect(out.gated).toBeUndefined();
+      expect(out.reaped).toBe(0);
+    } finally {
+      vi.useRealTimers();
+      delete process.env.FILE_REFS_REAP;
+    }
+    expect(await stored(t, file)).toBe(true);
   });
 
   test("a photo without its file, or a file on a text row, is refused", async () => {

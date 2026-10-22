@@ -41,8 +41,18 @@ export type ReferenceRuleKind =
   | "softRef"
   | "file";
 
+/**
+ * How a `file` reference relates to the file's lifetime (docs/data-integrity-phase3-design.md):
+ *   ref     strong: the holder owns a `fileRefs` row, and the file is freed with the last one
+ *   copy    weak: a borrowed copy of the id with no ref; readers degrade when the file is gone
+ *   ledger  the file's own bookkeeping (`uploads`, `fileRefs`), not a use
+ */
+export type FileHold = "ref" | "copy" | "ledger";
+
 export interface ReferenceRule {
   rule: ReferenceRuleKind;
+  /** Required on every `file` rule, and only there. */
+  fileHold?: FileHold;
   /** Index on the same table whose first field is the path. */
   index?: string;
   /** Index on the same table (first field is another field) the rows are found through. */
@@ -145,18 +155,18 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
 
   // ── messages ──────────────────────────────────────────────────────────────
   "messages.gameMove.matchId": { rule: "softRef", why: "Move bubbles are removed with their match (purgeMatchForMessage reads matchMoves.messageId); a bubble that outlives it opens nothing." },
-  "messages.mediaStorageId": { rule: "file", index: "by_media", why: "Owner: the message; shared by forwards, so released only when no other message uses it (releaseMessageBlobs)." },
+  "messages.mediaStorageId": { rule: "file", fileHold: "ref", index: "by_media", why: "Owner: the message; shared by forwards, so released only when no other message uses it (releaseMessageBlobs)." },
   "messages.mentions[].userId": { rule: "history", why: "Frozen with a username snapshot on purpose (it matches the typed text)." },
   "messages.moderationCard.reportId": { rule: "softRef", why: "Card points at a report that expires after 24 months, as does the card's evidence room.", today: "unverified" },
-  "messages.posterStorageId": { rule: "file", index: "by_poster", why: "Owner: the message (video poster frame); checked against its own by_poster index." },
+  "messages.posterStorageId": { rule: "file", fileHold: "ref", index: "by_poster", why: "Owner: the message (video poster frame); checked against its own by_poster index." },
   "messages.replyToId": { rule: "softRef", index: "by_replyTo", why: "Documented soft reference; the preview shows 'deleted' and readers cope." },
-  "messages.replyToPreview.mediaStorageId": { rule: "file", why: "Owner: the parent message (borrowed copy); must only be dropped when the file is actually gone." },
+  "messages.replyToPreview.mediaStorageId": { rule: "file", fileHold: "copy", why: "Owner: the parent message (borrowed copy); must only be dropped when the file is actually gone." },
   "messages.replyToPreview.senderId": { rule: "history", why: "Copy of the parent's sender; an old quote keeps naming them." },
-  "messages.replyToPreview.stickerStorageId": { rule: "file", why: "Owner: the sticker row (borrowed copy); cleared when the sticker file is deleted.", today: "never removed, dangles when a personal sticker's file is deleted" },
+  "messages.replyToPreview.stickerStorageId": { rule: "file", fileHold: "copy", why: "Owner: the sticker row (borrowed copy); cleared when the sticker file is deleted.", today: "never removed, dangles when a personal sticker's file is deleted" },
   "messages.roomId": { rule: "cascade", index: "by_room_time", why: "Room plan, `messages` step." },
   "messages.rootId": { rule: "softRef", index: "by_root_time", why: "Thread root; documented soft reference like replyToId." },
   "messages.stickerId": { rule: "softRef", why: "Stickers are tombstoned, never hard-deleted, so a sent sticker resolves to 'unavailable'." },
-  "messages.stickerStorageId": { rule: "file", why: "Owner: the sticker row (borrowed copy).", today: "personal sticker files are deleted with the owner's account, so every use breaks (accepted on privacy grounds, see Phase 0 item 7)" },
+  "messages.stickerStorageId": { rule: "file", fileHold: "ref", why: "Owner: the sticker row (borrowed copy).", today: "personal sticker files are deleted with the owner's account, so every use breaks (accepted on privacy grounds, see Phase 0 item 7)" },
   "messages.userId": { rule: "cascade", index: "by_user", why: "User plan, `messages` step." },
 
   // ── moments ───────────────────────────────────────────────────────────────
@@ -167,14 +177,14 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "momentComments.parentId": { rule: "cascade", index: "by_parent", why: "Replies hang off their root (deleteCommentCore, or the `comment` job)." },
   "momentComments.replyToUserId": { rule: "history", why: "Copy with a name (replyToName); a deleted account still reads as a name." },
   "momentComments.stickerId": { rule: "softRef", why: "Tombstoned stickers resolve to 'unavailable'." },
-  "momentComments.stickerStorageId": { rule: "file", why: "Owner: the sticker row (borrowed copy).", today: "dangles when a personal sticker's owner deletes their account" },
+  "momentComments.stickerStorageId": { rule: "file", fileHold: "ref", why: "Owner: the sticker row (borrowed copy).", today: "dangles when a personal sticker's owner deletes their account" },
   "momentComments.userId": { rule: "cascade", index: "by_user", why: "User plan, `comments` step (deleteCommentCore)." },
   "momentReactions.momentId": { rule: "cascade", index: "by_moment", why: "deleteMomentCore (feed.remove and the user plan)." },
-  "momentReactions.userAvatarStorageId": { rule: "file", why: "Owner: users.avatarStorageId (borrowed copy, moved by repointAvatarCopies); Phase 6 profiles remove it." },
+  "momentReactions.userAvatarStorageId": { rule: "file", fileHold: "copy", why: "Owner: users.avatarStorageId (borrowed copy, moved by repointAvatarCopies); Phase 6 profiles remove it." },
   "momentReactions.userId": { rule: "cascade", index: "by_user", why: "A person's reactions go with their account." },
-  "moments.authorAvatarStorageId": { rule: "file", why: "Owner: users.avatarStorageId (borrowed copy, moved by repointAvatarCopies); Phase 6 profiles remove it." },
-  "moments.mediaStorageId": { rule: "file", index: "by_media", why: "Owner: the moment; refcounted across moments." },
-  "moments.posterStorageId": { rule: "file", index: "by_poster", why: "Owner: the moment; checked against its own by_poster index." },
+  "moments.authorAvatarStorageId": { rule: "file", fileHold: "copy", why: "Owner: users.avatarStorageId (borrowed copy, moved by repointAvatarCopies); Phase 6 profiles remove it." },
+  "moments.mediaStorageId": { rule: "file", fileHold: "ref", index: "by_media", why: "Owner: the moment; refcounted across moments." },
+  "moments.posterStorageId": { rule: "file", fileHold: "ref", index: "by_poster", why: "Owner: the moment; checked against its own by_poster index." },
   "moments.userId": { rule: "cascade", index: "by_user", why: "A person's moments, with children first, go with the account." },
   "momentViews.momentId": { rule: "cascade", index: "by_moment_viewer", why: "deleteMomentCore; also should go when the moment expires.", today: "views of expired moments are kept forever" },
   "momentViews.viewerId": { rule: "cascade", index: "by_viewer", why: "A viewer's footprints go with their account." },
@@ -209,7 +219,7 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "roomBans.userId": { rule: "cascade", index: "by_user", why: "A deleted account's bans go with it; expired bans are swept via by_until." },
   "roomChangeRequests.decidedBy": { rule: "setNull", index: "by_decider", why: "Other people's request history is kept; only the decider pointer is cleared." },
   "roomChangeRequests.roomId": { rule: "cascade", index: "by_room_status", why: "Room teardown, every status." },
-  "roomChangeRequests.storageId": { rule: "file", index: "by_storage", why: "Owner: the request while pending; an approved row's file is the room's avatar (rooms.avatarStorageId owns it), so the field must be cleared on release." },
+  "roomChangeRequests.storageId": { rule: "file", fileHold: "ref", index: "by_storage", why: "Owner: the request while pending; an approved row's file is the room's avatar (rooms.avatarStorageId owns it), so the field must be cleared on release." },
   "roomChangeRequests.userId": { rule: "cascade", index: "by_user", why: "A person's suggestions go with their account (pending files released)." },
   "roomInvitations.inviteeId": { rule: "cascade", index: "by_invitee_status", why: "An invite nobody can answer." },
   "roomInvitations.inviterId": { rule: "cascade", index: "by_inviter", why: "Would show a deleted person's name to the invitee." },
@@ -222,11 +232,11 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "roomJoinRequests.userId": { rule: "cascade", index: "by_user", why: "A person's requests go with their account." },
   "roomMembers.roomId": { rule: "cascade", index: "by_room_user", why: "Room plan, `members` step; the orphan cron is the backstop." },
   "roomMembers.userId": { rule: "cascade", index: "by_user", why: "Account deletion walks every membership (removing owners and emptied rooms)." },
-  "rooms.avatarStorageId": { rule: "file", index: "by_avatar", why: "Owner: the room; released through releaseRoomPhoto.", today: "systemAvatars.apply never frees the old file of a system room" },
+  "rooms.avatarStorageId": { rule: "file", fileHold: "ref", index: "by_avatar", why: "Owner: the room; each system room holds its own file (systemAvatars.apply), released through releaseRowFiles." },
   "rooms.createdBy": { rule: "history", why: "Required attribution; the owner SEAT is roomMembers.role, and ensureOwner re-points createdBy when it re-seats.", today: "a creator who had already left the room and later deletes their account leaves a dead id (the user plan re-points it only for rooms they are still in; field is required so it cannot be nulled)" },
   "rooms.lastMessageSenderId": { rule: "softRef", why: "Denormalized from the newest message; repaired when that message is deleted (removeMessageImmediate)." },
   "scheduledMessages.jobId": { rule: "ephemeral", why: "Points at the scheduler's `_scheduled_functions`; dropJob cancels it whenever the row goes, and it is gone once fired." },
-  "scheduledMessages.mediaStorageId": { rule: "file", why: "Owner: the scheduled row (a queued photo) until it is sent.", today: "failed rows keep their file forever" },
+  "scheduledMessages.mediaStorageId": { rule: "file", fileHold: "ref", why: "Owner: the scheduled row (a queued photo) until it is sent.", today: "failed rows keep their file forever" },
   "scheduledMessages.mentionedUserIds[]": { rule: "history", why: "Re-validated at send time; a dead id is simply dropped.", today: "unverified" },
   "scheduledMessages.replyToId": { rule: "softRef", why: "Parent may vanish before sending; the send goes out as a plain message.", today: "the sender is not told that the reply tether was lost" },
   "scheduledMessages.roomId": { rule: "cascade", index: "by_room_user_due", why: "purgeScheduledForRoom (also on leave, via purgeScheduledForRoomUser)." },
@@ -240,25 +250,42 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   // ── stickers, expressions ─────────────────────────────────────────────────
   "stickerPacks.ownerId": { rule: "setNull", index: "by_owner", why: "The pack is tombstoned, not deleted, so existing uses still resolve (purgeUserExpressions)." },
   "stickers.packId": { rule: "cascade", index: "by_pack_order", why: "Stickers belong to their pack; packs are never hard-deleted today, so this has no deleting path." },
-  "stickers.storageId": { rule: "file", why: "Owner: the sticker row. Official art stays; a personal sticker's file goes with its owner and the row is tombstoned.", today: "soft delete keeps the file forever while account deletion deletes it (plan 2.4/2.5 want one always-tombstone rule; Phase 0 chose delete for privacy)" },
+  "stickers.storageId": { rule: "file", fileHold: "ref", why: "Owner: the sticker row. Official art stays; a personal sticker's file goes with its owner and the row is tombstoned.", today: "soft delete keeps the file forever while account deletion deletes it (plan 2.4/2.5 want one always-tombstone rule; Phase 0 chose delete for privacy)" },
   "userExpressions.favorites[].stickerId": { rule: "softRef", why: "Recents/favourites are snapshots; the picker filters missing stickers on read.", today: "the server never checks the sticker exists; other people's lists keep dead stickers" },
-  "userExpressions.favorites[].storageId": { rule: "file", why: "Owner: the sticker row (borrowed copy in a snapshot)." },
+  "userExpressions.favorites[].storageId": { rule: "file", fileHold: "copy", why: "Owner: the sticker row (borrowed copy in a snapshot)." },
   "userExpressions.installedPackIds[]": { rule: "softRef", why: "A pack id the user installed; readers skip packs that no longer list." },
   "userExpressions.recents[].stickerId": { rule: "softRef", why: "Recents/favourites are snapshots; the picker filters missing stickers on read.", today: "the server never checks the sticker exists; other people's lists keep dead stickers" },
-  "userExpressions.recents[].storageId": { rule: "file", why: "Owner: the sticker row (borrowed copy in a snapshot)." },
+  "userExpressions.recents[].storageId": { rule: "file", fileHold: "copy", why: "Owner: the sticker row (borrowed copy in a snapshot)." },
   "userExpressions.userId": { rule: "cascade", index: "by_user", why: "User plan, `expressions` step." },
 
   // ── typing, uploads, users ────────────────────────────────────────────────
-  "typingIndicators.avatarStorageId": { rule: "file", why: "Owner: users.avatarStorageId (borrowed copy); Phase 6 profiles remove it." },
+  "typingIndicators.avatarStorageId": { rule: "file", fileHold: "copy", why: "Owner: users.avatarStorageId (borrowed copy); Phase 6 profiles remove it." },
   "typingIndicators.roomId": { rule: "cascade", index: "by_room_user", why: "Room teardown (should also go when the user leaves the room)." },
   "typingIndicators.userId": { rule: "cascade", index: "by_user", why: "Account deletion." },
-  "uploads.storageId": { rule: "file", index: "by_storage", why: "Owner: the ledger row IS the file's record; deleted with the file (releaseLedger)." },
+  "fileRefs.storageId": { rule: "file", fileHold: "ledger", index: "by_file_holder", why: "Owner: the ref row IS one use of the file; deleted with its holder (releaseFile), dead ones by repairRefs." },
+  "uploads.storageId": { rule: "file", fileHold: "ledger", index: "by_storage", why: "Owner: the ledger row IS the file's record; deleted with the file (releaseLedger)." },
   "uploads.userId": { rule: "setNull", index: "by_user", why: "A file can outlive its uploader (a room photo they set); the ledger row stays, ownerless." },
   "uploadUsage.userId": { rule: "cascade", index: "by_user", why: "The per-user byte counter has no meaning without the user." },
   "userDevices.userId": { rule: "cascade", index: "by_user", why: "Left behind, these keep waking a phone for a dead account." },
-  "users.avatarStorageId": { rule: "file", why: "Owner: the user row; the old file is deleted on change and copies are moved (repointAvatarCopies)." },
+  "users.avatarStorageId": { rule: "file", fileHold: "ref", why: "Owner: the user row; the old file is deleted on change and copies are moved (repointAvatarCopies)." },
   "users.suspendedBy": { rule: "history", why: "Which moderator suspended; never read as live." },
   "viewOnceViews.messageId": { rule: "cascade", index: "by_message", why: "purgeViewOnceViews." },
   "viewOnceViews.roomId": { rule: "cascade", index: "by_room_user", why: "Room teardown." },
   "viewOnceViews.userId": { rule: "cascade", index: "by_user", why: "A viewer's ledger rows go with their account." },
 };
+
+/**
+ * The storage fields each table owns a `fileRefs` row for: every `file` rule
+ * with `fileHold: "ref"`, as `{ table: [field, ...] }`. Derived, so a new strong
+ * file field only needs its rule. `files.releaseRowFiles` and `fileBackfill`
+ * both walk it. Strong fields are always plain top-level fields.
+ */
+export const FILE_FIELDS: Record<string, string[]> = (() => {
+  const out: Record<string, string[]> = {};
+  for (const [key, rule] of Object.entries(REFERENCE_RULES)) {
+    if (rule.rule !== "file" || rule.fileHold !== "ref") continue;
+    const dot = key.indexOf(".");
+    (out[key.slice(0, dot)] ??= []).push(key.slice(dot + 1));
+  }
+  return out;
+})();

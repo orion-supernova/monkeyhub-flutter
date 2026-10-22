@@ -2,6 +2,8 @@ import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { continueSweep, sweepArgs } from "./sweep";
 
 /**
  * Bearer sessions: the primitives.
@@ -202,6 +204,67 @@ export const ERR_SESSION_REVOKED = "SESSION_REVOKED";
 export const ERR_ACCOUNT_SUSPENDED = "ACCOUNT_SUSPENDED";
 
 /**
+ * A session unused for this long is dead (decided 2026-10-22: 90 days without
+ * use, refreshed on use). Checked by [requireSession] and swept by
+ * [expireIdleSessions].
+ */
+export const SESSION_IDLE_MS = 90 * 24 * 60 * 60 * 1000;
+
+/** How stale `lastSeenAt` must be before [touchSessions] writes it. */
+export const SESSION_TOUCH_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * The grace floor for sessions minted before idle expiry existed.
+ *
+ * `lastSeenAt` was set at sign-in and never updated, so a tester who signs in
+ * every day still has a `lastSeenAt` from weeks or months ago. Judged by the raw
+ * value, deploying this would sign out everyone who signed in more than 90 days
+ * back, active or not. So an idle judgement reads `max(lastSeenAt, floor)`: no
+ * session can expire before `floor + 90 days`, and one that is used in that
+ * window is refreshed by [touchSessions] and judged by its own clock from then
+ * on. A constant rather than a backfill: nothing to run, nothing to forget,
+ * and it stops mattering by itself. Set to the day of the change; moving it
+ * later only extends the grace.
+ */
+export const SESSION_GRACE_FLOOR = Date.UTC(2026, 9, 22);
+
+/** When [lastSeenAt] stops counting as use, after the grace floor. */
+export function sessionIdleSince(lastSeenAt: number): number {
+  return Math.max(lastSeenAt, SESSION_GRACE_FLOOR);
+}
+
+/**
+ * Refresh `lastSeenAt` on [userId]'s live sessions that have not been written
+ * for a day. MUTATIONS only: a query cannot write, and `requireSession` runs in
+ * both. Called from the presence heartbeat, which every signed-in client
+ * already sends, so nothing else pays a write.
+ *
+ * The range is on `by_user_live_seen`, so a heartbeat with nothing stale is one
+ * empty index probe. The write invalidates every subscription of that device
+ * (each one read the row in `requireSession`), once a day per session.
+ *
+ * The heartbeat does not know which session it came in on (the wrapper strips
+ * the token), so this refreshes all of the user's live sessions: a phone left in
+ * a drawer lasts as long as the account's most recent activity on any device.
+ */
+export async function touchSessions(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+): Promise<void> {
+  const now = Date.now();
+  const stale = await ctx.db
+    .query("sessions")
+    .withIndex("by_user_live_seen", (q) =>
+      q
+        .eq("userId", userId)
+        .eq("revokedAt", undefined)
+        .lt("lastSeenAt", now - SESSION_TOUCH_MS),
+    )
+    .take(20);
+  for (const row of stale) await ctx.db.patch(row._id, { lastSeenAt: now });
+}
+
+/**
  * Resolve a bearer token to the user it belongs to, or throw.
  *
  * **Not yet called by anything.** This is the function every handler will open
@@ -248,6 +311,11 @@ export async function requireSession(
       }
       throw new Error(ERR_ACCOUNT_SUSPENDED);
     }
+    throw new Error(ERR_SESSION_REVOKED);
+  }
+  // Idle expiry. Free: `lastSeenAt` is on the row already in hand. Same code
+  // as a revoked session, so the client says "you were signed out".
+  if (Date.now() - sessionIdleSince(row.lastSeenAt) > SESSION_IDLE_MS) {
     throw new Error(ERR_SESSION_REVOKED);
   }
   // The account itself must still exist. `purgeUser` now revokes sessions on
@@ -396,14 +464,14 @@ const REVOKED_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 /**
  * Delete revoked sessions past their retention.
  *
- * Live sessions are never touched: this app's sessions do not expire, and a
- * sweep that guessed at staleness would sign people out for being quiet.
- * Bounded per run, like every other sweep in this backend.
+ * Never deletes a live session: expiry REVOKES (see [expireIdleSessions]) and
+ * this removes the row a week after that. A full page schedules the next, so
+ * a backlog drains within the firing (see sweep.ts).
  */
 export const gcRevokedSessions = internalMutation({
-  args: {},
+  args: sweepArgs,
   returns: v.null(),
-  handler: async (ctx) => {
+  handler: async (ctx, { chain }) => {
     const cutoff = Date.now() - REVOKED_RETENTION_MS;
     const stale = await ctx.db
       .query("sessions")
@@ -417,12 +485,59 @@ export const gcRevokedSessions = internalMutation({
       .withIndex("by_revoked_at", (q) =>
         q.gt("revokedAt", 0).lt("revokedAt", cutoff),
       )
-      .take(200);
+      .take(REVOKED_SESSIONS_PAGE);
     for (const row of stale) {
       // Belt and braces: never delete a live session, whatever the range did.
       if (row.revokedAt === undefined) continue;
       await ctx.db.delete(row._id);
     }
+    await continueSweep(
+      ctx,
+      internal.sessionCore.gcRevokedSessions,
+      stale.length === REVOKED_SESSIONS_PAGE,
+      chain,
+    );
     return null;
   },
 });
+
+const REVOKED_SESSIONS_PAGE = 200;
+
+/**
+ * Revoke live sessions idle past [SESSION_IDLE_MS].
+ *
+ * [requireSession] already refuses them the moment they are presented; this is
+ * so the rows are cleaned up (revoked, then deleted by [gcRevokedSessions]) even
+ * when nobody ever presents them again. Honours the grace floor: nothing
+ * expires before `SESSION_GRACE_FLOOR + 90 days`.
+ *
+ * The range is bounded on `lastSeenAt` and on live rows only (`revokedAt`
+ * undefined), and revoking takes a row out of it, so each page starts at the
+ * next stale session.
+ */
+export const expireIdleSessions = internalMutation({
+  args: sweepArgs,
+  returns: v.null(),
+  handler: async (ctx, { chain }) => {
+    const now = Date.now();
+    const cutoff = now - SESSION_IDLE_MS;
+    // Nothing can be idle yet: every session is still inside the grace floor.
+    if (cutoff <= SESSION_GRACE_FLOOR) return null;
+    const idle = await ctx.db
+      .query("sessions")
+      .withIndex("by_live_seen", (q) =>
+        q.eq("revokedAt", undefined).lt("lastSeenAt", cutoff),
+      )
+      .take(IDLE_SESSIONS_PAGE);
+    for (const row of idle) await ctx.db.patch(row._id, { revokedAt: now });
+    await continueSweep(
+      ctx,
+      internal.sessionCore.expireIdleSessions,
+      idle.length === IDLE_SESSIONS_PAGE,
+      chain,
+    );
+    return null;
+  },
+});
+
+const IDLE_SESSIONS_PAGE = 200;

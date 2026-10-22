@@ -4,6 +4,11 @@ import { v } from "convex/values";
 import { canReadRoom } from "./roomAccess";
 import { consume } from "./rateLimit";
 import { internal } from "./_generated/api";
+import { cursorOf, pageAfter } from "./deletionCore";
+import { FILE_FIELDS } from "./referenceRules";
+
+// Kept importable from here for the call sites; the table lives in referenceRules.ts.
+export { FILE_FIELDS };
 
 // ─── Upload limits ──────────────────────────────────────────────────────────
 //
@@ -23,6 +28,18 @@ import { internal } from "./_generated/api";
 // Files from before the ledger existed have no owner on record, so they can
 // no longer be attached by anyone ([UPLOADS_EPOCH]). Nothing legitimate does:
 // every send uploads a fresh file, and forwards share the blob directly.
+//
+// ─── References ─────────────────────────────────────────────────────────────
+//
+// A claimed file is then ATTACHED to whatever uses it ([attachFile]): one
+// `fileRefs` row per (holder, field). Releasing the last ref frees the file
+// ([releaseFile]), so a forward, a reply or a second room can share a blob and
+// nothing has to scan other tables to know whether it is still wanted.
+//
+// `uploads.tracked` says refs are authoritative for a file. Files from before
+// refs are untracked until `fileBackfill.markTracked`: they are released by
+// the old index checks ([legacyInUse]), so a missing ref never deletes a file
+// somebody still points at. See docs/data-integrity-phase3-design.md.
 
 /** Before this, files have no ledger row; see the header above. */
 export const UPLOADS_EPOCH = Date.UTC(2026, 9, 15, 18, 0, 0);
@@ -77,13 +94,18 @@ async function usageRow(ctx: any, userId: any) {
  *
  * Throws, rolling back the attach: the refused file stays unclaimed and is
  * swept like any other orphan.
+ *
+ * A second claim by the same owner is fine and changes nothing: `messages.send`
+ * claims before `sendCore` dedupes on `clientId`, so a retry presents the same
+ * file. "Is somebody else using it" is [attachFile]'s question, not this one's.
+ * `permanent` marks server-owned art that is never ref'd or freed.
  */
 export async function claimUpload(
   ctx: any,
   storageId: any,
   userId: any,
   kind: keyof typeof MAX_FILE_BYTES,
-  opts: { solo?: boolean } = {},
+  opts: { solo?: boolean; permanent?: boolean } = {},
 ) {
   if (!storageId) return;
   const existing = await ledgerRow(ctx, storageId);
@@ -120,12 +142,18 @@ export async function claimUpload(
     if (usage) await ctx.db.patch(usage._id, next);
     else await ctx.db.insert("uploadUsage", { userId, ...next });
   }
+  const createdAt = Date.now();
+  const permanent = opts.permanent === true;
   await ctx.db.insert("uploads", {
     storageId,
     userId: userId ?? undefined,
     size,
     solo: solo || undefined,
-    createdAt: Date.now(),
+    createdAt,
+    tracked: true,
+    permanent: permanent || undefined,
+    // No ref yet: freed after a day at zero unless something attaches it.
+    zeroSince: permanent ? undefined : createdAt,
   });
 }
 
@@ -157,8 +185,8 @@ export async function isMicroPoster(ctx: any, storageId: any): Promise<boolean> 
  * orphan sweep would keep a still of the sender's face fetchable for a day.
  *
  * Never deletes what the caller has no right to: a file claimed by somebody
- * else throws exactly as `claimUpload` would, and a file any message still
- * points at is left alone. Tolerates a file that is already gone, which is
+ * else throws exactly as `claimUpload` would, and a file anything still
+ * references is left alone. Tolerates a file that is already gone, which is
  * what a retried send (same `clientId`) presents the second time.
  */
 export async function discardUpload(ctx: any, storageId: any, userId: any) {
@@ -174,17 +202,8 @@ export async function discardUpload(ctx: any, storageId: any, userId: any) {
   }
   // No ledger row and older than the ledger: owner unknown, so not ours.
   if (!row && meta._creationTime < UPLOADS_EPOCH) throw new Error(ERR_NOT_YOUR_FILE);
-  const inUse =
-    (await ctx.db
-      .query("messages")
-      .withIndex("by_media", (q: any) => q.eq("mediaStorageId", storageId))
-      .first()) ??
-    (await ctx.db
-      .query("messages")
-      .withIndex("by_poster", (q: any) => q.eq("posterStorageId", storageId))
-      .first());
-  if (inUse) return;
-  await deleteStored(ctx, storageId);
+  if (await fileInUse(ctx, storageId)) return;
+  await destroy(ctx, storageId);
 }
 
 /** Drops [storageId]'s ledger row and gives its bytes back to the owner. */
@@ -192,7 +211,7 @@ async function releaseLedger(ctx: any, storageId: any) {
   const row = await ledgerRow(ctx, storageId);
   if (!row) return;
   await ctx.db.delete(row._id);
-  if (!row.userId) return;
+  if (!row.userId || row.uncounted) return;
   const usage = await usageRow(ctx, row.userId);
   if (!usage) return;
   await ctx.db.patch(usage._id, {
@@ -222,16 +241,21 @@ export const myUsage = query({
  * the upload that never got sent, and every file a script PUT on purpose.
  *
  * Walks `_storage` in creation order from a saved cursor, so each run costs
- * one page however large storage grows. A message pointing at an unclaimed
- * file (a path that forgot to claim) is claimed for its author instead of
- * deleted: the sweep must never be the thing that loses a photo.
+ * one page however large storage grows. A file something still points at (a
+ * path that forgot to claim) is given an adopted ledger row instead of deleted:
+ * the sweep must never be the thing that loses a photo. [legacyInUse] is the
+ * last guard before a delete.
+ *
+ * Starts at [UPLOADS_EPOCH] until [liftEpoch] is run by hand.
  */
 export const sweepUnclaimed = internalMutation({
   args: {},
   returns: v.object({ deleted: v.number(), scanned: v.number() }),
   handler: async (ctx) => {
     const state = await ctx.db.query("uploadSweep").first();
-    const from = Math.max(state?.cursor ?? 0, UPLOADS_EPOCH);
+    const from = state?.liftedAt
+      ? (state.cursor ?? 0)
+      : Math.max(state?.cursor ?? 0, UPLOADS_EPOCH);
     const until = Date.now() - UNCLAIMED_GRACE_MS;
     const page = await ctx.db.system
       .query("_storage")
@@ -246,12 +270,15 @@ export const sweepUnclaimed = internalMutation({
         .query("messages")
         .withIndex("by_media", (q: any) => q.eq("mediaStorageId", f._id))
         .first();
-      if (msg) {
+      if (msg || (await legacyInUse(ctx, f._id))) {
+        console.warn("file_unclaimed_in_use", f._id.toString());
         await ctx.db.insert("uploads", {
           storageId: f._id,
-          userId: msg.userId,
+          userId: msg?.userId,
           size: f.size ?? 0,
           createdAt: Date.now(),
+          // `tracked` stays unset: by_tracked eq(undefined) is "still to mark".
+          uncounted: true,
         });
         continue;
       }
@@ -265,6 +292,37 @@ export const sweepUnclaimed = internalMutation({
       await ctx.scheduler.runAfter(0, internal.files.sweepUnclaimed, {});
     }
     return { deleted, scanned: page.length };
+  },
+});
+
+/**
+ * Lets the sweep reach files from before [UPLOADS_EPOCH]. MANUAL: run it only
+ * after the backfill is done and `markTracked` has run, because until then a
+ * ledger-less old file may be a live avatar or sticker that [legacyInUse]
+ * cannot see (no index on those fields). Refuses otherwise.
+ *
+ *   npx convex run files:liftEpoch '{}'
+ */
+export const liftEpoch = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const state = await ctx.db.query("uploadSweep").first();
+    if (state?.liftedAt) return { lifted: false, reason: "already lifted" };
+    const run = await ctx.db.query("fileBackfill").order("desc").first();
+    if (!run || run.status !== "done") {
+      return { lifted: false, reason: "the file backfill has not finished" };
+    }
+    const untracked = await ctx.db
+      .query("uploads")
+      .withIndex("by_tracked", (q: any) => q.eq("tracked", undefined))
+      .first();
+    if (untracked) {
+      return { lifted: false, reason: "files are still untracked: run fileBackfill:markTracked" };
+    }
+    const liftedAt = Date.now();
+    if (state) await ctx.db.patch(state._id, { cursor: 0, liftedAt });
+    else await ctx.db.insert("uploadSweep", { cursor: 0, liftedAt });
+    return { lifted: true, reason: null };
   },
 });
 
@@ -330,19 +388,222 @@ export const getFileUrl = query({
   },
 });
 
+
+// ─── References ─────────────────────────────────────────────────────────────
+
+/** A row's field that holds a file. `id` is the row's `_id` as a string. */
+export type FileHolder = { table: string; id: string; field: string };
+
 /**
- * Drops a stored file, tolerating one that's already gone.
- *
- * Lives here rather than in `auth.ts` (its original home) because every write
- * to a `v.id("_storage")` field needs it: replacing an avatar, tearing down a
- * room, deleting a message. A bare `ctx.storage.delete` on a file some other
- * path already removed *throws*, which would abort whatever teardown was
- * half-done around it — so the swallow is load-bearing, not lazy.
- *
- * A plain helper taking `ctx: any`, following `roomCleanup.ts`: callers pass
- * their own ctx, and it stays reachable from mutations in any module.
+ * Untracked files in these fields are never freed by a release: the file is
+ * usually a sticker some other row owns, and `stickers.storageId` has no index
+ * for [legacyInUse] to check. Tracked files are unaffected; once marked,
+ * the reaper frees whatever really has no refs.
  */
-export async function deleteStored(ctx: any, storageId: any) {
+// `stickers.storageId` has no index either, so `legacyInUse` can't see the art
+// other messages still show; an untracked sticker file is left to the reaper
+// once `markTracked` has counted its uses.
+const LEGACY_KEEP_FIELDS = new Set([
+  "messages.stickerStorageId",
+  "momentComments.stickerStorageId",
+  "stickers.storageId",
+]);
+
+/** Zero refs for this long before `reapUnreferenced` frees a file. */
+const ZERO_REF_GRACE_MS = 24 * 60 * 60 * 1000;
+
+/** Read per call so a test, or an operator, can flip it. */
+const refsEnforced = () => process.env.FILE_REFS_ENFORCE === "1";
+
+const holderOf = (storageId: any, h: FileHolder, q: any) =>
+  q.eq("storageId", storageId).eq("holderId", h.id).eq("field", h.field);
+
+async function refRow(ctx: any, storageId: any, h: FileHolder) {
+  return await ctx.db
+    .query("fileRefs")
+    .withIndex("by_file_holder", (q: any) => holderOf(storageId, h, q))
+    .first();
+}
+
+/** Whether a ref from a holder other than [exceptId] exists. */
+async function otherRef(ctx: any, storageId: any, exceptId?: string): Promise<boolean> {
+  // A holder owns at most a few fields of one file, so eight rows always reach
+  // a different holder if there is one.
+  const refs = await ctx.db
+    .query("fileRefs")
+    .withIndex("by_file_holder", (q: any) => q.eq("storageId", storageId))
+    .take(8);
+  return refs.some((r: any) => r.holderId !== exceptId);
+}
+
+/**
+ * Records that [holder]'s field points at [storageId]. The file needs a ledger
+ * row ([claimUpload]) or this throws `FILE_NOT_CLAIMED`.
+ *
+ * Exclusive by default: a second HOLDER of a tracked file throws `FILE_IN_USE`
+ * once `FILE_REFS_ENFORCE=1`, and only logs `file_in_use` before that. A second
+ * field on the same holder is fine (a poster equal to its media). `share` is for
+ * the paths where sharing is the point (forward, reply, sticker use) and skips
+ * the check. Idempotent, and a share onto a hot file writes only the new ref.
+ */
+export async function attachFile(
+  ctx: any,
+  storageId: any,
+  holder: FileHolder,
+  opts: { share?: boolean } = {},
+): Promise<void> {
+  if (!storageId) return;
+  const ledger = await ledgerRow(ctx, storageId);
+  if (!ledger) throw new Error("FILE_NOT_CLAIMED");
+  if (ledger.permanent) return;
+  if (await refRow(ctx, storageId, holder)) return;
+  if (opts.share !== true && (await otherRef(ctx, storageId, holder.id))) {
+    if (ledger.tracked && refsEnforced()) throw new Error("FILE_IN_USE");
+    console.warn("file_in_use", storageId.toString(), holder.table, holder.field);
+  }
+  await ctx.db.insert("fileRefs", {
+    storageId,
+    holderTable: holder.table,
+    holderId: holder.id,
+    field: holder.field,
+    createdAt: Date.now(),
+  });
+  if (ledger.zeroSince !== undefined) {
+    await ctx.db.patch(ledger._id, { zeroSince: undefined });
+  }
+}
+
+/**
+ * Drops [holder]'s ref and frees the file when it was the last use.
+ * `released` is whether a ref existed (false on a double release), `deleted`
+ * whether the file went with it. Immediate, never deferred: a view-once burn or
+ * an account deletion gives the bytes back at once.
+ *
+ * Untracked files (see the header) ignore a missing ref and are freed only
+ * when [legacyInUse] finds nothing else pointing at them.
+ */
+export async function releaseFile(
+  ctx: any,
+  storageId: any,
+  holder: FileHolder,
+): Promise<{ released: boolean; deleted: boolean }> {
+  if (!storageId) return { released: false, deleted: false };
+  const ledger = await ledgerRow(ctx, storageId);
+  if (ledger?.permanent) return { released: false, deleted: false };
+  const ref = await refRow(ctx, storageId, holder);
+  if (ref) await ctx.db.delete(ref._id);
+  const released = !!ref;
+  if (ledger?.tracked) {
+    if (!ref || (await otherRef(ctx, storageId))) return { released, deleted: false };
+    // [otherRef] with no exception also sees this holder's other fields, which
+    // is what keeps a poster equal to its media alive until both are released.
+    await destroy(ctx, storageId);
+    return { released, deleted: true };
+  }
+  if (LEGACY_KEEP_FIELDS.has(`${holder.table}.${holder.field}`)) {
+    return { released, deleted: false };
+  }
+  if (await legacyInUse(ctx, storageId, holder)) return { released, deleted: false };
+  await destroy(ctx, storageId);
+  return { released, deleted: true };
+}
+
+/** Moves a use from one holder to another: the new ref lands before the old goes. */
+export async function transferFile(
+  ctx: any,
+  storageId: any,
+  from: FileHolder,
+  to: FileHolder,
+): Promise<void> {
+  await attachFile(ctx, storageId, to, { share: true });
+  await releaseFile(ctx, storageId, from);
+}
+
+/**
+ * Releases every file [row] of [table] holds ([FILE_FIELDS]), then any ref
+ * still filed under its id (a field that changed without a release). Returns
+ * the storage ids it really deleted, as strings, so a reply preview's copy of
+ * an id is dropped only when the file is gone.
+ */
+export async function releaseRowFiles(ctx: any, table: string, row: any): Promise<string[]> {
+  const deleted: string[] = [];
+  if (!row) return deleted;
+  const id = row._id.toString();
+  const done = new Set<string>();
+  const one = async (storageId: any, h: FileHolder) => {
+    const key = `${storageId}:${h.field}`;
+    if (done.has(key)) return;
+    done.add(key);
+    const r = await releaseFile(ctx, storageId, h);
+    if (r.deleted) deleted.push(storageId.toString());
+  };
+  for (const field of FILE_FIELDS[table] ?? []) {
+    if (row[field]) await one(row[field], { table, id, field });
+  }
+  const strays = await ctx.db
+    .query("fileRefs")
+    .withIndex("by_holder", (q: any) => q.eq("holderId", id))
+    .take(16);
+  for (const r of strays) {
+    await one(r.storageId, { table: r.holderTable, id, field: r.field });
+  }
+  return deleted;
+}
+
+/**
+ * Deletes the file and its ledger row whatever still points at it, for account
+ * deletion (a personal sticker goes with its owner). Refs are left for
+ * `repairRefs`, which drops those whose file is gone.
+ */
+export async function forceDeleteFile(ctx: any, storageId: any): Promise<void> {
+  await destroy(ctx, storageId);
+}
+
+/**
+ * Whether anything other than [except] uses [storageId]: refs for a tracked
+ * file, the old index checks for the rest.
+ */
+export async function fileInUse(ctx: any, storageId: any, except?: FileHolder): Promise<boolean> {
+  if (!storageId) return false;
+  const ledger = await ledgerRow(ctx, storageId);
+  if (ledger?.permanent) return true;
+  if (ledger?.tracked) return await otherRef(ctx, storageId, except?.id);
+  return await legacyInUse(ctx, storageId, except);
+}
+
+/**
+ * The pre-refs "is anyone else using it": the indexed columns that used to be
+ * checked (message media and poster, moment media and poster, room avatar,
+ * room-change request), plus any ref from another holder and the ledger
+ * owner's current avatar (`users` has no index). Removed after the flip.
+ */
+export async function legacyInUse(ctx: any, storageId: any, except?: FileHolder): Promise<boolean> {
+  const others = (table: string, rows: any[]) =>
+    rows.some((r) => !(except && except.table === table && except.id === r._id.toString()));
+  const by = (table: string, index: string, field: string) =>
+    ctx.db
+      .query(table)
+      .withIndex(index, (q: any) => q.eq(field, storageId))
+      .take(3);
+  if (others("messages", await by("messages", "by_media", "mediaStorageId"))) return true;
+  if (others("messages", await by("messages", "by_poster", "posterStorageId"))) return true;
+  if (others("moments", await by("moments", "by_media", "mediaStorageId"))) return true;
+  if (others("moments", await by("moments", "by_poster", "posterStorageId"))) return true;
+  if (others("rooms", await by("rooms", "by_avatar", "avatarStorageId"))) return true;
+  if (others("roomChangeRequests", await by("roomChangeRequests", "by_storage", "storageId"))) {
+    return true;
+  }
+  if (await otherRef(ctx, storageId, except?.id)) return true;
+  const ledger = await ledgerRow(ctx, storageId);
+  if (ledger?.userId && !(except?.table === "users" && except.id === ledger.userId.toString())) {
+    const owner = await ctx.db.get(ledger.userId);
+    if (owner?.avatarStorageId?.toString() === storageId.toString()) return true;
+  }
+  return false;
+}
+
+/** Deletes the file and its ledger row. Not checked: callers decide. */
+export async function destroy(ctx: any, storageId: any): Promise<void> {
   if (!storageId) return;
   await releaseLedger(ctx, storageId);
   try {
@@ -350,289 +611,232 @@ export async function deleteStored(ctx: any, storageId: any) {
   } catch (_) {/* already gone */}
 }
 
-// ─── Orphan reclamation ─────────────────────────────────────────────────────
-//
-// Convex bills for stored files, not for rows pointing at them, so a file
-// nothing references costs money forever and is invisible: `_storage` is a
-// system table, so nothing in the app can stumble over it. Historically three
-// code paths abandoned files (avatar replacement, room teardown, message
-// media) — those are fixed at the source now. What remains, and what no
-// server-side fix can prevent, is the client dying between the upload PUT and
-// the mutation that would have referenced the result. Hence this sweep.
-
-/** Files younger than this are never touched. See `collectReferenced`. */
-const GRACE_MS = 24 * 60 * 60 * 1000;
-
 /**
- * Per-table row cap while building the reference set.
+ * Drops a stored file, tolerating one that's already gone.
  *
- * No index exists on any storage field, so the only way to answer "is this file
- * referenced?" is to read every row that could hold an id. If that scan is
- * truncated the reference set is incomplete, and an incomplete reference set
- * means deleting *live* files — the one failure here nobody can undo. So the
- * sweep aborts rather than guesses.
+ * Lives here rather than in `auth.ts` (its original home) because every write
+ * to a `v.id("_storage")` field needs it: a bare `ctx.storage.delete` on a file
+ * some other path already removed *throws*, which would abort whatever
+ * teardown was half-done around it, so the swallow is load-bearing.
  *
- * 4000 × 3 tables leaves headroom under Convex's ~16k-document per-function
- * read limit with `_storage` still to enumerate. Currently the largest of the
- * three is `messages` at ~460 rows, so there is roughly 9× slack. Tripping this
- * is the signal to index the five storage fields (including the nested
- * `replyToPreview.mediaStorageId` path) and check per-candidate instead of
- * building a set up front.
+ * Unconditional: it is [destroy]. Callers that cannot know whether the file is
+ * shared go through [releaseFile]. Goes after the flip.
  */
-const MAX_SCAN = 4000;
-
-/** Files considered per run, so one tick can't run away. */
-const SWEEP_LIMIT = 200;
+export async function deleteStored(ctx: any, storageId: any) {
+  await destroy(ctx, storageId);
+}
 
 /**
- * Reclaims the blobs belonging to [msg] — unless another message still points
- * at them.
- *
- * Forwarding re-references a file rather than re-uploading it, so one blob can
- * now be named by several messages in several rooms. A bare
- * `deleteStored(msg.mediaStorageId)` would therefore let deleting a forwarded
- * copy — or wiping the room it was forwarded out of, or purging the account
- * that first sent it — take the bytes out from under every other copy, leaving
- * live messages pointing at nothing. `by_media` exists for exactly this kind of
- * reverse lookup and makes the check one indexed read.
+ * Releases the blobs belonging to [msg] (media, poster, sticker) and returns
+ * the storage ids it really deleted, as strings, so the caller can strip a
+ * reply preview's copy of the id only when the file is gone: a forward that
+ * keeps the bytes alive keeps the preview's picture alive too.
  *
  * [msg] is usually still in the table when this runs (`removeMessageAndFanout`
- * deletes it afterwards, because it reads siblings first), so the message being
- * removed is excluded from the count by id rather than assumed absent.
- *
- * The poster is gated on its OWN lookup (`by_poster`). It used to ride the
- * media lookup on the theory that a poster is only ever copied together with
- * its video, but a file reaches `posterStorageId` of one message and
- * `mediaStorageId` of another (a poster re-sent as a photo, a forward that
- * keeps one field), and then "is anyone else using my video" and "is anyone
- * else using my poster" differ. Each blob is checked against both columns.
- *
- * Returns the storage ids it really deleted (as strings), so the caller can
- * strip a reply preview's copy of the id only when the file is gone: a forward
- * that keeps the bytes alive keeps the preview's picture alive too.
+ * deletes it afterwards, because it reads siblings first); the release
+ * excludes it by id.
  */
 export async function releaseMessageBlobs(ctx: any, msg: any): Promise<string[]> {
-  const deleted: string[] = [];
-  const storageId = msg?.mediaStorageId;
-  if (!storageId) {
-    // No media means no poster: a poster is never written without one.
-    return deleted;
-  }
+  return await releaseRowFiles(ctx, "messages", msg);
+}
 
-  const selfId = msg._id.toString();
-  // Whether some OTHER message still points at [id] with either column.
-  const usedElsewhere = async (id: any) => {
-    const [asMedia, asPoster] = await Promise.all([
-      ctx.db
-        .query("messages")
-        .withIndex("by_media", (q: any) => q.eq("mediaStorageId", id))
-        .take(2),
-      ctx.db
-        .query("messages")
-        .withIndex("by_poster", (q: any) => q.eq("posterStorageId", id))
-        .take(2),
-    ]);
-    return [...asMedia, ...asPoster].some(
-      (m: any) => m._id.toString() !== selfId
-    );
-  };
+/** Cap on chained runs of the self-rescheduling jobs below. */
+const MAX_CHAIN = 50;
 
-  if (!(await usedElsewhere(storageId))) {
-    await deleteStored(ctx, storageId);
-    deleted.push(storageId.toString());
-  }
-  const poster = msg.posterStorageId;
-  if (poster && poster.toString() !== storageId.toString()) {
-    if (!(await usedElsewhere(poster))) {
-      await deleteStored(ctx, poster);
-      deleted.push(poster.toString());
-    }
-  }
-  return deleted;
+/**
+ * The reaper's safety gate: refs are only trusted to say "unused" once the
+ * latest backfill has finished its mark phase (`fileBackfill.markTracked`) AND
+ * an operator has set `FILE_REFS_REAP=1` after checking the rollout. The env is
+ * read per call, like [refsEnforced].
+ */
+async function reapEnabled(ctx: any): Promise<boolean> {
+  if (process.env.FILE_REFS_REAP !== "1") return false;
+  const run = await ctx.db.query("fileBackfill").order("desc").first();
+  return !!run && run.markedAt !== undefined;
 }
 
 /**
- * Every storage id any row currently points at.
- *
- * Every `v.id("_storage")` field in `schema.ts` that can be a file's only
- * pointer.
- * `replyToPreview.mediaStorageId` is a *denormalized copy* of a parent
- * message's id, snapshotted at send time — it counts as a live reference, or a
- * file still rendered inside a reply preview would be swept out from under it.
- * `posterStorageId` is reachable only through the message that owns it, so it
- * would otherwise look orphaned from the moment it was uploaded.
- *
- * Returns null when the scan can't be trusted (see `MAX_SCAN`).
+ * Frees tracked files that have had no refs for [ZERO_REF_GRACE_MS]: an upload
+ * claimed and never attached, and files `markTracked` found with no use. A ref
+ * that arrived since clears the mark instead (self-heal). Every 10 minutes.
+ * Deletes nothing while gated ([reapEnabled]); it logs what it would have freed.
  */
-async function collectReferenced(ctx: any): Promise<Set<string> | null> {
-  const referenced = new Set<string>();
-  const add = (id: any) => { if (id) referenced.add(id.toString()); };
-
-  // Every scan asks for one row more than the cap: coming back over the cap is
-  // how we learn the read was truncated and the set is therefore untrustworthy.
-  const scan = async (table: string) => {
-    const rows = await ctx.db.query(table).take(MAX_SCAN + 1);
-    return rows.length > MAX_SCAN ? null : rows;
-  };
-
-  const users = await scan("users");
-  if (users === null) return null;
-  for (const u of users) add(u.avatarStorageId);
-
-  const rooms = await scan("rooms");
-  if (rooms === null) return null;
-  for (const r of rooms) add(r.avatarStorageId);
-
-  const msgs = await scan("messages");
-  if (msgs === null) return null;
-  for (const m of msgs) {
-    add(m.mediaStorageId);
-    add(m.replyToPreview?.mediaStorageId);
-    // A video's poster frame. Nothing else in the deployment points at it —
-    // it is reachable only through the message that owns it — so leaving it
-    // out here would make every poster look orphaned and have this sweep
-    // delete it out from under its own video.
-    add(m.posterStorageId);
-  }
-
-  // Feed moments. WITHOUT THIS BLOCK the daily sweep sees every highlight blob
-  // as unreferenced and deletes it 24 hours after upload — silently, a day
-  // late, and unrecoverably. Any future table carrying a `v.id("_storage")`
-  // has to be added here too; that is the whole contract of this function.
-  const moments = await scan("moments");
-  if (moments === null) return null;
-  for (const m of moments) {
-    add(m.mediaStorageId);
-    add(m.posterStorageId);
-  }
-
-  // Sticker art, official and personal — soft-deleted rows included, because
-  // messages already sent still point at them. Sticker MESSAGES carry the id as
-  // `stickerStorageId`, which is always one of these, so the rows are the
-  // complete set.
-  const stickers = await scan("stickers");
-  if (stickers === null) return null;
-  for (const s of stickers) add(s.storageId);
-
-  // Scheduled photos. Uploaded when the sender scheduled them and pointed at
-  // by nothing else until they go out — up to a year later. Without this the
-  // sweep deletes the picture a day after it was scheduled, and the release
-  // posts a photo whose bytes are gone.
-  const scheduled = await scan("scheduledMessages");
-  if (scheduled === null) return null;
-  for (const r of scheduled) add(r.mediaStorageId);
-
-  // A proposed room picture waiting on an admin. Same shape: the row is the
-  // file's only pointer until it is approved, and an admin who takes more
-  // than a day to decide must not find the picture already gone.
-  const proposals = await scan("roomChangeRequests");
-  if (proposals === null) return null;
-  for (const r of proposals) add(r.storageId);
-
-  return referenced;
-}
-
-/**
- * Read-only orphan report — the dry run for `gcOrphanedFiles`.
- *
- * Deliberately ignores `GRACE_MS` and `SWEEP_LIMIT`: this is for a human
- * deciding what should happen, so it shows everything, and flags with
- * `withinGrace` the ones the sweep would currently skip. Includes a serving
- * URL per file so you can look at an image before agreeing to lose it.
- *
- *   npx convex run files:listOrphans '{}'
- */
-export const listOrphans = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    const referenced = await collectReferenced(ctx);
-    if (referenced === null) {
-      return {
-        aborted:
-          `a scanned table exceeds ${MAX_SCAN} rows, so the reference set would ` +
-          `be incomplete — see MAX_SCAN in files.ts`,
-      };
+export const reapUnreferenced = internalMutation({
+  args: { chain: v.optional(v.number()) },
+  handler: async (ctx, { chain }) => {
+    const cutoff = Date.now() - ZERO_REF_GRACE_MS;
+    const rows = await ctx.db
+      .query("uploads")
+      .withIndex("by_zero_since", (q: any) => q.gt("zeroSince", 0).lt("zeroSince", cutoff))
+      .take(100);
+    if (!(await reapEnabled(ctx))) {
+      // Safety gate: until the rollout is verified a missed attach would read
+      // as "unused" here and delete live media. Count, write nothing.
+      let wouldReap = 0;
+      for (const row of rows) {
+        if (row.permanent || !row.tracked) continue;
+        if (!(await otherRef(ctx, row.storageId))) wouldReap++;
+      }
+      if (wouldReap > 0) {
+        console.warn(
+          `[files] reapUnreferenced is gated (needs a marked fileBackfill and FILE_REFS_REAP=1): ` +
+            `would have reaped ${wouldReap}${rows.length === 100 ? "+" : ""} files`,
+        );
+      }
+      return { reaped: 0, scanned: rows.length, wouldReap, gated: true };
     }
-
-    const files = await ctx.db.system.query("_storage").collect();
-    const cutoff = Date.now() - GRACE_MS;
-    const orphans = [];
-    for (const f of files) {
-      if (referenced.has(f._id.toString())) continue;
-      orphans.push({
-        storageId: f._id,
-        contentType: f.contentType,
-        sizeKB: Math.round((f.size ?? 0) / 1024),
-        uploaded: new Date(f._creationTime).toISOString(),
-        sha256: f.sha256,
-        withinGrace: f._creationTime >= cutoff,
-        url: await ctx.storage.getUrl(f._id),
+    let reaped = 0;
+    for (const row of rows) {
+      if (row.permanent || !row.tracked) {
+        await ctx.db.patch(row._id, { zeroSince: undefined });
+      } else if (await otherRef(ctx, row.storageId)) {
+        await ctx.db.patch(row._id, { zeroSince: undefined });
+      } else {
+        await destroy(ctx, row.storageId);
+        reaped++;
+      }
+    }
+    if (rows.length === 100 && (chain ?? 0) + 1 < MAX_CHAIN) {
+      await ctx.scheduler.runAfter(0, internal.files.reapUnreferenced, {
+        chain: (chain ?? 0) + 1,
       });
     }
+    return { reaped, scanned: rows.length };
+  },
+});
 
-    const bytes = (rows: any[]) => rows.reduce((a, r) => a + r.sizeKB * 1024, 0);
+/**
+ * Nightly safety net: drops a ref whose holder row is gone, whose field no
+ * longer equals the file, or whose ledger row is missing. A tracked file left
+ * with no refs gets `zeroSince` (the reaper frees it after the grace period).
+ * Pages `fileRefs` with `uploadSweep.refCursor`, wrapping to the start at the end.
+ */
+export const repairRefs = internalMutation({
+  args: { chain: v.optional(v.number()) },
+  handler: async (ctx, { chain }) => {
+    const state = await ctx.db.query("uploadSweep").first();
+    const refs = await pageAfter(
+      (t, k) =>
+        ctx.db
+          .query("fileRefs")
+          .withIndex("by_creation_time", (q: any) => q.gte("_creationTime", t))
+          .take(k),
+      state?.refCursor ?? null,
+      200,
+    );
+    let dropped = 0;
+    const touched = new Set<string>();
+    for (const r of refs) {
+      let alive = false;
+      const ledger = await ledgerRow(ctx, r.storageId);
+      if (ledger) {
+        let holder: any = null;
+        try {
+          const id = ctx.db.normalizeId(r.holderTable as any, r.holderId);
+          holder = id ? await ctx.db.get(id) : null;
+        } catch (_) {/* unknown table */}
+        alive = !!holder && holder[r.field]?.toString() === r.storageId.toString();
+      }
+      if (alive) continue;
+      await ctx.db.delete(r._id);
+      dropped++;
+      touched.add(r.storageId.toString());
+    }
+    for (const r of refs) {
+      const key = r.storageId.toString();
+      if (!touched.delete(key)) continue;
+      const ledger = await ledgerRow(ctx, r.storageId);
+      if (ledger?.tracked && !ledger.permanent && ledger.zeroSince === undefined) {
+        if (!(await otherRef(ctx, r.storageId))) {
+          await ctx.db.patch(ledger._id, { zeroSince: Date.now() });
+        }
+      }
+    }
+    const full = refs.length === 200;
+    const refCursor = full ? cursorOf(refs[refs.length - 1] as any) : undefined;
+    if (state) await ctx.db.patch(state._id, { refCursor });
+    else await ctx.db.insert("uploadSweep", { cursor: 0, refCursor });
+    if (full && (chain ?? 0) + 1 < MAX_CHAIN) {
+      await ctx.scheduler.runAfter(0, internal.files.repairRefs, { chain: (chain ?? 0) + 1 });
+    }
+    return { dropped, scanned: refs.length };
+  },
+});
+
+/**
+ * Read-only dry run for `fileBackfill.markTracked`: the untracked files with no
+ * refs, the ones `markTracked` would schedule for deletion, with a URL so a
+ * human can look before agreeing to lose them. Pages `uploads.by_tracked`; pass
+ * the returned `next` back as `cursor` until it is null.
+ *
+ *   npx convex run files:zeroRefReport '{}'
+ */
+export const zeroRefReport = internalQuery({
+  args: { cursor: v.optional(v.string()), limit: v.optional(v.number()) },
+  handler: async (ctx, { cursor, limit }) => {
+    const n = Math.min(limit ?? 50, 100);
+    const rows = await pageAfter(
+      (t, k) =>
+        ctx.db
+          .query("uploads")
+          .withIndex("by_tracked", (q: any) => q.eq("tracked", undefined).gte("_creationTime", t))
+          .take(k),
+      cursor ?? null,
+      n,
+    );
+    const zero = [];
+    for (const row of rows) {
+      if (row.permanent) continue;
+      if (await otherRef(ctx, row.storageId)) continue;
+      zero.push({
+        storageId: row.storageId,
+        userId: row.userId,
+        sizeKB: Math.round(row.size / 1024),
+        uploaded: new Date(row.createdAt).toISOString(),
+        url: await ctx.storage.getUrl(row.storageId),
+      });
+    }
     return {
-      totalFiles: files.length,
-      referencedFiles: files.length - orphans.length,
-      orphanCount: orphans.length,
-      orphanMB: +(bytes(orphans) / 1048576).toFixed(2),
-      sweepableNow: orphans.filter((o) => !o.withinGrace).length,
-      orphans,
+      scanned: rows.length,
+      zeroRef: zero,
+      next: rows.length === n ? cursorOf(rows[rows.length - 1] as any) : null,
     };
   },
 });
 
 /**
- * Deletes unreferenced files older than `GRACE_MS`.
- *
- * The age floor is what makes this safe to run unattended: a file that has been
- * PUT but whose `updateAvatar`/`send` hasn't landed yet is indistinguishable
- * from an orphan, so anything recent is off limits. 24h leaves room for a
- * retry, a lost-network resume, or a backgrounded app to finish the job.
- *
- * Runs daily from `crons.ts`; also safe to run by hand after `listOrphans`.
+ * Seeds one ref for the file backfill: makes sure a ledger row exists (adopted:
+ * untracked and `uncounted: true`, owner [ownerId] or none), then inserts the
+ * ref if absent. A file that no longer exists is reported, never thrown.
  */
-export const gcOrphanedFiles = internalMutation({
-  args: {
-    /**
-     * Override the age floor, in ms. For an operator who has already eyeballed
-     * `listOrphans` output and accepts the risk on a specific file — pass 0 to
-     * sweep regardless of age. The cron never sets this; leaving it unset is
-     * what makes unattended runs safe.
-     */
-    graceMs: v.optional(v.number()),
-  },
-  handler: async (ctx, { graceMs }) => {
-    const referenced = await collectReferenced(ctx);
-    if (referenced === null) {
-      console.warn(
-        `files.gcOrphanedFiles: skipped — a scanned table exceeds ${MAX_SCAN} ` +
-        `rows, so the reference set would be incomplete and live files could be ` +
-        `deleted. Index the storage fields instead. See MAX_SCAN in files.ts.`,
-      );
-      return { skipped: true, deleted: 0, bytesFreed: 0 };
-    }
-
-    const cutoff = Date.now() - (graceMs ?? GRACE_MS);
-    const files = await ctx.db.system.query("_storage").collect();
-
-    let deleted = 0;
-    let bytesFreed = 0;
-    for (const f of files) {
-      if (deleted >= SWEEP_LIMIT) break;
-      if (f._creationTime >= cutoff) continue;
-      if (referenced.has(f._id.toString())) continue;
-      await deleteStored(ctx, f._id);
-      deleted++;
-      bytesFreed += f.size ?? 0;
-    }
-
-    if (deleted > 0) {
-      console.log(
-        `files.gcOrphanedFiles: reclaimed ${deleted} orphaned file(s), ` +
-        `${(bytesFreed / 1048576).toFixed(2)} MB`,
-      );
-    }
-    return { skipped: false, deleted, bytesFreed };
-  },
-});
+export async function backfillRef(
+  ctx: any,
+  storageId: any,
+  holder: FileHolder,
+  ownerId: any,
+): Promise<"inserted" | "exists" | "missingFile"> {
+  const meta = await ctx.db.system.get(storageId);
+  if (!meta) return "missingFile";
+  const ledger = await ledgerRow(ctx, storageId);
+  if (!ledger) {
+    await ctx.db.insert("uploads", {
+      storageId,
+      userId: ownerId ?? undefined,
+      size: meta.size ?? 0,
+      createdAt: Date.now(),
+      // `tracked` stays unset: by_tracked eq(undefined) is "still to mark".
+      uncounted: true,
+    });
+  } else if (ledger.permanent) {
+    return "exists";
+  }
+  if (await refRow(ctx, storageId, holder)) return "exists";
+  await ctx.db.insert("fileRefs", {
+    storageId,
+    holderTable: holder.table,
+    holderId: holder.id,
+    field: holder.field,
+    createdAt: Date.now(),
+  });
+  return "inserted";
+}

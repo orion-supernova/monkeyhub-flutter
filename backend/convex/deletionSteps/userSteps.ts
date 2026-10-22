@@ -9,14 +9,14 @@ import {
   type Step,
 } from "../deletionCore";
 import { purgeUserExpressions } from "../expressions";
-import { deleteStored } from "../files";
+import { releaseFile, releaseRowFiles } from "../files";
 import { removeUserFromRoomGroupCall } from "../groupCalls";
 import { leaveMatchesInRoom } from "../matchCore";
 import { removeMessageBounded } from "../messages";
 import { deleteCommentCore } from "../momentComments";
 import { deleteMomentCore } from "../momentCleanup";
 import { purgeRecordsOf } from "../recordBook";
-import { ensureOwner, releaseRoomPhoto, ROLE_OWNER } from "../roomAdmin";
+import { ensureOwner, ROLE_OWNER } from "../roomAdmin";
 import { revokeRoomAccess } from "../roomAccess";
 import { purgeScheduledForRoomUser, purgeScheduledForUser } from "../scheduledMessages";
 import { purgeSpeakerColorsForUser } from "../speakerColors";
@@ -280,7 +280,7 @@ export const userSteps: Step[] = [
      * picture: a pending row addressed to nobody is a queue item no admin can
      * resolve. Only a PENDING row's file is released: an approved one's file is
      * the room's live avatar, which the room outlives this account. (The
-     * refcount in `releaseRoomPhoto` guards the rest.) The decider pointer on
+     * file's refs guard the rest.) The decider pointer on
      * other people's rows is the generic `roomChangeRequests.decidedBy` step.
      */
     async run(ctx, job, b) {
@@ -295,11 +295,12 @@ export const userSteps: Step[] = [
             .take(n),
         async (row) => {
           if (row.status === "pending" && row.storageId) {
-            await releaseRoomPhoto(ctx, row.storageId, { requestId: row._id });
+            await releaseRowFiles(ctx, "roomChangeRequests", row);
           }
           await ctx.db.delete(row._id);
         },
-        2,
+        // The delete, plus a release that can free the file.
+        5,
       );
       return { done };
     },
@@ -441,14 +442,17 @@ export const userSteps: Step[] = [
       const user = userId ? await ctx.db.get(userId) : null;
       b.read();
       if (user === null) return { done: true };
-      await deleteStored(ctx, job.args?.avatarStorageId);
-      // Tolerant of a row that still names one (deleting a stored id twice is
-      // a no-op), e.g. a job enqueued without going through the first step.
-      if (user.avatarStorageId !== job.args?.avatarStorageId) {
-        await deleteStored(ctx, user.avatarStorageId);
-      }
+      // The id the first transaction took off the row, then whatever the row
+      // still names and any stray ref under it. A release with no ref left is a
+      // no-op, so a re-run, or a job enqueued without the first step, is safe.
+      await releaseFile(ctx, job.args?.avatarStorageId, {
+        table: "users",
+        id: user._id.toString(),
+        field: "avatarStorageId",
+      });
+      await releaseRowFiles(ctx, "users", user);
       await ctx.db.delete(user._id);
-      b.write(2);
+      b.write(6);
       return { done: true };
     },
   },

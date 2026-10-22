@@ -10,9 +10,8 @@ import {
   type Job,
   type Step,
 } from "../deletionCore";
-import { releaseMessageBlobs } from "../files";
+import { releaseMessageBlobs, releaseRowFiles } from "../files";
 import { endGroupCallsInRoom } from "../groupCalls";
-import { releaseRoomPhoto } from "../roomAdmin";
 import { purgeScheduledForRoom } from "../scheduledMessages";
 
 /**
@@ -195,15 +194,12 @@ export const roomSteps: Step[] = [
             .withIndex("by_room_status", (q) => q.eq("roomId", roomId))
             .take(n),
         async (row) => {
-          if (row.storageId) {
-            await releaseRoomPhoto(ctx, row.storageId, {
-              roomId,
-              requestId: row._id,
-            });
-          }
+          await releaseRowFiles(ctx, "roomChangeRequests", row);
           await ctx.db.delete(row._id);
         },
-        2,
+        // The delete, plus a release that can free the file (ref, ledger,
+        // usage, and the sweep for strays).
+        5,
       );
       if (!done) return { done: false };
 
@@ -380,18 +376,28 @@ export const roomSteps: Step[] = [
     /**
      * The room's own avatar, then the room row. Easy to forget because the
      * avatar isn't a row: the document is about to vanish, and with it the only
-     * pointer to the file. A system room's picture is not an upload, so it is
-     * left alone. A row that is already gone (a re-run, or an orphan job) is
-     * skipped.
+     * pointer to the file. A system room holds its own ref like any other (its
+     * avatar is shared-attached or its own blob), so the release is the same,
+     * except for a file not yet tracked: that one is the account's legacy
+     * avatar, which the legacy checks cannot see the account's claim on, so it
+     * is left alone until the backfill marks it. A row that is already gone (a
+     * re-run, or an orphan job) is skipped.
      */
     async run(ctx, job, b) {
       const roomId = roomOf(ctx, job);
       const room = roomId ? await ctx.db.get(roomId) : null;
       b.read();
       if (room === null) return { done: true };
-      if (room.system === undefined && room.avatarStorageId !== undefined) {
-        await releaseRoomPhoto(ctx, room.avatarStorageId, { roomId });
-        b.write();
+      if (room.avatarStorageId !== undefined) {
+        const ledger = await ctx.db
+          .query("uploads")
+          .withIndex("by_storage", (q) => q.eq("storageId", room.avatarStorageId!))
+          .first();
+        b.read();
+        if (room.system === undefined || ledger?.tracked === true) {
+          await releaseRowFiles(ctx, "rooms", room);
+          b.write(5);
+        }
       }
       await ctx.db.delete(room._id);
       b.write();

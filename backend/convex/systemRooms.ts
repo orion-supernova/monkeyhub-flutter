@@ -1,3 +1,4 @@
+import { attachShared } from "./fileShare";
 import { seenVisibilityOf } from "./visibility";
 import { LOG_ROOM_POSTING_PRESET } from "./roomPolicy";
 import {
@@ -198,6 +199,9 @@ export async function ensureSystemRoom(
         // No `messageLifetime`. A Chamber-of-Secrets lifetime here would
         // delete reports on a timer; each inbox runs its own retention sweep.
       });
+  if (!existing) {
+    await shareAccountAvatar(ctx, roomId, (await ctx.db.get(roomId))?.avatarStorageId);
+  }
   await reconcileSystemRoomMembers(ctx, roomId, accountId, readerIds);
   return roomId;
 }
@@ -230,7 +234,21 @@ async function repairSystemRoom(
     if (avatar) patch.avatarStorageId = avatar;
   }
   if (Object.keys(patch).length > 0) await ctx.db.patch(room._id, patch);
+  if (patch.avatarStorageId) await shareAccountAvatar(ctx, room._id, patch.avatarStorageId);
   return room._id;
+}
+
+/**
+ * A room that wears the account's picture holds its own ref on it, so wiping
+ * the room drops that ref and never the account's picture. `systemAvatars.set`
+ * later gives each room a file of its own.
+ */
+async function shareAccountAvatar(ctx: any, roomId: any, storageId: any): Promise<void> {
+  await attachShared(ctx, storageId, {
+    table: "rooms",
+    id: roomId.toString(),
+    field: "avatarStorageId",
+  });
 }
 
 /**

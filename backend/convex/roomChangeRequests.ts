@@ -37,7 +37,14 @@ import { assertUserRoomName } from "./rooms";
 import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { deleteStored, claimUpload } from "./files";
+import {
+  attachFile,
+  claimUpload,
+  fileInUse,
+  releaseFile,
+  releaseRowFiles,
+  transferFile,
+} from "./files";
 import { lensFor, publicUserView } from "./visibility";
 import { isTombstoned } from "./deletionCore";
 import {
@@ -45,8 +52,6 @@ import {
   assertMember,
   clearReleasedAvatarRequests,
   isAdminRole,
-  releaseRoomPhoto,
-  roomPhotoInUse,
   roleOf,
 } from "./roomAdmin";
 
@@ -111,9 +116,9 @@ async function pendingFor(ctx: any, roomId: any) {
  */
 async function releaseProposal(ctx: any, row: any) {
   if (row?.field === FIELD_AVATAR && row.storageId) {
-    // NOT excluding the row's room: if the room shows this very file, the
-    // file stays.
-    await releaseRoomPhoto(ctx, row.storageId, { requestId: row._id });
+    // The request's own ref only: if the room shows this very file, the room's
+    // ref keeps it.
+    await releaseRowFiles(ctx, "roomChangeRequests", row);
   }
 }
 
@@ -127,7 +132,7 @@ async function releaseProposal(ctx: any, row: any) {
  *
  * What those two must not get wrong is the blob: a pending avatar proposal is
  * the last pointer to its file, so deleting the row without
- * `deleteStored(storageId)` bills forever for a picture nobody chose. Both
+ * `releaseRowFiles` bills forever for a picture nobody chose. Both
  * call sites say so at the sweep.
  */
 
@@ -149,8 +154,21 @@ async function applyChange(ctx: any, room: any, row: any) {
   if (row.field === FIELD_AVATAR) {
     const previous = room.avatarStorageId;
     await ctx.db.patch(room._id, { avatarStorageId: row.storageId });
+    const to = { table: "rooms", id: room._id.toString(), field: "avatarStorageId" };
+    if (row._id) {
+      // Approval: the request's ref becomes the room's.
+      await transferFile(
+        ctx,
+        row.storageId,
+        { table: "roomChangeRequests", id: row._id.toString(), field: "storageId" },
+        to,
+      );
+    } else {
+      // An admin's own suggestion applies directly, with no request row.
+      await attachFile(ctx, row.storageId, to);
+    }
     if (previous && previous !== row.storageId) {
-      await releaseRoomPhoto(ctx, previous);
+      await releaseFile(ctx, previous, to);
       await clearReleasedAvatarRequests(ctx, room._id, previous);
     }
     return;
@@ -242,7 +260,7 @@ export const propose = mutation({
       // proposer could otherwise name the file a room already shows, or one
       // another request holds, and the first release would delete it under
       // the other pointer.
-      if (await roomPhotoInUse(ctx, storageId)) throw new Error(ERR_PHOTO_IN_USE);
+      if (await fileInUse(ctx, storageId)) throw new Error(ERR_PHOTO_IN_USE);
       proposed = storageId.toString();
     } else {
       const trimmed = (value ?? "").trim();
@@ -302,6 +320,20 @@ export const propose = mutation({
       createdAt: now,
       ...(field === FIELD_AVATAR ? { storageId } : { value: proposed }),
     });
+    if (field === FIELD_AVATAR) {
+      try {
+        await attachFile(ctx, storageId, {
+          table: "roomChangeRequests",
+          id: requestId.toString(),
+          field: "storageId",
+        });
+      } catch (err) {
+        if (err instanceof Error && err.message === "FILE_IN_USE") {
+          throw new Error(ERR_PHOTO_IN_USE);
+        }
+        throw err;
+      }
+    }
 
     const admins = await adminIdsOf(ctx, roomId);
     if (admins.length > 0) {

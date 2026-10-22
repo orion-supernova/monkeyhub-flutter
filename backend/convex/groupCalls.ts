@@ -14,6 +14,7 @@ import { lensFor, levelOf } from "./visibility";
 import { TAKEN_PUSH_GRACE_MS } from "./calls";
 import { consume } from "./rateLimit";
 import { isTombstoned } from "./deletionCore";
+import { continueSweep, sweepArgs } from "./sweep";
 
 // ────────────────────────────── constants ──────────────────────────────
 
@@ -31,6 +32,14 @@ const INVITE_RING_WINDOW_MS = 60 * 1000;
 // pendingInviteForUser already hide non-live participants immediately so a
 // killed app never leaves a lingering "ongoing call" banner.
 const HEARTBEAT_STALE_MS = 45 * 1000;
+
+// Rows per run of the GC sweeps below; a full page schedules the next.
+const PARTICIPANT_GC_PAGE = 100;
+const GROUP_SIGNAL_GC_PAGE = 200;
+const TERMINAL_GROUP_CALL_PAGE = 50;
+
+// roomAdmin.MAX_ROOMS_PER_USER, restated: roomAdmin imports this file.
+const ROOMS_PER_USER_CAP = 500;
 
 
 // ────────────────────────────── helpers ──────────────────────────────
@@ -735,33 +744,59 @@ export const activeForRoom = query({
 // is going on here" rows, every room in one subscription. Reads the active
 // call rows (who is in each is kept on the row, see `syncJoined`) and the
 // viewer's own membership row per call, nothing a heartbeat touches.
+//
+// PER ROOM, through `groupCalls.by_room_status`. It used to take the first 100
+// active calls worldwide: past 100 concurrent calls a user's own room call
+// silently vanished, and a join anywhere re-ran this for every user.
+//
+// The room set is the part that decides how often this re-runs. A client that
+// sends `roomIds` (its chat list) is read through those rooms only, so the
+// subscription's footprint is one index probe per room plus the membership row
+// of a room that has a call: a call in an unrelated room never touches it.
+// Without `roomIds` (builds from before it) the set comes from the viewer's
+// `roomMembers`, capped like every other per-user room walk. That is correct
+// but those rows are rewritten by every read receipt, so it re-runs more.
 export const liveInMyRooms = query({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
-    const active = await ctx.db
-      .query("groupCalls")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
-      .take(100);
-    const out = [];
-    for (const call of active) {
-      const joined = call.joinedUserIds ?? [];
-      if (joined.length === 0) continue;
-      const member = await ctx.db
+  args: { userId: v.id("users"), roomIds: v.optional(v.array(v.id("rooms"))) },
+  handler: async (ctx, { userId, roomIds }) => {
+    let rooms = roomIds?.slice(0, ROOMS_PER_USER_CAP);
+    if (rooms === undefined) {
+      const mine = await ctx.db
         .query("roomMembers")
-        .withIndex("by_room_user", (q) =>
-          q.eq("roomId", call.roomId).eq("userId", userId),
-        )
-        .first();
-      if (!member) continue;
-      out.push({
-        roomId: call.roomId,
-        groupCallId: call._id,
-        type: call.type,
-        startedAt: call.startedAt,
-        joinedUserIds: joined,
-      });
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .take(ROOMS_PER_USER_CAP);
+      rooms = mine.map((m) => m.roomId);
     }
-    return out;
+    const out = [];
+    for (const roomId of new Set(rooms)) {
+      const active = await ctx.db
+        .query("groupCalls")
+        .withIndex("by_room_status", (q) =>
+          q.eq("roomId", roomId).eq("status", "active"),
+        )
+        .take(3);
+      for (const call of active) {
+        const joined = call.joinedUserIds ?? [];
+        if (joined.length === 0) continue;
+        // A caller-supplied room is only a candidate: membership is what
+        // lets a call through, as it always was.
+        const member = await ctx.db
+          .query("roomMembers")
+          .withIndex("by_room_user", (q) =>
+            q.eq("roomId", call.roomId).eq("userId", userId),
+          )
+          .first();
+        if (!member) continue;
+        out.push({
+          roomId: call.roomId,
+          groupCallId: call._id,
+          type: call.type,
+          startedAt: call.startedAt,
+          joinedUserIds: joined,
+        });
+      }
+    }
+    return out.sort((a, b) => a.startedAt - b.startedAt);
   },
 });
 
@@ -1034,36 +1069,73 @@ export const sendGroupInvitePush = internalAction({
 // ────────────────────────── GC sweeps ──────────────────────────
 
 // Reap joined participants whose heartbeat went silent (killed app, dead
-// network) and end calls that emptied out. Bounded per tick.
+// network) and end calls that emptied out.
+//
+// Ranges over the PARTICIPANTS by staleness (`by_status_seen`), not over the
+// first N active calls: that version looked at the same 50 oldest calls every
+// minute, so past 50 live calls the rest were never reaped. Reaping flips the
+// row out of the "joined" range, so each page starts where the last stopped,
+// and a full page schedules the next (sweep.ts).
 export const gcStaleGroupParticipants = internalMutation({
-  handler: async (ctx) => {
-    const cutoff = Date.now() - HEARTBEAT_STALE_MS;
-    const active = await ctx.db
-      .query("groupCalls")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
-      .take(50);
-    for (const call of active) {
-      const joined = await joinedParticipants(ctx, call._id);
-      for (const p of joined) {
-        if ((p.lastSeenAt ?? p.joinedAt ?? 0) < cutoff) {
-          await ctx.db.patch(p._id, { status: "left", leftAt: Date.now() });
-        }
-      }
-      await endCallIfEmpty(ctx, call._id);
+  args: sweepArgs,
+  handler: async (ctx, { chain }) => {
+    const now = Date.now();
+    const cutoff = now - HEARTBEAT_STALE_MS;
+    const stale = await ctx.db
+      .query("groupCallParticipants")
+      .withIndex("by_status_seen", (q) =>
+        q.eq("status", "joined").gt("lastSeenAt", 0).lt("lastSeenAt", cutoff),
+      )
+      .take(PARTICIPANT_GC_PAGE);
+    // Rows from before `lastSeenAt` existed sort lowest and are judged by
+    // `joinedAt`, as `isLive` does.
+    const unstamped = await ctx.db
+      .query("groupCallParticipants")
+      .withIndex("by_status_seen", (q) =>
+        q.eq("status", "joined").eq("lastSeenAt", undefined),
+      )
+      .take(PARTICIPANT_GC_PAGE);
+    const calls = new Set<string>();
+    let reaped = 0;
+    for (const p of [
+      ...stale,
+      ...unstamped.filter((p) => (p.joinedAt ?? 0) < cutoff),
+    ]) {
+      await ctx.db.patch(p._id, { status: "left", leftAt: now });
+      calls.add(p.groupCallId);
+      reaped++;
     }
+    for (const id of calls) await endCallIfEmpty(ctx, id);
+    await continueSweep(
+      ctx,
+      internal.groupCalls.gcStaleGroupParticipants,
+      stale.length === PARTICIPANT_GC_PAGE ||
+        (unstamped.length === PARTICIPANT_GC_PAGE && reaped > 0),
+      chain,
+    );
   },
 });
 
+// Consumed pair signals older than a minute. Ranges on `by_consumed`'s
+// createdAt bound: it used to take the first 200 consumed rows of ANY age and
+// filter afterwards, so 200 fresh rows at the head hid every old one behind.
 export const gcConsumedGroupSignals = internalMutation({
-  handler: async (ctx) => {
+  args: sweepArgs,
+  handler: async (ctx, { chain }) => {
     const cutoff = Date.now() - 60 * 1000;
     const rows = await ctx.db
       .query("groupCallSignals")
-      .withIndex("by_consumed", (q) => q.eq("consumed", true))
-      .take(200);
-    for (const r of rows) {
-      if (r.createdAt < cutoff) await ctx.db.delete(r._id);
-    }
+      .withIndex("by_consumed", (q) =>
+        q.eq("consumed", true).lt("createdAt", cutoff),
+      )
+      .take(GROUP_SIGNAL_GC_PAGE);
+    for (const r of rows) await ctx.db.delete(r._id);
+    await continueSweep(
+      ctx,
+      internal.groupCalls.gcConsumedGroupSignals,
+      rows.length === GROUP_SIGNAL_GC_PAGE,
+      chain,
+    );
   },
 });
 
@@ -1072,16 +1144,16 @@ export const gcConsumedGroupSignals = internalMutation({
 // not — unconsumed ones are only purged by endCallIfEmpty, which several
 // end paths skip) accumulated forever. Day-old ended calls have no readers.
 export const gcTerminalGroupCalls = internalMutation({
-  args: {},
+  args: sweepArgs,
   returns: v.null(),
-  handler: async (ctx) => {
+  handler: async (ctx, { chain }) => {
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
     const rows = await ctx.db
       .query("groupCalls")
       .withIndex("by_status", (q) =>
         q.eq("status", "ended").lt("startedAt", cutoff),
       )
-      .take(50);
+      .take(TERMINAL_GROUP_CALL_PAGE);
     let deleted = 0;
     for (const call of rows) {
       const parts = await ctx.db
@@ -1100,6 +1172,12 @@ export const gcTerminalGroupCalls = internalMutation({
     if (deleted > 0) {
       console.log(`gcTerminalGroupCalls: deleted ${deleted} call(s)`);
     }
+    await continueSweep(
+      ctx,
+      internal.groupCalls.gcTerminalGroupCalls,
+      rows.length === TERMINAL_GROUP_CALL_PAGE,
+      chain,
+    );
     return null;
   },
 });

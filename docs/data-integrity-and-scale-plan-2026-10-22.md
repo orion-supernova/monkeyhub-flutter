@@ -1,8 +1,9 @@
 # Data integrity and scale plan (2026-10-22)
 
-**Status:** Phases 0, 1 and 2 are **Done in code** (2026-10-22, committed
-on `dev`, not deployed; see each phase's status note). Later phases are not implemented
-except where a line says **Done**. Built from a live scan of every reference in the production
+**Status:** Phases 0 to 3 and part A of Phase 4 are **Done in code**
+(2026-10-22, committed on `dev`, not deployed; see each phase's status
+note). The rest of Phase 4 and Phases 5 and 6 are designed, not started:
+**a new session should start with `docs/data-integrity-handoff.md`.** Built from a live scan of every reference in the production
 database and five code audits (accounts, rooms, messages, feed/games/calls/
 stickers, files/copies/crons), with every high-severity claim re-checked by
 hand against the code.
@@ -777,7 +778,191 @@ moments, games.
 5. System rooms get their own avatar file; `systemAvatars.apply` frees the
    old one.
 
+**Phase 3 status (2026-10-22): code done in three packages, not deployed.**
+Final review (live-file deletion only): no unconditional path found. Fixed:
+official sticker art (including packs retired before the scan) is pinned
+`permanent` by the backfill, so the reaper and the epoch lift can't take it.
+Known, covered by the runbook: before `markTracked`, `discardUpload` can't
+see an untracked file held only by an unindexed field (a sticker); a nightly
+`repairRefs` may queue an old avatar before its repoint job finishes (only
+weak copies are affected); check the `file_in_use` warn logs before setting
+`FILE_REFS_ENFORCE=1` (a client sending one upload to two rooms would start
+failing).
+Design: `docs/data-integrity-phase3-design.md` (binding). One `fileRefs` row per
+use of a file plus a per-file `tracked` flag; nothing irreversible runs by
+itself. Package P3 (backfill, verification, rules) added:
+- `referenceRules.ts`: `fileHold: "ref" | "copy" | "ledger"` on every `file`
+  rule (a test fails when one is missing), and `FILE_FIELDS` derived from the
+  `ref` ones (`files.ts` re-exports it).
+- `integrity.ts`: two more counters per run, `<table>.<field>#missingRef` (a
+  strong file field with no ref row) and `fileRefs#staleRef` (a ref whose
+  holder or field is gone). Both are violations (`fileRefViolations` in
+  `integrity:latest`).
+- `fileBackfill.ts`: `start`, `step`, `resumeStalled` (hourly cron),
+  `markTracked`, `latest`. `markTracked` refuses unless the scan is done and a
+  finished integrity run that started after it shows zero file violations.
+- Safety gate: `files.reapUnreferenced` deletes NOTHING until the latest
+  `fileBackfill` row has `markedAt` AND env `FILE_REFS_REAP=1`. Until then it
+  logs `would have reaped N files` and returns. A single attach missed in a
+  call site would otherwise read as "unused" and delete live media after 24 h.
+- Dangling file ids (a file gone from storage) are NOT file violations: they
+  are counted as `missingFile` by the scan and appear under the ordinary
+  dangling counts of the integrity run.
+
+Rollout order (commands in the runbook below): deploy, `fileBackfill:start`,
+`files:repairRefs`, `integrity:start` and read it, `files:zeroRefReport`,
+`markTracked` (dry run, then real), watch the reaper's "would have reaped" log
+for a day, `FILE_REFS_REAP=1`, a week of `file_in_use` warnings, then
+`FILE_REFS_ENFORCE=1`, then `files:liftEpoch`, then the next release deletes
+`legacyInUse`, `deleteStored` and the sweep's adoption.
+
+#### Phase 3 runbook (after the deploy)
+
+Who: an operator with the self-hosted admin key. Where: the `backend/` directory
+of this repo. The Convex CLI reads the self-hosted URL and admin key from the
+gitignored `backend/.env.local`. NEVER pass `--prod`; there is one deployment.
+All functions below are internal, so `npx convex run` is the only way to call
+them. Output is JSON. Do the steps in order and do not skip a check.
+
+Before you start: deploy backend first (`./deploy.sh`), then confirm both flags
+are unset, which is the safe default:
+
+```
+cd backend
+npx convex env get FILE_REFS_ENFORCE     # good: unset (empty or not found)
+npx convex env get FILE_REFS_REAP        # good: unset (empty or not found)
+```
+
+1. **Run the scan** (gives every old file its ref rows; safe to re-run).
+   ```
+   npx convex run fileBackfill:start '{}'
+   ```
+   Good: `{ "started": true, "reason": "new" }`. Then poll until it finishes
+   (minutes to hours depending on size):
+   ```
+   npx convex run fileBackfill:latest '{}'
+   ```
+   Good: `status` is `"done"`, `progress.tablesDone` equals `tablesTotal` (8),
+   `inserted` is roughly the number of file-carrying rows, and `missingFile` is
+   small (files already gone from storage; these are tallied, not errors).
+   `"running"` with a moving `lastProgressAt` is fine. If `lastProgressAt` is
+   more than 30 minutes old, run step 1 again (it resumes from its cursor; the
+   hourly cron also does this, and after 3 resumes marks the run `"failed"`,
+   after which step 1 starts a fresh one).
+
+2. **Clear stale refs** (refs whose holder or field was removed since).
+   ```
+   npx convex run files:repairRefs '{}'
+   ```
+   Good: returns `{ "dropped": N, "scanned": M }`. It chains itself while pages
+   are full (200 refs a page). Run it again until `scanned` is under 200 and
+   `dropped` is 0. A large `dropped` on the first run is normal after a
+   backfill; a large `dropped` that keeps coming back means some delete path
+   leaves refs behind: stop and find it.
+
+3. **Verify** (a fresh integrity scan, started after step 1 finished).
+   ```
+   npx convex run integrity:start '{}'
+   npx convex run integrity:latest '{}'      # repeat until status is "done"
+   ```
+   Good: `status` `"done"` and `fileRefViolations` is `0`. Also check that
+   `violations` has no key ending in `#missingRef` or `#staleRef`.
+   Bad, and what to do:
+   - `#staleRef` above 0: run step 2 again, then this step again.
+   - `#missingRef` above 0: a strong file field has no ref. Look at `examples`
+     (`<rowId>-><storageId>`). Run step 1 again (it inserts the missing refs),
+     then this step again. If it comes back after a clean re-run, a call site
+     is not attaching a file: that is a code bug, fix it and redeploy before
+     going on. Do not continue to step 5.
+
+4. **Read the dry run of the irreversible step.**
+   ```
+   npx convex run files:zeroRefReport '{}'
+   ```
+   Pages 50 untracked files at a time; pass `{"cursor": "<next>"}` from the
+   output until `next` is `null`. Each entry in `zeroRef` is an old file nothing
+   references, with `url`, `sizeKB` and `uploaded`. Good: the list is plausible
+   leftovers (abandoned uploads, files of deleted messages). Open a few URLs.
+   If you see avatars, stickers or photos that are clearly in use, STOP: the
+   scan missed a field, and the fix is in code. These files get a 24 hour
+   deletion mark in step 5 but are only deleted if step 8 is done.
+
+5. **Check that marking would be accepted** (writes nothing).
+   ```
+   npx convex run fileBackfill:markTracked '{"dryRun":true}'
+   ```
+   Good: `{ "ok": true, "refused": null, ... }`. If `ok` is false, `refused`
+   says exactly which step to redo (scan not finished, no verification after the
+   scan, or file-ref violations).
+
+6. **Mark (IRREVERSIBLE).** Flips every old file to ref-authoritative; files
+   with no refs get a 24 hour deletion mark. Only run after steps 1 to 5 were
+   good and you read step 4.
+   ```
+   npx convex run fileBackfill:markTracked '{}'
+   npx convex run fileBackfill:latest '{}'    # repeat until markedAt is not null
+   ```
+   Good: the first call returns `ok: true` (`done: false` while it chains in
+   batches of 100), then `latest` shows `markedAt` set, `marked` about the
+   number of old files, and `queuedForReap` about what step 4 listed. Verify
+   nothing is left: the next `markTracked` returns `marked: 0, done: true`.
+   Do NOT run `fileBackfill:start` again after this unless you mean to redo
+   steps 3 to 6: a new scan row has no `markedAt`, which closes the reaper's
+   gate (step 8) until `markTracked` is run again.
+
+7. **Watch the reaper without letting it delete.** `files.reapUnreferenced`
+   runs every 10 minutes and, while gated, only logs. Wait at least 25 hours
+   after step 6 (the grace period is 24 h), then:
+   ```
+   npx convex logs --history 500 | grep "would have reaped"
+   ```
+   Good: the count is at most `queuedForReap` from step 6 (plus a handful of
+   fresh uploads that were abandoned), and nothing alarming like thousands more.
+   Bad: a count far above `queuedForReap` means live files have no refs,
+   i.e. a call site misses an attach. Do NOT go on; find and fix the code.
+
+8. **Open the reaper gate.**
+   ```
+   npx convex env set FILE_REFS_REAP 1
+   ```
+   Good: run `npx convex run files:reapUnreferenced '{}'` once by hand: the
+   result no longer has `"gated": true` and shows `reaped` (about the number
+   from step 7), and the 10 minute cron stops logging "gated". To close the
+   gate again at any time:
+   `npx convex env remove FILE_REFS_REAP`.
+
+9. **Enforce exclusive use after a week of clean logs.**
+   ```
+   npx convex logs --history 5000 | grep file_in_use
+   ```
+   Good: nothing, or only paths you recognise as legitimate. Then
+   `npx convex env set FILE_REFS_ENFORCE 1`. A second holder of the same file
+   now throws `FILE_IN_USE` instead of logging.
+
+10. **Lift the upload epoch** (lets the hourly sweep delete ledger-less files
+    older than `UPLOADS_EPOCH`).
+    ```
+    npx convex run files:liftEpoch '{}'
+    ```
+    Good: `{ "lifted": true }`. It refuses (with a reason) until the scan is
+    done and no file is untracked, so a refusal means step 6 is not finished.
+
+11. **Next release:** delete `legacyInUse`, `deleteStored` and the sweep's
+    adoption branch (they only exist for untracked files), and remove the
+    `FILE_REFS_REAP` check from `files.reapUnreferenced`.
+
 ### Phase 4: every cleanup keeps up
+
+**Phase 4 status (2026-10-22): part A Done in code, not deployed.** Every
+cleanup in section 5 reschedules itself while pages come back full
+(`backend/convex/sweep.ts`, capped at 50 chained runs a firing);
+`gcStaleGroupParticipants` ranges by staleness; unconsumed signals of ended
+calls are swept; `groupCalls.liveInMyRooms` probes per room (optional
+`roomIds` arg for a future app build); sessions expire after 90 days idle,
+refreshed once a day from the heartbeat, with a grace floor
+(`SESSION_GRACE_FLOOR`) so nobody is signed out before 2027-01-20. The rest
+(retention sweeps, receipts table, point reads, search index, room counts)
+is designed in `docs/data-integrity-handoff.md` section 4.
 
 1. Every cron in section 5 reschedules itself while pages come back full,
    and ranges on an index (no fixed "first 50").
@@ -848,6 +1033,18 @@ or explicitly skipped.
 ---
 
 ## 7. Decisions for you
+
+**Decided 2026-10-22:**
+- **Session lifetime:** 90 days without use, refreshed on use.
+- **Game history:** finished games' moves and boards kept 90 days (the
+  result card stays in chat); daily game and puzzle results kept 1 year,
+  then rolled into yearly totals.
+- **Read receipts:** the logs move to their own `receiptLogs` table, read
+  only for "seen by"; the feature stays as it is.
+- **Old decided requests** (invitations, join and change requests): kept 90
+  days. Guardian approvals that are live permissions are never deleted.
+
+Still open:
 
 - **Old posts after a rename:** show the name at posting time (history) or the
   current name? With profiles (Phase 6) the current name is free; keeping the

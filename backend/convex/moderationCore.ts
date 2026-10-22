@@ -1,4 +1,5 @@
 import { internal } from "./_generated/api";
+import { attachShared } from "./fileShare";
 import {
   ERR_SYSTEM_ACCOUNT,
   MODERATION_ROOM_NAME,
@@ -249,9 +250,9 @@ async function collectEvidence(
  * and pushes the staff once. Returns the card's message id.
  *
  * Evidence media re-references the original blob rather than copying it,
- * exactly as forwarding does: `files.releaseMessageBlobs` only deletes a blob
- * when no message points at it any more, so the evidence survives the source
- * message being deleted, expiring, or removed by a moderator.
+ * exactly as forwarding does: each bubble share-attaches its own ref, so the
+ * blob is only deleted when nothing points at it any more and the evidence
+ * survives the source message being deleted, expiring, or removed by a moderator.
  */
 /** Whether [userId] is banned right now. False for no one. */
 async function isSuspended(ctx: any, userId: any): Promise<boolean> {
@@ -286,7 +287,7 @@ async function postAsReporter(
     ...(card ? { moderationCard: card } : {}),
   });
   for (const m of media) {
-    await ctx.db.insert("messages", {
+    const evidenceId = await ctx.db.insert("messages", {
       roomId,
       userId: accountId,
       content: "",
@@ -302,6 +303,14 @@ async function postAsReporter(
       mimeType: m.mimeType,
       senderName: REPORTER_DISPLAY_NAME,
     });
+    // The bubble holds the blob alongside the source message.
+    for (const field of ["mediaStorageId", "posterStorageId"]) {
+      await attachShared(ctx, m[field], {
+        table: "messages",
+        id: evidenceId.toString(),
+        field,
+      });
+    }
   }
   const preview = excerpt(text.split("\n")[0], 100);
   await ctx.db.patch(roomId, {

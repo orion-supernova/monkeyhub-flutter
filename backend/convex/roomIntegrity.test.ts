@@ -60,6 +60,25 @@ async function groupOfThree(t: T) {
 
 const upload = (t: T) =>
   t.run(async (ctx: any) => await ctx.storage.store(new Blob(["x"], { type: "image/jpeg" })));
+/**
+ * A file from before references: it has a ledger row but is not `tracked`, so
+ * "is it in use" is still answered by the old index checks. Both tests below
+ * put a room on a file by writing the column directly, which is exactly what
+ * such a room looks like.
+ */
+const legacyUpload = async (t: T, owner: Who) => {
+  const id = await upload(t);
+  await t.run(async (ctx: any) =>
+    ctx.db.insert("uploads", {
+      storageId: id,
+      userId: owner.userId as any,
+      size: 1,
+      createdAt: Date.now(),
+      tracked: false,
+    }),
+  );
+  return id;
+};
 const stored = (t: T, id: any) =>
   t.run(async (ctx: any) => (await ctx.storage.get(id)) !== null);
 const get = (t: T, id: any) => t.run(async (ctx: any) => await ctx.db.get(id));
@@ -358,7 +377,7 @@ describe("one file, one pointer", () => {
   test("a member cannot propose the file the room already shows", async () => {
     const t = convexTest(schema);
     const { alice, roomId } = await groupOfThree(t);
-    const photo = await upload(t);
+    const photo = await legacyUpload(t, alice);
     await t.run(async (ctx: any) => ctx.db.patch(roomId, { avatarStorageId: photo }));
     await expect(propose(t, alice, roomId, photo)).rejects.toThrow(
       "CHANGE_REQUEST_PHOTO_IN_USE",
@@ -371,7 +390,7 @@ describe("one file, one pointer", () => {
   test("a file held by a pending request cannot be proposed again, and release keeps a live photo", async () => {
     const t = convexTest(schema);
     const { owner, alice, bob, roomId } = await groupOfThree(t);
-    const photo = await upload(t);
+    const photo = await legacyUpload(t, alice);
     const res: any = await propose(t, alice, roomId, photo);
     // Same owner, second room: refused.
     const other = await t.mutation(api.rooms.create, {

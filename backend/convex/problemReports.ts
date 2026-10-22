@@ -17,8 +17,9 @@ import {
   provisionSystemInbox,
   resolveStaff,
 } from "./systemRooms";
-import { claimUpload } from "./files";
+import { attachFile, claimUpload } from "./files";
 import { consume } from "./rateLimit";
+import { continueSweep, sweepArgs } from "./sweep";
 
 /**
  * Delivery for the "Report a problem" screen.
@@ -203,7 +204,7 @@ export const submit = mutation({
 
     if (logStorageId !== undefined) {
       const fileName = logFileName ?? "diagnostics.txt";
-      await ctx.db.insert("messages", {
+      const logMessageId = await ctx.db.insert("messages", {
         roomId,
         userId: logUserId,
         // Empty, not `fileName` — `content` is the bubble's user-typed
@@ -221,10 +222,15 @@ export const submit = mutation({
         galleryBucket: galleryBucketFor("file", true, false),
         senderName: LOG_DISPLAY_NAME,
       });
+      await attachFile(ctx, logStorageId, {
+        table: "messages",
+        id: logMessageId.toString(),
+        field: "mediaStorageId",
+      });
     }
 
     for (const shot of screenshots ?? []) {
-      await ctx.db.insert("messages", {
+      const shotMessageId = await ctx.db.insert("messages", {
         roomId,
         userId: logUserId,
         content: "",
@@ -233,6 +239,11 @@ export const submit = mutation({
         mediaStorageId: shot,
         galleryBucket: galleryBucketFor("image", true, false),
         senderName: LOG_DISPLAY_NAME,
+      });
+      await attachFile(ctx, shot, {
+        table: "messages",
+        id: shotMessageId.toString(),
+        field: "mediaStorageId",
       });
     }
 
@@ -282,6 +293,9 @@ export const submit = mutation({
  */
 export const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 
+/** Rows per run of [gcExpiredReports]; a full page schedules the next. */
+const GC_PAGE = 200;
+
 /**
  * Deletes report receipts past [RETENTION_MS].
  *
@@ -301,15 +315,21 @@ export const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
  * worse outcome than keeping it.
  */
 export const gcExpiredReports = internalMutation({
-  args: {},
+  args: sweepArgs,
   returns: v.null(),
-  handler: async (ctx) => {
+  handler: async (ctx, { chain }) => {
     const cutoff = Date.now() - RETENTION_MS;
     const expired = await ctx.db
       .query("problemReports")
       .withIndex("by_createdAt", (q) => q.lt("createdAt", cutoff))
-      .take(200);
+      .take(GC_PAGE);
     for (const row of expired) await ctx.db.delete(row._id);
+    await continueSweep(
+      ctx,
+      internal.problemReports.gcExpiredReports,
+      expired.length === GC_PAGE,
+      chain,
+    );
     return null;
   },
 });

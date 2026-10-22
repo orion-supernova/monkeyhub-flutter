@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import schema from "./schema";
-import { REFERENCE_RULES } from "./referenceRules";
+import { FILE_FIELDS, REFERENCE_RULES } from "./referenceRules";
 import { refKey, schemaRefs, tableIndexes } from "./schemaRefs";
 
 /**
@@ -102,5 +102,38 @@ describe("reference rules", () => {
       'Rule "file" is for `_storage` references only, and every `_storage` reference must use it:\n' +
         fileWithoutOwner.join("\n"),
     ).toEqual([]);
+  });
+
+  test("every file rule says how it holds the file, and nothing else does", () => {
+    const missing = Object.entries(REFERENCE_RULES)
+      .filter(([, r]) => r.rule === "file" && r.fileHold === undefined)
+      .map(([k]) => k);
+    expect(
+      missing,
+      'Add fileHold: "ref" (the holder owns a fileRefs row), "copy" (a weak borrowed id) ' +
+        'or "ledger" (uploads/fileRefs themselves) to these `file` rules in referenceRules.ts:\n' +
+        missing.join("\n"),
+    ).toEqual([]);
+    const stray = Object.entries(REFERENCE_RULES)
+      .filter(([, r]) => r.rule !== "file" && r.fileHold !== undefined)
+      .map(([k]) => k);
+    expect(stray, "fileHold belongs on `file` rules only:\n" + stray.join("\n")).toEqual([]);
+  });
+
+  test("FILE_FIELDS is exactly the strong fields, all plain top-level ones", () => {
+    const strong = Object.entries(REFERENCE_RULES)
+      .filter(([, r]) => r.rule === "file" && r.fileHold === "ref")
+      .map(([k]) => k)
+      .sort();
+    const derived = Object.entries(FILE_FIELDS)
+      .flatMap(([table, fields]) => fields.map((f) => `${table}.${f}`))
+      .sort();
+    expect(derived).toEqual(strong);
+    // A nested or array path has no single field to ref or backfill.
+    expect(strong.filter((k) => /[[\]{}]/.test(k) || k.split(".").length !== 2)).toEqual([]);
+    expect(FILE_FIELDS.messages).toEqual(["mediaStorageId", "posterStorageId", "stickerStorageId"]);
+    // Borrowed copies never get refs.
+    expect(FILE_FIELDS.moments).toEqual(["mediaStorageId", "posterStorageId"]);
+    expect(FILE_FIELDS.typingIndicators).toBeUndefined();
   });
 });

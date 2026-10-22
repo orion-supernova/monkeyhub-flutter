@@ -3,6 +3,12 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
+// The sweeps that delete what they range over (rateLimit, calls, groupCalls,
+// users/problemReports reports, sessions) take one page per run and schedule
+// the next themselves while pages come back full, up to MAX_SWEEP_CHAIN per
+// firing. The interval below is therefore how often a backlog is LOOKED for,
+// not how fast it can drain. See sweep.ts.
+//
 // A note on the intervals below. This runs on a small self-hosted box, and
 // every sweep here is an index scan plus a write loop. Several of them used to
 // fire every minute, which on its own is a steady background load competing
@@ -93,16 +99,20 @@ crons.interval(
   {},
 );
 
-// Reclaim stored files nothing references any more. Every code path that drops
-// a storageId now deletes the blob with it, so this is the backstop for the one
-// case the backend can't reach: the client uploads, then the mutation that would
-// have referenced the file fails or the app is killed. Files under 24h old are
-// exempt — an upload still in flight is indistinguishable from an orphan.
-// See files.gcOrphanedFiles.
+// Files with no refs for 24 hours: an upload claimed and never attached.
+// See files.reapUnreferenced.
 crons.interval(
-  "files.gcOrphanedFiles",
+  "files.reapUnreferenced",
+  { minutes: 10 },
+  internal.files.reapUnreferenced,
+  {},
+);
+
+// Drops refs whose holder, field or ledger row is gone. See files.repairRefs.
+crons.interval(
+  "files.repairRefs",
   { hours: 24 },
-  internal.files.gcOrphanedFiles,
+  internal.files.repairRefs,
   {},
 );
 
@@ -312,11 +322,21 @@ crons.cron(
 );
 
 // Sweep revoked sessions a week after revocation. Live sessions are never
-// touched — they do not expire — so this only reclaims rows nobody can use.
+// deleted here; idle ones are revoked by the job below first.
 crons.interval(
   "sessions.gcRevokedSessions",
   { hours: 6 },
   internal.sessionCore.gcRevokedSessions,
+  {},
+);
+
+// Revoke sessions unused for 90 days. `requireSession` already refuses them
+// when presented, so this is for the rows nobody ever presents again; daily is
+// plenty for a threshold measured in months. See sessionCore.expireIdleSessions.
+crons.interval(
+  "sessions.expireIdleSessions",
+  { hours: 24 },
+  internal.sessionCore.expireIdleSessions,
   {},
 );
 
@@ -344,6 +364,16 @@ crons.interval(
   "integrity.resumeStalled",
   { hours: 1 },
   internal.integrity.resumeStalled,
+  {},
+);
+
+// Same safety net for the one-off file-refs backfill (fileBackfill.ts): resumes
+// a scan silent for 30+ minutes, never starts one. A single index probe when
+// no scan is running.
+crons.interval(
+  "fileBackfill.resumeStalled",
+  { hours: 1 },
+  internal.fileBackfill.resumeStalled,
   {},
 );
 

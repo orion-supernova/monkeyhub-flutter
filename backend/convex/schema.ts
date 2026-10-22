@@ -368,7 +368,7 @@ export default defineSchema({
     .index("by_visibility", ["isPrivate"])
     .index("by_visibility_activity", ["isPrivate", "lastMessageTime"])
     // "Does any room still show this file?" The release-side guard for room
-    // photos (`roomAdmin.releaseRoomPhoto`) and the proposal-side refusal.
+    // photos (`files.fileInUse`) and the proposal-side refusal.
     .index("by_avatar", ["avatarStorageId"]),
 
   // Who may read a room: one row per membership, written only on join and
@@ -653,7 +653,7 @@ export default defineSchema({
     // Account teardown, both directions.
     .index("by_user", ["userId"])
     .index("by_decider", ["decidedBy"])
-    // "Does another request hold this file?" See `roomAdmin.releaseRoomPhoto`.
+    // "Does another request hold this file?" See `files.fileInUse`.
     .index("by_storage", ["storageId"]),
 
   // ── Family ────────────────────────────────────────────────────────────────
@@ -2576,7 +2576,11 @@ export default defineSchema({
   })
     .index("by_call", ["groupCallId"])
     .index("by_call_user", ["groupCallId", "userId"])
-    .index("by_user_status", ["userId", "status"]),
+    .index("by_user_status", ["userId", "status"])
+    // gcStaleGroupParticipants: the joined rows whose heartbeat went silent,
+    // across every call, without walking the calls. Unset lastSeenAt sorts
+    // lowest, so the sweep bounds the low end (and reads the unset ones apart).
+    .index("by_status_seen", ["status", "lastSeenAt"]),
 
   // Pair-addressed signaling inside a group call. Same delivery contract as
   // callSignals: subscribe by toUserId, consume after dispatch, GC sweeps.
@@ -2737,7 +2741,11 @@ export default defineSchema({
     // ephemeral table here (deviceLoginRequests, callSignals, pairingCodes)
     // has had a sweep from the start; this one shipped without and should not
     // have.
-    .index("by_revoked_at", ["revokedAt"]),
+    .index("by_revoked_at", ["revokedAt"])
+    // Idle expiry. Live rows (`revokedAt` undefined) by `lastSeenAt`: the cron
+    // revokes the stale ones, `touchSessions` finds a user's stale ones.
+    .index("by_live_seen", ["revokedAt", "lastSeenAt"])
+    .index("by_user_live_seen", ["userId", "revokedAt", "lastSeenAt"]),
 
   // One row per uploaded file someone has attached to something: who owns
   // it and what it weighs. Ownership is what stops one account attaching (and
@@ -2753,9 +2761,69 @@ export default defineSchema({
     // nobody else is in (Saved Messages, a room of one).
     solo: v.optional(v.boolean()),
     createdAt: v.number(),
+    // `fileRefs` rows are authoritative for this file: it is freed when the
+    // last one goes. Unset on files from before refs, which are released by
+    // the old index checks until `fileBackfill.markTracked` flips them.
+    tracked: v.optional(v.boolean()),
+    // Server-owned art (official stickers): never ref'd, never freed.
+    permanent: v.optional(v.boolean()),
+    // Never charged to `uploadUsage` (rows adopted or backfilled later), so
+    // freeing them gives nothing back.
+    uncounted: v.optional(v.boolean()),
+    // No refs since this time. Set at claim, cleared by the first attach;
+    // `files.reapUnreferenced` frees files that stay at zero for 24 hours.
+    zeroSince: v.optional(v.number()),
   })
     .index("by_storage", ["storageId"])
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    // `gt("zeroSince", 0)` skips the unset rows.
+    .index("by_zero_since", ["zeroSince"])
+    // `eq("tracked", undefined)` = still to mark.
+    .index("by_tracked", ["tracked"]),
+
+  // One row per USE of an uploaded file: this holder's field points at it.
+  // A file is freed when its last ref goes (`files.releaseFile`). `holderId` is
+  // the holder's `_id` as a string, deliberately not a `v.id`, since the table
+  // varies. See `files.ts`.
+  fileRefs: defineTable({
+    storageId: v.id("_storage"),
+    holderTable: v.string(),
+    holderId: v.string(),
+    field: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_file_holder", ["storageId", "holderId", "field"])
+    .index("by_holder", ["holderId", "field"]),
+
+  // Progress of the one-off scan that gives every pre-refs file its ref rows
+  // (`fileBackfill.ts`). One row per run, on the `integrityRuns` pattern.
+  fileBackfill: defineTable({
+    startedAt: v.number(),
+    lastProgressAt: v.number(),
+    finishedAt: v.optional(v.number()),
+    status: v.union(
+      v.literal("running"),
+      v.literal("done"),
+      v.literal("failed"),
+    ),
+    // Which table (index into the sorted tables holding `ref` fields) and the
+    // paginate cursor inside it.
+    tableIdx: v.number(),
+    cursor: v.union(v.string(), v.null()),
+    restarts: v.number(),
+    pages: v.number(),
+    rowsScanned: v.number(),
+    inserted: v.number(),
+    existed: v.number(),
+    missingFile: v.number(),
+    // Mark phase (`fileBackfill.markTracked`), after the scan is done and
+    // verified. `markedAt` is set when every untracked file has been marked;
+    // `files.reapUnreferenced` stays inert until it is.
+    markedAt: v.optional(v.number()),
+    marked: v.optional(v.number()),
+    // Of those, files with no refs, scheduled for the reaper.
+    queuedForReap: v.optional(v.number()),
+  }).index("by_status", ["status"]),
 
   // Running totals per user, so a quota check is one read. See `files.ts`.
   uploadUsage: defineTable({
@@ -2797,9 +2865,13 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_window", ["windowStart"]),
 
-  // The single cursor `files.sweepUnclaimed` resumes from.
+  // The cursors `files.sweepUnclaimed` and `files.repairRefs` resume from.
   uploadSweep: defineTable({
     cursor: v.number(),
+    // Set by `files.liftEpoch`: pre-epoch files are swept from then on.
+    liftedAt: v.optional(v.number()),
+    // `files.repairRefs` resumes from this `deletionCore.cursorOf` string.
+    refCursor: v.optional(v.string()),
   }),
 
   authAttempts: defineTable({

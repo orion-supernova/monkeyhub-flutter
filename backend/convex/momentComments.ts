@@ -9,6 +9,8 @@ import { lensFor } from "./visibility";
 import { hasHit } from "./contentFilter";
 import { screenAndReport } from "./moderationCore";
 import { deleteCapped, enqueueDeletion, tuning } from "./deletionCore";
+import { releaseRowFiles } from "./files";
+import { attachShared } from "./fileShare";
 
 /**
  * Comments on a highlight — and their replies, and the reactions on both.
@@ -102,6 +104,7 @@ export async function deleteCommentCore(
     for (const reply of replies.slice(0, cap)) {
       const more = await dropReactions(reply._id);
       await ctx.db.delete(reply._id);
+      await releaseRowFiles(ctx, "momentComments", reply);
       removed++;
       if (more) {
         await enqueueDeletion(ctx, {
@@ -113,6 +116,7 @@ export async function deleteCommentCore(
   }
   if (await dropReactions(comment._id)) rootOverflow = true;
   await ctx.db.delete(comment._id);
+  await releaseRowFiles(ctx, "momentComments", comment);
   removed++;
 
   if (rootOverflow) {
@@ -387,6 +391,15 @@ export const add = mutation({
       createdAt: Date.now(),
     });
     await ctx.db.patch(momentId, { commentCount: existing.length + 1 });
+    // A sticker is shared by every use, so the comment takes a ref of its own.
+    // Official pack art is permanent and never ref'd.
+    if (expression?.stickerStorageId && expression.mediaSource !== "pack") {
+      await attachShared(ctx, expression.stickerStorageId, {
+        table: "momentComments",
+        id: id.toString(),
+        field: "stickerStorageId",
+      });
+    }
 
     // Off the transaction, as `feed.post` schedules its own push: a
     // notification that cannot be assembled must never cost anyone their

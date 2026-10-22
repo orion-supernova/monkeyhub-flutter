@@ -1,4 +1,5 @@
 import { tuning, type Step } from "../deletionCore";
+import { releaseRowFiles } from "../files";
 
 /**
  * Custom teardown steps for the `comment` deletion kind: the leftover of a
@@ -57,7 +58,9 @@ export const commentSteps: Step[] = [
             break;
           }
           await ctx.db.delete(reply._id);
-          b.write();
+          // A sticker ref costs a few writes, so the reply is charged for them.
+          await releaseRowFiles(ctx, "momentComments", reply);
+          b.write(reply.stickerStorageId ? 5 : 1);
           const k = reply.momentId.toString();
           gone.set(k, (gone.get(k) ?? 0) + 1);
         }

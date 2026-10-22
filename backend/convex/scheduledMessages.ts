@@ -3,7 +3,7 @@ import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { guardOutgoing, permissionsFor, sendCore } from "./messages";
-import { deleteStored, claimUpload } from "./files";
+import { attachFile, claimUpload, releaseRowFiles } from "./files";
 import { Budget, isTombstoned, tuning } from "./deletionCore";
 
 // ── Tuning ──────────────────────────────────────────────────────────────────
@@ -182,6 +182,9 @@ function sendArgsFor(row: any) {
     // deployment restarts mid-flight — re-runs and finds its own message
     // through `messages.by_room_user_client` instead of posting a second one.
     clientId: row.clientId,
+    // The scheduled row still holds the file until the caller releases it, so
+    // the new message takes its own ref beside it.
+    fileMode: "share",
   };
 }
 
@@ -348,6 +351,13 @@ export const schedule = mutation({
         mediaSpoiler === true && mediaStorageId !== undefined ? true : undefined,
       clientId,
     });
+    // Held from the moment it is queued, so the orphan reaper never sees a
+    // waiting photo as unused.
+    await attachFile(ctx, mediaStorageId, {
+      table: "scheduledMessages",
+      id: id.toString(),
+      field: "mediaStorageId",
+    });
 
     const jobId = await ctx.scheduler.runAt(
       new Date(at),
@@ -408,6 +418,8 @@ async function releaseRow(ctx: any, id: any, expectSendAt: number) {
   // did. The sender's confirmation is the real bubble arriving in the
   // transcript — a "sent" tombstone here would be a second thing to dismiss.
   await ctx.db.delete(id);
+  // The message holds its own ref now; this row's goes.
+  await releaseRowFiles(ctx, "scheduledMessages", row);
 }
 
 export const release = internalMutation({
@@ -507,7 +519,7 @@ export const cancel = mutation({
     const row = await ownedRow(ctx, id, userId);
     await ctx.db.delete(id);
     await dropJob(ctx, row.jobId);
-    await deleteStored(ctx, row.mediaStorageId);
+    await releaseRowFiles(ctx, "scheduledMessages", row);
   },
 });
 
@@ -530,6 +542,7 @@ export const sendNow = mutation({
     const messageId = await sendCore(ctx, sendArgsFor(row));
     await ctx.db.delete(id);
     await dropJob(ctx, row.jobId);
+    await releaseRowFiles(ctx, "scheduledMessages", row);
     return messageId;
   },
 });
@@ -618,8 +631,9 @@ async function dropQueued(
       await ctx.db.delete(row._id);
       await dropJob(ctx, row.jobId);
       // Unsent, so this row is the photo's only pointer.
-      await deleteStored(ctx, row.mediaStorageId);
-      b.write(2);
+      await releaseRowFiles(ctx, "scheduledMessages", row);
+      // The delete and the job, plus a release that can free the file.
+      b.write(6);
     }
     if (rows.length < tuning.pageRows) return true;
   }
@@ -704,7 +718,7 @@ export async function purgeScheduledForRoomUser(
     await ctx.db.delete(row._id);
     await dropJob(ctx, row.jobId);
     // Unsent, so this row is the photo's only pointer.
-    await deleteStored(ctx, row.mediaStorageId);
+    await releaseRowFiles(ctx, "scheduledMessages", row);
   }
   return rows.length;
 }

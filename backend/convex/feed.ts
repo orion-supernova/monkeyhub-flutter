@@ -6,7 +6,7 @@ import type { Id } from "./_generated/dataModel";
 import { ACCOUNT_CHILD, assertChildPolicy } from "./childGuard";
 import { hasHit } from "./contentFilter";
 import { screenAndReport } from "./moderationCore";
-import { claimUpload } from "./files";
+import { attachFile, claimUpload } from "./files";
 import { MAX_GUESSES, SLOTS, answerFor, pegsForSlots, score } from "./puzzle";
 import { getLiveUser } from "./deletionCore";
 import { deleteMomentCore } from "./momentCleanup";
@@ -718,6 +718,14 @@ export const post = mutation({
         ? { authorAvatarStorageId: user.avatarStorageId }
         : {}),
     });
+    for (const [field, storageId] of [
+      ["mediaStorageId", mediaStorageId],
+      ["posterStorageId", posterStorageId],
+    ] as const) {
+      if (storageId) {
+        await attachFile(ctx, storageId, { table: "moments", id: momentId.toString(), field });
+      }
+    }
 
     // Tell their friends. Scheduled rather than awaited, exactly as
     // `messages.send` schedules its own push: the fan-out reads one row per

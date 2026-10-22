@@ -1,5 +1,5 @@
 import { deleteCapped, enqueueDeletion, tuning } from "./deletionCore";
-import { deleteStored } from "./files";
+import { releaseRowFiles } from "./files";
 
 /**
  * Deletes a moment and everything hanging off it, in one bounded transaction.
@@ -20,7 +20,7 @@ export async function deleteMomentCore(
   cap: number = tuning.inlineCap,
 ): Promise<void> {
   await ctx.db.delete(m._id);
-  await releaseMomentFiles(ctx, m);
+  await releaseRowFiles(ctx, "moments", m);
 
   let overflow = false;
   // Comment reactions before comments, so a half-done sweep never leaves a
@@ -29,7 +29,6 @@ export async function deleteMomentCore(
     ["momentReactions", "by_moment", "momentId"],
     ["momentViews", "by_moment", "momentId"],
     ["momentCommentReactions", "by_moment", "momentId"],
-    ["momentComments", "by_moment_created", "momentId"],
   ] as const) {
     const r = await deleteCapped(
       ctx,
@@ -40,41 +39,18 @@ export async function deleteMomentCore(
     );
     if (r.overflow) overflow = true;
   }
+  // Comments last, each releasing its sticker ref; `repairRefs` is the net for
+  // the rest of a job's range.
+  const comments = await ctx.db
+    .query("momentComments")
+    .withIndex("by_moment_created", (q: any) => q.eq("momentId", m._id))
+    .take(cap + 1);
+  for (const c of comments.slice(0, cap)) {
+    await ctx.db.delete(c._id);
+    await releaseRowFiles(ctx, "momentComments", c);
+  }
+  if (comments.length > cap) overflow = true;
   if (overflow) {
     await enqueueDeletion(ctx, { kind: "moment", targetId: m._id.toString() });
-  }
-}
-
-/**
- * Releases a deleted moment's picture and poster, each only when no other
- * moment still points at the same bytes.
- *
- * The two fields are different columns, and each blob is checked against BOTH
- * indexes: a file can be one moment's picture and another's poster (a poster
- * re-posted as a photo), so "anyone else using my picture" and "anyone else
- * using my poster" differ. The row is already deleted, so any hit is another
- * moment. Through `deleteStored`, never `ctx.storage.delete`, which throws on
- * an already-deleted blob.
- */
-async function releaseMomentFiles(ctx: any, m: any): Promise<void> {
-  const usedElsewhere = async (id: any) =>
-    (await ctx.db
-      .query("moments")
-      .withIndex("by_media", (q: any) => q.eq("mediaStorageId", id))
-      .first()) !== null ||
-    (await ctx.db
-      .query("moments")
-      .withIndex("by_poster", (q: any) => q.eq("posterStorageId", id))
-      .first()) !== null;
-
-  const media = m.mediaStorageId;
-  if (media && !(await usedElsewhere(media))) await deleteStored(ctx, media);
-  const poster = m.posterStorageId;
-  if (
-    poster &&
-    poster.toString() !== media?.toString() &&
-    !(await usedElsewhere(poster))
-  ) {
-    await deleteStored(ctx, poster);
   }
 }

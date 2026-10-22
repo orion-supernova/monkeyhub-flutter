@@ -37,6 +37,11 @@ async function seed(t: T) {
     await ctx.storage.delete(deadBlob);
     await ctx.db.patch(u1, { avatarStorageId: deadBlob });
     await ctx.db.patch(u2, { avatarStorageId: liveBlob });
+    // The live avatar holds its ref, as an attached file does.
+    await ctx.db.insert("uploads", { storageId: liveBlob, userId: u2, size: 4, createdAt: 1, tracked: true });
+    await ctx.db.insert("fileRefs", {
+      storageId: liveBlob, holderTable: "users", holderId: u2, field: "avatarStorageId", createdAt: 1,
+    });
 
     // blocks: 7 clean rows and 2 dangling (one per column), cascade rules.
     for (let i = 0; i < 7; i++) {
@@ -218,5 +223,105 @@ describe("integrity scan", () => {
     expect(valuesAt(doc, "r{}")).toEqual(["4", "5"]);
     expect(valuesAt(doc, "n")).toEqual([]);
     expect(valuesAt(doc, "missing.deep")).toEqual([]);
+  });
+});
+
+describe("file ref checks", () => {
+  /** Runs a scan and returns the violation rows by key. */
+  async function scan(t: T) {
+    await t.mutation(internal.integrity.start, { pageSize: 2 });
+    await drain(t);
+    const s = (await t.query(internal.integrity.latest, {}))!;
+    return { s, v: s.violations };
+  }
+
+  const claimed = (ctx: any, userId: any, extra: object = {}) =>
+    ctx.storage.store(new Blob(["x"])).then(async (storageId: any) => {
+      await ctx.db.insert("uploads", { storageId, userId, size: 1, createdAt: 1, tracked: true, ...extra });
+      return storageId;
+    });
+
+  test("missingRef counts a strong field with no ref, and skips what legitimately has none", async () => {
+    const t = convexTest(schema);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await t.run(async (ctx: any) => {
+      const u = await ctx.db.insert("users", { username: "u", passwordHash: "x", createdAt: 1 });
+      const room = await ctx.db.insert("rooms", {
+        name: "r", createdBy: u, createdAt: 1, isPrivate: false, memberCount: 0,
+      });
+      const pack = await ctx.db.insert("stickerPacks", {
+        slug: "p", title: "p", kind: "personal", ownerId: u, order: 0, createdAt: 1,
+      });
+      const sticker = (storageId: any, extra: object = {}) =>
+        ctx.db.insert("stickers", {
+          packId: pack, storageId, format: "image", emoji: "x", width: 1, height: 1, order: 0, createdAt: 1, ...extra,
+        });
+      const msg = (extra: object) =>
+        ctx.db.insert("messages", { roomId: room, userId: u, content: "", createdAt: 1, ...extra });
+
+      // Violation: a message photo nobody holds a ref for.
+      await msg({ type: "image", mediaStorageId: await claimed(ctx, u) });
+      // Fine: a photo with its ref.
+      const held = await claimed(ctx, u);
+      const m2 = await msg({ type: "image", mediaStorageId: held });
+      await ctx.db.insert("fileRefs", {
+        storageId: held, holderTable: "messages", holderId: m2, field: "mediaStorageId", createdAt: 1,
+      });
+      // Fine: official art (permanent) used by a sent pack sticker, and a deleted personal sticker.
+      const art = await claimed(ctx, undefined, { permanent: true });
+      await msg({ type: "sticker", stickerStorageId: art });
+      const packed = await claimed(ctx, u);
+      await msg({ type: "sticker", stickerStorageId: packed, mediaSource: "pack" });
+      await sticker(await claimed(ctx, u), { deletedAt: 5 });
+      // Violation: a live personal sticker with no ref.
+      await sticker(await claimed(ctx, u));
+      // Fine: an approved change request (the room holds the file now).
+      await ctx.db.insert("roomChangeRequests", {
+        roomId: room, userId: u, field: "avatar", storageId: await claimed(ctx, u), status: "approved", createdAt: 1,
+      });
+      // Not counted: the file is gone from storage (a dangling id, reported apart).
+      const gone = await claimed(ctx, u);
+      await ctx.storage.delete(gone);
+      await msg({ type: "image", mediaStorageId: gone });
+    });
+
+    const { s, v } = await scan(t);
+    expect(row(v, "messages.mediaStorageId#missingRef")).toMatchObject({
+      rule: "fileRef", checked: 2, dangling: 1,
+    });
+    expect(row(v, "stickers.storageId#missingRef")).toMatchObject({ checked: 1, dangling: 1 });
+    expect(row(v, "messages.stickerStorageId#missingRef")).toBeUndefined();
+    expect(row(v, "roomChangeRequests.storageId#missingRef")).toBeUndefined();
+    expect(s.fileRefViolations).toBe(2);
+  });
+
+  test("staleRef counts a ref whose holder is gone or whose field moved on", async () => {
+    const t = convexTest(schema);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await t.run(async (ctx: any) => {
+      const u = await ctx.db.insert("users", { username: "u", passwordHash: "x", createdAt: 1 });
+      const live = await claimed(ctx, u);
+      const other = await claimed(ctx, u);
+      await ctx.db.patch(u, { avatarStorageId: live });
+      const ref = (storageId: any, holderId: string, field = "avatarStorageId", holderTable = "users") =>
+        ctx.db.insert("fileRefs", { storageId, holderTable, holderId, field, createdAt: 1 });
+      await ref(live, u); // fine
+      await ref(other, u); // the avatar is a different file now
+      const ghost = await ctx.db.insert("users", { username: "g", passwordHash: "x", createdAt: 1 });
+      await ctx.db.delete(ghost);
+      await ref(other, ghost); // holder gone
+      await ref(other, "not-an-id", "mediaStorageId", "nonsense"); // unknown table
+    });
+    const { s, v } = await scan(t);
+    expect(row(v, "fileRefs#staleRef")).toMatchObject({ rule: "fileRef", checked: 4, dangling: 3 });
+    expect(s.fileRefViolations).toBe(3);
+  });
+
+  test("a clean file setup reports zero file violations", async () => {
+    const t = convexTest(schema);
+    await seed(t);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { s } = await scan(t);
+    expect(s.fileRefViolations).toBe(0);
   });
 });
