@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { mutation, query } from "./functions";
+import { SESSION_LIVE_CAP, evictExcessLive } from "./sessionCore";
 
 /**
  * The session table's own public surface.
@@ -149,5 +150,115 @@ export const revokeOrphaned = internalMutation({
       revoked++;
     }
     return { revoked, done: remaining === 0 };
+  },
+});
+
+/**
+ * Pre-flight for `SESSION_TRUSTS_ROW` (sessionCore.ts): live sessions whose
+ * account is missing, tombstoned (`deletingAt`) or suspended, plus users
+ * holding more than SESSION_LIVE_CAP live sessions (`overCap`, counted once per
+ * user). Once the flag flips, `requireSession` stops reading the user, so every
+ * such row would authenticate, and an over-cap account could not be closed in
+ * one bounded transaction. Flip only when all four counts are 0.
+ *
+ * Paged so it can see the whole table: pass the returned `nextCursor` back
+ * until `isDone`, and sum the counts. Read-only. Fixes: `revokeOrphaned`
+ * (missing), re-running the suspension or deletion (suspended, tombstoned),
+ * `trimOverCap` (overCap).
+ *
+ *   npx convex run sessions:auditLiveVsAccounts '{}'
+ *   npx convex run sessions:auditLiveVsAccounts '{"cursor":"<nextCursor>"}'
+ */
+export const auditLiveVsAccounts = internalQuery({
+  args: {
+    cursor: v.optional(v.union(v.string(), v.null())),
+    numItems: v.optional(v.number()),
+  },
+  returns: v.object({
+    scanned: v.number(),
+    missing: v.number(),
+    tombstoned: v.number(),
+    suspended: v.number(),
+    overCap: v.number(),
+    isDone: v.boolean(),
+    nextCursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, { cursor, numItems }) => {
+    const page = await ctx.db
+      .query("sessions")
+      .withIndex("by_live_seen", (q) => q.eq("revokedAt", undefined))
+      .paginate({ cursor: cursor ?? null, numItems: numItems ?? ORPHAN_PAGE });
+    let missing = 0;
+    let tombstoned = 0;
+    let suspended = 0;
+    let overCap = 0;
+    const inPage = new Set(page.page.map((r) => r._id));
+    const seen = new Set<string>();
+    for (const row of page.page) {
+      const user = await ctx.db.get(row.userId);
+      if (user === null) missing++;
+      else if (user.deletingAt !== undefined) tombstoned++;
+      else if (user.suspendedAt !== undefined) suspended++;
+      // A user is counted on the page holding their (CAP+1)th live session in
+      // `lastSeenAt` order (the same order in both indexes), so exactly once.
+      if (seen.has(row.userId)) continue;
+      seen.add(row.userId);
+      const live = await ctx.db
+        .query("sessions")
+        .withIndex("by_user_live_seen", (q) =>
+          q.eq("userId", row.userId).eq("revokedAt", undefined),
+        )
+        .take(SESSION_LIVE_CAP + 1);
+      if (live.length > SESSION_LIVE_CAP && inPage.has(live[SESSION_LIVE_CAP]._id)) {
+        overCap++;
+      }
+    }
+    return {
+      scanned: page.page.length,
+      missing,
+      tombstoned,
+      suspended,
+      overCap,
+      isDone: page.isDone,
+      nextCursor: page.isDone ? null : page.continueCursor,
+    };
+  },
+});
+
+/**
+ * Bring every account down to SESSION_LIVE_CAP live sessions, revoking the
+ * oldest with `"evicted"`. Paged like the audit (repeat with `nextCursor` until
+ * `isDone`); idempotent. Run until `auditLiveVsAccounts` reports overCap 0.
+ *
+ *   npx convex run sessions:trimOverCap '{}'
+ */
+export const trimOverCap = internalMutation({
+  args: {
+    cursor: v.optional(v.union(v.string(), v.null())),
+    numItems: v.optional(v.number()),
+  },
+  returns: v.object({
+    trimmed: v.number(),
+    isDone: v.boolean(),
+    nextCursor: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, { cursor, numItems }) => {
+    const page = await ctx.db
+      .query("sessions")
+      .withIndex("by_live_seen", (q) => q.eq("revokedAt", undefined))
+      .paginate({ cursor: cursor ?? null, numItems: numItems ?? ORPHAN_PAGE });
+    const now = Date.now();
+    const seen = new Set<string>();
+    let trimmed = 0;
+    for (const row of page.page) {
+      if (seen.has(row.userId)) continue;
+      seen.add(row.userId);
+      trimmed += await evictExcessLive(ctx, row.userId, SESSION_LIVE_CAP, now);
+    }
+    return {
+      trimmed,
+      isDone: page.isDone,
+      nextCursor: page.isDone ? null : page.continueCursor,
+    };
   },
 });

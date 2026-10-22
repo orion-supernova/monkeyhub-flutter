@@ -166,10 +166,21 @@ class _ChildCard extends StatelessWidget {
   /// Opens the code a grown-up reads into the child's phone to hand it back.
   final VoidCallback onRelease;
 
-  String _presence(BuildContext context) {
+  /// The summary carries its own status for a guardian's eyes; the store wins
+  /// once it has a value, and the summary stands in until then (and on a
+  /// server without presence).
+  PresenceView _view(PresenceView p) => p.live
+      ? PresenceView(
+          status: p.status,
+          lastSeen: p.lastSeen ?? summary.lastSeen,
+          live: true,
+        )
+      : PresenceView(status: summary.status, lastSeen: summary.lastSeen);
+
+  String _presence(BuildContext context, PresenceView p) {
     final l10n = AppLocalizations.of(context);
-    final status = summary.status;
-    final seen = summary.lastSeen;
+    final status = p.status;
+    final seen = p.lastSeen;
     if (status == 'online') return l10n.famOnlineNow;
     if (seen == null) return l10n.famNotPaired;
     final ago = DateTime.now().difference(seen);
@@ -184,8 +195,7 @@ class _ChildCard extends StatelessWidget {
     return l10n.familyScreenPresenceDaysAgo(ago.inDays);
   }
 
-  Color _dot(AppTheme theme) {
-    final status = summary.status;
+  Color _dot(AppTheme theme, String? status) {
     if (status == 'online') return theme.success;
     if (status == 'away') return const Color(0xFFE0A33C);
     return theme.inkMuted;
@@ -222,9 +232,15 @@ class _ChildCard extends StatelessWidget {
                                 .copyWith(fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 3),
-                          StatusDotLine(
-                            color: _dot(theme),
-                            label: _presence(context),
+                          PresenceBuilder(
+                            user: summary.user,
+                            builder: (context, p) {
+                              final live = _view(p);
+                              return StatusDotLine(
+                                color: _dot(theme, live.status),
+                                label: _presence(context, live),
+                              );
+                            },
                           ),
                         ],
                       ),

@@ -2,10 +2,8 @@ import { internalMutation } from "./_generated/server";
 import { mutation, publicQuery, query } from "./functions";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import {
-  PRESENCE_OFFLINE_MS,
-  PRESENCE_WRITE_INTERVAL_MS,
-} from "./presence";
+import { PRESENCE_WRITE_INTERVAL_MS } from "./presence";
+import { COMPAT_OFFLINE_MS } from "./presenceCore";
 import { attachFile, claimUpload } from "./files";
 import { enqueueDeletion, getLiveUser, isTombstoned } from "./deletionCore";
 import {
@@ -40,6 +38,12 @@ import { isRetiredHandle } from "./retiredHandles";
 import { consume } from "./rateLimit";
 import { continueSweep, sweepArgs } from "./sweep";
 import { touchSessions } from "./sessionCore";
+import {
+  noteBeat,
+  setStatus as setPresenceStatus,
+  syncLevels,
+  type PresenceStatus,
+} from "./presenceCore";
 import { restampSeenPage } from "./receipts";
 
 /**
@@ -234,6 +238,12 @@ export const updateStatus = mutation({
       status,
       lastSeen: now,
     });
+    // Old builds land in `presence` too (the users patch above is their
+    // mirror, so the core must not write it again).
+    await setPresenceStatus(ctx, userId, status as PresenceStatus, {
+      now,
+      mirror: false,
+    });
   },
 });
 
@@ -252,6 +262,10 @@ export const heartbeat = mutation({
     // session, an empty index probe otherwise. Before the early returns below,
     // which are about presence and say nothing about the session being used.
     await touchSessions(ctx, userId);
+    // Old builds feed `presenceBeats` as well: no resurrect (a late beat from a
+    // signed-out client must not bring anyone back) and no mirror (the users
+    // throttle below is this path's mirror).
+    await noteBeat(ctx, userId, { now: Date.now(), mirror: false });
     const user = await ctx.db.get(userId);
     if (!user || user.status === "offline") return;
     // Usually a pure read. Clients beat every 30s because the round-trip is
@@ -280,7 +294,7 @@ export const heartbeat = mutation({
 export const sweepStalePresence = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const cutoff = Date.now() - PRESENCE_OFFLINE_MS;
+    const cutoff = Date.now() - COMPAT_OFFLINE_MS;
     // Bounded on purpose. This is a backstop, not a deadline — readers already
     // compute the right answer on the fly via effectiveStatus, so a backlog
     // costs nothing but a few extra ticks. An unbounded .collect() over a
@@ -381,6 +395,9 @@ export const updateVisibility = mutation({
         : {}),
     };
     await ctx.db.patch(userId, { visibility: next });
+    if (status !== undefined || lastSeen !== undefined) {
+      await syncLevels(ctx, userId, next as any);
+    }
 
     // Keep `roomMembers.seenVisibility` — the denormalized copy
     // `messages:getReadState` / `getReceiptTimes` read instead of the full

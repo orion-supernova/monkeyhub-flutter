@@ -35,6 +35,7 @@
 /// nothing resolved it.
 library;
 
+import '../data/presence_store.dart';
 import 'chat_user.dart';
 import '../services/link_preview_service.dart';
 
@@ -255,7 +256,9 @@ List<ChatUser> rankMembers(
   Iterable<ChatUser> members,
   String query, {
   String? excludeUserId,
+  PresenceStore? presence,
 }) {
+  final store = presence ?? PresenceStore.instance;
   final needle = query.trim().toLowerCase();
   final scored = <_Scored>[];
 
@@ -271,7 +274,7 @@ List<ChatUser> rankMembers(
     if (a.score != b.score) return a.score.compareTo(b.score);
     final owner = _ownerRank(a.user).compareTo(_ownerRank(b.user));
     if (owner != 0) return owner;
-    final online = _presenceRank(a.user).compareTo(_presenceRank(b.user));
+    final online = _presenceRank(a.user, store).compareTo(_presenceRank(b.user, store));
     if (online != 0) return online;
     return a.user.displayName.toLowerCase().compareTo(
           b.user.displayName.toLowerCase(),
@@ -300,8 +303,12 @@ int? _score(ChatUser u, String needle) {
 
 int _ownerRank(ChatUser u) => u.role == 'owner' ? 0 : 1;
 
-int _presenceRank(ChatUser u) {
-  switch (u.status) {
+/// Ranks by what the presence store holds right now, a snapshot read: the
+/// picker re-sorts as the query changes, and leasing is the avatars' job.
+/// Falls back to the status the user arrived with (old server, or not loaded).
+int _presenceRank(ChatUser u, PresenceStore store) {
+  final live = store.legacy ? null : store.peek(u.id);
+  switch (live != null ? live.status : u.status) {
     case 'online':
       return 0;
     case 'away':

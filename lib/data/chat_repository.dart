@@ -39,6 +39,7 @@ import '../services/location_service.dart';
 import 'cache_store.dart';
 import 'ordered_send_queue.dart';
 import 'pending_reconcile.dart';
+import 'presence_store.dart';
 import 'room_filter.dart';
 import 'settings_store.dart';
 import '../transcripts/language_hint.dart';
@@ -169,6 +170,9 @@ class ChatRepository extends ChangeNotifier {
   }
 
   List<ChatRoom> get rooms => List.unmodifiable(_rooms);
+
+  /// The ids of the loaded rooms, without the copy [rooms] makes.
+  Iterable<String> get roomIds => _rooms.map((r) => r.id);
 
   /// Whether anything has ever answered the question "what rooms does this
   /// user have?" — cache, seed fetch or subscription, whichever got there
@@ -616,6 +620,10 @@ class ChatRepository extends ChangeNotifier {
   /// it, so a roster whose join instants moved is a roster that must re-paint
   /// even when every visible field is identical.
   ///
+  /// `status` and `lastSeen` are deliberately NOT in here: presence has its own
+  /// store (`PresenceStore`) that the dots and status lines lease, so a friend
+  /// coming online must not rebuild room member state.
+  ///
   /// Order-insensitive, because no reader of [membersFor] renders in server
   /// order — the colour picker sorts by name, Room Info sorts its own list, the
   /// @-picker ranks, and the palette sorts internally. A reorder from the
@@ -623,8 +631,7 @@ class ChatRepository extends ChangeNotifier {
   static String _roomMemberSignature(List<ChatUser> users) {
     final parts = [
       for (final u in users)
-        '${u.id}|${u.status ?? ''}|${u.lastSeen?.millisecondsSinceEpoch ?? 0}'
-            '|${u.name}|${u.username}|${u.avatarStorageId ?? ''}|${u.role ?? ''}'
+        '${u.id}|${u.name}|${u.username}|${u.avatarStorageId ?? ''}|${u.role ?? ''}'
             '|${u.joinedAt?.millisecondsSinceEpoch ?? 0}',
     ]..sort();
     return parts.join(';');
@@ -1323,6 +1330,8 @@ class ChatRepository extends ChangeNotifier {
   }
 
   Future<void> _detach() async {
+    // Presence is the departing account's friends; forget it all.
+    PresenceStore.instance.clear();
     SettingsStore.instance.removeListener(_onSettingsChanged);
     _roomsSub?.cancel();
     _friendsSub?.cancel();

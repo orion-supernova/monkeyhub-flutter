@@ -1408,7 +1408,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   /// Where you stand with this person, and whether they're around.
-  Widget _relationLine(AppTheme theme) {
+  Widget _relationLine(AppTheme theme) => PresenceBuilder(
+    user: _u,
+    builder: (context, p) => _relationRow(theme, p.status),
+  );
+
+  Widget _relationRow(AppTheme theme, String? status) {
     final l10n = AppLocalizations.of(context);
     final relation = switch (_u.friendshipStatus) {
       FriendshipStatus.friend => l10n.acctStatusFriends,
@@ -1416,7 +1421,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       FriendshipStatus.incomingPending => l10n.acctStatusWantsToConnect,
       FriendshipStatus.none => l10n.acctStatusNotConnected,
     };
-    final presence = switch (_u.status) {
+    final presence = switch (status) {
       'online' => (theme.success, l10n.acctPresenceOnline),
       'away' => (const Color(0xFFE0A33C), l10n.acctPresenceAway),
       'offline' => (theme.inkMuted, l10n.acctPresenceOffline),

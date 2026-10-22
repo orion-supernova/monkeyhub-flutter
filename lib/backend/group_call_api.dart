@@ -183,14 +183,21 @@ class GroupCallApi {
   /// Live calls in every room [userId] is in — the chat list's live rows.
   /// Each row: `roomId`, `groupCallId`, `type`, `startedAt`,
   /// `joinedUserIds`.
+  ///
+  /// [roomIds] is the rooms the chat list has loaded. With it the query reads
+  /// those rooms' call rows and never the membership list, so a roster change
+  /// elsewhere does not re-run it (the server still checks membership of each
+  /// room that has a call). Null asks for every room, which is the only form
+  /// an older server accepts.
   Future<Subscription> subscribeLiveInMyRooms({
     required String userId,
     required void Function(List<Map<String, dynamic>> calls) onCalls,
     void Function(Object error)? onError,
+    List<String>? roomIds,
   }) {
     return _cv.subscribe(
       'groupCalls:liveInMyRooms',
-      {'userId': userId},
+      {'userId': userId, 'roomIds': ?roomIds},
       onData: (raw) {
         onCalls([
           for (final r in (raw as List?) ?? const [])

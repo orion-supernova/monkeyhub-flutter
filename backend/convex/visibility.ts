@@ -1,4 +1,5 @@
 import { effectiveStatus } from "./presence";
+import { COMPAT_OFFLINE_MS } from "./presenceCore";
 import { childrenOf } from "./childGuard";
 // Imports nothing itself, so this cannot cycle — see the note at the top of
 // `systemAccount.ts` on why that module exists.
@@ -56,7 +57,7 @@ export type VisField = "avatar" | "status" | "lastSeen" | "seen";
  * literal at a call site is how the push paths ended up disagreeing with this
  * table about whose avatar was public.
  */
-const DEFAULT_LEVEL: Record<VisField, string> = {
+export const DEFAULT_LEVEL: Record<VisField, string> = {
   avatar: "public",
   status: "friends",
   lastSeen: "friends",
@@ -76,7 +77,7 @@ export function levelOf(subject: any, field: VisField): string {
  * around" — and no more. Read receipts are deliberately absent: nobody was
  * told a parent would see those, so the bypass does not quietly reach them.
  */
-const GUARDIAN_BYPASS: ReadonlySet<VisField> = new Set<VisField>([
+export const GUARDIAN_BYPASS: ReadonlySet<VisField> = new Set<VisField>([
   "avatar",
   "status",
   "lastSeen",
@@ -181,7 +182,14 @@ export async function lensFor(
         // Staleness-corrected on the way out, so no caller has to remember to
         // do it and none can forget. See presence.ts.
         status: lens.canSee(subject, "status")
-          ? effectiveStatus(subject?.status, subject?.lastSeen, now)
+          ? effectiveStatus(
+              subject?.status,
+              subject?.lastSeen,
+              now,
+              // users-sourced path: new builds refresh users.lastSeen only
+              // every COMPAT_MIRROR_MS, so the window must cover that.
+              COMPAT_OFFLINE_MS,
+            )
           : undefined,
         lastSeen: lens.canSee(subject, "lastSeen")
           ? subject?.lastSeen

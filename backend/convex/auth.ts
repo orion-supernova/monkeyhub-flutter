@@ -8,6 +8,7 @@ import {
   revokeSessionsForDevice,
 } from "./sessionCore";
 import { v } from "convex/values";
+import { markOffline, markOnline } from "./presenceCore";
 import { internal } from "./_generated/api";
 import {
   ACCOUNT_CHILD,
@@ -170,6 +171,7 @@ export const signup = publicMutation({
       lastSeen: Date.now(),
       ...terms,
     });
+    await markOnline(ctx, userId, { now: Date.now(), mirror: false });
     return { userId, username, name, token: await mintSession(ctx, userId, deviceId, deviceSecret) };
   },
 });
@@ -225,6 +227,7 @@ export const login = publicMutation({
     await upgradeIfLegacy(ctx, user, passwordHash);
 
     await ctx.db.patch(user._id, { status: "online", lastSeen: Date.now() });
+    await markOnline(ctx, user._id, { now: Date.now(), mirror: false });
     return {
       userId: user._id,
       username: user.username,
@@ -255,6 +258,7 @@ export const logout = mutation({
       .first();
     if (device) await ctx.db.delete(device._id);
     await ctx.db.patch(userId, { status: "offline", lastSeen: Date.now() });
+    await markOffline(ctx, userId, { now: Date.now(), mirror: false });
   },
 });
 
@@ -327,6 +331,7 @@ export const resetPasswordWithRecoveryKey = publicMutation({
       status: "online",
       lastSeen: Date.now(),
     });
+    await markOnline(ctx, user._id, { now: Date.now(), mirror: false });
     // A reset is what someone does when they think the password is known to
     // somebody else, so every other signed-in device goes with it.
     await revokeOtherSessions(ctx, user._id, deviceId);

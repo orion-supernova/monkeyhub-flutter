@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { markOffline } from "./presenceCore";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { mutation, query } from "./functions";
 import {
@@ -602,6 +603,7 @@ export const clearDeviceToken = mutation({
     // holding, and that phone is not offline.
     if (!(await hasAnyLiveSession(ctx, userId))) {
       await ctx.db.patch(userId, { status: "offline", lastSeen: Date.now() });
+      await markOffline(ctx, userId, { now: Date.now(), mirror: false });
     }
   },
 });

@@ -21,7 +21,7 @@ Source documents (all in `docs/`):
 | 2 batched deletion engine | Done in code | `c7d48262`, `bed88907` |
 | 3 file references | Done in code; rollout runbook in the plan's Phase 3 status | see `git log` ("phase 3") |
 | 4 cleanups keep up | Done in code: A crons + sessions, B retention, C receipts table, D point reads + search index, E room counts, G moderator removal of moments/comments | see `git log` ("phase 4") |
-| 5 presence | Designed in `data-integrity-phase5-6-design.md`; see `git log` for progress | |
+| 5 presence | Done in code (backend + app); runbook in the Phase 5 status of `data-integrity-phase5-6-design.md` | see `git log` ("phase 5") |
 | 6 profiles | Designed in `data-integrity-phase5-6-design.md`; after Phase 5 | |
 
 **Nothing is deployed.** Everything is committed on `dev` only, not pushed.
@@ -303,6 +303,13 @@ is already being built).
 - `matchPresence` isn't removed on a plain room leave (only on account
   deletion); a creator who left before deleting leaves a dead
   `rooms.createdBy` (rule `history`, readers tolerate it).
+- Four Flutter tests already fail at `883a7e17` and before, unrelated to
+  this work (`no_stray_underlines_test`, two `room_mute_test` chat-row cases
+  looking for `MutedBadge`, `social_username_screen_test` "success dismisses
+  the route"); likely the in-progress design work (the user's StatusChip
+  stash). Verified on a clean worktree of HEAD on 2026-10-23.
+- Phase 5F: on a legacy server (no `presenceApi`), roster `ChatUser.status`
+  is no longer refreshed by presence changes; presence dots read the store.
 - Phase 4A: the heartbeat refreshes all of a user's live sessions (the
   wrapper strips the token, so it can't tell which one called); a forgotten
   phone lives as long as the account's latest activity anywhere. Fix by

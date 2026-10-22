@@ -16,6 +16,7 @@ import 'backend/connection_health.dart';
 import 'backend/convex_client.dart';
 import 'backend/feed_api.dart';
 import 'backend/group_call_api.dart';
+import 'backend/presence_api.dart';
 import 'backend/server_directory.dart';
 import 'backend/server_endpoint.dart';
 import 'backend/server_store.dart';
@@ -261,6 +262,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   // user's saved theme — no Midnight flash on hot restart.
   final ThemeController _themeController = ThemeController(_initialTheme());
   final ConvexBackend _cv = ConvexBackend.instance;
+  late final PresenceApi _presenceApi = PresenceApi(_cv);
+
+  /// True once a presence write was answered "function not found": an older
+  /// server, so the legacy `users` calls are used straight away instead of
+  /// trying (and failing) first on every beat. Reset with the session.
+  bool _presenceApiMissing = false;
   Timer? _storagePolicy;
   late final ChatApi _api = ChatApi(_cv);
   late final FeedApi _feedApi = FeedApi(_cv);
@@ -379,7 +386,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     _lastSentStatus = status;
     _ackedStatus = null;
     try {
-      await _api.updateStatus(userId: userId, status: status);
+      await _writeStatus(userId, status);
       if (_lastSentStatus == status) _ackedStatus = status;
     } catch (_) {
       // Unknown server state now, so don't let the dedupe guard in
@@ -387,6 +394,43 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       _lastSentStatus = null;
       rethrow;
     }
+  }
+
+  void _syncLiveCallRooms() => LiveCallsStore.instance.syncRooms(_repo.roomIds);
+
+  /// `presenceApi:setStatus` first; the old `users:updateStatus` only when the
+  /// server has no such function.
+  Future<void> _writeStatus(String userId, String status) async {
+    if (!_presenceApiMissing) {
+      try {
+        await _presenceApi.setStatus(status: status);
+        return;
+      } catch (e) {
+        if (!PresenceApi.isMissing(e)) rethrow;
+        _presenceApiMissing = true;
+      }
+    }
+    await _api.updateStatus(userId: userId, status: status);
+  }
+
+  /// `presenceApi:beat` first, carrying what the app is doing right now; the
+  /// old `users:heartbeat` only when the server has no such function.
+  Future<void> _writeBeat(String userId) async {
+    if (!_presenceApiMissing) {
+      final lifecycle = WidgetsBinding.instance.lifecycleState;
+      // Inactive (and web's hidden) map to null: keep whatever was last said.
+      final status =
+          (lifecycle == null ? null : presenceStatusFor(lifecycle)) ??
+          (_lastSentStatus == 'away' ? 'away' : 'online');
+      try {
+        await _presenceApi.beat(status: status);
+        return;
+      } catch (e) {
+        if (!PresenceApi.isMissing(e)) rethrow;
+        _presenceApiMissing = true;
+      }
+    }
+    await _api.heartbeat(userId: userId);
   }
 
   // Alert sounds and the web Notification permission both require a user
@@ -504,8 +548,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   /// still reporting `connected` — the one failure mode with no other detector
   /// while the app stays foreground (no stream event, no resume event).
   void _beat(String userId) {
-    _api
-        .heartbeat(userId: userId)
+    _writeBeat(userId)
         // Comfortably above ConnectionHealth.probeTimeout. A canary stricter
         // than the probe it triggers just manufactures outages: it would call
         // a merely-slow server dead, start a healing episode, and hand it to a
@@ -519,6 +562,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   void _stopPresenceHeartbeat() {
     _presenceHeartbeat?.cancel();
     _presenceHeartbeat = null;
+    _presenceApiMissing = false;
     // Next session starts with no assumption about the stored status.
     _lastSentStatus = null;
     _ackedStatus = null;
@@ -1752,6 +1796,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         unawaited(MatchesStore.instance.attach(s.userId));
         // The chat list's "call going on here" rows.
         unawaited(LiveCallsStore.instance.attach(_groupCallApi, s.userId));
+        // Which rooms to look in: the chat list's, re-announced only when the
+        // set changes.
+        _repo.removeListener(_syncLiveCallRooms);
+        _repo.addListener(_syncLiveCallRooms);
+        _syncLiveCallRooms();
         ChallengesStore.instance.repo = _repo;
         unawaited(FeedStore.instance.attach(_feedApi, s.userId));
         // Sticker packs, recents/favourites and the KLIPY config, ready before
@@ -1870,6 +1919,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         RecordsStore.instance.clear();
         // Chat games name people too.
         MatchesStore.instance.detach();
+        _repo.removeListener(_syncLiveCallRooms);
         LiveCallsStore.instance.detach();
         ChallengesStore.instance.clear();
         // And for the share-sheet suggestions, which name people and live
@@ -1933,6 +1983,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     _storagePolicy?.cancel();
     ServerDirectory.instance.unwatch();
     _stopPresenceHeartbeat();
+    _repo.removeListener(_syncLiveCallRooms);
     _resumeSyncTimer?.cancel();
     _health.dispose();
     WidgetsBinding.instance.removeObserver(this);

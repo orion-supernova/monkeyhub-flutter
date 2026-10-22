@@ -8214,9 +8214,24 @@ Widget? roomHeaderStatus(
   } else if (room.isSavedMessages) {
     return null;
   } else if (dmUser != null) {
-    if (dmUser.status != 'online') return null;
-    text = l10n.roomHeaderStatusOnline;
-    color = theme.success;
+    // Presence arrives from the store, so this line holds its own lease. An
+    // empty box (zero height) stands in for "nothing true to say".
+    return PresenceBuilder(
+      user: dmUser,
+      builder: (context, p) {
+        if (p.status != 'online') return const SizedBox.shrink();
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          child: Text(
+            l10n.roomHeaderStatusOnline,
+            key: ValueKey(l10n.roomHeaderStatusOnline),
+            style: base.copyWith(color: theme.success),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        );
+      },
+    );
   } else if (room.isGroupChat) {
     text = l10n.roomHeaderStatusMembers(room.memberCount);
   } else {

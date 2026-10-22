@@ -229,7 +229,9 @@ describe("integrity scan", () => {
 describe("file ref checks", () => {
   /** Runs a scan and returns the violation rows by key. */
   async function scan(t: T) {
-    await t.mutation(internal.integrity.start, { pageSize: 2 });
+    // One step per table even when empty, so the chain grows with the schema;
+    // a roomier page keeps it under convex-test's iteration cap.
+    await t.mutation(internal.integrity.start, { pageSize: 10 });
     await drain(t);
     const s = (await t.query(internal.integrity.latest, {}))!;
     return { s, v: s.violations };

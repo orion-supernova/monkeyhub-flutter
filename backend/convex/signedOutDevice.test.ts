@@ -333,3 +333,29 @@ describe("signing out takes the push row with it", () => {
     expect((user as { status?: string }).status).not.toBe("offline");
   });
 });
+
+describe("signing out marks the account offline in presence", () => {
+  test("auth.logout and the last-device removal", async () => {
+    const t = convexTest(schema);
+    const me = await signUp(t, "sidika", PHONE);
+    const presence = () =>
+      t.run(async (ctx) => ({
+        row: await ctx.db
+          .query("presence")
+          .withIndex("by_user", (q) => q.eq("userId", me.userId as any))
+          .first(),
+        beat: await ctx.db
+          .query("presenceBeats")
+          .withIndex("by_user", (q) => q.eq("userId", me.userId as any))
+          .first(),
+      }));
+    expect((await presence()).row?.status).toBe("online");
+
+    await t.mutation(api.auth.logout, { sessionToken: me.token, deviceId: PHONE });
+    const after = await presence();
+    expect(after.row?.status).toBe("offline");
+    expect(after.row?.lastSeen).toBeGreaterThan(0);
+    // The beat is retired so the sweep does not look at it again.
+    expect(after.beat?.live).toBe(false);
+  });
+});

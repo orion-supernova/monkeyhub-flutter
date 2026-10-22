@@ -83,6 +83,54 @@ export async function deviceSecretHashOf(
 }
 
 /**
+ * Most live sessions one account may hold. Must stay within the deletion
+ * first transaction's revoke window (`FIRST_TX_SESSIONS`), so one bounded
+ * transaction closes every live session of a deleted account.
+ */
+export const SESSION_LIVE_CAP = 50;
+
+/**
+ * Stage B of the presence rollout: when true, [requireSession] trusts a live
+ * session row and skips the `users.get`. Safe only once every way an account
+ * becomes unusable (suspension, deletion) revokes its sessions with a reason,
+ * and `sessions.auditLiveVsAccounts` reports 0. Flip this constant in code.
+ *
+ * `sessionFlags` is the mutable view of it, read at call time, so a test can
+ * force the trusting path (`sessionFlags.trustsRow = true`) without a rebuild.
+ * Production code never writes it.
+ */
+export const SESSION_TRUSTS_ROW = false;
+export const sessionFlags = { trustsRow: SESSION_TRUSTS_ROW };
+
+/** How many live rows one eviction reads; beyond it a later mint finishes. */
+const EVICT_READ_MAX = 500;
+
+/**
+ * Revoke a user's oldest live sessions (by `lastSeenAt`, through the live-only
+ * index) until at most [keep] remain, with `revokedReason: "evicted"`. Reads
+ * up to [EVICT_READ_MAX] rows, so one call fully trims any account up to that
+ * many live sessions. Returns how many were revoked.
+ */
+export async function evictExcessLive(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  keep: number,
+  now: number,
+): Promise<number> {
+  const rows = await ctx.db
+    .query("sessions")
+    .withIndex("by_user_live_seen", (q) =>
+      q.eq("userId", userId).eq("revokedAt", undefined),
+    )
+    .take(EVICT_READ_MAX);
+  const excess = rows.length - keep;
+  for (let i = 0; i < excess; i++) {
+    await ctx.db.patch(rows[i]._id, { revokedAt: now, revokedReason: "evicted" });
+  }
+  return Math.max(excess, 0);
+}
+
+/**
  * Mint a session for a user on a device, returning the plaintext token.
  *
  * Call this from every entry point that establishes identity: password login,
@@ -150,6 +198,8 @@ export async function mintSession(
       }
     }
   }
+  // The live cap: after this insert the account holds at most CAP live rows.
+  await evictExcessLive(ctx, userId, SESSION_LIVE_CAP - 1, now);
   const token = randomHex(32);
   await ctx.db.insert("sessions", {
     userId,
@@ -296,16 +346,34 @@ export async function requireSession(
   // revoked test for exactly that reason — which costs a revoked token one
   // extra `get`, on a path that ends in a sign-out anyway.
   if (row.revokedAt !== undefined) {
+    // Reasons decide without a read. Rows revoked before reasons existed (and
+    // plain sign-outs, which never carry one) fall through to the owner lookup.
+    if (row.revokedReason === "deleted") throw new Error(ERR_SESSION_REVOKED);
+    if (row.revokedReason === "suspended") {
+      // Cold path (the session is already dead), so one owner read is fine and
+      // keeps two cases honest: a tombstoned owner is plain REVOKED, and a
+      // since-unbanned owner's old token is REVOKED, not a stale ban screen.
+      const owner = await ctx.db.get(row.userId);
+      if (owner === null || owner.deletingAt !== undefined) {
+        throw new Error(ERR_SESSION_REVOKED);
+      }
+      if (owner.suspendedAt === undefined) throw new Error(ERR_SESSION_REVOKED);
+      // The one exception, for `auth.deleteAccount` alone: the session the BAN
+      // revoked still proves who is asking. Only the CURRENT ban's: a session
+      // from an earlier ban (unbanned, then banned again) predates it and stays
+      // dead, so the time comparison stays alongside the reason.
+      if (opts?.allowSuspended && row.revokedAt >= owner.suspendedAt) {
+        return row.userId;
+      }
+      throw new Error(ERR_ACCOUNT_SUSPENDED);
+    }
     const owner = await ctx.db.get(row.userId);
     // Deleting beats suspended: a suspended user who deleted themselves gets the
     // plain sign-out, and a second `deleteAccount` call ends here (not allowed
     // through `allowSuspended`). `deletingAt` is checked inline, see `mintSession`.
     if (owner?.deletingAt !== undefined) throw new Error(ERR_SESSION_REVOKED);
     if (owner?.suspendedAt !== undefined && owner !== null) {
-      // The one exception, for `auth.deleteAccount` alone: the session the BAN
-      // revoked still proves who is asking. Only that one — a token revoked
-      // before the ban (signed out, "sign out everywhere") stays dead, so an
-      // old credential cannot be used to delete somebody's account.
+      // Legacy rows: compare times. Only a session the BAN revoked passes.
       if (opts?.allowSuspended && row.revokedAt >= owner.suspendedAt) {
         return row.userId;
       }
@@ -332,6 +400,9 @@ export async function requireSession(
   // Cost: one document get by id on every authenticated call, in the same
   // transaction as the index read above. Bought deliberately — the alternative
   // is a session layer that cannot tell a live account from a deleted one.
+  // Stage B: every way an account stops being usable revokes its sessions with
+  // a reason, so a live row is itself the proof. Idle expiry above still runs.
+  if (sessionFlags.trustsRow) return row.userId;
   const user = await ctx.db.get(row.userId);
   if (!user) throw new Error(ERR_SESSION_REVOKED);
   // Free: a tombstoned account (deletion in flight) is signed out, even for

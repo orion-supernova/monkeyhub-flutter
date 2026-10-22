@@ -99,6 +99,16 @@ crons.interval(
   {},
 );
 
+// The same backstop for the presence tables: beats that went quiet are retired
+// and their presence rows go offline with lastSeen = the last beat. See
+// presenceApi.sweepStale.
+crons.interval(
+  "presenceApi.sweepStale",
+  { minutes: 1 },
+  internal.presenceApi.sweepStale,
+  {},
+);
+
 // Files with no refs for 24 hours: an upload claimed and never attached.
 // See files.reapUnreferenced.
 crons.interval(

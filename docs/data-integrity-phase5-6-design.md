@@ -1,5 +1,27 @@
 # Phases 5 and 6 design: presence and profiles (2026-10-23)
 
+**Phase 5 status (2026-10-23): Done in code, not deployed** (backend 5A to
+5D, app 5E and 5F). One review; fixes applied: the compat mirror restores
+`users.status` and the users-sourced window is 420 s (old builds no longer see
+new-build users flicker offline); tombstoned and suspended users can't write
+presence; a beat within 60 s of an explicit offline doesn't resurrect;
+suspension continues past 100 sessions; one sign-in brings any account to the
+50-session cap; the audit counts `overCap` and `sessions:trimOverCap` fixes
+it; an earlier ban's sessions can't pass `allowSuspended`. W0 to W5 below are
+operator steps after the deploy.
+
+**Runbook for the `SESSION_TRUSTS_ROW` flip (W1):** run
+`npx convex run sessions:auditLiveVsAccounts '{}'` (repeat with
+`{"cursor":"<nextCursor>"}` until `isDone`, sum the counts). Fix: `missing` ->
+`sessions:revokeOrphaned`; `suspended`/`tombstoned` -> re-run the suspension
+or deletion; `overCap` -> `sessions:trimOverCap '{}'` (paged). Re-audit; flip
+the constant in `sessionCore.ts` only when missing, tombstoned, suspended and
+overCap are all 0. Then `npx convex run presenceMigrations:backfillPresence '{}'`
+and check `presenceMigrations:countMissingPresence` sums to 0.
+W4 strip: set `PRESENCE_COMPAT_MIRROR=off` first, then
+`presenceMigrations:stripUsersPresence '{}'`, check
+`countUsersWithPresenceFields` sums to 0.
+
 Drafted by a planning agent against the code (backend and `lib/`), reviewed by
 the orchestrator. **Decisions** at the end are binding. Supersedes the sketches
 in `data-integrity-handoff.md` sections 5 and 6.

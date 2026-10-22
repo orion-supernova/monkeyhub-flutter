@@ -1,4 +1,5 @@
 import { internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { mutation } from "./functions";
 import { v } from "convex/values";
 import { removeMessageAndFanout } from "./messages";
@@ -13,6 +14,39 @@ import { postOutcome } from "./moderationCore";
 import { deleteMomentCore } from "./momentCleanup";
 import { deleteCommentCore } from "./momentComments";
 import { REPORT_RETENTION_MS } from "./users";
+import { markOffline } from "./presenceCore";
+import { SESSION_LIVE_CAP } from "./sessionCore";
+
+/** Sessions revoked per transaction; a full page schedules the continuation. */
+const SUSPEND_SESSIONS_MAX = SESSION_LIVE_CAP * 2;
+
+/**
+ * Keep revoking a suspended account's live sessions, a page at a time, for
+ * legacy accounts that hold more than one page. Stops when none are live, or
+ * when the ban was lifted meanwhile.
+ */
+export const revokeSuspendedSessions = internalMutation({
+  args: { userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user || user.suspendedAt === undefined) return null;
+    const now = Date.now();
+    const rows = await ctx.db
+      .query("sessions")
+      .withIndex("by_user_live_seen", (q) =>
+        q.eq("userId", userId).eq("revokedAt", undefined),
+      )
+      .take(SUSPEND_SESSIONS_MAX);
+    for (const s of rows) {
+      await ctx.db.patch(s._id, { revokedAt: now, revokedReason: "suspended" });
+    }
+    if (rows.length === SUSPEND_SESSIONS_MAX) {
+      await ctx.scheduler.runAfter(0, internal.moderation.revokeSuspendedSessions, { userId });
+    }
+    return null;
+  },
+});
 
 /**
  * What a moderator can do from a report card in the moderation room.
@@ -75,11 +109,20 @@ export async function suspendAccount(ctx: any, targetId: any, byId: any) {
   });
   const sessions = await ctx.db
     .query("sessions")
-    .withIndex("by_user", (q: any) => q.eq("userId", targetId))
-    .collect();
+    .withIndex("by_user_live_seen", (q: any) =>
+      q.eq("userId", targetId).eq("revokedAt", undefined),
+    )
+    .take(SUSPEND_SESSIONS_MAX);
   for (const s of sessions) {
-    if (s.revokedAt === undefined) await ctx.db.patch(s._id, { revokedAt: now });
+    await ctx.db.patch(s._id, { revokedAt: now, revokedReason: "suspended" });
   }
+  if (sessions.length === SUSPEND_SESSIONS_MAX) {
+    await ctx.scheduler.runAfter(0, internal.moderation.revokeSuspendedSessions, {
+      userId: targetId,
+    });
+  }
+  // `users.status` was patched above, so don't mirror it again.
+  await markOffline(ctx, targetId, { now, mirror: false });
   const memberships = await ctx.db
     .query("roomMembers")
     .withIndex("by_user", (q: any) => q.eq("userId", targetId))

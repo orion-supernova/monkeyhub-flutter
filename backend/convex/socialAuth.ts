@@ -27,6 +27,7 @@ import { internalAction, internalMutation, internalQuery } from "./_generated/se
 import { action, mutation, publicAction, query } from "./functions";
 import { assertIdentityNotBanned, mintSession } from "./sessionCore";
 import { v, type Infer } from "convex/values";
+import { markOnline } from "./presenceCore";
 import { internal } from "./_generated/api";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR } from "./childGuard";
 import { verifyIdToken, PROVIDER_APPLE, type Provider } from "./idToken";
@@ -664,6 +665,7 @@ export const touchIdentity = internalMutation({
         : {}),
     });
     await ctx.db.patch(user._id, { status: "online", lastSeen: now });
+    await markOnline(ctx, user._id, { now, mirror: false });
 
     return {
       status: "signedIn" as const,
@@ -765,6 +767,7 @@ export const createWithIdentity = internalMutation({
       lastSeen: now,
       ...terms,
     });
+    await markOnline(ctx, userId, { now, mirror: false });
 
     await ctx.db.insert("socialIdentities", {
       provider: args.provider,
@@ -876,6 +879,7 @@ export const attachToExistingAccount = internalMutation({
     }
 
     await ctx.db.patch(user._id, { status: "online", lastSeen: now });
+    await markOnline(ctx, user._id, { now, mirror: false });
     return {
       status: "signedIn" as const,
       userId: user._id,

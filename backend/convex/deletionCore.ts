@@ -21,7 +21,8 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { retireIfStaff } from "./retiredHandles";
-import { identityBanHash } from "./sessionCore";
+import { SESSION_LIVE_CAP, identityBanHash } from "./sessionCore";
+import { clearPresence } from "./presenceCore";
 
 export type DeletionKind = Doc<"deletions">["kind"];
 export type Job = Doc<"deletions">;
@@ -356,7 +357,12 @@ export async function enqueueDeletion(
 }
 
 /** Live sessions revoked in the first transaction; the first step does the rest. */
-const FIRST_TX_SESSIONS = 100;
+export const FIRST_TX_SESSIONS = 100;
+// The cap is what lets one bounded transaction close every live session. Checked
+// here, not in sessionCore: this file imports that one, so the reverse is a cycle.
+if (SESSION_LIVE_CAP > FIRST_TX_SESSIONS) {
+  throw new Error("SESSION_LIVE_CAP must not exceed FIRST_TX_SESSIONS");
+}
 /** A user has a handful of provider identities at most. */
 const FIRST_TX_IDENTITIES = 20;
 
@@ -431,11 +437,15 @@ export async function startUserDeletion(
     const now = Date.now();
     const sessions = await ctx.db
       .query("sessions")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user_live_seen", (q) =>
+        q.eq("userId", userId).eq("revokedAt", undefined),
+      )
       .take(FIRST_TX_SESSIONS);
     for (const row of sessions) {
-      if (row.revokedAt === undefined) await ctx.db.patch(row._id, { revokedAt: now });
+      await ctx.db.patch(row._id, { revokedAt: now, revokedReason: "deleted" });
     }
+    // The ghost is not online and has no heartbeat to sweep.
+    await clearPresence(ctx, userId);
 
     // The (provider, subject) row is what sign-in looks up: leaving it would let
     // that Apple ID into a ghost. A suspended account may delete itself, but

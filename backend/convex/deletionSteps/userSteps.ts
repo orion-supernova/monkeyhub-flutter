@@ -92,7 +92,7 @@ export const userSteps: Step[] = [
         for (const row of rows) {
           if (b.spent()) return { done: false, cursor };
           if (row.revokedAt === undefined) {
-            await ctx.db.patch(row._id, { revokedAt: now });
+            await ctx.db.patch(row._id, { revokedAt: now, revokedReason: "deleted" });
             b.write();
           }
           cursor = cursorOf(row);

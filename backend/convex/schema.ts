@@ -2822,6 +2822,12 @@ export default defineSchema({
     // Only two sessions carrying the same hash provably come from one install.
     // Absent on sessions from clients that predate the secret.
     deviceSecretHash: v.optional(v.string()),
+    // Why the session was revoked, so `requireSession` can tell a suspension
+    // from a deletion from a cap eviction. Absent on legacy rows and plain
+    // sign-outs (those keep the owner lookup).
+    revokedReason: v.optional(
+      v.union(v.literal("suspended"), v.literal("deleted"), v.literal("evicted")),
+    ),
   })
     // The hot path once enforcement lands: one equality probe per request.
     .index("by_token_hash", ["tokenHash"])
@@ -3319,4 +3325,29 @@ export default defineSchema({
     .index("by_target", ["kind", "targetId"])
     .index("by_state_progress", ["state", "lastProgressAt"])
     .index("by_state_finished", ["state", "finishedAt"]),
+
+  // ── Presence (Phase 5) ────────────────────────────────────────────────────
+
+  // Who is online. Changes ONLY on a status transition, so the `forUsers`
+  // subscribers re-run a handful of times a day per user, not every beat.
+  // `lastSeen` is absent while online and set when the user leaves the
+  // foreground (or the sweep demotes them, to the last beat). The two level
+  // fields copy `users.visibility.status/lastSeen`; absent = "friends".
+  presence: defineTable({
+    userId: v.id("users"),
+    status: v.union(v.literal("online"), v.literal("away"), v.literal("offline")),
+    lastSeen: v.optional(v.number()),
+    statusLevel: v.optional(v.string()),
+    lastSeenLevel: v.optional(v.string()),
+  }).index("by_user", ["userId"]),
+
+  // The 90 s liveness write. Nothing subscribes to this table; only the sweep
+  // reads it, which is the whole point of splitting it from `presence`.
+  presenceBeats: defineTable({
+    userId: v.id("users"),
+    beatAt: v.number(),
+    live: v.boolean(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_live_beat", ["live", "beatAt"]),
 });

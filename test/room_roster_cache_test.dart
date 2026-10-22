@@ -597,9 +597,9 @@ void main() {
       expect(repo.membersFor('a').first.name, 'Renamed');
     });
 
-    test('a member coming online comes through', () async {
-      // Presence is the one thing the disk seed deliberately does not carry,
-      // so the delivery that adds it must not be deduped away.
+    test('a member coming online does NOT rebuild the roster', () async {
+      // Presence has its own store now (PresenceStore); a status or lastSeen
+      // change on a member must not re-notify every roster reader.
       await repo.openRoom('a', owner: screenA);
       await _pump();
 
@@ -618,8 +618,7 @@ void main() {
       expect(first.first.status, isNull);
 
       sink(_wire(_roster()));
-      expect(repo.membersFor('a'), isNot(same(first)));
-      expect(repo.membersFor('a').first.status, isNotNull);
+      expect(repo.membersFor('a'), same(first));
     });
 
     test('signing out takes the roster with it', () async {

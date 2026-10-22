@@ -1,4 +1,6 @@
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/data/presence_store.dart';
 import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/models/mention.dart';
 
@@ -185,6 +187,32 @@ void main() {
         _user('1', 'al', role: 'owner', status: 'offline'),
       ], '');
       expect(ranked.map((u) => u.id), ['1', '2', '3']);
+    });
+
+    test('the presence store ranks online first, falling back to user.status',
+        () {
+      void Function(dynamic)? feed;
+      final store = PresenceStore.forTest((ids, onData, onError) async {
+        feed = onData;
+        return () {};
+      });
+      fakeAsync((t) {
+        store.lease(['1', '2', '3']);
+        t.elapse(const Duration(milliseconds: 300));
+      });
+      feed!([
+        {'id': '3', 's': 'online'},
+        {'id': '2', 's': 'away'},
+      ]);
+      // '1' has no store value: its own (stale) status of online is the
+      // fallback, but '3' is live-online too and sorts by name after it.
+      final ranked = rankMembers([
+        _user('1', 'al', status: 'offline'),
+        _user('2', 'bea', status: 'offline'),
+        _user('3', 'cara', status: 'offline'),
+      ], '', presence: store);
+      expect(ranked.map((u) => u.id), ['3', '2', '1']);
+      store.clear();
     });
 
     test('a handle prefix beats a name prefix', () {

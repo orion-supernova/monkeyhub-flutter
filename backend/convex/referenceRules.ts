@@ -196,6 +196,10 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "releaseCodes.childId": { rule: "cascade", index: "by_child", why: "Codes minted for a child go with the child." },
   "releaseCodes.createdByGuardianId": { rule: "cascade", index: "by_creator", why: "A code outlives neither its creator nor its life." },
 
+  // ── presence ──────────────────────────────────────────────────────────────
+  "presence.userId": { rule: "cascade", index: "by_user", why: "A person's status goes with their account (presenceCore.clearPresence)." },
+  "presenceBeats.userId": { rule: "cascade", index: "by_user", why: "A person's liveness beat goes with their account (presenceCore.clearPresence)." },
+
   // ── reports ───────────────────────────────────────────────────────────────
   "problemReports.messageId": { rule: "history", why: "Never read; the delivered message lives in the log room. Plan suggests dropping the field.", today: "7 dangling test rows; deleted by the 90-day retention on 2026-11-06" },
   "problemReports.reporterId": { rule: "setNull", index: "by_reporter", why: "The row is the device rate-limit ledger, so it is tombstoned, not deleted." },

@@ -50,8 +50,9 @@ export function effectiveStatus(
   status: string | undefined,
   lastSeen: number | undefined,
   now: number,
+  windowMs: number = PRESENCE_OFFLINE_MS,
 ): string {
   if (status === "offline") return "offline";
   if (lastSeen == null) return status ?? "offline";
-  return now - lastSeen > PRESENCE_OFFLINE_MS ? "offline" : status ?? "offline";
+  return now - lastSeen > windowMs ? "offline" : status ?? "offline";
 }
