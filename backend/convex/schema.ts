@@ -299,7 +299,9 @@ export default defineSchema({
     // Guardian queue lookups: "requests my child sent that I must release"
     // and "requests addressed to my child that I must release".
     .index("by_stage_user", ["stage", "userId"])
-    .index("by_stage_friend", ["stage", "friendId"]),
+    .index("by_stage_friend", ["stage", "friendId"])
+    // Room teardown: a DM's friendship stops naming the deleted room (SET NULL).
+    .index("by_room", ["roomId"]),
 
   rooms: defineTable({
     name: v.string(),
@@ -592,7 +594,9 @@ export default defineSchema({
     .index("by_room_user", ["roomId", "userId"])
     .index("by_user", ["userId"])
     // Account teardown: requests this user ruled on.
-    .index("by_decider", ["decidedBy"]),
+    .index("by_decider", ["decidedBy"])
+    // A deleted link clears the pointer on the requests that came in on it.
+    .index("by_invite", ["inviteId"]),
 
   // A member who may NOT edit the room asking for it to be edited anyway —
   // "use this photo instead", "call it Trip 2026". See `roomChangeRequests.ts`
@@ -792,7 +796,10 @@ export default defineSchema({
     // Account teardown: rows where the departing user is the person being
     // asked about, or the guardian who ruled on one.
     .index("by_target_user", ["targetUserId"])
-    .index("by_decider", ["decidedByGuardianId"]),
+    .index("by_decider", ["decidedByGuardianId"])
+    // Room teardown: the rows asking about a room that is going (SET NULL on
+    // decided ones, delete pending ones). See `referenceRules.ts`.
+    .index("by_target_room", ["targetRoomId"]),
 
   blocks: defineTable({
     userId: v.id("users"),         // who is doing the blocking
@@ -2762,7 +2769,13 @@ export default defineSchema({
     roomId: v.id("rooms"),
     userId: v.id("users"),
     until: v.number(),
-  }).index("by_room_user", ["roomId", "userId"]),
+  })
+    .index("by_room_user", ["roomId", "userId"])
+    // Account teardown: a deleted user's bans go with them.
+    .index("by_user", ["userId"])
+    // Expiry sweep. `until` is required, so unlike an optional field there is
+    // no undefined-sorts-lowest trap here; the sweep still bounds both ends.
+    .index("by_until", ["until"]),
 
   // Fixed-window call counters for `rateLimit.consume`. One row per key.
   rateBuckets: defineTable({
@@ -3001,7 +3014,9 @@ export default defineSchema({
     at: v.number(),
   })
     .index("by_match_seq", ["matchId", "seq"])
-    .index("by_match_client", ["matchId", "clientMoveId"]),
+    .index("by_match_client", ["matchId", "clientMoveId"])
+    // A deleted move bubble clears its pointer (SET NULL).
+    .index("by_message", ["messageId"]),
 
   // Who has a live game's screen open, refreshed by a heartbeat. In its own
   // table, read only by the liveness job and never by a subscribed query, so
@@ -3010,7 +3025,10 @@ export default defineSchema({
     matchId: v.id("matches"),
     userId: v.id("users"),
     lastBeatAt: v.number(),
-  }).index("by_match_user", ["matchId", "userId"]),
+  })
+    .index("by_match_user", ["matchId", "userId"])
+    // Account teardown and leaving a room: delete this user's heartbeats.
+    .index("by_user", ["userId"]),
 
   // A party game's FULL state, secrets included (every player's dice, the
   // Imposter's word and who the imposter is). One row per party match,
@@ -3025,4 +3043,47 @@ export default defineSchema({
     matchId: v.id("matches"),
     state: v.string(),
   }).index("by_match", ["matchId"]),
+
+  // State of the paged reference-integrity scan (`integrity.ts`). One row per
+  // run; the scan walks one table page by page and keeps its place here.
+  // The counters live in `integrityCounts`, one row per (run, table).
+  integrityRuns: defineTable({
+    startedAt: v.number(),
+    // Bumped by every page; a running row silent for 30 minutes is stalled.
+    lastProgressAt: v.number(),
+    finishedAt: v.optional(v.number()),
+    status: v.union(
+      v.literal("running"),
+      v.literal("done"),
+      v.literal("failed"),
+    ),
+    // Which table (index into the sorted list of tables that hold references)
+    // and the paginate cursor inside it.
+    tableIdx: v.number(),
+    cursor: v.union(v.string(), v.null()),
+    pageSize: v.optional(v.number()),
+    // Times a stalled run was resumed; three strikes and it is marked failed.
+    restarts: v.number(),
+    pages: v.number(),
+    rowsScanned: v.number(),
+  }).index("by_status", ["status"]),
+
+  // Per-table counters of a run, split out of `integrityRuns` so a page
+  // rewrites only its own table's small row, not every path's. An array and
+  // not a record because keys ("table.path") hold characters ("[]") Convex
+  // field names do not allow.
+  integrityCounts: defineTable({
+    runId: v.id("integrityRuns"),
+    table: v.string(),
+    counts: v.array(
+      v.object({
+        key: v.string(),
+        checked: v.number(),
+        dangling: v.number(),
+        // Dangling, but on a short-lived row younger than the grace period.
+        inGrace: v.number(),
+        examples: v.array(v.string()),
+      }),
+    ),
+  }).index("by_run_table", ["runId", "table"]),
 });

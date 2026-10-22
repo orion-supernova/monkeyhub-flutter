@@ -320,4 +320,31 @@ crons.interval(
   {},
 );
 
+// Weekly reference-integrity scan: counts, per reference in the schema, the
+// rows whose target no longer exists, and warns when a rule that should have
+// prevented it (anything but history/softRef) was broken. `start` only creates
+// a run row and schedules the first page; each page is a small mutation that
+// reschedules itself, so this tick does no scanning and the sweep never holds
+// the box. Sunday 04:30 UTC, the quietest hour for the current user base, and
+// a cron STRING (wall-clock anchored) rather than an interval, which would
+// slide later by the length of each run. See integrity.ts.
+crons.cron(
+  "integrity.start",
+  "30 4 * * 0",
+  internal.integrity.start,
+  {},
+);
+
+// Safety net for the scan above: each page reschedules the next, so a page that
+// throws ends the chain. This only RESUMES a run silent for 30+ minutes (and
+// fails it after 3 resumes, warning which table and cursor it died on); it never
+// starts one. With no run in flight it is a single index probe. See
+// integrity.resumeStalled.
+crons.interval(
+  "integrity.resumeStalled",
+  { hours: 1 },
+  internal.integrity.resumeStalled,
+  {},
+);
+
 export default crons;

@@ -676,6 +676,27 @@ Known limits, left for later phases:
    drift is seen within a week instead of by users.
 5. Replace `ACCOUNT_LIFECYCLE_AUDIT.md` with a pointer to this document.
 
+**Phase 1 status (2026-10-22): items 1 to 3 Done in code.**
+`backend/convex/schemaRefs.ts` walks the schema (163 reference paths across
+56 tables; the other 8 tables hold none). `backend/convex/referenceRules.ts`
+gives each path a rule: cascade 95, setNull 14, history 16, softRef 12,
+file 19, ephemeral 6, restrict 1. `referenceRules.test.ts` fails when a path
+has no rule, a rule names a path that's gone, or a cascade/setNull rule has
+no matching index; the message says what to add. Seven indexes were added for
+the rules: `approvalRequests.by_target_room`, `friendships.by_room`,
+`matchMoves.by_message`, `matchPresence.by_user`, `roomBans.by_user`,
+`roomBans.by_until`, `roomJoinRequests.by_invite`. Decided on the way:
+`uploads.userId` is SET NULL (the ledger keeps no dead person's id);
+`rooms.createdBy` is history (the owner role is what matters, not the
+creator); calls and group-call references are ephemeral (Phase 0 ends live
+calls, the crons sweep the rest).
+
+**The Phase 2 worklist is the code, not this document:** every entry in
+`REFERENCE_RULES` that carries a `today` field is a place where current
+cleanup differs from the rule (31 entries on 2026-10-22, 2 still
+`unverified`). Phase 2 is done when no `today` remains except the ones kept
+on purpose (sticker files, decided in Phase 0).
+
 ### Phase 2: a lifecycle engine for deletes (backend only)
 
 One mechanism for every parent with a big history: users, rooms, messages,
