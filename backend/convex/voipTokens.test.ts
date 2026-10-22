@@ -5,13 +5,19 @@ import schema from "./schema";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-async function signUp(t: ReturnType<typeof convexTest>, username: string) {
+async function signUp(
+  t: ReturnType<typeof convexTest>,
+  username: string,
+  deviceId = `seed-${username}`,
+  deviceSecret?: string,
+) {
   return await t.mutation(api.auth.signup, {
     username,
     name: username,
     passwordHash: `hash-${username}`,
     recoveryKeyHash: `recovery-${username}`,
-    deviceId: "seed-device",
+    deviceId,
+    ...(deviceSecret !== undefined ? { deviceSecret } : {}),
   });
 }
 
@@ -108,8 +114,10 @@ describe("voipTokens.upsertDevice — one physical device, one account", () => {
   test("registering a deviceId under a second user evicts the first user's row",
     async () => {
       const t = convexTest(schema);
-      const a = await signUp(t, "a-first");
-      const b = await signUp(t, "b-second");
+      // One install: both sign-ins carry the same per-install secret, which is
+      // the proof that lets the second account take the device's row.
+      const secret = "c".repeat(64);
+      const a = await signUp(t, "a-first", "shared-phone", secret);
       await t.mutation(api.voipTokens.registerDevice, {
         userId: a.userId,
         sessionToken: a.token,
@@ -117,6 +125,8 @@ describe("voipTokens.upsertDevice — one physical device, one account", () => {
         platform: "ios",
         deviceName: "iPhone",
       });
+      // Signing in as B on the same install ends A's session there.
+      const b = await signUp(t, "b-second", "shared-phone", secret);
       await t.mutation(api.voipTokens.registerDevice, {
         userId: b.userId,
         sessionToken: b.token,
@@ -135,8 +145,8 @@ describe("voipTokens.upsertDevice — one physical device, one account", () => {
 
   test("a user's OTHER devices are untouched by the eviction", async () => {
     const t = convexTest(schema);
-    const a = await signUp(t, "a-two-devices");
-    const b = await signUp(t, "b-takes-one");
+    const secret = "c".repeat(64);
+    const a = await signUp(t, "a-two-devices", "phone", secret);
     await t.mutation(api.voipTokens.registerDevice, {
       userId: a.userId,
       sessionToken: a.token,
@@ -149,6 +159,7 @@ describe("voipTokens.upsertDevice — one physical device, one account", () => {
       deviceId: "laptop",
       platform: "macos",
     });
+    const b = await signUp(t, "b-takes-one", "phone", secret);
     await t.mutation(api.voipTokens.registerDevice, {
       userId: b.userId,
       sessionToken: b.token,

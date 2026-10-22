@@ -37,7 +37,9 @@ async function signUp(t: ReturnType<typeof convexTest>, username: string) {
     name: username,
     passwordHash: `hash-${username}`,
     recoveryKeyHash: `recovery-${username}`,
-    deviceId: DEVICE,
+    // One device per person: a deviceId is one handset, and signing in
+    // on it signs out whoever was there before.
+    deviceId: `device-${username}`,
   });
 }
 
@@ -78,9 +80,15 @@ async function giveToken(
   patch: Record<string, unknown> = {},
 ) {
   await t.run(async (ctx: any) => {
+    // The device the user's session was minted on: the push senders only
+    // trust a device row whose id matches a live session.
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .first();
     await ctx.db.insert("userDevices", {
       userId,
-      deviceId: DEVICE,
+      deviceId: session!.deviceId,
       platform: "android",
       fcmToken: `fcm-${userId}`,
       lastSeenAt: Date.now(),

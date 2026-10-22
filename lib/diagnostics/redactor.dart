@@ -143,7 +143,7 @@ class Redactor {
     // credentials
     'password', 'passwordhash', 'newpassword', 'newpasswordhash',
     'recoverykey', 'recoverykeyhash', 'recoveryphrase', 'phrase', 'mnemonic',
-    'secret', 'clientsecret',
+    'secret', 'clientsecret', 'devicesecret',
     // tokens
     'token', 'idtoken', 'identitytoken', 'accesstoken', 'refreshtoken',
     'voiptoken', 'fcmtoken', 'apnstoken', 'authorization', 'authorizationcode',

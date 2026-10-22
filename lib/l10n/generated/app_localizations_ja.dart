@@ -13253,6 +13253,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authErrorAccountSuspended => '利用規約に違反したため、アカウントは停止されました。';
 
   @override
+  String get authErrorLastGuardian =>
+      'あなたは子どもアカウントの唯一の保護者です。先に別の保護者を追加するか、子どもアカウントを削除してください。';
+
+  @override
+  String get authSuspendedDeleteAction => 'アカウントを削除';
+
+  @override
+  String get authSuspendedDeleteFailed => 'ここではアカウントを削除できませんでした。サポートまでご連絡ください。';
+
+  @override
   String get termsConsentPrefix => '';
 
   @override

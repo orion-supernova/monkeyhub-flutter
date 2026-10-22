@@ -500,34 +500,88 @@ export const join = mutation({
   },
 });
 
+/// Body of `leave`, shared with `removeUserFromRoomGroupCall`: mark the
+/// caller left, drop their pair signals, and end the call if they were last.
+async function leaveGroupCall(ctx: any, groupCallId: any, userId: any) {
+  const mine = await participantRow(ctx, groupCallId, userId);
+  if (mine && mine.status === "joined") {
+    await ctx.db.patch(mine._id, { status: "left", leftAt: Date.now() });
+  }
+  // Drop this user's pending pair signals so remaining peers don't chew
+  // through them.
+  const call = await ctx.db.get(groupCallId);
+  if (call) {
+    const rows = await ctx.db
+      .query("groupCallSignals")
+      .withIndex("by_call", (q: any) => q.eq("groupCallId", groupCallId))
+      .collect();
+    for (const r of rows) {
+      if (
+        r.fromUserId.toString() === userId.toString() ||
+        r.toUserId.toString() === userId.toString()
+      ) {
+        await ctx.db.delete(r._id);
+      }
+    }
+  }
+  await endCallIfEmpty(ctx, groupCallId);
+}
+
 export const leave = mutation({
   args: { groupCallId: v.id("groupCalls"), userId: v.id("users") },
   returns: v.null(),
   handler: async (ctx, { groupCallId, userId }) => {
-    const mine = await participantRow(ctx, groupCallId, userId);
-    if (mine && mine.status === "joined") {
-      await ctx.db.patch(mine._id, { status: "left", leftAt: Date.now() });
-    }
-    // Drop this user's pending pair signals so remaining peers don't chew
-    // through them.
-    const call = await ctx.db.get(groupCallId);
-    if (call) {
-      const rows = await ctx.db
-        .query("groupCallSignals")
-        .withIndex("by_call", (q: any) => q.eq("groupCallId", groupCallId))
-        .collect();
-      for (const r of rows) {
-        if (
-          r.fromUserId.toString() === userId.toString() ||
-          r.toUserId.toString() === userId.toString()
-        ) {
-          await ctx.db.delete(r._id);
-        }
-      }
-    }
-    await endCallIfEmpty(ctx, groupCallId);
+    await leaveGroupCall(ctx, groupCallId, userId);
   },
 });
+
+/**
+ * Take [userId] out of [roomId]'s live group call, because they are no longer
+ * a member (left, or an admin removed them). Called by `removeMembership`.
+ *
+ * Their `heartbeat` then answers "not-in-call" and their client releases its
+ * media on its own, exactly as for a reaped participant. An unanswered invite
+ * is declined first, so the native ringer on their phones comes down too.
+ */
+export async function removeUserFromRoomGroupCall(
+  ctx: any,
+  roomId: any,
+  userId: any,
+) {
+  const call = await activeCallForRoom(ctx, roomId);
+  if (!call) return;
+  const mine = await participantRow(ctx, call._id, userId);
+  if (!mine) return;
+  if (mine.status === "invited") {
+    await ctx.db.patch(mine._id, { status: "declined" });
+    await dismissRingers(ctx, call._id, "declined", { userIds: [userId] });
+  }
+  await leaveGroupCall(ctx, call._id, userId);
+}
+
+/**
+ * End every live group call in [roomId] for everyone. Room deletion.
+ *
+ * `endCallIfEmpty` is the only normal way a call ends, so this does what it
+ * does for a call that emptied: mark ended, purge the pair signals and take
+ * down every unanswered ringer. Joined rows are flipped to `left` first so the
+ * call is genuinely empty and heartbeats answer "not-in-call".
+ */
+export async function endGroupCallsInRoom(ctx: any, roomId: any) {
+  const calls = await ctx.db
+    .query("groupCalls")
+    .withIndex("by_room_status", (q: any) =>
+      q.eq("roomId", roomId).eq("status", "active"),
+    )
+    .take(10);
+  for (const call of calls) {
+    const joined = await joinedParticipants(ctx, call._id);
+    for (const p of joined) {
+      await ctx.db.patch(p._id, { status: "left", leftAt: Date.now() });
+    }
+    await endCallIfEmpty(ctx, call._id);
+  }
+}
 
 export const decline = mutation({
   args: {

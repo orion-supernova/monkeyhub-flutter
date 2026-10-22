@@ -23125,6 +23125,24 @@ abstract class AppLocalizations {
   /// **'Your account has been suspended for violating the Terms of Use.'**
   String get authErrorAccountSuspended;
 
+  /// Error when deleting an account that is the only guardian of a child account; they must add another guardian or delete the child account first.
+  ///
+  /// In en, this message translates to:
+  /// **'You’re the only guardian of a child account. Add another guardian or delete the child account first.'**
+  String get authErrorLastGuardian;
+
+  /// Action on the suspended-account banner that deletes the banned account.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete my account'**
+  String get authSuspendedDeleteAction;
+
+  /// Shown when deleting a suspended account was refused (for example the session is too old); points the user to support.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn’t delete your account from here. Please contact support and we’ll sort it out.'**
+  String get authSuspendedDeleteFailed;
+
   /// Sign-up EULA checkbox, text before the link. Full sentence: prefix + link + suffix.
   ///
   /// In en, this message translates to:

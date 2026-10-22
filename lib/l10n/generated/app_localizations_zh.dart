@@ -13129,6 +13129,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authErrorAccountSuspended => '你的账号因违反使用条款已被停用。';
 
   @override
+  String get authErrorLastGuardian => '你是某个儿童账号的唯一监护人。请先添加另一位监护人，或先删除该儿童账号。';
+
+  @override
+  String get authSuspendedDeleteAction => '删除我的账号';
+
+  @override
+  String get authSuspendedDeleteFailed => '我们无法在此处删除你的账号。请联系客服，我们会帮你处理。';
+
+  @override
   String get termsConsentPrefix => '我同意';
 
   @override

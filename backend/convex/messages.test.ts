@@ -111,7 +111,9 @@ describe("spoilers on the room card", () => {
       name: username,
       passwordHash: `hash-${username}`,
       recoveryKeyHash: `recovery-${username}`,
-      deviceId: DEVICE,
+      // One device per person: a deviceId is one handset, and signing in
+      // on it signs out whoever was there before.
+      deviceId: `device-${username}`,
     });
   }
 
@@ -280,7 +282,7 @@ describe("the room card names its last sender", () => {
       name: username,
       passwordHash: `hash-${username}`,
       recoveryKeyHash: `recovery-${username}`,
-      deviceId: DEVICE,
+      deviceId: `device-${username}`,
     });
   }
 

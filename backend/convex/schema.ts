@@ -356,7 +356,10 @@ export default defineSchema({
     .index("by_last_activity", ["lastMessageTime"])
     // Discover lists public rooms only.
     .index("by_visibility", ["isPrivate"])
-    .index("by_visibility_activity", ["isPrivate", "lastMessageTime"]),
+    .index("by_visibility_activity", ["isPrivate", "lastMessageTime"])
+    // "Does any room still show this file?" The release-side guard for room
+    // photos (`roomAdmin.releaseRoomPhoto`) and the proposal-side refusal.
+    .index("by_avatar", ["avatarStorageId"]),
 
   // Who may read a room: one row per membership, written only on join and
   // leave so live queries can check it without re-running on every receipt.
@@ -634,7 +637,9 @@ export default defineSchema({
     .index("by_room_user", ["roomId", "userId"])
     // Account teardown, both directions.
     .index("by_user", ["userId"])
-    .index("by_decider", ["decidedBy"]),
+    .index("by_decider", ["decidedBy"])
+    // "Does another request hold this file?" See `roomAdmin.releaseRoomPhoto`.
+    .index("by_storage", ["storageId"]),
 
   // ── Family ────────────────────────────────────────────────────────────────
 
@@ -2089,7 +2094,8 @@ export default defineSchema({
     // Account teardown (auth.ts purgeUser).
     .index("by_user", ["userId"])
     // Blob release: whether any other moment still points at these bytes.
-    .index("by_media", ["mediaStorageId"]),
+    .index("by_media", ["mediaStorageId"])
+    .index("by_poster", ["posterStorageId"]),
 
   // Who has already seen which moment — drives the unseen ring on the rail.
   //
@@ -2473,7 +2479,9 @@ export default defineSchema({
     // Account teardown needs every call regardless of status; the pair above
     // is status-scoped.
     .index("by_caller", ["callerId"])
-    .index("by_callee", ["calleeId"]),
+    .index("by_callee", ["calleeId"])
+    // Room teardown: the live (ringing / active) calls in one room.
+    .index("by_room_status", ["roomId", "status"]),
 
   // Signaling messages between the two peers. Client subscribes by toUserId
   // and marks each delivered signal `consumed: true`. A cron cleans old rows.
@@ -2689,11 +2697,22 @@ export default defineSchema({
     // signed out" instead of "no such session" — the two are indistinguishable
     // to a client and one of them is a much better error message.
     revokedAt: v.optional(v.number()),
+    // sha256 hex of the per-install `deviceSecret` the client sent at sign-in.
+    // `deviceId` is NOT secret (call rosters and call rows show it to peers),
+    // so on its own it cannot justify signing ANOTHER account out of a device.
+    // Only two sessions carrying the same hash provably come from one install.
+    // Absent on sessions from clients that predate the secret.
+    deviceSecretHash: v.optional(v.string()),
   })
     // The hot path once enforcement lands: one equality probe per request.
     .index("by_token_hash", ["tokenHash"])
     .index("by_user", ["userId"])
     .index("by_user_device", ["userId", "deviceId"])
+    // Live sessions on one physical device, across accounts: `mintSession`
+    // revokes whoever else is still signed in on a handset when a new account
+    // signs in there. `revokedAt` is optional and undefined sorts lowest, so
+    // `eq("revokedAt", undefined)` ranges over exactly the live rows.
+    .index("by_device", ["deviceId", "revokedAt"])
     // Bounds the sweep below. Without a GC this table and its indexes grow
     // forever — a row per sign-in, kept after revocation — and this deployment
     // shares a 1 GB box with two others and already lives in swap. Every other
@@ -2785,6 +2804,17 @@ export default defineSchema({
   //
   // Uniqueness on (provider, subject) is PROCEDURAL, like `users.by_username` —
   // Convex has no unique constraints. Same accepted race as `auth.signup`.
+  // Provider identities of accounts that were SUSPENDED when they deleted
+  // themselves. The purge removes `socialIdentities`, so without this a banned
+  // person deletes the account and signs up again with the same Apple or Google
+  // ID. Only a hash of "provider:subject" is kept (never the subject, never an
+  // email: Apple's relay addresses are per-app and email is display-only, see
+  // socialIdentities). Checked at social sign-in, sign-up and link.
+  bannedIdentities: defineTable({
+    hash: v.string(),
+    createdAt: v.number(),
+  }).index("by_hash", ["hash"]),
+
   socialIdentities: defineTable({
     provider: v.string(), // "apple" | "google"
     subject: v.string(), // the provider's `sub` claim

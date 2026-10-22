@@ -14063,6 +14063,17 @@ class AppLocalizationsFr extends AppLocalizations {
       'Votre compte a été suspendu pour non-respect des Conditions d’utilisation.';
 
   @override
+  String get authErrorLastGuardian =>
+      'Tu es le seul tuteur d’un compte enfant. Ajoute d’abord un autre tuteur ou supprime le compte enfant.';
+
+  @override
+  String get authSuspendedDeleteAction => 'Supprimer mon compte';
+
+  @override
+  String get authSuspendedDeleteFailed =>
+      'Nous n’avons pas pu supprimer ton compte d’ici. Contacte l’assistance et nous allons régler ça.';
+
+  @override
   String get termsConsentPrefix => 'J’accepte les ';
 
   @override

@@ -14049,6 +14049,17 @@ class AppLocalizationsAr extends AppLocalizations {
       'تم تعليق حسابك لمخالفته شروط الاستخدام.';
 
   @override
+  String get authErrorLastGuardian =>
+      'أنت الوصي الوحيد على حساب طفل. أضف وصيًا آخر أو احذف حساب الطفل أولاً.';
+
+  @override
+  String get authSuspendedDeleteAction => 'حذف حسابي';
+
+  @override
+  String get authSuspendedDeleteFailed =>
+      'تعذّر علينا حذف حسابك من هنا. تواصل مع الدعم وسنتولى الأمر.';
+
+  @override
   String get termsConsentPrefix => 'أوافق على ';
 
   @override

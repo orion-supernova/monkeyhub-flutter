@@ -3259,6 +3259,16 @@ async function burnBlobs(ctx: any, msg: any): Promise<Record<string, any>> {
     posterStorageId: undefined,
     mediaWidth: undefined,
     mediaHeight: undefined,
+    // The caption goes with the picture: a ghost bubble has nothing to say,
+    // and `content` is also what search, quotes and exports would otherwise
+    // keep serving for a message that promised to leave nothing behind. The
+    // field is a required string, so it is emptied, not unset. Its sidecars
+    // (spans, link flag, mention names) describe that text and go with it.
+    content: "",
+    formatting: undefined,
+    hasLink: undefined,
+    mentions: undefined,
+    fileName: undefined,
     viewOnceBurnedAt: Date.now(),
     viewOnceDeadline: undefined,
     // Drops the row out of the sweep's index bucket entirely — see the

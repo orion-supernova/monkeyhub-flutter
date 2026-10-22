@@ -1,7 +1,8 @@
 # Data integrity and scale plan (2026-10-22)
 
-**Status:** plan complete, nothing implemented except where a line says
-**Done**. Built from a live scan of every reference in the production
+**Status:** Phase 0 is **Done in code** (2026-10-22, uncommitted, not
+deployed; see the Phase 0 status note). Later phases are not implemented
+except where a line says **Done**. Built from a live scan of every reference in the production
 database and five code audits (accounts, rooms, messages, feed/games/calls/
 stickers, files/copies/crons), with every high-severity claim re-checked by
 hand against the code.
@@ -117,8 +118,8 @@ gone (`sessionCore.ts:177`). It just needs deleting; the existing
 `sessions.revokeOrphaned` was never run.
 
 **Other account bugs:**
-- Signing into account B on a phone doesn't revoke account A's session on
-  that phone (`sessionCore.ts:91`).
+- Signing into account B on a phone doesn't revoke a session account A left
+  on the server for that phone (when A's sign-out never reached the server).
 - After a guardian is unlinked, the pairing codes they made stay redeemable
   for their 5-minute life, and redeeming doesn't re-check that the creator is
   still a guardian.
@@ -603,17 +604,60 @@ Each item is small and independent, with a test.
 15. **Suspended users can't delete their account:** `deleteAccount` accepts
     a suspended session (moved here from Phase 2.7; it's a data-deletion
     rights gap, not a scale problem).
-16. **Signing into another account leaves the old one signed in:** signing
-    in on a device revokes that device's earlier sessions
-    (`sessionCore.ts:91`).
+16. **Ghost sessions on a shared device:** if account A's sign-out never
+    reached the server (offline, failed request, app reinstalled, local
+    session cleared after an error), A's server session stays valid forever
+    even after B signs in on that phone. The app no longer holds A's token,
+    but it is a live credential nobody can see. Signing in on a device now
+    revokes every other account's live session on that device
+    (`sessions.by_device`).
 17. **Duplicate friendship on accept:** `acceptRequest` checks for an
     existing reverse row before inserting.
 18. **Friend-request messages orphaned:** one helper deletes a request's
     `friendRequestMessages`, called from unfriend, reject, block and account
     deletion.
 
-Items 15 to 18 were added on review: each is small, real and independent of
+19. **Device proof.** Found in review of item 16: `deviceId` is not a
+    secret (peers see it in call rosters), so anyone could claim someone
+    else's and evict their session. Each install now also holds a random
+    `deviceSecret`, sent only on sign-in and stored hashed on the session;
+    cross-account eviction needs a matching secret. Needs an app release;
+    old builds keep today's behaviour.
+20. **Ban escape through deletion.** Also from review: once item 15 let a
+    suspended user delete their account, the purge removed the ban with it,
+    so they could sign up again with the same Apple or Google ID. Deleting a
+    suspended account now leaves a hashed ban record that sign-up checks.
+
+Known gap in item 15: revoked sessions are garbage-collected after a while,
+so a long-suspended user can no longer delete from the app; staff deletes
+for them.
+
+Items 15 to 20 were added on review: each is small, real and independent of
 the redesign, so they don't belong behind Phases 1 and 2.
+
+**Phase 0 status (2026-10-22): Done in code, not deployed.** Items 1 to 13
+and 15 to 20 are implemented with tests (`accountIntegrity`, `roomIntegrity`,
+`contentIntegrity`); the whole backend suite passes (762 tests) and the
+typecheck is clean. An independent review of the first pass found six
+problems, all fixed (items 19 and 20 came from it). Item 14 is a live-data
+run and waits for the deploy. Shipping order:
+1. Deploy the backend first. It adds indexes (`moments.by_poster`,
+   `calls.by_room_status`, `sessions.by_device`, `rooms.by_avatar`,
+   `roomChangeRequests.by_storage`) and the `bannedIdentities` table.
+2. Then the app release. It sends `deviceSecret` on sign-in, which an old
+   backend would reject. It also stops the sign-out on a `LAST_GUARDIAN`
+   refusal and lets a suspended user delete their account from the login
+   screen.
+
+Known limits, left for later phases:
+- A banned user with a password account can still sign up again under a
+  new username (only Apple/Google identities are matched).
+- Purging an account deletes the reported messages and moments, so those
+  reports keep only the moderation card's excerpt.
+- Forwarded personal stickers of a deleted account show a broken tile;
+  the app should draw "unavailable".
+- On the login screen's suspended delete: no retry after a failure, and no
+  success message.
 
 ### Phase 1: one rule per reference, enforced by a test
 
@@ -689,6 +733,12 @@ moments, games.
    (DM names are deterministic), album lookup (`[roomId, albumId]`),
    `liveInMyRooms` (per room, not worldwide), invite lookups.
 6. `searchUsers` moves to a Convex search index on username and name.
+7. **Room-cap counting.** `addMembership` checks `MAX_ROOMS_PER_USER` by
+   reading up to 500 `roomMembers` rows. At ~17 KB a row (before item 4)
+   that is ~8 MB per join for a power user, twice when a DM is created, close
+   to Convex's 16 MiB read limit. Keep a per-user room count in its own
+   small table (not on `users`, which would churn every subscriber),
+   maintained by `addMembership`/`removeMembership` and backfilled once.
 
 ### Phase 5: presence (backend, then an app release)
 
@@ -703,6 +753,10 @@ moments, games.
    header, visible chat-list rows, the open member sheet, the profile.
 4. `requireSession` stops reading `users`: "deleted" and "suspended" move to
    the session rows.
+   Phase 0 item 4 made `feed:board` read each reactor's live `users` row for
+   their photo setting, so today a reactor's heartbeat also re-runs the
+   boards they appear on. Once heartbeats stop writing `users`, that cost
+   disappears with no change to the board.
 5. Once the release is out and old builds are below the minimum supported
    version, stop writing presence fields to `users`, then migrate them off
    (deploy, migrate, deploy).
@@ -746,7 +800,10 @@ or explicitly skipped.
   90 days without use (WhatsApp/Telegram keep linked devices for weeks to
   months of inactivity).
 - **Personal stickers:** owner-only to send, or anyone can forward them and
-  they show a placeholder after the owner deletes their account?
+  they show a placeholder after the owner deletes their account? (Phase 0
+  already settled the deletion half on privacy grounds: stickers are cut
+  from people's own photos, so their files go with the account and the
+  tombstoned row shows as "unavailable" wherever someone else kept it.)
 - **Game history:** how long to keep finished games and daily results.
 - **Read receipts history:** the 200-entry receipt logs exist so receipts
   can be shown per message. Move them to their own table (keeps the feature,

@@ -26,7 +26,9 @@ async function signUp(t: ReturnType<typeof convexTest>, username: string) {
     name: username,
     passwordHash: `hash-${username}`,
     recoveryKeyHash: `recovery-${username}`,
-    deviceId: DEVICE,
+    // One device per person: a deviceId is one handset, and signing in
+    // on it signs out whoever was there before.
+    deviceId: `device-${username}`,
   });
 }
 
@@ -95,6 +97,7 @@ describe("permissionsFor", () => {
     expect(permissionsFor("sticker", false, "pack")).toEqual({
       location: false,
       media: false,
+      kinds: ["sticker"],
     });
   });
 

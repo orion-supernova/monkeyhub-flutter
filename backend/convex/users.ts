@@ -865,6 +865,34 @@ export const blockUser = mutation({
 });
 
 /**
+ * Deletes a friendship row, and with it the messages riding on a pending
+ * request.
+ *
+ * `friendRequestMessages.requestId` points at the friendship row, so every
+ * path that removes a pending row has to take them too or they are orphaned
+ * for good: unfriend, reject, block, account deletion. One helper so no path
+ * can forget. Only an unaccepted row can have any (accepting a request
+ * migrates them into the DM and clears them), so an accepted row costs no extra
+ * read.
+ * The per-request cap on writes is 20, so `take(100)` is the whole set.
+ */
+export async function deleteFriendshipRow(ctx: any, friendship: any) {
+  if (friendship.status !== "accepted") {
+    await clearFriendRequestMessages(ctx, friendship._id);
+  }
+  await ctx.db.delete(friendship._id);
+}
+
+/** Deletes the messages riding on one request. Bounded by `by_request`. */
+export async function clearFriendRequestMessages(ctx: any, requestId: any) {
+  const messages = await ctx.db
+    .query("friendRequestMessages")
+    .withIndex("by_request", (q: any) => q.eq("requestId", requestId))
+    .take(100);
+  for (const m of messages) await ctx.db.delete(m._id);
+}
+
+/**
  * Everything `blockUser` does, as a plain function, so a report can block in
  * the same transaction it files in ("Also block this person" on the report
  * sheet) instead of the client making two calls that can half-succeed.
@@ -900,7 +928,7 @@ export async function blockCore(
       .collect();
     for (const f of friendships) {
       if (f.friendId.toString() === targetUserId.toString()) {
-        await ctx.db.delete(f._id);
+        await deleteFriendshipRow(ctx, f);
       }
     }
     const reverse = await ctx.db
@@ -909,7 +937,7 @@ export async function blockCore(
       .collect();
     for (const f of reverse) {
       if (f.friendId.toString() === userId.toString()) {
-        await ctx.db.delete(f._id);
+        await deleteFriendshipRow(ctx, f);
       }
     }
 

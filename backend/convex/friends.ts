@@ -13,10 +13,13 @@ import {
   isReleasedToRecipient,
 } from "./childGuard";
 import { ERR_SYSTEM_ACCOUNT, isSystemAccount } from "./systemAccount";
-import { lensFor, publicUserView, seenVisibilityOf } from "./visibility";
-import { addMembership } from "./roomAdmin";
-import { searchUsersCore } from "./users";
-import { grantRoomAccess } from "./roomAccess";
+import { lensFor, publicUserView } from "./visibility";
+import { ROLE_OWNER, addMembership } from "./roomAdmin";
+import {
+  clearFriendRequestMessages,
+  deleteFriendshipRow,
+  searchUsersCore,
+} from "./users";
 import { consume } from "./rateLimit";
 import { ERR_FILTER_BLOCKED, hasHit } from "./contentFilter";
 
@@ -93,16 +96,6 @@ async function insertRequestMessage(
   });
 }
 
-async function clearRequestMessages(ctx: any, requestId: string) {
-  const messages = await ctx.db
-    .query("friendRequestMessages")
-    .withIndex("by_request", (q: any) => q.eq("requestId", requestId))
-    .collect();
-  for (const message of messages) {
-    await ctx.db.delete(message._id);
-  }
-}
-
 async function getDirectFriendship(ctx: any, userId: any, otherUserId: any) {
   const outgoing = await ctx.db
     .query("friendships")
@@ -173,32 +166,22 @@ async function createDirectRoom(
     }
   }
 
+  // Born empty and filled through `addMembership`, so the member cap, the
+  // per-user room cap, `seenVisibility` and the access grant are applied by the
+  // one function that owns them, and `memberCount` is counted rather than
+  // hand-written.
   const roomId = await ctx.db.insert("rooms", {
     name: roomName,
     createdBy: requesterId,
     createdAt: Date.now(),
     isPrivate: true,
-    memberCount: 2,
+    memberCount: 0,
     type: normalizedRoomType,
     messageLifetime,
   });
 
-  await ctx.db.insert("roomMembers", {
-    roomId,
-    userId: requesterId,
-    joinedAt: Date.now(),
-    role: "owner",
-    seenVisibility: await seenVisibilityOf(ctx, requesterId),
-  });
-  await grantRoomAccess(ctx, roomId, requesterId);
-  await ctx.db.insert("roomMembers", {
-    roomId,
-    userId: receiverId,
-    joinedAt: Date.now(),
-    role: "member",
-    seenVisibility: await seenVisibilityOf(ctx, receiverId),
-  });
-  await grantRoomAccess(ctx, roomId, receiverId);
+  await addMembership(ctx, roomId, requesterId, ROLE_OWNER);
+  await addMembership(ctx, roomId, receiverId);
 
   return roomId;
 }
@@ -281,6 +264,12 @@ export const sendRequest = mutation({
   },
 });
 
+/**
+ * The plain accept: no conversation, just the friendship. No current caller in
+ * the app (`approveDirectRequest` is what it uses and what moves a request's
+ * messages into a DM); kept for builds already in the field, and held to the
+ * same rules as that one.
+ */
 export const acceptRequest = mutation({
   args: { userId: v.id("users"), requesterId: v.id("users") },
   handler: async (ctx, { userId, requesterId }) => {
@@ -290,16 +279,49 @@ export const acceptRequest = mutation({
         q.eq("userId", requesterId).eq("friendId", userId)
       )
       .first();
-    if (!request) throw new Error("REQUEST_NOT_FOUND");
+    // Pending only, and only once any guardian hop has released it: a child
+    // must not be able to accept a request still awaiting a guardian, and a
+    // denied one is not acceptable at all. Same gate as `approveDirectRequest`.
+    if (!request || request.status !== "pending") throw new Error("REQUEST_NOT_FOUND");
+    if (!isReleasedToRecipient(request.stage)) throw new Error("REQUEST_NOT_FOUND");
 
+    // A crossed request leaves a row each way. Reuse the reverse one only when
+    // it is itself a live, released request (or already accepted); a reverse
+    // row a guardian DENIED, or one still held at a guardian hop, is a
+    // decision this accept must not override, so it refuses instead. Checked
+    // before any write.
+    const reverse = await ctx.db
+      .query("friendships")
+      .withIndex("by_pair", (q) =>
+        q.eq("userId", userId).eq("friendId", requesterId)
+      )
+      .first();
+    if (
+      reverse &&
+      reverse.status !== "accepted" &&
+      !(reverse.status === "pending" && isReleasedToRecipient(reverse.stage))
+    ) {
+      throw new Error("REQUEST_NOT_FOUND");
+    }
+
+    // This path opens no DM, so a request's messages have nowhere to go. They
+    // are cleared rather than left orphaned (`approveDirectRequest` is the one
+    // that moves them into the room).
+    await clearFriendRequestMessages(ctx, request._id);
     await ctx.db.patch(request._id, { status: "accepted" });
-    // Create reverse friendship
-    await ctx.db.insert("friendships", {
-      userId,
-      friendId: requesterId,
-      status: "accepted",
-      createdAt: Date.now(),
-    });
+    if (reverse) {
+      if (reverse.status === "pending") {
+        await clearFriendRequestMessages(ctx, reverse._id);
+        await ctx.db.patch(reverse._id, { status: "accepted" });
+      }
+    } else {
+      await ctx.db.insert("friendships", {
+        userId,
+        friendId: requesterId,
+        status: "accepted",
+        createdAt: Date.now(),
+      });
+    }
   },
 });
 
@@ -312,7 +334,7 @@ export const rejectRequest = mutation({
         q.eq("userId", requesterId).eq("friendId", userId)
       )
       .first();
-    if (request) await ctx.db.delete(request._id);
+    if (request) await deleteFriendshipRow(ctx, request);
   },
 });
 
@@ -604,7 +626,7 @@ export const approveDirectRequest = mutation({
         lastMessageTime: last.createdAt,
         lastMessageSenderId: last.userId,
       });
-      await clearRequestMessages(ctx, request._id);
+      await clearFriendRequestMessages(ctx, request._id);
     }
 
     // Tell the sender their request landed. Without this the other half of
@@ -628,8 +650,7 @@ export const cancelDirectRequest = mutation({
       .withIndex("by_pair", (q) => q.eq("userId", userId).eq("friendId", friendId))
       .first();
     if (request?.status === "pending") {
-      await clearRequestMessages(ctx, request._id);
-      await ctx.db.delete(request._id);
+      await deleteFriendshipRow(ctx, request);
     }
   },
 });
@@ -646,8 +667,7 @@ export const rejectDirectRequest = mutation({
     // Same gate as approve: an unreleased row belongs to a guardian, who
     // declines it via `family.advanceContactRequest`.
     if (request?.status === "pending" && isReleasedToRecipient(request.stage)) {
-      await clearRequestMessages(ctx, request._id);
-      await ctx.db.delete(request._id);
+      await deleteFriendshipRow(ctx, request);
     }
   },
 });
@@ -750,8 +770,8 @@ export const removeFriend = mutation({
       .query("friendships")
       .withIndex("by_pair", (q) => q.eq("userId", friendId).eq("friendId", userId))
       .first();
-    if (f1) await ctx.db.delete(f1._id);
-    if (f2) await ctx.db.delete(f2._id);
+    if (f1) await deleteFriendshipRow(ctx, f1);
+    if (f2) await deleteFriendshipRow(ctx, f2);
   },
 });
 

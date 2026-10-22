@@ -42,7 +42,10 @@ import { lensFor, publicUserView } from "./visibility";
 import {
   assertAdministrableRoom,
   assertMember,
+  clearReleasedAvatarRequests,
   isAdminRole,
+  releaseRoomPhoto,
+  roomPhotoInUse,
   roleOf,
 } from "./roomAdmin";
 
@@ -62,6 +65,8 @@ export const ERR_INVALID_FIELD = "CHANGE_REQUEST_INVALID_FIELD";
 /** An avatar proposal with no file, or a text proposal with no text. */
 export const ERR_MISSING_VALUE = "CHANGE_REQUEST_MISSING_VALUE";
 /** Proposing exactly what the room already says. */
+/** The file is already a room's photo or another request's proposal. */
+export const ERR_PHOTO_IN_USE = "CHANGE_REQUEST_PHOTO_IN_USE";
 export const ERR_NO_CHANGE = "CHANGE_REQUEST_NO_CHANGE";
 /** Withdrawing somebody else's. */
 export const ERR_NOT_REQUESTER = "CHANGE_REQUEST_NOT_YOURS";
@@ -105,7 +110,9 @@ async function pendingFor(ctx: any, roomId: any) {
  */
 async function releaseProposal(ctx: any, row: any) {
   if (row?.field === FIELD_AVATAR && row.storageId) {
-    await deleteStored(ctx, row.storageId);
+    // NOT excluding the row's room: if the room shows this very file, the
+    // file stays.
+    await releaseRoomPhoto(ctx, row.storageId, { requestId: row._id });
   }
 }
 
@@ -142,7 +149,8 @@ async function applyChange(ctx: any, room: any, row: any) {
     const previous = room.avatarStorageId;
     await ctx.db.patch(room._id, { avatarStorageId: row.storageId });
     if (previous && previous !== row.storageId) {
-      await deleteStored(ctx, previous);
+      await releaseRoomPhoto(ctx, previous);
+      await clearReleasedAvatarRequests(ctx, room._id, previous);
     }
     return;
   }
@@ -229,6 +237,11 @@ export const propose = mutation({
     if (field === FIELD_AVATAR) {
       if (!storageId) throw new Error(ERR_MISSING_VALUE);
       await claimUpload(ctx, storageId, userId, "avatar");
+      // One file, one pointer. `claimUpload` is idempotent per owner, so the
+      // proposer could otherwise name the file a room already shows, or one
+      // another request holds, and the first release would delete it under
+      // the other pointer.
+      if (await roomPhotoInUse(ctx, storageId)) throw new Error(ERR_PHOTO_IN_USE);
       proposed = storageId.toString();
     } else {
       const trimmed = (value ?? "").trim();
@@ -375,10 +388,16 @@ export const decide = mutation({
     // than marking it approved against a room that never changed.
     if (approve) await applyChange(ctx, room, row);
 
+    // `storageId` is cleared either way, so only a PENDING row ever holds a
+    // file. Rejected: the file is released just below, and the row stays as an
+    // audit record, so it must not keep pointing at it. Approved: the room is
+    // now the file's pointer, and the row would dangle the next time the
+    // picture changes.
     await ctx.db.patch(requestId, {
       status: approve ? STATUS_APPROVED : STATUS_REJECTED,
       decidedAt: Date.now(),
       decidedBy: userId,
+      storageId: undefined,
     });
     if (!approve) await releaseProposal(ctx, row);
 

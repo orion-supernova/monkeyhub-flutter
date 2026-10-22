@@ -14,15 +14,15 @@ import schema from "./schema";
  * mostly right all along, and the bug was that nothing ever showed them.
  */
 
-const DEVICE = "device-a";
-
 async function signUp(t: ReturnType<typeof convexTest>, username: string) {
   return await t.mutation(api.auth.signup, {
     username,
     name: username,
     passwordHash: `hash-${username}`,
     recoveryKeyHash: `recovery-${username}`,
-    deviceId: DEVICE,
+    // One device per person: a deviceId is one physical handset, and signing
+    // in on it ends whoever was signed in there before.
+    deviceId: `device-${username}`,
   });
 }
 

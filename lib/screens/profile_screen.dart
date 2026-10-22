@@ -720,6 +720,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       nav.popUntil((r) => r.isFirst);
     } catch (e) {
+      // A server refusal (LAST_GUARDIAN: sole guardian of a child account) left
+      // the account AND this session intact, so say why and stay put.
+      if (AuthService.isDeleteRefusal(e)) {
+        debugPrint('[profile] deleteAccount refused: $e');
+        if (!mounted) return;
+        toast.show(
+          humanizeAuthError(
+            e,
+            l10n,
+            fallback: l10n.profileScreenDeleteAccountFailed,
+          ),
+          tone: ToastTone.danger,
+        );
+        return;
+      }
       // The local teardown ran regardless — `deleteAccount` does it in a
       // `finally` — so this device is signed out whatever happened. What is
       // genuinely unknown is the SERVER's half: the mutation may have

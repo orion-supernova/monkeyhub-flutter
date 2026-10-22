@@ -40,6 +40,8 @@ import { purgeSpeakerColorsForMember } from "./speakerColors";
 import { deleteStored } from "./files";
 import { leaveMatchesInRoom } from "./matchCore";
 import { grantRoomAccess, revokeRoomAccess } from "./roomAccess";
+import { removeUserFromRoomGroupCall } from "./groupCalls";
+import { purgeScheduledForRoomUser } from "./scheduledMessages";
 
 export const ROLE_OWNER = "owner";
 export const ROLE_ADMIN = "admin";
@@ -192,12 +194,22 @@ export async function assertAdministrableRoom(ctx: any, roomId: any) {
  * Deliberately does NOT check child policy or room password: those are
  * caller-specific questions (a guardian-approved invite is not the same act as
  * typing a password) and each entry point answers them before calling in.
+ *
+ * This is also the ONLY place `ERR_ROOM_FULL` and `ERR_TOO_MANY_ROOMS` are
+ * enforced, so a room's creator and a new DM's two members come through here
+ * too: those rooms are inserted with `memberCount: 0` and counted up by this
+ * function, rather than pre-counted and inserted by hand around the caps.
+ * [extra] carries per-viewer fields a caller wants on the first row (the
+ * self-chat is born pinned). `skipRoomCap` exempts the one-member self-chat
+ * from `MAX_ROOMS_PER_USER`; everything else stays capped.
  */
 export async function addMembership(
   ctx: any,
   roomId: any,
   userId: any,
   role: string = ROLE_MEMBER,
+  extra: Record<string, any> = {},
+  skipRoomCap: boolean = false,
 ): Promise<boolean> {
   const existing = await membershipOf(ctx, roomId, userId);
   if (existing) return false;
@@ -205,17 +217,22 @@ export async function addMembership(
   if (target && target.memberCount >= MAX_ROOM_MEMBERS) {
     throw new Error(ERR_ROOM_FULL);
   }
-  const joined = await ctx.db
-    .query("roomMembers")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .take(MAX_ROOMS_PER_USER);
-  if (joined.length >= MAX_ROOMS_PER_USER) throw new Error(ERR_TOO_MANY_ROOMS);
+  if (!skipRoomCap) {
+    const joined = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .take(MAX_ROOMS_PER_USER);
+    if (joined.length >= MAX_ROOMS_PER_USER) {
+      throw new Error(ERR_TOO_MANY_ROOMS);
+    }
+  }
   await ctx.db.insert("roomMembers", {
     roomId,
     userId,
     joinedAt: Date.now(),
     role,
     seenVisibility: await seenVisibilityOf(ctx, userId),
+    ...extra,
   });
   await grantRoomAccess(ctx, roomId, userId);
   const room = await ctx.db.get(roomId);
@@ -244,6 +261,16 @@ export async function removeMembership(
 
   await ctx.db.delete(member._id);
   await revokeRoomAccess(ctx, roomId, userId);
+
+  // A live group call in this room: they are no longer entitled to be in it.
+  // Through the call's own leave path, so the roster, the pair signals and
+  // "last one out ends the call" all behave as if they had hung up.
+  await removeUserFromRoomGroupCall(ctx, roomId, userId);
+
+  // Their queued messages for this room. `release` would refuse them anyway
+  // (no membership), leaving each as a permanent error row, and a queued photo
+  // is the only pointer to its file.
+  await purgeScheduledForRoomUser(ctx, roomId, userId);
 
   // Their open games here: a lobby seat vacated, a seat in play forfeited.
   await leaveMatchesInRoom(ctx, roomId, userId);
@@ -334,8 +361,82 @@ export async function clearPendingFor(ctx: any, roomId: any, userId: any) {
     .collect();
   for (const row of proposals) {
     if (row.status !== "pending") continue;
-    if (row.storageId) await deleteStored(ctx, row.storageId);
+    if (row.storageId) {
+      await releaseRoomPhoto(ctx, row.storageId, { requestId: row._id });
+    }
     await ctx.db.delete(row._id);
+  }
+}
+
+/**
+ * Is [storageId] still a room's photo, or held by another pending proposal?
+ * [exceptRoomId] / [exceptRequestId] exclude the caller's own pointer.
+ */
+export async function roomPhotoInUse(
+  ctx: any,
+  storageId: any,
+  except: { roomId?: any; requestId?: any } = {},
+): Promise<boolean> {
+  const rooms = await ctx.db
+    .query("rooms")
+    .withIndex("by_avatar", (q: any) => q.eq("avatarStorageId", storageId))
+    .take(3);
+  if (rooms.some((r: any) => r._id.toString() !== except.roomId?.toString())) {
+    return true;
+  }
+  const holders = await ctx.db
+    .query("roomChangeRequests")
+    .withIndex("by_storage", (q: any) => q.eq("storageId", storageId))
+    .take(5);
+  return holders.some(
+    (r: any) =>
+      r.status === "pending" &&
+      r._id.toString() !== except.requestId?.toString(),
+  );
+}
+
+/**
+ * Delete a room-photo file unless something else still points at it.
+ *
+ * The one release path for proposals and replaced avatars. `claimUpload` is
+ * idempotent per owner, so the same blob can be proposed twice, in two rooms,
+ * or be the photo a room already shows; deleting it on the first release would
+ * leave the other pointer broken.
+ */
+export async function releaseRoomPhoto(
+  ctx: any,
+  storageId: any,
+  except: { roomId?: any; requestId?: any } = {},
+) {
+  if (!storageId) return;
+  if (await roomPhotoInUse(ctx, storageId, except)) return;
+  await deleteStored(ctx, storageId);
+}
+
+/**
+ * Forget a room photo that was just deleted, on any decided change request.
+ *
+ * New approvals clear their own `storageId` (`roomChangeRequests.decide`), so
+ * this only finds rows approved before that: they kept pointing at the photo
+ * that was then the room's, and would dangle once it is replaced. Called by
+ * every path that replaces a room's avatar. Bounded: a room's approved rows
+ * are a handful, and only avatar ones carry a file.
+ */
+export async function clearReleasedAvatarRequests(
+  ctx: any,
+  roomId: any,
+  storageId: any,
+) {
+  const rows = await ctx.db
+    .query("roomChangeRequests")
+    .withIndex("by_room_status", (q: any) =>
+      q.eq("roomId", roomId).eq("status", "approved"),
+    )
+    .take(200);
+  for (const row of rows) {
+    if (row.storageId && row.storageId.toString() === storageId.toString()) {
+      await ctx.db.patch(row._id, { storageId: undefined });
+    }
   }
 }
 

@@ -16609,6 +16609,18 @@
   "@authErrorAccountSuspended": {
     "description": "Login screen error for an account a moderator suspended."
   },
+  "authErrorLastGuardian": "You’re the only guardian of a child account. Add another guardian or delete the child account first.",
+  "@authErrorLastGuardian": {
+    "description": "Error when deleting an account that is the only guardian of a child account; they must add another guardian or delete the child account first."
+  },
+  "authSuspendedDeleteAction": "Delete my account",
+  "@authSuspendedDeleteAction": {
+    "description": "Action on the suspended-account banner that deletes the banned account."
+  },
+  "authSuspendedDeleteFailed": "We couldn’t delete your account from here. Please contact support and we’ll sort it out.",
+  "@authSuspendedDeleteFailed": {
+    "description": "Shown when deleting a suspended account was refused (for example the session is too old); points the user to support."
+  },
   "termsConsentPrefix": "I agree to the ",
   "@termsConsentPrefix": {
     "description": "Sign-up EULA checkbox, text before the link. Full sentence: prefix + link + suffix."

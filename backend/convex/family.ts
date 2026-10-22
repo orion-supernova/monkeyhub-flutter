@@ -1,14 +1,14 @@
 import { assertCleanName } from "./contentFilter";
 import { TERMS_VERSION } from "./terms";
 import { mutation, publicMutation, query } from "./functions";
-import { mintSession } from "./sessionCore";
+import { mintSession, revokeSessionsForDevice } from "./sessionCore";
 import { internal } from "./_generated/api";
 import {
   ERR_DISPLAY_NAME_RESERVED,
   ERR_USERNAME_RESERVED,
   isReservedName,
 } from "./systemAccount";
-import { lensFor, seenVisibilityOf } from "./visibility";
+import { lensFor } from "./visibility";
 import { v } from "convex/values";
 import {
   ACCOUNT_ADULT,
@@ -36,9 +36,7 @@ import {
   summariseRooms,
   wipeRoomCompletely,
 } from "./roomCleanup";
-import { addMembership } from "./roomAdmin";
-import { leaveMatchesInRoom } from "./matchCore";
-import { grantRoomAccess, revokeRoomAccess } from "./roomAccess";
+import { addMembership, removeMembership } from "./roomAdmin";
 import {
   assertNotLocked,
   loginKey,
@@ -320,10 +318,17 @@ export const redeemPairingCode = publicMutation({
   args: {
     codeHash: v.string(),
     deviceId: v.string(),
+    // Per-install secret (64 hex chars) proving this really is the install
+    // that owns `deviceId`; see `sessionCore.mintSession`. Optional so older
+    // builds keep signing in.
+    deviceSecret: v.optional(v.string()),
     platform: v.string(),
     deviceName: v.optional(v.string()),
   },
-  handler: async (ctx, { codeHash, deviceId, platform, deviceName }) => {
+  handler: async (
+    ctx,
+    { codeHash, deviceId, deviceSecret, platform, deviceName },
+  ) => {
     // Six digits, five minutes, no session: a script walking the codes would
     // land on a live one sooner or later. Two buckets, because the caller
     // can't be identified: this device's guesses, and everyone's together. A
@@ -342,6 +347,15 @@ export const redeemPairingCode = publicMutation({
       return refusal(ERR_CODE_INVALID);
     }
     if (row.expiresAt < Date.now()) throw new Error(ERR_CODE_EXPIRED);
+
+    // The code is the guardian's authority, lent for five minutes. If they have
+    // since been unlinked (or deleted) it is no longer anyone's to spend, and
+    // redeeming it would sign a phone in as a child they do not supervise.
+    if (!(await isGuardianOf(ctx, row.createdByGuardianId, row.childId))) {
+      await noteFailure(ctx, deviceKey, MAX_PAIRING_DEVICE_FAILURES);
+      await noteFailure(ctx, PAIRING_GLOBAL_KEY, MAX_PAIRING_GLOBAL_FAILURES);
+      return refusal(ERR_CODE_INVALID);
+    }
 
     const child = await ctx.db.get(row.childId);
     if (!child) throw new Error("USER_NOT_FOUND");
@@ -382,7 +396,7 @@ export const redeemPairingCode = publicMutation({
       username: child.username,
       name: child.name ?? child.username,
       accountType: ACCOUNT_CHILD,
-      token: await mintSession(ctx, child._id, deviceId),
+      token: await mintSession(ctx, child._id, deviceId, deviceSecret),
     };
   },
 });
@@ -411,6 +425,10 @@ async function releaseDevice(ctx: any, childId: any, deviceId: string) {
     )
     .first();
   if (device) await ctx.db.delete(device._id);
+  // The device row is only push plumbing. What keeps the handset signed in as
+  // the child is the session, and it never expired: a released phone stayed the
+  // child's for good.
+  await revokeSessionsForDevice(ctx, childId, deviceId);
   await ctx.db.patch(childId, { status: "offline", lastSeen: Date.now() });
   return { childId };
 }
@@ -463,6 +481,12 @@ export const releaseDeviceByCode = mutation({
       return refusal(ERR_CODE_INVALID);
     }
     if (row.expiresAt < Date.now()) throw new Error(ERR_CODE_EXPIRED);
+    // Same re-check as `redeemPairingCode`: a code minted by someone since
+    // unlinked must not hand the child a way out of supervision.
+    if (!(await isGuardianOf(ctx, row.createdByGuardianId, row.childId))) {
+      await noteFailure(ctx, key, MAX_PAIRING_DEVICE_FAILURES);
+      return refusal(ERR_CODE_INVALID);
+    }
 
     await ctx.db.patch(row._id, {
       consumedAt: Date.now(),
@@ -904,23 +928,9 @@ export const decideApproval = mutation({
     if (req.kind === "joinRoom" && targetRoomId) {
       const room = await ctx.db.get(targetRoomId);
       if (!room) throw new Error("ROOM_NOT_FOUND");
-      const already = await ctx.db
-        .query("roomMembers")
-        .withIndex("by_room_user", (q) =>
-          q.eq("roomId", targetRoomId).eq("userId", req.childId),
-        )
-        .first();
-      if (!already) {
-        await ctx.db.insert("roomMembers", {
-          roomId: targetRoomId,
-          userId: req.childId,
-          joinedAt: Date.now(),
-          role: "member",
-          seenVisibility: await seenVisibilityOf(ctx, req.childId),
-        });
-        await grantRoomAccess(ctx, targetRoomId, req.childId);
-        await ctx.db.patch(targetRoomId, { memberCount: room.memberCount + 1 });
-      }
+      // The shared join: member cap, per-user room cap, `seenVisibility` and
+      // the access grant. Idempotent, so an already-member child is a no-op.
+      await addMembership(ctx, targetRoomId, req.childId);
     }
 
     await ctx.db.patch(approvalId, {
@@ -952,6 +962,11 @@ export const revokeApproval = mutation({
     const req = await ctx.db.get(approvalId);
     if (!req) throw new Error("REQUEST_NOT_FOUND");
     await assertGuardian(ctx, guardianId, req.childId);
+    // Only a standing approval can be taken back. A pending request has not
+    // let the child in anywhere, a denied one never did, and a revoked one is
+    // already undone: none of them may remove the child from a room or sever a
+    // contact, so they are left exactly as they are.
+    if (req.status !== "approved") return;
 
     if (req.kind === "contact" && req.targetUserId) {
       await severContact(ctx, req.childId, req.targetUserId);
@@ -959,21 +974,9 @@ export const revokeApproval = mutation({
 
     const targetRoomId = req.targetRoomId;
     if (req.kind === "joinRoom" && targetRoomId) {
-      const member = await ctx.db
-        .query("roomMembers")
-        .withIndex("by_room_user", (q) =>
-          q.eq("roomId", targetRoomId).eq("userId", req.childId),
-        )
-        .first();
-      if (member) {
-        await ctx.db.delete(member._id);
-        await revokeRoomAccess(ctx, targetRoomId, req.childId);
-        await leaveMatchesInRoom(ctx, targetRoomId, req.childId);
-        const room = await ctx.db.get(targetRoomId);
-        if (room && room.memberCount > 0) {
-          await ctx.db.patch(targetRoomId, { memberCount: room.memberCount - 1 });
-        }
-      }
+      // The same teardown leaving and being removed use. Idempotent: a child
+      // who already left is "absent" and nothing happens.
+      await removeMembership(ctx, targetRoomId, req.childId);
     }
 
     await ctx.db.patch(approvalId, {

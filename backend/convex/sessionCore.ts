@@ -66,6 +66,21 @@ export async function hashToken(token: string): Promise<string> {
 }
 
 /**
+ * sha256 hex of a client's `deviceSecret`, or undefined when there is none.
+ *
+ * The contract is 64 hex characters, generated once per install. Anything else
+ * is treated as "no secret" rather than refused, so a malformed value from a
+ * buggy build degrades to the old behaviour (no eviction) instead of breaking
+ * sign-in.
+ */
+export async function deviceSecretHashOf(
+  secret: string | undefined,
+): Promise<string | undefined> {
+  if (secret === undefined || !/^[0-9a-f]{64}$/i.test(secret)) return undefined;
+  return await hashToken(secret.toLowerCase());
+}
+
+/**
  * Mint a session for a user on a device, returning the plaintext token.
  *
  * Call this from every entry point that establishes identity: password login,
@@ -82,6 +97,7 @@ export async function mintSession(
   ctx: MutationCtx,
   userId: Id<"users">,
   deviceId: string,
+  deviceSecret?: string,
 ): Promise<string> {
   // The one door every sign-in path walks through, so the one place a ban has
   // to be checked to cover them all.
@@ -101,15 +117,74 @@ export async function mintSession(
       await ctx.db.patch(row._id, { revokedAt: now });
     }
   }
+  // One physical device, one account: signing in as B on a phone that A is
+  // still signed in on used to leave A's token live on that handset.
+  //
+  // But `deviceId` is NOT a secret (group-call rosters and 1:1 call rows show
+  // it to peers), so on its own it must never be enough to sign somebody out:
+  // anyone could sign in to their own account with a victim's deviceId and
+  // force them out, repeatedly. The proof is `deviceSecret`, a per-install
+  // value only that install knows; another account's session is revoked only
+  // when BOTH sessions carry a secret hash and the hashes are equal. A client
+  // without a secret evicts nothing and is evicted by nothing.
+  //
+  // Found through `sessions.by_device` (undefined `revokedAt` sorts lowest, so
+  // the equality ranges over live rows). Bounded: a device hosts a handful of
+  // accounts.
+  const secretHash = await deviceSecretHashOf(deviceSecret);
+  if (secretHash !== undefined) {
+    const live = await ctx.db
+      .query("sessions")
+      .withIndex("by_device", (q) =>
+        q.eq("deviceId", deviceId).eq("revokedAt", undefined),
+      )
+      .take(50);
+    for (const row of live) {
+      if (row.userId !== userId && row.deviceSecretHash === secretHash) {
+        await ctx.db.patch(row._id, { revokedAt: now });
+      }
+    }
+  }
   const token = randomHex(32);
   await ctx.db.insert("sessions", {
     userId,
     tokenHash: await hashToken(token),
     deviceId,
+    ...(secretHash !== undefined ? { deviceSecretHash: secretHash } : {}),
     createdAt: now,
     lastSeenAt: now,
   });
   return token;
+}
+
+/**
+ * The key a banned social identity is remembered by: sha256 of
+ * "provider:subject". Subject only, never email (email is display-only and
+ * Apple's relay address is per-app; see `socialIdentities`).
+ */
+export async function identityBanHash(
+  provider: string,
+  subject: string,
+): Promise<string> {
+  return await hashToken(`${provider}:${subject}`);
+}
+
+/**
+ * Refuse an identity that belonged to an account deleted while SUSPENDED
+ * (`auth.purgeUser` records it). Same code a suspended account answers with, so
+ * the client shows the one ban screen it already has.
+ */
+export async function assertIdentityNotBanned(
+  ctx: QueryCtx | MutationCtx,
+  provider: string,
+  subject: string,
+): Promise<void> {
+  const hash = await identityBanHash(provider, subject);
+  const banned = await ctx.db
+    .query("bannedIdentities")
+    .withIndex("by_hash", (q) => q.eq("hash", hash))
+    .first();
+  if (banned) throw new Error(ERR_ACCOUNT_SUSPENDED);
 }
 
 /** Thrown by [requireSession]; the two are deliberately distinguishable. */
@@ -141,6 +216,7 @@ export const ERR_ACCOUNT_SUSPENDED = "ACCOUNT_SUSPENDED";
 export async function requireSession(
   ctx: QueryCtx | MutationCtx,
   token: string,
+  opts?: { allowSuspended?: boolean },
 ): Promise<Id<"users">> {
   const tokenHash = await hashToken(token);
   const row = await ctx.db
@@ -156,6 +232,13 @@ export async function requireSession(
   if (row.revokedAt !== undefined) {
     const owner = await ctx.db.get(row.userId);
     if (owner?.suspendedAt !== undefined && owner !== null) {
+      // The one exception, for `auth.deleteAccount` alone: the session the BAN
+      // revoked still proves who is asking. Only that one — a token revoked
+      // before the ban (signed out, "sign out everywhere") stays dead, so an
+      // old credential cannot be used to delete somebody's account.
+      if (opts?.allowSuspended && row.revokedAt >= owner.suspendedAt) {
+        return row.userId;
+      }
       throw new Error(ERR_ACCOUNT_SUSPENDED);
     }
     throw new Error(ERR_SESSION_REVOKED);
@@ -168,8 +251,8 @@ export async function requireSession(
   // than erroring, so nothing downstream ever notices.
   //
   // REVOKED, not UNKNOWN: a deleted account is "you were signed out", which is
-  // exactly what the client should say. UNKNOWN is reserved for the shape a
-  // bug takes (see the doc comment above) and a purge is not one.
+  // exactly what the client should say. UNKNOWN is reserved for the shape a bug
+  // takes (see the doc comment above) and a purge is not one.
   //
   // Cost: one document get by id on every authenticated call, in the same
   // transaction as the index read above. Bought deliberately — the alternative
@@ -177,10 +260,11 @@ export async function requireSession(
   const user = await ctx.db.get(row.userId);
   if (!user) throw new Error(ERR_SESSION_REVOKED);
   // Free: the row is already in hand. See `moderation.suspendAccount`.
-  if (user.suspendedAt !== undefined) throw new Error(ERR_ACCOUNT_SUSPENDED);
+  if (user.suspendedAt !== undefined && !opts?.allowSuspended) {
+    throw new Error(ERR_ACCOUNT_SUSPENDED);
+  }
   return row.userId;
 }
-
 
 /**
  * The deviceIds [userId] is currently signed in on.

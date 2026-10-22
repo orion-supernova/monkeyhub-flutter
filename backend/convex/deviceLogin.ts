@@ -297,8 +297,12 @@ export const exchangeDeviceLoginRequest = publicMutation({
     // that approved it. Binding it here is what puts the new sign-in in the
     // Devices list under its own name.
     deviceId: v.string(),
+    // Per-install secret (64 hex chars) proving this really is the install
+    // that owns `deviceId`; see `sessionCore.mintSession`. Optional so older
+    // builds keep signing in.
+    deviceSecret: v.optional(v.string()),
   },
-  handler: async (ctx, { requestId, deviceId }) => {
+  handler: async (ctx, { requestId, deviceId, deviceSecret }) => {
     const row = await ctx.db
       .query("deviceLoginRequests")
       .withIndex("by_requestId", (q) => q.eq("requestId", requestId))
@@ -324,7 +328,7 @@ export const exchangeDeviceLoginRequest = publicMutation({
       userId: user._id,
       username: user.username,
       name: user.name ?? user.username,
-      token: await mintSession(ctx, user._id, deviceId),
+      token: await mintSession(ctx, user._id, deviceId, deviceSecret),
     };
   },
 });

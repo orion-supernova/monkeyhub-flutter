@@ -7,7 +7,7 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { expressionRef } from "./schema";
-import { deleteStored, claimUpload } from "./files";
+import { claimUpload, deleteStored } from "./files";
 import { isKlipyUrl } from "./messages";
 
 /**
@@ -451,14 +451,26 @@ export const deletePersonalSticker = mutation({
 });
 
 /**
- * Account teardown: the user's personal pack (rows AND blobs — these are their
- * photos) and their recents row. Called from `auth.ts`'s purge.
+ * Account teardown: the user's personal pack, FILES deleted and rows
+ * tombstoned, and their recents row deleted. Called from `auth.ts`'s purge.
+ *
+ * A personal sticker is a cut-out of the owner's own photo (often their face),
+ * so the files go with the account. The rows stay, soft-deleted exactly as
+ * `deletePersonalSticker` does it (`deletedAt` set), because other people's
+ * messages, forwards, comments and recents still hold the sticker's id: with
+ * the row kept they resolve to "unavailable" instead of a dangling id. The
+ * `storageId` on a tombstoned row names a file that no longer exists, and
+ * every reader already copes: sends refuse a row with `deletedAt` (see
+ * `expressionFieldsFor`), the catalog skips it, and `ctx.storage.getUrl` on a
+ * deleted file answers null. The pack loses its owner (SET NULL) so nothing
+ * points at a deleted user, and no longer lists.
  */
 export async function purgeUserExpressions(ctx: any, userId: any) {
   const packs = await ctx.db
     .query("stickerPacks")
     .withIndex("by_owner", (q: any) => q.eq("ownerId", userId))
     .collect();
+  const now = Date.now();
   for (const pack of packs) {
     const rows = await ctx.db
       .query("stickers")
@@ -466,9 +478,9 @@ export async function purgeUserExpressions(ctx: any, userId: any) {
       .collect();
     for (const s of rows) {
       await deleteStored(ctx, s.storageId);
-      await ctx.db.delete(s._id);
+      if (s.deletedAt === undefined) await ctx.db.patch(s._id, { deletedAt: now });
     }
-    await ctx.db.delete(pack._id);
+    await ctx.db.patch(pack._id, { ownerId: undefined });
   }
   const state = await ctx.db
     .query("userExpressions")

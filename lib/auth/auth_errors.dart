@@ -104,6 +104,9 @@ Map<String, String> authErrorMessages(AppLocalizations l10n) => {
   // sessionCore.ERR_ACCOUNT_SUSPENDED: a moderator banned this account. Thrown
   // at sign-in by every path, and by every call a banned session makes.
   'ACCOUNT_SUSPENDED': l10n.authErrorAccountSuspended,
+  // childGuard.ERR_LAST_GUARDIAN, thrown by auth.deleteAccount when the caller
+  // is the only guardian of a child account (and by family.unlinkChild).
+  'LAST_GUARDIAN': l10n.authErrorLastGuardian,
   // terms.ERR_TERMS_NOT_ACCEPTED: a sign-up that sent a stale EULA version.
   'TERMS_NOT_ACCEPTED': l10n.termsMustAccept,
 };

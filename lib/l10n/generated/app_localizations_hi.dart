@@ -13848,6 +13848,17 @@ class AppLocalizationsHi extends AppLocalizations {
       'उपयोग की शर्तों का उल्लंघन करने के कारण आपका अकाउंट निलंबित कर दिया गया है।';
 
   @override
+  String get authErrorLastGuardian =>
+      'आप एक बच्चे के खाते के अकेले अभिभावक हैं। पहले कोई दूसरा अभिभावक जोड़ें या बच्चे का खाता हटाएँ।';
+
+  @override
+  String get authSuspendedDeleteAction => 'मेरा खाता हटाएँ';
+
+  @override
+  String get authSuspendedDeleteFailed =>
+      'हम यहाँ से आपका खाता नहीं हटा सके। कृपया सहायता टीम से संपर्क करें, हम इसे सुलझा देंगे।';
+
+  @override
   String get termsConsentPrefix => 'मैं ';
 
   @override

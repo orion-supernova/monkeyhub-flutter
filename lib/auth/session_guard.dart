@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'session_store.dart';
+
 /// The client half of the session boundary.
 ///
 /// Two jobs, both of which have to live somewhere every backend call passes
@@ -108,6 +110,36 @@ class SessionGuard {
   }
 
 
+  /// The one non-farewell call that may borrow the outgoing token: a banned
+  /// user deleting their own account. The backend accepts the session the ban
+  /// revoked for this call and nothing else.
+  static const _deleteAccount = 'auth:deleteAccount';
+
+  bool _suspensionPending = false;
+  String? _suspendedUserId;
+
+  /// True from the moment a ban signs this device out until the user deletes
+  /// the account, signs in again, or dismisses the notice ([dismissSuspension]).
+  /// While true, `auth:deleteAccount` (and only it) goes out with the banned
+  /// session's token.
+  bool get suspensionPending => _suspensionPending;
+
+  /// Who was banned; `auth:deleteAccount` still wants the id as an argument.
+  String? get suspendedUserId => _suspendedUserId;
+
+  /// Remembered by `AuthService.forceSignOut` while the session is still known.
+  void noteSuspendedUser(String? userId) {
+    if (_suspensionPending) _suspendedUserId = userId;
+  }
+
+  /// The user moved on (signed in, or left the notice): the banned token stops
+  /// being anyone's business.
+  void dismissSuspension() {
+    _suspensionPending = false;
+    _suspendedUserId = null;
+    SessionStore.instance.discardOutgoingToken();
+  }
+
   /// Installed by `app.dart`. Called at most once per lost session — see
   /// [noteError]'s latch.
   VoidCallback? onSessionLost;
@@ -119,7 +151,9 @@ class SessionGuard {
 
   /// Whether [name] may fall back to the token of the session that just ended.
   /// See [farewell].
-  bool acceptsOutgoingToken(String name) => farewell.contains(name);
+  bool acceptsOutgoingToken(String name) =>
+      farewell.contains(name) ||
+      (name == _deleteAccount && _suspensionPending);
 
   /// The token [name] travels with: the live one, or — for the two calls that
   /// ARE a session's teardown, and run after it has been cleared — the one the
@@ -189,11 +223,18 @@ class SessionGuard {
     if (_lost || !isSessionLoss(error)) return;
     if (carried != live) return;
     _lost = true;
-    if (error.toString().contains(_suspended)) _suspendedNotice = true;
+    if (error.toString().contains(_suspended)) {
+      _suspendedNotice = true;
+      _suspensionPending = true;
+    }
     debugPrint('[session] server rejected our token — signing out');
     onSessionLost?.call();
   }
 
   /// Re-arm after a successful sign-in, so a later loss is noticed again.
-  void reset() => _lost = false;
+  void reset() {
+    _lost = false;
+    _suspensionPending = false;
+    _suspendedUserId = null;
+  }
 }

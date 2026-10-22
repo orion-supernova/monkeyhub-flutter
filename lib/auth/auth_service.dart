@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../backend/chat_api.dart';
+import '../backend/convex_client.dart';
 import '../data/cache_store.dart';
 import '../diagnostics/diag_log.dart';
 import '../models/family.dart';
@@ -372,6 +373,7 @@ class AuthService extends ChangeNotifier {
   Future<void> forceSignOut() async {
     if (_session == null) return;
     debugPrint('[auth] session lost — returning to the login screen');
+    SessionGuard.instance.noteSuspendedUser(_session?.userId);
     try {
       await SessionStore.instance.clearSession().timeout(_localSignOutTimeout);
     } catch (e) {
@@ -575,6 +577,20 @@ class AuthService extends ChangeNotifier {
     );
   }
 
+  /// Whether [e] is the server saying NO to a delete, as opposed to the
+  /// request dying in transit. A refusal means the account still exists, so
+  /// the device must stay signed in; anything else (socket died, timeout) is
+  /// ambiguous and keeps the teardown-regardless behaviour.
+  ///
+  /// A lost session is deliberately NOT a refusal: the account is gone or this
+  /// device is no longer signed in, and signing out matches the server.
+  static bool isDeleteRefusal(Object e) {
+    if (SessionGuard.isSessionLoss(e)) return false;
+    if (e is ServerRefusal || e is ConvexError) return true;
+    final text = e.toString();
+    return text.contains('LAST_GUARDIAN') || text.contains('CHILD_NOT_ALLOWED');
+  }
+
   Future<void> deleteAccount() async {
     final s = _session;
     // A child deleting their own account would be an escape hatch out of
@@ -582,37 +598,61 @@ class AuthService extends ChangeNotifier {
     if (s != null && s.isChild) return;
     try {
       if (s != null) await _api.deleteAccount(userId: s.userId);
-    } finally {
-      // In the `finally`, and that placement is the fix. The delete mutation
-      // commits on the server before the response makes it back, so a socket
-      // that dies in between used to leave the account purged and this device
-      // still holding its session — signed in, forever, to an account that no
-      // longer exists. Tearing down locally regardless is right in both
-      // directions: if the server did delete, this matches it; if it did not,
-      // the worst case is a sign-out.
-      if (s != null) {
-        // Account is gone — no reason to keep cached rooms/messages around.
-        try {
-          await CacheStore.instance.clearFor(s.userId);
-        } catch (e) {
-          debugPrint('[auth] deleteAccount: clearing the cache failed: $e');
-        }
-      }
-      try {
-        await SessionStore.instance.clearSession().timeout(_localSignOutTimeout);
-      } catch (e) {
-        debugPrint('[auth] deleteAccount: clearing the stored session failed: $e');
-      }
-      // Everything [signOut] does that this used to skip. Without the first,
-      // the next "Sign in with Google" tap silently reuses the provider
-      // account that was just deleted; without the second, staged push text
-      // from the dead account survives into the next one.
-      unawaited(SocialSignIn.forgetProviders());
-      unawaited(PushManager.instance.clearPushInbox());
-      SessionGuard.instance.reset();
-      _session = null;
-      notifyListeners();
+    } catch (e) {
+      // LAST_GUARDIAN (the only guardian of a child) and other refusals: the
+      // account is still there, so stay signed in and let the UI explain.
+      if (isDeleteRefusal(e)) rethrow;
+      await _teardownAfterDelete(s?.userId);
+      rethrow;
     }
+    await _teardownAfterDelete(s?.userId);
+  }
+
+  /// A banned user deleting their own account from the login screen's
+  /// suspended notice. The session is already gone locally, so this rides the
+  /// banned token `SessionGuard` is holding for exactly this call. Throws on
+  /// refusal (for example a token revoked before the ban) and leaves the
+  /// notice in place.
+  Future<void> deleteSuspendedAccount() async {
+    final uid = SessionGuard.instance.suspendedUserId;
+    if (!SessionGuard.instance.suspensionPending || uid == null) {
+      throw StateError('no suspended session to delete');
+    }
+    await _api.deleteAccount(userId: uid);
+    await _teardownAfterDelete(uid);
+    SessionGuard.instance.dismissSuspension();
+  }
+
+  /// Runs on success AND on an ambiguous failure (see [deleteAccount]). The
+  /// delete mutation commits on the server before the response makes it back,
+  /// so a socket that dies in between used to leave the account purged and this
+  /// device still holding its session, signed in forever to an account that no
+  /// longer exists. Tearing down regardless is right in both directions: if the
+  /// server did delete, this matches it; if it did not, the worst case is a
+  /// sign-out.
+  Future<void> _teardownAfterDelete(String? userId) async {
+    if (userId != null) {
+      // Account is gone, so no reason to keep cached rooms/messages around.
+      try {
+        await CacheStore.instance.clearFor(userId);
+      } catch (e) {
+        debugPrint('[auth] deleteAccount: clearing the cache failed: $e');
+      }
+    }
+    try {
+      await SessionStore.instance.clearSession().timeout(_localSignOutTimeout);
+    } catch (e) {
+      debugPrint('[auth] deleteAccount: clearing the stored session failed: $e');
+    }
+    // Everything [signOut] does that this used to skip. Without the first, the
+    // next "Sign in with Google" tap silently reuses the provider account that
+    // was just deleted; without the second, staged push text from the dead
+    // account survives into the next one.
+    unawaited(SocialSignIn.forgetProviders());
+    unawaited(PushManager.instance.clearPushInbox());
+    SessionGuard.instance.reset();
+    _session = null;
+    notifyListeners();
   }
 
   /// Our own profile came back missing — so either this account is gone, or

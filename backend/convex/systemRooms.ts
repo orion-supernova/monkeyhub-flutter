@@ -238,6 +238,14 @@ async function repairSystemRoom(
  * Revoking access is a deliberate act at a moment somebody chose, not a side
  * effect of a stranger tapping "send" on a report.
  */
+// Deliberately NOT through `roomAdmin.addMembership`: these are the only direct
+// `roomMembers` inserts left, and they bypass the caps on purpose. A system
+// account's room holds the account plus its readers (staff and the like), a
+// handful of people, so `MAX_ROOM_MEMBERS` can never bite; and the account is
+// in one room, so `MAX_ROOMS_PER_USER` cannot either. Routing a reader through
+// the cap would make a reader at 500 rooms silently stop receiving reports,
+// and `addMembership` would double-count `memberCount`, which is reconciled
+// from the row set at the end of this function.
 async function reconcileSystemRoomMembers(
   ctx: any,
   roomId: any,

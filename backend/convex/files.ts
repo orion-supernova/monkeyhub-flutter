@@ -400,12 +400,12 @@ const SWEEP_LIMIT = 200;
  * deletes it afterwards, because it reads siblings first), so the message being
  * removed is excluded from the count by id rather than assumed absent.
  *
- * The poster is gated on the SAME lookup, deliberately. A poster is only ever
- * created alongside its video and only ever copied by a forward, which copies
- * both fields together — so "is anyone else using my poster" and "is anyone
- * else using my video" cannot have different answers, and a second index keyed
- * on `posterStorageId` would only be able to confirm what this one already
- * knows. Keep them written and copied together or that stops being true.
+ * The poster is gated on its OWN lookup (`by_poster`). It used to ride the
+ * media lookup on the theory that a poster is only ever copied together with
+ * its video, but a file reaches `posterStorageId` of one message and
+ * `mediaStorageId` of another (a poster re-sent as a photo, a forward that
+ * keeps one field), and then "is anyone else using my video" and "is anyone
+ * else using my poster" differ. Each blob is checked against both columns.
  */
 export async function releaseMessageBlobs(ctx: any, msg: any) {
   const storageId = msg?.mediaStorageId;
@@ -414,17 +414,29 @@ export async function releaseMessageBlobs(ctx: any, msg: any) {
     return;
   }
 
-  const referrers = await ctx.db
-    .query("messages")
-    .withIndex("by_media", (q: any) => q.eq("mediaStorageId", storageId))
-    .take(2);
-  const othersExist = referrers.some(
-    (m: any) => m._id.toString() !== msg._id.toString()
-  );
-  if (othersExist) return;
+  const selfId = msg._id.toString();
+  // Whether some OTHER message still points at [id] with either column.
+  const usedElsewhere = async (id: any) => {
+    const [asMedia, asPoster] = await Promise.all([
+      ctx.db
+        .query("messages")
+        .withIndex("by_media", (q: any) => q.eq("mediaStorageId", id))
+        .take(2),
+      ctx.db
+        .query("messages")
+        .withIndex("by_poster", (q: any) => q.eq("posterStorageId", id))
+        .take(2),
+    ]);
+    return [...asMedia, ...asPoster].some(
+      (m: any) => m._id.toString() !== selfId
+    );
+  };
 
-  await deleteStored(ctx, storageId);
-  await deleteStored(ctx, msg.posterStorageId);
+  if (!(await usedElsewhere(storageId))) await deleteStored(ctx, storageId);
+  const poster = msg.posterStorageId;
+  if (poster && poster.toString() !== storageId.toString()) {
+    if (!(await usedElsewhere(poster))) await deleteStored(ctx, poster);
+  }
 }
 
 /**

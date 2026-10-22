@@ -157,6 +157,11 @@ class SessionStore {
   String? _outgoingToken;
   String? get outgoingToken => _outgoingToken;
 
+  /// Drops the token a sign-out left behind. Used when the one thing that was
+  /// allowed to borrow it (a banned user's account deletion, see
+  /// `SessionGuard.suspensionPending`) is no longer on offer.
+  void discardOutgoingToken() => _outgoingToken = null;
+
   Future<void> saveSession({
     required String userId,
     required String username,

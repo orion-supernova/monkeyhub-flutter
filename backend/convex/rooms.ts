@@ -20,6 +20,8 @@ import {
   ROLE_MEMBER,
   ROLE_OWNER,
   addMembership,
+  clearReleasedAvatarRequests,
+  releaseRoomPhoto,
   assertAdmin,
   assertOwner,
   isGroupRoom,
@@ -100,19 +102,14 @@ export const create = mutation({
       createdBy: userId,
       createdAt: Date.now(),
       isPrivate: visibility,
-      memberCount: 1,
+      // Counted up by `addMembership`, which is what enforces the per-user
+      // room cap on creation too; a throw there rolls the room back.
+      memberCount: 0,
       passwordHash: passwordHash && passwordHash.length > 0 ? passwordHash : undefined,
       type: type ?? "regular",
       messageLifetime,
     });
-    await ctx.db.insert("roomMembers", {
-      roomId,
-      userId,
-      joinedAt: Date.now(),
-      role: ROLE_OWNER,
-      seenVisibility: await seenVisibilityOf(ctx, userId),
-    });
-    await grantRoomAccess(ctx, roomId, userId);
+    await addMembership(ctx, roomId, userId, ROLE_OWNER);
     return roomId;
   },
 });
@@ -319,7 +316,8 @@ export const updateRoomAvatar = mutation({
     // nothing referencing it. Skip when the id is unchanged — deleting that
     // file would leave the room with a broken avatar.
     if (previous && previous !== storageId) {
-      await deleteStored(ctx, previous);
+      await releaseRoomPhoto(ctx, previous, { roomId });
+      await clearReleasedAvatarRequests(ctx, roomId, previous);
     }
   },
 });
@@ -945,27 +943,14 @@ export const getOrCreateDM = mutation({
       createdBy: userId,
       createdAt: Date.now(),
       isPrivate: true,
-      memberCount: 2,
+      // Counted up by `addMembership` (see `create`).
+      memberCount: 0,
       type: resolvedRoomType,
       messageLifetime,
     });
 
-    await ctx.db.insert("roomMembers", {
-      roomId,
-      userId,
-      joinedAt: Date.now(),
-      role: "owner",
-      seenVisibility: await seenVisibilityOf(ctx, userId),
-    });
-    await grantRoomAccess(ctx, roomId, userId);
-    await ctx.db.insert("roomMembers", {
-      roomId,
-      userId: friendId,
-      joinedAt: Date.now(),
-      role: "member",
-      seenVisibility: await seenVisibilityOf(ctx, friendId),
-    });
-    await grantRoomAccess(ctx, roomId, friendId);
+    await addMembership(ctx, roomId, userId, ROLE_OWNER);
+    await addMembership(ctx, roomId, friendId, ROLE_MEMBER);
 
     return roomId;
   },
@@ -1006,27 +991,29 @@ export const ensureSavedMessagesRoom = mutation({
       createdBy: userId,
       createdAt: Date.now(),
       isPrivate: true,
-      memberCount: 1,
+      // Counted up by `addMembership` (see `create`).
+      memberCount: 0,
       type: "Regular Room",
       // No messageLifetime — a self-notes chat that erases itself on a timer
       // is the one thing this room must not do (same reasoning as the report
       // room, problemReports.ts).
     });
-    await ctx.db.insert("roomMembers", {
+    // Pinned on day one so it opens at the top of the list, but it's an
+    // ordinary per-viewer membership flag from here on: pinRoom/unpinRoom
+    // and archiveRoom/unarchiveRoom all accept this room like any other,
+    // and room_filter.dart's partitionPinned reads the flag rather than
+    // assuming it.
+    //
+    // Exempt from the room cap: a one-member self-chat, one per account, must
+    // not be refused because the user's other rooms filled the quota.
+    await addMembership(
+      ctx,
       roomId,
       userId,
-      joinedAt: Date.now(),
-      role: "owner",
-      seenVisibility: await seenVisibilityOf(ctx, userId),
-      // Pinned on day one so it opens at the top of the list, but it's an
-      // ordinary per-viewer membership flag from here on: pinRoom/unpinRoom
-      // and archiveRoom/unarchiveRoom all accept this room like any other,
-      // and room_filter.dart's partitionPinned reads the flag rather than
-      // assuming it.
-      isPinned: true,
-      pinnedAt: Date.now(),
-    });
-    await grantRoomAccess(ctx, roomId, userId);
+      ROLE_OWNER,
+      { isPinned: true, pinnedAt: Date.now() },
+      true,
+    );
     return roomId;
   },
 });

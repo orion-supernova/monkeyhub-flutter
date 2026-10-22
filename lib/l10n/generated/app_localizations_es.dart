@@ -14004,6 +14004,17 @@ class AppLocalizationsEs extends AppLocalizations {
       'Tu cuenta ha sido suspendida por infringir las Condiciones de uso.';
 
   @override
+  String get authErrorLastGuardian =>
+      'Eres el único tutor de una cuenta infantil. Añade otro tutor o elimina primero la cuenta infantil.';
+
+  @override
+  String get authSuspendedDeleteAction => 'Eliminar mi cuenta';
+
+  @override
+  String get authSuspendedDeleteFailed =>
+      'No pudimos eliminar tu cuenta desde aquí. Ponte en contacto con soporte y lo resolveremos.';
+
+  @override
   String get termsConsentPrefix => 'Acepto las ';
 
   @override

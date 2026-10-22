@@ -99,6 +99,27 @@ function snapOffset(minutes: number): number {
 }
 
 /**
+ * The `deviceSecretHash` this user's most recent session on [deviceId] carries,
+ * revoked or not (the session that was just ended by a newer sign-in on the
+ * same install is exactly the evidence needed), or undefined for none.
+ */
+async function secretHashOnDevice(
+  ctx: any,
+  userId: Id<"users">,
+  deviceId: string,
+): Promise<string | undefined> {
+  const rows = await ctx.db
+    .query("sessions")
+    .withIndex("by_user_device", (q: any) =>
+      q.eq("userId", userId).eq("deviceId", deviceId),
+    )
+    .order("desc")
+    .take(5);
+  return rows.find((r: any) => r.deviceSecretHash !== undefined)
+    ?.deviceSecretHash;
+}
+
+/**
  * Find-or-create this user's row for [deviceId] and apply [patch].
  *
  * Every registration entry point funnels through here so that "which fields
@@ -122,12 +143,32 @@ async function upsertDevice(
   // B was holding (observed 2026-09-01: the caller's own iPhone was still a
   // registered device of the callee). The row is not "A's other device", it
   // is this one, and this one is B's now.
+  //
+  // But the deviceId is not a secret (call rosters and call rows show it to
+  // peers), and this runs for ANY signed-in caller naming ANY deviceId: with an
+  // unconditional delete, anybody could register a victim's deviceId under
+  // their own account and wipe the victim's push and VoIP credentials, so the
+  // victim silently stops getting calls. Another account's row is evicted only
+  // when that account's session on this device and the caller's carry the same
+  // `deviceSecretHash`, i.e. provably one install. Clients without a secret
+  // evict nothing; their stale rows are harmless because the push senders only
+  // trust a device row with a live session (`liveSessionDeviceIds`).
   const sameDevice = await ctx.db
     .query("userDevices")
     .withIndex("by_device", (q: any) => q.eq("deviceId", deviceId))
     .collect();
-  for (const d of sameDevice) {
-    if (d.userId.toString() !== userId.toString()) await ctx.db.delete(d._id);
+  const foreign = sameDevice.filter(
+    (d: Doc<"userDevices">) => d.userId.toString() !== userId.toString(),
+  );
+  if (foreign.length > 0) {
+    const mine = await secretHashOnDevice(ctx, userId, deviceId);
+    if (mine !== undefined) {
+      for (const d of foreign) {
+        if ((await secretHashOnDevice(ctx, d.userId, deviceId)) === mine) {
+          await ctx.db.delete(d._id);
+        }
+      }
+    }
   }
   const existing = sameDevice.find(
     (d: Doc<"userDevices">) => d.userId.toString() === userId.toString(),

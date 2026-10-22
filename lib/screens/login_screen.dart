@@ -24,6 +24,7 @@ import '../theme/theme_scope.dart';
 import '../data/settings_store.dart';
 import '../data/username_availability_controller.dart';
 import '../widgets/app_icon_picker.dart';
+import '../widgets/destructive_sheet.dart' show showConfirmSheet;
 import '../widgets/device_login_panel.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
@@ -109,6 +110,11 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _busy = false;
   String? _error;
 
+  /// Landed here by a ban, with the banned session's token still held for one
+  /// account deletion (`SessionGuard.suspensionPending`). Drives the banner's
+  /// "Delete my account" action.
+  bool _suspended = false;
+
   /// Whether the pairing screen is showing instead of the sign-in form.
   ///
   /// Seeded from the sticky child-device marker so a paired handset opens
@@ -163,6 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         setState(() {
+          _suspended = true;
           _error = AppLocalizations.of(context).authErrorAccountSuspended;
         });
       });
@@ -171,6 +178,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    // Leaving the screen (signed in, or gone) ends the offer to delete a
+    // banned account with the old token.
+    SessionGuard.instance.dismissSuspension();
     _availability.dispose();
     _username.dispose();
     _password.dispose();
@@ -181,9 +191,46 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  /// The suspended notice's action: delete the banned account with the same
+  /// confirm the profile screen uses. A refusal (for example a session revoked
+  /// before the ban) points them at support instead.
+  Future<void> _deleteSuspendedAccount() async {
+    if (_busy) return;
+    final l10n = AppLocalizations.of(context);
+    final ok = await showConfirmSheet(
+      context,
+      headline: l10n.profileScreenDeleteAccountConfirmTitle,
+      body: l10n.profileScreenDeleteAccountConfirmBody,
+      confirmLabel: l10n.acctDeleteAccount,
+    );
+    if (!ok || !mounted || _busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await widget.auth.deleteSuspendedAccount();
+      if (!mounted) return;
+      setState(() {
+        _suspended = false;
+        _error = null;
+      });
+    } catch (e) {
+      debugPrint('[login] deleting the suspended account failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _suspended = false;
+        _error = l10n.authSuspendedDeleteFailed;
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   void _switchTo(_AuthMode mode) => setState(() {
     _mode = mode;
     _error = null;
+    _suspended = false;
     // Switching away from sign-up abandons the attempt; a later one should
     // mint a fresh phrase rather than resurrect an abandoned one.
     _pendingPhrase = null;
@@ -458,7 +505,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       ..._fields(),
                       if (_error != null) ...[
                         const SizedBox(height: 14),
-                        FormErrorBanner(_error!),
+                        FormErrorBanner(
+                          _error!,
+                          actionLabel: _suspended
+                              ? AppLocalizations.of(context).authSuspendedDeleteAction
+                              : null,
+                          onAction: _suspended ? _deleteSuspendedAccount : null,
+                        ),
                       ],
                       const SizedBox(height: 20),
                       // The one big commit on the screen, so it plays the

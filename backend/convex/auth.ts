@@ -1,14 +1,21 @@
-import { internalMutation } from "./_generated/server";
+import { internalMutation, mutation as rawMutation } from "./_generated/server";
 import {  mutation, publicMutation, query  } from "./functions";
 import {
   ERR_SESSION_REVOKED,
+  identityBanHash,
   mintSession,
+  requireSession,
   revokeOtherSessions,
   revokeSessionsForDevice,
 } from "./sessionCore";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
+import {
+  ACCOUNT_CHILD,
+  ERR_LAST_GUARDIAN,
+  ERR_MUST_PAIR,
+  ERR_NOT_ALLOWED,
+} from "./childGuard";
 import {
   SOCIAL_ONLY_PASSWORD_SENTINEL,
   ERR_USE_SOCIAL,
@@ -18,6 +25,7 @@ import {
 import { wipeRoomCompletely } from "./roomCleanup";
 import { purgeSpeakerColorsForUser } from "./speakerColors";
 import { ensureOwner } from "./roomAdmin";
+import { removeUserFromRoomGroupCall } from "./groupCalls";
 import { purgeScheduledForUser } from "./scheduledMessages";
 import { purgeRecordsOf } from "./recordBook";
 import { leaveMatchesInRoom, purgeChallengesOfUser } from "./matchCore";
@@ -31,6 +39,7 @@ import { assertCleanName } from "./contentFilter";
 import { termsStamp } from "./terms";
 import { removeMessageAndFanout } from "./messages";
 import { purgeUserExpressions } from "./expressions";
+import { deleteFriendshipRow } from "./users";
 import { purgeMomentComments, purgeUserComments } from "./momentComments";
 import {
   assertNotLocked,
@@ -99,13 +108,26 @@ export const signup = publicMutation({
     // tied to a device cannot be shown in the Devices list or revoked from it,
     // which is the whole reason sessions exist here.
     deviceId: v.string(),
+    // Per-install secret (64 hex chars) proving this really is the install
+    // that owns `deviceId`; see `sessionCore.mintSession`. Optional so older
+    // builds keep signing in.
+    deviceSecret: v.optional(v.string()),
     // The EULA version the user ticked the box for. Optional only so old
     // builds can still sign up — see the compatibility note in `terms.ts`.
     termsVersion: v.optional(v.number()),
   },
   handler: async (
     ctx,
-    { username: rawUsername, name, passwordHash, recoveryKeyHash, email, deviceId, termsVersion },
+    {
+      username: rawUsername,
+      name,
+      passwordHash,
+      recoveryKeyHash,
+      email,
+      deviceId,
+      deviceSecret,
+      termsVersion,
+    },
   ) => {
     let username = rawUsername;
     // Before anything else: a present-but-stale version is a refusal.
@@ -148,7 +170,7 @@ export const signup = publicMutation({
       lastSeen: Date.now(),
       ...terms,
     });
-    return { userId, username, name, token: await mintSession(ctx, userId, deviceId) };
+    return { userId, username, name, token: await mintSession(ctx, userId, deviceId, deviceSecret) };
   },
 });
 
@@ -157,8 +179,12 @@ export const login = publicMutation({
     username: v.string(),
     passwordHash: v.string(),
     deviceId: v.string(),
+    // Per-install secret (64 hex chars) proving this really is the install
+    // that owns `deviceId`; see `sessionCore.mintSession`. Optional so older
+    // builds keep signing in.
+    deviceSecret: v.optional(v.string()),
   },
-  handler: async (ctx, { username, passwordHash, deviceId }) => {
+  handler: async (ctx, { username, passwordHash, deviceId, deviceSecret }) => {
     const user = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", username))
@@ -203,7 +229,7 @@ export const login = publicMutation({
       userId: user._id,
       username: user.username,
       name: user.name ?? user.username,
-      token: await mintSession(ctx, user._id, deviceId),
+      token: await mintSession(ctx, user._id, deviceId, deviceSecret),
     };
   },
 });
@@ -247,6 +273,10 @@ export const resetPasswordWithRecoveryKey = publicMutation({
     // entry point — without this the client would hold a session with no
     // token and be signed out again on its very next request.
     deviceId: v.string(),
+    // Per-install secret (64 hex chars) proving this really is the install
+    // that owns `deviceId`; see `sessionCore.mintSession`. Optional so older
+    // builds keep signing in.
+    deviceSecret: v.optional(v.string()),
   },
   handler: async (
     ctx,
@@ -256,6 +286,7 @@ export const resetPasswordWithRecoveryKey = publicMutation({
       legacyRecoveryKeyHash,
       newPasswordHash,
       deviceId,
+      deviceSecret,
     },
   ) => {
     const user = await ctx.db
@@ -307,7 +338,7 @@ export const resetPasswordWithRecoveryKey = publicMutation({
       userId: user._id,
       username: user.username,
       name: user.name ?? user.username,
-      token: await mintSession(ctx, user._id, deviceId),
+      token: await mintSession(ctx, user._id, deviceId, deviceSecret),
     };
   },
 });
@@ -431,12 +462,43 @@ export const changeUsername = mutation({
  * Self-serve account deletion. A child cannot delete their own account — that
  * would be an escape hatch out of supervision. Guardians remove a child via
  * `family.deleteChildAccount`, which runs the same teardown.
+ *
+ * Refuses while this user is any child's ONLY guardian: purging them would
+ * delete the last guardianship and leave a child nobody can pair, release or
+ * delete again. A guardian has to add another one (or graduate or delete the
+ * child) first. `family.unlinkChild` enforces the same rule.
+ *
+ * Built on the RAW mutation builder, on purpose, and the only function here
+ * that is. A suspended account has the right to delete its own data, and the
+ * wrapper's `requireSession` refuses a suspended account with
+ * ACCOUNT_SUSPENDED before any handler runs. The exception lives in
+ * `requireSession`'s `allowSuspended` option and this is its only caller, so
+ * every other function stays blocked for a suspended user. The identity still
+ * comes from the session token alone; `userId` is accepted (the client sends
+ * it) and ignored. `sessionToken` is declared on the args line itself because
+ * the wrapper would have injected it.
  */
-export const deleteAccount = mutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
+export const deleteAccount = rawMutation({
+  args: { userId: v.id("users"), sessionToken: v.string() },
+  handler: async (ctx, { sessionToken }) => {
+    const userId = await requireSession(ctx, sessionToken, {
+      allowSuspended: true,
+    });
     const user = await ctx.db.get(userId);
     if (user?.accountType === ACCOUNT_CHILD) throw new Error(ERR_NOT_ALLOWED);
+
+    const supervising = await ctx.db
+      .query("guardianships")
+      .withIndex("by_guardian", (q) => q.eq("guardianId", userId))
+      .collect();
+    for (const link of supervising) {
+      const guardians = await ctx.db
+        .query("guardianships")
+        .withIndex("by_child", (q) => q.eq("childId", link.childId))
+        .take(2);
+      if (guardians.length <= 1) throw new Error(ERR_LAST_GUARDIAN);
+    }
+
     await purgeUser(ctx, userId);
   },
 });
@@ -526,6 +588,9 @@ async function purgeUser(ctx: any, userId: any) {
     await ctx.db.delete(membership._id);
     // Before the room can be wiped below: forfeiting writes to the games.
     await leaveMatchesInRoom(ctx, roomId, userId);
+    // And out of the room's live group call, the way `removeMembership` does
+    // it: otherwise the deleted account stays on the roster.
+    await removeUserFromRoomGroupCall(ctx, roomId, userId);
 
     const remaining = await ctx.db
       .query("roomMembers")
@@ -672,14 +737,22 @@ async function purgeUser(ctx: any, userId: any) {
   await purgeScheduledForUser(ctx, userId);
 
   // ── Social graph ─────────────────────────────────────────────────────────
-  await deleteRows(
-    ctx,
-    await ctx.db.query("friendships").withIndex("by_user", byUser(userId)).collect(),
-    await ctx.db
+  // Through `deleteFriendshipRow`: a pending request carries messages, and the
+  // OTHER person's rows (requests they sent this user, or received from them)
+  // would otherwise leave theirs behind. The `by_user` pass below only reaches
+  // the ones this user wrote.
+  for (const f of [
+    ...(await ctx.db
+      .query("friendships")
+      .withIndex("by_user", byUser(userId))
+      .collect()),
+    ...(await ctx.db
       .query("friendships")
       .withIndex("by_friend", (q: any) => q.eq("friendId", userId))
-      .collect(),
-  );
+      .collect()),
+  ]) {
+    await deleteFriendshipRow(ctx, f);
+  }
   await deleteRows(
     ctx,
     await ctx.db
@@ -725,11 +798,15 @@ async function purgeUser(ctx: any, userId: any) {
       .query("roomJoinRequests")
       .withIndex("by_user", byUser(userId))
       .collect(),
-    await ctx.db
-      .query("roomJoinRequests")
-      .withIndex("by_decider", (q: any) => q.eq("decidedBy", userId))
-      .collect(),
   );
+  // Requests this account DECIDED belong to other people and stay: only the
+  // pointer to the decider is cleared (SET NULL).
+  for (const row of await ctx.db
+    .query("roomJoinRequests")
+    .withIndex("by_decider", (q: any) => q.eq("decidedBy", userId))
+    .collect()) {
+    await ctx.db.patch(row._id, { decidedBy: undefined });
+  }
 
   await deleteRows(
     ctx,
@@ -739,33 +816,34 @@ async function purgeUser(ctx: any, userId: any) {
       .collect(),
   );
 
-  // Suggestions this account made about a room's name, description or picture,
-  // and the ones it ruled on — see `roomChangeRequests.ts`. Both directions,
-  // for the same reason the invite tables above take both: a pending row
-  // addressed to nobody is a queue item no admin can ever resolve, and a
-  // decided row still names a person who no longer exists.
+  // Suggestions this account made about a room's name, description or picture
+  // — see `roomChangeRequests.ts`. A pending row addressed to nobody is a queue
+  // item no admin can ever resolve. The ones it only RULED on are other
+  // people's history and are kept, with the decider cleared, below.
   //
   // The blob is released for PENDING rows ONLY, and that distinction is
   // load-bearing rather than tidy. A pending proposal's file is referenced by
   // nothing else, so it must go. An APPROVED one's file is the room's live
   // avatar — the room survives this account, and freeing that blob would leave
   // a group everybody is still in with a broken picture.
-  const proposals = [
-    ...(await ctx.db
-      .query("roomChangeRequests")
-      .withIndex("by_user", byUser(userId))
-      .collect()),
-    ...(await ctx.db
-      .query("roomChangeRequests")
-      .withIndex("by_decider", (q: any) => q.eq("decidedBy", userId))
-      .collect()),
-  ];
+  const proposals = await ctx.db
+    .query("roomChangeRequests")
+    .withIndex("by_user", byUser(userId))
+    .collect();
   for (const row of proposals) {
     if (row.status === "pending" && row.storageId) {
       await deleteStored(ctx, row.storageId);
     }
   }
   await deleteRows(ctx, proposals);
+  // Other people's proposals this account ruled on stay (an approved one is the
+  // room's live picture); only the decider pointer is cleared.
+  for (const row of await ctx.db
+    .query("roomChangeRequests")
+    .withIndex("by_decider", (q: any) => q.eq("decidedBy", userId))
+    .collect()) {
+    await ctx.db.patch(row._id, { decidedBy: undefined });
+  }
   await deleteRows(
     ctx,
     await ctx.db.query("blocks").withIndex("by_user", byUser(userId)).collect(),
@@ -900,13 +978,19 @@ async function purgeUser(ctx: any, userId: any) {
       .withIndex("by_target_user", (q: any) => q.eq("targetUserId", userId))
       .collect(),
   );
-  approvalGroups.push(
-    await ctx.db
-      .query("approvalRequests")
-      .withIndex("by_decider", (q: any) => q.eq("decidedByGuardianId", userId))
-      .collect(),
-  );
   await deleteRows(ctx, ...approvalGroups);
+  // What this guardian DECIDED is the child's live permission set (approved
+  // contacts and rooms). Deleting those rows revoked them silently whenever a
+  // co-guardian deleted their account, so they stay and only the pointer is
+  // cleared (SET NULL). Nothing reads `decidedByGuardianId` as present: it is
+  // written on decide/revoke and never read. Runs after the delete above, so a
+  // row for this user's own child-side teardown is already gone.
+  for (const row of await ctx.db
+    .query("approvalRequests")
+    .withIndex("by_decider", (q: any) => q.eq("decidedByGuardianId", userId))
+    .collect()) {
+    await ctx.db.patch(row._id, { decidedByGuardianId: undefined });
+  }
 
   // ── Calls ────────────────────────────────────────────────────────────────
   const calls = [
@@ -1011,6 +1095,18 @@ async function purgeUser(ctx: any, userId: any) {
     .query("socialIdentities")
     .withIndex("by_user", byUser(userId))
     .collect();
+  // A SUSPENDED account may delete itself (it is their data), but that must
+  // not be a way to shed the ban: `users` (where `suspendedAt` lives) and these
+  // identities go, so the same Apple or Google ID could simply sign up again.
+  // Remember a hash of each identity; sign-in, sign-up and link refuse them.
+  if (user?.suspendedAt !== undefined) {
+    for (const identity of identities) {
+      await ctx.db.insert("bannedIdentities", {
+        hash: await identityBanHash(identity.provider, identity.subject),
+        createdAt: Date.now(),
+      });
+    }
+  }
   for (const identity of identities) {
     if (identity.appleRefreshToken) {
       await ctx.scheduler.runAfter(0, internal.socialAuth.revokeAppleGrant, {
@@ -1056,10 +1152,3 @@ async function purgeUser(ctx: any, userId: any) {
   );
   await ctx.db.delete(userId);
 }
-
-export const updateStatus = mutation({
-  args: { userId: v.id("users"), status: v.string() },
-  handler: async (ctx, { userId, status }) => {
-    await ctx.db.patch(userId, { status, lastSeen: Date.now() });
-  },
-});

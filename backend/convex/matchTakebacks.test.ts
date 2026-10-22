@@ -28,7 +28,9 @@ async function signUp(t: T, username: string) {
     name: username,
     passwordHash: `hash-${username}`,
     recoveryKeyHash: `recovery-${username}`,
-    deviceId: "device-a",
+    // One device per person: a deviceId is one handset, and signing in
+    // on it signs out whoever was there before.
+    deviceId: `device-${username}`,
   })) as Who;
 }
 

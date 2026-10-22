@@ -15,6 +15,7 @@ class DeviceIdentity {
   DeviceIdentity._();
 
   static const _storageKey = 'monkeyhub.device_id';
+  static const _secretKey = 'monkeyhub.device_secret';
 
   // `first_unlock_this_device`, NOT the plugin default (`unlocked`) — the same
   // reasoning, and the same accessibility class, as [SessionStore]. A VoIP push
@@ -53,11 +54,15 @@ class DeviceIdentity {
   static final Random _random = Random.secure();
 
   static String? _cached;
+  static String? _cachedSecret;
 
   /// Drop the process-lifetime cache. Tests only — [ensure] is memoised on
   /// purpose, which would otherwise make them order-dependent.
   @visibleForTesting
-  static void resetCacheForTest() => _cached = null;
+  static void resetCacheForTest() {
+    _cached = null;
+    _cachedSecret = null;
+  }
 
   /// The id, read from whichever accessibility class holds it and moved into
   /// ours on the way (see [AnyClassKeychain.read]), or minted on first launch.
@@ -82,6 +87,32 @@ class DeviceIdentity {
     final fresh = _mintUuidV4();
     await _storage.write(key: _storageKey, value: fresh);
     _cached = fresh;
+    return fresh;
+  }
+
+  /// The per-install proof that this install owns [ensure]'s id: 32 random bytes
+  /// as 64 lowercase hex chars, minted once and kept beside the id with the same
+  /// keychain class and [AnyClassKeychain] handling, so it survives relaunch and
+  /// sign-out exactly like the id does.
+  ///
+  /// The device id is not secret (peers see it in call rosters), so the sign-in
+  /// mutations ask for this as well. Sent ONLY to those, never to any other
+  /// call, and never shown or logged (`devicesecret` is a redactor denied key).
+  /// A keychain failure propagates for the same reason as [ensure]: minting a
+  /// new secret over an unreadable one would orphan the real one.
+  static Future<String> ensureSecret() async {
+    final cached = _cachedSecret;
+    if (cached != null) return cached;
+    final existing = await _storage.read(key: _secretKey);
+    if (existing != null && existing.isNotEmpty) {
+      _cachedSecret = existing;
+      return existing;
+    }
+    final fresh = List<int>.generate(32, (_) => _random.nextInt(256))
+        .map((x) => x.toRadixString(16).padLeft(2, '0'))
+        .join();
+    await _storage.write(key: _secretKey, value: fresh);
+    _cachedSecret = fresh;
     return fresh;
   }
 

@@ -108,11 +108,12 @@ function momentView(
      */
     authorAvatarVisible: boolean;
     /**
-     * Whether the viewer is friends with [id] — for each reactor's face,
-     * which follows that reactor's own avatar setting (denormalized onto the
-     * reaction) the way `lens.canSee` would follow it on a users row.
+     * Each reactor, resolved by [reactorLens] before this runs. Their face and
+     * name follow the reactor's LIVE settings (`lens.canSee` on the users
+     * row), not a copy frozen onto the reaction when they reacted, so a
+     * reactor who has since gone private stops showing on the board.
      */
-    isFriend: (id: any) => boolean;
+    reactors: ReactorLens;
   }
 ) {
   // An ARRAY of {emoji, count}, never an object keyed by the emoji.
@@ -129,6 +130,9 @@ function momentView(
   // as an array and has never hit this.
   const tally = new Map<string, number>();
   for (const r of opts.reactions) {
+    // Same blocked-either-way rule as `reactors` below, so a count never
+    // says more people reacted than there are faces to show.
+    if (opts.reactors.hidden(r.userId)) continue;
     tally.set(r.emoji, (tally.get(r.emoji) ?? 0) + 1);
   }
   const counts = Array.from(tally, ([emoji, count]) => ({ emoji, count }));
@@ -157,19 +161,25 @@ function momentView(
     // shown with a blank name; they age out the first time that person
     // reacts to anything again.
     reactors: opts.reactions
-      .filter((r: any) => typeof r.userName === "string" && r.userName)
+      .filter(
+        (r: any) =>
+          typeof r.userName === "string" &&
+          r.userName &&
+          !opts.reactors.hidden(r.userId)
+      )
       .map((r: any) => {
-        const level = r.userAvatarLevel ?? "public";
-        const face =
-          r.userId === opts.viewerId ||
-          level === "public" ||
-          (level === "friends" && opts.isFriend(r.userId));
+        const person = opts.reactors.user(r.userId);
+        // Live row when there is one; the stored copy only for an account
+        // that has since gone, whose face is withheld (nobody to ask).
         return {
           emoji: r.emoji,
           userId: r.userId,
-          name: r.userName,
-          username: r.userUsername,
-          avatarStorageId: face ? r.userAvatarStorageId : undefined,
+          name: person?.name ?? person?.username ?? r.userName,
+          username: person?.username ?? r.userUsername,
+          avatarStorageId:
+            person && opts.reactors.lens.canSee(person, "avatar")
+              ? person.avatarStorageId
+              : undefined,
           createdAt: r.createdAt,
         };
       }),
@@ -181,6 +191,67 @@ function momentView(
       .map((r: any) => r.emoji),
     seen: opts.seen,
     mine: opts.mine,
+  };
+}
+
+/** What [momentView] needs to shape reactors; see [reactorLens]. */
+type ReactorLens = {
+  lens: Awaited<ReturnType<typeof lensFor>>;
+  /** Blocked in either direction: the reaction is dropped. */
+  hidden: (id: any) => boolean;
+  user: (id: any) => any;
+  /** Loads every reactor of [reactions] not already known, in parallel. */
+  prepare: (reactions: any[]) => Promise<void>;
+};
+
+/**
+ * Resolves reactors' LIVE rows for a board read.
+ *
+ * `momentReactions.userAvatarLevel` is a copy of the reactor's photo setting
+ * from the day they reacted, so changing it later did nothing on the board.
+ * The cost of honouring the real setting is paid once per viewer, not per
+ * moment: [people] is a cache the caller may seed with rows it already holds (the
+ * viewer's friends; keyed by id) and that fills in place, `prepare` point-reads only the ids still missing —
+ * deduped across every moment of the run — and the two `blocks` reads (people
+ * the viewer blocked, people who blocked the viewer) are bounded and happen
+ * once. A blocked person's reaction is dropped in both directions, as a
+ * blocked person's comment is.
+ */
+async function reactorLens(
+  ctx: any,
+  viewerId: any,
+  lens: Awaited<ReturnType<typeof lensFor>>,
+  people: Map<string, any>,
+): Promise<ReactorLens> {
+  const [blockedByMe, blockedMe] = await Promise.all([
+    ctx.db
+      .query("blocks")
+      .withIndex("by_user", (q: any) => q.eq("userId", viewerId))
+      .take(1000),
+    ctx.db
+      .query("blocks")
+      .withIndex("by_blocked", (q: any) => q.eq("blockedUserId", viewerId))
+      .take(1000),
+  ]);
+  const blocked = new Set<string>([
+    ...blockedByMe.map((b: any) => b.blockedUserId.toString()),
+    ...blockedMe.map((b: any) => b.userId.toString()),
+  ]);
+  return {
+    lens,
+    hidden: (id) => blocked.has(id.toString()),
+    user: (id) => people.get(id.toString()),
+    async prepare(reactions) {
+      const missing = new Set<string>();
+      for (const r of reactions) {
+        const k = r.userId.toString();
+        if (!people.has(k) && !blocked.has(k)) missing.add(k);
+      }
+      if (missing.size === 0) return;
+      const ids = [...missing];
+      const docs = await Promise.all(ids.map((id) => ctx.db.get(id as any)));
+      ids.forEach((id, i) => people.set(id, docs[i]));
+    },
   };
 }
 
@@ -281,6 +352,10 @@ export const board = query({
     // Each friend's `users` row, read once here and reused by the puzzle loop
     // below, which needs the same row for its visibility check and name.
     const authors = new Map<Id<"users">, any>();
+    // Reactors' live rows, deduped across the whole run; shares `authors` so a
+    // friend who both posts and reacts is read once. Filled in place below.
+    const reactorRows = new Map<string, any>();
+    const reactors = await reactorLens(ctx, userId, lens, reactorRows);
 
     const out: any[] = [];
     for (const authorId of authorIds) {
@@ -303,6 +378,7 @@ export const board = query({
         const author = await ctx.db.get(authorId);
         if (!author) continue;
         authors.set(authorId, author);
+        reactorRows.set(authorId, author);
         const vis = visibilityOf(author);
         allowHighlights = vis.feed;
         allowPoints = vis.points;
@@ -354,6 +430,7 @@ export const board = query({
           .query("momentReactions")
           .withIndex("by_moment", (q: any) => q.eq("momentId", m._id))
           .collect();
+        await reactors.prepare(reactions);
 
         const seenRow = mine
           ? null
@@ -366,7 +443,7 @@ export const board = query({
 
         out.push(
           momentView(m, {
-            isFriend: lens.isFriend,
+            reactors,
             reactions,
             seen: mine || seenRow !== null,
             mine,
@@ -697,15 +774,25 @@ export const moment = query({
           .first()) !== null;
 
     let authorAvatarVisible = true;
+    let authorRow: any = null;
     const lens = await lensFor(ctx, userId);
     if (!mine) {
       const author = await ctx.db.get(m.userId);
       if (!author) return null;
+      authorRow = author;
       authorAvatarVisible = lens.canSee(author, "avatar");
     }
 
+    const reactors = await reactorLens(
+      ctx,
+      userId,
+      lens,
+      new Map(authorRow ? [[m.userId.toString(), authorRow]] : [])
+    );
+    await reactors.prepare(reactions);
+
     return momentView(m, {
-      isFriend: lens.isFriend,
+      reactors,
       reactions,
       seen,
       mine,
@@ -746,13 +833,32 @@ export const remove = mutation({
     await purgeMomentComments(ctx, momentId);
     await ctx.db.delete(momentId);
 
-    for (const id of [m.mediaStorageId, m.posterStorageId]) {
-      if (!id) continue;
+    // The two fields are different columns and must be checked against their
+    // own. The poster used to be looked up in `by_media`, which only finds a
+    // moment using these bytes as its PICTURE, so a poster shared with another
+    // moment's poster was deleted out from under it.
+    if (m.mediaStorageId) {
       const others = await ctx.db
         .query("moments")
-        .withIndex("by_media", (q: any) => q.eq("mediaStorageId", id))
+        .withIndex("by_media", (q: any) =>
+          q.eq("mediaStorageId", m.mediaStorageId)
+        )
         .first();
-      if (!others) await deleteStored(ctx, id);
+      if (!others) await deleteStored(ctx, m.mediaStorageId);
+    }
+    if (m.posterStorageId) {
+      // Kept while any other moment uses these bytes as its poster or its
+      // picture.
+      const poster = m.posterStorageId;
+      const asMedia = await ctx.db
+        .query("moments")
+        .withIndex("by_media", (q: any) => q.eq("mediaStorageId", poster))
+        .first();
+      const asPoster = await ctx.db
+        .query("moments")
+        .withIndex("by_poster", (q: any) => q.eq("posterStorageId", poster))
+        .first();
+      if (!asMedia && !asPoster) await deleteStored(ctx, poster);
     }
   },
 });
@@ -932,8 +1038,11 @@ export const archive = query({
     let allowPoints = true;
     let authorAvatarVisible = true;
     const lens = await lensFor(ctx, userId);
+    const reactorRows = new Map<string, any>();
+    const reactors = await reactorLens(ctx, userId, lens, reactorRows);
     if (!mine) {
       const author = await ctx.db.get(target);
+      reactorRows.set(target.toString(), author);
       const vis = visibilityOf(author);
       allowHighlights = vis.feed;
       allowPoints = vis.points;
@@ -962,9 +1071,10 @@ export const archive = query({
         .query("momentReactions")
         .withIndex("by_moment", (q: any) => q.eq("momentId", m._id))
         .collect();
+      await reactors.prepare(reactions);
       items.push(
         momentView(m, {
-          isFriend: lens.isFriend,
+          reactors,
           reactions,
           seen: true,
           mine,

@@ -13870,6 +13870,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your account has been suspended for violating the Terms of Use.';
 
   @override
+  String get authErrorLastGuardian =>
+      'You’re the only guardian of a child account. Add another guardian or delete the child account first.';
+
+  @override
+  String get authSuspendedDeleteAction => 'Delete my account';
+
+  @override
+  String get authSuspendedDeleteFailed =>
+      'We couldn’t delete your account from here. Please contact support and we’ll sort it out.';
+
+  @override
   String get termsConsentPrefix => 'I agree to the ';
 
   @override

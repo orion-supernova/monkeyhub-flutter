@@ -55,6 +55,7 @@ class ChatApi {
       // Binds the minted session to this device, so it can be named and
       // revoked from the Devices screen.
       'deviceId': await DeviceIdentity.ensure(),
+      'deviceSecret': await DeviceIdentity.ensureSecret(),
       // The EULA box on the sign-up form, which the form will not submit
       // without. See `terms.ts`.
       'termsVersion': kTermsVersion,
@@ -67,6 +68,7 @@ class ChatApi {
       'username': username,
       'passwordHash': sha256Hash(password),
       'deviceId': await DeviceIdentity.ensure(),
+      'deviceSecret': await DeviceIdentity.ensureSecret(),
     });
     return AuthResult.fromJson(res as Map<String, dynamic>);
   }
@@ -120,6 +122,7 @@ class ChatApi {
       'legacyRecoveryKeyHash': hashes.legacy,
       'newPasswordHash': sha256Hash(newPassword),
       'deviceId': await DeviceIdentity.ensure(),
+      'deviceSecret': await DeviceIdentity.ensureSecret(),
     });
     return AuthResult.fromJson(res as Map<String, dynamic>);
   }
@@ -234,6 +237,7 @@ class ChatApi {
     final res = await _cv.action('socialAuth:signIn', {
       'provider': credential.provider.wire,
       'deviceId': await DeviceIdentity.ensure(),
+      'deviceSecret': await DeviceIdentity.ensureSecret(),
       'idToken': credential.idToken,
       if (credential.rawNonce != null) 'rawNonce': credential.rawNonce,
       if (credential.authorizationCode != null)
@@ -258,6 +262,7 @@ class ChatApi {
     final res = await _cv.action('socialAuth:completeSignUp', {
       'provider': credential.provider.wire,
       'deviceId': await DeviceIdentity.ensure(),
+      'deviceSecret': await DeviceIdentity.ensureSecret(),
       'idToken': credential.idToken,
       if (credential.rawNonce != null) 'rawNonce': credential.rawNonce,
       if (credential.authorizationCode != null)
@@ -284,6 +289,7 @@ class ChatApi {
     final res = await _cv.action('socialAuth:linkExistingAccount', {
       'provider': credential.provider.wire,
       'deviceId': await DeviceIdentity.ensure(),
+      'deviceSecret': await DeviceIdentity.ensureSecret(),
       'idToken': credential.idToken,
       if (credential.rawNonce != null) 'rawNonce': credential.rawNonce,
       if (credential.authorizationCode != null)
@@ -2661,6 +2667,7 @@ class ChatApi {
     final res = await _cv.mutation('family:redeemPairingCode', {
       'codeHash': sha256Hash(code),
       'deviceId': deviceId,
+      'deviceSecret': await DeviceIdentity.ensureSecret(),
       'platform': platform,
       'deviceName': ?deviceName,
     });
@@ -2724,6 +2731,7 @@ class ChatApi {
       // The desktop claiming the session names itself, so the new sign-in
       // shows up in the Devices list as this machine.
       'deviceId': await DeviceIdentity.ensure(),
+      'deviceSecret': await DeviceIdentity.ensureSecret(),
       'requestId': requestId,
     });
     return AuthResult.fromJson((res as Map).cast<String, dynamic>());

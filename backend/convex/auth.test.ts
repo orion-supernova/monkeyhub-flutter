@@ -26,13 +26,17 @@ import schema from "./schema";
 const DEVICE = "device-a";
 const OTHER_DEVICE = "device-b";
 
-async function signUp(t: ReturnType<typeof convexTest>, username: string) {
+async function signUp(
+  t: ReturnType<typeof convexTest>,
+  username: string,
+  deviceId = DEVICE,
+) {
   return await t.mutation(api.auth.signup, {
     username,
     name: username,
     passwordHash: `hash-${username}`,
     recoveryKeyHash: `recovery-${username}`,
-    deviceId: DEVICE,
+    deviceId,
   });
 }
 
@@ -511,7 +515,7 @@ describe("whoami", () => {
  */
 describe("orphaned session sweep", () => {
   async function orphan(t: ReturnType<typeof convexTest>, username: string) {
-    const me = await signUp(t, username);
+    const me = await signUp(t, username, `device-${username}`);
     // A purge from before the fix: the user row goes, the session stays live.
     await t.run(async (ctx) => ctx.db.delete(me.userId));
     return me;
@@ -519,7 +523,7 @@ describe("orphaned session sweep", () => {
 
   test("counts the orphans and leaves healthy sessions alone", async () => {
     const t = convexTest(schema);
-    await signUp(t, "lulu");
+    await signUp(t, "lulu", "device-lulu");
     await orphan(t, "goksu");
 
     expect(await t.query(internal.sessions.countOrphaned, {})).toEqual({
@@ -530,7 +534,7 @@ describe("orphaned session sweep", () => {
 
   test("revoking clears the count, and running again is a no-op", async () => {
     const t = convexTest(schema);
-    const healthy = await signUp(t, "lulu");
+    const healthy = await signUp(t, "lulu", "device-lulu");
     await orphan(t, "goksu");
 
     expect(await t.mutation(internal.sessions.revokeOrphaned, {})).toEqual({

@@ -13809,6 +13809,17 @@ class AppLocalizationsTr extends AppLocalizations {
       'Hesabın Kullanım Koşulları\'nı ihlal ettiği için askıya alındı.';
 
   @override
+  String get authErrorLastGuardian =>
+      'Bir çocuk hesabının tek velisisin. Önce başka bir veli ekle ya da çocuk hesabını sil.';
+
+  @override
+  String get authSuspendedDeleteAction => 'Hesabımı sil';
+
+  @override
+  String get authSuspendedDeleteFailed =>
+      'Hesabın buradan silinemedi. Lütfen destekle iletişime geç, birlikte halledelim.';
+
+  @override
   String get termsConsentPrefix => '';
 
   @override

@@ -221,6 +221,38 @@ async function reapActiveCall(ctx: any, call: any) {
   }
 }
 
+/**
+ * End every live 1:1 call in [roomId]. Room deletion.
+ *
+ * One `by_room_status` range per live status. Each call ends through
+ * `endCallImpl` (the callee gets `bye` and the `taken` push, with the PushKit
+ * leg if it was still ringing) and the caller is sent a `bye` of its own,
+ * since `endCallImpl` only addresses the peer. Bounded: a user is on at most
+ * one live call, so a room has a handful at most.
+ */
+export async function endLiveCallsInRoom(ctx: any, roomId: any) {
+  for (const status of ["ringing", "active"]) {
+    const rows = await ctx.db
+      .query("calls")
+      .withIndex("by_room_status", (q: any) =>
+        q.eq("roomId", roomId).eq("status", status),
+      )
+      .take(50);
+    for (const call of rows) {
+      await endCallImpl(ctx, call, call.callerId);
+      await ctx.db.insert("callSignals", {
+        callId: call._id,
+        fromUserId: call.calleeId,
+        toUserId: call.callerId,
+        kind: "bye",
+        payload: '{"reason":"room_deleted"}',
+        createdAt: Date.now(),
+        consumed: false,
+      });
+    }
+  }
+}
+
 async function assertCallParticipant(ctx: any, callId: any, userId: any) {
   const call = await ctx.db.get(callId);
   if (!call) throw new Error("CALL_NOT_FOUND");

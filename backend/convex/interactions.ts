@@ -162,7 +162,7 @@ async function assertMember(ctx: any, roomId: any, userId: any) {
  * `interactionResponses.userName`. */
 async function nameOf(ctx: any, userId: any): Promise<string> {
   const user = await ctx.db.get(userId);
-  return (user?.displayName ?? user?.username ?? "unknown") as string;
+  return (user?.name ?? user?.username ?? "unknown") as string;
 }
 
 /**

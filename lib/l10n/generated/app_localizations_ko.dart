@@ -13285,6 +13285,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrorAccountSuspended => '이용약관 위반으로 계정이 정지되었습니다.';
 
   @override
+  String get authErrorLastGuardian =>
+      '회원님은 자녀 계정의 유일한 보호자예요. 먼저 다른 보호자를 추가하거나 자녀 계정을 삭제해 주세요.';
+
+  @override
+  String get authSuspendedDeleteAction => '내 계정 삭제';
+
+  @override
+  String get authSuspendedDeleteFailed =>
+      '여기에서는 계정을 삭제하지 못했어요. 고객 지원에 문의해 주시면 도와드릴게요.';
+
+  @override
   String get termsConsentPrefix => '';
 
   @override

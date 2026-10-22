@@ -84,6 +84,8 @@ void main() {
       'NAME_INAPPROPRIATE',
       'ACCOUNT_SUSPENDED',
       'TERMS_NOT_ACCEPTED',
+      // childGuard.ERR_LAST_GUARDIAN — auth.deleteAccount by a sole guardian.
+      'LAST_GUARDIAN',
       // deviceLogin.ts — QR / short-code sign-in.
       'DEVICE_LOGIN_REQUEST_INVALID',
       'DEVICE_LOGIN_CODE_INVALID',

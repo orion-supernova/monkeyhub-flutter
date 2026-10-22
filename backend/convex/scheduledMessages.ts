@@ -638,3 +638,33 @@ export async function purgeScheduledForRoom(ctx: any, roomId: any) {
   }
   return rows.length;
 }
+
+/**
+ * One person's queued messages for one room. They left it or were removed.
+ *
+ * Without this the rows outlive the membership: each wakes at its `sendAt`,
+ * fails `guardOutgoing` and sits in the author's list as a permanent error for
+ * a room they cannot open, with a queued photo's file held for up to a year.
+ * Same teardown as [cancel], row by row, and `by_room_user_due` leads with
+ * both keys so the range is exactly this person's — at most
+ * `MAX_PENDING_PER_ROOM` rows.
+ */
+export async function purgeScheduledForRoomUser(
+  ctx: any,
+  roomId: any,
+  userId: any,
+) {
+  const rows = await ctx.db
+    .query("scheduledMessages")
+    .withIndex("by_room_user_due", (q: any) =>
+      q.eq("roomId", roomId).eq("userId", userId)
+    )
+    .take(MAX_PENDING_PER_ROOM * 5);
+  for (const row of rows) {
+    await ctx.db.delete(row._id);
+    await dropJob(ctx, row.jobId);
+    // Unsent, so this row is the photo's only pointer.
+    await deleteStored(ctx, row.mediaStorageId);
+  }
+  return rows.length;
+}

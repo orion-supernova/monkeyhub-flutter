@@ -13903,6 +13903,17 @@ class AppLocalizationsSv extends AppLocalizations {
       'Ditt konto har stängts av för brott mot användarvillkoren.';
 
   @override
+  String get authErrorLastGuardian =>
+      'Du är den enda vårdnadshavaren för ett barnkonto. Lägg till en annan vårdnadshavare eller ta bort barnkontot först.';
+
+  @override
+  String get authSuspendedDeleteAction => 'Ta bort mitt konto';
+
+  @override
+  String get authSuspendedDeleteFailed =>
+      'Vi kunde inte ta bort ditt konto härifrån. Kontakta supporten så löser vi det.';
+
+  @override
   String get termsConsentPrefix => 'Jag godkänner ';
 
   @override

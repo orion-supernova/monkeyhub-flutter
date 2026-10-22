@@ -14008,6 +14008,17 @@ class AppLocalizationsPt extends AppLocalizations {
       'A sua conta foi suspensa por violar os Termos de Utilização.';
 
   @override
+  String get authErrorLastGuardian =>
+      'És o único responsável por uma conta de criança. Adiciona primeiro outro responsável ou elimina a conta da criança.';
+
+  @override
+  String get authSuspendedDeleteAction => 'Eliminar a minha conta';
+
+  @override
+  String get authSuspendedDeleteFailed =>
+      'Não conseguimos eliminar a tua conta a partir daqui. Contacta o apoio e resolvemos isto.';
+
+  @override
   String get termsConsentPrefix => 'Aceito os ';
 
   @override
@@ -28468,6 +28479,17 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get authErrorAccountSuspended =>
       'Sua conta foi suspensa por violar os Termos de Uso.';
+
+  @override
+  String get authErrorLastGuardian =>
+      'Você é o único responsável por uma conta de criança. Adicione outro responsável ou exclua a conta da criança primeiro.';
+
+  @override
+  String get authSuspendedDeleteAction => 'Excluir minha conta';
+
+  @override
+  String get authSuspendedDeleteFailed =>
+      'Não conseguimos excluir sua conta por aqui. Entre em contato com o suporte e vamos resolver.';
 
   @override
   String get termsConsentPrefix => 'Concordo com os ';

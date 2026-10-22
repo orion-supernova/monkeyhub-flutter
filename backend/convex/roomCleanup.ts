@@ -14,10 +14,13 @@
 import { deleteStored, releaseMessageBlobs } from "./files";
 import { purgeScheduledForRoom } from "./scheduledMessages";
 import { purgeSpeakerColorsForRoom } from "./speakerColors";
+import { endLiveCallsInRoom } from "./calls";
+import { endGroupCallsInRoom } from "./groupCalls";
 import { purgeChallengesForRoom, purgeMatchesForRoom } from "./matchCore";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { revokeAllRoomAccess } from "./roomAccess";
+import { releaseRoomPhoto } from "./roomAdmin";
 import { internal } from "./_generated/api";
 
 /**
@@ -93,6 +96,11 @@ async function wipeRoomRows(ctx: any, roomId: any) {
     .query("roomMembers")
     .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
     .collect();
+  // Live calls first: a call in a room that no longer exists would carry on
+  // (nothing else ends it until the stuck-call sweeps) with nobody able to
+  // reach its room.
+  await endGroupCallsInRoom(ctx, roomId);
+  await endLiveCallsInRoom(ctx, roomId);
   for (const m of members) await ctx.db.delete(m._id);
   await revokeAllRoomAccess(ctx, roomId);
   // Pins. Swept by room rather than inside the per-message loop above,
@@ -178,7 +186,9 @@ async function wipeRoomRows(ctx: any, roomId: any) {
     .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const r of proposals) {
-    if (r.storageId) await deleteStored(ctx, r.storageId);
+    if (r.storageId) {
+      await releaseRoomPhoto(ctx, r.storageId, { roomId, requestId: r._id });
+    }
     await ctx.db.delete(r._id);
   }
   // Messages staged for a room that is about to stop existing — every member's,
@@ -205,7 +215,7 @@ export async function wipeRoomCompletely(ctx: any, roomId: any) {
   // The room's own avatar. Easy to forget because it isn't a row — the room
   // document is about to vanish, and with it the only pointer to the file.
   const room = await ctx.db.get(roomId);
-  await deleteStored(ctx, room?.avatarStorageId);
+  await releaseRoomPhoto(ctx, room?.avatarStorageId, { roomId });
   // The room itself
   await ctx.db.delete(roomId);
 }

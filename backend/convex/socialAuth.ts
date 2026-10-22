@@ -24,7 +24,7 @@
 
 import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { action, mutation, publicAction, query } from "./functions";
-import { mintSession } from "./sessionCore";
+import { assertIdentityNotBanned, mintSession } from "./sessionCore";
 import { v, type Infer } from "convex/values";
 import { internal } from "./_generated/api";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR } from "./childGuard";
@@ -156,6 +156,10 @@ export const signIn = publicAction({
   args: {
     // Binds the minted session to this device.
     deviceId: v.string(),
+    // Per-install secret (64 hex chars) proving this really is the install
+    // that owns `deviceId`; see `sessionCore.mintSession`. Optional so older
+    // builds keep signing in.
+    deviceSecret: v.optional(v.string()),
     provider: providerValidator,
     idToken: v.string(),
     rawNonce: v.optional(v.string()),
@@ -195,6 +199,7 @@ export const signIn = publicAction({
 
     return await ctx.runMutation(internal.socialAuth.touchIdentity, {
       deviceId: args.deviceId,
+      deviceSecret: args.deviceSecret,
       identityId: existing.identityId,
       email: identity.email,
       isPrivateRelay: identity.isPrivateRelay,
@@ -214,6 +219,10 @@ export const completeSignUp = publicAction({
   args: {
     // Binds the minted session to this device.
     deviceId: v.string(),
+    // Per-install secret (64 hex chars) proving this really is the install
+    // that owns `deviceId`; see `sessionCore.mintSession`. Optional so older
+    // builds keep signing in.
+    deviceSecret: v.optional(v.string()),
     provider: providerValidator,
     idToken: v.string(),
     rawNonce: v.optional(v.string()),
@@ -238,6 +247,7 @@ export const completeSignUp = publicAction({
 
     return await ctx.runMutation(internal.socialAuth.createWithIdentity, {
       deviceId: args.deviceId,
+      deviceSecret: args.deviceSecret,
       provider: identity.provider,
       subject: identity.subject,
       email: identity.email,
@@ -266,6 +276,10 @@ export const linkExistingAccount = publicAction({
   args: {
     // Binds the minted session to this device.
     deviceId: v.string(),
+    // Per-install secret (64 hex chars) proving this really is the install
+    // that owns `deviceId`; see `sessionCore.mintSession`. Optional so older
+    // builds keep signing in.
+    deviceSecret: v.optional(v.string()),
     provider: providerValidator,
     idToken: v.string(),
     rawNonce: v.optional(v.string()),
@@ -287,6 +301,7 @@ export const linkExistingAccount = publicAction({
     );
     return await ctx.runMutation(internal.socialAuth.attachToExistingAccount, {
       deviceId: args.deviceId,
+      deviceSecret: args.deviceSecret,
       username: args.username,
       passwordHash: args.passwordHash,
       provider: identity.provider,
@@ -597,7 +612,11 @@ export const findIdentity = internalQuery({
         q.eq("provider", provider).eq("subject", subject),
       )
       .first();
-    if (!row) return null;
+    if (!row) {
+      // Not signed up (or deleted): a ban outlives the account it was for.
+      await assertIdentityNotBanned(ctx, provider, subject);
+      return null;
+    }
     return {
       identityId: row._id,
       userId: row.userId,
@@ -609,6 +628,10 @@ export const findIdentity = internalQuery({
 export const touchIdentity = internalMutation({
   args: {
     deviceId: v.string(),
+    // Per-install secret (64 hex chars) proving this really is the install
+    // that owns `deviceId`; see `sessionCore.mintSession`. Optional so older
+    // builds keep signing in.
+    deviceSecret: v.optional(v.string()),
     identityId: v.id("socialIdentities"),
     email: v.optional(v.string()),
     isPrivateRelay: v.optional(v.boolean()),
@@ -647,7 +670,7 @@ export const touchIdentity = internalMutation({
       username: user.username,
       name: user.name ?? user.username,
       accountType: user.accountType ?? "adult",
-      token: await mintSession(ctx, user._id, args.deviceId),
+      token: await mintSession(ctx, user._id, args.deviceId, args.deviceSecret),
     };
   },
 });
@@ -655,6 +678,10 @@ export const touchIdentity = internalMutation({
 export const createWithIdentity = internalMutation({
   args: {
     deviceId: v.string(),
+    // Per-install secret (64 hex chars) proving this really is the install
+    // that owns `deviceId`; see `sessionCore.mintSession`. Optional so older
+    // builds keep signing in.
+    deviceSecret: v.optional(v.string()),
     provider: v.string(),
     subject: v.string(),
     email: v.optional(v.string()),
@@ -697,6 +724,7 @@ export const createWithIdentity = internalMutation({
       .first();
     if (taken) throw new Error("USERNAME_TAKEN");
 
+    await assertIdentityNotBanned(ctx, args.provider, args.subject);
     const claimed = await ctx.db
       .query("socialIdentities")
       .withIndex("by_provider_subject", (q) =>
@@ -714,7 +742,7 @@ export const createWithIdentity = internalMutation({
           username: user.username,
           name: user.name ?? user.username,
           accountType: user.accountType ?? "adult",
-          token: await mintSession(ctx, user._id, args.deviceId),
+          token: await mintSession(ctx, user._id, args.deviceId, args.deviceSecret),
         };
       }
     }
@@ -754,7 +782,7 @@ export const createWithIdentity = internalMutation({
       username,
       name: name && name.length > 0 ? name : username,
       accountType: "adult",
-      token: await mintSession(ctx, userId, args.deviceId),
+      token: await mintSession(ctx, userId, args.deviceId, args.deviceSecret),
     };
   },
 });
@@ -762,6 +790,10 @@ export const createWithIdentity = internalMutation({
 export const attachToExistingAccount = internalMutation({
   args: {
     deviceId: v.string(),
+    // Per-install secret (64 hex chars) proving this really is the install
+    // that owns `deviceId`; see `sessionCore.mintSession`. Optional so older
+    // builds keep signing in.
+    deviceSecret: v.optional(v.string()),
     username: v.string(),
     passwordHash: v.string(),
     provider: v.string(),
@@ -795,6 +827,7 @@ export const attachToExistingAccount = internalMutation({
     }
     await clearFailures(ctx, key);
 
+    await assertIdentityNotBanned(ctx, args.provider, args.subject);
     const claimed = await ctx.db
       .query("socialIdentities")
       .withIndex("by_provider_subject", (q) =>
@@ -847,7 +880,7 @@ export const attachToExistingAccount = internalMutation({
       username: user.username,
       name: user.name ?? user.username,
       accountType: user.accountType ?? "adult",
-      token: await mintSession(ctx, user._id, args.deviceId),
+      token: await mintSession(ctx, user._id, args.deviceId, args.deviceSecret),
     };
   },
 });
@@ -880,6 +913,7 @@ export const attachIdentity = internalMutation({
     }
     await clearFailures(ctx, key);
 
+    await assertIdentityNotBanned(ctx, args.provider, args.subject);
     const existing = await ctx.db
       .query("socialIdentities")
       .withIndex("by_provider_subject", (q) =>
