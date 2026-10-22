@@ -3937,5 +3937,8 @@
   "partyLdKeys": "↑ ↓ 個数 · 1–6 目 · Enter 宣言 · L ダウト",
   "partyImposterVoteKeys": "行の番号キーで投票 · 0でスキップ",
   "dailyStandingsHintedNote": "ヒントを使った解答は、ヒントなしの解答より下の順位になります",
-  "howToPatchesControls": "角から角へドラッグしてパッチを切り取ろう。パッチの辺や角をドラッグすると形を変えられるよ。パッチをタップすると外せるよ。"
+  "howToPatchesControls": "角から角へドラッグしてパッチを切り取ろう。パッチの辺や角をドラッグすると形を変えられるよ。パッチをタップすると外せるよ。",
+  "dropConfirmTitle": "{room} に送信しますか？",
+  "dropConfirmMore": "ほか {count} 件",
+  "dropConfirmSend": "送信"
 }

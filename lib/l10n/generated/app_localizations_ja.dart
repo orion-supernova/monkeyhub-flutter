@@ -13639,4 +13639,17 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get howToPatchesControls =>
       '角から角へドラッグしてパッチを切り取ろう。パッチの辺や角をドラッグすると形を変えられるよ。パッチをタップすると外せるよ。';
+
+  @override
+  String dropConfirmTitle(String room) {
+    return '$room に送信しますか？';
+  }
+
+  @override
+  String dropConfirmMore(int count) {
+    return 'ほか $count 件';
+  }
+
+  @override
+  String get dropConfirmSend => '送信';
 }

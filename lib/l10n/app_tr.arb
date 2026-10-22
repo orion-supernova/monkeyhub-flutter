@@ -3937,5 +3937,8 @@
   "partyLdKeys": "↑ ↓ adet · 1–6 yüz · Enter teklif · L yalancı",
   "partyImposterVoteKeys": "Oy için satırın numarasına bas · Atlamak için 0",
   "dailyStandingsHintedNote": "İpucu kullanılan çözümler, ipucusuz çözümlerin ardından sıralanır",
-  "howToPatchesControls": "Yama kesmek için köşeden köşeye sürükle. Yeniden şekillendirmek için yamanın kenarını ya da köşesini sürükle. Kaldırmak için yamaya dokun."
+  "howToPatchesControls": "Yama kesmek için köşeden köşeye sürükle. Yeniden şekillendirmek için yamanın kenarını ya da köşesini sürükle. Kaldırmak için yamaya dokun.",
+  "dropConfirmTitle": "{room} sohbetine gönderilsin mi?",
+  "dropConfirmMore": "ve {count} tane daha",
+  "dropConfirmSend": "Gönder"
 }

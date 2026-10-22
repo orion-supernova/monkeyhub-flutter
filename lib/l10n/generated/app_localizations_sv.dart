@@ -14318,4 +14318,17 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get howToPatchesControls =>
       'Dra från hörn till hörn för att klippa ut en lapp. Dra i en lapps sida eller hörn för att ändra formen. Tryck på en lapp för att ta bort den.';
+
+  @override
+  String dropConfirmTitle(String room) {
+    return 'Skicka till $room?';
+  }
+
+  @override
+  String dropConfirmMore(int count) {
+    return 'och $count till';
+  }
+
+  @override
+  String get dropConfirmSend => 'Skicka';
 }

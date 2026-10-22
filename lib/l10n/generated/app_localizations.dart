@@ -23784,6 +23784,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Drag from corner to corner to cut a patch. Drag a patch\'s side or corner to reshape it. Tap a patch to lift it off.'**
   String get howToPatchesControls;
+
+  /// Title of the confirmation shown on desktop and web after files that are not all pictures (documents, videos, a mix) are dragged onto a chat, before anything is sent. {room} is the chat's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to {room}?'**
+  String dropConfirmTitle(String room);
+
+  /// Last line of the drop confirmation's file list when more files were dropped than it names. {count} is how many are not listed (always 1 or more).
+  ///
+  /// In en, this message translates to:
+  /// **'and {count} more'**
+  String dropConfirmMore(int count);
+
+  /// The confirming button of the drop confirmation: sends the dragged files into the chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get dropConfirmSend;
 }
 
 class _AppLocalizationsDelegate

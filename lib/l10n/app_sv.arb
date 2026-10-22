@@ -3937,5 +3937,8 @@
   "partyLdKeys": "↑ ↓ antal · 1–6 sida · Enter bjud · L lögn",
   "partyImposterVoteKeys": "Tryck på en rads siffra för att rösta · 0 för att hoppa över",
   "dailyStandingsHintedNote": "Lösningar med ledtråd rankas efter lösningar utan",
-  "howToPatchesControls": "Dra från hörn till hörn för att klippa ut en lapp. Dra i en lapps sida eller hörn för att ändra formen. Tryck på en lapp för att ta bort den."
+  "howToPatchesControls": "Dra från hörn till hörn för att klippa ut en lapp. Dra i en lapps sida eller hörn för att ändra formen. Tryck på en lapp för att ta bort den.",
+  "dropConfirmTitle": "Skicka till {room}?",
+  "dropConfirmMore": "och {count} till",
+  "dropConfirmSend": "Skicka"
 }

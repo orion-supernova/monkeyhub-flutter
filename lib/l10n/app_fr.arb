@@ -3937,5 +3937,8 @@
   "partyLdKeys": "↑ ↓ quantité · 1–6 face · Entrée enchérir · L menteur",
   "partyImposterVoteKeys": "Appuie sur le numéro d’une ligne pour voter · 0 pour passer",
   "dailyStandingsHintedNote": "Les grilles résolues avec un indice sont classées après celles sans indice",
-  "howToPatchesControls": "Glisse d’un coin à l’autre pour découper un patch. Fais glisser un côté ou un coin d’un patch pour changer sa forme. Touche un patch pour l’enlever."
+  "howToPatchesControls": "Glisse d’un coin à l’autre pour découper un patch. Fais glisser un côté ou un coin d’un patch pour changer sa forme. Touche un patch pour l’enlever.",
+  "dropConfirmTitle": "Envoyer à {room} ?",
+  "dropConfirmMore": "et {count} de plus",
+  "dropConfirmSend": "Envoyer"
 }

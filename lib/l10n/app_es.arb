@@ -3937,5 +3937,8 @@
   "partyLdKeys": "↑ ↓ cantidad · 1–6 cara · Intro pujar · L mentiroso",
   "partyImposterVoteKeys": "Pulsa el número de una fila para votar · 0 para saltar",
   "dailyStandingsHintedNote": "Las soluciones con pista van detrás de las que no usaron ninguna",
-  "howToPatchesControls": "Arrastra de esquina a esquina para cortar un parche. Arrastra un lado o una esquina de un parche para cambiarle la forma. Toca un parche para quitarlo."
+  "howToPatchesControls": "Arrastra de esquina a esquina para cortar un parche. Arrastra un lado o una esquina de un parche para cambiarle la forma. Toca un parche para quitarlo.",
+  "dropConfirmTitle": "¿Enviar a {room}?",
+  "dropConfirmMore": "y {count} más",
+  "dropConfirmSend": "Enviar"
 }

@@ -13673,4 +13673,17 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get howToPatchesControls =>
       '모서리에서 모서리로 드래그해서 패치를 잘라요. 패치의 변이나 모서리를 드래그하면 모양이 바뀌어요. 패치를 탭하면 떼어져요.';
+
+  @override
+  String dropConfirmTitle(String room) {
+    return '$room에 보낼까요?';
+  }
+
+  @override
+  String dropConfirmMore(int count) {
+    return '외 $count개';
+  }
+
+  @override
+  String get dropConfirmSend => '보내기';
 }

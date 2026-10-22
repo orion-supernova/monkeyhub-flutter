@@ -3747,6 +3747,14 @@ class _RoomScreenState extends State<_RoomView>
     // bytes come off a staged copy on disk (macOS) or straight out of a
     // browser's `File`, which for a video is tens of megabytes of read with
     // nothing on screen to explain the pause.
+    // Pictures meet the composer, which is itself the "are you sure". Anything
+    // else (documents, videos, a mix) used to leave the instant it was let
+    // go, one slip of the trackpad from a chat. Asked BEFORE any byte is read.
+    if (!plan.isPhotoOnly && !await _confirmDrop(queue.map((q) => q.file))) {
+      _touchShareTarget();
+      return;
+    }
+    if (!mounted) return;
     _setMediaBusy(true);
     try {
       if (plan.isPhotoOnly) {
@@ -3799,6 +3807,25 @@ class _RoomScreenState extends State<_RoomView>
     } finally {
       _setMediaBusy(false);
     }
+  }
+
+  /// Names what a non-photo drop is about to send, and to whom. True to send.
+  Future<bool> _confirmDrop(Iterable<DroppedFile> files) async {
+    final l10n = AppLocalizations.of(context);
+    final room = _room ?? widget.repo.roomById(widget.roomId);
+    final names = [for (final f in files) f.name];
+    const shown = 4;
+    final lines = [
+      ...names.take(shown),
+      if (names.length > shown) l10n.dropConfirmMore(names.length - shown),
+    ];
+    final sure = await showIosActionSheet<bool>(
+      context,
+      title: l10n.dropConfirmTitle(room == null ? '' : _dropTargetLabel(room)),
+      message: lines.join('\n'),
+      actions: [IosSheetAction(label: l10n.dropConfirmSend, value: true)],
+    );
+    return sure == true;
   }
 
   /// The all-pictures case: every one of them goes to the composer.

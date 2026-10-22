@@ -3937,5 +3937,8 @@
   "partyLdKeys": "↑ ↓ 个数 · 1–6 点数 · Enter 叫 · L 开",
   "partyImposterVoteKeys": "按行号投票 · 按 0 跳过",
   "dailyStandingsHintedNote": "使用过提示的解答排在未使用提示的解答之后",
-  "howToPatchesControls": "从一个角拖到对角，切出一块拼块。拖动拼块的边或角可以改变它的形状。点一下拼块就能拿掉。"
+  "howToPatchesControls": "从一个角拖到对角，切出一块拼块。拖动拼块的边或角可以改变它的形状。点一下拼块就能拿掉。",
+  "dropConfirmTitle": "发送到 {room}？",
+  "dropConfirmMore": "以及另外 {count} 个",
+  "dropConfirmSend": "发送"
 }

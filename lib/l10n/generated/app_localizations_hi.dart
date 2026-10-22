@@ -14261,4 +14261,17 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get howToPatchesControls =>
       'पैच काटने के लिए एक कोने से दूसरे कोने तक खींचो। आकार बदलने के लिए पैच का किनारा या कोना खींचो। हटाने के लिए पैच पर टैप करो।';
+
+  @override
+  String dropConfirmTitle(String room) {
+    return '$room को भेजें?';
+  }
+
+  @override
+  String dropConfirmMore(int count) {
+    return 'और $count अन्य';
+  }
+
+  @override
+  String get dropConfirmSend => 'भेजें';
 }

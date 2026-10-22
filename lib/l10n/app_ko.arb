@@ -3937,5 +3937,8 @@
   "partyLdKeys": "↑ ↓ 개수 · 1–6 눈 · Enter 걸기 · L 거짓말",
   "partyImposterVoteKeys": "줄 번호를 눌러 투표 · 0은 건너뛰기",
   "dailyStandingsHintedNote": "힌트를 쓴 풀이는 힌트 없이 푼 풀이보다 뒤에 순위가 매겨져요",
-  "howToPatchesControls": "모서리에서 모서리로 드래그해서 패치를 잘라요. 패치의 변이나 모서리를 드래그하면 모양이 바뀌어요. 패치를 탭하면 떼어져요."
+  "howToPatchesControls": "모서리에서 모서리로 드래그해서 패치를 잘라요. 패치의 변이나 모서리를 드래그하면 모양이 바뀌어요. 패치를 탭하면 떼어져요.",
+  "dropConfirmTitle": "{room}에 보낼까요?",
+  "dropConfirmMore": "외 {count}개",
+  "dropConfirmSend": "보내기"
 }

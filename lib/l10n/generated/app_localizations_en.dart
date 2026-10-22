@@ -14283,4 +14283,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get howToPatchesControls =>
       'Drag from corner to corner to cut a patch. Drag a patch\'s side or corner to reshape it. Tap a patch to lift it off.';
+
+  @override
+  String dropConfirmTitle(String room) {
+    return 'Send to $room?';
+  }
+
+  @override
+  String dropConfirmMore(int count) {
+    return 'and $count more';
+  }
+
+  @override
+  String get dropConfirmSend => 'Send';
 }

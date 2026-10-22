@@ -3937,5 +3937,8 @@
   "partyLdKeys": "↑ ↓ quantidade · 1–6 face · Enter apostar · L mentiroso",
   "partyImposterVoteKeys": "Aperte o número de uma linha para votar · 0 para pular",
   "dailyStandingsHintedNote": "Resoluções com dica ficam atrás das que não usaram nenhuma",
-  "howToPatchesControls": "Arraste de canto a canto pra cortar um retalho. Arraste um lado ou um canto de um retalho pra mudar a forma dele. Toque num retalho pra tirar."
+  "howToPatchesControls": "Arraste de canto a canto pra cortar um retalho. Arraste um lado ou um canto de um retalho pra mudar a forma dele. Toque num retalho pra tirar.",
+  "dropConfirmTitle": "Enviar para {room}?",
+  "dropConfirmMore": "e mais {count}",
+  "dropConfirmSend": "Enviar"
 }

@@ -17126,5 +17126,27 @@
   "howToPatchesControls": "Drag from corner to corner to cut a patch. Drag a patch's side or corner to reshape it. Tap a patch to lift it off.",
   "@howToPatchesControls": {
     "description": "How-to-play step for Patches (replaces howToPatches3): drag corner to corner to make a patch; drag a placed patch's side or corner to reshape it; tap a patch to remove it."
+  },
+  "dropConfirmTitle": "Send to {room}?",
+  "@dropConfirmTitle": {
+    "description": "Title of the confirmation shown on desktop and web after files that are not all pictures (documents, videos, a mix) are dragged onto a chat, before anything is sent. {room} is the chat's name.",
+    "placeholders": {
+      "room": {
+        "type": "String"
+      }
+    }
+  },
+  "dropConfirmMore": "and {count} more",
+  "@dropConfirmMore": {
+    "description": "Last line of the drop confirmation's file list when more files were dropped than it names. {count} is how many are not listed (always 1 or more).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dropConfirmSend": "Send",
+  "@dropConfirmSend": {
+    "description": "The confirming button of the drop confirmation: sends the dragged files into the chat."
   }
 }

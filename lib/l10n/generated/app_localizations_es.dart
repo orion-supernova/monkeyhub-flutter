@@ -14420,4 +14420,17 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get howToPatchesControls =>
       'Arrastra de esquina a esquina para cortar un parche. Arrastra un lado o una esquina de un parche para cambiarle la forma. Toca un parche para quitarlo.';
+
+  @override
+  String dropConfirmTitle(String room) {
+    return '¿Enviar a $room?';
+  }
+
+  @override
+  String dropConfirmMore(int count) {
+    return 'y $count más';
+  }
+
+  @override
+  String get dropConfirmSend => 'Enviar';
 }

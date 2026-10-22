@@ -14454,4 +14454,17 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get howToPatchesControls =>
       'اسحب من زاوية إلى زاوية لتقصّ رقعة. اسحب جانب الرقعة أو زاويتها لتغيّر شكلها. اضغط على رقعة لإزالتها.';
+
+  @override
+  String dropConfirmTitle(String room) {
+    return 'هل تريد الإرسال إلى $room؟';
+  }
+
+  @override
+  String dropConfirmMore(int count) {
+    return 'و$count أخرى';
+  }
+
+  @override
+  String get dropConfirmSend => 'إرسال';
 }

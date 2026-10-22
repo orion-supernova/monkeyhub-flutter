@@ -14218,4 +14218,17 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get howToPatchesControls =>
       'Yama kesmek için köşeden köşeye sürükle. Yeniden şekillendirmek için yamanın kenarını ya da köşesini sürükle. Kaldırmak için yamaya dokun.';
+
+  @override
+  String dropConfirmTitle(String room) {
+    return '$room sohbetine gönderilsin mi?';
+  }
+
+  @override
+  String dropConfirmMore(int count) {
+    return 've $count tane daha';
+  }
+
+  @override
+  String get dropConfirmSend => 'Gönder';
 }

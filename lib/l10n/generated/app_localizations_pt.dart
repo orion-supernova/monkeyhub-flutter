@@ -14425,6 +14425,19 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get howToPatchesControls =>
       'Arrasta de canto a canto para cortar um retalho. Arrasta um lado ou um canto de um retalho para lhe mudar a forma. Toca num retalho para o tirar.';
+
+  @override
+  String dropConfirmTitle(String room) {
+    return 'Enviar para $room?';
+  }
+
+  @override
+  String dropConfirmMore(int count) {
+    return 'e mais $count';
+  }
+
+  @override
+  String get dropConfirmSend => 'Enviar';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -28830,4 +28843,17 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get howToPatchesControls =>
       'Arraste de canto a canto pra cortar um retalho. Arraste um lado ou um canto de um retalho pra mudar a forma dele. Toque num retalho pra tirar.';
+
+  @override
+  String dropConfirmTitle(String room) {
+    return 'Enviar para $room?';
+  }
+
+  @override
+  String dropConfirmMore(int count) {
+    return 'e mais $count';
+  }
+
+  @override
+  String get dropConfirmSend => 'Enviar';
 }

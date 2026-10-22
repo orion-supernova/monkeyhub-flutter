@@ -13513,4 +13513,17 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get howToPatchesControls =>
       '从一个角拖到对角，切出一块拼块。拖动拼块的边或角可以改变它的形状。点一下拼块就能拿掉。';
+
+  @override
+  String dropConfirmTitle(String room) {
+    return '发送到 $room？';
+  }
+
+  @override
+  String dropConfirmMore(int count) {
+    return '以及另外 $count 个';
+  }
+
+  @override
+  String get dropConfirmSend => '发送';
 }
