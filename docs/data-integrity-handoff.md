@@ -102,6 +102,12 @@ VPS:
 - Phase 5 `auditLiveVsAccounts`: all 0, so `SESSION_TRUSTS_ROW = true`
   (committed and deployed backend-only); `backfillPresence` 21 created,
   `countMissingPresence` 0.
+- 1.3.137 shipped to iOS/macOS TestFlight, Play internal, web and the
+  site. No App Store version was ever approved (1.3.137 is the first
+  review), so the force update went out at once: `minSupported` 1.3.137 on
+  ios-testflight, macos-testflight, android-play, android-apk and web (VPS
+  only; the home server was down). Windows and Linux get theirs right after
+  they ship (the CI artifact quota blocked them).
 - Left for after the forced minimum version: Phase 5 W3-W5, Phase 6 W3 and
   6Z, the Phase 2 shims, `readLog`/`deliveredLog`.
 
