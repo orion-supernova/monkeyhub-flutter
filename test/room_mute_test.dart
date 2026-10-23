@@ -1,15 +1,14 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/data/room_filter.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
-import 'package:monkeyhub/l10n/generated/app_localizations_en.dart';
 import 'package:monkeyhub/models/chat_room.dart';
 import 'package:monkeyhub/models/room_capabilities.dart';
 import 'package:monkeyhub/models/room_mute.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/count_badge.dart';
-import 'package:monkeyhub/widgets/muted_badge.dart';
 import 'package:monkeyhub/widgets/room_card.dart';
 
 /// Per-room mute: two switches, one clock, and the arithmetic that has to be
@@ -28,8 +27,6 @@ import 'package:monkeyhub/widgets/room_card.dart';
 /// means in most apps. Here it is a separate choice, and a room with only the
 /// first switch on must keep climbing its unread count.
 void main() {
-  final l10n = AppLocalizationsEn();
-
   // A fixed "now" and a set of instants around it. Nothing in this file reads
   // the real clock except where that is the thing under test.
   final now = DateTime.utc(2026, 8, 9, 12, 0, 0);
@@ -432,6 +429,11 @@ void main() {
   });
 
   group('the chat row', () {
+    // The redesigned row says "muted" with a bell-slash glyph after the name
+    // (ChatListTitle); the labelled MutedBadge pill now lives only in the
+    // long-press preview (chat_row_action_menu).
+    final muteGlyph = find.byIcon(CupertinoIcons.bell_slash_fill);
+
     Future<void> pump(WidgetTester tester, ChatRoom r) async {
       tester.view.physicalSize = const Size(420, 900);
       tester.view.devicePixelRatio = 1.0;
@@ -453,19 +455,18 @@ void main() {
       tester,
     ) async {
       await pump(tester, room(unreadCount: 4));
-      expect(find.byType(MutedBadge), findsNothing);
+      expect(muteGlyph, findsNothing);
       expect(find.text('4'), findsOneWidget);
     });
 
-    testWidgets('notification-muted: pill on, count still there', (
+    testWidgets('notification-muted: mute glyph on, count still there', (
       tester,
     ) async {
       await pump(
         tester,
         room(unreadCount: 4, mute: muteAlways(notifications: true)),
       );
-      expect(find.byType(MutedBadge), findsOneWidget);
-      expect(find.text(l10n.mutedBadgeLabel), findsOneWidget);
+      expect(muteGlyph, findsOneWidget);
       expect(
         find.text('4'),
         findsOneWidget,
@@ -475,9 +476,9 @@ void main() {
       );
     });
 
-    testWidgets('badge-muted: pill on, no count at all', (tester) async {
+    testWidgets('badge-muted: mute glyph on, no count at all', (tester) async {
       await pump(tester, room(unreadCount: 4, mute: muteAlways(badges: true)));
-      expect(find.byType(MutedBadge), findsOneWidget);
+      expect(muteGlyph, findsOneWidget);
       expect(find.text('4'), findsNothing);
       expect(find.byType(CountBadge), findsNothing);
     });
@@ -486,7 +487,7 @@ void main() {
       tester,
     ) async {
       await pump(tester, room(unreadCount: 4, mute: lapsed()));
-      expect(find.byType(MutedBadge), findsNothing);
+      expect(muteGlyph, findsNothing);
       expect(find.text('4'), findsOneWidget);
     });
   });

@@ -75,6 +75,27 @@ class _OfflineApi extends Fake implements ChatApi {
   }) async {}
 }
 
+/// Lets real async work (isolates, microtask chains, the repository's
+/// subscriptions) finish, polling [done] instead of sleeping a fixed time. A
+/// fixed 100 ms was enough alone and not under a loaded full-suite run, where
+/// `cv.sinks['messages:list']` could still be unregistered.
+Future<void> _until(
+  WidgetTester tester,
+  bool Function() done, {
+  String what = 'condition',
+}) async {
+  final deadline = DateTime.now().add(const Duration(seconds: 20));
+  while (!done()) {
+    if (DateTime.now().isAfter(deadline)) {
+      fail('timed out waiting for $what');
+    }
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 10)),
+    );
+    await tester.pump();
+  }
+}
+
 void main() {
   testWidgets('Saved Messages date scrolling does not rebuild the transcript', (
     tester,
@@ -110,10 +131,11 @@ void main() {
         ),
       ),
     );
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    await _until(
+      tester,
+      () => cv.sinks.containsKey('messages:list'),
+      what: 'the transcript subscription',
     );
-    await tester.pump();
     cv.sinks['messages:list']!([
       for (var i = 0; i < 30; i++)
         {
@@ -125,10 +147,11 @@ void main() {
           'createdAt': DateTime(2026, 9, i + 1).millisecondsSinceEpoch,
         },
     ]);
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    await _until(
+      tester,
+      () => find.textContaining('Saved text').evaluate().isNotEmpty,
+      what: 'the saved messages to render',
     );
-    await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     final finder = find.byType(TimelineListView);
     expect(finder, findsOneWidget);

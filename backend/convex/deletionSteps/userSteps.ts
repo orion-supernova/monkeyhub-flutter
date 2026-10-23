@@ -1,4 +1,4 @@
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import {
   cursorOf,
@@ -212,6 +212,55 @@ export const userSteps: Step[] = [
           )
           .first();
         if (owner) await ctx.db.patch(roomId, { createdBy: owner.userId });
+      }
+    },
+  },
+  {
+    id: "createdRooms",
+    tier: 2,
+    /**
+     * Rooms the user created and is no longer in (the memberships step re-points
+     * the ones they were still in). `rooms.createdBy` is required, so it is
+     * re-pointed at the current owner seat rather than cleared; a room with no
+     * owner seat keeps the dead id (nobody to name). A cursor, because rows that
+     * keep a dead id stay in the `by_created_by` range.
+     */
+    async run(ctx, job, b) {
+      const userId = userOf(ctx, job);
+      if (!userId) return { done: true };
+      let cursor: string | null = job.cursor;
+      for (;;) {
+        if (b.spent()) return { done: false, cursor };
+        const rooms: Doc<"rooms">[] = await pageAfter(
+          (t, k) =>
+            ctx.db
+              .query("rooms")
+              .withIndex("by_created_by", (q) =>
+                q.eq("createdBy", userId).gte("_creationTime", t),
+              )
+              .take(k),
+          cursor,
+          tuning.pageRows,
+        );
+        b.read(Math.max(rooms.length, 1));
+        if (rooms.length === 0) return { done: true };
+        for (const room of rooms) {
+          if (b.spent()) return { done: false, cursor };
+          if (!isTombstoned(room)) {
+            const owner = await ctx.db
+              .query("roomMembers")
+              .withIndex("by_room_role", (q) =>
+                q.eq("roomId", room._id).eq("role", ROLE_OWNER),
+              )
+              .first();
+            b.read();
+            if (owner && owner.userId !== userId) {
+              await ctx.db.patch(room._id, { createdBy: owner.userId });
+              b.write();
+            }
+          }
+          cursor = cursorOf(room);
+        }
       }
     },
   },

@@ -13303,7 +13303,30 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authSuspendedDeleteFailed =>
-      '여기에서는 계정을 삭제하지 못했어요. 고객 지원에 문의해 주시면 도와드릴게요.';
+      '계정을 삭제하지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요. 계속 실패하면 고객 지원에 문의해 주세요.';
+
+  @override
+  String get authSuspendedDeleteRetry => '다시 시도';
+
+  @override
+  String get authSuspendedDeleteDone => '계정을 삭제하는 중이고 로그아웃되었어요. 몇 분 걸릴 수 있어요.';
+
+  @override
+  String get authSuspendedDeleteNeedPassword =>
+      '이 계정을 삭제하려면 비밀번호, Apple 또는 Google로 다시 로그인해 주세요.';
+
+  @override
+  String authSuspendedDeleteConfirmTitle(String username) {
+    return '@$username 계정을 삭제할까요?';
+  }
+
+  @override
+  String get authSuspendedDeleteSignInAgain =>
+      'Apple 또는 Google 로그인이 만료되었어요. Apple 또는 Google 버튼을 다시 누른 뒤 계정을 삭제해 주세요.';
+
+  @override
+  String get authSuspendedDeleteNotAllowed =>
+      '이 계정은 정지된 상태가 아니라서 여기에서 삭제할 수 없어요.';
 
   @override
   String get termsConsentPrefix => '';

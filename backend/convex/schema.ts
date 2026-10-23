@@ -374,7 +374,10 @@ export default defineSchema({
     .index("by_visibility_activity", ["isPrivate", "lastMessageTime"])
     // "Does any room still show this file?" The release-side guard for room
     // photos (`files.fileInUse`) and the proposal-side refusal.
-    .index("by_avatar", ["avatarStorageId"]),
+    .index("by_avatar", ["avatarStorageId"])
+    // Account deletion: rooms whose `createdBy` names the departing user, to
+    // re-point at the current owner seat.
+    .index("by_created_by", ["createdBy"]),
 
   // Who may read a room: one row per membership, written only on join and
   // leave so live queries can check it without re-running on every receipt.
@@ -900,6 +903,27 @@ export default defineSchema({
     roomId: v.optional(v.id("rooms")),
     // The card Monkey Reporter posted for this report, in the moderation room.
     cardMessageId: v.optional(v.id("messages")),
+    // The reported content as it was when it was reported, so deleting the
+    // account, the message, the moment or the comment cannot erase the
+    // evidence. Staff-only (`moderation.reportEvidence`); lives and dies with
+    // the report (24-month retention, `users.gcExpiredReports`).
+    evidence: v.optional(
+      v.object({
+        kind: v.string(), // "message" | "moment" | "comment" | "filter"
+        text: v.optional(v.string()), // the words, up to 4000 characters
+        authorName: v.optional(v.string()),
+        authorUsername: v.optional(v.string()),
+        contentType: v.optional(v.string()), // message type, or moment media kind
+        contentAt: v.optional(v.number()), // when the content was posted
+        fileName: v.optional(v.string()),
+        mimeType: v.optional(v.string()),
+        capturedAt: v.number(),
+      }),
+    ),
+    // The reported media, held by the report's own `fileRefs` rows so the file
+    // outlives the content; released when the report expires.
+    evidenceMediaStorageId: v.optional(v.id("_storage")),
+    evidencePosterStorageId: v.optional(v.id("_storage")),
     // What a moderator did, by whom and when. See `moderation.ts`.
     action: v.optional(v.string()), // "removeMessage" | "ban" | "unban" | "dismiss"
     actionedBy: v.optional(v.id("users")),
@@ -2846,7 +2870,7 @@ export default defineSchema({
     // have.
     .index("by_revoked_at", ["revokedAt"])
     // Idle expiry. Live rows (`revokedAt` undefined) by `lastSeenAt`: the cron
-    // revokes the stale ones, `touchSessions` finds a user's stale ones.
+    // revokes the stale ones; `touchSessions` refreshes only the calling session.
     .index("by_live_seen", ["revokedAt", "lastSeenAt"])
     .index("by_user_live_seen", ["userId", "revokedAt", "lastSeenAt"]),
 
@@ -3009,10 +3033,21 @@ export default defineSchema({
   // ID. Only a hash of "provider:subject" is kept (never the subject, never an
   // email: Apple's relay addresses are per-app and email is display-only, see
   // socialIdentities). Checked at social sign-in, sign-up and link.
+  //
+  // Password accounts have no provider identity, so `suspendAccount` also
+  // records hashes of the install's `deviceSecret` ("device:<sha256>") and of
+  // the account email if one was kept ("email:<lowercased>"), tagged with
+  // `userId` so lifting the ban removes exactly those rows. Deleting the
+  // account never lifts them (the deletion path is add-only, and an unban
+  // skips a deleted account), so they become permanent. Social-identity rows
+  // written by the purge carry no `userId`. Checked at signup only.
   bannedIdentities: defineTable({
     hash: v.string(),
     createdAt: v.number(),
-  }).index("by_hash", ["hash"]),
+    userId: v.optional(v.id("users")),
+  })
+    .index("by_hash", ["hash"])
+    .index("by_user", ["userId"]),
 
   socialIdentities: defineTable({
     provider: v.string(), // "apple" | "google"

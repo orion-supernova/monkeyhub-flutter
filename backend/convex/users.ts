@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { PRESENCE_WRITE_INTERVAL_MS } from "./presence";
 import { COMPAT_OFFLINE_MS } from "./presenceCore";
-import { attachFile, claimUpload } from "./files";
+import { attachFile, claimUpload, releaseRowFiles } from "./files";
 import { enqueueDeletion, getLiveUser, isTombstoned } from "./deletionCore";
 import {
   SOCIAL_ONLY_PASSWORD_SENTINEL,
@@ -1196,7 +1196,14 @@ export const gcExpiredReports = internalMutation({
       .query("reports")
       .withIndex("by_createdAt", (q) => q.lt("createdAt", cutoff))
       .take(REPORTS_GC_PAGE);
-    for (const r of expired) await ctx.db.delete(r._id);
+    for (const r of expired) {
+      // The report's own refs on its evidence media go with it; the file is
+      // freed only if nothing else (the card bubble, a live message) uses it.
+      if (r.evidenceMediaStorageId || r.evidencePosterStorageId) {
+        await releaseRowFiles(ctx, "reports", r);
+      }
+      await ctx.db.delete(r._id);
+    }
     await continueSweep(
       ctx,
       internal.users.gcExpiredReports,

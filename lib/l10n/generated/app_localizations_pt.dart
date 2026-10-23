@@ -14027,7 +14027,31 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get authSuspendedDeleteFailed =>
-      'Não conseguimos eliminar a tua conta a partir daqui. Contacta o apoio e resolvemos isto.';
+      'Não conseguimos eliminar a tua conta. Verifica a ligação e tenta novamente. Se continuar a falhar, contacta o apoio.';
+
+  @override
+  String get authSuspendedDeleteRetry => 'Tentar novamente';
+
+  @override
+  String get authSuspendedDeleteDone =>
+      'A tua conta está a ser eliminada e a sessão foi terminada. Isto pode demorar alguns minutos.';
+
+  @override
+  String get authSuspendedDeleteNeedPassword =>
+      'Inicia sessão novamente com a tua palavra-passe, Apple ou Google para eliminar esta conta.';
+
+  @override
+  String authSuspendedDeleteConfirmTitle(String username) {
+    return 'Eliminar @$username?';
+  }
+
+  @override
+  String get authSuspendedDeleteSignInAgain =>
+      'Esse início de sessão com Apple ou Google expirou. Toca outra vez no botão Apple ou Google e depois elimina a tua conta.';
+
+  @override
+  String get authSuspendedDeleteNotAllowed =>
+      'Esta conta não está suspensa, por isso não pode ser eliminada a partir daqui.';
 
   @override
   String get termsConsentPrefix => 'Aceito os ';
@@ -28514,7 +28538,31 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get authSuspendedDeleteFailed =>
-      'Não conseguimos excluir sua conta por aqui. Entre em contato com o suporte e vamos resolver.';
+      'Não conseguimos excluir sua conta. Verifique a conexão e tente de novo. Se continuar falhando, entre em contato com o suporte.';
+
+  @override
+  String get authSuspendedDeleteRetry => 'Tentar de novo';
+
+  @override
+  String get authSuspendedDeleteDone =>
+      'Sua conta está sendo excluída e você saiu dela. Isso pode levar alguns minutos.';
+
+  @override
+  String get authSuspendedDeleteNeedPassword =>
+      'Entre novamente com sua senha, Apple ou Google para excluir esta conta.';
+
+  @override
+  String authSuspendedDeleteConfirmTitle(String username) {
+    return 'Excluir @$username?';
+  }
+
+  @override
+  String get authSuspendedDeleteSignInAgain =>
+      'Esse login com Apple ou Google expirou. Toque de novo no botão Apple ou Google e depois exclua sua conta.';
+
+  @override
+  String get authSuspendedDeleteNotAllowed =>
+      'Esta conta não está suspensa, então não pode ser excluída por aqui.';
 
   @override
   String get termsConsentPrefix => 'Concordo com os ';

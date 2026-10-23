@@ -13866,7 +13866,31 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get authSuspendedDeleteFailed =>
-      'हम यहाँ से आपका खाता नहीं हटा सके। कृपया सहायता टीम से संपर्क करें, हम इसे सुलझा देंगे।';
+      'हम आपका खाता नहीं हटा सके। अपना कनेक्शन जाँचें और फिर कोशिश करें। अगर बार-बार विफल हो, तो सहायता टीम से संपर्क करें।';
+
+  @override
+  String get authSuspendedDeleteRetry => 'फिर कोशिश करें';
+
+  @override
+  String get authSuspendedDeleteDone =>
+      'आपका खाता हटाया जा रहा है और आप साइन आउट हो गए हैं। इसमें कुछ मिनट लग सकते हैं।';
+
+  @override
+  String get authSuspendedDeleteNeedPassword =>
+      'इस खाते को हटाने के लिए अपने पासवर्ड, Apple या Google से फिर साइन इन करें।';
+
+  @override
+  String authSuspendedDeleteConfirmTitle(String username) {
+    return '@$username को हटाएँ?';
+  }
+
+  @override
+  String get authSuspendedDeleteSignInAgain =>
+      'वह Apple या Google साइन-इन समाप्त हो गया। Apple या Google बटन पर फिर से टैप करें, फिर अपना खाता हटाएँ।';
+
+  @override
+  String get authSuspendedDeleteNotAllowed =>
+      'यह खाता निलंबित नहीं है, इसलिए इसे यहाँ से नहीं हटाया जा सकता।';
 
   @override
   String get termsConsentPrefix => 'मैं ';

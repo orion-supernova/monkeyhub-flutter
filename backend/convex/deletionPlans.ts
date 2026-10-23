@@ -67,7 +67,7 @@ export const PARENT_STEP_ID = "parent";
 export const PLAN_EXEMPT: Record<string, string> = {
   // Not indexable by the path (a nested array), so no generic step can find the rows.
   "matches.watchers[]":
-    "live viewers on the match row; not worth a walk of every match, and a dead id in a finished game is harmless (Phase 4, optional)",
+    "live viewers on the match row; not worth a walk of every match: finishMatch clears the list and the liveness job re-derives it from fresh heartbeats while the game is open",
   // Found through the message, not by the user id.
   "messageInteractions.createdBy":
     "the poll body is the author's message: removeMessageBounded deletes it (capped, rest in the `message` job) when the user plan removes that message",

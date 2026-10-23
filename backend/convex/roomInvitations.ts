@@ -221,8 +221,10 @@ export const respond = mutation({
     // A room being deleted has its invitations swept in the first teardown
     // step; until then it is as good as gone.
     if (!room || isTombstoned(room)) {
+      // Returned, not thrown: a throw rolls the delete back, and the dead
+      // invitation would stay in the invitee's list forever.
       await ctx.db.delete(invitationId);
-      throw new Error("ROOM_NOT_FOUND");
+      return { status: "gone", roomId: row.roomId };
     }
     if (await membershipOf(ctx, row.roomId, userId)) {
       await ctx.db.patch(invitationId, { status: "accepted", respondedAt: now });

@@ -13923,7 +13923,31 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get authSuspendedDeleteFailed =>
-      'Vi kunde inte ta bort ditt konto härifrån. Kontakta supporten så löser vi det.';
+      'Vi kunde inte ta bort ditt konto. Kontrollera din anslutning och försök igen. Om det fortsätter att misslyckas, kontakta supporten.';
+
+  @override
+  String get authSuspendedDeleteRetry => 'Försök igen';
+
+  @override
+  String get authSuspendedDeleteDone =>
+      'Ditt konto tas bort och du har loggats ut. Det kan ta några minuter.';
+
+  @override
+  String get authSuspendedDeleteNeedPassword =>
+      'Logga in igen med ditt lösenord, Apple eller Google för att ta bort det här kontot.';
+
+  @override
+  String authSuspendedDeleteConfirmTitle(String username) {
+    return 'Ta bort @$username?';
+  }
+
+  @override
+  String get authSuspendedDeleteSignInAgain =>
+      'Den inloggningen med Apple eller Google har gått ut. Tryck på Apple- eller Google-knappen igen och ta sedan bort ditt konto.';
+
+  @override
+  String get authSuspendedDeleteNotAllowed =>
+      'Det här kontot är inte avstängt, så det går inte att ta bort härifrån.';
 
   @override
   String get termsConsentPrefix => 'Jag godkänner ';

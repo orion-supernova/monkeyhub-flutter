@@ -148,3 +148,91 @@ String humanizeAuthError(
   if (fallback != null) return fallback;
   return s.length > 140 ? '${s.substring(0, 140)}…' : s;
 }
+
+/// How a failed "delete my suspended account" attempt should read and what the
+/// notice should offer next.
+enum SuspendedDeleteNext {
+  /// A network or unknown failure: the same attempt may succeed. "Try again".
+  retry,
+
+  /// The user can fix the input (a wrong password) and press Delete again.
+  edit,
+
+  /// The held Apple/Google token is spent or expired; only a fresh sheet helps.
+  /// The caller drops the held credential.
+  signInAgain,
+
+  /// A final refusal: no retry can ever succeed, so offer nothing.
+  final_,
+}
+
+class SuspendedDeleteOutcome {
+  const SuspendedDeleteOutcome(this.message, this.next);
+  final String message;
+  final SuspendedDeleteNext next;
+}
+
+/// Maps the error of `AuthService.deleteSuspendedAccount` to specific copy.
+/// Only an error carrying none of the backend's codes is treated as a network
+/// failure and offered a retry.
+SuspendedDeleteOutcome suspendedDeleteOutcome(
+  Object e,
+  AppLocalizations l10n,
+) {
+  final s = e.toString();
+  bool has(String code) => s.contains(code);
+  if (has('LAST_GUARDIAN')) {
+    return SuspendedDeleteOutcome(
+      l10n.authErrorLastGuardian,
+      SuspendedDeleteNext.final_,
+    );
+  }
+  if (has('CHILD_MUST_PAIR')) {
+    return SuspendedDeleteOutcome(
+      l10n.authErrorChildMustPair,
+      SuspendedDeleteNext.final_,
+    );
+  }
+  if (has('CHILD_NOT_ALLOWED')) {
+    return SuspendedDeleteOutcome(
+      l10n.authSuspendedDeleteNotAllowed,
+      SuspendedDeleteNext.final_,
+    );
+  }
+  if (has('USE_SOCIAL_SIGN_IN')) {
+    return SuspendedDeleteOutcome(
+      l10n.authErrorUseSocialSignIn,
+      SuspendedDeleteNext.edit,
+    );
+  }
+  if (has('WRONG_PASSWORD')) {
+    return SuspendedDeleteOutcome(
+      l10n.authErrorWrongPassword,
+      SuspendedDeleteNext.edit,
+    );
+  }
+  if (has('USER_NOT_FOUND')) {
+    return SuspendedDeleteOutcome(
+      l10n.authErrorUserNotFound,
+      SuspendedDeleteNext.edit,
+    );
+  }
+  if (has('TOO_MANY_ATTEMPTS')) {
+    return SuspendedDeleteOutcome(
+      l10n.authErrorTooManyAttempts,
+      SuspendedDeleteNext.edit,
+    );
+  }
+  if (has('SOCIAL_TOKEN_INVALID') ||
+      has('SOCIAL_NONCE_MISMATCH') ||
+      has('SOCIAL_NOT_LINKED')) {
+    return SuspendedDeleteOutcome(
+      l10n.authSuspendedDeleteSignInAgain,
+      SuspendedDeleteNext.signInAgain,
+    );
+  }
+  return SuspendedDeleteOutcome(
+    l10n.authSuspendedDeleteFailed,
+    SuspendedDeleteNext.retry,
+  );
+}

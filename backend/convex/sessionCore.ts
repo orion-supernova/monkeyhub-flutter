@@ -242,6 +242,94 @@ export async function assertIdentityNotBanned(
   if (banned) throw new Error(ERR_ACCOUNT_SUSPENDED);
 }
 
+/**
+ * Ban keys for a PASSWORD account, which has no provider identity. Two weak but
+ * real signals, both stored hashed in `bannedIdentities` like the social ones:
+ *
+ *  * `device:` the install's `deviceSecret` hash (sessions.deviceSecretHash).
+ *    Per-install and never shown to peers, but a reinstall mints a new one.
+ *  * `email:` the account email, only for accounts that kept one (current
+ *    clients do not send it). Unverified, so trivially changed.
+ *
+ * Neither is proof of a person; they stop the casual "sign up again under a new
+ * username" and nothing cleverer.
+ */
+export const BAN_DEVICE = "device";
+export const BAN_EMAIL = "email";
+
+export function normaliseBanEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+/**
+ * Record the bans for [userId]'s password-side identity. ADD-ONLY and
+ * idempotent: it never lifts anything and skips hashes already recorded for
+ * this user. The deletion path calls it too, long after `gcRevokedSessions`
+ * removed the sessions the install keys come from, so rebuilding (lift, then
+ * re-derive) there would silently drop a suspension-time ban.
+ */
+export async function recordAccountBans(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  email: string | undefined,
+): Promise<void> {
+  // Newest first: the installs in use now are the ones that matter.
+  const sessions = await ctx.db
+    .query("sessions")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .order("desc")
+    .take(200);
+  const keys = new Set<string>();
+  for (const s of sessions) {
+    // Bounded: this runs inside the (bounded) suspension/deletion transactions.
+    if (keys.size >= 20) break;
+    if (s.deviceSecretHash !== undefined) {
+      keys.add(await identityBanHash(BAN_DEVICE, s.deviceSecretHash));
+    }
+  }
+  if (email !== undefined && email.trim() !== "") {
+    keys.add(await identityBanHash(BAN_EMAIL, normaliseBanEmail(email)));
+  }
+  const now = Date.now();
+  for (const hash of keys) {
+    const present = await ctx.db
+      .query("bannedIdentities")
+      .withIndex("by_hash", (q) => q.eq("hash", hash))
+      .take(10);
+    if (present.some((r) => r.userId === userId)) continue;
+    await ctx.db.insert("bannedIdentities", { hash, createdAt: now, userId });
+  }
+}
+
+/** Remove the rows [recordAccountBans] wrote for [userId] (ban lifted). */
+export async function liftAccountBans(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+): Promise<void> {
+  const rows = await ctx.db
+    .query("bannedIdentities")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .take(100);
+  for (const r of rows) await ctx.db.delete(r._id);
+}
+
+/**
+ * Refuse creating an account from a banned install or with a banned email.
+ * SIGN-UP only: signing in to an existing account is judged by that account.
+ */
+export async function assertSignupNotBanned(
+  ctx: QueryCtx | MutationCtx,
+  opts: { deviceSecret?: string; email?: string },
+): Promise<void> {
+  const secretHash = await deviceSecretHashOf(opts.deviceSecret);
+  if (secretHash !== undefined) {
+    await assertIdentityNotBanned(ctx, BAN_DEVICE, secretHash);
+  }
+  if (opts.email !== undefined && opts.email.trim() !== "") {
+    await assertIdentityNotBanned(ctx, BAN_EMAIL, normaliseBanEmail(opts.email));
+  }
+}
+
 /** Thrown by [requireSession]; the two are deliberately distinguishable. */
 export const ERR_SESSION_UNKNOWN = "SESSION_UNKNOWN";
 export const ERR_SESSION_REVOKED = "SESSION_REVOKED";
@@ -284,34 +372,53 @@ export function sessionIdleSince(lastSeenAt: number): number {
 }
 
 /**
- * Refresh `lastSeenAt` on [userId]'s live sessions that have not been written
- * for a day. MUTATIONS only: a query cannot write, and `requireSession` runs in
- * both. Called from the presence heartbeat, which every signed-in client
- * already sends, so nothing else pays a write.
+ * Which session the current call came in on, recorded by the `functions.ts`
+ * wrappers after they resolve the token. A WeakMap keyed on the context object
+ * rather than a new `ctx` property: the wrapper hands handlers the context
+ * untouched on purpose (see `AuthedCtx` there), and this keeps it that way.
+ * Absent when a handler runs outside the wrappers (internal functions, tests
+ * that call helpers directly through `t.run`).
+ */
+const callerSessions = new WeakMap<object, Id<"sessions">>();
+
+export function setCallerSession(ctx: object, sessionId: Id<"sessions">): void {
+  callerSessions.set(ctx, sessionId);
+}
+
+export function callerSessionId(ctx: object): Id<"sessions"> | undefined {
+  return callerSessions.get(ctx);
+}
+
+/**
+ * Refresh `lastSeenAt` on the session this call came in on, if it has not been
+ * written for a day. MUTATIONS only: a query cannot write, and `requireSession`
+ * runs in both. Called from the presence heartbeat, which every signed-in
+ * client already sends, so nothing else pays a write.
  *
- * The range is on `by_user_live_seen`, so a heartbeat with nothing stale is one
- * empty index probe. The write invalidates every subscription of that device
- * (each one read the row in `requireSession`), once a day per session.
+ * Only the CALLING session is refreshed. An earlier version refreshed all of
+ * the user's live sessions because the wrapper stripped the token, which let a
+ * phone left in a drawer live as long as the account was active anywhere. Now
+ * the wrapper records the session id ([callerSessionId]); with none recorded
+ * (a call outside the wrappers) nothing is refreshed rather than falling back
+ * to "all of them".
  *
- * The heartbeat does not know which session it came in on (the wrapper strips
- * the token), so this refreshes all of the user's live sessions: a phone left in
- * a drawer lasts as long as the account's most recent activity on any device.
+ * The write invalidates every subscription of that device (each one read the
+ * row in `requireSession`), once a day per session. A heartbeat with nothing
+ * stale is one `get` of a row the wrapper already read.
  */
 export async function touchSessions(
   ctx: MutationCtx,
   userId: Id<"users">,
 ): Promise<void> {
+  const sessionId = callerSessionId(ctx);
+  if (sessionId === undefined) return;
+  const row = await ctx.db.get(sessionId);
+  // `userId` is a cross-check, not the lookup: the id came from the wrapper
+  // for this very call, so a mismatch means something is badly wrong.
+  if (row === null || row.userId !== userId || row.revokedAt !== undefined) return;
   const now = Date.now();
-  const stale = await ctx.db
-    .query("sessions")
-    .withIndex("by_user_live_seen", (q) =>
-      q
-        .eq("userId", userId)
-        .eq("revokedAt", undefined)
-        .lt("lastSeenAt", now - SESSION_TOUCH_MS),
-    )
-    .take(20);
-  for (const row of stale) await ctx.db.patch(row._id, { lastSeenAt: now });
+  if (row.lastSeenAt >= now - SESSION_TOUCH_MS) return;
+  await ctx.db.patch(row._id, { lastSeenAt: now });
 }
 
 /**
@@ -329,11 +436,11 @@ export async function touchSessions(
  * client to the login screen, while "no such session" is the shape a bug takes
  * and should not be silently laundered into the same message.
  */
-export async function requireSession(
+export async function resolveSession(
   ctx: QueryCtx | MutationCtx,
   token: string,
   opts?: { allowSuspended?: boolean },
-): Promise<Id<"users">> {
+): Promise<{ userId: Id<"users">; sessionId: Id<"sessions"> }> {
   const tokenHash = await hashToken(token);
   const row = await ctx.db
     .query("sessions")
@@ -363,7 +470,7 @@ export async function requireSession(
       // from an earlier ban (unbanned, then banned again) predates it and stays
       // dead, so the time comparison stays alongside the reason.
       if (opts?.allowSuspended && row.revokedAt >= owner.suspendedAt) {
-        return row.userId;
+        return { userId: row.userId, sessionId: row._id };
       }
       throw new Error(ERR_ACCOUNT_SUSPENDED);
     }
@@ -375,7 +482,7 @@ export async function requireSession(
     if (owner?.suspendedAt !== undefined && owner !== null) {
       // Legacy rows: compare times. Only a session the BAN revoked passes.
       if (opts?.allowSuspended && row.revokedAt >= owner.suspendedAt) {
-        return row.userId;
+        return { userId: row.userId, sessionId: row._id };
       }
       throw new Error(ERR_ACCOUNT_SUSPENDED);
     }
@@ -402,7 +509,7 @@ export async function requireSession(
   // is a session layer that cannot tell a live account from a deleted one.
   // Stage B: every way an account stops being usable revokes its sessions with
   // a reason, so a live row is itself the proof. Idle expiry above still runs.
-  if (sessionFlags.trustsRow) return row.userId;
+  if (sessionFlags.trustsRow) return { userId: row.userId, sessionId: row._id };
   const user = await ctx.db.get(row.userId);
   if (!user) throw new Error(ERR_SESSION_REVOKED);
   // Free: a tombstoned account (deletion in flight) is signed out, even for
@@ -412,7 +519,16 @@ export async function requireSession(
   if (user.suspendedAt !== undefined && !opts?.allowSuspended) {
     throw new Error(ERR_ACCOUNT_SUSPENDED);
   }
-  return row.userId;
+  return { userId: row.userId, sessionId: row._id };
+}
+
+/** [resolveSession] for callers that only need the user. */
+export async function requireSession(
+  ctx: QueryCtx | MutationCtx,
+  token: string,
+  opts?: { allowSuspended?: boolean },
+): Promise<Id<"users">> {
+  return (await resolveSession(ctx, token, opts)).userId;
 }
 
 /**

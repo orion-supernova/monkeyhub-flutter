@@ -625,15 +625,31 @@ class ChatRepository extends ChangeNotifier {
   /// store (`PresenceStore`) that the dots and status lines lease, so a friend
   /// coming online must not rebuild room member state.
   ///
+  /// **Except on a legacy server** (no `presenceApi`, so [PresenceStore.legacy]):
+  /// there the roster is the only presence source and the dots fall back to
+  /// `ChatUser.status`, so both go into the signature and a friend coming
+  /// online re-notifies exactly as it did before the presence store existed.
+  /// Costs nothing on a current server: it is one boolean read.
+  ///
   /// Order-insensitive, because no reader of [membersFor] renders in server
   /// order — the colour picker sorts by name, Room Info sorts its own list, the
   /// @-picker ranks, and the palette sorts internally. A reorder from the
   /// backend is therefore not a change anybody can see.
-  static String _roomMemberSignature(List<ChatUser> users) {
+  /// Whether the server lacks the presence API. Injectable for tests; the
+  /// default reads the shared [PresenceStore].
+  @visibleForTesting
+  bool Function() presenceIsLegacy = _storeIsLegacy;
+  static bool _storeIsLegacy() => PresenceStore.instance.legacy;
+
+  static String _roomMemberSignature(
+    List<ChatUser> users, {
+    bool presence = false,
+  }) {
     final parts = [
       for (final u in users)
         '${u.id}|${u.name}|${u.username}|${u.avatarStorageId ?? ''}|${u.role ?? ''}'
-            '|${u.joinedAt?.millisecondsSinceEpoch ?? 0}',
+            '|${u.joinedAt?.millisecondsSinceEpoch ?? 0}'
+            '${presence ? '|${u.status ?? ''}|${u.lastSeen?.millisecondsSinceEpoch ?? 0}' : ''}',
     ]..sort();
     return parts.join(';');
   }
@@ -2263,7 +2279,7 @@ class ChatRepository extends ChangeNotifier {
         // See [_roomMembersSig]: `markRoomRead` writes a `roomMembers` row for
         // every incoming message, so this query refires constantly in an
         // active group chat while saying nothing this app renders.
-        final sig = _roomMemberSignature(fresh);
+        final sig = _roomMemberSignature(fresh, presence: presenceIsLegacy());
         if (sig == _roomMembersSig[roomId]) return;
         _roomMembersSig[roomId] = sig;
         _roomMembers[roomId] = fresh;

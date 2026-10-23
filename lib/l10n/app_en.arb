@@ -16629,9 +16629,39 @@
   "@authSuspendedDeleteAction": {
     "description": "Action on the suspended-account banner that deletes the banned account."
   },
-  "authSuspendedDeleteFailed": "We couldn’t delete your account from here. Please contact support and we’ll sort it out.",
+  "authSuspendedDeleteFailed": "We couldn’t delete your account. Check your connection and try again. If it keeps failing, contact support.",
   "@authSuspendedDeleteFailed": {
-    "description": "Shown when deleting a suspended account was refused (for example the session is too old); points the user to support."
+    "description": "Shown when deleting a suspended account failed. A Try again action sits under it."
+  },
+  "authSuspendedDeleteRetry": "Try again",
+  "@authSuspendedDeleteRetry": {
+    "description": "Action under the suspended-account delete failure that retries the deletion."
+  },
+  "authSuspendedDeleteDone": "Your account is being deleted and you’re signed out. This can take a few minutes.",
+  "@authSuspendedDeleteDone": {
+    "description": "Success message on the login screen after a suspended account was deleted."
+  },
+  "authSuspendedDeleteNeedPassword": "Sign in again with your password, Apple or Google to delete this account.",
+  "@authSuspendedDeleteNeedPassword": {
+    "description": "Shown when a suspended account asks to be deleted with nothing to prove ownership yet. Any sign-in method works: password, Apple or Google."
+  },
+  "authSuspendedDeleteConfirmTitle": "Delete @{username}?",
+  "@authSuspendedDeleteConfirmTitle": {
+    "description": "Confirm sheet headline when deleting a suspended account whose username is known.",
+    "placeholders": {
+      "username": {
+        "type": "String",
+        "example": "monkeyfan"
+      }
+    }
+  },
+  "authSuspendedDeleteSignInAgain": "That Apple or Google sign-in expired. Tap the Apple or Google button again, then delete your account.",
+  "@authSuspendedDeleteSignInAgain": {
+    "description": "Shown when the held Apple or Google token expired before the suspended account could be deleted; the user taps the provider button again."
+  },
+  "authSuspendedDeleteNotAllowed": "This account isn’t suspended, so it can’t be deleted from here.",
+  "@authSuspendedDeleteNotAllowed": {
+    "description": "Final refusal (CHILD_NOT_ALLOWED) when deleting an account that is not suspended from the login screen."
   },
   "termsConsentPrefix": "I agree to the ",
   "@termsConsentPrefix": {

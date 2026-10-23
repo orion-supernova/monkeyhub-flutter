@@ -22,7 +22,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { retireIfStaff } from "./retiredHandles";
-import { SESSION_LIVE_CAP, identityBanHash } from "./sessionCore";
+import { SESSION_LIVE_CAP, identityBanHash, recordAccountBans } from "./sessionCore";
 import { clearPresence } from "./presenceCore";
 
 export type DeletionKind = Doc<"deletions">["kind"];
@@ -398,6 +398,11 @@ export async function startUserDeletion(
   if (!isTombstoned(user)) {
     // The handle of a staff account must never become free (it carries rights).
     await retireIfStaff(ctx, user.username);
+
+    // A suspended account keeps its ban through deletion. `suspendAccount`
+    // already recorded the install/email hashes; redo it here (idempotent) for
+    // bans that predate that and before the email is scrubbed below.
+    if (suspended) await recordAccountBans(ctx, userId, user.email);
 
     // Scrub: the row stays (every reader still resolves the id) but holds
     // nothing about the person. `suspendedAt` stays so the ban survives.

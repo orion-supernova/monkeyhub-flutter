@@ -14023,7 +14023,31 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get authSuspendedDeleteFailed =>
-      'No pudimos eliminar tu cuenta desde aquí. Ponte en contacto con soporte y lo resolveremos.';
+      'No pudimos eliminar tu cuenta. Comprueba tu conexión e inténtalo de nuevo. Si sigue fallando, ponte en contacto con soporte.';
+
+  @override
+  String get authSuspendedDeleteRetry => 'Intentar de nuevo';
+
+  @override
+  String get authSuspendedDeleteDone =>
+      'Tu cuenta se está eliminando y has cerrado sesión. Puede tardar unos minutos.';
+
+  @override
+  String get authSuspendedDeleteNeedPassword =>
+      'Vuelve a iniciar sesión con tu contraseña, Apple o Google para eliminar esta cuenta.';
+
+  @override
+  String authSuspendedDeleteConfirmTitle(String username) {
+    return '¿Eliminar @$username?';
+  }
+
+  @override
+  String get authSuspendedDeleteSignInAgain =>
+      'Ese inicio de sesión con Apple o Google caducó. Toca de nuevo el botón de Apple o Google y luego elimina tu cuenta.';
+
+  @override
+  String get authSuspendedDeleteNotAllowed =>
+      'Esta cuenta no está suspendida, así que no se puede eliminar desde aquí.';
 
   @override
   String get termsConsentPrefix => 'Acepto las ';

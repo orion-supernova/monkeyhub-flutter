@@ -13828,7 +13828,31 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get authSuspendedDeleteFailed =>
-      'Hesabın buradan silinemedi. Lütfen destekle iletişime geç, birlikte halledelim.';
+      'Hesabın silinemedi. Bağlantını kontrol edip tekrar dene. Yine olmazsa destekle iletişime geç.';
+
+  @override
+  String get authSuspendedDeleteRetry => 'Tekrar dene';
+
+  @override
+  String get authSuspendedDeleteDone =>
+      'Hesabın siliniyor ve oturumun kapatıldı. Bu birkaç dakika sürebilir.';
+
+  @override
+  String get authSuspendedDeleteNeedPassword =>
+      'Bu hesabı silmek için parolanla, Apple veya Google ile yeniden giriş yap.';
+
+  @override
+  String authSuspendedDeleteConfirmTitle(String username) {
+    return '@$username silinsin mi?';
+  }
+
+  @override
+  String get authSuspendedDeleteSignInAgain =>
+      'Apple veya Google girişinin süresi doldu. Apple veya Google düğmesine yeniden dokun, sonra hesabını sil.';
+
+  @override
+  String get authSuspendedDeleteNotAllowed =>
+      'Bu hesap askıya alınmamış, bu yüzden buradan silinemez.';
 
   @override
   String get termsConsentPrefix => '';

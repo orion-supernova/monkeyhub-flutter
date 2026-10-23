@@ -26,11 +26,12 @@ import { syncProfile } from "./profilesCore";
 import { searchNameOf } from "./userSearch";
 import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { action, mutation, publicAction, query } from "./functions";
-import { assertIdentityNotBanned, mintSession } from "./sessionCore";
+import { assertIdentityNotBanned, assertSignupNotBanned, mintSession } from "./sessionCore";
 import { v, type Infer } from "convex/values";
 import { markOnline } from "./presenceCore";
 import { internal } from "./_generated/api";
-import { ACCOUNT_CHILD, ERR_MUST_PAIR } from "./childGuard";
+import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
+import { deleteOwnAccount } from "./auth";
 import { verifyIdToken, PROVIDER_APPLE, type Provider } from "./idToken";
 import {
   exchangeAuthorizationCode,
@@ -313,6 +314,53 @@ export const linkExistingAccount = publicAction({
       isPrivateRelay: identity.isPrivateRelay,
       appleRefreshToken,
     });
+  },
+});
+
+/**
+ * Delete a SUSPENDED Apple/Google account without a session. The counterpart of
+ * `auth.deleteSuspendedAccount` for accounts with no password: a banned user
+ * whose revoked session row was garbage-collected signs in with the provider
+ * again, and this verifies that token and deletes the account it belongs to.
+ *
+ * The provider token IS the proof and is spent here: nothing is minted or
+ * returned. Only a suspended, non-child account is accepted. No rate limit of
+ * its own: a provider-signed token cannot be guessed, a refusal changes nothing,
+ * and a success deletes the account, so there is nothing to grind on.
+ */
+export const deleteSuspendedAccount = publicAction({
+  args: {
+    provider: providerValidator,
+    idToken: v.string(),
+    rawNonce: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args): Promise<null> => {
+    const identity = await verifyIdToken(args.provider, args.idToken, args.rawNonce);
+    const existing = await ctx.runQuery(internal.socialAuth.findIdentity, {
+      provider: identity.provider,
+      subject: identity.subject,
+    });
+    if (!existing) throw new Error(ERR_NOT_LINKED);
+    await ctx.runMutation(internal.socialAuth.deleteSuspendedByIdentity, {
+      userId: existing.userId,
+    });
+    return null;
+  },
+});
+
+export const deleteSuspendedByIdentity = internalMutation({
+  args: { userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("USER_NOT_FOUND");
+    if (user.accountType === ACCOUNT_CHILD) throw new Error(ERR_MUST_PAIR);
+    if (user.suspendedAt === undefined || user.deletingAt !== undefined) {
+      throw new Error(ERR_NOT_ALLOWED);
+    }
+    await deleteOwnAccount(ctx, userId);
+    return null;
   },
 });
 
@@ -729,6 +777,7 @@ export const createWithIdentity = internalMutation({
     if (taken) throw new Error("USERNAME_TAKEN");
 
     await assertIdentityNotBanned(ctx, args.provider, args.subject);
+    await assertSignupNotBanned(ctx, { deviceSecret: args.deviceSecret });
     const claimed = await ctx.db
       .query("socialIdentities")
       .withIndex("by_provider_subject", (q) =>

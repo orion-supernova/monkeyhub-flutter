@@ -146,10 +146,10 @@ function describeRoom(room: any): string {
 }
 
 /** One message as a line of evidence. Never hands out a view-once picture. */
-function describeMessage(m: any): string {
+function describeMessage(m: any, max = EXCERPT_CHARS): string {
   const type = m.type ?? "text";
   if (m.viewOnce === true) return "[view-once media, not included]";
-  const caption = excerpt(m.content);
+  const caption = excerpt(m.content, max);
   const tag: Record<string, string> = {
     image: "[photo]",
     video: "[video]",
@@ -241,6 +241,72 @@ async function collectEvidence(
     }
   }
   return { lines, media };
+}
+
+// ── Evidence snapshot ───────────────────────────────────────────────────────
+
+/** Longest reported text kept on the report row. */
+const EVIDENCE_TEXT_CHARS = 4000;
+/** Longest reported text shown on the card itself. */
+const CARD_TEXT_CHARS = 1500;
+
+type Snapshot = {
+  evidence: {
+    kind: string;
+    text?: string;
+    authorName?: string;
+    authorUsername?: string;
+    contentType?: string;
+    contentAt?: number;
+    fileName?: string;
+    mimeType?: string;
+    capturedAt: number;
+  };
+  mediaStorageId?: any;
+  posterStorageId?: any;
+};
+
+/**
+ * The reported content as it is right now, to be stored ON the report: the
+ * words, who wrote them under which name, when, and the media file. A later
+ * edit or delete of the content, or of the author's account, cannot change it.
+ * View-once media is never kept (its promise is that it is seen once); the
+ * words around it are.
+ */
+async function snapshotContent(
+  ctx: any,
+  kind: "message" | "moment" | "comment" | "filter",
+  row: { authorId: any; text?: string; type?: string; at?: number; media?: any },
+): Promise<Snapshot> {
+  const author = row.authorId ? await ctx.db.get(row.authorId) : null;
+  const text = (row.text ?? "").trim().slice(0, EVIDENCE_TEXT_CHARS);
+  const m = row.media;
+  return {
+    evidence: {
+      kind,
+      ...(text ? { text } : {}),
+      ...(author
+        ? { authorName: author.name ?? author.username, authorUsername: author.username }
+        : {}),
+      ...(row.type ? { contentType: row.type } : {}),
+      ...(row.at !== undefined ? { contentAt: row.at } : {}),
+      ...(m?.fileName ? { fileName: m.fileName } : {}),
+      ...(m?.mimeType ? { mimeType: m.mimeType } : {}),
+      capturedAt: Date.now(),
+    },
+    ...(m?.mediaStorageId ? { mediaStorageId: m.mediaStorageId } : {}),
+    ...(m?.posterStorageId ? { posterStorageId: m.posterStorageId } : {}),
+  };
+}
+
+/** Gives the report its own ref on the media it snapshotted. */
+async function holdEvidenceFiles(ctx: any, reportId: any, snap: Snapshot): Promise<void> {
+  for (const [field, id] of [
+    ["evidenceMediaStorageId", snap.mediaStorageId],
+    ["evidencePosterStorageId", snap.posterStorageId],
+  ] as const) {
+    await attachShared(ctx, id, { table: "reports", id: reportId.toString(), field });
+  }
 }
 
 // ── Posting ─────────────────────────────────────────────────────────────────
@@ -455,7 +521,7 @@ export async function fileContentReport(
       feedLines.push(
         "",
         "Reported moment:",
-        `» ${excerpt(moment.caption ?? "", 500) || "(no caption)"}` +
+        `» ${excerpt(moment.caption ?? "", CARD_TEXT_CHARS) || "(no caption)"}` +
           (moment.mediaStorageId ? " [with photo/video]" : ""),
       );
     } else {
@@ -471,7 +537,7 @@ export async function fileContentReport(
       feedLines.push(
         "",
         "Reported comment:",
-        `» ${excerpt(comment.text ?? "", 500) || "(sticker or reaction)"}`,
+        `» ${excerpt(comment.text ?? "", CARD_TEXT_CHARS) || "(sticker or reaction)"}`,
         ...(on ? [`On a moment by: ${await who(ctx, on.userId)}`] : []),
       );
     } else {
@@ -515,6 +581,47 @@ export async function fileContentReport(
     return { reportId: repeat._id, reportedUserId, fresh: false };
   }
 
+  // Frozen now, before anything can delete it.
+  let snap: Snapshot | null = null;
+  let momentMedia: any = null;
+  if (targetType === "message" && message) {
+    snap = await snapshotContent(ctx, "message", {
+      authorId: message.userId,
+      text: message.content,
+      type: message.type ?? "text",
+      at: message.createdAt,
+      media:
+        message.viewOnce !== true &&
+        message.mediaStorageId &&
+        EVIDENCE_MEDIA_TYPES.has(message.type ?? "text")
+          ? message
+          : undefined,
+    });
+  } else if (targetType === "moment" && hasContent) {
+    const moment = await db.get(db.normalizeId("moments", targetId));
+    snap = await snapshotContent(ctx, "moment", {
+      authorId: moment.userId,
+      text: moment.caption,
+      type: moment.mediaKind,
+      at: moment.createdAt,
+      media: moment.mediaStorageId ? moment : undefined,
+    });
+    if (moment.mediaStorageId) {
+      momentMedia = {
+        type: moment.mediaKind === "video" ? "video" : "image",
+        mediaStorageId: moment.mediaStorageId,
+        posterStorageId: moment.posterStorageId,
+      };
+    }
+  } else if (targetType === "comment" && hasContent) {
+    const comment = await db.get(db.normalizeId("momentComments", targetId));
+    snap = await snapshotContent(ctx, "comment", {
+      authorId: comment.userId,
+      text: comment.text,
+      at: comment.createdAt,
+    });
+  }
+
   const note = args.note?.trim().slice(0, MAX_NOTE_CHARS);
   const reportId = await ctx.db.insert("reports", {
     reporterId,
@@ -528,7 +635,15 @@ export async function fileContentReport(
     ...(reportedUserId ? { reportedUserId } : {}),
     ...(message ? { messageId: message._id } : {}),
     ...(room ? { roomId: room._id } : {}),
+    ...(snap
+      ? {
+          evidence: snap.evidence,
+          ...(snap.mediaStorageId ? { evidenceMediaStorageId: snap.mediaStorageId } : {}),
+          ...(snap.posterStorageId ? { evidencePosterStorageId: snap.posterStorageId } : {}),
+        }
+      : {}),
   });
+  if (snap) await holdEvidenceFiles(ctx, reportId, snap);
 
   const inbox = await moderationInbox(ctx);
   if (inbox) {
@@ -548,7 +663,7 @@ export async function fileContentReport(
     const body: string[] = [];
     body.push(...feedLines);
     if (message) {
-      body.push("", "Reported message:", `» ${describeMessage(message)}`);
+      body.push("", "Reported message:", `» ${describeMessage(message, CARD_TEXT_CHARS)}`);
     } else if (targetType === "message") {
       body.push("", "Reported message: [already deleted]");
     }
@@ -569,7 +684,7 @@ export async function fileContentReport(
         hasUser: reportedUserId !== null,
         userBanned: await isSuspended(ctx, reportedUserId),
       },
-      evidence.media,
+      momentMedia ? [...evidence.media, momentMedia] : evidence.media,
     );
     await ctx.db.patch(reportId, { cardMessageId });
   }
@@ -626,7 +741,13 @@ export async function fileFilterHit(
   if (recentHits.length >= MAX_FILTER_CARDS_PER_WINDOW) return;
 
   const room = args.roomId ? await ctx.db.get(args.roomId) : null;
+  const snap = await snapshotContent(ctx, "filter", {
+    authorId: args.authorId,
+    text: args.text,
+    type: args.surface,
+  });
   const reportId = await ctx.db.insert("reports", {
+    evidence: snap.evidence,
     targetType: "user",
     targetId: authorKey,
     reason: `FILTER: ${args.categories.join(", ")}`,

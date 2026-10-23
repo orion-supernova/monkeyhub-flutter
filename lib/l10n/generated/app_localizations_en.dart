@@ -13889,7 +13889,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authSuspendedDeleteFailed =>
-      'We couldn’t delete your account from here. Please contact support and we’ll sort it out.';
+      'We couldn’t delete your account. Check your connection and try again. If it keeps failing, contact support.';
+
+  @override
+  String get authSuspendedDeleteRetry => 'Try again';
+
+  @override
+  String get authSuspendedDeleteDone =>
+      'Your account is being deleted and you’re signed out. This can take a few minutes.';
+
+  @override
+  String get authSuspendedDeleteNeedPassword =>
+      'Sign in again with your password, Apple or Google to delete this account.';
+
+  @override
+  String authSuspendedDeleteConfirmTitle(String username) {
+    return 'Delete @$username?';
+  }
+
+  @override
+  String get authSuspendedDeleteSignInAgain =>
+      'That Apple or Google sign-in expired. Tap the Apple or Google button again, then delete your account.';
+
+  @override
+  String get authSuspendedDeleteNotAllowed =>
+      'This account isn’t suspended, so it can’t be deleted from here.';
 
   @override
   String get termsConsentPrefix => 'I agree to the ';

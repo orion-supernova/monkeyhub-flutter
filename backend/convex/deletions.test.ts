@@ -351,13 +351,13 @@ describe("user tombstone", () => {
     const sessions: any[] = await t.run((ctx) => ctx.db.query("sessions").collect());
     expect(sessions.every((s) => s.revokedAt !== undefined)).toBe(true);
     expect(await count(t, "socialIdentities")).toBe(0);
-    expect(await count(t, "bannedIdentities")).toBe(2); // suspended: remembered
+    expect(await count(t, "bannedIdentities")).toBe(3); // suspended: 2 identities + the email, remembered
     const j: any = await job(t, jobId);
     expect(j).toMatchObject({ kind: "user", targetId: userId, reason: "self", args: { suspended: true } });
 
     // Double tap: same job, no second scrub.
     expect(await t.run((ctx) => startUserDeletion(ctx, userId))).toBe(jobId);
-    expect(await count(t, "bannedIdentities")).toBe(2);
+    expect(await count(t, "bannedIdentities")).toBe(3);
 
     await drain(t);
     expect(((await job(t, jobId)) as any).state).toBe("done");

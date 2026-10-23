@@ -373,7 +373,10 @@ class AuthService extends ChangeNotifier {
   Future<void> forceSignOut() async {
     if (_session == null) return;
     debugPrint('[auth] session lost — returning to the login screen');
-    SessionGuard.instance.noteSuspendedUser(_session?.userId);
+    SessionGuard.instance.noteSuspendedUser(
+      _session?.userId,
+      username: _session?.username,
+    );
     try {
       await SessionStore.instance.clearSession().timeout(_localSignOutTimeout);
     } catch (e) {
@@ -613,14 +616,59 @@ class AuthService extends ChangeNotifier {
   /// banned token `SessionGuard` is holding for exactly this call. Throws on
   /// refusal (for example a token revoked before the ban) and leaves the
   /// notice in place.
-  Future<void> deleteSuspendedAccount() async {
-    final uid = SessionGuard.instance.suspendedUserId;
-    if (!SessionGuard.instance.suspensionPending || uid == null) {
-      throw StateError('no suspended session to delete');
+  ///
+  /// The banned token only lives until the server's revoked-session cleanup
+  /// (about a week), and is gone after an app restart. A proof the user
+  /// supplied (a [credential] from the Apple/Google sheet, or [username] and
+  /// [password] for a password account, `auth.deleteSuspendedAccount`) is
+  /// always used in preference to the held token, because it names the account
+  /// the user meant. With no proof the token is used. Throws a [StateError]
+  /// when there is neither a usable token nor a proof.
+  Future<void> deleteSuspendedAccount({
+    String? username,
+    String? password,
+    SocialCredential? credential,
+  }) async {
+    final guard = SessionGuard.instance;
+    final uid = guard.suspendedUserId;
+    final canProve =
+        credential != null ||
+        ((username ?? '').isNotEmpty && (password ?? '').isNotEmpty);
+    // A proof the user just supplied wins over the held token: the form may
+    // carry the credentials of a DIFFERENT suspended account than the one whose
+    // banned token is held, and the token path would delete the wrong one.
+    if (!canProve && guard.suspensionPending && uid != null) {
+      try {
+        await _api.deleteAccount(userId: uid);
+        await _teardownAfterDelete(uid);
+        guard.dismissSuspension();
+        return;
+      } catch (e) {
+        // No proof was supplied, so there is nothing to fall back to: the
+        // caller asks for one (a token the server no longer honours) or
+        // explains the refusal / retries (network).
+        final text = e.toString();
+        final tokenGone =
+            text.contains('SESSION_UNKNOWN') ||
+            text.contains('SESSION_REVOKED') ||
+            text.contains('ACCOUNT_SUSPENDED');
+        if (tokenGone) {
+          throw StateError('the banned session is no longer honoured');
+        }
+        rethrow;
+      }
     }
-    await _api.deleteAccount(userId: uid);
+    if (!canProve) throw StateError('no suspended session to delete');
+    if (credential != null) {
+      await _api.deleteSuspendedAccountWithProvider(credential);
+    } else {
+      await _api.deleteSuspendedAccountWithPassword(
+        username: username!,
+        password: password!,
+      );
+    }
     await _teardownAfterDelete(uid);
-    SessionGuard.instance.dismissSuspension();
+    guard.dismissSuspension();
   }
 
   /// Runs on success AND on an ambiguous failure (see [deleteAccount]). The

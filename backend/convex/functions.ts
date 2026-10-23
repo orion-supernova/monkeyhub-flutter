@@ -10,7 +10,7 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { requireSession } from "./sessionCore";
+import { requireSession, resolveSession, setCallerSession } from "./sessionCore";
 
 /**
  * Authenticated function builders — the single place identity enters the
@@ -141,7 +141,9 @@ export function authedQuery<
     ...(def.returns ? { returns: def.returns } : {}),
     handler: async (ctx: QueryCtx, args: any) => {
       const { [IDENTITY_ARG]: sessionToken, ...rest } = args;
-      const userId = await requireSession(ctx, sessionToken);
+      const { userId, sessionId } = await resolveSession(ctx, sessionToken);
+      // Which session this call came in on, for `touchSessions`; see sessionCore.
+      setCallerSession(ctx, sessionId);
       return def.handler(ctx, { ...rest, [key]: userId });
     },
   });
@@ -168,7 +170,9 @@ export function authedMutation<
     ...(def.returns ? { returns: def.returns } : {}),
     handler: async (ctx: MutationCtx, args: any) => {
       const { [IDENTITY_ARG]: sessionToken, ...rest } = args;
-      const userId = await requireSession(ctx, sessionToken);
+      const { userId, sessionId } = await resolveSession(ctx, sessionToken);
+      // Which session this call came in on, for `touchSessions`; see sessionCore.
+      setCallerSession(ctx, sessionId);
       return def.handler(ctx, { ...rest, [key]: userId });
     },
   });

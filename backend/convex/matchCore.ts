@@ -60,6 +60,10 @@ export async function finishMatch(
     drawOffer: undefined,
     takebackOffer: undefined,
     seatRequest: undefined,
+    // Live viewers of a game that is over mean nothing, and the ids would
+    // outlive the accounts they name.
+    watchers: undefined,
+    watching: undefined,
   });
 }
 
@@ -217,6 +221,14 @@ export async function leaveMatchesInRoom(ctx: any, roomId: any, userId: any) {
       if (match.seatRequest?.userId === userId) {
         await ctx.db.patch(match._id, { seatRequest: undefined });
       }
+      // Seated or just watching, their heartbeat here has no use any more.
+      const beat = await ctx.db
+        .query("matchPresence")
+        .withIndex("by_match_user", (q: any) =>
+          q.eq("matchId", match._id).eq("userId", userId),
+        )
+        .first();
+      if (beat) await ctx.db.delete(beat._id);
       if (seat < 0) continue;
       if (match.status === "lobby") {
         const seats = match.seats.filter((_: any, i: number) => i !== seat);

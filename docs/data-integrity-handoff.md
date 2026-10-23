@@ -278,46 +278,51 @@ favours fewer re-runs and smaller rows over convenience:
   presence for visible ids, group calls per room).
 - Every cleanup pages and reschedules; nothing reads a whole table.
 
-### 7.3 Questions for the user
+### 7.3 Questions for the user (answered 2026-10-23)
 
-Answer when convenient; nothing is blocked on them (each has a default that
-is already being built).
-1. **Minimum app version for the cutovers.** Phases 5 and 6 keep writing the
-   old fields until old builds are gone. Default: strip the old fields once
-   the store-driven minimum supported version (see memory "Store-driven
-   updates") is at or above the first build that has presence and profiles.
-   Tell us if testers on old builds should be cut off sooner.
-2. **Deploy timing.** Everything is committed on `dev`, not deployed. The
-   runbook (section 3) is ready; say when.
+1. **Minimum app version for the cutovers.** Answer: **the next release is
+   the minimum (a force update).** When it is approved in the stores, set
+   `minSupported` to that version on every platform's `appReleases` row;
+   from then on old builds are cut off, and the cutover steps (Phase 5
+   W3-W5, Phase 6 W3 strip and 6Z, dropping the Phase 2 shims and the old
+   schema fields) can run. That cleanup is the one step left for later.
+2. **Deploy timing.** Answer: deploy everything once **every known small
+   follow-up (section 8) is fixed**, so that nothing is left in this plan
+   except the cutover and deleting the compat code. Backend first, then the
+   app (runbook, section 3).
 
-## 8. Known small follow-ups (not in any phase)
+## 8. Known small follow-ups (not in any phase): all fixed 2026-10-23
 
-- `roomInvitations.respond` deletes a row then throws, so the delete is
-  rolled back (pre-existing).
-- Login screen suspended delete: no retry after a failure, no success
-  message.
-- A banned password-only user can sign up again under a new username (only
-  Apple/Google identities are matched).
-- Purging an account deletes the reported content, so those reports keep
-  only the moderation card's excerpt.
-- `matchPresence` isn't removed on a plain room leave (only on account
-  deletion); a creator who left before deleting leaves a dead
-  `rooms.createdBy` (rule `history`, readers tolerate it).
-- Four Flutter tests already fail at `883a7e17` and before, unrelated to
-  this work (`no_stray_underlines_test`, two `room_mute_test` chat-row cases
-  looking for `MutedBadge`, `social_username_screen_test` "success dismisses
-  the route"); likely the in-progress design work (the user's StatusChip
-  stash). Verified on a clean worktree of HEAD on 2026-10-23.
-- `room_scroll_rebuild_test` ("Saved Messages date scrolling does not
-  rebuild the transcript") failed once under full-suite load on 2026-10-23
-  and passes alone (4/4); the reviewer found no Phase 6 dependency in it.
-  Watch for flakiness.
-- Operator steps still open after deploy, all documented: Phase 3 file-ref
-  rollout, Phase 4 backfills, Phase 5 W1 (`SESSION_TRUSTS_ROW`) and W3-W5,
-  Phase 6 backfill, W3 strip and 6Z.
-- Phase 5F: on a legacy server (no `presenceApi`), roster `ChatUser.status`
-  is no longer refreshed by presence changes; presence dots read the store.
-- Phase 4A: the heartbeat refreshes all of a user's live sessions (the
-  wrapper strips the token, so it can't tell which one called); a forgotten
-  phone lives as long as the account's latest activity anywhere. Fix by
-  passing the session id through `functions.ts`.
+Every item below is fixed in code with tests (uncommitted until reviewed,
+then committed on `dev`). Nothing is left in this plan except the cutover
+after the forced minimum version (7.3) and deleting the compat code.
+
+| Item | Fix |
+|---|---|
+| `roomInvitations.respond` deleted then threw, so the delete rolled back | Deletes the stale invite and returns `{status: "gone"}`; the app shows "invitation gone" |
+| Login screen suspended delete: no retry, no success message | Error with "Try again", green success banner; also offered after a refused password or Apple/Google sign-in |
+| A long-suspended user could no longer delete (revoked session GC'd) | `auth.deleteSuspendedAccount` (password, same lockout as login) and `socialAuth.deleteSuspendedAccount` (provider token): one-shot delete with proof, suspended accounts only, no children |
+| A banned password-only user could sign up again | Bans also record hashed `device:` (per-install `deviceSecret`) and `email:` keys; sign-up refuses them, sign-in is unchanged, unban removes them. Limit: a reinstall gets a new device secret |
+| Purging an account deleted the reported content | Reports snapshot the content at report time (`reports.evidence`) and hold their own file refs (`evidenceMediaStorageId`, `evidencePosterStorageId`), released when the report expires (24 months). Staff read it with `moderation.reportEvidence`. View-once media is never kept. Reports filed before this change fall back to the card |
+| `matchPresence` kept on a plain room leave | Removed on leave, kick and deletion (`leaveMatchesInRoom`) |
+| `matches.watchers` frozen on finish | `finishMatch` clears `watchers` and `watching` |
+| Dead `rooms.createdBy` after a creator who had left deletes their account | Deletion step `createdRooms` (index `by_created_by`) re-points it to the owner seat; rooms with no owner keep the id (field is required) |
+| Heartbeat refreshed every session of the account | `functions.ts` records the calling session; `touchSessions` refreshes only it. Visible change, accepted: a device that is never opened for 90 days idles out (and stops getting pushes) even while the account is active elsewhere; opening the app, or answering a call, heartbeats. Signal and WhatsApp expire idle linked devices the same way |
+| Phase 5F: roster status not refreshed on a legacy server | The roster dedup includes status/last seen only when the presence API is missing |
+| Optional: `roomIds` for `groupCalls.liveInMyRooms` | Already shipped in Phase 5 (sorted-ids key, no resubscribe on reorder) |
+| Four stale Flutter tests | Tests updated to the current UI (link underlines allow-listed, bell-slash mute glyph, Terms consent before username submit); no code regressions |
+| Flaky `room_scroll_rebuild_test` | Waits for the subscription and render instead of a fixed 100 ms sleep |
+| Stale `today` notes in `referenceRules.ts` | Verified and rewritten (stickers, moderation card, scheduled mentions/replies, expression favourites) |
+
+Accepted by design, unchanged: poll respondent ids until the next write,
+`sessions.userId` until GC, `problemReports.messageId` (expires
+2026-11-06), a deleted personal sticker in a reply preview (privacy), a
+scheduled reply whose parent was deleted goes out as a plain message.
+
+Operator steps still open after deploy, all documented: Phase 0 item 14,
+Phase 3 file-ref rollout, Phase 4 backfills, Phase 5 W1
+(`SESSION_TRUSTS_ROW`), Phase 6 backfill. After the forced minimum version
+is live: Phase 5 W3-W5, Phase 6 W3 strip and 6Z, the Phase 2 shims
+(`auth.purgeMessagesLater`, `roomCleanup.wipeMessagesLater`), retiring
+`gcOrphanedRoomMemberships`, and dropping `roomMembers.readLog` /
+`deliveredLog`.

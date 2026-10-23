@@ -14068,7 +14068,31 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get authSuspendedDeleteFailed =>
-      'تعذّر علينا حذف حسابك من هنا. تواصل مع الدعم وسنتولى الأمر.';
+      'تعذّر علينا حذف حسابك. تحقق من اتصالك وحاول مرة أخرى. إن استمر الفشل فتواصل مع الدعم.';
+
+  @override
+  String get authSuspendedDeleteRetry => 'حاول مرة أخرى';
+
+  @override
+  String get authSuspendedDeleteDone =>
+      'يجري حذف حسابك وتم تسجيل خروجك. قد يستغرق ذلك بضع دقائق.';
+
+  @override
+  String get authSuspendedDeleteNeedPassword =>
+      'سجّل الدخول مرة أخرى بكلمة المرور أو Apple أو Google لحذف هذا الحساب.';
+
+  @override
+  String authSuspendedDeleteConfirmTitle(String username) {
+    return 'هل تريد حذف @$username؟';
+  }
+
+  @override
+  String get authSuspendedDeleteSignInAgain =>
+      'انتهت صلاحية تسجيل الدخول عبر Apple أو Google. اضغط على زر Apple أو Google مرة أخرى، ثم احذف حسابك.';
+
+  @override
+  String get authSuspendedDeleteNotAllowed =>
+      'هذا الحساب غير موقوف، لذلك لا يمكن حذفه من هنا.';
 
   @override
   String get termsConsentPrefix => 'أوافق على ';

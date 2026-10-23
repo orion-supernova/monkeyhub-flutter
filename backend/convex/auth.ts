@@ -1,8 +1,10 @@
 import { syncProfile } from "./profilesCore";
-import { internalMutation, mutation as rawMutation } from "./_generated/server";
+import { internalMutation, mutation as rawMutation, type MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import {  mutation, publicMutation, query  } from "./functions";
 import {
   ERR_SESSION_REVOKED,
+  assertSignupNotBanned,
   mintSession,
   requireSession,
   revokeOtherSessions,
@@ -137,6 +139,9 @@ export const signup = publicMutation({
     username = normaliseUsername(username);
     await assertNoCaseTwin(ctx, username);
     await throttleSignup(ctx, deviceId);
+    // A banned password user has no Apple/Google identity to match, so the
+    // install secret (and email, if an old client sent one) stands in for it.
+    await assertSignupNotBanned(ctx, { deviceSecret, email });
     // Reserved handles — anything reading as the brand, not just the exact
     // system names. Checked before the collision test so the answer does not
     // depend on whether a system account happens to exist yet: they are created
@@ -491,31 +496,79 @@ export const deleteAccount = rawMutation({
     const userId = await requireSession(ctx, sessionToken, {
       allowSuspended: true,
     });
-    const user = await ctx.db.get(userId);
-    if (user?.accountType === ACCOUNT_CHILD) throw new Error(ERR_NOT_ALLOWED);
+    await deleteOwnAccount(ctx, userId);
+  },
+});
 
-    const supervising = await ctx.db
+/** The checks and teardown behind every self-serve delete. */
+export async function deleteOwnAccount(ctx: MutationCtx, userId: Id<"users">) {
+  const user = await ctx.db.get(userId);
+  if (user?.accountType === ACCOUNT_CHILD) throw new Error(ERR_NOT_ALLOWED);
+
+  const supervising = await ctx.db
+    .query("guardianships")
+    .withIndex("by_guardian", (q) => q.eq("guardianId", userId))
+    .take(MAX_SUPERVISED);
+  for (const link of supervising) {
+    // Guardianship rows go in the background when an account is deleted, so a
+    // row alone proves nothing: count only guardians who are still live. A
+    // co-guardian's stuck deletion must not block this one, and two
+    // co-guardians must not both leave the child with nobody.
+    const guardians = await ctx.db
       .query("guardianships")
-      .withIndex("by_guardian", (q) => q.eq("guardianId", userId))
-      .take(MAX_SUPERVISED);
-    for (const link of supervising) {
-      // Guardianship rows go in the background when an account is deleted, so a
-      // row alone proves nothing: count only guardians who are still live. A
-      // co-guardian's stuck deletion must not block this one, and two
-      // co-guardians must not both leave the child with nobody.
-      const guardians = await ctx.db
-        .query("guardianships")
-        .withIndex("by_child", (q) => q.eq("childId", link.childId))
-        .take(MAX_GUARDIANS_PER_CHILD);
-      let others = 0;
-      for (const g of guardians) {
-        if (g.guardianId === userId) continue;
-        if (await getLiveUser(ctx, g.guardianId)) others++;
-      }
-      if (others === 0) throw new Error(ERR_LAST_GUARDIAN);
+      .withIndex("by_child", (q) => q.eq("childId", link.childId))
+      .take(MAX_GUARDIANS_PER_CHILD);
+    let others = 0;
+    for (const g of guardians) {
+      if (g.guardianId === userId) continue;
+      if (await getLiveUser(ctx, g.guardianId)) others++;
     }
+    if (others === 0) throw new Error(ERR_LAST_GUARDIAN);
+  }
 
-    await startUserDeletion(ctx, userId, { reason: "self" });
+  await startUserDeletion(ctx, userId, { reason: "self" });
+}
+
+/**
+ * Delete a SUSPENDED account without a session, for the person who signs in
+ * again after their revoked session row was garbage-collected
+ * (`gcRevokedSessions` clears it a week after the ban), so `deleteAccount`'s
+ * token path no longer exists for them.
+ *
+ * The proof is the account's password, checked exactly like `login` and in the
+ * SAME failure bucket, so this is no new guessing oracle. The credential is
+ * consumed by the action itself: nothing is minted or returned, so there is no
+ * token to leak and nothing it could be used for except this one deletion. It
+ * refuses any account that is not suspended (a normal user deletes through
+ * `deleteAccount` with a live session) and any child. Apple/Google accounts use
+ * `socialAuth.deleteSuspendedAccount`.
+ *
+ * Public by necessity: a banned account cannot hold a session.
+ */
+export const deleteSuspendedAccount = publicMutation({
+  args: { username: v.string(), passwordHash: v.string() },
+  handler: async (ctx, { username, passwordHash }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", username))
+      .first();
+    if (!user) throw new Error("USER_NOT_FOUND");
+    if (user.accountType === ACCOUNT_CHILD) throw new Error(ERR_MUST_PAIR);
+    if (user.passwordHash === SOCIAL_ONLY_PASSWORD_SENTINEL) {
+      throw new Error(ERR_USE_SOCIAL);
+    }
+    const key = loginKey(user._id);
+    await assertNotLocked(ctx, key);
+    if (!(await verifyPassword(user.passwordHash, passwordHash))) {
+      await noteFailure(ctx, key);
+      return refusal("WRONG_PASSWORD");
+    }
+    await clearFailures(ctx, key);
+    if (user.suspendedAt === undefined || isTombstoned(user)) {
+      throw new Error(ERR_NOT_ALLOWED);
+    }
+    await deleteOwnAccount(ctx, user._id);
+    return null;
   },
 });
 

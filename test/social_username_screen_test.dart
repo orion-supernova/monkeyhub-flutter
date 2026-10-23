@@ -134,6 +134,16 @@ void main() {
     expect(find.byType(SocialUsernameScreen), findsOneWidget);
 
     await tester.enterText(find.byType(TextField).first, 'murat');
+
+    // Creating an account needs the Terms consent (TermsConsentRow). Without
+    // it the submit is refused and the screen correctly stays up.
+    await tester.tap(find.text('Create account'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SocialUsernameScreen), findsOneWidget,
+        reason: 'no consent, no account');
+
+    await tester.tap(find.byIcon(CupertinoIcons.square));
+    await tester.pump();
     await tester.tap(find.text('Create account'));
     await tester.pumpAndSettle();
 

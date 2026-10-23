@@ -13145,7 +13145,29 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authSuspendedDeleteAction => '删除我的账号';
 
   @override
-  String get authSuspendedDeleteFailed => '我们无法在此处删除你的账号。请联系客服，我们会帮你处理。';
+  String get authSuspendedDeleteFailed => '我们无法删除你的账号。请检查网络后重试。如果仍然失败，请联系客服。';
+
+  @override
+  String get authSuspendedDeleteRetry => '重试';
+
+  @override
+  String get authSuspendedDeleteDone => '你的账号正在删除中，你已退出登录。这可能需要几分钟。';
+
+  @override
+  String get authSuspendedDeleteNeedPassword =>
+      '请使用密码、Apple 或 Google 重新登录，以删除此账号。';
+
+  @override
+  String authSuspendedDeleteConfirmTitle(String username) {
+    return '删除 @$username？';
+  }
+
+  @override
+  String get authSuspendedDeleteSignInAgain =>
+      '该 Apple 或 Google 登录已过期。请再次点按 Apple 或 Google 按钮，然后删除账号。';
+
+  @override
+  String get authSuspendedDeleteNotAllowed => '此账号未被停用，因此无法在这里删除。';
 
   @override
   String get termsConsentPrefix => '我同意';

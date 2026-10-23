@@ -115,6 +115,22 @@ class _LoginScreenState extends State<LoginScreen> {
   /// "Delete my account" action.
   bool _suspended = false;
 
+  /// The last delete attempt failed: the banner offers "Try again" and a retry
+  /// skips the confirm sheet (it was already confirmed).
+  bool _deleteFailed = false;
+
+  /// The last delete attempt was refused for good (last guardian, child
+  /// account, not suspended): no action is offered, a retry cannot succeed.
+  bool _deleteFinal = false;
+
+  /// A suspended account was deleted from here: show the success note in place
+  /// of the form's error banner. Cleared when the user edits or switches mode.
+  bool _deleteDone = false;
+
+  /// The provider credential of the sign-in that was refused as suspended, kept
+  /// so the delete can prove the account without a second native sheet.
+  SocialCredential? _suspendedCredential;
+
   /// Whether the pairing screen is showing instead of the sign-in form.
   ///
   /// Seeded from the sticky child-device marker so a paired handset opens
@@ -192,45 +208,96 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   /// The suspended notice's action: delete the banned account with the same
-  /// confirm the profile screen uses. A refusal (for example a session revoked
-  /// before the ban) points them at support instead.
+  /// confirm the profile screen uses. Uses the banned session's token while the
+  /// server still honours it, otherwise the password typed above or the
+  /// provider credential of the refused sign-in. A failure keeps the notice and
+  /// offers "Try again"; success replaces it with a signed-out confirmation.
   Future<void> _deleteSuspendedAccount() async {
     if (_busy) return;
     final l10n = AppLocalizations.of(context);
-    final ok = await showConfirmSheet(
-      context,
-      headline: l10n.profileScreenDeleteAccountConfirmTitle,
-      body: l10n.profileScreenDeleteAccountConfirmBody,
-      confirmLabel: l10n.acctDeleteAccount,
-    );
-    if (!ok || !mounted || _busy) return;
+    if (!_deleteFailed) {
+      // Name the account that will go: the form may hold the credentials of a
+      // different account than the one whose banned session is still held.
+      final typed = _username.text.trim();
+      final guard = SessionGuard.instance;
+      final target = _suspendedCredential != null
+          ? null
+          : (typed.isNotEmpty && _password.text.isNotEmpty
+                ? typed
+                : guard.suspendedUsername);
+      final ok = await showConfirmSheet(
+        context,
+        headline: target == null
+            ? l10n.profileScreenDeleteAccountConfirmTitle
+            : l10n.authSuspendedDeleteConfirmTitle(target),
+        body: l10n.profileScreenDeleteAccountConfirmBody,
+        confirmLabel: l10n.acctDeleteAccount,
+      );
+      if (!ok || !mounted || _busy) return;
+    }
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await widget.auth.deleteSuspendedAccount();
+      await widget.auth.deleteSuspendedAccount(
+        username: _username.text.trim(),
+        password: _password.text,
+        credential: _suspendedCredential,
+      );
       if (!mounted) return;
       setState(() {
         _suspended = false;
+        _deleteFailed = false;
+        _deleteFinal = false;
+        _deleteDone = true;
+        _suspendedCredential = null;
         _error = null;
+        _password.clear();
       });
+    } on StateError {
+      // Nothing to prove it with yet: ask for the credentials, keep the action.
+      if (!mounted) return;
+      setState(() => _error = l10n.authSuspendedDeleteNeedPassword);
     } catch (e) {
       debugPrint('[login] deleting the suspended account failed: $e');
       if (!mounted) return;
+      final outcome = suspendedDeleteOutcome(e, l10n);
       setState(() {
-        _suspended = false;
-        _error = l10n.authSuspendedDeleteFailed;
+        _deleteFailed = outcome.next == SuspendedDeleteNext.retry;
+        _deleteFinal = outcome.next == SuspendedDeleteNext.final_;
+        // A spent provider token can never work again: drop it so the next
+        // attempt needs a fresh Apple/Google sheet.
+        if (outcome.next == SuspendedDeleteNext.signInAgain) {
+          _suspendedCredential = null;
+        }
+        _error = outcome.message;
       });
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
+  /// A sign-in the server refused as ACCOUNT_SUSPENDED: show the ban notice with
+  /// the delete action, even though no session is held (it may be long gone).
+  bool _offerSuspendedDelete(Object e, {SocialCredential? credential}) {
+    if (!e.toString().contains('ACCOUNT_SUSPENDED')) return false;
+    _suspended = true;
+    _deleteFailed = false;
+    _deleteFinal = false;
+    _deleteDone = false;
+    _suspendedCredential = credential;
+    return true;
+  }
+
   void _switchTo(_AuthMode mode) => setState(() {
     _mode = mode;
     _error = null;
     _suspended = false;
+    _deleteFailed = false;
+    _deleteFinal = false;
+    _deleteDone = false;
+    _suspendedCredential = null;
     // Switching away from sign-up abandons the attempt; a later one should
     // mint a fresh phrase rather than resurrect an abandoned one.
     _pendingPhrase = null;
@@ -257,10 +324,13 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _socialBusy = provider;
       _error = null;
+      _deleteDone = false;
     });
+    SocialCredential? credential;
     try {
-      final credential = await SocialSignIn.forProvider(provider);
-      final outcome = await widget.auth.signInWithProvider(credential);
+      final cred = await SocialSignIn.forProvider(provider);
+      credential = cred;
+      final outcome = await widget.auth.signInWithProvider(cred);
       if (!mounted || outcome == null) return;
 
       await Navigator.of(context).push(
@@ -268,7 +338,7 @@ class _LoginScreenState extends State<LoginScreen> {
           fullscreenDialog: true,
           builder: (_) => SocialUsernameScreen(
             auth: widget.auth,
-            credential: credential,
+            credential: cred,
             suggestedName: outcome.suggestedName,
           ),
         ),
@@ -282,7 +352,12 @@ class _LoginScreenState extends State<LoginScreen> {
       // ONLY place the real cause can appear, so it has to appear there.
       debugPrint('[social] ${provider.wire} sign-in failed: $e');
       debugPrintStack(stackTrace: stack, maxFrames: 8);
-      if (mounted) setState(() => _error = _humanize(e));
+      if (mounted) {
+        setState(() {
+          _offerSuspendedDelete(e, credential: credential);
+          _error = _humanize(e);
+        });
+      }
     } finally {
       if (mounted) setState(() => _socialBusy = null);
     }
@@ -326,6 +401,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _busy = true;
       _error = null;
+      _deleteDone = false;
     });
     try {
       final username = _username.text.trim();
@@ -351,7 +427,10 @@ class _LoginScreenState extends State<LoginScreen> {
           );
       }
     } catch (e) {
-      setState(() => _error = _humanize(e));
+      setState(() {
+        if (_mode == _AuthMode.signIn) _offerSuspendedDelete(e);
+        _error = _humanize(e);
+      });
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -503,14 +582,26 @@ class _LoginScreenState extends State<LoginScreen> {
                       _Hero(mode: _mode),
                       const SizedBox(height: 30),
                       ..._fields(),
+                      if (_deleteDone && _error == null) ...[
+                        const SizedBox(height: 14),
+                        FormErrorBanner(
+                          AppLocalizations.of(context).authSuspendedDeleteDone,
+                          icon: CupertinoIcons.checkmark_circle_fill,
+                          tone: FormBannerTone.success,
+                        ),
+                      ],
                       if (_error != null) ...[
                         const SizedBox(height: 14),
                         FormErrorBanner(
                           _error!,
-                          actionLabel: _suspended
-                              ? AppLocalizations.of(context).authSuspendedDeleteAction
+                          actionLabel: _suspended && !_deleteFinal
+                              ? (_deleteFailed
+                                    ? AppLocalizations.of(context).authSuspendedDeleteRetry
+                                    : AppLocalizations.of(context).authSuspendedDeleteAction)
                               : null,
-                          onAction: _suspended ? _deleteSuspendedAccount : null,
+                          onAction: _suspended && !_deleteFinal
+                              ? _deleteSuspendedAccount
+                              : null,
                         ),
                       ],
                       const SizedBox(height: 20),

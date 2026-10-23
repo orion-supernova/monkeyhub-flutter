@@ -92,6 +92,10 @@ void main() {
       'socialAuth:linkExistingAccount',
       // Recovering an account that by definition cannot sign in.
       'auth:resetPasswordWithRecoveryKey',
+      // A suspended account deleting itself, proved by password or provider
+      // token (spent by the call, nothing minted).
+      'auth:deleteSuspendedAccount',
+      'socialAuth:deleteSuspendedAccount',
       // The device-login handshake — the signed-OUT desktop's three calls.
       'deviceLogin:createLoginRequest',
       'deviceLogin:getDeviceLoginRequestStatus',

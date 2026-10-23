@@ -81,7 +81,8 @@ describe("moderator removes reported moments and comments", () => {
     await act(staff, report._id);
 
     expect(await get(t, momentId)).toBeNull();
-    expect(await exists(t, media)).toBe(false);
+    // Kept on purpose: the report's evidence bubble holds the photo until the report expires.
+    expect(await exists(t, media)).toBe(true);
     for (const table of ["momentReactions", "momentComments", "momentCommentReactions"]) {
       expect(await count(t, table)).toBe(0);
     }
@@ -137,7 +138,8 @@ describe("moderator removes reported moments and comments", () => {
     await t.run((ctx: any) => ctx.db.delete(author.userId));
     await act(staff, report._id);
     expect(await get(t, momentId)).toBeNull();
-    expect(await exists(t, media)).toBe(false);
+    // Kept on purpose: the report's evidence bubble holds the photo until the report expires.
+    expect(await exists(t, media)).toBe(true);
   });
 
   test("refuses removeContent on a message or user report", async () => {

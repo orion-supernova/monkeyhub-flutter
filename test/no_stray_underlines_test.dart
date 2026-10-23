@@ -39,6 +39,10 @@ void main() {
     'lib/widgets/linkified_text.dart':
         'the same user-applied formatting, in the transcript',
     'lib/widgets/message_bubble.dart': 'link styling in a bubble and a caption',
+    'lib/widgets/scheduled_list_sheet.dart':
+        'link styling in a scheduled message preview, as in a bubble',
+    'lib/widgets/terms_consent.dart':
+        'the Terms link in the consent checkbox sentence',
   };
 
   final dartFiles = Directory('lib')

@@ -1,6 +1,6 @@
 import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { mutation } from "./functions";
+import { mutation, query } from "./functions";
 import { v } from "convex/values";
 import { removeMessageAndFanout } from "./messages";
 import { removeMembership } from "./roomAdmin";
@@ -15,7 +15,7 @@ import { deleteMomentCore } from "./momentCleanup";
 import { deleteCommentCore } from "./momentComments";
 import { REPORT_RETENTION_MS } from "./users";
 import { markOffline } from "./presenceCore";
-import { SESSION_LIVE_CAP } from "./sessionCore";
+import { SESSION_LIVE_CAP, liftAccountBans, recordAccountBans } from "./sessionCore";
 
 /** Sessions revoked per transaction; a full page schedules the continuation. */
 const SUSPEND_SESSIONS_MAX = SESSION_LIVE_CAP * 2;
@@ -121,6 +121,10 @@ export async function suspendAccount(ctx: any, targetId: any, byId: any) {
       userId: targetId,
     });
   }
+  // Password accounts have no Apple/Google identity to remember the ban by:
+  // keep hashes of the install secret and email so a new username cannot be
+  // signed up from the same install (sessionCore.recordAccountBans).
+  await recordAccountBans(ctx, targetId, target.email);
   // `users.status` was patched above, so don't mirror it again.
   await markOffline(ctx, targetId, { now, mirror: false });
   const memberships = await ctx.db
@@ -139,7 +143,11 @@ export async function unsuspendAccount(ctx: any, targetId: any) {
   const target = await ctx.db.get(targetId);
   if (!target) throw new Error("USER_NOT_FOUND");
   if (target.suspendedAt === undefined) return;
+  // A deleted (or deleting) suspended account keeps its ban for good: its
+  // install/identity rows must not be lifted by a stray unban.
+  if (target.deletingAt !== undefined) throw new Error("USER_NOT_FOUND");
   await ctx.db.patch(targetId, { suspendedAt: undefined, suspendedBy: undefined });
+  await liftAccountBans(ctx, targetId);
 }
 
 /**
@@ -323,5 +331,40 @@ export const gcExpiredEvidence = internalMutation({
       for (const msg of old) await removeMessageAndFanout(ctx, msg, msg._id);
     }
     return null;
+  },
+});
+
+/**
+ * The evidence snapshot kept on a report, for staff. Survives the deletion of
+ * the reported content and of the account that wrote it (the report owns its
+ * text and its file), until the report itself expires. `mediaUrl` is null when
+ * there was no media, or the file is already gone.
+ */
+export const reportEvidence = query({
+  args: { userId: v.id("users"), reportId: v.id("reports") },
+  returns: v.union(
+    v.null(),
+    v.object({
+      status: v.string(),
+      reason: v.string(),
+      createdAt: v.number(),
+      evidence: v.any(),
+      mediaUrl: v.union(v.string(), v.null()),
+      posterUrl: v.union(v.string(), v.null()),
+    }),
+  ),
+  handler: async (ctx, { userId, reportId }) => {
+    await assertStaff(ctx, userId);
+    const r = await ctx.db.get(reportId);
+    if (!r) return null;
+    const url = async (id: any) => (id ? await ctx.storage.getUrl(id) : null);
+    return {
+      status: r.status ?? "open",
+      reason: r.reason,
+      createdAt: r.createdAt,
+      evidence: r.evidence ?? null,
+      mediaUrl: await url(r.evidenceMediaStorageId),
+      posterUrl: await url(r.evidencePosterStorageId),
+    };
   },
 });

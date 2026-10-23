@@ -329,6 +329,10 @@ class SheetTextField extends StatelessWidget {
 TextStyle _hintStyle(AppTheme theme) =>
     theme.body.copyWith(fontSize: 17, height: 1.3, color: theme.inkMuted);
 
+/// How [FormErrorBanner] is tinted: an error, or a confirmation that reuses
+/// the same layout (for example "your account is being deleted").
+enum FormBannerTone { error, success }
+
 /// THE error under (or above) a form: a red-washed rounded block with an
 /// exclamation glyph and a 15pt sentence — and, optionally, the one thing to
 /// do about it ("Try again", "Use password instead").
@@ -343,7 +347,10 @@ class FormErrorBanner extends StatelessWidget {
     this.actionLabel,
     this.onAction,
     this.icon = CupertinoIcons.exclamationmark_circle_fill,
+    this.tone = FormBannerTone.error,
   });
+
+  final FormBannerTone tone;
 
   final String message;
   final String? actionLabel;
@@ -354,12 +361,13 @@ class FormErrorBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final radius = (theme.radiusXl.clamp(6.0, 26.0)) * 0.6;
+    final color = tone == FormBannerTone.success ? theme.success : theme.danger;
     return Semantics(
       liveRegion: true,
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 11, 14, 11),
         decoration: BoxDecoration(
-          color: theme.danger.withValues(alpha: 0.10),
+          color: color.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(radius),
         ),
         child: Row(
@@ -367,7 +375,7 @@ class FormErrorBanner extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.only(top: 1),
-              child: Icon(icon, size: 18, color: theme.danger),
+              child: Icon(icon, size: 18, color: color),
             ),
             const SizedBox(width: 9),
             Expanded(
@@ -379,7 +387,7 @@ class FormErrorBanner extends StatelessWidget {
                     style: theme.bodySoft.copyWith(
                       fontSize: 15,
                       height: 1.3,
-                      color: theme.danger,
+                      color: color,
                     ),
                   ),
                   if (actionLabel != null && onAction != null)
@@ -396,7 +404,7 @@ class FormErrorBanner extends StatelessWidget {
                             style: theme.bodySoft.copyWith(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: theme.danger,
+                              color: color,
                             ),
                           ),
                         ),

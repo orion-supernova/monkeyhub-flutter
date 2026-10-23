@@ -57,6 +57,10 @@ class SessionGuard {
     'socialAuth:linkExistingAccount',
     // Recovering an account that by definition cannot sign in.
     'auth:resetPasswordWithRecoveryKey',
+    // A suspended account deleting itself, proved by password or provider
+    // token instead of a session (its revoked row may be long gone).
+    'auth:deleteSuspendedAccount',
+    'socialAuth:deleteSuspendedAccount',
     // The device-login handshake — the signed-OUT desktop's three calls. The
     // phone's `peek`/`respond` are absent on purpose: that side is signed in.
     'deviceLogin:createLoginRequest',
@@ -117,6 +121,7 @@ class SessionGuard {
 
   bool _suspensionPending = false;
   String? _suspendedUserId;
+  String? _suspendedUsername;
 
   /// True from the moment a ban signs this device out until the user deletes
   /// the account, signs in again, or dismisses the notice ([dismissSuspension]).
@@ -127,9 +132,15 @@ class SessionGuard {
   /// Who was banned; `auth:deleteAccount` still wants the id as an argument.
   String? get suspendedUserId => _suspendedUserId;
 
+  /// Their @handle, so the delete confirmation can name the account it is
+  /// about to delete (the login form may hold someone else's credentials).
+  String? get suspendedUsername => _suspendedUsername;
+
   /// Remembered by `AuthService.forceSignOut` while the session is still known.
-  void noteSuspendedUser(String? userId) {
-    if (_suspensionPending) _suspendedUserId = userId;
+  void noteSuspendedUser(String? userId, {String? username}) {
+    if (!_suspensionPending) return;
+    _suspendedUserId = userId;
+    _suspendedUsername = username;
   }
 
   /// The user moved on (signed in, or left the notice): the banned token stops
@@ -137,6 +148,7 @@ class SessionGuard {
   void dismissSuspension() {
     _suspensionPending = false;
     _suspendedUserId = null;
+    _suspendedUsername = null;
     SessionStore.instance.discardOutgoingToken();
   }
 
@@ -236,5 +248,6 @@ class SessionGuard {
     _lost = false;
     _suspensionPending = false;
     _suspendedUserId = null;
+    _suspendedUsername = null;
   }
 }

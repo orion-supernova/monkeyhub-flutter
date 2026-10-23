@@ -13270,7 +13270,32 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authSuspendedDeleteAction => 'アカウントを削除';
 
   @override
-  String get authSuspendedDeleteFailed => 'ここではアカウントを削除できませんでした。サポートまでご連絡ください。';
+  String get authSuspendedDeleteFailed =>
+      'アカウントを削除できませんでした。接続を確認して、もう一度お試しください。それでも失敗する場合はサポートまでご連絡ください。';
+
+  @override
+  String get authSuspendedDeleteRetry => 'もう一度試す';
+
+  @override
+  String get authSuspendedDeleteDone =>
+      'アカウントを削除しています。サインアウトしました。数分かかることがあります。';
+
+  @override
+  String get authSuspendedDeleteNeedPassword =>
+      'このアカウントを削除するには、パスワード、Apple、またはGoogleでもう一度サインインしてください。';
+
+  @override
+  String authSuspendedDeleteConfirmTitle(String username) {
+    return '@$username を削除しますか？';
+  }
+
+  @override
+  String get authSuspendedDeleteSignInAgain =>
+      'AppleまたはGoogleのサインインの有効期限が切れました。AppleまたはGoogleのボタンをもう一度タップしてから、アカウントを削除してください。';
+
+  @override
+  String get authSuspendedDeleteNotAllowed =>
+      'このアカウントは停止されていないため、ここからは削除できません。';
 
   @override
   String get termsConsentPrefix => '';

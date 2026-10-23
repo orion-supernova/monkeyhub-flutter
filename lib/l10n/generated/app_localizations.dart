@@ -23155,11 +23155,47 @@ abstract class AppLocalizations {
   /// **'Delete my account'**
   String get authSuspendedDeleteAction;
 
-  /// Shown when deleting a suspended account was refused (for example the session is too old); points the user to support.
+  /// Shown when deleting a suspended account failed. A Try again action sits under it.
   ///
   /// In en, this message translates to:
-  /// **'We couldn’t delete your account from here. Please contact support and we’ll sort it out.'**
+  /// **'We couldn’t delete your account. Check your connection and try again. If it keeps failing, contact support.'**
   String get authSuspendedDeleteFailed;
+
+  /// Action under the suspended-account delete failure that retries the deletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get authSuspendedDeleteRetry;
+
+  /// Success message on the login screen after a suspended account was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is being deleted and you’re signed out. This can take a few minutes.'**
+  String get authSuspendedDeleteDone;
+
+  /// Shown when a suspended account asks to be deleted with nothing to prove ownership yet. Any sign-in method works: password, Apple or Google.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again with your password, Apple or Google to delete this account.'**
+  String get authSuspendedDeleteNeedPassword;
+
+  /// Confirm sheet headline when deleting a suspended account whose username is known.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete @{username}?'**
+  String authSuspendedDeleteConfirmTitle(String username);
+
+  /// Shown when the held Apple or Google token expired before the suspended account could be deleted; the user taps the provider button again.
+  ///
+  /// In en, this message translates to:
+  /// **'That Apple or Google sign-in expired. Tap the Apple or Google button again, then delete your account.'**
+  String get authSuspendedDeleteSignInAgain;
+
+  /// Final refusal (CHILD_NOT_ALLOWED) when deleting an account that is not suspended from the login screen.
+  ///
+  /// In en, this message translates to:
+  /// **'This account isn’t suspended, so it can’t be deleted from here.'**
+  String get authSuspendedDeleteNotAllowed;
 
   /// Sign-up EULA checkbox, text before the link. Full sentence: prefix + link + suffix.
   ///

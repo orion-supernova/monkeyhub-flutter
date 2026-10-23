@@ -259,12 +259,13 @@ describe("messages", () => {
       targetId: photo,
       reason: "HARASSMENT",
     } as any);
-    expect(await refsOf(t, file)).toHaveLength(2);
+    // The message, the card's evidence bubble and the report itself.
+    expect(await refsOf(t, file)).toHaveLength(3);
 
     await t.mutation(api.messages.deleteMessage, { ...as(bob), messageId: photo } as any);
     await drain(t);
     expect(await alive(t, file)).toBe(true);
-    expect(await refsOf(t, file)).toHaveLength(1);
+    expect(await refsOf(t, file)).toHaveLength(2);
   });
 
   test("a view-once burn frees the file at once", async () => {

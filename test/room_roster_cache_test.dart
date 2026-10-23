@@ -621,6 +621,38 @@ void main() {
       expect(repo.membersFor('a'), same(first));
     });
 
+    test('on a legacy server a member coming online DOES come through',
+        () async {
+      // No presenceApi deployed: the roster's status/lastSeen are the only
+      // presence there is, so the dedup must not swallow them.
+      repo.presenceIsLegacy = () => true;
+      await repo.openRoom('a', owner: screenA);
+      await _pump();
+
+      final sink = cv.sinks['rooms:getMembers']!;
+      final offline = [
+        for (final u in _roster())
+          ChatUser(
+            id: u.id,
+            username: u.username,
+            name: u.name,
+            joinedAt: u.joinedAt,
+          ),
+      ];
+      sink(_wire(offline));
+      final first = repo.membersFor('a');
+      expect(first.first.status, isNull);
+
+      sink(_wire(_roster()));
+      expect(repo.membersFor('a'), isNot(same(first)));
+      expect(repo.membersFor('a')[1].status, 'online');
+
+      // And an identical redelivery is still deduped.
+      final second = repo.membersFor('a');
+      sink(_wire(_roster()));
+      expect(repo.membersFor('a'), same(second));
+    });
+
     test('signing out takes the roster with it', () async {
       // A `rooms:getMembers` row is scoped to a viewer who is a member, so
       // keeping it would hand the next person on this handset the membership

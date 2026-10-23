@@ -215,6 +215,31 @@ class ChatApi {
     await _cv.mutation('auth:deleteAccount', {'userId': userId});
   }
 
+  /// Deletes a SUSPENDED password account with no session, proved by the
+  /// password (same lockout as sign-in). For a banned user whose revoked
+  /// session is gone; see `auth.deleteSuspendedAccount`.
+  Future<void> deleteSuspendedAccountWithPassword({
+    required String username,
+    required String password,
+  }) async {
+    await _cv.mutation('auth:deleteSuspendedAccount', {
+      'username': username,
+      'passwordHash': sha256Hash(password),
+    });
+  }
+
+  /// The Apple/Google counterpart: the provider token is the proof and is spent
+  /// by the call. See `socialAuth.deleteSuspendedAccount`.
+  Future<void> deleteSuspendedAccountWithProvider(
+    SocialCredential credential,
+  ) async {
+    await _cv.action('socialAuth:deleteSuspendedAccount', {
+      'provider': credential.provider.wire,
+      'idToken': credential.idToken,
+      if (credential.rawNonce != null) 'rawNonce': credential.rawNonce,
+    });
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Social sign-in (Apple / Google)
   //
@@ -1165,7 +1190,12 @@ class ChatApi {
       'userId': userId,
       'accept': accept,
     });
-    return ((res as Map).cast<String, dynamic>())['roomId'].toString();
+    final map = (res as Map).cast<String, dynamic>();
+    // The room was deleted before the answer. The server dropped the stale
+    // invitation (it returns instead of throwing so that delete commits);
+    // surface it as the same "invitation is gone" error callers already map.
+    if (map['status'] == 'gone') throw Exception('INVITATION_NOT_FOUND');
+    return map['roomId'].toString();
   }
 
   /// Withdraw an invite — the sender's own, or anyone's if the caller is an
