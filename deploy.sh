@@ -1997,7 +1997,9 @@ asc_upload() {   # $1 = ios|macos, $2 = file, $3 = log
 announce_when_processed() {   # $1 = channel, $2 = upload log
     local channel="$1" log="$2" uuid delivery out
     uuid='[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
-    delivery=$(grep -ioE "delivery[^0-9a-fA-F]{0,40}$uuid" "$log" 2>/dev/null \
+    # Any text between the label and the id ("Delivery UUID: ..." has a hex
+    # D in it, so a no-hex gap never matched).
+    delivery=$(grep -ioE "delivery.{0,40}$uuid" "$log" 2>/dev/null \
         | grep -oE "$uuid" | head -n 1)
     if [ -z "$delivery" ]; then
         echo "  ⚠️  No delivery ID in the upload output ($log)."
