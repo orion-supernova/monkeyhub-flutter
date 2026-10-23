@@ -1,8 +1,8 @@
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { describe, expect, onTestFinished, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
-
+import { sessionFlags } from "./sessionCore";
 /**
  * The session boundary, actually executed.
  *
@@ -444,9 +444,17 @@ describe("deleting an account ends its sessions", () => {
   /**
    * The pre-existing-orphan case: rows written before `purgeUser` learned to
    * revoke. Nothing stamps `revokedAt` on these, so only the existence check
-   * inside `requireSession` can stop them.
+   * inside `requireSession` can stop them. That check is skipped once
+   * `SESSION_TRUSTS_ROW` is on, which is why the flag is flipped only after
+   * `sessions.auditLiveVsAccounts` reports no such row (done 2026-10-23); this
+   * pins the non-trusting path the audit relies on.
    */
   test("a session orphaned by an older purge is refused too", async () => {
+    const trusted = sessionFlags.trustsRow;
+    sessionFlags.trustsRow = false;
+    onTestFinished(() => {
+      sessionFlags.trustsRow = trusted;
+    });
     const t = convexTest(schema);
     const me = await signUp(t, "goksu");
 

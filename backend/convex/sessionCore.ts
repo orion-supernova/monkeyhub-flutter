@@ -99,7 +99,7 @@ export const SESSION_LIVE_CAP = 50;
  * force the trusting path (`sessionFlags.trustsRow = true`) without a rebuild.
  * Production code never writes it.
  */
-export const SESSION_TRUSTS_ROW = false;
+export const SESSION_TRUSTS_ROW = true;
 export const sessionFlags = { trustsRow: SESSION_TRUSTS_ROW };
 
 /** How many live rows one eviction reads; beyond it a later mint finishes. */

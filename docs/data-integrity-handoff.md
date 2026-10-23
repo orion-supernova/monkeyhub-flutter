@@ -83,6 +83,28 @@ Deploy order matters. Do these in order, asking the user before step 1.
    `groupCalls.liveInMyRooms` (`lib/backend/group_call_api.dart`,
    `live_calls_store.dart`) for a smaller subscription footprint.
 
+### Rollout log (2026-10-23)
+
+Backend deployed to the VPS (`f2d6e72a`); the home server push failed
+(unreachable over Tailscale) and still runs the old functions. Then, on the
+VPS:
+- `sessions:revokeOrphaned`: 1 revoked.
+- Phase 4 backfills: `backfillSearchName` 21 patched, `roomCounts:backfill`
+  23 counted, `receipts:moveLogs` 24 moved and chaining.
+- Phase 3 steps 1-6: scan done (375 refs inserted, 0 missing files),
+  `repairRefs` 0 dropped, integrity run 0 file-ref violations (two old
+  orphans: one `roomChangeRequests.storageId` whose file was already gone,
+  one revoked session), `zeroRefReport` 0 unreferenced files, `markTracked`
+  906 files, 0 queued for reap. **Next: step 7 after 2026-10-24 ~11:00
+  (25 h), then `FILE_REFS_REAP=1`; step 9 (`FILE_REFS_ENFORCE=1`) a week
+  later; then step 10.**
+- Phase 6 `backfillProfiles`: 23, `countMissingProfiles` 0.
+- Phase 5 `auditLiveVsAccounts`: all 0, so `SESSION_TRUSTS_ROW = true`
+  (committed and deployed backend-only); `backfillPresence` 21 created,
+  `countMissingPresence` 0.
+- Left for after the forced minimum version: Phase 5 W3-W5, Phase 6 W3 and
+  6Z, the Phase 2 shims, `readLog`/`deliveredLog`.
+
 ## 4. Remaining Phase 4 (designed, ready to build)
 
 Decisions already made (plan section 7): games' moves and boards kept 90
