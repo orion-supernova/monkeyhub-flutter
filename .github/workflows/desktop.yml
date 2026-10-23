@@ -104,7 +104,7 @@ jobs:
           name: windows-msix
           path: build/msix/MonkeyHub.msix
           if-no-files-found: error
-          retention-days: 2
+          retention-days: 1
 
   linux:
     needs: meta
@@ -165,4 +165,4 @@ jobs:
           name: linux-tarball
           path: monkeyhub-linux-x64-*.tar.gz
           if-no-files-found: error
-          retention-days: 2
+          retention-days: 1

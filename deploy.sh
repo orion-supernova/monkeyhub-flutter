@@ -2428,6 +2428,17 @@ desktop_ci_collect() {
     fi
     rm -rf build/desktop-ci
 
+    # The copies on this Mac are what ships (and what a --windows-upload or
+    # --linux-upload retry reuses), so the run's artifacts on GitHub are done.
+    # They count against the account's small artifact storage quota, which a
+    # couple of leftover runs fill, and then every upload fails until GitHub
+    # recounts hours later.
+    local artifact
+    for artifact in $(gh api "repos/{owner}/{repo}/actions/runs/$DESKTOP_RUN_ID/artifacts" \
+            -q '.artifacts[].id' 2>/dev/null); do
+        gh api -X DELETE "repos/{owner}/{repo}/actions/artifacts/$artifact" >/dev/null 2>&1 || true
+    done
+
     # The tag only existed to aim the run; leaving it would pile one up per deploy.
     git push -q origin ":refs/tags/$DESKTOP_TAG" 2>/dev/null || true
     git tag -d "$DESKTOP_TAG" >/dev/null 2>&1 || true
