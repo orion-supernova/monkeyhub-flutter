@@ -1131,6 +1131,10 @@ class _RoomsPanelState extends State<_RoomsPanel> {
           return GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
+            // Explicit, not the default: with no SafeArea above it, the
+            // default pads by MediaQuery's status-bar and home-indicator
+            // insets, a ~60pt gap under the filter chips.
+            padding: EdgeInsets.zero,
             gridDelegate: gridDelegate,
             itemCount: ordered.length,
             itemBuilder: (context, i) =>
