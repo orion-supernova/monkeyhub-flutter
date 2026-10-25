@@ -23958,6 +23958,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Deleted account'**
   String get profileDeletedAccount;
+
+  /// Caption under the illustration at the top of the Devices screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Use MonkeyHub on desktop or web.'**
+  String get devicesHeroCaption;
+
+  /// Primary button on the Devices screen that opens the QR scanner to approve a desktop/web sign-in.
+  ///
+  /// In en, this message translates to:
+  /// **'Link a new device'**
+  String get devicesLinkNew;
+
+  /// Section header above the list of signed-in devices.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked devices'**
+  String get devicesLinkedHeader;
+
+  /// Row line: when a device was first signed in. {date} is a short localized date.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked {date}'**
+  String devicesLinkedOn(String date);
+
+  /// Row line: when a device was last seen. {when} is a relative time such as '3 hours ago'.
+  ///
+  /// In en, this message translates to:
+  /// **'Last active {when}'**
+  String devicesLastActive(String when);
+
+  /// Accessibility label of the three-dot button on a device row.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get devicesMoreActions;
+
+  /// Placeholder in the Devices list when there is nothing to show.
+  ///
+  /// In en, this message translates to:
+  /// **'No linked devices'**
+  String get devicesEmptyList;
+
+  /// Centered title over the camera on the scan screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR code'**
+  String get deviceLinkScanTitle;
+
+  /// Explains what to scan, in the card at the bottom of the scan screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the code shown on the device you want to link.'**
+  String get deviceLinkScanInstruction;
+
+  /// Secondary button that swaps the camera for typing the 6-digit code.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter code instead'**
+  String get deviceLinkEnterCodeInstead;
+
+  /// Button that goes back from typing the code to the camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR code instead'**
+  String get deviceLinkScanInstead;
+
+  /// Heading of the expanded 6-digit code entry card.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code'**
+  String get deviceLinkEnterCodeTitle;
+
+  /// Body of the expanded code entry card.
+  ///
+  /// In en, this message translates to:
+  /// **'Type the 6-digit code shown on the device you want to link.'**
+  String get deviceLinkEnterCodeBody;
+
+  /// Title of the sheet where the user approves or denies the device that is asking to sign in.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish linking'**
+  String get deviceLinkFinishTitle;
+
+  /// Label in the success HUD after approving a device.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked'**
+  String get deviceLinkLinkedHud;
+
+  /// Toast shown back on the Devices screen after approving a device.
+  ///
+  /// In en, this message translates to:
+  /// **'Device linked'**
+  String get deviceLinkLinkedToast;
 }
 
 class _AppLocalizationsDelegate

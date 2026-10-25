@@ -1,4 +1,5 @@
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
+import 'package:flutter/physics.dart' show SpringDescription, SpringSimulation;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -6,14 +7,30 @@ import '../keyboard/focusable_tap.dart';
 import '../theme/motion.dart';
 import 'teardown_safe.dart';
 
-/// The press feel every tappable in the app shares: a quick dip and an
-/// overshooting return — the Telegram feel. One set of numbers, so a glass
-/// button, a grouped row and a call control all answer a finger alike.
+/// The press feel every tappable in the app shares: a quick move to the
+/// pressed scale and a spring back with a small overshoot. One set of numbers,
+/// so a glass button, a grouped row and a call control all answer a finger
+/// alike.
+///
+/// A scale below 1 is a dip (rows, big capsules); above 1 is the Liquid Glass
+/// "bloom" (glass circles, pills, groups): the control swells under the finger.
+/// Both release on the same spring.
 abstract final class PressSpec {
   static const down = Duration(milliseconds: 90);
-  static const release = Duration(milliseconds: 420);
   static const downCurve = Curves.easeOut;
+
+  /// The older timed release, for the few controls that still animate their
+  /// own scale with `AnimatedScale`. [SpringPress] itself no longer uses them.
+  static const release = Duration(milliseconds: 420);
   static const releaseCurve = Curves.elasticOut;
+
+  /// The release spring: stiffness 400, damping 18 (mass 1), damping ratio
+  /// 0.45 — a quick return with a small overshoot (about 1.2% of the 6% bloom).
+  static const releaseSpring =
+      SpringDescription(mass: 1, stiffness: 400, damping: 18);
+
+  /// Pressed scale of a glass control: it grows.
+  static const bloom = 1.06;
 
   /// How far a control dips. Small controls dip further so the motion reads.
   static const scale = 0.96;
@@ -127,15 +144,58 @@ class SpringPress extends StatefulWidget {
 }
 
 class _SpringPressState extends State<SpringPress>
-    with TeardownSafe<SpringPress> {
+    with TeardownSafe<SpringPress>, SingleTickerProviderStateMixin {
+  late final AnimationController _scale =
+      AnimationController.unbounded(vsync: this, value: 1);
+  bool _calm = false;
   bool _down = false;
   bool _hovered = false;
 
   /// The press in flight came from a mouse or the keyboard: dip gently.
   bool _gentle = false;
 
+  @override
+  void dispose() {
+    _scale.dispose();
+    super.dispose();
+  }
+
   void _set(bool v) {
-    if (_down != v) setState(() => _down = v);
+    if (_down == v) return;
+    setState(() => _down = v);
+    _animate();
+  }
+
+  /// Moves the scale to where the press state says it should be: a short
+  /// ease to the pressed scale, then a spring (carrying its velocity) home.
+  /// Calm motion never scales.
+  void _animate() {
+    if (_calm) {
+      _scale.stop();
+      _scale.value = 1;
+      return;
+    }
+    if (_down) {
+      final target =
+          _gentle ? PressSpec.forPointer(widget.scale) : widget.scale;
+      _scale.animateTo(
+        target,
+        duration: PressSpec.down,
+        curve: PressSpec.downCurve,
+      );
+    } else {
+      _scale.animateWith(
+        SpringSimulation(
+          PressSpec.releaseSpring,
+          _scale.value,
+          1,
+          _scale.velocity,
+        ),
+      ).whenComplete(() {
+        // The simulation stops within a tolerance of 1; land exactly on it.
+        if (mounted && !_down) _scale.value = 1;
+      });
+    }
   }
 
   void _press(PointerDeviceKind? kind) {
@@ -160,14 +220,15 @@ class _SpringPressState extends State<SpringPress>
   }
 
   Widget _spring(BuildContext context, Widget child) {
-    final motion = MotionScope.of(context);
-    return AnimatedScale(
-      scale: _down
-          ? (_gentle ? PressSpec.forPointer(widget.scale) : widget.scale)
-          : 1,
-      duration: motion.d(_down ? PressSpec.down : PressSpec.release),
-      curve: _down ? PressSpec.downCurve : PressSpec.releaseCurve,
+    _calm = MotionScope.of(context).calm;
+    if (_calm && _scale.value != 1) _scale.value = 1;
+    return AnimatedBuilder(
+      animation: _scale,
       child: child,
+      // Always wrapped: adding and dropping the Transform as the scale leaves
+      // and returns to 1 would remount the child.
+      builder: (context, child) =>
+          Transform.scale(scale: _scale.value, child: child),
     );
   }
 

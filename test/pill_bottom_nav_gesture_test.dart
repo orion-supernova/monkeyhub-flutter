@@ -185,10 +185,12 @@ void main() {
           'eight frames (~133ms) in, the pop should still be on show — it is '
           'meant to be seen during the move, not squeezed in before it',
     );
+    // The lens spring is the spec's k500/c32 (response 0.28): by here it has
+    // arrived and is ringing out its small overshoot, not still crossing.
     expect(
-      travelling.center.dx,
-      lessThan(target.center.dx - 20),
-      reason: 'and the pill genuinely still in transit while it is swollen',
+      (travelling.center.dx - target.center.dx).abs(),
+      allOf(greaterThan(0.5), lessThan(25)),
+      reason: 'and the pill still ringing in, not yet parked, while swollen',
     );
 
     await tester.pumpAndSettle();

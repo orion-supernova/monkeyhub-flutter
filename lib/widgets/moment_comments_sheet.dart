@@ -61,9 +61,7 @@ Future<void> showMomentComments(
         height: MediaQuery.sizeOf(ctx).height * 0.86,
         decoration: BoxDecoration(
           color: sheetFill(theme),
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(sheetTopRadius(theme)),
-          ),
+          borderRadius: BorderRadius.circular(sheetRadius(theme)),
         ),
         child: Column(
           children: [

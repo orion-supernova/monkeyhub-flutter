@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../theme/density.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/liquid_glass.dart';
 import 'call_models.dart';
@@ -90,13 +91,14 @@ class GroupCallButton extends StatelessWidget {
         ),
       );
     }
-    // A glass circle, the same 40pt as the classic header's back button.
+    // A glass circle, the same size (Density.iconButton) as the classic header's back button.
+    final disc = Density.of(context).iconButton;
     return Semantics(
       button: true,
       label: tooltip,
       child: LiquidGlass(
         shape: LiquidGlassShape.circle,
-        size: const Size(40, 40),
+        size: Size(disc, disc),
         onTap: busy ? null : () => _open(context),
         child: Icon(
           icon,

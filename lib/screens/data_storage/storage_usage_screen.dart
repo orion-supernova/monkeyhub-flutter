@@ -274,7 +274,7 @@ class _StorageUsageScreenState extends State<StorageUsageScreen>
               ),
               // Last, so the bottom margin counts towards the screenful.
               if (r.byRoom.isNotEmpty || r.items.isNotEmpty)
-                _TabsFloor(_tabsTop),
+                _TabsFloor(_tabsTop, IosPage.barClearance(context)),
             ],
           )),
           // The clear bar for a picked set, floating over the grid the way
@@ -576,27 +576,40 @@ class _RenderTabsTop extends RenderSliver {
 /// every layout of the page, scrolling included, and a builder would rebuild
 /// on every frame of a scroll.
 class _TabsFloor extends LeafRenderObjectWidget {
-  const _TabsFloor(this.anchor);
+  const _TabsFloor(this.anchor, this.clearance);
   final _TabsAnchor anchor;
+
+  /// Room kept above the tabs for the page's floating title bar: the tabs
+  /// come to rest under it, not behind it.
+  final double clearance;
 
   @override
   RenderSliver createRenderObject(BuildContext context) =>
-      _RenderTabsFloor(anchor);
+      _RenderTabsFloor(anchor, clearance);
 
   @override
   void updateRenderObject(BuildContext context, _RenderTabsFloor r) =>
-      r.anchor = anchor;
+      r
+        ..anchor = anchor
+        ..clearance = clearance;
 }
 
 class _RenderTabsFloor extends RenderSliver {
-  _RenderTabsFloor(this.anchor);
+  _RenderTabsFloor(this.anchor, this._clearance);
   _TabsAnchor anchor;
+  double _clearance;
+  double get clearance => _clearance;
+  set clearance(double v) {
+    if (_clearance == v) return;
+    _clearance = v;
+    markNeedsLayout();
+  }
 
   @override
   void performLayout() {
     final c = constraints;
     final used = c.precedingScrollExtent - anchor.offset;
-    final extent = (c.viewportMainAxisExtent - used).clamp(0.0, double.infinity);
+    final extent = (c.viewportMainAxisExtent - clearance - used).clamp(0.0, double.infinity);
     final paint = calculatePaintOffset(c, from: 0, to: extent);
     geometry = SliverGeometry(
       scrollExtent: extent,

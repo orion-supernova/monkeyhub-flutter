@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../family/family_service.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../theme/density.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/liquid_glass.dart';
@@ -166,14 +167,15 @@ class _ClassicCallButton extends StatelessWidget {
         ? theme.inkSoft
         : theme.inkSoft.withValues(alpha: 0.35);
     final face = _face(context, kind);
-    // A glass circle, the same 40pt as the classic header's back button
-    // beside it — the two are one toolbar group.
+    // A glass circle, the same size as the classic header's back button
+    // beside it (Density.iconButton) — the two are one toolbar group.
+    final disc = Density.of(context).iconButton;
     return Semantics(
       button: true,
       label: face.tooltip,
       child: LiquidGlass(
         shape: LiquidGlassShape.circle,
-        size: const Size(40, 40),
+        size: Size(disc, disc),
         onTap: onTap,
         child: Icon(face.icon, color: color, size: 20),
       ),

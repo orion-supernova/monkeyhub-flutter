@@ -8305,9 +8305,9 @@ class _LiquidHeader extends StatelessWidget {
   static const _avatarSize = kChatHeaderAvatarSize;
 
   /// Diameter of the round glass controls either side of the title.
-  /// Every chrome button is 40pt — the back, and the width reserved for a
+  /// Every chrome button is 44pt (Density.iconButton on a phone) — the back, and the width reserved for a
   /// missing call control so the title capsule stays centred.
-  static const _controlSize = 40.0;
+  static const _controlSize = 44.0;
 
   /// Gap between the two call controls. Tighter than the 12 that separates
   /// them from the title capsule, so the pair reads as one group rather than
@@ -8455,6 +8455,7 @@ class _LiquidHeader extends StatelessWidget {
                 shape: LiquidGlassShape.capsule,
                 padding: const EdgeInsets.fromLTRB(5, 5, 16, 5),
                 onTap: onOpenInfo,
+                pressScale: 0.98,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

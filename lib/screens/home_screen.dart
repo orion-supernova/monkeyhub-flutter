@@ -38,6 +38,7 @@ import '../widgets/chat_row_action_menu.dart';
 import '../widgets/chat_row_swipe.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/glass_buttons.dart';
+import '../widgets/liquid_glass.dart' show GlassTone;
 import '../widgets/mute_room_sheet.dart';
 import '../widgets/pull_reveal_panel.dart';
 import '../widgets/room_card.dart';
@@ -295,6 +296,26 @@ class _HomeScreenState extends State<HomeScreen>
     return false;
   }
 
+  /// The header's search button: brings the pull-down panel in and focuses its
+  /// field, the same surface a pull at the top reveals.
+  void _openSearch() {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _pullPanelOpen = true;
+      _pullDropped = false;
+    });
+    if (_scroll.hasClients && _scroll.offset > 0) {
+      _scroll.animateTo(
+        0,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchFocus.requestFocus();
+    });
+  }
+
   void _collapsePullPanel() {
     _searchFocus.unfocus();
     setState(() => _pullPanelOpen = false);
@@ -468,9 +489,11 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _showJoinByCode() {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => JoinByInviteScreen(repo: widget.repo, api: widget.api),
-    ));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => JoinByInviteScreen(repo: widget.repo, api: widget.api),
+      ),
+    );
   }
 
   /// The rooms as the list last drew them: filtered, searched, in display
@@ -502,7 +525,9 @@ class _HomeScreenState extends State<HomeScreen>
   void _stepChat(int by, {bool unread = false}) {
     final rooms = _shownRooms;
     if (rooms.isEmpty) return;
-    final at = rooms.indexWhere((r) => r.id == UiSelectionStore.instance.roomId);
+    final at = rooms.indexWhere(
+      (r) => r.id == UiSelectionStore.instance.roomId,
+    );
     String? target;
     if (unread) {
       for (var n = 1; n <= rooms.length; n++) {
@@ -536,7 +561,8 @@ class _HomeScreenState extends State<HomeScreen>
             AppShortcuts.previousChat: () => _stepChat(-1),
             AppShortcuts.nextUnread: () => _stepChat(1, unread: true),
             if (open && context.isExpanded)
-              AppShortcuts.closeChat: () => UiSelectionStore.instance.selectRoom(null),
+              AppShortcuts.closeChat: () =>
+                  UiSelectionStore.instance.selectRoom(null),
           },
           child: list!,
         );
@@ -584,25 +610,159 @@ class _HomeScreenState extends State<HomeScreen>
       body: Stack(
         children: [
           theme.backgroundLayer(context),
-          SafeArea(
-            // `bottom: false` so the scroller reaches the screen edge.
-            //
-            // The default insets the WHOLE column by the home-indicator inset,
-            // which ends the list ~34pt short of the bottom and leaves a strip
-            // of bare background under it that nothing can scroll into — read
-            // on device as a solid bar. Edge-to-edge is already on
-            // (`SystemUiMode.edgeToEdge`, transparent nav bar), so content is
-            // meant to run under the indicator and be cleared by padding
-            // instead: `sectionBottomPadding` reserves for the floating pill
-            // AND the indicator, which is what `kFloatingNavClearance` is
-            // measured against.
-            bottom: false,
-            child: Column(
-              children: [
-                _Header(
+          // No SafeArea: the list runs edge to edge, under the status bar and
+          // the floating header at the top and under the home indicator at the
+          // bottom (a SafeArea there leaves a strip of bare background that
+          // nothing can scroll into, read on device as a solid bar). It clears
+          // both with its own padding: the header's height on top, and
+          // `sectionBottomPadding` below, which reserves for the floating pill
+          // AND the indicator (`kFloatingNavClearance` is measured against it).
+          Stack(
+            children: [
+              Positioned.fill(
+                // No horizontal padding here — the chip row has to reach the
+                // screen edge to scroll off it, so the page margin lives on
+                // each child instead of on the viewport.
+                //
+                // The two NotificationListeners implement the pull-down-at-
+                // the-top reveal for the search field / Archived Chats row:
+                // the outer one silences Android's default overscroll glow
+                // (Flutter's own documented pattern for a custom overscroll
+                // affordance), the inner one tracks the drag itself. Neither
+                // requires bouncing physics — Flutter dispatches
+                // OverscrollNotification on a drag past either edge under
+                // any ScrollPhysics, which is what already powers that glow.
+                child: NotificationListener<OverscrollIndicatorNotification>(
+                  onNotification: (n) {
+                    n.disallowIndicator();
+                    return true;
+                  },
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: _onScrollNotification,
+                    child: ListView(
+                      key: const PageStorageKey('home_main_list'),
+                      controller: _scroll,
+                      // Required, not cosmetic: a list shorter than its
+                      // viewport (a new account with one or two chats) is
+                      // otherwise judged "not scrollable" and never emits
+                      // overscroll at all — silently breaking the pull
+                      // gesture for exactly the accounts that most need an
+                      // easy path to Archived Chats.
+                      physics: const _TopClampScrollPhysics(
+                        parent: AlwaysScrollableScrollPhysics(),
+                      ),
+                      // Starts below the floating header; content scrolls
+                      // under it and its soft top edge (iOS 26 scroll edge).
+                      padding: EdgeInsets.fromLTRB(
+                        0,
+                        MediaQuery.paddingOf(context).top + _kHeaderBar + 6,
+                        0,
+                        sectionBottomPadding(context),
+                      ),
+                      children: [
+                        PullRevealSlot(
+                          panelKey: _pullPanelKey,
+                          dragExtent: _pullDrag,
+                          dragThreshold: _pullOpenThreshold,
+                          instant: _dragging || _pullDropped,
+                          open: _pullPanelOpen,
+                          searchCtrl: _searchCtrl,
+                          searchFocus: _searchFocus,
+                          onSearchChanged: _onSearchChanged,
+                          onClearSearch: _clearSearch,
+                          archivedCount: widget.repo.archivedRooms.length,
+                          onOpenArchived: () => showArchivedChatsSheet(
+                            context,
+                            repo: widget.repo,
+                            api: widget.api,
+                          ),
+                          onCollapse: _collapsePullPanel,
+                        ),
+                        // The filter control rides inside the scroll view rather
+                        // than sitting above it: as a fixed band it ate a strip of
+                        // an already short viewport on every screen, and it reads
+                        // as part of the list's own header, not as chrome. Only
+                        // the header above stays pinned.
+                        // A pointer and a pane: every filter on screen at once,
+                        // as segmented groups, instead of a row to scroll.
+                        if (chipsStyle &&
+                            (Density.platformOffersCompact ||
+                                context.usesSplitShell)) ...[
+                          Padding(
+                            padding: _gutter,
+                            child: RoomFilterSegments(
+                              filter: filter,
+                              counts: counts,
+                              onChanged: _setFilter,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ] else if (chipsStyle) ...[
+                          // Not wrapped in `_gutter` on purpose: it takes the full
+                          // width and applies the margin as scroll padding.
+                          RoomFilterBar(
+                            filter: filter,
+                            counts: counts,
+                            onChanged: _setFilter,
+                          ),
+                          const SizedBox(height: 6),
+                        ],
+                        // Shown under BOTH styles. The chip row scrolls and holds
+                        // nine chips against a ~320pt viewport, so the active one
+                        // can easily be off-screen on a cold start — and the
+                        // filter persists, so a cold start really can open onto a
+                        // short list with no visible reason for it.
+                        if (filter.isNotEmpty)
+                          Padding(
+                            padding: _gutter,
+                            child: ActiveFilterCue(
+                              filter: filter,
+                              matchCount: visibleRooms.length,
+                              onClear: _clearFilter,
+                            ),
+                          ),
+                        if (!chipsStyle)
+                          Padding(
+                            padding: _gutter,
+                            child: RoomFilterPanel(
+                              filter: filter,
+                              counts: counts,
+                              expanded: _filterExpanded,
+                              onChanged: _setFilter,
+                              onDone: () =>
+                                  setState(() => _filterExpanded = false),
+                            ),
+                          ),
+                        const SizedBox(height: 14),
+                        Padding(
+                          // Rows carry 4pt of their own inset for the press
+                          // highlight, so 16 here puts the avatars on the same
+                          // 20pt edge as the large title.
+                          padding: settings.roomLayout == RoomLayout.list
+                              ? const EdgeInsets.symmetric(horizontal: 16)
+                              : _gutter,
+                          child: _RoomsPanel(
+                            repo: widget.repo,
+                            api: widget.api,
+                            filter: filter,
+                            allRooms: allRooms,
+                            rooms: visibleRooms,
+                            searchQuery: _searchQuery,
+                            onClearFilter: _clearFilter,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _Header(
                   me: me,
                   api: widget.api,
-                  scroll: _scroll,
                   // The same profile Settings opens, not a lesser one. Without
                   // `auth` and `family` the screen silently drops its whole
                   // ACCOUNT section — family, linked accounts, recovery phrase,
@@ -631,6 +791,7 @@ class _HomeScreenState extends State<HomeScreen>
                   // the one thing that account exists to do. The sheet itself
                   // draws only the actions the account actually has.
                   onCreateTap: _openNewChat,
+                  onSearchTap: _openSearch,
                   filterButton: chipsStyle
                       ? null
                       : RoomFilterButton(
@@ -641,144 +802,8 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         ),
                 ),
-                Expanded(
-                  // No horizontal padding here — the chip row has to reach the
-                  // screen edge to scroll off it, so the page margin lives on
-                  // each child instead of on the viewport.
-                  //
-                  // The two NotificationListeners implement the pull-down-at-
-                  // the-top reveal for the search field / Archived Chats row:
-                  // the outer one silences Android's default overscroll glow
-                  // (Flutter's own documented pattern for a custom overscroll
-                  // affordance), the inner one tracks the drag itself. Neither
-                  // requires bouncing physics — Flutter dispatches
-                  // OverscrollNotification on a drag past either edge under
-                  // any ScrollPhysics, which is what already powers that glow.
-                  child: NotificationListener<OverscrollIndicatorNotification>(
-                    onNotification: (n) {
-                      n.disallowIndicator();
-                      return true;
-                    },
-                    child: NotificationListener<ScrollNotification>(
-                      onNotification: _onScrollNotification,
-                      child: ListView(
-                        key: const PageStorageKey('home_main_list'),
-                        controller: _scroll,
-                        // Required, not cosmetic: a list shorter than its
-                        // viewport (a new account with one or two chats) is
-                        // otherwise judged "not scrollable" and never emits
-                        // overscroll at all — silently breaking the pull
-                        // gesture for exactly the accounts that most need an
-                        // easy path to Archived Chats.
-                        physics: const _TopClampScrollPhysics(
-                          parent: AlwaysScrollableScrollPhysics(),
-                        ),
-                        padding: EdgeInsets.fromLTRB(
-                          0,
-                          0,
-                          0,
-                          sectionBottomPadding(context),
-                        ),
-                        children: [
-                          const _LargeTitle(),
-                          PullRevealSlot(
-                            panelKey: _pullPanelKey,
-                            dragExtent: _pullDrag,
-                            dragThreshold: _pullOpenThreshold,
-                            instant: _dragging || _pullDropped,
-                            open: _pullPanelOpen,
-                            searchCtrl: _searchCtrl,
-                            searchFocus: _searchFocus,
-                            onSearchChanged: _onSearchChanged,
-                            onClearSearch: _clearSearch,
-                            archivedCount: widget.repo.archivedRooms.length,
-                            onOpenArchived: () => showArchivedChatsSheet(
-                              context,
-                              repo: widget.repo,
-                              api: widget.api,
-                            ),
-                            onCollapse: _collapsePullPanel,
-                          ),
-                      // The filter control rides inside the scroll view rather
-                      // than sitting above it: as a fixed band it ate a strip of
-                      // an already short viewport on every screen, and it reads
-                      // as part of the list's own header, not as chrome. Only
-                      // the header above stays pinned.
-                      // A pointer and a pane: every filter on screen at once,
-                      // as segmented groups, instead of a row to scroll.
-                      if (chipsStyle &&
-                          (Density.platformOffersCompact ||
-                              context.usesSplitShell)) ...[
-                        Padding(
-                          padding: _gutter,
-                          child: RoomFilterSegments(
-                            filter: filter,
-                            counts: counts,
-                            onChanged: _setFilter,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                      ] else if (chipsStyle) ...[
-                        // Not wrapped in `_gutter` on purpose: it takes the full
-                        // width and applies the margin as scroll padding.
-                        RoomFilterBar(
-                          filter: filter,
-                          counts: counts,
-                          onChanged: _setFilter,
-                        ),
-                        const SizedBox(height: 6),
-                      ],
-                      // Shown under BOTH styles. The chip row scrolls and holds
-                      // nine chips against a ~320pt viewport, so the active one
-                      // can easily be off-screen on a cold start — and the
-                      // filter persists, so a cold start really can open onto a
-                      // short list with no visible reason for it.
-                      if (filter.isNotEmpty)
-                        Padding(
-                          padding: _gutter,
-                          child: ActiveFilterCue(
-                            filter: filter,
-                            matchCount: visibleRooms.length,
-                            onClear: _clearFilter,
-                          ),
-                        ),
-                      if (!chipsStyle)
-                        Padding(
-                          padding: _gutter,
-                          child: RoomFilterPanel(
-                            filter: filter,
-                            counts: counts,
-                            expanded: _filterExpanded,
-                            onChanged: _setFilter,
-                            onDone: () =>
-                                setState(() => _filterExpanded = false),
-                          ),
-                        ),
-                      const SizedBox(height: 14),
-                      Padding(
-                        // Rows carry 4pt of their own inset for the press
-                        // highlight, so 16 here puts the avatars on the same
-                        // 20pt edge as the large title.
-                        padding: settings.roomLayout == RoomLayout.list
-                            ? const EdgeInsets.symmetric(horizontal: 16)
-                            : _gutter,
-                        child: _RoomsPanel(
-                          repo: widget.repo,
-                          api: widget.api,
-                          filter: filter,
-                          allRooms: allRooms,
-                          rooms: visibleRooms,
-                          searchQuery: _searchQuery,
-                          onClearFilter: _clearFilter,
-                        ),
-                      ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -786,23 +811,37 @@ class _HomeScreenState extends State<HomeScreen>
   }
 }
 
+/// Height of the header bar below the status bar.
+const double _kHeaderBar = 52;
+
+/// The floating header, Signal iOS 26 style: your avatar left, the title
+/// centred and always visible, one glass capsule (search, compose) right.
+///
+/// It sits OVER the list. Behind it is a soft top edge: the page background
+/// fading from opaque at the status bar to clear below the bar, so rows
+/// dissolve as they scroll under it (the iOS 26 scroll edge effect) without a
+/// blur layer over a moving list.
+///
+/// The large scrolling title this replaces is gone on purpose: Signal has none,
+/// and a title that is always centred needs no hand-off between two of them.
 class _Header extends StatelessWidget {
   const _Header({
     required this.me,
     required this.api,
-    required this.scroll,
     required this.onProfileTap,
     this.onCreateTap,
+    this.onSearchTap,
     this.filterButton,
   });
   final ChatUser me;
   final ChatApi api;
-
-  /// The list's controller: the small centred title fades in as the large
-  /// one scrolls out from under the bar, the iOS navigation-bar handoff.
-  final ScrollController scroll;
   final VoidCallback onProfileTap;
   final VoidCallback? onCreateTap;
+
+  /// Opens the pull-down search field. Stands in for Signal's camera button:
+  /// the camera here is a chat attachment tool (it needs a room to send into),
+  /// and nothing in the chat list can receive a photo.
+  final VoidCallback? onSearchTap;
 
   /// Null under [FilterStyle.chips], where the chip row is the whole control.
   final Widget? filterButton;
@@ -811,84 +850,103 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return SizedBox(
-      height: 52,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Compact title. Listens to the scroll on its own so the rest of
-            // the header never rebuilds with it.
-            AnimatedBuilder(
-              animation: scroll,
-              builder: (context, child) {
-                final offset = scroll.hasClients ? scroll.offset : 0.0;
-                final t = ((offset - 20) / 24).clamp(0.0, 1.0);
-                return Opacity(opacity: t, child: child);
-              },
-              child: Text(
-                l10n.homeScreenTitle,
-                style: theme.bodyEmph.copyWith(color: theme.ink),
+    final top = MediaQuery.paddingOf(context).top;
+    final bg = theme.background;
+    final actions = [
+      if (onSearchTap != null)
+        GlassGroupItem(
+          icon: CupertinoIcons.search,
+          semanticLabel: l10n.pullRevealSearchHint,
+          onTap: onSearchTap,
+        ),
+      // Unconditional: the sheet draws only the actions the account actually
+      // has, and a locked-down child account still starts chats with people
+      // its guardian approved.
+      if (onCreateTap != null)
+        GlassGroupItem(
+          icon: CupertinoIcons.square_pencil,
+          semanticLabel: l10n.homeScreenNewRoomSemanticLabel,
+          onTap: onCreateTap,
+        ),
+    ];
+    return Stack(
+      children: [
+        // The soft edge. Taller than the bar so the fade finishes below it.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    bg,
+                    bg.withValues(alpha: 0.92),
+                    bg.withValues(alpha: 0),
+                  ],
+                  stops: const [0, 0.62, 1],
+                ),
               ),
             ),
-            Row(
-              children: [
-                FocusableTap(
-                  onTap: onProfileTap,
-                  semanticLabel: l10n.homeScreenProfileSemanticLabel,
-                  shape: FocusRingShape.circle,
-                  radius: 999,
-                  child: GestureDetector(
-                    onTap: onProfileTap,
-                    child: UserAvatar(
-                      user: me,
-                      size: 34,
-                      api: api,
-                      showStatus: false,
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(top: top, bottom: 14),
+          child: SizedBox(
+            height: _kHeaderBar,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Centred on the screen, not on the gap between the controls,
+                  // so it stays put whichever buttons the account has.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 112),
+                    child: Text(
+                      l10n.homeScreenTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.bodyEmph.copyWith(
+                        color: theme.ink,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-                const Spacer(),
-                if (filterButton != null)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 10),
-                    child: filterButton,
+                  Row(
+                    children: [
+                      FocusableTap(
+                        onTap: onProfileTap,
+                        semanticLabel: l10n.homeScreenProfileSemanticLabel,
+                        shape: FocusRingShape.circle,
+                        radius: 999,
+                        child: GestureDetector(
+                          onTap: onProfileTap,
+                          child: UserAvatar(
+                            user: me,
+                            size: 36,
+                            api: api,
+                            showStatus: false,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      if (filterButton != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 10),
+                          child: filterButton,
+                        ),
+                      if (actions.isNotEmpty)
+                        GlassButtonGroup(tone: GlassTone.app, items: actions),
+                    ],
                   ),
-                // Unconditional: the sheet draws only the actions the account
-                // actually has, and a locked-down child account still starts
-                // chats with people its guardian approved.
-                if (onCreateTap != null)
-                  GlassIconButton(
-                    icon: CupertinoIcons.square_pencil,
-                    onTap: onCreateTap,
-                    semanticLabel: l10n.homeScreenNewRoomSemanticLabel,
-                  ),
-              ],
+                ],
+              ),
             ),
-          ],
+          ),
         ),
-      ),
-    );
-  }
-}
-
-/// The large title, as the first thing in the list so it scrolls away under
-/// the bar like a Messages or Mail title does.
-class _LargeTitle extends StatelessWidget {
-  const _LargeTitle();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-      child: Text(
-        AppLocalizations.of(context).homeScreenTitle,
-        style: theme.displayLarge.copyWith(letterSpacing: 0.37),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+      ],
     );
   }
 }
@@ -939,8 +997,9 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     // room the viewer hasn't opened this session, which is most of them; the
     // card falls back to `room.lastMessage` for those.
     final all = repo.messagesFor(room.id);
-    final recentMessages =
-        all.length <= previewMaxMessages ? all : all.sublist(all.length - previewMaxMessages);
+    final recentMessages = all.length <= previewMaxMessages
+        ? all
+        : all.sublist(all.length - previewMaxMessages);
     final action = await showChatRowActionMenu(
       context: context,
       anchorKey: _keyFor(room.id),
@@ -1058,8 +1117,9 @@ class _RoomsPanelState extends State<_RoomsPanel> {
       // list below). Not two grids with a spacer: every pinned tile carries
       // its own pin, and a seam in a grid reads as a layout bug.
       final parts = searching ? null : partitionPinned(rooms);
-      final ordered =
-          parts == null ? rooms : [...parts.pinned, ...parts.regular];
+      final ordered = parts == null
+          ? rooms
+          : [...parts.pinned, ...parts.regular];
       return LayoutBuilder(
         builder: (context, box) {
           final gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
@@ -1248,7 +1308,8 @@ class _RoomsPanelState extends State<_RoomsPanel> {
       tween: Tween(begin: 0, end: 1),
       // Staggered for what a screen shows; past that every row lands
       // together, so a long list never takes seconds to settle.
-      duration: theme.motionMed + Duration(milliseconds: index.clamp(0, 9) * 45),
+      duration:
+          theme.motionMed + Duration(milliseconds: index.clamp(0, 9) * 45),
       curve: theme.motionEntrance,
       builder: (context, v, child) => Transform.translate(
         offset: Offset(0, (1 - v) * 16),
@@ -1269,9 +1330,8 @@ class _RoomsPanelState extends State<_RoomsPanel> {
             ? CupertinoIcons.pin_slash_fill
             : CupertinoIcons.pin_fill,
         color: const Color(0xFFFF9500),
-        onTap: () => room.isPinned
-            ? repo.unpinRoom(room.id)
-            : repo.pinRoom(room.id),
+        onTap: () =>
+            room.isPinned ? repo.unpinRoom(room.id) : repo.pinRoom(room.id),
       ),
     ];
   }
@@ -1333,7 +1393,8 @@ class _RoomsPanelState extends State<_RoomsPanel> {
       // room; its avatar then reloads (and briefly shows the wrong face).
       key: ValueKey(room.id),
       tween: Tween(begin: 0, end: 1),
-      duration: theme.motionMed + Duration(milliseconds: index.clamp(0, 9) * 40),
+      duration:
+          theme.motionMed + Duration(milliseconds: index.clamp(0, 9) * 40),
       curve: theme.motionEntrance,
       builder: (context, v, child) => Transform.translate(
         offset: Offset(0, (1 - v) * 12),

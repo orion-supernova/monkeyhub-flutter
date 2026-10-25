@@ -6,6 +6,7 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/text_case.dart';
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
+import '../theme/spring.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'fit_label.dart';
@@ -197,14 +198,11 @@ class _IosSegmentedControlState<T> extends State<IosSegmentedControl<T>> {
               child: Stack(
                 children: [
                   if (index >= 0)
-                    AnimatedPositioned(
-                      duration: motion.d(const Duration(milliseconds: 300)),
-                      curve: Curves.easeOutCubic,
-                      left: lefts[index],
-                      width: widths[index],
-                      top: 0,
-                      bottom: 0,
-                      child: DecoratedBox(
+                    Positioned.fill(
+                      child: _SpringThumb(
+                        left: lefts[index],
+                        width: widths[index],
+                        calm: motion.calm,
                         decoration: BoxDecoration(
                           color: thumb,
                           borderRadius: BorderRadius.circular(999),
@@ -320,6 +318,90 @@ class _IosSegmentedControlState<T> extends State<IosSegmentedControl<T>> {
   }
 }
 
+
+/// The sliding thumb: left edge and width on two retargetable [Spring]s (the
+/// tab-bar lens feel, stiffness 500 / damping 32 ≈ response 0.28, ratio 0.72),
+/// so a tap mid-slide keeps its velocity instead of restarting a curve. Snaps
+/// under calm motion.
+class _SpringThumb extends StatefulWidget {
+  const _SpringThumb({
+    required this.left,
+    required this.width,
+    required this.calm,
+    required this.decoration,
+  });
+
+  final double left;
+  final double width;
+  final bool calm;
+  final Decoration decoration;
+
+  @override
+  State<_SpringThumb> createState() => _SpringThumbState();
+}
+
+class _SpringThumbState extends State<_SpringThumb>
+    with SingleTickerProviderStateMixin {
+  static const _response = 0.28;
+  static const _ratio = 0.72;
+
+  late final Spring _left =
+      Spring(response: _response, ratio: _ratio, value: widget.left);
+  late final Spring _width =
+      Spring(response: _response, ratio: _ratio, value: widget.width);
+  late final Ticker _ticker = createTicker(_onTick);
+  Duration? _last;
+
+  void _onTick(Duration elapsed) {
+    final last = _last;
+    _last = elapsed;
+    final dt = last == null
+        ? 1 / 60
+        : (elapsed - last).inMicroseconds / Duration.microsecondsPerSecond;
+    _left.tick(dt);
+    _width.tick(dt);
+    if (_left.atRest && _width.atRest) {
+      _ticker.stop();
+      _last = null;
+    }
+    setState(() {});
+  }
+
+  @override
+  void didUpdateWidget(_SpringThumb old) {
+    super.didUpdateWidget(old);
+    if (widget.calm) {
+      _left.snap(widget.left);
+      _width.snap(widget.width);
+      return;
+    }
+    _left.retarget(widget.left);
+    _width.retarget(widget.width);
+    if (!_ticker.isActive) _ticker.start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final calm = widget.calm;
+    return Stack(
+      children: [
+        Positioned(
+          left: calm ? widget.left : _left.value,
+          width: calm ? widget.width : _width.value.clamp(0.0, double.infinity),
+          top: 0,
+          bottom: 0,
+          child: DecoratedBox(decoration: widget.decoration),
+        ),
+      ],
+    );
+  }
+}
 
 class _SegmentLabel<T> extends StatelessWidget {
   const _SegmentLabel({

@@ -14,6 +14,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../media/image_raster.dart' show sniffImageContentType;
 import '../media/photo_library_watch.dart';
+import '../theme/density.dart';
 import '../theme/theme_scope.dart';
 import 'app_toast.dart';
 import 'glass_buttons.dart';
@@ -965,7 +966,7 @@ class _GalleryTrayState extends State<GalleryTray>
               onTap: widget.onBrowseAll,
             )
           else
-            const SizedBox(width: 40),
+            SizedBox(width: Density.regular.iconButton),
         ],
       ),
     );

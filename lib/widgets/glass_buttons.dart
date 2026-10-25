@@ -16,7 +16,7 @@ import 'liquid_glass.dart';
 import 'route_depth.dart';
 import 'spring_press.dart';
 
-/// The fill of the app's chrome disc — every 40pt icon button on the app's
+/// The fill of the app's chrome disc — every 44pt icon button on the app's
 /// own pages and sheets (back, ×, compose, more).
 ///
 /// Defined by the THEME, never by what is behind it: the user saw the sheet's
@@ -28,7 +28,7 @@ Color chromeDiscFill(AppTheme theme) => theme.isLight
     ? Color.alphaBlend(theme.ink.withValues(alpha: 0.06), theme.surface)
     : Color.alphaBlend(Colors.white.withValues(alpha: 0.12), theme.surface);
 
-/// THE icon button: a 40pt circle with a glyph — back, close, compose, more,
+/// THE icon button: a 44pt circle with a glyph — back, close, compose, more,
 /// and every control floating over a photo or the camera.
 ///
 /// [tone] picks the material. [GlassTone.app] draws the chrome disc (see
@@ -44,7 +44,7 @@ Color chromeDiscFill(AppTheme theme) => theme.isLight
 ///
 /// On desktop and web the [semanticLabel] doubles as a [HoverHint], with
 /// [shortcut]'s keys after it. An app-tone button with no explicit [size]
-/// follows [Density]: 40pt on a phone, 32pt in the compact desktop layout,
+/// follows [Density]: 44pt on a phone, 32pt in the compact desktop layout,
 /// its glyph scaled with it.
 class GlassIconButton extends StatelessWidget {
   const GlassIconButton({
@@ -54,7 +54,7 @@ class GlassIconButton extends StatelessWidget {
     required this.onTap,
     this.semanticLabel,
     this.size,
-    this.iconSize = 19,
+    this.iconSize = 20,
     this.color,
     this.tone = GlassTone.app,
     this.tint,
@@ -70,12 +70,12 @@ class GlassIconButton extends StatelessWidget {
   final VoidCallback? onTap;
   final String? semanticLabel;
 
-  /// Null follows [Density] (app tone) or 40 (media tone, which floats over
+  /// Null follows [Density] (app tone) or 44 (media tone, which floats over
   /// photos and keeps its size everywhere).
   final double? size;
 
-  /// The glyph as drawn on a 40pt disc; scaled with the disc when [size]
-  /// follows [Density].
+  /// The glyph as drawn on the 44pt phone disc; scaled down with it when [size]
+  /// follows [Density] into the compact layout.
   final double iconSize;
 
   /// The keyboard shortcut that does the same thing, shown in the hover hint.
@@ -176,7 +176,7 @@ class ChromeDisc extends StatelessWidget {
   const ChromeDisc({
     super.key,
     required this.child,
-    this.size = 40,
+    this.size = 44,
     this.still = false,
     this.tint,
     this.onTap,
@@ -199,7 +199,7 @@ class ChromeDisc extends StatelessWidget {
     return SpringPress(
       onTap: onTap,
       haptic: false,
-      scale: 0.94,
+      scale: PressSpec.bloom,
       focusShape: FocusRingShape.circle,
       focusRadius: size / 2,
       builder: (context, pressed) => surface(pressed),
@@ -345,7 +345,7 @@ class GlassBackButton extends StatelessWidget {
   }
 }
 
-/// THE × of the app: a chrome disc with a 17pt glyph, 40pt.
+/// THE × of the app: a chrome disc with a 17pt glyph, 44pt.
 ///
 /// One button everywhere — a full-screen surface wears it top-leading, and a
 /// sheet's bar draws this same widget (`SheetCloseButton` is it with
@@ -396,9 +396,9 @@ class GlassCloseButton extends StatelessWidget {
 /// (Send, Done, Use photo). Pass [tint] (usually the accent) for the primary
 /// action. Labels authored in capitals are read in sentence case.
 ///
-/// 40pt tall by default, the height of every glass icon button, so a pill
+/// 44pt tall by default, the height of every glass icon button, so a pill
 /// and the buttons beside it sit on one line (the editor's 44pt Send stood
-/// proud of its 38/40pt neighbours). Label 17/w600, the button scale. An
+/// proud of its 38/40pt neighbours). Label 17/w500 with 16pt side padding, as Signal's "Edit". An
 /// app-tone pill with no explicit [height] follows [Density] the way the
 /// icon button does, so the pair stays level in the compact layout too.
 class GlassPillButton extends StatelessWidget {
@@ -429,7 +429,7 @@ class GlassPillButton extends StatelessWidget {
   final GlassTone tone;
   final String? semanticLabel;
 
-  /// Null follows [Density] (app tone) or 40 (media tone).
+  /// Null follows [Density] (app tone) or 44 (media tone).
   final double? height;
 
   @override
@@ -465,7 +465,7 @@ class GlassPillButton extends StatelessWidget {
         child: SizedBox(
           height: height,
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: dense.compact ? 16 : 22),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -478,7 +478,7 @@ class GlassPillButton extends StatelessWidget {
                   style: TextStyle(
                     color: ink,
                     fontSize: type,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     letterSpacing: -0.2,
                     // Explicit, not inherited: this chrome can float over a
                     // photo outside any Material, and must never fall back to
@@ -534,7 +534,7 @@ class GlassGroupItem {
 }
 
 /// Related controls sharing one capsule of glass, the iOS 26 way: grouped by
-/// shape, never by rules between the glyphs. A group of one is just the 40pt
+/// shape, never by rules between the glyphs. A group of one is just the 44pt
 /// disc every other button is.
 ///
 /// THE grouped pill — the photo composer's tools, its add buttons, undo/redo,
@@ -571,7 +571,7 @@ class GlassButtonGroup extends StatelessWidget {
       still: still,
       shape: LiquidGlassShape.capsule,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: items.length > 1 ? 2 : 0),
+        padding: EdgeInsets.zero,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [for (final item in items) _slot(item, lit, theme)],
@@ -593,7 +593,7 @@ class GlassButtonGroup extends StatelessWidget {
     }
     final glyph = item.glyph ??
         (item.icon != null
-        ? Icon(item.icon, size: 19, color: ink)
+        ? Icon(item.icon, size: 20, color: ink)
         : Text(
             item.text!,
             style: TextStyle(
@@ -618,19 +618,19 @@ class GlassButtonGroup extends StatelessWidget {
     return SpringPress(
       onTap: item.onTap,
       semanticLabel: item.semanticLabel,
-      scale: PressSpec.scaleSmall,
+      scale: PressSpec.bloom,
       focusShape: FocusRingShape.circle,
-      focusRadius: 20,
+      focusRadius: 22,
       haptic: haptic,
       child: SizedBox(
-        width: items.length > 1 ? 44 : 40,
-        height: 40,
+        width: 44,
+        height: 44,
         child: Center(
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             curve: Curves.easeOut,
-            width: 32,
-            height: 32,
+            width: 38,
+            height: 38,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: item.active ? lit : const Color(0x00000000),

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../theme/density.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/motion.dart';
@@ -87,15 +88,15 @@ class _ThemeOnboardingScreenState extends State<ThemeOnboardingScreen> {
                                     key: const ValueKey('back'),
                                     onTap: () => setState(() => _step = 0),
                                   )
-                                : const SizedBox(
-                                    key: ValueKey('none'),
-                                    width: 40,
+                                : SizedBox(
+                                    key: const ValueKey('none'),
+                                    width: Density.of(context).iconButton,
                                   ),
                           ),
                           const Spacer(),
                           _PageDots(count: 2, index: _step),
                           const Spacer(),
-                          const SizedBox(width: 40),
+                          SizedBox(width: Density.of(context).iconButton),
                         ],
                       ),
                     ),

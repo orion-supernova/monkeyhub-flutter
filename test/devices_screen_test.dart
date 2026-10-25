@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
@@ -8,6 +9,7 @@ import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/user_device.dart';
+import 'package:monkeyhub/screens/device_login_scan_screen.dart';
 import 'package:monkeyhub/screens/devices_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
@@ -177,8 +179,10 @@ void main() {
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.textContaining(l10n.acctThisDevice), findsOneWidget);
-    // Two others, so two Remove controls — never three.
-    expect(find.text(l10n.acctRemove), findsNWidgets(2));
+    // Two others, so two ⋮ controls — never three. Remove itself lives one
+    // tap deeper, in the action sheet.
+    expect(find.byIcon(CupertinoIcons.ellipsis), findsNWidgets(2));
+    expect(find.text(l10n.acctRemove), findsNothing);
   });
 
   testWidgets('says so when a device cannot be reached', (tester) async {
@@ -196,6 +200,11 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    await tester.scrollUntilVisible(
+      find.text(l10n.devicesScreenFootnote),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text(l10n.devicesScreenFootnote), findsOneWidget);
 
     // `clearDeviceToken` revokes the device's session, so all three of these
@@ -233,7 +242,7 @@ void main() {
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.text(l10n.devicesScreenRemoveAll), findsNothing);
-    expect(find.text(l10n.acctRemove), findsNothing);
+    expect(find.byIcon(CupertinoIcons.ellipsis), findsNothing);
   });
 
   testWidgets('removing one device asks first, then drops just that row', (
@@ -244,7 +253,12 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    await tester.tap(find.text(l10n.acctRemove).first);
+    // ⋮ -> action sheet -> Remove -> confirm sheet.
+    await tester.tap(find.byIcon(CupertinoIcons.ellipsis).first);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.acctRemove), findsOneWidget);
+    expect(api.removed, isEmpty);
+    await tester.tap(find.text(l10n.acctRemove));
     await tester.pumpAndSettle();
 
     // The confirm sheet, not a silent deletion.
@@ -267,7 +281,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    await tester.tap(find.text(l10n.acctRemove).first);
+    await tester.tap(find.byIcon(CupertinoIcons.ellipsis).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.acctRemove));
     await tester.pumpAndSettle();
     Navigator.of(tester.element(find.byType(DevicesScreen))).maybePop();
     await tester.pumpAndSettle();
@@ -284,6 +300,12 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    await tester.scrollUntilVisible(
+      find.text(l10n.devicesScreenRemoveAll),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text(l10n.devicesScreenRemoveAll));
     await tester.pumpAndSettle();
     await tester.tap(find.text(l10n.acctRemoveAll).last);
@@ -293,5 +315,44 @@ void main() {
     expect(find.text("Murat's MacBook Air"), findsOneWidget);
     expect(find.text('iPhone 15 Pro'), findsNothing);
     expect(find.text('Browser'), findsNothing);
+  });
+
+  testWidgets('cancelling the action sheet removes nothing', (tester) async {
+    final api = _FakeApi([...fleet]);
+    await tester.pumpWidget(host(api));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(CupertinoIcons.ellipsis).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(api.removed, isEmpty);
+    expect(find.text('iPhone 15 Pro'), findsOneWidget);
+  });
+
+  testWidgets('Link a new device opens the scan flow', (tester) async {
+    await tester.pumpWidget(host(_FakeApi([...fleet])));
+    await tester.pumpAndSettle();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.text(l10n.devicesHeroCaption), findsOneWidget);
+    await tester.tap(find.text(l10n.devicesLinkNew));
+    // The viewfinder animates forever: advance, don't settle.
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    expect(find.byType(DeviceLoginScanScreen), findsOneWidget);
+    expect(find.text(l10n.deviceLinkScanTitle), findsWidgets);
+  });
+
+  testWidgets('shows a placeholder when there are no devices', (tester) async {
+    await tester.pumpWidget(host(_FakeApi([])));
+    await tester.pumpAndSettle();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.text(l10n.devicesEmptyList), findsOneWidget);
+    expect(find.text(l10n.devicesLinkNew), findsOneWidget);
   });
 }

@@ -114,9 +114,7 @@ class _ScheduledListSheetState extends State<_ScheduledListSheet> {
       child: Container(
         decoration: BoxDecoration(
           color: sheetFill(theme),
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(sheetTopRadius(theme)),
-          ),
+          borderRadius: BorderRadius.circular(sheetRadius(theme)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

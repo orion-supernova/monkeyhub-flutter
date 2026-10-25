@@ -79,7 +79,12 @@ class LiquidGlass extends StatelessWidget {
     this.config,
     this.neutral = false,
     this.still = false,
+    this.pressScale = PressSpec.bloom,
   });
+
+  /// Scale while held. Glass controls bloom (grow); a large glass surface
+  /// that is tappable should pass a value at or below 1.
+  final double pressScale;
 
   /// No backdrop blur — [GlassTone.media] only — for glass that fades or
   /// moves. Same shape, rim and light; a solid fill in place of the blur.
@@ -142,7 +147,7 @@ class LiquidGlass extends StatelessWidget {
     return SpringPress(
       onTap: onTap,
       haptic: false,
-      scale: 0.94,
+      scale: pressScale,
       semanticLabel: semanticLabel,
       focusShape: _ringShape,
       focusRadius: radius,

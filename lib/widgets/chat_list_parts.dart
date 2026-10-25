@@ -9,6 +9,7 @@ import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
+import 'count_bump.dart';
 import 'live_call_row.dart';
 import 'room_identity.dart';
 import 'typing_indicator.dart';
@@ -31,8 +32,8 @@ import 'typing_indicator.dart';
 /// The name a room goes by in the list.
 String chatListTitleOf(BuildContext context, ChatRoom room, ChatUser? dmUser) =>
     room.isSavedMessages
-        ? AppLocalizations.of(context).savedMessagesTitle
-        : (dmUser?.displayName ?? room.name);
+    ? AppLocalizations.of(context).savedMessagesTitle
+    : (dmUser?.displayName ?? room.name);
 
 /// Whether the room has something unread that it is allowed to show. The
 /// mute-resolved getters, so a room silenced down to its counts goes quiet
@@ -68,10 +69,14 @@ class ChatListTitle extends StatelessWidget {
     required this.title,
     this.fontSize,
     this.facts = true,
+    this.weight,
   });
 
   final ChatRoom room;
   final String title;
+
+  /// Null keeps the theme's emphasised weight.
+  final FontWeight? weight;
 
   /// Null keeps the theme's emphasised body size.
   final double? fontSize;
@@ -95,6 +100,7 @@ class ChatListTitle extends StatelessWidget {
             style: theme.bodyEmph.copyWith(
               color: theme.ink,
               fontSize: fontSize,
+              fontWeight: weight,
               height: 1.25,
             ),
             maxLines: 1,
@@ -239,29 +245,27 @@ class ChatListTrailing extends StatelessWidget {
       listenable: MatchesStore.instance,
       builder: (context, _) =>
           MatchesStore.instance.myTurnRooms.contains(room.id)
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      CupertinoIcons.gamecontroller_fill,
-                      size: 15,
-                      color: theme.accent,
-                      semanticLabel:
-                          AppLocalizations.of(context).chatGameYourMove,
-                    ),
-                    if (main != null) ...[const SizedBox(width: 6), main],
-                  ],
-                )
-              : main ?? const SizedBox.shrink(),
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  CupertinoIcons.gamecontroller_fill,
+                  size: 15,
+                  color: theme.accent,
+                  semanticLabel: AppLocalizations.of(context).chatGameYourMove,
+                ),
+                if (main != null) ...[const SizedBox(width: 6), main],
+              ],
+            )
+          : main ?? const SizedBox.shrink(),
     );
   }
 
   Widget? _unreadOrPin(AppTheme theme) {
     if (chatListUnread(room)) {
-      return RoomUnreadBadge(
+      return ChatUnreadBadge(
         count: room.visibleUnreadCount,
         unread: room.hasUnread,
-        mention: room.hasVisibleMention,
         quiet: room.isMuted,
       );
     }
@@ -272,5 +276,65 @@ class ChatListTrailing extends StatelessWidget {
       );
     }
     return null;
+  }
+}
+
+/// Signal's unread marker: a solid accent circle (pill past two digits) with
+/// the count in the accent's own ink; a bare dot when only "unread" is known.
+/// Muted rooms go grey rather than silent. Replaces the tinted bordered
+/// [RoomUnreadBadge] in every [ChatListTrailing] slot (rows, cards, tiles).
+class ChatUnreadBadge extends StatelessWidget {
+  const ChatUnreadBadge({
+    super.key,
+    this.count = 0,
+    this.unread = false,
+    this.quiet = false,
+  });
+
+  final int count;
+  final bool unread;
+  final bool quiet;
+
+  @override
+  Widget build(BuildContext context) {
+    if (count <= 0 && !unread) return const SizedBox.shrink();
+    final theme = ThemeScope.of(context);
+    final fill = quiet ? theme.inkMuted.withValues(alpha: 0.45) : theme.accent;
+    final numbered = count > 0;
+    final label = count > 99 ? '99+' : '$count';
+    return Semantics(
+      label: numbered
+          ? label
+          : AppLocalizations.of(context).roomFacetLabelUnread,
+      excludeSemantics: true,
+      child: CountBump(
+        count: count,
+        child: Container(
+          constraints: BoxConstraints(
+            minWidth: numbered ? 22 : 10,
+            minHeight: numbered ? 22 : 10,
+          ),
+          padding: EdgeInsets.symmetric(horizontal: numbered ? 6 : 0),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: numbered
+              ? Text(
+                  label,
+                  maxLines: 1,
+                  style: theme.bodyEmph.copyWith(
+                    fontSize: 13,
+                    height: 1,
+                    fontWeight: FontWeight.w600,
+                    color: quiet ? theme.surface : theme.accentInk,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                )
+              : null,
+        ),
+      ),
+    );
   }
 }

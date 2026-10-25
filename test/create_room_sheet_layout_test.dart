@@ -67,22 +67,25 @@ void main() {
     matching: find.byType(Container),
   );
 
-  testWidgets('runs edge to edge, with nothing beside it', (tester) async {
+  testWidgets('floats the standard 8pt in from each side', (tester) async {
     final size = await open(tester);
     final rect = tester.getRect(card().first);
 
-    expect(rect.left, 0, reason: 'a 12pt gutter is not a sheet');
-    expect(rect.right, size.width);
+    // Intentional (glass pass): compact sheets float 8pt in from the sides.
+    expect(rect.left, 8, reason: 'the floating sheet inset, not a 12pt gutter');
+    expect(rect.right, size.width - 8);
   });
 
-  testWidgets('reaches the bottom of the screen', (tester) async {
+  testWidgets('rests the standard 8pt above the bottom of the screen', (tester) async {
     final size = await open(tester);
     final rect = tester.getRect(card().first);
 
     // Flush. The surface runs under the home indicator and the CONTENT is what
     // clears it, via the card's own bottom padding — which is the opposite of
     // wrapping the card in a SafeArea and leaving scrim below it.
-    expect(rect.bottom, size.height);
+    // Intentional (glass pass): floats 8pt above the edge, content-side
+    // padding still clears the home indicator.
+    expect(rect.bottom, size.height - 8);
   });
 
   testWidgets('OPEN ROOM is reachable on a short screen', (tester) async {

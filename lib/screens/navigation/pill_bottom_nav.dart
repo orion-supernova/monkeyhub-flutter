@@ -83,8 +83,8 @@ const double _kContentGrow = 0.08;
 /// This is the whole difference between a pill that slides and a pill that
 /// flows. It costs nothing — the velocity is already being integrated — and it
 /// is the one part of the motion a still screenshot cannot show.
-const double _kStretchPerVelocity = 0.018;
-const double _kMaxStretch = 0.08;
+const double _kStretchPerVelocity = 0.03;
+const double _kMaxStretch = 0.15;
 
 /// How far past the first/last segment a dragging finger can pull, in segments,
 /// at infinite pull. Rubber-banded, so the resistance builds.
@@ -115,8 +115,10 @@ const double _kFullSquash = 0.22;
 /// finger that visibly lags or wobbles feels broken rather than fluid. Grab is
 /// the loosest of the three — the wobble as the pill inflates and, especially,
 /// as it snaps back on release is the point of it.
-const double _kSettleResponse = 0.42;
-const double _kSettleRatio = 0.78;
+// Settle is the spec's lens spring, stiffness 500 / damping 32: response
+// 2π/√500 ≈ 0.28, ratio 32/(2√500) ≈ 0.72. Stretch tops out at 1.15×.
+const double _kSettleResponse = 0.28;
+const double _kSettleRatio = 0.72;
 const double _kFollowResponse = 0.16;
 const double _kFollowRatio = 0.92;
 const double _kGrabResponse = 0.30;
@@ -1010,10 +1012,10 @@ class _Indicator extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: [
             (light ? Colors.black : Colors.white).withValues(
-              alpha: (light ? 0.055 : 0.16) + 0.06 * grab,
+              alpha: (light ? 0.10 : 0.15) + 0.06 * grab,
             ),
             (light ? Colors.black : Colors.white).withValues(
-              alpha: (light ? 0.085 : 0.09) + 0.06 * grab,
+              alpha: (light ? 0.13 : 0.12) + 0.06 * grab,
             ),
           ],
         ),

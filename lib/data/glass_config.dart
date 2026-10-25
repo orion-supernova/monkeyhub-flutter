@@ -313,7 +313,7 @@ const kIconSize = GlassKnob(
   hint: '',
   min: 14,
   max: 32,
-  standard: 22,
+  standard: 24,
   decimals: 0,
 );
 

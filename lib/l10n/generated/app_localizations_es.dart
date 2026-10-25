@@ -14525,4 +14525,58 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileDeletedAccount => 'Cuenta eliminada';
+
+  @override
+  String get devicesHeroCaption => 'Use MonkeyHub on desktop or web.';
+
+  @override
+  String get devicesLinkNew => 'Link a new device';
+
+  @override
+  String get devicesLinkedHeader => 'Linked devices';
+
+  @override
+  String devicesLinkedOn(String date) {
+    return 'Linked $date';
+  }
+
+  @override
+  String devicesLastActive(String when) {
+    return 'Last active $when';
+  }
+
+  @override
+  String get devicesMoreActions => 'More actions';
+
+  @override
+  String get devicesEmptyList => 'No linked devices';
+
+  @override
+  String get deviceLinkScanTitle => 'Scan QR code';
+
+  @override
+  String get deviceLinkScanInstruction =>
+      'Scan the code shown on the device you want to link.';
+
+  @override
+  String get deviceLinkEnterCodeInstead => 'Enter code instead';
+
+  @override
+  String get deviceLinkScanInstead => 'Scan QR code instead';
+
+  @override
+  String get deviceLinkEnterCodeTitle => 'Enter the code';
+
+  @override
+  String get deviceLinkEnterCodeBody =>
+      'Type the 6-digit code shown on the device you want to link.';
+
+  @override
+  String get deviceLinkFinishTitle => 'Finish linking';
+
+  @override
+  String get deviceLinkLinkedHud => 'Linked';
+
+  @override
+  String get deviceLinkLinkedToast => 'Device linked';
 }

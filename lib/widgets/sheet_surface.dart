@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/theme_scope.dart';
-import 'sheet_kit.dart' show SheetHandle, sheetTopRadius;
+import 'sheet_kit.dart' show SheetHandle, sheetRadius;
 
 /// The panel every group-administration sheet is drawn on.
 ///
@@ -11,6 +11,9 @@ import 'sheet_kit.dart' show SheetHandle, sheetTopRadius;
 /// alongside the block sheet, the mute sheet and the confirm sheet, and a
 /// bottom sheet shaped differently from its neighbours reads as a bug no
 /// matter how nice it looks in isolation.
+///
+/// (Since the glass pass the route floats every compact sheet; the panel is
+/// still top-rounded here and the route's clip rounds the bottom corners.)
 ///
 /// It took two wrong turns to get here, and both are worth not repeating:
 ///
@@ -59,7 +62,7 @@ class SheetSurface extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.surface,
         borderRadius:
-            BorderRadius.vertical(top: Radius.circular(sheetTopRadius(theme))),
+            BorderRadius.vertical(top: Radius.circular(sheetRadius(theme))),
       ),
       // NO bottom inset on the panel itself — it runs to the screen edge.
       //

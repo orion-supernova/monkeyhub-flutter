@@ -9,6 +9,7 @@ import '../keyboard/focusable_tap.dart' show FocusRingShape, FocusableTap;
 import '../keyboard/viewer_keys.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
+import '../theme/density.dart';
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
@@ -853,7 +854,7 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 40),
+                                  SizedBox(width: Density.of(context).iconButton),
                                 ],
                               ),
                             ),

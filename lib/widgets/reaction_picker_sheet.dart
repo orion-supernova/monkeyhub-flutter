@@ -139,9 +139,7 @@ class ReactionPickerSheet extends StatelessWidget {
         // The iOS 26 sheet card every other sheet wears (sheet_kit.dart).
         decoration: BoxDecoration(
           color: sheetFill(theme),
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(sheetTopRadius(theme)),
-          ),
+          borderRadius: BorderRadius.circular(sheetRadius(theme)),
         ),
         padding: const EdgeInsets.only(top: 4),
         child: Column(

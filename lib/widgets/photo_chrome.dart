@@ -6,6 +6,7 @@ import 'package:flutter/material.dart' show CircularProgressIndicator;
 
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../theme/density.dart';
 import '../theme/theme_scope.dart';
 import 'liquid_glass.dart';
 import 'spring_press.dart';
@@ -61,7 +62,7 @@ class PhotoSpinner extends StatelessWidget {
 /// read as one surface start to drift apart.
 /// The circled "1" — arms burn-after-reading for this photo.
 ///
-/// Sized to the 40pt glass buttons beside it so the rail sits on one baseline.
+/// Sized to the glass buttons beside it (Density.iconButton) so the rail sits on one baseline.
 /// Kept hand-drawn rather than swapped for an icon: nothing in any icon set
 /// says "they get one look at this", and the numeral does.
 class PhotoViewOnceToggle extends StatelessWidget {
@@ -98,8 +99,8 @@ class PhotoViewOnceToggle extends StatelessWidget {
           tone: GlassTone.media,
           tint: active ? accent : null,
           child: SizedBox(
-            width: 40,
-            height: 40,
+            width: Density.regular.iconButton,
+            height: Density.regular.iconButton,
             child: Center(
               child: Text(
                 '1',
@@ -159,8 +160,8 @@ class PhotoHdToggle extends StatelessWidget {
           tone: GlassTone.media,
           tint: active ? accent : null,
           child: SizedBox(
-            width: 40,
-            height: 40,
+            width: Density.regular.iconButton,
+            height: Density.regular.iconButton,
             child: Center(
               child: Text(
                 'HD',

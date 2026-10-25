@@ -30,11 +30,11 @@ const double searchDoorHPadding = 14;
 /// glyph at both ends and never resizes mid-air. The clear disc matches it.
 const double searchFieldIconSize = 17;
 
-/// The pill's height: the chrome-button height, so a search bar and the 40pt
-/// discs beside it sit on one line. Fixed, never padding-derived — that is
+/// The pill's height: the chrome-button height (44 on a phone), so a search
+/// bar and the discs beside it sit on one line. Fixed, never padding-derived — that is
 /// how four search bars drifted to 36, 38, 40 and 44pt (a character theme's
 /// 15pt body made a shorter pill than Basic's 17).
-const double searchFieldHeight = 40;
+const double searchFieldHeight = 44;
 
 /// Glyph → text gap inside the pill.
 const double _kGlyphGap = 6;
@@ -43,7 +43,7 @@ const double _kGlyphGap = 6;
 Widget _searchGlass(Widget child) =>
     LiquidGlass(shape: LiquidGlassShape.capsule, child: child);
 
-/// THE search bar of the app: magnifier, field, clear disc, in a 40pt pill —
+/// THE search bar of the app: magnifier, field, clear disc, in a 44pt pill —
 /// and, at the top of a screen, a Cancel that slides in while it is in use.
 ///
 /// Every search in the app is this widget (or its [SearchField.door]); none

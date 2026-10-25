@@ -28,11 +28,14 @@ export 'sheet_drag.dart' show SheetScrollBody, SheetPullPhysics, SheetDragHost;
 // separate from ios_kit.dart (pages and grouped lists) because a sheet has its
 // own geometry — it is a card that rises over a page, not a page.
 
-/// Top corner radius of a sheet. iOS 26 sheets run to ~34pt, concentric with
-/// the display; a theme with a square personality (a small `radiusXl`) keeps
-/// proportionally square corners instead.
-double sheetTopRadius(AppTheme theme) =>
-    (theme.radiusXl * 1.7).clamp(8.0, 34.0);
+/// Corner radius of a sheet. A floating iOS 26 sheet is concentric with the
+/// display (38pt on the round themes); a theme with a square personality (a
+/// small `radiusXl`) keeps proportionally square corners instead.
+double sheetRadius(AppTheme theme) => (theme.radiusXl * 1.9).clamp(8.0, 38.0);
+
+/// Old name of [sheetRadius], kept so panels that still say "top radius" keep
+/// compiling (the route clips all four corners anyway). Prefer [sheetRadius].
+double sheetTopRadius(AppTheme theme) => sheetRadius(theme);
 
 /// Fill of a sheet: the theme's surface, which on every palette sits one step
 /// above the page — the elevation iOS gives a presented card.
@@ -48,14 +51,18 @@ class SheetHandle extends StatelessWidget {
     if (!context.isCompact) return const SizedBox(height: 10);
     final theme = ThemeScope.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 6, bottom: 4),
+      // 8 from the sheet's top edge; 15 in all, so a pinned grabber header
+      // (`_GrabberHeader`) and every bar under it keep their old rhythm.
+      padding: const EdgeInsets.only(top: 8, bottom: 2),
       child: Center(
         child: Container(
           width: 36,
           height: 5,
           decoration: BoxDecoration(
-            color: theme.ink.withValues(alpha: 0.22),
-            borderRadius: BorderRadius.circular(3),
+            // The spec's 0.5 is for a dark sheet; 0.30 reads on both a white
+            // panel and a near-black one without shouting.
+            color: theme.ink.withValues(alpha: 0.30),
+            borderRadius: BorderRadius.circular(2.5),
           ),
         ),
       ),
@@ -180,7 +187,7 @@ class SheetFrame extends StatelessWidget {
           decoration: BoxDecoration(
             color: sheetFill(theme),
             borderRadius: BorderRadius.vertical(
-              top: Radius.circular(sheetTopRadius(theme)),
+              top: Radius.circular(sheetRadius(theme)),
             ),
           ),
           child: Column(
@@ -586,7 +593,7 @@ class _ExpandingSheetState extends State<ExpandingSheet> {
         ? media.viewInsets.bottom
         : media.padding.bottom;
     final foot = widget.footer;
-    final radius = Radius.circular(sheetTopRadius(theme));
+    final radius = Radius.circular(sheetRadius(theme));
     Widget body = CustomScrollView(
       controller: scroll,
       slivers: [
@@ -693,9 +700,10 @@ class IosSheetAction<T> {
   final IconData? icon;
 }
 
-/// The iOS action sheet: a floating rounded group of choices with an optional
-/// title and message above them, and a separate Cancel below. Rises on a
-/// spring; returns the chosen action's value, or null for Cancel / dismissal.
+/// The action sheet, Signal iOS 26 style: the same floating inset card every
+/// sheet is, holding an optional title and message, then STACKED full-width
+/// capsule buttons 10pt apart, Cancel the last of them. Returns the chosen
+/// action's value, or null for Cancel / dismissal.
 Future<T?> showIosActionSheet<T>(
   BuildContext context, {
   String? title,
@@ -729,118 +737,89 @@ class _IosActionSheet<T> extends StatelessWidget {
   final List<IosSheetAction<T>> actions;
   final String? cancelLabel;
 
+  static const double _gap = 10;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final media = MediaQuery.of(context);
-    final radius = (theme.radiusXl * 1.2).clamp(8.0, 26.0);
-    final fill = sheetFill(theme);
-    final hairline = 1 / media.devicePixelRatio;
     final cancel = cancelLabel ??
         AppLocalizations.of(context).destructiveSheetCancelButtonLabel;
 
-    Widget button(String label, VoidCallback onTap,
-        {bool destructive = false, bool bold = false, IconData? icon,
-        bool autofocus = false}) {
-      return _ActionSheetButton(
-        label: label,
-        onTap: onTap,
-        destructive: destructive,
-        bold: bold,
-        icon: icon,
-        autofocus: autofocus,
-      );
-    }
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(10, 0, 10, 10 + media.padding.bottom),
+    return ColoredBox(
+      color: sheetFill(theme),
       child: Material(
         type: MaterialType.transparency,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(radius),
-              child: ColoredBox(
-                color: fill,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (title != null || message != null)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                        child: Column(
-                          children: [
-                            if (title != null)
-                              Text(
-                                sentenceCaseOf(context, title!),
-                                textAlign: TextAlign.center,
-                                // The body face, never the caption slot: on
-                                // a character theme that is tracked mono, and
-                                // the question read as terminal output.
-                                style: groupedMetaStyle(theme).copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.3,
-                                ),
-                              ),
-                            if (title != null && message != null)
-                              const SizedBox(height: 4),
-                            if (message != null)
-                              Text(
-                                message!,
-                                textAlign: TextAlign.center,
-                                style: groupedMetaStyle(theme).copyWith(
-                                  height: 1.35,
-                                ),
-                              ),
-                          ],
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SheetHandle(),
+              if (title != null || message != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 14, 8, 18),
+                  child: Column(
+                    children: [
+                      if (title != null)
+                        Text(
+                          sentenceCaseOf(context, title!),
+                          textAlign: TextAlign.center,
+                          // The body face, never the caption slot: on a
+                          // character theme that is tracked mono, and the
+                          // question read as terminal output.
+                          style: groupedMetaStyle(theme).copyWith(
+                            fontWeight: FontWeight.w600,
+                            height: 1.3,
+                          ),
                         ),
-                      ),
-                    for (var i = 0; i < actions.length; i++) ...[
-                      if (i > 0 || title != null || message != null)
-                        Container(
-                          height: hairline,
-                          color: theme.ink.withValues(alpha: 0.12),
+                      if (title != null && message != null)
+                        const SizedBox(height: 4),
+                      if (message != null)
+                        Text(
+                          message!,
+                          textAlign: TextAlign.center,
+                          style: groupedMetaStyle(theme).copyWith(height: 1.35),
                         ),
-                      button(
-                        actions[i].label,
-                        () {
-                          if (actions[i].destructive) {
-                            HapticFeedback.heavyImpact();
-                          }
-                          Navigator.of(context).pop(actions[i].value);
-                        },
-                        destructive: actions[i].destructive,
-                        icon: actions[i].icon,
-                      ),
                     ],
-                  ],
+                  ),
+                )
+              else
+                const SizedBox(height: 10),
+              for (final a in actions) ...[
+                _ActionSheetButton(
+                  label: a.label,
+                  destructive: a.destructive,
+                  bold: false,
+                  icon: a.icon,
+                  autofocus: false,
+                  onTap: () {
+                    if (a.destructive) HapticFeedback.heavyImpact();
+                    Navigator.of(context).pop(a.value);
+                  },
                 ),
+                const SizedBox(height: _gap),
+              ],
+              // Autofocused so Enter on a freshly opened destructive sheet
+              // cancels rather than destroys: the desktop convention.
+              _ActionSheetButton(
+                label: cancel,
+                destructive: false,
+                bold: true,
+                icon: null,
+                autofocus: true,
+                onTap: () => Navigator.of(context).pop(),
               ),
-            ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(radius),
-              child: ColoredBox(
-                color: fill,
-                // Autofocused so Enter on a freshly opened destructive sheet
-                // cancels rather than destroys — the desktop convention.
-                child: button(
-                  cancel,
-                  () => Navigator.of(context).pop(),
-                  bold: true,
-                  autofocus: true,
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
+/// One capsule of the action sheet: 50pt, full width, ink at 10% (18% while
+/// pressed), the label in ink or, destructive, the theme's danger.
 class _ActionSheetButton extends StatefulWidget {
   const _ActionSheetButton({
     required this.label,
@@ -873,13 +852,13 @@ class _ActionSheetButtonState extends State<_ActionSheetButton>
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final color = widget.destructive ? theme.danger : theme.accent;
+    final color = widget.destructive ? theme.danger : theme.ink;
     return FocusableTap(
       onTap: widget.onTap,
       autofocus: widget.autofocus,
       semanticLabel: widget.label,
       hover: HoverEffect.tint,
-      hoverRadius: 0,
+      hoverRadius: 25,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => _set(true),
@@ -888,9 +867,12 @@ class _ActionSheetButtonState extends State<_ActionSheetButton>
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: _down ? Duration.zero : const Duration(milliseconds: 240),
-          color: _down ? theme.ink.withValues(alpha: 0.08) : Colors.transparent,
-          constraints: const BoxConstraints(minHeight: 57),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: theme.ink.withValues(alpha: _down ? 0.18 : 0.10),
+            borderRadius: BorderRadius.circular(25),
+          ),
+          constraints: const BoxConstraints(minHeight: 50),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           alignment: Alignment.center,
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -904,11 +886,13 @@ class _ActionSheetButtonState extends State<_ActionSheetButton>
                   sentenceCaseOf(context, widget.label),
                   textAlign: TextAlign.center,
                   style: theme.body.copyWith(
-                    fontSize: 19,
+                    fontSize: 17,
                     fontWeight:
-                        widget.bold ? FontWeight.w600 : FontWeight.w400,
+                        widget.bold || widget.destructive
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                     color: color,
-                    letterSpacing: -0.3,
+                    letterSpacing: -0.2,
                   ),
                 ),
               ),
@@ -1084,28 +1068,56 @@ Future<T?> showIosAlert<T>(
     barrierDismissible: dismissible,
     barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
     barrierColor: Colors.black.withValues(alpha: 0.38),
-    transitionDuration: Duration(milliseconds: calm ? 150 : 260),
+    // In: ~300ms on a spring-ish settle. Out: the first 180ms of the same
+    // 300 (the reverse curves below are `Interval(0.4, 1)`), quicker, no wobble.
+    transitionDuration: Duration(milliseconds: calm ? 0 : 300),
     pageBuilder: (ctx, _, _) => _IosAlert<T>(
       title: title,
       message: message,
       actions: actions,
       field: field,
     ),
-    // The iOS alert's arrival: a fade with a slight settle from 108%. A
-    // solid card — nothing here blurs, so scaling it costs nothing.
+    // Arrives from 112% (a spring's soft settle, clamped for the fade) and
+    // leaves to 92%. A solid card: nothing here blurs, so scaling is free.
     transitionBuilder: (ctx, anim, _, child) {
-      final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+      if (calm) return child;
+      final curved = CurvedAnimation(
+        parent: anim,
+        curve: const _AlertSettle(),
+        reverseCurve: const Interval(0.4, 1, curve: Curves.easeInCubic),
+      );
+      final fade = CurvedAnimation(
+        parent: anim,
+        curve: Curves.easeOut,
+        reverseCurve: const Interval(0.4, 1, curve: Curves.easeIn),
+      );
       return FadeTransition(
-        opacity: curved,
-        child: calm
-            ? child
-            : ScaleTransition(
-                scale: Tween<double>(begin: 1.08, end: 1).animate(curved),
-                child: child,
-              ),
+        opacity: fade,
+        child: AnimatedBuilder(
+          animation: anim,
+          builder: (_, c) {
+            final t = curved.value;
+            final scale = anim.status == AnimationStatus.reverse
+                ? 0.92 + 0.08 * t
+                : 1.12 - 0.12 * t;
+            return Transform.scale(scale: scale, child: c);
+          },
+          child: child,
+        ),
       );
     },
   );
+}
+
+/// A spring-ish ease-out with a hair of overshoot, for the alert's scale.
+class _AlertSettle extends Curve {
+  const _AlertSettle();
+  @override
+  double transformInternal(double t) {
+    const s = 0.9;
+    final u = t - 1;
+    return u * u * ((s + 1) * u + s) + 1;
+  }
 }
 
 class _IosAlert<T> extends StatelessWidget {

@@ -20,7 +20,7 @@ import 'spring_press.dart';
 // button is not a message.
 
 /// Minimum height of a [SheetActionButton].
-const double kActionButtonHeight = 52;
+const double kActionButtonHeight = 50;
 
 /// Horizontal padding inside a [SheetActionButton]. Public so a caller that
 /// measures labels before choosing a layout (`GameResultActions`) measures
@@ -41,7 +41,7 @@ TextStyle actionButtonLabelStyle(AppTheme theme) => theme.bodyEmph.copyWith(
       height: 1.2,
     );
 
-/// THE full-width action: an accent capsule, 52pt, sentence case — the
+/// THE full-width action: an accent capsule, 50pt, sentence case — the
 /// primary button of every sheet, form, first-run screen and empty state.
 ///
 /// * [tonal] — the secondary: a soft ink fill, ink label.
@@ -96,7 +96,7 @@ class SheetActionButton extends StatelessWidget {
   /// haptic (the one big commit on a first-run screen).
   final bool haptic;
 
-  /// 52 everywhere except inside an alert, which runs a shade tighter.
+  /// 50 everywhere except inside an alert, which runs a shade tighter.
   final double minHeight;
   final String? semanticLabel;
 
@@ -112,7 +112,7 @@ class SheetActionButton extends StatelessWidget {
       fill = theme.ink.withValues(alpha: 0.08);
       ink = theme.inkMuted;
     } else if (tonal) {
-      fill = (destructive ? theme.danger : theme.ink).withValues(alpha: 0.10);
+      fill = (destructive ? theme.danger : theme.ink).withValues(alpha: 0.12);
       ink = destructive ? theme.danger : theme.ink;
     } else {
       fill = destructive ? theme.danger : theme.accent;

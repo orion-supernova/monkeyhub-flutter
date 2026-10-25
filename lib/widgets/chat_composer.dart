@@ -53,12 +53,12 @@ class _SendButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // 40 in the liquid composer, like every chrome button; its slot stays
-    // 44 so the disc centres on the 44pt field beside it. Everything else —
+    // 44 in the liquid composer, like every phone chrome button
+    // (Density.iconButton), filling the 44pt slot beside the 44pt field. Everything else —
     // the disc, the hold, the ring — is the shared [SendButton], the same one
     // the photo composer sends with.
     return SendButton(
-      size: classic ? 38 : 40,
+      size: classic ? 38 : 44,
       onSend: onSend,
       onSchedule: onSchedule,
       semanticLabel: scheduledCount > 0
@@ -738,8 +738,8 @@ class ChatComposerLiquid extends StatelessWidget {
         children: [
           if (onAttach != null) ...[
             // The Messages "+": a glyph in the label colour on glass. The
-            // accent is kept for the one control that sends. THE 40pt chrome
-            // button, centred in a 44pt slot so it sits level with the field.
+            // accent is kept for the one control that sends. THE 44pt chrome
+            // button, in a 44pt slot so it sits level with the field.
             SizedBox.square(
               dimension: 44,
               child: Center(
@@ -748,9 +748,9 @@ class ChatComposerLiquid extends StatelessWidget {
                   child: GlassIconButton(
                     key: attachKey,
                     icon: CupertinoIcons.plus,
-                    // Matched to the 40pt send button it trades places with,
+                    // Matched to the 44pt send button it trades places with,
                     // not the compact desktop default.
-                    size: 40,
+                    size: 44,
                     iconSize: 20,
                     onTap: onAttach,
                     semanticLabel: AppLocalizations.of(context)
@@ -887,9 +887,9 @@ class ChatComposerLiquid extends StatelessWidget {
                               child: Center(
                                 child: GlassIconButton(
                                   icon: CupertinoIcons.camera,
-                                  // Matched to the 40pt send button it trades
+                                  // Matched to the 44pt send button it trades
                                   // places with, not the compact desktop default.
-                                  size: 40,
+                                  size: 44,
                                   iconSize: 20,
                                   onTap: onCamera,
                                   semanticLabel: AppLocalizations.of(context)

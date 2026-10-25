@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart' show SpringDescription, SpringSimulation;
 
 import '../theme/motion.dart';
 
@@ -27,18 +28,42 @@ import '../theme/motion.dart';
 // `BouncingScrollPhysics` does, and never asks its parent, so a sheet's
 // scroller must not name it.
 
-/// The host of a sheet's pull: translates the sheet by the drag, decides on
-/// release whether to close it or spring it home. `showAdaptiveSheet` wraps
-/// every compact sheet in one; nothing else should.
+/// The host of a sheet's motion: owns the spring that presents it, follows
+/// the finger 1:1 while it is dragged, and decides on release whether to close
+/// it (with the fling's own velocity) or spring it home.
+/// `showAdaptiveSheet` wraps every compact sheet in one; nothing else should.
+///
+/// ONE physics for every way of pulling: a drag on the grabber, the bar or any
+/// still part of the panel (a [GestureDetector] here — a scroll view deeper in
+/// the tree wins the arena over it) and the pull a scrolled-to-top body hands
+/// over through [SheetPullPhysics] both move the same value. Pulled UP past
+/// rest, the sheet rubber-bands at x0.25. Released past 40% of its height or
+/// faster than 700 px/s, it springs off the screen carrying the finger's
+/// speed; otherwise it springs back, carrying that speed too.
+///
+/// [animateIn] makes the host present its child from below the screen with a
+/// spring on first build, and exit with one whenever the route starts to pop
+/// (by any path: the barrier, a button, Android back). [offscreenExtra] is how
+/// far past its own height the sheet must travel to be out of sight (the gap
+/// the floating sheet leaves under itself).
 ///
 /// [enabled] false (a sheet presented with `enableDrag: false` or
 /// `isDismissible: false`) makes the body an ordinary scroll view. A sheet
-/// under a `PopScope(canPop: false)` ignores the pull too.
+/// under a `PopScope(canPop: false)` ignores the pull too. Calm motion
+/// presents and exits instantly; dragging still follows the finger.
 class SheetDragHost extends StatefulWidget {
-  const SheetDragHost({super.key, required this.child, this.enabled = true});
+  const SheetDragHost({
+    super.key,
+    required this.child,
+    this.enabled = true,
+    this.animateIn = false,
+    this.offscreenExtra = 0,
+  });
 
   final Widget child;
   final bool enabled;
+  final bool animateIn;
+  final double offscreenExtra;
 
   /// How far the nearest host has pulled its sheet down, in logical pixels —
   /// for tests and for a body that wants to react to the pull. Null outside
@@ -51,50 +76,143 @@ class SheetDragHost extends StatefulWidget {
 }
 
 /// Past this share of the sheet's height, a release closes it.
-const double _kDismissFraction = 0.25;
+const double _kDismissFraction = 0.4;
 
 /// A downward release faster than this (logical px/s) closes it whatever the
 /// distance — the flick.
 const double _kDismissVelocity = 700;
 
+/// Pulled above its resting place, the sheet follows the finger at this share.
+const double _kRubberBand = 0.25;
+
+/// iOS `.smooth`: k300 c30, response 0.363 / damping ratio 0.866.
+const SpringDescription _kPresentSpring =
+    SpringDescription(mass: 1, stiffness: 300, damping: 30);
+
+/// Critically damped and quick: an exit must not wobble.
+const SpringDescription _kExitSpring =
+    SpringDescription(mass: 1, stiffness: 600, damping: 48.99);
+
 class _SheetDragHostState extends State<SheetDragHost>
     with SingleTickerProviderStateMixin {
+  /// The pull in logical pixels (display value, rubber-band applied).
   final ValueNotifier<double> offset = ValueNotifier<double>(0);
-  late final AnimationController _settle = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 220),
-  )..addListener(_onSettleTick);
+
+  /// The sheet's translation as a share of its own height: 0 at rest, 1 when
+  /// its top edge is where its bottom edge was. Unbounded: a spring overshoots.
+  late final AnimationController _ctl =
+      AnimationController.unbounded(vsync: this)..addListener(_onTick);
 
   /// One instance for the host's life: a fresh one per build would read as
   /// a configuration change to every scroll view under it.
   late final ScrollPhysics _physics = SheetPullPhysics._(this);
 
-  double _settleFrom = 0;
+  /// The finger's own travel in px, before the rubber band.
+  double _raw = 0;
   bool _dragging = false;
+  bool _exiting = false;
   bool _popping = false;
+  ModalRoute<dynamic>? _route;
 
   bool get dragging => _dragging;
 
+  double get _height {
+    final box = context.findRenderObject();
+    return box is RenderBox && box.hasSize ? box.size.height : 0;
+  }
+
+  double get _offscreen {
+    final h = _height;
+    return h <= 0 ? 2 : 1 + widget.offscreenExtra / h;
+  }
+
   bool get _canPull {
-    if (!widget.enabled || _popping) return false;
+    if (!widget.enabled || _popping || _exiting) return false;
     final route = ModalRoute.of(context);
     return route == null ||
         route.popDisposition != RoutePopDisposition.doNotPop;
   }
 
+  bool get _calm => MotionScope.of(context).calm;
+
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != _route) {
+      _route?.animation?.removeStatusListener(_onRouteStatus);
+      _route = route;
+      if (widget.animateIn) route?.animation?.addStatusListener(_onRouteStatus);
+    }
+    if (!_started) {
+      _started = true;
+      if (widget.animateIn && !_calm) {
+        // Off screen for the first frame (the real distance needs a layout),
+        // then sprung in from just past the screen edge.
+        _ctl.value = 2;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _exiting || _dragging) return;
+          _ctl.value = _offscreen;
+          _springTo(0, _kPresentSpring, 0);
+        });
+      }
+    }
+  }
+
+  void _onRouteStatus(AnimationStatus status) {
+    if (status == AnimationStatus.reverse && !_exiting) {
+      _exit(_ctl.isAnimating ? _ctl.velocity : 0);
+    }
+  }
+
+  void _onTick() {
+    offset.value = _ctl.value * _height;
+  }
+
+  void _springTo(double target, SpringDescription spring, double velocity) {
+    _ctl
+        .animateWith(SpringSimulation(spring, _ctl.value, target, velocity))
+        // A spring only comes within tolerance of its target; land exactly,
+        // so "at rest" is 0.0 and not 0.014px of ringing.
+        .then((_) {
+      if (mounted) _ctl.value = target;
+    });
+  }
+
+  void _beginDrag() {
+    if (_dragging) return;
+    _ctl.stop();
+    _dragging = true;
+    _raw = _ctl.value * _height;
+  }
+
+  void _apply() {
+    final h = _height;
+    if (h <= 0) return;
+    final shown = _raw < 0 ? _raw * _kRubberBand : _raw;
+    _ctl.value = shown / h;
+  }
+
   /// The finger moved [dy] further down past the body's top.
   void pull(double dy) {
     if (!_canPull) return;
-    _settle.stop();
-    _dragging = true;
-    offset.value = math.max(0, offset.value + dy);
+    _beginDrag();
+    _raw = math.max(0, _raw + dy);
+    _apply();
   }
 
   /// The finger moved [dy] back up while the sheet is pulled; returns how
   /// much of it the sheet took (the rest scrolls the body).
   double giveBack(double dy) {
-    final take = math.min(dy, offset.value);
-    if (take > 0) offset.value -= take;
+    if (offset.value <= 0) return 0;
+    _beginDrag();
+    final take = math.min(dy, math.max(0.0, _raw));
+    if (take > 0) {
+      _raw -= take;
+      _apply();
+    }
     return take;
   }
 
@@ -102,46 +220,69 @@ class _SheetDragHostState extends State<SheetDragHost>
   void release(double velocity) {
     if (!_dragging) return;
     _dragging = false;
-    final pulled = offset.value;
-    if (pulled <= 0) return;
-    final height = context.size?.height ?? 0;
-    final far = height > 0 && pulled > height * _kDismissFraction;
+    final h = _height;
+    final pulled = _ctl.value * h;
+    if (pulled <= 0) {
+      if (_ctl.value < 0) _springBack(velocity * _kRubberBand);
+      return;
+    }
+    final far = h > 0 && pulled > h * _kDismissFraction;
     if (far || velocity > _kDismissVelocity) {
-      _dismiss();
+      _dismiss(velocity);
     } else {
-      _springBack();
+      _springBack(velocity);
     }
   }
 
-  Future<void> _dismiss() async {
+  Future<void> _dismiss(double velocity) async {
     _popping = true;
-    // The route's own exit slides the sheet the rest of the way down from
-    // where the finger left it; the translation simply rides along.
+    _exit(velocity / math.max(1, _height));
     final popped = await Navigator.of(context).maybePop();
     if (!mounted) return;
     if (!popped) {
       _popping = false;
-      _springBack();
+      _exiting = false;
+      _springBack(0);
     }
   }
 
-  void _springBack() {
-    if (MotionScope.of(context).calm) {
-      offset.value = 0;
+  /// Off the screen, carrying [velocity] (in sheet-heights per second).
+  void _exit(double velocity) {
+    _exiting = true;
+    if (_calm) {
+      _ctl.value = _offscreen;
       return;
     }
-    _settleFrom = offset.value;
-    _settle.forward(from: 0);
+    _springTo(_offscreen, _kExitSpring, velocity);
   }
 
-  void _onSettleTick() {
-    offset.value =
-        _settleFrom * (1 - Curves.easeOutCubic.transform(_settle.value));
+  void _springBack(double velocity) {
+    if (_calm) {
+      _ctl.value = 0;
+      return;
+    }
+    _springTo(0, _kPresentSpring, velocity / math.max(1, _height));
   }
+
+  void _onDragStart(DragStartDetails d) {
+    if (!_canPull) return;
+    _beginDrag();
+  }
+
+  void _onDragUpdate(DragUpdateDetails d) {
+    if (!_dragging) return;
+    _raw += d.delta.dy;
+    _apply();
+  }
+
+  void _onDragEnd(DragEndDetails d) => release(d.primaryVelocity ?? 0);
+
+  void _onDragCancel() => release(0);
 
   @override
   void dispose() {
-    _settle.dispose();
+    _route?.animation?.removeStatusListener(_onRouteStatus);
+    _ctl.dispose();
     offset.dispose();
     super.dispose();
   }
@@ -151,8 +292,7 @@ class _SheetDragHostState extends State<SheetDragHost>
     Widget body = widget.child;
     if (widget.enabled) {
       body = ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context)
-            .copyWith(physics: _physics),
+        behavior: ScrollConfiguration.of(context).copyWith(physics: _physics),
         // The drag can end without the pull physics' ballistic hand-off: a
         // scroll view whose own physics override the ballistic (clamping
         // does), a disposed scrollable, a cancelled pointer. The end of the
@@ -163,18 +303,42 @@ class _SheetDragHostState extends State<SheetDragHost>
             if (_dragging) release(n.dragDetails?.primaryVelocity ?? 0);
             return false;
           },
-          child: body,
+          // An `ExpandingSheet` dragged down to nothing closes the route.
+          child: NotificationListener<DraggableScrollableNotification>(
+            onNotification: (n) {
+              if (n.extent <= n.minExtent &&
+                  n.shouldCloseOnMinExtent &&
+                  !_exiting &&
+                  _canPull) {
+                Navigator.of(context).maybePop();
+              }
+              return false;
+            },
+            child: GestureDetector(
+              // A pure touch gesture. Left in the semantics tree, the drag
+              // handler becomes a semantic boundary that swallows its
+              // children's nodes: the bar's Back/Close buttons lose their
+              // labels (merged into one scrollable "button"). Screen-reader
+              // users dismiss through the barrier's Dismiss action instead.
+              excludeFromSemantics: true,
+              onVerticalDragStart: _onDragStart,
+              onVerticalDragUpdate: _onDragUpdate,
+              onVerticalDragEnd: _onDragEnd,
+              onVerticalDragCancel: _onDragCancel,
+              child: body,
+            ),
+          ),
         ),
       );
     }
     return _SheetDragScope(
       host: this,
-      // Always the Transform, even at rest: swapping it in and out would
+      // Always the translation, even at rest: swapping it in and out would
       // change the tree's shape and remount the whole sheet mid-gesture.
-      child: ValueListenableBuilder<double>(
-        valueListenable: offset,
-        builder: (context, dy, child) => Transform.translate(
-          offset: Offset(0, dy),
+      child: AnimatedBuilder(
+        animation: _ctl,
+        builder: (context, child) => FractionalTranslation(
+          translation: Offset(0, _ctl.value),
           child: child,
         ),
         child: body,
@@ -202,7 +366,7 @@ class _SheetDragScope extends InheritedWidget {
 
 /// THE scrolling body of a sheet: a [SingleChildScrollView] whose drag, once
 /// the content is at its top, pulls the whole sheet down — and closes it past
-/// a quarter of its height or on a flick. Scrolled down, a downward drag
+/// 40% of its height or on a flick. Scrolled down, a downward drag
 /// scrolls the content back first, exactly like iOS. (Any vertical scroll
 /// view in a compact sheet does this, through the host; this one is the
 /// ready-made body.)

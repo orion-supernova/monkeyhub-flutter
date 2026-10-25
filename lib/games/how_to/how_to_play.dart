@@ -242,14 +242,12 @@ class _HowToPlaySheetState extends State<_HowToPlaySheet> {
 
     return CallbackShortcuts(
       bindings: {
-        const SingleActivator(LogicalKeyboardKey.arrowRight): () =>
-            _go(_page + (Directionality.of(context) == TextDirection.rtl
-                ? -1
-                : 1)),
-        const SingleActivator(LogicalKeyboardKey.arrowLeft): () =>
-            _go(_page + (Directionality.of(context) == TextDirection.rtl
-                ? 1
-                : -1)),
+        const SingleActivator(LogicalKeyboardKey.arrowRight): () => _go(
+          _page + (Directionality.of(context) == TextDirection.rtl ? -1 : 1),
+        ),
+        const SingleActivator(LogicalKeyboardKey.arrowLeft): () => _go(
+          _page + (Directionality.of(context) == TextDirection.rtl ? 1 : -1),
+        ),
       },
       child: SheetFrame(
         title: sentenceCaseOf(context, guide.title),
@@ -484,23 +482,30 @@ class _Dots extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
     if (count < 2) return const SizedBox.shrink();
-    return Row(
-      children: [
-        for (var i = 0; i < count; i++)
-          AnimatedContainer(
-            duration: motion.d(const Duration(milliseconds: 300)),
-            curve: Curves.easeOutBack,
-            margin: const EdgeInsetsDirectional.only(end: 6),
-            width: i == page ? 22 : 7,
-            height: 7,
-            decoration: BoxDecoration(
-              color: i == page
-                  ? theme.accent
-                  : theme.ink.withValues(alpha: i < page ? 0.32 : 0.14),
-              borderRadius: BorderRadius.circular(4),
+    // A long guide (checkers runs eleven steps) has more dots than the room
+    // the Next pill leaves; shrink the row rather than overflow.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: AlignmentDirectional.centerStart,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < count; i++)
+            AnimatedContainer(
+              duration: motion.d(const Duration(milliseconds: 300)),
+              curve: Curves.easeOutBack,
+              margin: const EdgeInsetsDirectional.only(end: 6),
+              width: i == page ? 22 : 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: i == page
+                    ? theme.accent
+                    : theme.ink.withValues(alpha: i < page ? 0.32 : 0.14),
+                borderRadius: BorderRadius.circular(4),
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -535,10 +540,9 @@ class _NextPill extends StatelessWidget {
           children: [
             Text(
               label,
-              style: groupedMetaStyle(theme).copyWith(
-                color: theme.accent,
-                fontWeight: FontWeight.w700,
-              ),
+              style: groupedMetaStyle(
+                theme,
+              ).copyWith(color: theme.accent, fontWeight: FontWeight.w700),
             ),
             const SizedBox(width: 4),
             Icon(icon, size: 13, color: theme.accent),

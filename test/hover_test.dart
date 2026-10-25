@@ -103,8 +103,17 @@ void main() {
 
   testWidgets('a mouse press dips a quarter as deep as a finger',
       (tester) async {
-    double target() =>
-        tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale;
+    // SpringPress now drives its own spring: read where the press has got to
+    // after the 90ms dip has played out (the first frame only starts its clock).
+    Future<double> target() async {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+      return tester
+          .widget<Transform>(find.ancestor(
+              of: find.byKey(const Key('t')), matching: find.byType(Transform)))
+          .transform
+          .storage[0];
+    }
     await tester.pumpWidget(host(SpringPress(
       onTap: () {},
       haptic: false,
@@ -114,15 +123,13 @@ void main() {
     final center = tester.getCenter(find.byKey(const Key('t')));
 
     final finger = await tester.startGesture(center);
-    await tester.pump();
-    expect(target(), PressSpec.scaleSmall);
+    expect(await target(), closeTo(PressSpec.scaleSmall, 1e-3));
     await finger.up();
     await tester.pumpAndSettle();
 
     final mouse =
         await tester.startGesture(center, kind: PointerDeviceKind.mouse);
-    await tester.pump();
-    expect(target(), closeTo(0.98, 1e-9));
+    expect(await target(), closeTo(0.98, 1e-3));
     await mouse.up();
     await tester.pumpAndSettle();
   });
@@ -189,7 +196,7 @@ void main() {
           isFalse);
       expect(tester.getSize(find.byType(GroupedRow)).height,
           kGroupedRowMinHeight);
-      expect(tester.getSize(find.byType(ChromeDisc)), const Size(40, 40));
+      expect(tester.getSize(find.byType(ChromeDisc)), const Size(44, 44));
     });
 
     testDesktop('desktop is compact by default', (tester) async {

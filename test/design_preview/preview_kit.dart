@@ -122,6 +122,30 @@ Future<void> loadPreviewFonts() async {
     ]) {
       await _load(family, [Future.value(sf)]);
     }
+  } else {
+    // No SF Pro (Linux): Inter, the nearest thing, under the same names, with
+    // its weights, so text renders as text and not as Ahem boxes.
+    const inter = {
+      400: 'assets/google_fonts/Inter-Regular.ttf',
+      500: 'assets/google_fonts/Inter-Medium.ttf',
+      600: 'assets/google_fonts/Inter-SemiBold.ttf',
+      700: 'assets/google_fonts/Inter-Bold.ttf',
+    };
+    for (final family in const [
+      'CupertinoSystemText',
+      'CupertinoSystemDisplay',
+      '.SF UI Text',
+      '.SF UI Display',
+      'Roboto',
+    ]) {
+      final loader = FontLoader(family);
+      for (final e in inter.entries) {
+        if (File(e.value).existsSync()) {
+          loader.addFont(Future.value(_fileBytes(e.value)));
+        }
+      }
+      await loader.load();
+    }
   }
   const sfMono = '/System/Library/Fonts/SFNSMono.ttf';
   if (File(sfMono).existsSync()) {

@@ -12,6 +12,10 @@ import '../widgets/account_kit.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/destructive_sheet.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/linked_devices_illustration.dart';
+import '../widgets/prominent_button.dart';
+import '../widgets/sheet_kit.dart' show IosSheetAction, showIosActionSheet;
+import 'device_login_scan_screen.dart';
 
 /// Every device this account has signed in on.
 ///
@@ -118,6 +122,37 @@ class _DevicesScreenState extends State<DevicesScreen> {
     }
   }
 
+  /// Starts the approve-a-login flow: the scanner, then the "Finish linking"
+  /// sheet. Refreshes on return, because an approved login shows up as a new
+  /// device here a moment later.
+  Future<void> _linkNew() async {
+    final auth = widget.auth;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => DeviceLoginScanScreen(auth: auth)),
+    );
+    if (mounted) _refresh();
+  }
+
+  /// The row's ⋮ menu. One action today; it is a sheet rather than a bare
+  /// confirm so the destructive step is never one stray tap from the list.
+  Future<void> _openMenu(UserDevice device) async {
+    final l10n = AppLocalizations.of(context);
+    final picked = await showIosActionSheet<String>(
+      context,
+      title: _label(context, device),
+      actions: [
+        IosSheetAction(
+          label: l10n.acctRemove,
+          value: 'remove',
+          destructive: true,
+          icon: CupertinoIcons.trash,
+        ),
+      ],
+      cancelLabel: MaterialLocalizations.of(context).cancelButtonLabel,
+    );
+    if (picked == 'remove' && mounted) await _remove(device);
+  }
+
   Future<void> _removeOthers() async {
     final userId = widget.auth.session?.userId;
     if (userId == null || _busyDeviceId != null || _busyAll) return;
@@ -178,6 +213,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
       title: l10n.acctRowDevices,
       subtitle: l10n.devicesScreenSubtitle,
       slivers: readableSlivers(context, [
+        _HeroCard(onLink: _linkNew),
         if (_error != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
@@ -196,21 +232,29 @@ class _DevicesScreenState extends State<DevicesScreen> {
           )
         else
           GroupedSection(
-            footer: others > 0 ? null : l10n.devicesScreenFootnote,
+            header: l10n.devicesLinkedHeader,
+            margin: EdgeInsets.only(bottom: others > 0 ? 28 : 16),
             children: [
+              if (devices.isEmpty)
+                GroupedRow(
+                  title: l10n.devicesEmptyList,
+                  chevron: false,
+                  tone: TileTone.gray,
+                ),
               for (final device in devices)
                 _DeviceRow(
                   label: _label(context, device),
                   device: device,
                   busy: _busyDeviceId == device.deviceId,
                   enabled: _busyDeviceId == null && !_busyAll,
-                  onRemove: () => _remove(device),
+                  onMenu: () => _openMenu(device),
                 ),
             ],
           ),
+        if (others == 0 && devices != null) _LockFooter(text: l10n.devicesScreenFootnote),
         if (others > 0)
           GroupedSection(
-            footer: l10n.devicesScreenFootnote,
+            margin: const EdgeInsets.only(bottom: 12),
             children: [
               GroupedRow(
                 title: l10n.devicesScreenRemoveAll,
@@ -231,7 +275,72 @@ class _DevicesScreenState extends State<DevicesScreen> {
               ),
             ],
           ),
+        if (others > 0) _LockFooter(text: l10n.devicesScreenFootnote),
       ]),
+    );
+  }
+}
+
+/// The hero: the illustration, one line on what linking is for, and the
+/// capsule that starts the scan flow. No "Learn more" link: the app has no
+/// help page to point at, and a link that goes nowhere is worse than none.
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({required this.onLink});
+  final VoidCallback onLink;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 28),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+        decoration: BoxDecoration(
+          color: groupedFill(theme),
+          borderRadius: BorderRadius.circular(groupedRadius(theme)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Center(child: LinkedDevicesIllustration()),
+            const SizedBox(height: 18),
+            Text(
+              l10n.devicesHeroCaption,
+              textAlign: TextAlign.center,
+              style: theme.bodySoft.copyWith(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            ProminentButton(label: l10n.devicesLinkNew, onTap: onLink),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The footnote with a lock in front of it. The words are the honest ones
+/// that were already here (what Remove does, exactly); the lock only sets the
+/// tone, so it never claims more than the sentence does.
+class _LockFooter extends StatelessWidget {
+  const _LockFooter({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2, right: 6),
+            child: Icon(CupertinoIcons.lock_fill, size: 12, color: theme.inkMuted),
+          ),
+          Expanded(child: Text(text, style: groupedFooterStyle(theme))),
+        ],
+      ),
     );
   }
 }
@@ -244,14 +353,14 @@ class _DeviceRow extends StatelessWidget {
     required this.device,
     required this.busy,
     required this.enabled,
-    required this.onRemove,
+    required this.onMenu,
   });
 
   final String label;
   final UserDevice device;
   final bool busy;
   final bool enabled;
-  final VoidCallback onRemove;
+  final VoidCallback onMenu;
 
   IconData get _glyph {
     final p = device.platform.toLowerCase();
@@ -267,26 +376,45 @@ class _DeviceRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final seen = _seen(context, device);
+    final theme = ThemeScope.of(context);
+    final lines = <String>[
+      if (device.isThis)
+        l10n.acctThisDevice
+      else ...[
+        l10n.devicesLinkedOn(MaterialLocalizations.of(context).formatMediumDate(device.createdAt)),
+        _seen(context, device),
+      ],
+      if (!device.reachable) l10n.acctNoNotifications,
+    ];
     return GroupedRow(
       icon: _glyph,
       tone: device.isThis ? TileTone.accent : TileTone.gray,
       title: label,
-      subtitle: [
-        device.isThis ? l10n.acctThisDevice : seen,
-        if (!device.reachable) l10n.acctNoNotifications,
-      ].join(' · '),
+      subtitle: lines.join(device.isThis ? ' · ' : '\n'),
       chevron: false,
-      // The shared inline row action: press feedback, its own spinner, and
-      // the gap that keeps it off a long device name.
+      // The ⋮ is a glass disc: a destructive action hides one tap deeper, in
+      // the action sheet, instead of sitting on the row as a red word.
       trailing: device.isThis
           ? null
-          : RowPillButton(
-              label: l10n.acctRemove,
-              destructive: true,
-              busy: busy,
-              onTap: enabled ? onRemove : null,
-            ),
+          : busy
+              ? SizedBox(
+                  width: 34,
+                  height: 34,
+                  child: Center(
+                    child: CupertinoActivityIndicator(
+                      radius: 8,
+                      color: theme.inkMuted,
+                    ),
+                  ),
+                )
+              : GlassIconButton(
+                  icon: CupertinoIcons.ellipsis,
+                  size: 34,
+                  iconSize: 17,
+                  still: true,
+                  semanticLabel: l10n.devicesMoreActions,
+                  onTap: enabled ? onMenu : null,
+                ),
     );
   }
 
@@ -294,8 +422,14 @@ class _DeviceRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final delta = DateTime.now().difference(d.lastSeenAt);
     if (delta.inMinutes < 2) return l10n.acctActiveNow;
-    if (delta.inHours < 1) return l10n.devicesScreenMinutesAgo(delta.inMinutes);
-    if (delta.inDays < 1) return l10n.devicesScreenHoursAgo(delta.inHours);
-    return l10n.devicesScreenDaysAgo(delta.inDays);
+    final String ago;
+    if (delta.inHours < 1) {
+      ago = l10n.devicesScreenMinutesAgo(delta.inMinutes);
+    } else if (delta.inDays < 1) {
+      ago = l10n.devicesScreenHoursAgo(delta.inHours);
+    } else {
+      ago = l10n.devicesScreenDaysAgo(delta.inDays);
+    }
+    return l10n.devicesLastActive(ago);
   }
 }

@@ -3966,5 +3966,21 @@
   "powerSavingNeverSub": "저전력 모드에서도 모든 모션 유지",
   "powerSavingAlways": "항상",
   "powerSavingAlwaysSub": "휴대폰 설정과 상관없이 배터리를 아끼기 위해 모션을 줄입니다",
-  "profileDeletedAccount": "삭제된 계정"
+  "profileDeletedAccount": "삭제된 계정",
+  "devicesHeroCaption": "Use MonkeyHub on desktop or web.",
+  "devicesLinkNew": "Link a new device",
+  "devicesLinkedHeader": "Linked devices",
+  "devicesLinkedOn": "Linked {date}",
+  "devicesLastActive": "Last active {when}",
+  "devicesMoreActions": "More actions",
+  "devicesEmptyList": "No linked devices",
+  "deviceLinkScanTitle": "Scan QR code",
+  "deviceLinkScanInstruction": "Scan the code shown on the device you want to link.",
+  "deviceLinkEnterCodeInstead": "Enter code instead",
+  "deviceLinkScanInstead": "Scan QR code instead",
+  "deviceLinkEnterCodeTitle": "Enter the code",
+  "deviceLinkEnterCodeBody": "Type the 6-digit code shown on the device you want to link.",
+  "deviceLinkFinishTitle": "Finish linking",
+  "deviceLinkLinkedHud": "Linked",
+  "deviceLinkLinkedToast": "Device linked"
 }

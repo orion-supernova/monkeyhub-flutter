@@ -78,11 +78,13 @@ class Density {
 
   // ── chrome buttons ──
   /// The glass disc's diameter (back, ×, ✓, more) and a pill's height, so
-  /// the two still sit on one line.
-  double get iconButton => compact ? 32 : 40;
+  /// the two still sit on one line. 44 on a phone (iOS 26 / Signal), 32 in the
+  /// compact desktop layout.
+  double get iconButton => compact ? 32 : 44;
 
-  /// A glyph drawn for a 40pt disc, scaled to [iconButton].
-  double iconGlyph(double forFortyPt) => forFortyPt * iconButton / 40;
+  /// A glyph drawn for the phone disc, scaled down with the compact one (the
+  /// phone disc grew from 40 to 44 but its glyphs did not: 20pt on 44pt).
+  double iconGlyph(double phoneSize) => compact ? phoneSize * 0.8 : phoneSize;
 
   /// A sheet's title bar.
   double get sheetBarHeight => compact ? 44 : 52;

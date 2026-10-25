@@ -5,8 +5,13 @@
 // Output: kPreviewDir/home_<themeId>.png (see preview_kit.dart). Not a test of
 // behaviour — it asserts nothing beyond "it rendered". Edit [_rooms] to try
 // other data; edit [_FakeHome] to mirror a layout change before shipping it.
+import 'dart:io';
+import 'dart:typed_data';
+
+
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show FontLoader;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/data/room_filter.dart';
 import 'package:monkeyhub/data/settings_store.dart';
@@ -19,6 +24,7 @@ import 'package:monkeyhub/screens/navigation/pill_bottom_nav.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/chat_list_row.dart';
 import 'package:monkeyhub/widgets/chat_row_swipe.dart';
+import 'package:monkeyhub/widgets/glass_buttons.dart';
 import 'package:monkeyhub/widgets/liquid_glass.dart';
 import 'package:monkeyhub/widgets/room_card.dart';
 import 'package:monkeyhub/widgets/room_filter_bar.dart';
@@ -311,41 +317,12 @@ class _FakeHomeV2 extends StatelessWidget {
           theme.backgroundLayer(context),
           SafeArea(
             bottom: false,
-            child: Column(
+            child: Stack(
               children: [
-                SizedBox(
-                  height: 52,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        UserAvatar(user: _me, size: 34, showStatus: false),
-                        const Spacer(),
-                        LiquidGlass(
-                          size: const Size(40, 40),
-                          onTap: () {},
-                          child: Icon(
-                            CupertinoIcons.square_pencil,
-                            size: 19,
-                            color: theme.ink,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(
+                Positioned.fill(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 110),
+                    padding: const EdgeInsets.fromLTRB(0, 60, 0, 110),
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                        child: Text(
-                          AppLocalizations.of(context).homeScreenTitle,
-                          style: theme.displayLarge
-                              .copyWith(letterSpacing: 0.37),
-                        ),
-                      ),
                       ...[
                         RoomFilterBar(
                           filter: RoomFilter.empty,
@@ -399,6 +376,63 @@ class _FakeHomeV2 extends StatelessWidget {
                     ],
                   ),
                 ),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: 74,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          theme.background,
+                          theme.background.withValues(alpha: 0.92),
+                          theme.background.withValues(alpha: 0),
+                        ],
+                        stops: const [0, 0.62, 1],
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 22),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context).homeScreenTitle,
+                            style: theme.bodyEmph.copyWith(
+                              color: theme.ink,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              UserAvatar(user: _me, size: 36, showStatus: false),
+                              const Spacer(),
+                              GlassButtonGroup(
+                                tone: GlassTone.app,
+                                items: [
+                                  GlassGroupItem(
+                                    icon: CupertinoIcons.search,
+                                    semanticLabel: 'Search',
+                                    onTap: () {},
+                                  ),
+                                  GlassGroupItem(
+                                    icon: CupertinoIcons.square_pencil,
+                                    semanticLabel: 'New',
+                                    onTap: () {},
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -420,7 +454,26 @@ const _v2Themes = {
 };
 
 void main() {
-  setUpAll(loadPreviewFonts);
+  setUpAll(() async {
+    await loadPreviewFonts();
+    // No SF Pro on Linux: stand Inter in for the Cupertino family names so
+    // the renders read as text rather than Ahem boxes.
+    for (final family in const [
+      'CupertinoSystemText',
+      'CupertinoSystemDisplay',
+      '.SF UI Text',
+      '.SF UI Display',
+    ]) {
+      final loader = FontLoader(family);
+      for (final w in const ['Regular', 'Medium', 'SemiBold', 'Bold']) {
+        loader.addFont(() async {
+          final b = await File('assets/google_fonts/Inter-$w.ttf').readAsBytes();
+          return ByteData.sublistView(b);
+        }());
+      }
+      await loader.load();
+    }
+  });
 
   for (final theme in ThemeController.all) {
     if (_v2Themes.contains(theme.id)) {

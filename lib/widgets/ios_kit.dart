@@ -84,6 +84,16 @@ class IosPage extends StatefulWidget {
   /// whose job includes catching a strobing backdrop.
   final bool flatBackground;
 
+  /// Height of the floating title bar, below the status bar.
+  static const double barHeight = 52;
+
+  /// How far a page's first content must sit from the top edge to clear the
+  /// floating bar: the status bar plus the bar itself. A page that pins or
+  /// anchors its own content (a sliver that scrolls to the top) leaves this
+  /// much room, or the bar covers it.
+  static double barClearance(BuildContext context) =>
+      MediaQuery.paddingOf(context).top + barHeight;
+
   @override
   State<IosPage> createState() => _IosPageState();
 }
@@ -105,27 +115,31 @@ class _IosPageState extends State<IosPage> {
         (widget.showBack && canPop ? const GlassBackButton() : null);
     final bottom = MediaQuery.paddingOf(context).bottom;
 
-    // Top 0: the large title's box starts 52pt below the safe area (the bar's
-    // height), the line Feed, Discover and Chats draw theirs on — a tab root
-    // and a pushed page put their titles at one y.
-    final header = SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.title,
-              style: theme.displayLarge.copyWith(letterSpacing: 0.37),
-            ),
-            if (widget.subtitle != null) ...[
-              const SizedBox(height: 4),
-              Text(widget.subtitle!, style: theme.bodySoft),
-            ],
-          ],
+    // Signal iOS 26: no large title. The title is centred in a 52pt bar that
+    // floats over the list; the list scrolls underneath a soft top edge (the
+    // same pattern as the Chats header). An optional subtitle opens the content.
+    final top = MediaQuery.paddingOf(context).top;
+    final bg = theme.background;
+    final clearance = top + IosPage.barHeight;
+    final header = [
+      // Pinned and empty: it holds the bar's place at the top of the list, so
+      // the first content starts below the bar and — the reason it is a
+      // pinned sliver rather than padding — any sliver a page pins itself
+      // (a date rail, a tab strip) pins BELOW the bar, not under it.
+      SliverPersistentHeader(
+        pinned: true,
+        delegate: _BarClearance(clearance),
+      ),
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+              20, 8, 20, widget.subtitle != null ? 14 : 0),
+          child: widget.subtitle == null
+              ? null
+              : Text(widget.subtitle!, style: theme.bodySoft),
         ),
       ),
-    );
+    ];
 
     final body = widget.slivers ??
         [
@@ -145,74 +159,95 @@ class _IosPageState extends State<IosPage> {
             SizedBox.expand(child: ColoredBox(color: theme.background))
           else
             theme.backgroundLayer(context),
-          SafeArea(
-            bottom: false,
-            child: Column(
+          CustomScrollView(
+            controller: _scroll,
+            // The bounce is what reveals the refresh spinner, so a
+            // refreshable page asks for it on every platform.
+            physics: widget.onRefresh == null
+                ? null
+                : const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  ),
+            slivers: [
+              if (widget.onRefresh != null)
+                CupertinoSliverRefreshControl(
+                  // Fires the moment the pull arms, while the finger
+                  // is still down: UIRefreshControl's click there.
+                  onRefresh: () {
+                    HapticFeedback.mediumImpact();
+                    return widget.onRefresh!();
+                  },
+                ),
+              ...header,
+              ...body,
+            ],
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Stack(
               children: [
-                SizedBox(
-                  height: 52,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        AnimatedBuilder(
-                          animation: _scroll,
-                          builder: (context, child) {
-                            final offset =
-                                _scroll.hasClients ? _scroll.offset : 0.0;
-                            return Opacity(
-                              opacity: ((offset - 24) / 24).clamp(0.0, 1.0),
-                              child: child,
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 56),
-                            child: Text(
-                              widget.title,
-                              style: theme.bodyEmph.copyWith(color: theme.ink),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            ?leading,
-                            const Spacer(),
-                            for (var i = 0; i < widget.actions.length; i++) ...[
-                              if (i > 0) const SizedBox(width: 10),
-                              widget.actions[i],
-                            ],
+                // The soft edge, taller than the bar so the fade finishes
+                // below it; rows dissolve as they scroll under.
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            bg,
+                            bg.withValues(alpha: 0.92),
+                            bg.withValues(alpha: 0),
                           ],
+                          stops: const [0, 0.62, 1],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-                Expanded(
-                  child: CustomScrollView(
-                    controller: _scroll,
-                    // The bounce is what reveals the refresh spinner, so a
-                    // refreshable page asks for it on every platform.
-                    physics: widget.onRefresh == null
-                        ? null
-                        : const BouncingScrollPhysics(
-                            parent: AlwaysScrollableScrollPhysics(),
+                Padding(
+                  padding: EdgeInsets.only(top: top, bottom: 14),
+                  child: SizedBox(
+                    height: IosPage.barHeight,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 64),
+                            child: Semantics(
+                              header: true,
+                              child: Text(
+                                widget.title,
+                                style: theme.bodyEmph.copyWith(
+                                  color: theme.ink,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ),
-                    slivers: [
-                      if (widget.onRefresh != null)
-                        CupertinoSliverRefreshControl(
-                          // Fires the moment the pull arms, while the finger
-                          // is still down: UIRefreshControl's click there.
-                          onRefresh: () {
-                            HapticFeedback.mediumImpact();
-                            return widget.onRefresh!();
-                          },
-                        ),
-                      header,
-                      ...body,
-                    ],
+                          Row(
+                            children: [
+                              ?leading,
+                              const Spacer(),
+                              for (var i = 0;
+                                  i < widget.actions.length;
+                                  i++) ...[
+                                if (i > 0) const SizedBox(width: 10),
+                                widget.actions[i],
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -222,6 +257,24 @@ class _IosPageState extends State<IosPage> {
       ),
     );
   }
+}
+
+/// The empty, pinned strip under [IosPage]'s floating bar. See [IosPage].
+class _BarClearance extends SliverPersistentHeaderDelegate {
+  const _BarClearance(this.extent);
+  final double extent;
+
+  @override
+  double get minExtent => extent;
+  @override
+  double get maxExtent => extent;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) =>
+      SizedBox(height: extent);
+
+  @override
+  bool shouldRebuild(_BarClearance old) => old.extent != extent;
 }
 
 /// An inset grouped section: an optional header above, a rounded block of
@@ -361,10 +414,12 @@ class GroupedHeader extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final label = Text(
       sentenceCaseOf(context, text),
-      style: groupedHeaderStyle(theme),
+      // Signal: 15/600 in the soft ink, sitting just inside the card's edge.
+      style: groupedHeaderStyle(theme)
+          .copyWith(fontSize: 15, height: 1.25, color: theme.inkSoft),
     );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+      padding: const EdgeInsets.fromLTRB(4, 6, 4, 8),
       child: trailing == null
           ? label
           : Row(
@@ -408,9 +463,19 @@ Color groupedFill(AppTheme theme) {
   final distinct = (s.computeLuminance() - theme.background.computeLuminance())
           .abs() >
       0.008;
+  // Dark themes: iOS's #2C2C2E on black is ~17% white. A surface that sits
+  // closer to the page than ~11% white is lifted to that, derived from the
+  // theme's own background so each palette keeps its tint.
+  if (!theme.isLight) {
+    final lifted = Color.alphaBlend(
+      Colors.white.withValues(alpha: 0.11),
+      theme.background,
+    );
+    return s.computeLuminance() >= lifted.computeLuminance() ? s : lifted;
+  }
   if (distinct) return s;
   return Color.alphaBlend(
-    (theme.isLight ? Colors.black : Colors.white).withValues(alpha: 0.06),
+    Colors.black.withValues(alpha: 0.06),
     theme.background,
   );
 }
@@ -673,8 +738,8 @@ class _GroupedRowState extends State<GroupedRow>
               const SizedBox(width: 10),
               Icon(
                 CupertinoIcons.chevron_forward,
-                size: 14,
-                color: theme.inkMuted.withValues(alpha: 0.55),
+                size: 13,
+                color: theme.inkMuted,
               ),
             ],
           ],
@@ -699,7 +764,7 @@ class _GroupedRowState extends State<GroupedRow>
           // Instant on, eased off — the table-cell highlight.
           duration: _pressed ? Duration.zero : const Duration(milliseconds: 260),
           color: _pressed
-              ? theme.ink.withValues(alpha: 0.08)
+              ? theme.ink.withValues(alpha: 0.06)
               : Colors.transparent,
           child: row,
         ),

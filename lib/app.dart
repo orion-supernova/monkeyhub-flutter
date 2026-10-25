@@ -1,4 +1,5 @@
 import 'theme/low_power.dart';
+import 'theme/glass_page_transitions.dart';
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'dart:async';
 
@@ -2335,6 +2336,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
             theme: ThemeData(
               brightness: isLight ? Brightness.light : Brightness.dark,
               scaffoldBackgroundColor: theme.background,
+              pageTransitionsTheme: glassPageTransitionsTheme,
               textTheme: TextTheme(bodyMedium: theme.body),
               splashFactory: NoSplash.splashFactory,
               highlightColor: Colors.transparent,

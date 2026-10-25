@@ -11,6 +11,8 @@ import '../backend/convex_client.dart' show Subscription;
 import '../l10n/generated/app_localizations.dart';
 import '../push/device_identity.dart';
 import '../theme/theme_scope.dart';
+import 'app_brand_mark.dart';
+import 'glass_progress_dialog.dart' show ProgressRing;
 import 'ios_kit.dart';
 import 'labeled_field.dart' show FormErrorBanner;
 
@@ -205,14 +207,33 @@ class _DeviceLoginPanelState extends State<DeviceLoginPanel> {
         ),
         const SizedBox(height: 18),
         Center(
-          child: Text(
-            _statusLine(l10n, expired: expired),
-            style: groupedFooterStyle(theme).copyWith(
-              fontFeatures: const [FontFeature.tabularFigures()],
-              color: (_phase == _Phase.denied || _phase == _Phase.error || expired)
-                  ? theme.danger
-                  : theme.inkMuted,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Waiting is the only state with something still moving; a
+              // spinner next to "denied" or "expired" would lie about that.
+              if (!expired &&
+                  (_phase == _Phase.minting ||
+                      _phase == _Phase.waiting ||
+                      _phase == _Phase.exchanging)) ...[
+                const ProgressRing(size: 16, strokeWidth: 2),
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Text(
+                  _statusLine(l10n, expired: expired),
+                  textAlign: TextAlign.center,
+                  style: groupedFooterStyle(theme).copyWith(
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    color: (_phase == _Phase.denied ||
+                            _phase == _Phase.error ||
+                            expired)
+                        ? theme.danger
+                        : theme.inkMuted,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         if (_error != null && _phase == _Phase.error) ...[
@@ -297,6 +318,9 @@ class _QrPanel extends StatelessWidget {
   final String data;
   final bool dimmed;
 
+  static const double _qr = 196;
+  static const double _mark = 46;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -308,20 +332,53 @@ class _QrPanel extends StatelessWidget {
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             // Needs real contrast to scan reliably — deliberately always
-            // light, same as `PairingCodeScreen`'s QR panel.
+            // white, a soft card whatever the theme.
             color: Colors.white,
-            borderRadius: BorderRadius.circular(groupedRadius(theme)),
-          ),
-          child: QrImageView(
-            data: data,
-            version: QrVersions.auto,
-            size: 200,
-            backgroundColor: Colors.white,
-            eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Colors.black),
-            dataModuleStyle: const QrDataModuleStyle(
-              dataModuleShape: QrDataModuleShape.square,
-              color: Colors.black,
+            borderRadius: BorderRadius.circular(
+              (groupedRadius(theme) * 1.15).clamp(14.0, 30.0),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              QrImageView(
+                data: data,
+                version: QrVersions.auto,
+                size: _qr,
+                backgroundColor: Colors.white,
+                // The mark covers the middle: the highest correction level
+                // keeps it scanning with that much of the code hidden.
+                errorCorrectionLevel: QrErrorCorrectLevel.H,
+                eyeStyle: const QrEyeStyle(
+                  eyeShape: QrEyeShape.square,
+                  color: Colors.black,
+                ),
+                dataModuleStyle: const QrDataModuleStyle(
+                  dataModuleShape: QrDataModuleShape.square,
+                  color: Colors.black,
+                ),
+              ),
+              Container(
+                width: _mark + 12,
+                height: _mark + 12,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: const CanonicalLogo(size: _mark),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -345,13 +402,16 @@ class _CodeDigits extends StatelessWidget {
         children: [
           for (final d in code.split(''))
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: 34,
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: 40,
+              padding: const EdgeInsets.symmetric(vertical: 12),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: groupedFill(theme),
-                borderRadius: BorderRadius.circular(groupedRadius(theme) * 0.6),
+                // Softer than a grouped row: a faint ink wash, generous radius.
+                color: theme.ink.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(
+                  (groupedRadius(theme) * 0.7).clamp(8.0, 18.0),
+                ),
               ),
               child: Text(
                 d,

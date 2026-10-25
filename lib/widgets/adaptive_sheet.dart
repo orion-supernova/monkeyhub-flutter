@@ -1,12 +1,15 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../theme/layout.dart';
 import '../theme/motion.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'glass_reveal.dart';
 import 'glass_surface.dart';
 import 'sheet_drag.dart';
-import 'sheet_kit.dart' show sheetTopRadius;
+import 'sheet_kit.dart' show sheetRadius;
 
 /// Presents modal content adaptively: a bottom sheet on compact (phone)
 /// windows, a floating desktop popover on wider (desktop/web) windows — where
@@ -25,6 +28,11 @@ import 'sheet_kit.dart' show sheetTopRadius;
 /// undismissable by tap-outside or drag in both forms — for the rare modal that
 /// has to be answered, like a mandatory update. Pair it with a
 /// `PopScope(canPop: false)` in the content to also block Android back and Esc.
+///
+/// Compact sheets FLOAT: 8pt in from the sides, lifted to hug the home
+/// indicator ([sheetBottomLift]), all four corners [sheetRadius], moving on a
+/// spring ([SheetDragHost]). Content sees only the bottom inset left over
+/// after the lift, so `SheetFrame`/`SheetSurface` need no special case.
 ///
 /// Every compact sheet stops below the top safe area (see `useSafeArea`) and
 /// 8pt short of it, so the page underneath peeks out under the island the
@@ -56,57 +64,27 @@ Future<T?> showAdaptiveSheet<T>(
   bool useSafeArea = true,
 }) {
   if (context.isCompact) {
-    final calm = MotionScope.of(context).calm;
-    return showModalBottomSheet<T>(
-      context: context,
-      isScrollControlled: isScrollControlled,
-      backgroundColor: backgroundColor,
-      useRootNavigator: useRootNavigator,
-      isDismissible: isDismissible,
-      enableDrag: enableDrag,
-      useSafeArea: useSafeArea,
-      // The iOS dim: lighter than Material's 54%, so the page underneath
-      // still reads as the place the sheet came from.
-      barrierColor: Colors.black.withValues(alpha: 0.32),
-      // A fast, decelerating rise with no overshoot — a bottom-anchored card
-      // that bounces past its rest lifts off the screen edge and shows the
-      // page through the gap. The liveliness lives in the content instead
-      // (see `SheetRise`).
-      sheetAnimationStyle: calm
-          ? AnimationStyle.noAnimation
-          : const AnimationStyle(
-              duration: Duration(milliseconds: 420),
-              curve: Cubic(0.16, 1, 0.3, 1),
-              reverseDuration: Duration(milliseconds: 260),
-              reverseCurve: Curves.easeInCubic,
-            ),
-      // One corner for every sheet, whatever its content paints. Around
-      // fifty sheets draw their own top-rounded panel, at whichever radius
-      // their theme's `sheetDecoration` or their own code picked; clipping
-      // here gives them all the iOS 26 corner (`sheetTopRadius`) in one
-      // place. A plain clip, never animated — the route slides it, the clip
-      // rides along for free.
-      //
-      // Capped 8pt short of the room the route gives it, so a full-height
-      // sheet leaves a sliver of the page showing under the island, and
-      // wrapped in the host that lets a scrolled-to-top body pull it down.
-      builder: (ctx) => SheetDragHost(
-        enabled: enableDrag && isDismissible,
-        child: LayoutBuilder(
-          builder: (ctx, box) => ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: box.maxHeight.isFinite
-                  ? (box.maxHeight - 8).clamp(0.0, double.infinity)
-                  : double.infinity,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(sheetTopRadius(ThemeScope.of(ctx))),
-              ),
-              child: builder(ctx),
-            ),
-          ),
+    final navigator = Navigator.of(context, rootNavigator: useRootNavigator);
+    final theme = ThemeScope.of(context);
+    return navigator.push<T>(
+      _FloatingSheetRoute<T>(
+        builder: builder,
+        capturedThemes: InheritedTheme.capture(
+          from: context,
+          to: navigator.context,
         ),
+        barrierLabel: MaterialLocalizations.of(
+          context,
+        ).modalBarrierDismissLabel,
+        // The dim: Signal's black 40% on a dark page, 20% on a light one,
+        // where the same black reads far heavier.
+        scrim: Colors.black.withValues(alpha: theme.isLight ? 0.20 : 0.40),
+        isDismissible: isDismissible,
+        enableDrag: enableDrag,
+        isScrollControlled: isScrollControlled,
+        useSafeArea: useSafeArea,
+        backgroundColor: backgroundColor,
+        calm: MotionScope.of(context).calm,
       ),
     );
   }
@@ -129,9 +107,7 @@ Future<T?> showAdaptiveSheet<T>(
           padding: EdgeInsets.zero,
           child: Material(
             type: MaterialType.transparency,
-            child: SingleChildScrollView(
-              child: builder(dialogContext),
-            ),
+            child: SingleChildScrollView(child: builder(dialogContext)),
           ),
         ),
       ),
@@ -163,4 +139,166 @@ Future<T?> showAdaptiveSheet<T>(
       );
     },
   );
+}
+
+/// Inset of a floating sheet from the left and right edges.
+const double kSheetInset = 8;
+
+/// How far above the screen's bottom edge a floating sheet rests: it hugs the
+/// home indicator the way iOS 26's do, 26pt of it sits INSIDE the sheet.
+double sheetBottomLift(double safeBottom) =>
+    math.max(kSheetInset, safeBottom - 26);
+
+/// The compact sheet's route: a card that floats 8pt in from the sides and
+/// [sheetBottomLift] up from the bottom, all four corners rounded.
+///
+/// Not `ModalBottomSheetRoute`: that animates its child with a fixed-duration
+/// curve and drags it with its own ballistics. Here the route owns only the
+/// scrim (a short fade) and its own lifetime; the sheet's motion is a spring
+/// owned by [SheetDragHost], which also hands a fling's velocity on to the
+/// exit. The route stays on the stack for [reverseTransitionDuration], long
+/// enough for that exit to clear the screen.
+class _FloatingSheetRoute<T> extends PopupRoute<T> {
+  _FloatingSheetRoute({
+    required this.builder,
+    required this.capturedThemes,
+    required this.barrierLabel,
+    required this.scrim,
+    required this.isDismissible,
+    required this.enableDrag,
+    required this.isScrollControlled,
+    required this.useSafeArea,
+    required this.backgroundColor,
+    required this.calm,
+  });
+
+  final WidgetBuilder builder;
+  final CapturedThemes capturedThemes;
+  final Color scrim;
+  final bool isDismissible;
+  final bool enableDrag;
+  final bool isScrollControlled;
+  final bool useSafeArea;
+  final Color backgroundColor;
+  final bool calm;
+
+  @override
+  final String barrierLabel;
+
+  @override
+  Color get barrierColor => scrim;
+
+  @override
+  bool get barrierDismissible => isDismissible;
+
+  @override
+  Duration get transitionDuration =>
+      calm ? Duration.zero : const Duration(milliseconds: 250);
+
+  @override
+  Duration get reverseTransitionDuration =>
+      calm ? Duration.zero : const Duration(milliseconds: 320);
+
+  @override
+  Widget buildPage(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+  ) {
+    final media = MediaQuery.of(context);
+    final theme = ThemeScope.of(context);
+    final lift = sheetBottomLift(media.viewPadding.bottom);
+    final radius = sheetRadius(theme);
+    final top = (useSafeArea ? media.padding.top : 0.0) + 8;
+
+    // What the sheet's content sees: the top inset is spent (the route placed
+    // the sheet below it), and the bottom insets are what is LEFT after the
+    // sheet's own lift. The home indicator's 34pt becomes 8pt of lift + 26pt
+    // of padding inside the card, and a keyboard's height loses the lift too,
+    // so nothing inside double-counts a gap the route already left.
+    double less(double v) => math.max(0.0, v - lift);
+    final contentMedia = media.copyWith(
+      padding: media.padding.copyWith(
+        top: 0,
+        bottom: less(media.padding.bottom),
+      ),
+      viewPadding: media.viewPadding.copyWith(
+        top: 0,
+        bottom: less(media.viewPadding.bottom),
+      ),
+      viewInsets: media.viewInsets.copyWith(
+        bottom: less(media.viewInsets.bottom),
+      ),
+    );
+
+    Widget panel() => DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        // A light page has nothing dark behind the card to lift it off.
+        boxShadow: theme.isLight
+            ? const [
+                BoxShadow(
+                  color: Color(0x1A000000),
+                  blurRadius: 28,
+                  offset: Offset(0, 6),
+                ),
+              ]
+            : null,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Material(
+          color: backgroundColor,
+          child: Builder(builder: builder),
+        ),
+      ),
+    );
+
+    return capturedThemes.wrap(
+      Semantics(
+        scopesRoute: true,
+        explicitChildNodes: true,
+        child: MediaQuery(
+          data: contentMedia,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              kSheetInset + media.padding.left,
+              top,
+              kSheetInset + media.padding.right,
+              lift,
+            ),
+            child: LayoutBuilder(
+              builder: (ctx, box) => Align(
+                alignment: Alignment.bottomCenter,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minWidth: box.maxWidth,
+                    maxWidth: box.maxWidth,
+                    maxHeight: isScrollControlled
+                        ? box.maxHeight
+                        : box.maxHeight * 9 / 16,
+                  ),
+                  child: SheetDragHost(
+                    enabled: enableDrag && isDismissible,
+                    animateIn: true,
+                    offscreenExtra: lift + 32,
+                    child: panel(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // The scrim is the route's; the sheet moves itself.
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) => child;
 }

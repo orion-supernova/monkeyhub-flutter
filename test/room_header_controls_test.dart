@@ -23,7 +23,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// * In its place sit two call controls — video, then voice — always both on
 ///   show, closer together than the header's other gaps: the liquid pair
 ///   uses a gap smaller than the 12 around the capsule, the classic pair
-///   uses 40pt glass circles, matching its glass back button.
+///   uses glass circles sized by Density.iconButton, matching its glass back button.
 ///
 /// A source scan, like `room_header_title_tap_test.dart`, because both
 /// headers are private to `room_screen.dart` and need a live room, repo and
@@ -148,7 +148,7 @@ void main() {
         reason: 'the gap between video and voice must use _controlGap');
   });
 
-  test('the classic pair are 40pt glass circles, like the back beside them',
+  test('the classic pair are glass circles sized by Density, like the back beside them',
       () {
     // The classic header's call buttons sit in one toolbar group with its
     // glass back button, so they are the same glass circle at the same size —
@@ -159,14 +159,15 @@ void main() {
     final classicEnd = callButton.indexOf('\nclass ', classicStart + 1);
     final classic = callButton.substring(classicStart, classicEnd);
     expect(classic.contains('LiquidGlass('), isTrue);
-    expect(classic.contains('size: const Size(40, 40),'), isTrue);
+    expect(classic.contains('size: Size(disc, disc),'), isTrue);
+    expect(classic.contains('Density.of(context).iconButton'), isTrue);
     expect(classic.contains('IconButton('), isFalse);
 
     final groupButton =
         File('lib/calls/group_call_button.dart').readAsStringSync();
     expect(groupButton.contains('IconButton('), isFalse,
         reason: 'the classic group call button is glass too');
-    expect(groupButton.contains('size: const Size(40, 40),'), isTrue);
+    expect(groupButton.contains('size: Size(disc, disc),'), isTrue);
   });
 
   test('the call-kind picker is gone with nothing left pointing at it', () {

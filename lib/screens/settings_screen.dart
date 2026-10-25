@@ -1443,7 +1443,10 @@ class _ProfileCardState extends State<_ProfileCard>
                     // face already makes this the biggest thing on the page.
                     Text(
                       u.displayName,
-                      style: groupedHeaderStyle(theme),
+                      style: groupedHeaderStyle(theme).copyWith(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1451,7 +1454,7 @@ class _ProfileCardState extends State<_ProfileCard>
                     Text(
                       '@${u.username}',
                       style: groupedSubtitleStyle(theme)
-                          .copyWith(color: theme.inkSoft),
+                          .copyWith(fontSize: 14, color: theme.inkMuted),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1484,7 +1487,7 @@ class _ProfileCardState extends State<_ProfileCard>
 /// The fill a hub row takes when pressed, or when it is the page open in the
 /// desktop detail pane — the selected cell of a split view.
 Color _rowFill(AppTheme theme, {required bool pressed, required bool selected}) {
-  if (pressed) return theme.ink.withValues(alpha: 0.08);
+  if (pressed) return theme.ink.withValues(alpha: 0.06);
   if (selected) return theme.accent.withValues(alpha: 0.14);
   return Colors.transparent;
 }
@@ -1497,8 +1500,8 @@ class _Chevron extends StatelessWidget {
     // not wear a bigger, darker arrow.
     return Icon(
       CupertinoIcons.chevron_forward,
-      size: 14,
-      color: theme.inkMuted.withValues(alpha: 0.55),
+      size: 13,
+      color: theme.inkMuted,
     );
   }
 }
