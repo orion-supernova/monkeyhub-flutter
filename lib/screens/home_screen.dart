@@ -33,6 +33,7 @@ import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/ios_kit.dart' show CollapsedTitleFade;
+import '../widgets/sunlit_surface.dart' show SunlitBackdrop;
 import '../widgets/archived_chats_sheet.dart';
 import '../widgets/chat_list_row.dart';
 import '../widgets/chat_row_action_menu.dart';
@@ -610,7 +611,7 @@ class _HomeScreenState extends State<HomeScreen>
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          theme.backgroundLayer(context),
+          const SunlitBackdrop(),
           // No SafeArea: the list runs edge to edge, under the status bar and
           // the floating header at the top and under the home indicator at the
           // bottom (a SafeArea there leaves a strip of bare background that

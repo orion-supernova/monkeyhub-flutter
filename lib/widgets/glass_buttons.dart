@@ -15,6 +15,7 @@ import 'hover_hint.dart';
 import 'liquid_glass.dart';
 import 'route_depth.dart';
 import 'spring_press.dart';
+import 'sunlit_surface.dart' show sunlitHairline;
 
 /// The fill of the app's chrome disc — every 44pt icon button on the app's
 /// own pages and sheets (back, ×, compose, more).
@@ -220,16 +221,25 @@ class ChromeDisc extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: light ? 0.10 : 0.30),
+              color: (light ? theme.ink : Colors.black)
+                  .withValues(alpha: light ? 0.12 : 0.30),
               blurRadius: light ? 10 : 12,
-              offset: Offset(0, light ? 1 : 3),
+              offset: Offset(0, light ? 3 : 3),
             ),
+            // Light: a contact shadow too, the edge a pale disc needs.
+            if (light)
+              BoxShadow(
+                color: theme.ink.withValues(alpha: 0.06),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
           ],
         ),
         child: CustomPaint(
           foregroundPainter: SpecularRim(
             shape: const CircleBorder(),
             light: light,
+            edge: light ? sunlitHairline(theme) : null,
           ),
           child: ClipOval(
             child: Stack(

@@ -6,9 +6,11 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'chat_list_row.dart' show monogramGradient;
 import 'ios_kit.dart';
+import 'sunlit_surface.dart' show sunlitShadows;
 
 import 'approval_gate.dart';
 import 'remote_image.dart';
@@ -53,10 +55,12 @@ class FriendRow extends StatelessWidget {
 }
 
 /// The block every Discover row sits on: the grouped fill, generously
-/// rounded, no border and no shadow — an iOS inset row standing alone.
+/// rounded, no border — an iOS inset row standing alone. On a light theme it
+/// carries the sunlit shadow so it lifts off the page like a grouped card.
 BoxDecoration discoverCardDecoration(AppTheme theme) => BoxDecoration(
       color: groupedFill(theme),
       borderRadius: BorderRadius.circular(groupedRadius(theme)),
+      boxShadow: theme.isLight ? sunlitShadows(theme) : null,
     );
 
 TextStyle _name(AppTheme theme) => theme.bodyEmph.copyWith(

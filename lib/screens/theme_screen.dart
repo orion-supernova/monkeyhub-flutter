@@ -334,15 +334,10 @@ class _ThemeGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     const columns = 3;
     final rows = (themes.length / columns).ceil();
-    return Container(
+    return GroupedCard(
       padding: const EdgeInsets.fromLTRB(14, 16, 14, 12),
-      decoration: BoxDecoration(
-        color: groupedFill(theme),
-        borderRadius: BorderRadius.circular(groupedRadius(theme)),
-      ),
       child: Column(
         children: [
           for (var r = 0; r < rows; r++) ...[

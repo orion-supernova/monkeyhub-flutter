@@ -424,12 +424,9 @@ class _WordCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Container(
+    return GroupedCard(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: groupedFill(theme),
-        borderRadius: BorderRadius.circular(groupedRadius(theme) * 0.6),
-      ),
+      radiusScale: 0.6,
       child: Row(
         children: [
           // The index column scales with the text: a fixed 20 fits "24" at

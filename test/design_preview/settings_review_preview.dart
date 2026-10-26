@@ -4,6 +4,7 @@
 //
 //   flutter test test/design_preview/settings_review_preview.dart
 //   flutter test test/design_preview/settings_review_preview.dart --dart-define=PAGES=devices,blocked
+//   ... --dart-define=THEMES=basic_rose,paper,bloom,vault_ivory
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -399,7 +400,11 @@ class _EmptyApi extends _FakeApi {
   Future<List<ChatUser>> listBlocked(String userId) async => const [];
 }
 
-const _themes = ['basic', 'basic_daylight', 'risograph_pop'];
+/// Override with --dart-define=THEMES=basic_rose,paper,bloom,vault_ivory.
+const _themesEnv = String.fromEnvironment('THEMES');
+final _themes = _themesEnv.isEmpty
+    ? const ['basic', 'basic_daylight', 'risograph_pop']
+    : _themesEnv.split(',');
 
 /// Pages that also get a Turkish render and a 1.3x text-scale render.
 const _stress = {
@@ -452,7 +457,7 @@ void main() {
   for (final entry in _pages.entries) {
     if (only.isNotEmpty && !only.split(',').contains(entry.key)) continue;
     final tall = !entry.key.startsWith('sh_');
-    final size = tall ? const Size(393, 1500) : kIphone16Pro;
+    final size = tall ? Size(393, double.parse(const String.fromEnvironment("HEIGHT", defaultValue: "1500"))) : kIphone16Pro;
     final dpr = tall ? 2.0 : 2.0;
     for (final id in _themes) {
       testWidgets('review: ${entry.key} $id', (tester) async {

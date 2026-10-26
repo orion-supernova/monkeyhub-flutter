@@ -13,6 +13,7 @@ import 'liquid_glass.dart';
 import 'ios_kit.dart' show groupedTitleStyle, groupedValueStyle;
 import 'route_landing.dart';
 import 'spring_press.dart';
+import 'sunlit_surface.dart' show sunlitHairline;
 import '../l10n/text_case.dart';
 
 /// Leading inset of the pill, to the magnifier. Public because
@@ -642,16 +643,27 @@ class SearchFieldHero extends StatelessWidget {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: (isLight ? 0.08 : 0.24) * shadow,
+                  color: (isLight ? theme.ink : Colors.black).withValues(
+                    alpha: (isLight ? 0.09 : 0.24) * shadow,
                   ),
-                  blurRadius: isLight ? 16 : 18,
-                  offset: Offset(0, isLight ? 0 : 5),
+                  blurRadius: isLight ? 14 : 18,
+                  offset: Offset(0, isLight ? 3 : 5),
                 ),
+                // Light: the contact shadow that gives a white pill an edge.
+                if (isLight)
+                  BoxShadow(
+                    color: theme.ink.withValues(alpha: 0.05 * shadow),
+                    blurRadius: 2.5,
+                    offset: const Offset(0, 1),
+                  ),
               ],
       ),
       child: CustomPaint(
-        foregroundPainter: SpecularRim(shape: shape, light: isLight),
+        foregroundPainter: SpecularRim(
+          shape: shape,
+          light: isLight,
+          edge: isLight ? sunlitHairline(theme) : null,
+        ),
         child: ClipPath(
           clipper: ShapeBorderClipper(shape: shape),
           child: DecoratedBox(

@@ -28,6 +28,7 @@ import 'navigation/tab_reselect.dart';
 import 'search_screen.dart';
 
 import '../widgets/ios_kit.dart';
+import '../widgets/sunlit_surface.dart' show SunlitBackdrop;
 import '../l10n/text_case.dart';
 
 /// How many friends and rooms Discover shows before handing off to a
@@ -588,7 +589,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          theme.backgroundLayer(context),
+          const SunlitBackdrop(),
           // See home_screen: the default bottom inset leaves a dead strip of
           // background under the scroller. `sectionBottomPadding` clears the
           // pill and the indicator instead. Edge to edge: the bar clears the
@@ -758,11 +759,7 @@ class _DoorRow extends StatelessWidget {
           theme,
           // A grouped iOS row: a coloured tile, the title, one line of what
           // it finds, and the magnifier the search bar shares mid-flight.
-          child: Container(
-            decoration: BoxDecoration(
-              color: groupedFill(theme),
-              borderRadius: BorderRadius.circular(groupedRadius(theme)),
-            ),
+          child: GroupedCard(
             padding: const EdgeInsets.symmetric(
               horizontal: searchDoorHPadding,
               vertical: 12,

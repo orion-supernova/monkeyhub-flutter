@@ -620,12 +620,8 @@ class _ActiveServerCard extends StatelessWidget {
         ? ConvexBackend.instance.isConnected
         : health!.phase == ConnectionPhase.online;
     final tone = online ? theme.success : theme.inkMuted;
-    return Container(
+    return GroupedCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: groupedFill(theme),
-        borderRadius: BorderRadius.circular(groupedRadius(theme)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -724,12 +720,8 @@ class _ProbeReport extends StatelessWidget {
       ServerProbeStatus.serverError => l10n.serverResultServerError,
       ServerProbeStatus.ready => l10n.serverResultReady,
     };
-    return Container(
+    return GroupedCard(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: groupedFill(theme),
-        borderRadius: BorderRadius.circular(groupedRadius(theme)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

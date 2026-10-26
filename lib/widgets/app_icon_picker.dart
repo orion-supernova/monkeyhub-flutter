@@ -14,7 +14,7 @@ import '../services/launcher_icon_names.dart' show kBorrowedIconThemeIds;
 import 'teardown_safe.dart';
 import 'fit_label.dart';
 import 'ios_kit.dart'
-    show GroupedHeader, groupedFill, groupedMetaStyle, groupedRadius;
+    show GroupedCard, GroupedHeader, groupedMetaStyle;
 import 'spring_press.dart';
 
 /// The choice that means "let the icon follow the theme" ([LogoMode.auto]).
@@ -92,7 +92,6 @@ class AppIconPicker extends StatelessWidget {
       );
 
   Widget _buildListening(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final store = SettingsStore.instance;
     // The icon "Match theme" would show today: the fixed theme, or the dark
@@ -137,12 +136,8 @@ class AppIconPicker extends StatelessWidget {
     // Each group of icons on its own inset plate under a [GroupedHeader] —
     // the grouped-list shape every other settings page has, so this one
     // doesn't read as a loose sheet of icons.
-    Widget grid(List<_IconSpec> specs) => Container(
+    Widget grid(List<_IconSpec> specs) => GroupedCard(
           padding: const EdgeInsets.fromLTRB(12, 16, 12, 14),
-          decoration: BoxDecoration(
-            color: groupedFill(theme),
-            borderRadius: BorderRadius.circular(groupedRadius(theme)),
-          ),
           child: _IconGrid(
             specs: specs,
             selected: selected,

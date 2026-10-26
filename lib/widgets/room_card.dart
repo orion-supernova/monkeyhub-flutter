@@ -8,10 +8,12 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/density.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'chat_list_parts.dart';
 import 'chat_list_row.dart' show ChatRoomAvatar;
 import 'ios_kit.dart' show SpringPress, groupedMetaStyle;
+import 'sunlit_surface.dart' show sunlitShadows;
 import 'live_call_row.dart';
 import 'visibility_badge.dart' show ephemeralShort;
 
@@ -51,8 +53,15 @@ class RoomCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final density = Density.of(context);
-    final decoration =
+    var decoration =
         theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false);
+    // Light themes: the card lifts off the page like a grouped block. The
+    // theme's own outline and fill stay; only the shadow is added.
+    if (theme.isLight && decoration.boxShadow == null) {
+      decoration = decoration.copyWith(
+        boxShadow: sunlitShadows(theme, lift: 0.6),
+      );
+    }
     final surface = decoration.color ?? theme.surface;
     final title = chatListTitleOf(context, room, dmUser);
     final radius =

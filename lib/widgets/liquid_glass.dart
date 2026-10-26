@@ -9,6 +9,7 @@ import '../screens/navigation/native_tab_bar.dart' show NativeChrome;
 import '../theme/theme_scope.dart';
 import 'glass_reveal.dart';
 import 'spring_press.dart';
+import 'sunlit_surface.dart' show sunlitHairline;
 
 enum LiquidGlassShape { circle, capsule, rounded }
 
@@ -445,6 +446,7 @@ class LiquidGlass extends StatelessWidget {
         isLight,
         blurred,
         config: adjustable ? cfg : null,
+        edge: isLight ? sunlitHairline(theme) : null,
       );
     }
 
@@ -480,6 +482,7 @@ class LiquidGlass extends StatelessWidget {
     bool isLight,
     Widget glass, {
     GlassConfig? config,
+    Color? edge,
   }) {
     return DecoratedBox(
       decoration: ShapeDecoration(
@@ -503,6 +506,14 @@ class LiquidGlass extends StatelessWidget {
                         : (config?.of(kShadowY) ?? 4) * 1.25,
                   ),
                 ),
+                // A white pill on a near-white page needs a contact shadow
+                // as well as the ambient one, or it has no edge.
+                if (isLight && edge != null)
+                  BoxShadow(
+                    color: edge.withValues(alpha: edge.a * 1.6),
+                    blurRadius: 2.5,
+                    offset: const Offset(0, 1),
+                  ),
               ]
             : null,
       ),
@@ -512,6 +523,7 @@ class LiquidGlass extends StatelessWidget {
           light: isLight,
           opacity: config == null ? 1 : config.of(kRimOpacity) / 0.22,
           width: config?.of(kRimWidth) ?? 1,
+          edge: edge,
         ),
         child: glass,
       ),
@@ -531,12 +543,18 @@ class SpecularRim extends CustomPainter {
     required this.light,
     this.opacity = 1,
     this.width = 1,
+    this.edge,
   });
 
   final OutlinedBorder shape;
   final bool light;
   final double opacity;
   final double width;
+
+  /// Light only: the colour the rim settles to below its lit top. Without it
+  /// the light rim is white all the way round, which on a white page is no
+  /// rim at all; with it (a whisper of the theme's ink) the edge still reads.
+  final Color? edge;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -548,7 +566,9 @@ class SpecularRim extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: light
+        colors: light && edge != null
+            ? [Colors.white.withValues(alpha: 0.95), edge!, edge!]
+            : light
             ? [
                 Colors.white.withValues(alpha: 0.95),
                 Colors.white.withValues(alpha: 0.35),
@@ -559,7 +579,9 @@ class SpecularRim extends CustomPainter {
                 Colors.white.withValues(alpha: 0.06),
                 Colors.white.withValues(alpha: 0.16),
               ],
-        stops: const [0.0, 0.55, 1.0],
+        stops: light && edge != null
+            ? const [0.0, 0.3, 1.0]
+            : const [0.0, 0.55, 1.0],
       ).scale(opacity).createShader(rect);
     canvas.drawPath(shape.getOuterPath(rect.deflate(width / 2)), paint);
   }
@@ -569,5 +591,6 @@ class SpecularRim extends CustomPainter {
       old.light != light ||
       old.shape != shape ||
       old.opacity != opacity ||
-      old.width != width;
+      old.width != width ||
+      old.edge != edge;
 }

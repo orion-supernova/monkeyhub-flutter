@@ -12,6 +12,7 @@ import '../theme/theme_scope.dart';
 import 'action_buttons.dart';
 import 'glass_buttons.dart';
 import 'spring_press.dart';
+import 'sunlit_surface.dart';
 import 'teardown_safe.dart';
 import '../l10n/text_case.dart';
 
@@ -170,7 +171,7 @@ class _IosPageState extends State<IosPage> {
           if (widget.flatBackground)
             SizedBox.expand(child: ColoredBox(color: theme.background))
           else
-            theme.backgroundLayer(context),
+            const SunlitBackdrop(),
           CustomScrollView(
             controller: _scroll,
             // The bounce is what reveals the refresh spinner, so a
@@ -379,28 +380,25 @@ class GroupedSection extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
                   )
                 : GroupedHeader(header!),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(groupedRadius(theme)),
-            child: ColoredBox(
-              color: groupedFill(theme),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var i = 0; i < rows.length; i++) ...[
-                    rows[i],
-                    if (i < rows.length - 1)
-                      Padding(
-                        padding: EdgeInsets.only(
-                          left: groupedDividerInset(rows[i], density),
-                        ),
-                        child: Container(
-                          height: hairline,
-                          color: theme.ink.withValues(alpha: 0.10),
-                        ),
+          groupedBlock(
+            theme,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < rows.length; i++) ...[
+                  rows[i],
+                  if (i < rows.length - 1)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        left: groupedDividerInset(rows[i], density),
                       ),
-                  ],
+                      child: Container(
+                        height: hairline,
+                        color: theme.ink.withValues(alpha: 0.10),
+                      ),
+                    ),
                 ],
-              ),
+              ],
             ),
           ),
           if (footer != null)
@@ -509,6 +507,72 @@ double groupedDividerInset(Widget row, [Density density = Density.regular]) {
 /// Corner radius of a grouped block. iOS 26 rounds these generously; a theme
 /// with a square personality (a small [AppTheme.radiusXl]) keeps its corners.
 double groupedRadius(AppTheme theme) => theme.radiusXl.clamp(6.0, 26.0);
+
+/// The block a grouped section's rows sit in: clipped to [groupedRadius] and
+/// filled with [groupedFill]. On a light theme it is a [SunlitSurface], so
+/// the card lifts off the page (soft shadow, top light, hairline rim) where a
+/// flat white card on a near-white page has no depth; dark themes keep the
+/// flat fill, which already separates by luminance.
+Widget groupedBlock(AppTheme theme, Widget child) {
+  final radius = BorderRadius.circular(groupedRadius(theme));
+  if (theme.isLight) {
+    return SunlitSurface(
+      borderRadius: radius,
+      fill: groupedFill(theme),
+      child: child,
+    );
+  }
+  return ClipRRect(
+    borderRadius: radius,
+    child: ColoredBox(color: groupedFill(theme), child: child),
+  );
+}
+
+/// A standalone grouped card: [groupedFill] in a [groupedRadius] box with
+/// [padding] and [margin], for content that is not rows (a hero, a status
+/// block). It is the Container + BoxDecoration those screens each drew by hand;
+/// on a light theme it is a [SunlitSurface], on dark exactly the old flat box.
+/// [radiusScale] shrinks the corners for a small cell (a word chip), and
+/// [lift] the shadow with it.
+class GroupedCard extends StatelessWidget {
+  const GroupedCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.margin,
+    this.radiusScale = 1,
+    this.lift = 1,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
+  final double radiusScale;
+  final double lift;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final radius = BorderRadius.circular(groupedRadius(theme) * radiusScale);
+    final fill = groupedFill(theme);
+    if (!theme.isLight) {
+      return Container(
+        margin: margin,
+        padding: padding,
+        decoration: BoxDecoration(color: fill, borderRadius: radius),
+        child: child,
+      );
+    }
+    Widget card = SunlitSurface(
+      borderRadius: radius,
+      fill: fill,
+      lift: lift,
+      child: padding == null ? child : Padding(padding: padding!, child: child),
+    );
+    if (margin != null) card = Padding(padding: margin!, child: card);
+    return card;
+  }
+}
 
 /// Fill of a grouped block — the theme's surface, nudged so it separates from
 /// the page by luminance alone, without a border.
@@ -819,7 +883,7 @@ class _GroupedRowState extends State<GroupedRow>
           // Instant on, eased off — the table-cell highlight.
           duration: _pressed ? Duration.zero : const Duration(milliseconds: 260),
           color: _pressed
-              ? theme.ink.withValues(alpha: theme.isLight ? 0.10 : 0.14)
+              ? theme.ink.withValues(alpha: theme.isLight ? 0.07 : 0.14)
               : Colors.transparent,
           child: row,
         ),

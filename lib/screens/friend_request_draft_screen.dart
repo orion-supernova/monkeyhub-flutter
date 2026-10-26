@@ -517,13 +517,9 @@ class _Intro extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
     return SheetRise(
-      child: Container(
+      child: GroupedCard(
         margin: const EdgeInsets.symmetric(vertical: 12),
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: groupedFill(theme),
-          borderRadius: BorderRadius.circular(groupedRadius(theme)),
-        ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(
             isIncoming

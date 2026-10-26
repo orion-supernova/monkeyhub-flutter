@@ -189,6 +189,11 @@ Widget previewApp(AppTheme theme, Widget child, {Locale locale = const Locale('e
 /// Animations are not settled (several widgets loop forever); the frame is
 /// captured [settle] after the first pump — and, when [act] is given, [settle]
 /// after [act] has driven the screen into the state to capture.
+///
+/// Shadows are drawn with their real blur: flutter_test turns them into
+/// hard-edged shapes by default, which makes every soft shadow look like a
+/// stacked card. The flag goes back before this returns, as the framework's
+/// invariant check requires.
 Future<void> snap(
   WidgetTester tester,
   Widget widget,
@@ -200,6 +205,25 @@ Future<void> snap(
   Duration settle = const Duration(seconds: 2),
   Future<void> Function()? act,
 }) async {
+  debugDisableShadows = false;
+  try {
+    await _snap(tester, widget, path, size, dpr, topInset, bottomInset, settle, act);
+  } finally {
+    debugDisableShadows = true;
+  }
+}
+
+Future<void> _snap(
+  WidgetTester tester,
+  Widget widget,
+  String path,
+  Size size,
+  double dpr,
+  double topInset,
+  double bottomInset,
+  Duration settle,
+  Future<void> Function()? act,
+) async {
   tester.view.devicePixelRatio = dpr;
   tester.view.physicalSize = size * dpr;
   final pad = FakeViewPadding(top: topInset * dpr, bottom: bottomInset * dpr);

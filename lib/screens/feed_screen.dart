@@ -28,6 +28,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/feed_depth_field.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/sunlit_surface.dart' show SunlitBackdrop;
 import '../widgets/meta_text.dart';
 import '../widgets/games_strip.dart';
 import '../widgets/moment_activity.dart';
@@ -750,7 +751,7 @@ class _FeedScreenState extends State<FeedScreen>
 
     return Stack(
       children: [
-        theme.backgroundLayer(context),
+        const SunlitBackdrop(),
         // Above the themed backdrop, below the content: the field has to read
         // as light moving over Risograph's halftone and Cyberpunk's scanlines,
         // not as a replacement for them.

@@ -5,6 +5,7 @@ import '../theme/layout.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart';
+import 'sunlit_surface.dart' show SunlitBackdrop;
 import 'teardown_safe.dart';
 
 // The account-area half of the iOS vocabulary in ios_kit.dart: the Contacts /
@@ -91,7 +92,7 @@ class _HeroPageState extends State<HeroPage> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          theme.backgroundLayer(context),
+          const SunlitBackdrop(),
           CustomScrollView(
             controller: _scroll,
             slivers: [
@@ -459,26 +460,23 @@ class InsetGroup extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (header != null) GroupedHeader(header!),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(groupedRadius(theme)),
-            child: ColoredBox(
-              color: groupedFill(theme),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var i = 0; i < children.length; i++) ...[
-                    children[i],
-                    if (i < children.length - 1)
-                      Padding(
-                        padding: EdgeInsets.only(left: dividerInset),
-                        child: Container(
-                          height: hairline,
-                          color: theme.ink.withValues(alpha: 0.10),
-                        ),
+          groupedBlock(
+            theme,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < children.length; i++) ...[
+                  children[i],
+                  if (i < children.length - 1)
+                    Padding(
+                      padding: EdgeInsets.only(left: dividerInset),
+                      child: Container(
+                        height: hairline,
+                        color: theme.ink.withValues(alpha: 0.10),
                       ),
-                  ],
+                    ),
                 ],
-              ),
+              ],
             ),
           ),
           if (footer != null)

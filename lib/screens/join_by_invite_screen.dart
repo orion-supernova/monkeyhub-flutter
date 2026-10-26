@@ -518,13 +518,8 @@ class _Notice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Container(
+    return GroupedCard(
       padding: const EdgeInsets.all(20),
-      // A grouped block, no tinted outline: the glyph carries the tone.
-      decoration: BoxDecoration(
-        color: groupedFill(theme),
-        borderRadius: BorderRadius.circular(groupedRadius(theme)),
-      ),
       child: Column(
         children: [
           Icon(icon, size: 30, color: tone),

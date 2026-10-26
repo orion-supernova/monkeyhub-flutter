@@ -99,6 +99,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
       headline: l10n.acctRemoveDeviceTitle,
       body: l10n.devicesScreenRemoveBody(_label(context, device)),
       confirmLabel: l10n.acctRemove,
+      icon: CupertinoIcons.trash,
     );
     if (!go || !mounted) return;
     setState(() {
@@ -162,6 +163,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
       headline: l10n.acctRemoveAllTitle,
       body: l10n.devicesScreenRemoveAllBody,
       confirmLabel: l10n.acctRemoveAll,
+      icon: CupertinoIcons.trash,
     );
     if (!go || !mounted) return;
     setState(() {
@@ -294,12 +296,8 @@ class _HeroCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 28),
-      child: Container(
+      child: GroupedCard(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-        decoration: BoxDecoration(
-          color: groupedFill(theme),
-          borderRadius: BorderRadius.circular(groupedRadius(theme)),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
