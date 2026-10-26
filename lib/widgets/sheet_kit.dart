@@ -1,9 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../keyboard/app_shortcuts.dart';
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/density.dart';
@@ -15,7 +16,8 @@ import 'adaptive_sheet.dart';
 import 'hover_hint.dart';
 import 'labeled_field.dart';
 import 'ios_kit.dart';
-import 'teardown_safe.dart';
+import 'liquid_glass.dart' show SpecularRim;
+import 'sunlit_surface.dart' show sunlitShadows;
 import '../l10n/text_case.dart';
 
 export 'action_buttons.dart';
@@ -167,7 +169,6 @@ class SheetFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final media = MediaQuery.of(context);
     final close = showClose ?? title != null;
     final hasBar = title != null ||
@@ -176,20 +177,12 @@ class SheetFrame extends StatelessWidget {
         trash != null ||
         help != null;
     final fraction = maxHeightFraction;
-    final inset = media.viewInsets.bottom > media.padding.bottom
-        ? media.viewInsets.bottom
-        : media.padding.bottom;
+    final inset = sheetBottomInset(media);
     final foot = footer;
 
-    Widget card(double? maxHeight) => Container(
+    Widget card(double? maxHeight) => SheetPanel(
           constraints:
               maxHeight == null ? null : BoxConstraints(maxHeight: maxHeight),
-          decoration: BoxDecoration(
-            color: sheetFill(theme),
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(sheetRadius(theme)),
-            ),
-          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -258,16 +251,22 @@ class SheetFrame extends StatelessWidget {
   }
 }
 
+/// The room a sheet leaves under its last row: the keyboard when one is up, the
+/// home indicator when the sheet is attached to the bottom edge, and otherwise
+/// (a floating sheet, which has already cleared the indicator) just a small
+/// floor, so there is never a tall solid band of nothing under the content.
+double sheetBottomInset(MediaQueryData media) =>
+    media.viewInsets.bottom > media.padding.bottom
+        ? media.viewInsets.bottom
+        : math.max(media.padding.bottom, 8.0);
+
 /// A list sheet's padding: the frame's 16pt sides, and at the end room for
 /// the home indicator, inside the scroll, so the last row can scroll clear
 /// of it while every other row runs under it. Pairs with
 /// [SheetFrame.scrollsUnderInset].
 EdgeInsets sheetListPadding(BuildContext context) {
   final media = MediaQuery.of(context);
-  final inset = media.viewInsets.bottom > media.padding.bottom
-      ? media.viewInsets.bottom
-      : media.padding.bottom;
-  return EdgeInsets.fromLTRB(16, 0, 16, 20 + inset);
+  return EdgeInsets.fromLTRB(16, 0, 16, 20 + sheetBottomInset(media));
 }
 
 /// The ✓ a [SheetFrame] wears on its trailing edge. A null [onTap] draws it
@@ -589,9 +588,7 @@ class _ExpandingSheetState extends State<ExpandingSheet> {
       {required bool handle}) {
     final theme = ThemeScope.of(context);
     final media = MediaQuery.of(context);
-    final inset = media.viewInsets.bottom > media.padding.bottom
-        ? media.viewInsets.bottom
-        : media.padding.bottom;
+    final inset = sheetBottomInset(media);
     final foot = widget.footer;
     final radius = Radius.circular(sheetRadius(theme));
     Widget body = CustomScrollView(
@@ -685,6 +682,601 @@ class _GrabberHeader extends SliverPersistentHeaderDelegate {
 // [SheetActionButton], [TextLinkButton] and [RowPillButton] live in
 // action_buttons.dart and are exported below: a page and a sheet share them.
 
+// ── The dialog family ───────────────────────────────────────────────────
+//
+// The action sheet, the confirm sheet and the alert are one family, drawn
+// with the app's own light rather than a copy of the system's: a SOLID panel
+// lit from above (a soft highlight at the top, a little shade at the foot, a
+// specular rim, a soft shadow), the same recipe as the chrome disc. Raised
+// things (the Cancel capsule, the emblem) take a shadow and a rim; recessed
+// things (the group of choices) sit flat in the panel. Nothing here blurs, so
+// all of it is free on a sheet that slides.
+
+/// Radius of a row on a dialog sheet: concentric with the sheet's corner, less
+/// the 16pt it is inset by.
+double dialogRowRadius(AppTheme theme) =>
+    (sheetRadius(theme) - 16).clamp(6.0, 22.0);
+
+/// Radius of a dialog's Cancel capsule: a full capsule on every theme, like
+/// the [SheetActionButton] it sits under (the app's one button shape), even
+/// where the rows beside it take a square theme's small radius.
+const double kDialogCancelRadius = 999;
+
+/// A sheet panel: the theme's solid [sheetFill], lit from above.
+///
+/// What [SheetFrame] and `SheetSurface` paint instead of a flat colour. The
+/// highlight (white, ~170pt tall) and the shade at the foot are paint-only,
+/// drawn UNDER the content, so nothing on the sheet is dimmed by them. The
+/// route draws the rim, the hairline and the shadow outside (see
+/// `showAdaptiveSheet`).
+class SheetPanel extends StatelessWidget {
+  const SheetPanel({super.key, required this.child, this.radius, this.constraints});
+
+  final Widget child;
+
+  /// The panel's corners; the sheet's top radius when null.
+  final BorderRadius? radius;
+  final BoxConstraints? constraints;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      constraints: constraints,
+      child: CustomPaint(
+        painter: _PanelLight(
+          fill: sheetFill(theme),
+          light: theme.isLight,
+          radius: radius ??
+              BorderRadius.vertical(top: Radius.circular(sheetRadius(theme))),
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _PanelLight extends CustomPainter {
+  const _PanelLight({
+    required this.fill,
+    required this.light,
+    required this.radius,
+  });
+
+  final Color fill;
+  final bool light;
+  final BorderRadius radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = radius.toRRect(Offset.zero & size);
+    canvas.drawRRect(rrect, Paint()..color = fill);
+    canvas.save();
+    canvas.clipRRect(rrect);
+    // Sunlight from the top: white fading out over the first 170pt.
+    final lit = Rect.fromLTWH(
+      0,
+      0,
+      size.width,
+      size.height < 170 ? size.height : 170,
+    );
+    canvas.drawRect(
+      lit,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.white.withValues(alpha: light ? 0.7 : 0.075),
+            // Transparent WHITE: fading to transparent black greys the band.
+            Colors.white.withValues(alpha: 0),
+          ],
+        ).createShader(lit),
+    );
+    // The foot falls into a little shade, so the panel reads as lit, not flat.
+    final shade = Rect.fromLTWH(
+      0,
+      size.height < 120 ? 0 : size.height - 120,
+      size.width,
+      size.height < 120 ? size.height : 120,
+    );
+    canvas.drawRect(
+      shade,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black.withValues(alpha: 0),
+            Colors.black.withValues(alpha: light ? 0.04 : 0.16),
+          ],
+        ).createShader(shade),
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_PanelLight old) =>
+      old.fill != fill || old.light != light || old.radius != radius;
+}
+
+/// The shadow under a floating dialog panel (a sheet or an alert): the house
+/// shadow of [sunlitShadows] (a wide soft fall in the theme's own ink on light
+/// pages, and a tight contact line), lifted higher for a panel this big.
+List<BoxShadow> dialogShadows(AppTheme theme) =>
+    sunlitShadows(theme, lift: 1.4);
+
+/// The lit edge of a dialog panel, painted over it: a hairline that is absent
+/// at the lit top and falls into shade at the foot (light themes, where a
+/// white rim has nothing to show against), then the [SpecularRim].
+class DialogEdge extends CustomPainter {
+  const DialogEdge({required this.radius, required this.light});
+
+  final double radius;
+  final bool light;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius));
+    final rect = Offset.zero & size;
+    if (light) {
+      canvas.drawPath(
+        shape.getOuterPath(rect.deflate(0.25)),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.5
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black.withValues(alpha: 0),
+              Colors.black.withValues(alpha: 0.14),
+            ],
+            stops: const [0.2, 1],
+          ).createShader(rect),
+      );
+    }
+    SpecularRim(shape: shape, light: light).paint(canvas, size);
+  }
+
+  @override
+  bool shouldRepaint(DialogEdge old) =>
+      old.radius != radius || old.light != light;
+}
+
+/// A white highlight fading out down a surface — the sunlight on a raised
+/// control. A widget of its own because a [BoxDecoration] that has both a
+/// colour and a gradient paints only the gradient: the fill goes under this,
+/// in an outer decoration.
+class _Sheen extends StatelessWidget {
+  const _Sheen({
+    required this.alpha,
+    this.reach = 0.55,
+    this.radius,
+    this.circle = false,
+    this.child,
+  });
+
+  final double alpha;
+  final double reach;
+  final double? radius;
+  final bool circle;
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          shape: circle ? BoxShape.circle : BoxShape.rectangle,
+          borderRadius:
+              circle || radius == null ? null : BorderRadius.circular(radius!),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white.withValues(alpha: alpha),
+              Colors.white.withValues(alpha: 0),
+            ],
+            stops: [0, reach],
+          ),
+        ),
+        child: child,
+      );
+}
+
+/// A round, sunlit emblem for the top of a dialog: a pale wash of [tone] over
+/// the sheet, a highlight from above, a specular rim and a soft glow of the
+/// tone beneath, the chrome disc's recipe in a colour. The glyph is [tone].
+class DialogEmblem extends StatelessWidget {
+  const DialogEmblem({super.key, required this.icon, this.tone, this.size = 60});
+
+  final IconData icon;
+
+  /// The emblem's colour; the theme's danger when null.
+  final Color? tone;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final light = theme.isLight;
+    final color = tone ?? theme.danger;
+    return ExcludeSemantics(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: light ? 0.24 : 0.30),
+                blurRadius: 18,
+                offset: const Offset(0, 5),
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: light ? 0.06 : 0.25),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: CustomPaint(
+            foregroundPainter: SpecularRim(
+              shape: const CircleBorder(),
+              light: light,
+            ),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color.alphaBlend(
+                  color.withValues(alpha: light ? 0.14 : 0.24),
+                  light ? sheetFill(theme) : chromeDiscFill(theme),
+                ),
+              ),
+              child: _Sheen(
+                alpha: light ? 0.6 : 0.12,
+                reach: 0.6,
+                circle: true,
+                child: Center(child: Icon(icon, size: size * 0.46, color: color)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The title block of a dialog sheet: an optional [emblem], the title, what it
+/// means, and an optional [note] (a quiet tinted capsule — "this cannot be
+/// undone"). Centred; long text wraps rather than ellipsizes, and the block
+/// scrolls if a big text size would push the buttons off the screen.
+class DialogHeader extends StatelessWidget {
+  const DialogHeader({
+    super.key,
+    this.title,
+    this.message,
+    this.note,
+    this.emblem,
+  });
+
+  final String? title;
+  final String? message;
+  final String? note;
+  final Widget? emblem;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Flexible(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(8, emblem != null ? 8 : 12, 8, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (emblem != null) ...[emblem!, const SizedBox(height: 16)],
+            if (title != null)
+              Text(
+                sentenceCaseOf(context, title!),
+                textAlign: TextAlign.center,
+                style: dialogTitleStyle(theme),
+              ),
+            if (title != null && message != null) const SizedBox(height: 8),
+            if (message != null)
+              Text(
+                message!,
+                textAlign: TextAlign.center,
+                style: groupedFooterStyle(theme)
+                    .copyWith(color: theme.inkSoft, height: 1.4),
+              ),
+            if (note != null) ...[
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: theme.danger.withValues(alpha: theme.isLight ? 0.10 : 0.16),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  note!,
+                  textAlign: TextAlign.center,
+                  style: groupedMetaStyle(theme).copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.danger,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A dialog's title: 18/w700 on the theme's emphasis face, upright even on
+/// themes whose emphasis is italic.
+TextStyle dialogTitleStyle(AppTheme theme, {double size = 18}) =>
+    theme.bodyEmph.copyWith(
+      fontSize: size,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.3,
+      fontStyle: FontStyle.normal,
+      height: 1.25,
+      color: theme.ink,
+    );
+
+/// A recessed group of choices on a dialog sheet: rows on the group fill, a
+/// hairline between, no shadow — the quiet counterpart of the raised Cancel.
+class DialogGroup extends StatelessWidget {
+  const DialogGroup({super.key, required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final hairline = 1 / MediaQuery.devicePixelRatioOf(context);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(dialogRowRadius(theme)),
+      child: ColoredBox(
+        color: sheetGroupFill(theme),
+        child: _Sheen(
+          alpha: theme.isLight ? 0.35 : 0.04,
+          reach: 0.5,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < children.length; i++) ...[
+                if (i > 0)
+                  Container(
+                    height: hairline,
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    color: theme.ink.withValues(alpha: 0.10),
+                  ),
+                children[i],
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One choice on a dialog sheet. [destructive] draws it as its own tinted pill
+/// with a solid red disc for its glyph, so it reads as the weighty answer
+/// without being a bare red word; a plain one sits in a [DialogGroup].
+class DialogActionRow extends StatelessWidget {
+  const DialogActionRow({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.icon,
+    this.destructive = false,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final IconData? icon;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final light = theme.isLight;
+    final radius = dialogRowRadius(theme);
+    final text = sentenceCaseOf(context, label);
+    final tone = destructive ? theme.danger : theme.ink;
+
+    // Rows with a glyph read as a list, glyph and label from the leading
+    // edge; a bare label is centred.
+    Widget content() => Row(
+          mainAxisSize: icon == null ? MainAxisSize.min : MainAxisSize.max,
+          mainAxisAlignment:
+              icon == null ? MainAxisAlignment.center : MainAxisAlignment.start,
+          children: [
+            if (icon != null) ...[
+              _RowDisc(icon: icon!, destructive: destructive),
+              const SizedBox(width: 12),
+            ],
+            Flexible(
+              child: Text(
+                text,
+                textAlign: icon == null ? TextAlign.center : TextAlign.start,
+                style: theme.body.copyWith(
+                  fontSize: 17,
+                  fontWeight: destructive ? FontWeight.w600 : FontWeight.w500,
+                  color: tone,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ),
+          ],
+        );
+
+    return SpringPress(
+      onTap: onTap,
+      haptic: false,
+      scale: destructive ? 0.98 : 1,
+      semanticLabel: text,
+      focusRadius: radius,
+      builder: (context, pressed) {
+        final body = Container(
+          constraints: const BoxConstraints(minHeight: 56),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          alignment: Alignment.center,
+          child: content(),
+        );
+        if (!destructive) {
+          return ColoredBox(
+            color: pressed
+                ? theme.ink.withValues(alpha: light ? 0.07 : 0.10)
+                : Colors.transparent,
+            child: body,
+          );
+        }
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius),
+            color: Color.alphaBlend(
+              theme.danger.withValues(
+                alpha: (light ? 0.10 : 0.17) + (pressed ? 0.07 : 0),
+              ),
+              sheetFill(theme),
+            ),
+            border: Border.all(
+              color: theme.danger.withValues(alpha: light ? 0.16 : 0.26),
+              width: 0.75,
+            ),
+          ),
+          child: _Sheen(alpha: light ? 0.5 : 0.07, radius: radius, child: body),
+        );
+      },
+    );
+  }
+}
+
+/// The glyph disc of a [DialogActionRow]: solid, lit red for a destructive
+/// one (white glyph), a soft ink wash for a plain one.
+class _RowDisc extends StatelessWidget {
+  const _RowDisc({required this.icon, required this.destructive});
+  final IconData icon;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final light = theme.isLight;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: destructive ? theme.danger : theme.ink.withValues(alpha: 0.08),
+        boxShadow: destructive
+            ? [
+                BoxShadow(
+                  color: theme.danger.withValues(alpha: light ? 0.30 : 0.35),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: _Sheen(
+        alpha: destructive ? 0.28 : 0,
+        reach: 0.7,
+        circle: true,
+        child: SizedBox(
+          width: 32,
+          height: 32,
+          child: Icon(
+            icon,
+            size: 17,
+            color: destructive ? Colors.white : theme.ink,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A dialog's way out: a raised capsule of its own, the chrome disc's recipe
+/// stretched wide (its fill, a top highlight, the specular rim, a soft shadow),
+/// below and apart from the choices. Autofocused by the sheets that carry one,
+/// so Enter on a freshly opened destructive dialog backs out.
+class DialogCancelButton extends StatelessWidget {
+  const DialogCancelButton({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.autofocus = false,
+    this.minHeight = 54,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final bool autofocus;
+  final double minHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final light = theme.isLight;
+    const radius = kDialogCancelRadius;
+    final text = sentenceCaseOf(context, label);
+    return SpringPress(
+      onTap: onTap,
+      haptic: false,
+      scale: 0.97,
+      autofocus: autofocus,
+      semanticLabel: text,
+      focusRadius: radius,
+      builder: (context, pressed) => DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radius),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: light ? 0.10 : 0.30),
+              blurRadius: light ? 10 : 12,
+              offset: Offset(0, light ? 1 : 3),
+            ),
+          ],
+        ),
+        child: CustomPaint(
+          foregroundPainter:
+              SpecularRim(shape: const StadiumBorder(), light: light),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius),
+              color: pressed
+                  ? Color.alphaBlend(
+                      Colors.white.withValues(alpha: light ? 0.18 : 0.06),
+                      chromeDiscFill(theme),
+                    )
+                  : chromeDiscFill(theme),
+            ),
+            child: _Sheen(
+              alpha: light ? 0.35 : 0.08,
+              radius: radius,
+              child: Container(
+                constraints: BoxConstraints(minHeight: minHeight),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                alignment: Alignment.center,
+                child: Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  style: actionButtonLabelStyle(theme).copyWith(color: theme.ink),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// One button in an [showIosActionSheet].
 class IosSheetAction<T> {
   const IosSheetAction({
@@ -700,16 +1292,21 @@ class IosSheetAction<T> {
   final IconData? icon;
 }
 
-/// The action sheet, Signal iOS 26 style: the same floating inset card every
-/// sheet is, holding an optional title and message, then STACKED full-width
-/// capsule buttons 10pt apart, Cancel the last of them. Returns the chosen
-/// action's value, or null for Cancel / dismissal.
+/// The action sheet: the floating card every sheet is, holding an optional
+/// title and message, then the choices, then Cancel on a capsule of its own.
+/// Plain choices share one recessed group; a [IosSheetAction.destructive] one
+/// is its own tinted pill. Returns the chosen action's value, or null for
+/// Cancel / dismissal.
+///
+/// [icon] puts a sunlit emblem over the title (see [DialogEmblem]), tinted
+/// danger when any action is destructive and accent otherwise.
 Future<T?> showIosActionSheet<T>(
   BuildContext context, {
   String? title,
   String? message,
   required List<IosSheetAction<T>> actions,
   String? cancelLabel,
+  IconData? icon,
 }) {
   // Opens silently: the weight belongs to the destructive answer, which
   // lands a heavy impact (see `app_haptics_test.dart`).
@@ -720,6 +1317,7 @@ Future<T?> showIosActionSheet<T>(
       message: message,
       actions: actions,
       cancelLabel: cancelLabel,
+      icon: icon,
     ),
   );
 }
@@ -730,12 +1328,14 @@ class _IosActionSheet<T> extends StatelessWidget {
     required this.message,
     required this.actions,
     required this.cancelLabel,
+    required this.icon,
   });
 
   final String? title;
   final String? message;
   final List<IosSheetAction<T>> actions;
   final String? cancelLabel;
+  final IconData? icon;
 
   static const double _gap = 10;
 
@@ -745,8 +1345,37 @@ class _IosActionSheet<T> extends StatelessWidget {
     final cancel = cancelLabel ??
         AppLocalizations.of(context).destructiveSheetCancelButtonLabel;
 
-    return ColoredBox(
-      color: sheetFill(theme),
+    Widget row(IosSheetAction<T> a) => DialogActionRow(
+          label: a.label,
+          icon: a.icon,
+          destructive: a.destructive,
+          onTap: () {
+            if (a.destructive) HapticFeedback.heavyImpact();
+            Navigator.of(context).pop(a.value);
+          },
+        );
+
+    // Consecutive plain choices share a group; a destructive one stands alone.
+    final blocks = <Widget>[];
+    var plain = <Widget>[];
+    void flush() {
+      if (plain.isEmpty) return;
+      blocks.add(DialogGroup(children: plain));
+      plain = [];
+    }
+
+    for (final a in actions) {
+      if (a.destructive) {
+        flush();
+        blocks.add(row(a));
+      } else {
+        plain.add(row(a));
+      }
+    }
+    flush();
+
+    final anyDestructive = actions.any((a) => a.destructive);
+    return SheetPanel(
       child: Material(
         type: MaterialType.transparency,
         child: Padding(
@@ -756,145 +1385,27 @@ class _IosActionSheet<T> extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SheetHandle(),
-              if (title != null || message != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 14, 8, 18),
-                  child: Column(
-                    children: [
-                      if (title != null)
-                        Text(
-                          sentenceCaseOf(context, title!),
-                          textAlign: TextAlign.center,
-                          // The body face, never the caption slot: on a
-                          // character theme that is tracked mono, and the
-                          // question read as terminal output.
-                          style: groupedMetaStyle(theme).copyWith(
-                            fontWeight: FontWeight.w600,
-                            height: 1.3,
-                          ),
+              if (title != null || message != null || icon != null)
+                DialogHeader(
+                  title: title,
+                  message: message,
+                  emblem: icon == null
+                      ? null
+                      : DialogEmblem(
+                          icon: icon!,
+                          tone: anyDestructive ? theme.danger : theme.accent,
                         ),
-                      if (title != null && message != null)
-                        const SizedBox(height: 4),
-                      if (message != null)
-                        Text(
-                          message!,
-                          textAlign: TextAlign.center,
-                          style: groupedMetaStyle(theme).copyWith(height: 1.35),
-                        ),
-                    ],
-                  ),
                 )
               else
                 const SizedBox(height: 10),
-              for (final a in actions) ...[
-                _ActionSheetButton(
-                  label: a.label,
-                  destructive: a.destructive,
-                  bold: false,
-                  icon: a.icon,
-                  autofocus: false,
-                  onTap: () {
-                    if (a.destructive) HapticFeedback.heavyImpact();
-                    Navigator.of(context).pop(a.value);
-                  },
-                ),
-                const SizedBox(height: _gap),
-              ],
+              for (final b in blocks) ...[b, const SizedBox(height: _gap)],
+              const SizedBox(height: 6),
               // Autofocused so Enter on a freshly opened destructive sheet
               // cancels rather than destroys: the desktop convention.
-              _ActionSheetButton(
+              DialogCancelButton(
                 label: cancel,
-                destructive: false,
-                bold: true,
-                icon: null,
                 autofocus: true,
                 onTap: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// One capsule of the action sheet: 50pt, full width, ink at 10% (18% while
-/// pressed), the label in ink or, destructive, the theme's danger.
-class _ActionSheetButton extends StatefulWidget {
-  const _ActionSheetButton({
-    required this.label,
-    required this.onTap,
-    required this.destructive,
-    required this.bold,
-    required this.icon,
-    required this.autofocus,
-  });
-
-  final String label;
-  final VoidCallback onTap;
-  final bool destructive;
-  final bool bold;
-  final IconData? icon;
-  final bool autofocus;
-
-  @override
-  State<_ActionSheetButton> createState() => _ActionSheetButtonState();
-}
-
-class _ActionSheetButtonState extends State<_ActionSheetButton>
-    with TeardownSafe<_ActionSheetButton> {
-  bool _down = false;
-
-  void _set(bool v) {
-    if (_down != v) setState(() => _down = v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final color = widget.destructive ? theme.danger : theme.ink;
-    return FocusableTap(
-      onTap: widget.onTap,
-      autofocus: widget.autofocus,
-      semanticLabel: widget.label,
-      hover: HoverEffect.tint,
-      hoverRadius: 25,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => _set(true),
-        onTapUp: (_) => _set(false),
-        onTapCancel: () => _set(false),
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: _down ? Duration.zero : const Duration(milliseconds: 240),
-          decoration: BoxDecoration(
-            color: theme.ink.withValues(alpha: _down ? 0.18 : 0.10),
-            borderRadius: BorderRadius.circular(25),
-          ),
-          constraints: const BoxConstraints(minHeight: 50),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          alignment: Alignment.center,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (widget.icon != null) ...[
-                Icon(widget.icon, size: 20, color: color),
-                const SizedBox(width: 10),
-              ],
-              Flexible(
-                child: Text(
-                  sentenceCaseOf(context, widget.label),
-                  textAlign: TextAlign.center,
-                  style: theme.body.copyWith(
-                    fontSize: 17,
-                    fontWeight:
-                        widget.bold || widget.destructive
-                            ? FontWeight.w600
-                            : FontWeight.w500,
-                    color: color,
-                    letterSpacing: -0.2,
-                  ),
-                ),
               ),
             ],
           ),
@@ -1048,7 +1559,9 @@ class IosAlertField {
 /// `CupertinoAlertDialog`, which ignore the theme entirely. Buttons are the
 /// app's capsules: side by side when two labels fit, stacked otherwise (and
 /// always stacked for three or more), so a long Turkish label never
-/// truncates.
+/// truncates. The panel is the action sheet's own — solid, lit from above,
+/// rimmed and shadowed — and the way out is the same raised capsule.
+/// [icon] puts a sunlit emblem over the title (see [DialogEmblem]).
 ///
 /// Prefer [showIosActionSheet] for a choice between actions and for
 /// destructive confirmations; an alert is for a blocking question or a
@@ -1060,6 +1573,7 @@ Future<T?> showIosAlert<T>(
   String? message,
   required List<IosAlertAction<T>> actions,
   IosAlertField? field,
+  IconData? icon,
 }) {
   final calm = MotionScope.of(context).calm;
   final dismissible = actions.any((a) => a.cancel);
@@ -1076,6 +1590,7 @@ Future<T?> showIosAlert<T>(
       message: message,
       actions: actions,
       field: field,
+      icon: icon,
     ),
     // Arrives from 112% (a spring's soft settle, clamped for the fade) and
     // leaves to 92%. A solid card: nothing here blurs, so scaling is free.
@@ -1126,12 +1641,14 @@ class _IosAlert<T> extends StatelessWidget {
     required this.message,
     required this.actions,
     required this.field,
+    required this.icon,
   });
 
   final String? title;
   final String? message;
   final List<IosAlertAction<T>> actions;
   final IosAlertField? field;
+  final IconData? icon;
 
   static const _gap = 8.0;
 
@@ -1149,16 +1666,23 @@ class _IosAlert<T> extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final media = MediaQuery.of(context);
     final width = (media.size.width - 48).clamp(0.0, 300.0);
+    final radius = (theme.radiusXl * 1.4).clamp(10.0, 30.0);
     final f = field;
 
-    Widget button(IosAlertAction<T> a) => SheetActionButton(
-          label: a.label,
-          onTap: () => Navigator.of(context).pop(a.value),
-          tonal: !_filled(a),
-          destructive: a.destructive,
-          autofocus: a.cancel && f == null,
-          minHeight: 46,
-        );
+    Widget button(IosAlertAction<T> a) => a.cancel
+        ? DialogCancelButton(
+            label: a.label,
+            onTap: () => Navigator.of(context).pop(a.value),
+            autofocus: f == null,
+            minHeight: 46,
+          )
+        : SheetActionButton(
+            label: a.label,
+            onTap: () => Navigator.of(context).pop(a.value),
+            tonal: !_filled(a),
+            destructive: a.destructive,
+            minHeight: 46,
+          );
 
     final buttons = LayoutBuilder(
       builder: (context, box) {
@@ -1216,51 +1740,69 @@ class _IosAlert<T> extends StatelessWidget {
           width: width,
           child: Material(
             type: MaterialType.transparency,
-            child: Container(
+            child: DecoratedBox(
               decoration: BoxDecoration(
-                color: sheetFill(theme),
-                borderRadius: BorderRadius.circular(
-                  (theme.radiusXl * 1.4).clamp(10.0, 30.0),
-                ),
+                borderRadius: BorderRadius.circular(radius),
+                boxShadow: dialogShadows(theme),
               ),
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (title != null)
-                      Text(
-                        sentenceCaseOf(context, title!),
-                        textAlign: TextAlign.center,
-                        style: groupedHeaderStyle(theme),
+              child: CustomPaint(
+                foregroundPainter: DialogEdge(radius: radius, light: theme.isLight),
+                child: SheetPanel(
+                  radius: BorderRadius.circular(radius),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (icon != null) ...[
+                            Center(
+                              child: DialogEmblem(
+                                icon: icon!,
+                                size: 52,
+                                tone: actions.any((a) => a.destructive)
+                                    ? theme.danger
+                                    : theme.accent,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                          ],
+                          if (title != null)
+                            Text(
+                              sentenceCaseOf(context, title!),
+                              textAlign: TextAlign.center,
+                              style: dialogTitleStyle(theme, size: 17),
+                            ),
+                          if (title != null && message != null)
+                            const SizedBox(height: 6),
+                          if (message != null)
+                            Text(
+                              message!,
+                              textAlign: TextAlign.center,
+                              style: groupedFooterStyle(theme)
+                                  .copyWith(color: theme.inkSoft, height: 1.4),
+                            ),
+                          if (f != null) ...[
+                            const SizedBox(height: 16),
+                            SheetTextField(
+                              controller: f.controller,
+                              hint: f.hint,
+                              obscure: f.obscure,
+                              keyboardType: f.keyboardType,
+                              textCapitalization: f.textCapitalization,
+                              maxLength: f.maxLength,
+                              autofocus: true,
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) => _submit(context),
+                            ),
+                          ],
+                          const SizedBox(height: 22),
+                          buttons,
+                        ],
                       ),
-                    if (title != null && message != null)
-                      const SizedBox(height: 6),
-                    if (message != null)
-                      Text(
-                        message!,
-                        textAlign: TextAlign.center,
-                        style: groupedFooterStyle(theme)
-                            .copyWith(color: theme.inkSoft),
-                      ),
-                    if (f != null) ...[
-                      const SizedBox(height: 16),
-                      SheetTextField(
-                        controller: f.controller,
-                        hint: f.hint,
-                        obscure: f.obscure,
-                        keyboardType: f.keyboardType,
-                        textCapitalization: f.textCapitalization,
-                        maxLength: f.maxLength,
-                        autofocus: true,
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => _submit(context),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-                    buttons,
-                  ],
+                    ),
+                  ),
                 ),
               ),
             ),

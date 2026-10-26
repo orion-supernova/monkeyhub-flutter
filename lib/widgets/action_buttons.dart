@@ -6,6 +6,7 @@ import '../l10n/text_case.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import 'liquid_glass.dart' show SpecularRim;
 import 'spring_press.dart';
 
 // THE buttons. One primary/secondary shape, one text action, one inline row
@@ -120,6 +121,8 @@ class SheetActionButton extends StatelessWidget {
     }
     final style = actionButtonLabelStyle(theme).copyWith(color: ink);
     final text = sentenceCaseOf(context, label);
+    // A solid, live capsule — the one that takes a rim and a shadow.
+    final solid = enabled && !tonal;
 
     final content = Row(
       mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
@@ -145,33 +148,78 @@ class SheetActionButton extends StatelessWidget {
       focusRadius: 999,
       child: AnimatedContainer(
         duration: theme.motionFast,
-        constraints: BoxConstraints(minHeight: minHeight),
-        padding: const EdgeInsets.symmetric(
-          horizontal: kActionButtonHPad,
-          vertical: 12,
-        ),
-        alignment: expand ? Alignment.center : null,
         decoration: BoxDecoration(
           color: fill,
           borderRadius: BorderRadius.circular(999),
-        ),
-        // The label stays laid out (invisible) under the spinner, so the
-        // capsule keeps its width and height while busy.
-        child: busy
-            ? Stack(
-                alignment: Alignment.center,
-                children: [
-                  Visibility(
-                    visible: false,
-                    maintainSize: true,
-                    maintainAnimation: true,
-                    maintainState: true,
-                    child: content,
+          // A solid capsule sits on a soft fall of its own colour, the way the
+          // chrome disc sits on its shadow; a tonal or disabled one is flat.
+          boxShadow: solid
+              ? [
+                  BoxShadow(
+                    color: fill.withValues(alpha: theme.isLight ? 0.30 : 0.34),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
-                  CupertinoActivityIndicator(color: ink),
+                ]
+              : const [],
+        ),
+        child: CustomPaint(
+          // The lit edge, on a solid capsule only.
+          foregroundPainter: solid
+              ? SpecularRim(
+                  shape: const StadiumBorder(),
+                  light: theme.isLight,
+                  opacity: 0.6,
+                )
+              : null,
+          // Sunlight from above, under the label: a fill and a gradient cannot
+          // share a decoration (the gradient wins), so it is a layer of its own.
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white.withValues(
+                    alpha: !enabled
+                        ? 0
+                        : solid
+                            ? (theme.isLight ? 0.20 : 0.14)
+                            : (theme.isLight ? 0.30 : 0.05),
+                  ),
+                  Colors.white.withValues(alpha: 0),
                 ],
-              )
-            : content,
+                stops: const [0, 0.6],
+              ),
+            ),
+            child: Container(
+              constraints: BoxConstraints(minHeight: minHeight),
+              padding: const EdgeInsets.symmetric(
+                horizontal: kActionButtonHPad,
+                vertical: 12,
+              ),
+              alignment: expand ? Alignment.center : null,
+              // The label stays laid out (invisible) under the spinner, so the
+              // capsule keeps its width and height while busy.
+              child: busy
+                  ? Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Visibility(
+                          visible: false,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: content,
+                        ),
+                        CupertinoActivityIndicator(color: ink),
+                      ],
+                    )
+                  : content,
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/theme_scope.dart';
-import 'sheet_kit.dart' show SheetHandle, sheetRadius;
+import 'sheet_kit.dart' show SheetHandle, SheetPanel, sheetRadius;
 
 /// The panel every group-administration sheet is drawn on.
 ///
@@ -33,6 +33,10 @@ import 'sheet_kit.dart' show SheetHandle, sheetRadius;
 ///    rather than a choice. Consistency was the premium answer; novelty was
 ///    not.
 ///
+/// The surface is still SOLID, but no longer flat: it is a `SheetPanel` (a soft
+/// highlight at the top, a little shade at the foot), and the route draws the
+/// rim and the shadow around it, so a light sheet has depth too.
+///
 /// What this widget is actually for is the thing that stayed true throughout:
 /// **`showAdaptiveSheet` passes `backgroundColor: Colors.transparent`**, so
 /// painting the surface is the CONTENT's job. All four sheets forgot, and
@@ -58,62 +62,63 @@ class SheetSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final media = MediaQuery.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.surface,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(sheetRadius(theme))),
-      ),
-      // NO bottom inset on the panel itself — it runs to the screen edge.
-      //
-      // Adding the home-indicator inset here padded the SURFACE, which lifted
-      // the whole sheet off the bottom of the screen and left a band of
-      // scrim under it. A bottom sheet is supposed to be attached; the
-      // indicator is cleared by padding the CONTENT instead, below, so the
-      // panel touches the edge and the last row still sits above the
-      // indicator.
-      padding: padding.copyWith(bottom: 0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // The grabber stays put; only the content below it scrolls. A handle
-          // that scrolls away is a handle you cannot reach to drag the sheet
-          // shut.
-          const Padding(
-            padding: EdgeInsets.only(bottom: 8),
-            child: SheetHandle(),
-          ),
-          // Flexible, not Expanded: the sheet still shrink-wraps short content
-          // (a four-row member menu should not become full height), and only
-          // starts scrolling once it would otherwise run off the screen.
-          //
-          // The invite sheet is the one that forced this — QR, code, two rows
-          // of limit chips, two switches and three buttons overflowed on a
-          // phone, and because nothing scrolled the regenerate and revoke
-          // actions at the bottom were simply unreachable.
-          Flexible(
-            child: SingleChildScrollView(
-              // Always draggable, even when the content fits, so a pull
-              // from anywhere on the panel closes it. Not bouncing: the
-              // sheet's pull physics come from the host as this one's
-              // parent, and a bounce never hands them the drag (see
-              // sheet_drag.dart).
-              physics: const AlwaysScrollableScrollPhysics(),
-              // The breathing room lives HERE, inside the scroller: the
-              // panel's own padding, the home indicator, and the keyboard when
-              // one is up. `isScrollControlled` sheets are not moved by the
-              // IME on their own, so without the last term a field scrolls
-              // under the keyboard with no way to reach it.
-              padding: EdgeInsets.only(
-                bottom: padding.bottom +
-                    media.padding.bottom +
-                    media.viewInsets.bottom,
-              ),
-              child: child,
+    // The panel is lit from above (see [SheetPanel]): the same solid fill, with
+    // a soft highlight at the top and a little shade at the foot. Still no
+    // blur — the route draws the rim and the shadow around it.
+    return SheetPanel(
+      radius: BorderRadius.vertical(top: Radius.circular(sheetRadius(theme))),
+      child: Padding(
+        // NO bottom inset on the panel itself — it runs to the screen edge.
+        //
+        // Adding the home-indicator inset here padded the SURFACE, which lifted
+        // the whole sheet off the bottom of the screen and left a band of
+        // scrim under it. A bottom sheet is supposed to be attached; the
+        // indicator is cleared by padding the CONTENT instead, below, so the
+        // panel touches the edge and the last row still sits above the
+        // indicator.
+        padding: padding.copyWith(bottom: 0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // The grabber stays put; only the content below it scrolls. A handle
+            // that scrolls away is a handle you cannot reach to drag the sheet
+            // shut.
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: SheetHandle(),
             ),
-          ),
-        ],
+            // Flexible, not Expanded: the sheet still shrink-wraps short content
+            // (a four-row member menu should not become full height), and only
+            // starts scrolling once it would otherwise run off the screen.
+            //
+            // The invite sheet is the one that forced this — QR, code, two rows
+            // of limit chips, two switches and three buttons overflowed on a
+            // phone, and because nothing scrolled the regenerate and revoke
+            // actions at the bottom were simply unreachable.
+            Flexible(
+              child: SingleChildScrollView(
+                // Always draggable, even when the content fits, so a pull
+                // from anywhere on the panel closes it. Not bouncing: the
+                // sheet's pull physics come from the host as this one's
+                // parent, and a bounce never hands them the drag (see
+                // sheet_drag.dart).
+                physics: const AlwaysScrollableScrollPhysics(),
+                // The breathing room lives HERE, inside the scroller: the
+                // panel's own padding, the home indicator, and the keyboard when
+                // one is up. `isScrollControlled` sheets are not moved by the
+                // IME on their own, so without the last term a field scrolls
+                // under the keyboard with no way to reach it.
+                padding: EdgeInsets.only(
+                  bottom: padding.bottom +
+                      media.padding.bottom +
+                      media.viewInsets.bottom,
+                ),
+                child: child,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

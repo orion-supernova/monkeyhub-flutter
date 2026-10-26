@@ -9,7 +9,7 @@ import '../theme/theme_scope.dart';
 import 'glass_reveal.dart';
 import 'glass_surface.dart';
 import 'sheet_drag.dart';
-import 'sheet_kit.dart' show sheetRadius;
+import 'sheet_kit.dart' show DialogEdge, dialogShadows, sheetRadius;
 
 /// Presents modal content adaptively: a bottom sheet on compact (phone)
 /// windows, a floating desktop popover on wider (desktop/web) windows — where
@@ -145,7 +145,8 @@ Future<T?> showAdaptiveSheet<T>(
 const double kSheetInset = 8;
 
 /// How far above the screen's bottom edge a floating sheet rests: it hugs the
-/// home indicator the way iOS 26's do, 26pt of it sits INSIDE the sheet.
+/// home indicator the way iOS 26's do. The card's content ends on its own
+/// bottom padding, clear of the indicator, with no extra inset inside it.
 double sheetBottomLift(double safeBottom) =>
     math.max(kSheetInset, safeBottom - 26);
 
@@ -213,43 +214,36 @@ class _FloatingSheetRoute<T> extends PopupRoute<T> {
 
     // What the sheet's content sees: the top inset is spent (the route placed
     // the sheet below it), and the bottom insets are what is LEFT after the
-    // sheet's own lift. The home indicator's 34pt becomes 8pt of lift + 26pt
-    // of padding inside the card, and a keyboard's height loses the lift too,
+    // sheet's own lift. The home indicator is spent too: the card floats above
+    // it and its content ends on its own padding, so no solid band of dead
+    // space is left under the last button. A keyboard's height loses the lift,
     // so nothing inside double-counts a gap the route already left.
     double less(double v) => math.max(0.0, v - lift);
     final contentMedia = media.copyWith(
-      padding: media.padding.copyWith(
-        top: 0,
-        bottom: less(media.padding.bottom),
-      ),
-      viewPadding: media.viewPadding.copyWith(
-        top: 0,
-        bottom: less(media.viewPadding.bottom),
-      ),
+      padding: media.padding.copyWith(top: 0, bottom: 0),
+      viewPadding: media.viewPadding.copyWith(top: 0, bottom: 0),
       viewInsets: media.viewInsets.copyWith(
         bottom: less(media.viewInsets.bottom),
       ),
     );
 
+    // The panel's depth lives out here, where the clip is: a soft shadow, and
+    // the lit edge painted over the content (see [DialogEdge]). The fill and
+    // its sunlight are the content's own (`SheetPanel`), solid, so nothing
+    // blurs while the sheet slides.
     Widget panel() => DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
-        // A light page has nothing dark behind the card to lift it off.
-        boxShadow: theme.isLight
-            ? const [
-                BoxShadow(
-                  color: Color(0x1A000000),
-                  blurRadius: 28,
-                  offset: Offset(0, 6),
-                ),
-              ]
-            : null,
+        boxShadow: dialogShadows(theme),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: Material(
-          color: backgroundColor,
-          child: Builder(builder: builder),
+      child: CustomPaint(
+        foregroundPainter: DialogEdge(radius: radius, light: theme.isLight),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: Material(
+            color: backgroundColor,
+            child: Builder(builder: builder),
+          ),
         ),
       ),
     );

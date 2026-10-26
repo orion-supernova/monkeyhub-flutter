@@ -1,11 +1,13 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'adaptive_sheet.dart';
 import 'ios_kit.dart';
 import 'remote_image.dart';
 import 'sheet_kit.dart';
@@ -39,27 +41,102 @@ class SheetGrabber extends StatelessWidget {
 /// a blast radius worth listing, prefer a purpose-built sheet like
 /// `showRemoveContactSheet` that actually names what dies.
 ///
-/// Returns true only if the destructive option was tapped.
+/// A sunlit emblem over the headline ([icon], a warning triangle by default),
+/// what it means, the answer as a solid capsule and Cancel on a raised one of
+/// its own. [destructive] false is for a question that does not destroy
+/// anything (a permission prompt): an accent emblem and button, and no
+/// "cannot be undone".
+///
+/// Returns true only if the confirm button was tapped.
 Future<bool> showConfirmSheet(
   BuildContext context, {
   required String headline,
   required String body,
   required String confirmLabel,
+  IconData? icon,
+  bool destructive = true,
 }) async {
-  // The iOS action sheet: the question as a quiet title, what it means
-  // underneath, the destructive answer in red and Cancel on its own below.
-  final res = await showIosActionSheet<bool>(
+  final res = await showAdaptiveSheet<bool>(
     context,
-    title: headline,
-    message: '$body\n${sentenceCaseOf(
-      context,
-      AppLocalizations.of(context).destructiveSheetCannotBeUndone,
-    )}',
-    actions: [
-      IosSheetAction(label: confirmLabel, value: true, destructive: true),
-    ],
+    builder: (ctx) => _ConfirmSheet(
+      headline: headline,
+      body: body,
+      confirmLabel: confirmLabel,
+      icon: icon ??
+          (destructive
+              ? CupertinoIcons.exclamationmark_triangle_fill
+              : CupertinoIcons.info_circle_fill),
+      destructive: destructive,
+    ),
   );
   return res ?? false;
+}
+
+class _ConfirmSheet extends StatelessWidget {
+  const _ConfirmSheet({
+    required this.headline,
+    required this.body,
+    required this.confirmLabel,
+    required this.icon,
+    required this.destructive,
+  });
+
+  final String headline;
+  final String body;
+  final String confirmLabel;
+  final IconData icon;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return SheetPanel(
+      child: Material(
+        type: MaterialType.transparency,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SheetHandle(),
+              DialogHeader(
+                emblem: DialogEmblem(
+                  icon: icon,
+                  tone: destructive ? theme.danger : theme.accent,
+                ),
+                title: headline,
+                message: body,
+                note: destructive
+                    ? sentenceCaseOf(context, l10n.destructiveSheetCannotBeUndone)
+                    : null,
+              ),
+              // The weight lands on the answer: a heavy impact for one that
+              // destroys, none for backing out.
+              SheetActionButton(
+                label: confirmLabel,
+                destructive: destructive,
+                haptic: false,
+                onTap: () {
+                  if (destructive) HapticFeedback.heavyImpact();
+                  Navigator.of(context).pop(true);
+                },
+              ),
+              const SizedBox(height: 10),
+              // Autofocused so Enter on a freshly opened sheet backs out
+              // rather than destroys: the desktop convention.
+              DialogCancelButton(
+                label: l10n.destructiveSheetCancelButtonLabel,
+                autofocus: true,
+                onTap: () => Navigator.of(context).pop(false),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// One tappable outcome in a destructive sheet: an icon, a title, and a line

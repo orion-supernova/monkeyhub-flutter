@@ -3253,6 +3253,7 @@ class _RoomScreenState extends State<_RoomView>
           headline: l10n.locationPermissionBlockedTitle,
           body: l10n.locationPermissionBlockedBody,
           confirmLabel: l10n.locationOpenSettings,
+          destructive: false,
         );
         if (go) await LocationService.instance.openAppSettings();
         return false;
@@ -3262,6 +3263,7 @@ class _RoomScreenState extends State<_RoomView>
           headline: l10n.locationServicesOffTitle,
           body: l10n.locationServicesOffBody,
           confirmLabel: l10n.locationOpenSettings,
+          destructive: false,
         );
         if (go) await LocationService.instance.openLocationSettings();
         return false;

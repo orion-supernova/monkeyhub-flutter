@@ -54,6 +54,7 @@ class PeoplePicker extends StatefulWidget {
     this.remoteHeader,
     this.leading = const [],
     this.minQueryForRemote = 2,
+    this.bottomPadding = 0,
   });
 
   /// Everyone selectable without a network call. Held by the host.
@@ -71,6 +72,10 @@ class PeoplePicker extends StatefulWidget {
   final String noMatchLabel;
 
   final bool autofocus;
+
+  /// Room after the last row, inside the scroller, so the list runs to the
+  /// edge of a floating sheet and the last person can still scroll clear.
+  final double bottomPadding;
 
   /// Rows drawn above the people, INSIDE the scroller.
   ///
@@ -255,7 +260,7 @@ class _PeoplePickerState extends State<PeoplePicker> {
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
-            padding: EdgeInsets.zero,
+            padding: EdgeInsets.only(bottom: widget.bottomPadding),
             itemCount: rows.length + (_searching ? 1 : 0),
             itemBuilder: (_, i) {
               if (i == rows.length) return const _Searching();

@@ -122,8 +122,12 @@ class _NewChatMenuState extends State<_NewChatMenu> {
     return SheetFrame(
       title: l10n.newChatMenuTitle,
       maxHeightFraction: 0.92,
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      // The friends run to the card's edge and scroll clear of it, instead of
+      // stopping at a padded line with a solid band of nothing under them.
+      scrollsUnderInset: true,
       child: PeoplePicker(
+        bottomPadding: 16 + sheetBottomInset(MediaQuery.of(context)),
         people: friends,
         api: widget.api,
         // Never autofocused. The sheet opens onto a list you can just tap;

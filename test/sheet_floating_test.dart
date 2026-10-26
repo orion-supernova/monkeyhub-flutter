@@ -74,11 +74,11 @@ void main() {
     expect(r.height, 300);
   });
 
-  testWidgets('content sees only the home-indicator inset left over', (
+  testWidgets('content sees no home-indicator inset: the card floats clear', (
     tester,
   ) async {
     await open(tester);
-    expect(MediaQuery.of(sheetBody).padding.bottom, 26);
+    expect(MediaQuery.of(sheetBody).padding.bottom, 0);
     expect(MediaQuery.of(sheetBody).padding.top, 0);
   });
 

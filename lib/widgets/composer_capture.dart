@@ -3345,6 +3345,7 @@ Future<void> showCaptureProblem(
         headline: camera ? l10n.composerCaptureCameraPermissionTitle : l10n.composerCaptureMicPermissionTitle,
         body: camera ? l10n.composerCaptureCameraPermissionBody : l10n.composerCaptureMicPermissionBody,
         confirmLabel: l10n.composerCaptureOpenSettingsLabel,
+        destructive: false,
       );
       if (!go) return;
       await CapturePermissions.openSettings();

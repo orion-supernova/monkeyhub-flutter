@@ -138,6 +138,7 @@ class CallPermissions {
           : 'MonkeyHub needs your microphone to place a call. Turn it on in '
               'Settings and try again.',
       confirmLabel: 'Open Settings',
+      destructive: false,
     );
     if (!go) return;
     try {
