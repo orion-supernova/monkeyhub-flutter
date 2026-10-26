@@ -95,6 +95,8 @@ class SettingsSearchField extends StatelessWidget {
         // Top of a tab, so the iOS Cancel: it clears, puts the keyboard
         // away and brings the hub back.
         showCancel: true,
+        // iOS Settings.app's 36pt capsule; Chats' search stays 44.
+        compact: true,
       );
 }
 

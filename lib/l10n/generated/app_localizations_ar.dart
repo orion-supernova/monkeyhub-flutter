@@ -7126,7 +7126,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deviceLoginScreenIntro =>
-      'افتح MonkeyHub على هاتفك، وانتقل إلى ملفك الشخصي، واضغط «امسح لتسجيل الدخول» ثم وجّه الكاميرا إلى هنا، أو اكتب الرمز أدناه.';
+      'افتح MonkeyHub على هاتفك، وانتقل إلى الإعدادات ثم الأجهزة، واضغط «ربط جهاز جديد» ثم وجّه الكاميرا إلى هنا، أو اكتب الرمز أدناه.';
 
   @override
   String get deviceLoginScreenWaiting => 'بانتظار الموافقة…';
@@ -14559,56 +14559,56 @@ class AppLocalizationsAr extends AppLocalizations {
   String get profileDeletedAccount => 'حساب محذوف';
 
   @override
-  String get devicesHeroCaption => 'Use MonkeyHub on desktop or web.';
+  String get devicesHeroCaption => 'استخدم MonkeyHub على الحاسوب أو الويب.';
 
   @override
-  String get devicesLinkNew => 'Link a new device';
+  String get devicesLinkNew => 'ربط جهاز جديد';
 
   @override
-  String get devicesLinkedHeader => 'Linked devices';
+  String get devicesLinkedHeader => 'الأجهزة المرتبطة';
 
   @override
   String devicesLinkedOn(String date) {
-    return 'Linked $date';
+    return 'مرتبط بتاريخ $date';
   }
 
   @override
   String devicesLastActive(String when) {
-    return 'Last active $when';
+    return 'آخر نشاط $when';
   }
 
   @override
-  String get devicesMoreActions => 'More actions';
+  String get devicesMoreActions => 'إجراءات أخرى';
 
   @override
-  String get devicesEmptyList => 'No linked devices';
+  String get devicesEmptyList => 'لا توجد أجهزة مرتبطة';
 
   @override
-  String get deviceLinkScanTitle => 'Scan QR code';
+  String get deviceLinkScanTitle => 'مسح رمز QR';
 
   @override
   String get deviceLinkScanInstruction =>
-      'Scan the code shown on the device you want to link.';
+      'امسح الرمز المعروض على الجهاز الذي تريد ربطه.';
 
   @override
-  String get deviceLinkEnterCodeInstead => 'Enter code instead';
+  String get deviceLinkEnterCodeInstead => 'أدخل الرمز بدلاً من ذلك';
 
   @override
-  String get deviceLinkScanInstead => 'Scan QR code instead';
+  String get deviceLinkScanInstead => 'امسح رمز QR بدلاً من ذلك';
 
   @override
-  String get deviceLinkEnterCodeTitle => 'Enter the code';
+  String get deviceLinkEnterCodeTitle => 'أدخل الرمز';
 
   @override
   String get deviceLinkEnterCodeBody =>
-      'Type the 6-digit code shown on the device you want to link.';
+      'اكتب الرمز المكون من 6 أرقام المعروض على الجهاز الذي تريد ربطه.';
 
   @override
-  String get deviceLinkFinishTitle => 'Finish linking';
+  String get deviceLinkFinishTitle => 'إنهاء الربط';
 
   @override
-  String get deviceLinkLinkedHud => 'Linked';
+  String get deviceLinkLinkedHud => 'تم الربط';
 
   @override
-  String get deviceLinkLinkedToast => 'Device linked';
+  String get deviceLinkLinkedToast => 'تم ربط الجهاز';
 }

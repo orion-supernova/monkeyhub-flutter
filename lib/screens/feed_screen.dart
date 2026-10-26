@@ -33,6 +33,7 @@ import '../widgets/games_strip.dart';
 import '../widgets/moment_activity.dart';
 import '../widgets/moment_rail.dart';
 import '../widgets/points_board.dart';
+import '../widgets/tab_root_bar.dart';
 import 'feed/archive_screen.dart';
 import 'feed/moment_composer.dart';
 import 'feed/moment_viewer.dart';
@@ -693,7 +694,7 @@ class _FeedScreenState extends State<FeedScreen>
             key: const PageStorageKey('feed_board_v2_wide'),
             padding: EdgeInsets.fromLTRB(
               0,
-              28,
+              TabRootBar.clearance(context),
               0,
               sectionBottomPadding(context),
             ),
@@ -734,11 +735,12 @@ class _FeedScreenState extends State<FeedScreen>
               // before that band existed lands the board mid-section, which
               // reads as the Feed having jumped on its own.
               key: const PageStorageKey('feed_board_v2'),
-              // 14 + the masthead's own 38 lands the large title exactly
-              // where the chat list's sits, so switching tabs never jumps it.
+              // The bar's clearance + the masthead's own 6 lands the large
+              // title exactly where the chat list's sits, so switching tabs
+              // never jumps it.
               padding: EdgeInsets.fromLTRB(
                 0,
-                14,
+                TabRootBar.clearance(context),
                 0,
                 sectionBottomPadding(context),
               ),
@@ -753,9 +755,17 @@ class _FeedScreenState extends State<FeedScreen>
         // as light moving over Risograph's halftone and Cyberpunk's scanlines,
         // not as a replacement for them.
         Positioned.fill(child: FeedDepthField(scroll: _scroll)),
-        // See home_screen: bottom inset here leaves a dead strip under the
-        // scroller; `sectionBottomPadding` does the clearing.
-        SafeArea(bottom: false, child: body),
+        // Edge to edge: the bar clears the status bar, and the list's top
+        // padding starts below it. The top inset is spent here, so a nested
+        // shrink-wrapped list does not pick it up again. See home_screen:
+        // bottom inset here leaves a dead strip under the scroller;
+        // `sectionBottomPadding` does the clearing.
+        MediaQuery.removePadding(
+          context: context,
+          removeTop: true,
+          child: body,
+        ),
+        TabRootBar(title: l10n.destinationsFeedLabel, scroll: _scroll),
       ],
     );
   }
@@ -831,7 +841,7 @@ class _MastheadState extends State<_Masthead>
     // spring — the board arriving — then the date and the edition settle in
     // under it.
     return Padding(
-      padding: const EdgeInsets.only(top: 38, bottom: 26),
+      padding: const EdgeInsets.only(top: 6, bottom: 26),
       child: AnimatedBuilder(
         animation: _settle,
         builder: (context, _) {

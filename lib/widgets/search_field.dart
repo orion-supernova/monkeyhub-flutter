@@ -36,6 +36,11 @@ const double searchFieldIconSize = 17;
 /// 15pt body made a shorter pill than Basic's 17).
 const double searchFieldHeight = 44;
 
+/// The compact pill (Settings' search, the iOS Settings.app size): 36pt with
+/// a 15pt magnifier. Opt-in via [SearchField.compact]; Chats keeps 44.
+const double searchFieldCompactHeight = 36;
+const double _kCompactIconSize = 15;
+
 /// Glyph → text gap inside the pill.
 const double _kGlyphGap = 6;
 
@@ -74,6 +79,7 @@ class SearchField extends StatefulWidget {
     this.onCancel,
     this.onSubmitted,
     this.leadingAccessory,
+    this.compact = false,
   }) : _doorTap = null,
        semanticLabel = null;
 
@@ -97,7 +103,8 @@ class SearchField extends StatefulWidget {
        showCancel = false,
        onCancel = null,
        onSubmitted = null,
-       leadingAccessory = null;
+       leadingAccessory = null,
+       compact = false;
 
   /// Null only on a [SearchField.door].
   final TextEditingController? controller;
@@ -143,6 +150,11 @@ class SearchField extends StatefulWidget {
 
   /// A door's screen-reader label; defaults to the hint.
   final String? semanticLabel;
+
+  /// The 36pt glass capsule with a 15pt magnifier, for a hub's search
+  /// (Settings). Cancel and clear shrink with it; their hit areas stay
+  /// 44pt wide.
+  final bool compact;
 
   final VoidCallback? _doorTap;
 
@@ -260,6 +272,7 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
           controller: widget.controller!,
           focused: _focused,
           onCancel: _cancel,
+          compact: widget.compact,
         ),
       ],
     );
@@ -273,11 +286,18 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
     Widget? trailing,
     bool ring = false,
   }) {
+    final compact = widget.compact;
+    final iconSize = compact ? _kCompactIconSize : searchFieldIconSize;
+    // Compact keeps the glass (its lit rim is the house look); only the
+    // height and glyph shrink.
     return Material(
       type: MaterialType.transparency,
       child: _searchGlass(
         Container(
-          constraints: const BoxConstraints(minHeight: searchFieldHeight),
+          constraints: BoxConstraints(
+            minHeight:
+                compact ? searchFieldCompactHeight : searchFieldHeight,
+          ),
           // Keyboard focus only: a touch user has the caret; a hardware-
           // keyboard user tabbing through needs to see where they landed.
           foregroundDecoration: ring
@@ -297,7 +317,7 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
               Icon(
                 CupertinoIcons.search,
                 color: theme.inkMuted,
-                size: searchFieldIconSize,
+                size: iconSize,
               ),
               const SizedBox(width: _kGlyphGap),
               Expanded(child: content),
@@ -349,7 +369,8 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
         hintText: sentenceCaseOf(context, widget.hintText),
         hintStyle: groupedValueStyle(theme),
         hintMaxLines: 1,
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        contentPadding:
+            EdgeInsets.symmetric(vertical: widget.compact ? 6 : 8),
       ),
       onChanged: widget.onChanged,
       onSubmitted: widget.onSubmitted,
@@ -375,18 +396,23 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
         builder: (context, _) => controller.text.isEmpty
             ? const SizedBox(width: searchFieldHPadding)
             : Padding(
-                padding: const EdgeInsets.only(right: 4),
+                padding: EdgeInsets.only(right: widget.compact ? 0 : 4),
                 child: SpringPress(
                   onTap: _clear,
                   scale: 0.86,
                   haptic: false,
                   focusShape: FocusRingShape.circle,
                   semanticLabel: l10n.pullRevealClearSearchSemanticLabel,
-                  child: SizedBox.square(
-                    dimension: 32,
+                  child: SizedBox(
+                    // Compact: the full 36pt capsule height by 44 wide, so
+                    // the disc is smaller but the hit area is not.
+                    width: widget.compact ? 44 : 32,
+                    height: widget.compact ? searchFieldCompactHeight : 32,
                     child: Icon(
                       CupertinoIcons.xmark_circle_fill,
-                      size: searchFieldIconSize,
+                      size: widget.compact
+                          ? _kCompactIconSize
+                          : searchFieldIconSize,
                       color: theme.inkMuted.withValues(alpha: 0.8),
                     ),
                   ),
@@ -404,11 +430,13 @@ class _CancelSlot extends StatelessWidget {
     required this.controller,
     required this.focused,
     required this.onCancel,
+    this.compact = false,
   });
 
   final TextEditingController controller;
   final bool focused;
   final VoidCallback onCancel;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -417,6 +445,12 @@ class _CancelSlot extends StatelessWidget {
       animation: controller,
       builder: (context, _) {
         final show = focused || controller.text.isNotEmpty;
+        final button = GlassCloseButton(
+          semanticLabel: MaterialLocalizations.of(
+            context,
+          ).cancelButtonLabel,
+          onTap: onCancel,
+        );
         return ClipRect(
           child: AnimatedSize(
             duration: calm ? Duration.zero : const Duration(milliseconds: 260),
@@ -425,19 +459,41 @@ class _CancelSlot extends StatelessWidget {
             child: show
                 ? Padding(
                     padding: const EdgeInsets.only(left: 8),
-                    child: GlassCloseButton(
-                      semanticLabel: MaterialLocalizations.of(
-                        context,
-                      ).cancelButtonLabel,
-                      onTap: onCancel,
-                    ),
+                    child: compact ? _compactCancel(context) : button,
                   )
-                : const SizedBox(height: searchFieldHeight),
+                : SizedBox(
+                    height: compact
+                        ? searchFieldCompactHeight
+                        : searchFieldHeight,
+                  ),
           ),
         );
       },
     );
   }
+}
+
+/// The compact Cancel: a 36pt disc to sit beside the 36pt capsule, inside a
+/// 44pt hit square (the outer tap catches the ring around the disc).
+extension on _CancelSlot {
+  Widget _compactCancel(BuildContext context) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onCancel,
+        child: SizedBox.square(
+          dimension: searchFieldHeight,
+          child: Center(
+            child: GlassIconButton(
+              icon: CupertinoIcons.xmark,
+              iconSize: 15,
+              size: searchFieldCompactHeight,
+              semanticLabel: MaterialLocalizations.of(
+                context,
+              ).cancelButtonLabel,
+              onTap: onCancel,
+            ),
+          ),
+        ),
+      );
 }
 
 /// The flight between a search *door* and the search bar it opens.

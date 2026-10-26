@@ -523,6 +523,10 @@ class _DaySection extends StatelessWidget {
               return GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
+                // Explicit: IosPage no longer wraps a SafeArea, so a null
+                // padding inherits the status-bar and home-indicator insets
+                // on every day section.
+                padding: EdgeInsets.zero,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: columns,
                   mainAxisSpacing: spacing,

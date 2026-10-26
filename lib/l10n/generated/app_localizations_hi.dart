@@ -7047,7 +7047,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get deviceLoginScreenIntro =>
-      'अपने फ़ोन पर MonkeyHub खोलो, अपनी प्रोफ़ाइल में जाओ, “साइन इन के लिए स्कैन करें” पर टैप करो और कैमरा यहाँ रखो, या नीचे दिया कोड लिखो।';
+      'अपने फ़ोन पर MonkeyHub खोलो, सेटिंग्स में जाओ, फिर डिवाइस में “नया डिवाइस लिंक करें” दबाओ और कैमरा यहाँ रखो, या नीचे दिया कोड लिखो।';
 
   @override
   String get deviceLoginScreenWaiting => 'मंज़ूरी का इंतज़ार है…';
@@ -14365,56 +14365,56 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileDeletedAccount => 'हटाया गया खाता';
 
   @override
-  String get devicesHeroCaption => 'Use MonkeyHub on desktop or web.';
+  String get devicesHeroCaption => 'डेस्कटॉप या वेब पर MonkeyHub इस्तेमाल करो।';
 
   @override
-  String get devicesLinkNew => 'Link a new device';
+  String get devicesLinkNew => 'नया डिवाइस लिंक करो';
 
   @override
-  String get devicesLinkedHeader => 'Linked devices';
+  String get devicesLinkedHeader => 'लिंक किए गए डिवाइस';
 
   @override
   String devicesLinkedOn(String date) {
-    return 'Linked $date';
+    return '$date को लिंक किया';
   }
 
   @override
   String devicesLastActive(String when) {
-    return 'Last active $when';
+    return 'आखिरी बार सक्रिय: $when';
   }
 
   @override
-  String get devicesMoreActions => 'More actions';
+  String get devicesMoreActions => 'और विकल्प';
 
   @override
-  String get devicesEmptyList => 'No linked devices';
+  String get devicesEmptyList => 'कोई लिंक किया गया डिवाइस नहीं है';
 
   @override
-  String get deviceLinkScanTitle => 'Scan QR code';
+  String get deviceLinkScanTitle => 'QR कोड स्कैन करो';
 
   @override
   String get deviceLinkScanInstruction =>
-      'Scan the code shown on the device you want to link.';
+      'जिस डिवाइस को लिंक करना है, उस पर दिखाया गया कोड स्कैन करो।';
 
   @override
-  String get deviceLinkEnterCodeInstead => 'Enter code instead';
+  String get deviceLinkEnterCodeInstead => 'इसके बजाय कोड डालो';
 
   @override
-  String get deviceLinkScanInstead => 'Scan QR code instead';
+  String get deviceLinkScanInstead => 'इसके बजाय QR कोड स्कैन करो';
 
   @override
-  String get deviceLinkEnterCodeTitle => 'Enter the code';
+  String get deviceLinkEnterCodeTitle => 'कोड डालो';
 
   @override
   String get deviceLinkEnterCodeBody =>
-      'Type the 6-digit code shown on the device you want to link.';
+      'जिस डिवाइस को लिंक करना है, उस पर दिखाया गया 6 अंकों का कोड लिखो।';
 
   @override
-  String get deviceLinkFinishTitle => 'Finish linking';
+  String get deviceLinkFinishTitle => 'लिंक करना पूरा करो';
 
   @override
-  String get deviceLinkLinkedHud => 'Linked';
+  String get deviceLinkLinkedHud => 'लिंक हो गया';
 
   @override
-  String get deviceLinkLinkedToast => 'Device linked';
+  String get deviceLinkLinkedToast => 'डिवाइस लिंक हो गया';
 }

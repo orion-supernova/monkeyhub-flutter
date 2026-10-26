@@ -58,6 +58,11 @@ class HeroPage extends StatefulWidget {
 
 class _HeroPageState extends State<HeroPage> {
   final _scroll = ScrollController();
+  final _heroKey = GlobalKey();
+
+  /// The hero's laid-out height, measured after layout; it sets where the
+  /// bar's small title starts to appear.
+  double _heroHeight = 0;
 
   @override
   void dispose() {
@@ -65,67 +70,117 @@ class _HeroPageState extends State<HeroPage> {
     super.dispose();
   }
 
+  void _measureHero() {
+    final box = _heroKey.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return;
+    if ((box.size.height - _heroHeight).abs() < 0.5) return;
+    setState(() => _heroHeight = box.size.height);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final canPop = Navigator.of(context).canPop();
+    final top = MediaQuery.paddingOf(context).top;
+    final bg = theme.background;
+    final clearance = top + IosPage.barHeight;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _measureHero();
+    });
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           theme.backgroundLayer(context),
-          SafeArea(
-            bottom: false,
-            child: Column(
+          CustomScrollView(
+            controller: _scroll,
+            slivers: [
+              // Pinned and empty: holds the bar's place so the hero starts
+              // below it, as IosPage does.
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _HeroBarClearance(clearance),
+              ),
+              SliverToBoxAdapter(
+                child: KeyedSubtree(key: _heroKey, child: widget.hero),
+              ),
+              ...readableSlivers(context, widget.children),
+            ],
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Stack(
               children: [
-                SizedBox(
-                  height: 52,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        AnimatedBuilder(
-                          animation: _scroll,
-                          builder: (context, child) {
-                            final offset =
-                                _scroll.hasClients ? _scroll.offset : 0.0;
-                            return Opacity(
-                              opacity: ((offset - 150) / 40).clamp(0.0, 1.0),
-                              child: child,
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 56),
-                            child: Text(
-                              widget.title,
-                              style: theme.bodyEmph.copyWith(color: theme.ink),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            if (canPop) const GlassBackButton(),
-                            const Spacer(),
-                            for (var i = 0; i < widget.actions.length; i++) ...[
-                              if (i > 0) const SizedBox(width: 10),
-                              widget.actions[i],
-                            ],
+                // The soft edge, taller than the bar so rows dissolve as
+                // they scroll under it.
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            bg,
+                            bg.withValues(alpha: 0.92),
+                            bg.withValues(alpha: 0),
                           ],
+                          stops: const [0, 0.62, 1],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-                Expanded(
-                  child: CustomScrollView(
-                    controller: _scroll,
-                    slivers: [
-                      SliverToBoxAdapter(child: widget.hero),
-                      ...readableSlivers(context, widget.children),
-                    ],
+                Padding(
+                  padding: EdgeInsets.only(top: top, bottom: 14),
+                  child: SizedBox(
+                    height: IosPage.barHeight,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 64),
+                            child: CollapsedTitleFade(
+                              scroll: _scroll,
+                              // The name sits a little above the hero's
+                              // bottom edge: show the small title as it goes
+                              // under the bar.
+                              start: (_heroHeight - 110).clamp(
+                                0.0,
+                                double.infinity,
+                              ),
+                              span: 24,
+                              child: Text(
+                                widget.title,
+                                style: theme.bodyEmph.copyWith(
+                                  color: theme.ink,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              if (canPop) const GlassBackButton(),
+                              const Spacer(),
+                              for (var i = 0;
+                                  i < widget.actions.length;
+                                  i++) ...[
+                                if (i > 0) const SizedBox(width: 10),
+                                widget.actions[i],
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -135,6 +190,24 @@ class _HeroPageState extends State<HeroPage> {
       ),
     );
   }
+}
+
+/// The empty, pinned strip under [HeroPage]'s floating bar.
+class _HeroBarClearance extends SliverPersistentHeaderDelegate {
+  const _HeroBarClearance(this.extent);
+  final double extent;
+
+  @override
+  double get minExtent => extent;
+  @override
+  double get maxExtent => extent;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlaps) =>
+      SizedBox(height: extent);
+
+  @override
+  bool shouldRebuild(_HeroBarClearance old) => old.extent != extent;
 }
 
 /// The hero's avatar: scales in on a soft spring the first time the page

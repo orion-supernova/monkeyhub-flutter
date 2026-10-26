@@ -35,6 +35,10 @@ String sentenceCase(String s, {String? languageCode}) {
     if (letters.length <= 3) return s;
     return _upper(first, languageCode) + _lower(rest, languageCode);
   }
+  // A first word with a capital after its first letter is a name cased on
+  // purpose ("iPhone", "macOS"): raising it would read "IPhone".
+  final firstWord = s.split(' ').first.characters.skip(1).toString();
+  if (firstWord != _lower(firstWord, languageCode)) return s;
   // Mixed or lower case: raise the first letter only.
   return _upper(first, languageCode) + rest;
 }

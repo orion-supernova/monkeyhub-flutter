@@ -11984,7 +11984,7 @@ abstract class AppLocalizations {
   /// Body copy under the hero heading on the desktop/web device-login screen, explaining how to approve this sign-in from a phone.
   ///
   /// In en, this message translates to:
-  /// **'Open MonkeyHub on your phone, go to your profile, tap “Scan to sign in” and point the camera here, or type the code below.'**
+  /// **'Open MonkeyHub on your phone, go to Settings, then Devices, tap “Link a new device” and point the camera here, or type the code below.'**
   String get deviceLoginScreenIntro;
 
   /// Lowercase status line on the desktop/web device-login screen while the request is still pending on the phone.

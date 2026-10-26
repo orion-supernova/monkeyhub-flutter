@@ -8141,7 +8141,7 @@
   "@deviceLoginScreenHeroInk": {
     "description": "Second line of the hero heading on the desktop/web device-login screen, completing 'Scan to / sign in' in the ink color."
   },
-  "deviceLoginScreenIntro": "Open MonkeyHub on your phone, go to your profile, tap “Scan to sign in” and point the camera here, or type the code below.",
+  "deviceLoginScreenIntro": "Open MonkeyHub on your phone, go to Settings, then Devices, tap “Link a new device” and point the camera here, or type the code below.",
   "@deviceLoginScreenIntro": {
     "description": "Body copy under the hero heading on the desktop/web device-login screen, explaining how to approve this sign-in from a phone."
   },

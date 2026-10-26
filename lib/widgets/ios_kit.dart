@@ -115,9 +115,9 @@ class _IosPageState extends State<IosPage> {
         (widget.showBack && canPop ? const GlassBackButton() : null);
     final bottom = MediaQuery.paddingOf(context).bottom;
 
-    // Signal iOS 26: no large title. The title is centred in a 52pt bar that
-    // floats over the list; the list scrolls underneath a soft top edge (the
-    // same pattern as the Chats header). An optional subtitle opens the content.
+    // Native iOS: a large title leads the content and scrolls up under a 52pt
+    // bar that floats over the list (a soft top edge, the same pattern as the
+    // Chats header); the bar's small centred title fades in as it goes.
     final top = MediaQuery.paddingOf(context).top;
     final bg = theme.background;
     final clearance = top + IosPage.barHeight;
@@ -132,11 +132,23 @@ class _IosPageState extends State<IosPage> {
       ),
       SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.fromLTRB(
-              20, 8, 20, widget.subtitle != null ? 14 : 0),
-          child: widget.subtitle == null
-              ? null
-              : Text(widget.subtitle!, style: theme.bodySoft),
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Semantics(
+                header: true,
+                child: Text(
+                  widget.title,
+                  style: theme.displayLarge.copyWith(letterSpacing: 0.37),
+                ),
+              ),
+              if (widget.subtitle != null) ...[
+                const SizedBox(height: 4),
+                Text(widget.subtitle!, style: theme.bodySoft),
+              ],
+            ],
+          ),
         ),
       ),
     ];
@@ -219,8 +231,8 @@ class _IosPageState extends State<IosPage> {
                         children: [
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 64),
-                            child: Semantics(
-                              header: true,
+                            child: CollapsedTitleFade(
+                              scroll: _scroll,
                               child: Text(
                                 widget.title,
                                 style: theme.bodyEmph.copyWith(
@@ -255,6 +267,48 @@ class _IosPageState extends State<IosPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A bar's small centred title, shown only once the page's large title has
+/// scrolled up under the bar: hidden at rest, faded in over the last stretch
+/// of the large title's travel, as UINavigationBar does.
+class CollapsedTitleFade extends StatelessWidget {
+  const CollapsedTitleFade({
+    super.key,
+    required this.scroll,
+    required this.child,
+    this.start = 26,
+    this.span = 16,
+  });
+
+  final ScrollController scroll;
+  final Widget child;
+
+  /// Scroll offset where the fade begins, and how far it runs: by default
+  /// the last stretch of a 34pt large title's travel. A page whose header is
+  /// taller (a profile hero) passes its own.
+  final double start;
+  final double span;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: scroll,
+      builder: (context, child) {
+        final offset = scroll.hasClients && scroll.positions.length == 1
+            ? scroll.offset
+            : 0.0;
+        final t = ((offset - start) / span).clamp(0.0, 1.0);
+        // Hidden from assistive tech too, until it shows: the large title
+        // is the page's header at rest.
+        return ExcludeSemantics(
+          excluding: t == 0,
+          child: Opacity(opacity: t, child: child),
+        );
+      },
+      child: child,
     );
   }
 }
@@ -736,10 +790,11 @@ class _GroupedRowState extends State<GroupedRow>
             ],
             if (showChevron) ...[
               const SizedBox(width: 10),
+              // iOS tertiary label: a touch larger, lower contrast.
               Icon(
                 CupertinoIcons.chevron_forward,
-                size: 13,
-                color: theme.inkMuted,
+                size: 14,
+                color: theme.ink.withValues(alpha: 0.30),
               ),
             ],
           ],
@@ -764,7 +819,7 @@ class _GroupedRowState extends State<GroupedRow>
           // Instant on, eased off — the table-cell highlight.
           duration: _pressed ? Duration.zero : const Duration(milliseconds: 260),
           color: _pressed
-              ? theme.ink.withValues(alpha: 0.06)
+              ? theme.ink.withValues(alpha: theme.isLight ? 0.10 : 0.14)
               : Colors.transparent,
           child: row,
         ),

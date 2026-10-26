@@ -7009,7 +7009,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get deviceLoginScreenIntro =>
-      'Telefonunda MonkeyHub’ı aç, profiline git, “Giriş için tara”ya dokun ve kamerayı buraya tut ya da aşağıdaki kodu yaz.';
+      'Telefonunda MonkeyHub’ı aç, Ayarlar’a, sonra Cihazlar’a git, “Yeni cihaz bağla”ya dokun ve kamerayı buraya tut ya da aşağıdaki kodu yaz.';
 
   @override
   String get deviceLoginScreenWaiting => 'Onay bekleniyor…';
@@ -14323,56 +14323,57 @@ class AppLocalizationsTr extends AppLocalizations {
   String get profileDeletedAccount => 'Silinmiş hesap';
 
   @override
-  String get devicesHeroCaption => 'Use MonkeyHub on desktop or web.';
+  String get devicesHeroCaption =>
+      'MonkeyHub’ı masaüstünde veya web’de kullan.';
 
   @override
-  String get devicesLinkNew => 'Link a new device';
+  String get devicesLinkNew => 'Yeni cihaz bağla';
 
   @override
-  String get devicesLinkedHeader => 'Linked devices';
+  String get devicesLinkedHeader => 'Bağlı cihazlar';
 
   @override
   String devicesLinkedOn(String date) {
-    return 'Linked $date';
+    return '$date tarihinde bağlandı';
   }
 
   @override
   String devicesLastActive(String when) {
-    return 'Last active $when';
+    return 'Son etkinlik: $when';
   }
 
   @override
-  String get devicesMoreActions => 'More actions';
+  String get devicesMoreActions => 'Daha fazla işlem';
 
   @override
-  String get devicesEmptyList => 'No linked devices';
+  String get devicesEmptyList => 'Bağlı cihaz yok';
 
   @override
-  String get deviceLinkScanTitle => 'Scan QR code';
+  String get deviceLinkScanTitle => 'QR kodu tara';
 
   @override
   String get deviceLinkScanInstruction =>
-      'Scan the code shown on the device you want to link.';
+      'Bağlamak istediğin cihazda görünen kodu tara.';
 
   @override
-  String get deviceLinkEnterCodeInstead => 'Enter code instead';
+  String get deviceLinkEnterCodeInstead => 'Bunun yerine kodu gir';
 
   @override
-  String get deviceLinkScanInstead => 'Scan QR code instead';
+  String get deviceLinkScanInstead => 'Bunun yerine QR kodu tara';
 
   @override
-  String get deviceLinkEnterCodeTitle => 'Enter the code';
+  String get deviceLinkEnterCodeTitle => 'Kodu gir';
 
   @override
   String get deviceLinkEnterCodeBody =>
-      'Type the 6-digit code shown on the device you want to link.';
+      'Bağlamak istediğin cihazda görünen 6 haneli kodu yaz.';
 
   @override
-  String get deviceLinkFinishTitle => 'Finish linking';
+  String get deviceLinkFinishTitle => 'Bağlamayı tamamla';
 
   @override
-  String get deviceLinkLinkedHud => 'Linked';
+  String get deviceLinkLinkedHud => 'Bağlandı';
 
   @override
-  String get deviceLinkLinkedToast => 'Device linked';
+  String get deviceLinkLinkedToast => 'Cihaz bağlandı';
 }

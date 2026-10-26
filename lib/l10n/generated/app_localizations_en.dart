@@ -7026,7 +7026,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deviceLoginScreenIntro =>
-      'Open MonkeyHub on your phone, go to your profile, tap “Scan to sign in” and point the camera here, or type the code below.';
+      'Open MonkeyHub on your phone, go to Settings, then Devices, tap “Link a new device” and point the camera here, or type the code below.';
 
   @override
   String get deviceLoginScreenWaiting => 'Waiting for approval…';

@@ -7069,7 +7069,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get deviceLoginScreenIntro =>
-      'Öppna MonkeyHub på telefonen, gå till din profil, tryck på ”Skanna för att logga in” och rikta kameran hit – eller skriv koden nedan.';
+      'Öppna MonkeyHub på telefonen, gå till Inställningar och sedan Enheter, tryck på ”Koppla en ny enhet” och rikta kameran hit, eller skriv koden nedan.';
 
   @override
   String get deviceLoginScreenWaiting => 'Väntar på godkännande…';
@@ -14424,56 +14424,56 @@ class AppLocalizationsSv extends AppLocalizations {
   String get profileDeletedAccount => 'Raderat konto';
 
   @override
-  String get devicesHeroCaption => 'Use MonkeyHub on desktop or web.';
+  String get devicesHeroCaption => 'Använd MonkeyHub på datorn eller webben.';
 
   @override
-  String get devicesLinkNew => 'Link a new device';
+  String get devicesLinkNew => 'Koppla en ny enhet';
 
   @override
-  String get devicesLinkedHeader => 'Linked devices';
+  String get devicesLinkedHeader => 'Kopplade enheter';
 
   @override
   String devicesLinkedOn(String date) {
-    return 'Linked $date';
+    return 'Kopplad $date';
   }
 
   @override
   String devicesLastActive(String when) {
-    return 'Last active $when';
+    return 'Senast aktiv $when';
   }
 
   @override
-  String get devicesMoreActions => 'More actions';
+  String get devicesMoreActions => 'Fler åtgärder';
 
   @override
-  String get devicesEmptyList => 'No linked devices';
+  String get devicesEmptyList => 'Inga kopplade enheter';
 
   @override
-  String get deviceLinkScanTitle => 'Scan QR code';
+  String get deviceLinkScanTitle => 'Skanna QR-kod';
 
   @override
   String get deviceLinkScanInstruction =>
-      'Scan the code shown on the device you want to link.';
+      'Skanna koden som visas på enheten du vill koppla.';
 
   @override
-  String get deviceLinkEnterCodeInstead => 'Enter code instead';
+  String get deviceLinkEnterCodeInstead => 'Ange kod i stället';
 
   @override
-  String get deviceLinkScanInstead => 'Scan QR code instead';
+  String get deviceLinkScanInstead => 'Skanna QR-kod i stället';
 
   @override
-  String get deviceLinkEnterCodeTitle => 'Enter the code';
+  String get deviceLinkEnterCodeTitle => 'Ange koden';
 
   @override
   String get deviceLinkEnterCodeBody =>
-      'Type the 6-digit code shown on the device you want to link.';
+      'Skriv in den 6-siffriga koden som visas på enheten du vill koppla.';
 
   @override
-  String get deviceLinkFinishTitle => 'Finish linking';
+  String get deviceLinkFinishTitle => 'Slutför kopplingen';
 
   @override
-  String get deviceLinkLinkedHud => 'Linked';
+  String get deviceLinkLinkedHud => 'Kopplad';
 
   @override
-  String get deviceLinkLinkedToast => 'Device linked';
+  String get deviceLinkLinkedToast => 'Enheten är kopplad';
 }

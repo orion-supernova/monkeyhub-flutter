@@ -6746,7 +6746,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get deviceLoginScreenIntro =>
-      'スマホでMonkeyHubを開き、プロフィールの「スキャンしてサインイン」をタップして、カメラをここに向けてください。下のコードを入力することもできます。';
+      'スマホでMonkeyHubを開き、設定からデバイスを選んで「新しいデバイスを連携」をタップし、カメラをここに向けてください。下のコードを入力することもできます。';
 
   @override
   String get deviceLoginScreenWaiting => '承認を待っています…';
@@ -13741,56 +13741,54 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileDeletedAccount => '削除されたアカウント';
 
   @override
-  String get devicesHeroCaption => 'Use MonkeyHub on desktop or web.';
+  String get devicesHeroCaption => 'デスクトップまたはWebでMonkeyHubを使えます。';
 
   @override
-  String get devicesLinkNew => 'Link a new device';
+  String get devicesLinkNew => '新しいデバイスを連携';
 
   @override
-  String get devicesLinkedHeader => 'Linked devices';
+  String get devicesLinkedHeader => '連携済みのデバイス';
 
   @override
   String devicesLinkedOn(String date) {
-    return 'Linked $date';
+    return '$dateに連携';
   }
 
   @override
   String devicesLastActive(String when) {
-    return 'Last active $when';
+    return '最終アクティブ: $when';
   }
 
   @override
-  String get devicesMoreActions => 'More actions';
+  String get devicesMoreActions => 'その他の操作';
 
   @override
-  String get devicesEmptyList => 'No linked devices';
+  String get devicesEmptyList => '連携済みのデバイスはありません';
 
   @override
-  String get deviceLinkScanTitle => 'Scan QR code';
+  String get deviceLinkScanTitle => 'QRコードをスキャン';
 
   @override
-  String get deviceLinkScanInstruction =>
-      'Scan the code shown on the device you want to link.';
+  String get deviceLinkScanInstruction => '連携したいデバイスに表示されたコードをスキャンしてください。';
 
   @override
-  String get deviceLinkEnterCodeInstead => 'Enter code instead';
+  String get deviceLinkEnterCodeInstead => 'コードを入力';
 
   @override
-  String get deviceLinkScanInstead => 'Scan QR code instead';
+  String get deviceLinkScanInstead => 'QRコードをスキャン';
 
   @override
-  String get deviceLinkEnterCodeTitle => 'Enter the code';
+  String get deviceLinkEnterCodeTitle => 'コードを入力';
 
   @override
-  String get deviceLinkEnterCodeBody =>
-      'Type the 6-digit code shown on the device you want to link.';
+  String get deviceLinkEnterCodeBody => '連携したいデバイスに表示された6桁のコードを入力してください。';
 
   @override
-  String get deviceLinkFinishTitle => 'Finish linking';
+  String get deviceLinkFinishTitle => '連携を完了';
 
   @override
-  String get deviceLinkLinkedHud => 'Linked';
+  String get deviceLinkLinkedHud => '連携しました';
 
   @override
-  String get deviceLinkLinkedToast => 'Device linked';
+  String get deviceLinkLinkedToast => 'デバイスを連携しました';
 }

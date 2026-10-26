@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -689,14 +690,19 @@ class _UploadingTile extends StatelessWidget {
               child: SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(
-                  // Null where the transport cannot honestly measure it — see
-                  // [PendingUpload.progress] — which spins rather than lying.
-                  value: progress,
-                  strokeWidth: 2,
-                  backgroundColor: Colors.white.withValues(alpha: 0.25),
-                  valueColor: const AlwaysStoppedAnimation(Colors.white),
-                ),
+                // Null where the transport cannot honestly measure it — see
+                // [PendingUpload.progress] — which spins rather than lying.
+                child: progress == null
+                    ? const CupertinoActivityIndicator(
+                        color: Colors.white,
+                        radius: 11,
+                      )
+                    : CircularProgressIndicator(
+                        value: progress,
+                        strokeWidth: 2,
+                        backgroundColor: Colors.white.withValues(alpha: 0.25),
+                        valueColor: const AlwaysStoppedAnimation(Colors.white),
+                      ),
               ),
             ),
           ),

@@ -32,6 +32,7 @@ import '../theme/density.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
+import '../widgets/ios_kit.dart' show CollapsedTitleFade;
 import '../widgets/archived_chats_sheet.dart';
 import '../widgets/chat_list_row.dart';
 import '../widgets/chat_row_action_menu.dart';
@@ -655,11 +656,27 @@ class _HomeScreenState extends State<HomeScreen>
                       // under it and its soft top edge (iOS 26 scroll edge).
                       padding: EdgeInsets.fromLTRB(
                         0,
-                        MediaQuery.paddingOf(context).top + _kHeaderBar + 6,
+                        MediaQuery.paddingOf(context).top + _kHeaderBar,
                         0,
                         sectionBottomPadding(context),
                       ),
                       children: [
+                        // The large title, native iOS: it leads the list and
+                        // scrolls up under the bar, where the small centred
+                        // title takes over.
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+                          child: Semantics(
+                            header: true,
+                            child: Text(
+                              AppLocalizations.of(context).homeScreenTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.displayLarge
+                                  .copyWith(letterSpacing: 0.37),
+                            ),
+                          ),
+                        ),
                         PullRevealSlot(
                           panelKey: _pullPanelKey,
                           dragExtent: _pullDrag,
@@ -761,6 +778,7 @@ class _HomeScreenState extends State<HomeScreen>
                 left: 0,
                 right: 0,
                 child: _Header(
+                  scroll: _scroll,
                   me: me,
                   api: widget.api,
                   // The same profile Settings opens, not a lesser one. Without
@@ -822,10 +840,11 @@ const double _kHeaderBar = 52;
 /// dissolve as they scroll under it (the iOS 26 scroll edge effect) without a
 /// blur layer over a moving list.
 ///
-/// The large scrolling title this replaces is gone on purpose: Signal has none,
-/// and a title that is always centred needs no hand-off between two of them.
+/// Its centred title is the collapsed form of the list's large title: it
+/// fades in as the large one scrolls up under the bar, as on native iOS.
 class _Header extends StatelessWidget {
   const _Header({
+    required this.scroll,
     required this.me,
     required this.api,
     required this.onProfileTap,
@@ -833,6 +852,7 @@ class _Header extends StatelessWidget {
     this.onSearchTap,
     this.filterButton,
   });
+  final ScrollController scroll;
   final ChatUser me;
   final ChatApi api;
   final VoidCallback onProfileTap;
@@ -903,14 +923,17 @@ class _Header extends StatelessWidget {
                   // so it stays put whichever buttons the account has.
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 112),
-                    child: Text(
-                      l10n.homeScreenTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.bodyEmph.copyWith(
-                        color: theme.ink,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
+                    child: CollapsedTitleFade(
+                      scroll: scroll,
+                      child: Text(
+                        l10n.homeScreenTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.bodyEmph.copyWith(
+                          color: theme.ink,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -1069,7 +1092,7 @@ class _RoomsPanelState extends State<_RoomsPanel> {
           // Rounded-square, not circular: these stand in for rooms, and the
           // count is what a phone shows without scrolling, so nothing moves
           // when the real list replaces them.
-          child: SkeletonRows(count: 7, avatarSize: 44, circular: false),
+          child: SkeletonRows(count: 7, avatarSize: 52, circular: true),
         ),
         // THE empty state — glyph, centred title — not a lone left-wrapping
         // line of text.
@@ -1131,6 +1154,10 @@ class _RoomsPanelState extends State<_RoomsPanel> {
           return GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
+            // Explicit, not the default: with no SafeArea above it a null
+            // padding inherits the status-bar and home-indicator insets,
+            // which opened a ~62pt gap above the first row of tiles.
+            padding: EdgeInsets.zero,
             gridDelegate: gridDelegate,
             itemCount: ordered.length,
             itemBuilder: (context, i) =>

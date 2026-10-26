@@ -6765,7 +6765,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get deviceLoginScreenIntro =>
-      '휴대폰에서 MonkeyHub를 열고 프로필에서 ‘스캔해서 로그인’을 누른 뒤 카메라를 여기에 비추세요. 아래 코드를 입력해도 돼요.';
+      '휴대폰에서 MonkeyHub를 열고 설정 > 기기에서 ‘새 기기 연결’을 누른 뒤 카메라를 여기에 비추세요. 아래 코드를 입력해도 돼요.';
 
   @override
   String get deviceLoginScreenWaiting => '승인을 기다리는 중…';
@@ -13774,56 +13774,54 @@ class AppLocalizationsKo extends AppLocalizations {
   String get profileDeletedAccount => '삭제된 계정';
 
   @override
-  String get devicesHeroCaption => 'Use MonkeyHub on desktop or web.';
+  String get devicesHeroCaption => '데스크톱이나 웹에서 MonkeyHub를 사용하세요.';
 
   @override
-  String get devicesLinkNew => 'Link a new device';
+  String get devicesLinkNew => '새 기기 연결';
 
   @override
-  String get devicesLinkedHeader => 'Linked devices';
+  String get devicesLinkedHeader => '연결된 기기';
 
   @override
   String devicesLinkedOn(String date) {
-    return 'Linked $date';
+    return '$date에 연결됨';
   }
 
   @override
   String devicesLastActive(String when) {
-    return 'Last active $when';
+    return '마지막 활동 $when';
   }
 
   @override
-  String get devicesMoreActions => 'More actions';
+  String get devicesMoreActions => '더보기';
 
   @override
-  String get devicesEmptyList => 'No linked devices';
+  String get devicesEmptyList => '연결된 기기가 없어요';
 
   @override
-  String get deviceLinkScanTitle => 'Scan QR code';
+  String get deviceLinkScanTitle => 'QR 코드 스캔';
 
   @override
-  String get deviceLinkScanInstruction =>
-      'Scan the code shown on the device you want to link.';
+  String get deviceLinkScanInstruction => '연결할 기기에 표시된 코드를 스캔하세요.';
 
   @override
-  String get deviceLinkEnterCodeInstead => 'Enter code instead';
+  String get deviceLinkEnterCodeInstead => '대신 코드 입력';
 
   @override
-  String get deviceLinkScanInstead => 'Scan QR code instead';
+  String get deviceLinkScanInstead => '대신 QR 코드 스캔';
 
   @override
-  String get deviceLinkEnterCodeTitle => 'Enter the code';
+  String get deviceLinkEnterCodeTitle => '코드 입력';
 
   @override
-  String get deviceLinkEnterCodeBody =>
-      'Type the 6-digit code shown on the device you want to link.';
+  String get deviceLinkEnterCodeBody => '연결할 기기에 표시된 6자리 코드를 입력하세요.';
 
   @override
-  String get deviceLinkFinishTitle => 'Finish linking';
+  String get deviceLinkFinishTitle => '연결 완료';
 
   @override
-  String get deviceLinkLinkedHud => 'Linked';
+  String get deviceLinkLinkedHud => '연결됨';
 
   @override
-  String get deviceLinkLinkedToast => 'Device linked';
+  String get deviceLinkLinkedToast => '기기가 연결됐어요';
 }

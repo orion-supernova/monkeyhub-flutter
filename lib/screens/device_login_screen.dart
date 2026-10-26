@@ -4,6 +4,7 @@ import '../auth/auth_service.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/device_login_panel.dart';
+import '../widgets/glass_buttons.dart';
 
 /// Desktop/web side of "scan to sign in", full-screen: mints a request and
 /// shows [DeviceLoginPanel] in place of the password form.
@@ -34,6 +35,17 @@ class DeviceLoginScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(20, 36, 20, 24),
                   child: DeviceLoginPanel(auth: auth, onCancel: onCancel),
                 ),
+              ),
+            ),
+          ),
+          // The screen is a full-page swap with no navigator route under it,
+          // so the back affordance is the cancel callback.
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: GlassBackButton(onTap: onCancel),
               ),
             ),
           ),

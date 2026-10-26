@@ -26,7 +26,6 @@ import '../media/photo_picking.dart';
 import '../media/upload_service.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
-import '../platform.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/account_kit.dart';
@@ -48,7 +47,6 @@ import 'approvals_screen.dart';
 import 'blocked_users_screen.dart';
 import 'recovery_phrase_screen.dart';
 import 'camera_screen.dart';
-import 'device_login_scan_screen.dart';
 import 'devices_screen.dart';
 import 'family_screen.dart';
 import 'friend_request_draft_screen.dart';
@@ -550,17 +548,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (auth == null || api == null || auth.isChild) return;
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => DevicesScreen(auth: auth, api: api)),
-    );
-  }
-
-  /// Opens the phone-side scan-and-approve screen for a desktop/web
-  /// device-login request. Nothing to refresh afterwards — approving one
-  /// signs in a DIFFERENT device, not this one.
-  void _openDeviceLoginScan() {
-    final auth = widget.auth;
-    if (auth == null || auth.isChild) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => DeviceLoginScanScreen(auth: auth)),
     );
   }
 
@@ -1635,15 +1622,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: l10n.acctRowDevices,
               onTap: _openDevices,
             ),
-            // Mobile only — approving a desktop/web sign-in needs a camera,
-            // and the QR it scans only ever shows on desktop/web.
-            if (!isWebOrDesktop)
-              GroupedRow(
-                icon: CupertinoIcons.qrcode_viewfinder,
-                tone: TileTone.teal,
-                title: l10n.acctRowScanToSignIn,
-                onTap: _openDeviceLoginScan,
-              ),
             GroupedRow(
               icon: CupertinoIcons.lock_shield_fill,
               tone: TileTone.purple,

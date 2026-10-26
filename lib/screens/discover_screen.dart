@@ -19,6 +19,7 @@ import '../widgets/adaptive_page_body.dart';
 import '../widgets/discover_rows.dart';
 import '../widgets/request_cards.dart';
 import '../widgets/search_field.dart';
+import '../widgets/tab_root_bar.dart';
 import 'discover_lists.dart';
 import 'navigation/destinations.dart';
 import 'join_by_invite_screen.dart';
@@ -483,13 +484,13 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               ),
           ];
 
-    // The same large title the chat list wears, at the same height: 38pt of
-    // air here plus the list's 14 is the 52pt bar home keeps above its own.
+    // The same large title the chat list wears, at the same height: the
+    // list starts below the floating bar and the title sits 6pt under it.
     // The caption line that used to sit under it (an accent tick and a
     // mono "people · rooms · requests") restated the sections below; the
     // page now names itself and lets them speak.
     final header = <Widget>[
-      const SizedBox(height: 38),
+      const SizedBox(height: 6),
       Semantics(
         header: true,
         label: caption,
@@ -516,7 +517,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
             controller: _scroll,
             padding: EdgeInsets.fromLTRB(
               20,
-              14,
+              TabRootBar.clearance(context),
               20,
               sectionBottomPadding(context),
             ),
@@ -567,7 +568,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               controller: _scroll,
               padding: EdgeInsets.fromLTRB(
                 20,
-                14,
+                TabRootBar.clearance(context),
                 20,
                 sectionBottomPadding(context),
               ),
@@ -590,8 +591,18 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           theme.backgroundLayer(context),
           // See home_screen: the default bottom inset leaves a dead strip of
           // background under the scroller. `sectionBottomPadding` clears the
-          // pill and the indicator instead.
-          SafeArea(bottom: false, child: body),
+          // pill and the indicator instead. Edge to edge: the bar clears the
+          // status bar, and the top inset is spent so a nested shrink-wrapped
+          // list does not pick it up again.
+          MediaQuery.removePadding(
+            context: context,
+            removeTop: true,
+            child: body,
+          ),
+          TabRootBar(
+            title: t.destinationsDiscoverLabel,
+            scroll: _scroll,
+          ),
         ],
       ),
     );

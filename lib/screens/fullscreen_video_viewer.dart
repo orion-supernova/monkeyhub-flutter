@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart' show VideoPlayerController;
@@ -506,12 +507,17 @@ class _HandoffPlate extends StatelessWidget {
             height: 32,
             child: ValueListenableBuilder<double?>(
               valueListenable: progress,
-              builder: (context, value, _) => CircularProgressIndicator(
-                value: value,
-                strokeWidth: 2.5,
-                color: theme.accent,
-                backgroundColor: Colors.white.withValues(alpha: 0.18),
-              ),
+              builder: (context, value, _) => value == null
+                  ? const CupertinoActivityIndicator(
+                      color: Colors.white,
+                      radius: 16,
+                    )
+                  : CircularProgressIndicator(
+                      value: value,
+                      strokeWidth: 2.5,
+                      color: theme.accent,
+                      backgroundColor: Colors.white.withValues(alpha: 0.18),
+                    ),
             ),
           ),
         ),

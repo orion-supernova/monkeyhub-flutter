@@ -6665,7 +6665,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deviceLoginScreenIntro =>
-      '在手机上打开 MonkeyHub，进入个人资料，点按“扫码登录”，然后将相机对准这里，也可以输入下方的代码。';
+      '在手机上打开 MonkeyHub，依次进入“设置”和“设备”，点按“关联新设备”，然后将相机对准这里，也可以输入下方的代码。';
 
   @override
   String get deviceLoginScreenWaiting => '正在等待确认…';
@@ -13611,56 +13611,54 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileDeletedAccount => '已删除的账户';
 
   @override
-  String get devicesHeroCaption => 'Use MonkeyHub on desktop or web.';
+  String get devicesHeroCaption => '在电脑或网页端使用 MonkeyHub。';
 
   @override
-  String get devicesLinkNew => 'Link a new device';
+  String get devicesLinkNew => '关联新设备';
 
   @override
-  String get devicesLinkedHeader => 'Linked devices';
+  String get devicesLinkedHeader => '已关联的设备';
 
   @override
   String devicesLinkedOn(String date) {
-    return 'Linked $date';
+    return '关联于 $date';
   }
 
   @override
   String devicesLastActive(String when) {
-    return 'Last active $when';
+    return '最近活动：$when';
   }
 
   @override
-  String get devicesMoreActions => 'More actions';
+  String get devicesMoreActions => '更多操作';
 
   @override
-  String get devicesEmptyList => 'No linked devices';
+  String get devicesEmptyList => '没有已关联的设备';
 
   @override
-  String get deviceLinkScanTitle => 'Scan QR code';
+  String get deviceLinkScanTitle => '扫描二维码';
 
   @override
-  String get deviceLinkScanInstruction =>
-      'Scan the code shown on the device you want to link.';
+  String get deviceLinkScanInstruction => '扫描要关联的设备上显示的二维码。';
 
   @override
-  String get deviceLinkEnterCodeInstead => 'Enter code instead';
+  String get deviceLinkEnterCodeInstead => '改为输入代码';
 
   @override
-  String get deviceLinkScanInstead => 'Scan QR code instead';
+  String get deviceLinkScanInstead => '改为扫描二维码';
 
   @override
-  String get deviceLinkEnterCodeTitle => 'Enter the code';
+  String get deviceLinkEnterCodeTitle => '输入代码';
 
   @override
-  String get deviceLinkEnterCodeBody =>
-      'Type the 6-digit code shown on the device you want to link.';
+  String get deviceLinkEnterCodeBody => '输入要关联的设备上显示的 6 位数字代码。';
 
   @override
-  String get deviceLinkFinishTitle => 'Finish linking';
+  String get deviceLinkFinishTitle => '完成关联';
 
   @override
-  String get deviceLinkLinkedHud => 'Linked';
+  String get deviceLinkLinkedHud => '已关联';
 
   @override
-  String get deviceLinkLinkedToast => 'Device linked';
+  String get deviceLinkLinkedToast => '设备已关联';
 }

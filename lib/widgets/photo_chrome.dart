@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart'
+    show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/widgets.dart';
 // Narrowed on purpose: the one thing this file needs from Material is the
 // determinate progress ring — there is no widgets-level progress indicator.
@@ -43,14 +44,24 @@ class PhotoSpinner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final v = value;
     return SizedBox(
       width: size,
       height: size,
-      child: CircularProgressIndicator(
-        value: value,
-        strokeWidth: 2,
-        color: color ?? MediaGlass.inkDim,
-      ),
+      // Indeterminate is the native iOS spinner; a measured value keeps the
+      // ring, which ProgressRing cannot draw over media (its track is ink).
+      child: v == null
+          ? Center(
+              child: CupertinoActivityIndicator(
+                color: color ?? MediaGlass.inkDim,
+                radius: size / 2,
+              ),
+            )
+          : CircularProgressIndicator(
+              value: v,
+              strokeWidth: 2,
+              color: color ?? MediaGlass.inkDim,
+            ),
     );
   }
 }
