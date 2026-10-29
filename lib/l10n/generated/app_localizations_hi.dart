@@ -14417,4 +14417,34 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get deviceLinkLinkedToast => 'डिवाइस लिंक हो गया';
+
+  @override
+  String get linuxTrayOpen => 'MonkeyHub खोलें';
+
+  @override
+  String get linuxTrayQuit => 'MonkeyHub बंद करें';
+
+  @override
+  String get linuxCloseTitle => 'MonkeyHub चालू रखें?';
+
+  @override
+  String get linuxCloseBody =>
+      'विंडो बंद करने के बाद भी मैसेज मिलते रहें। इस डेस्कटॉप पर ट्रे आइकन नहीं है, इसलिए MonkeyHub मिनिमाइज़ होकर चालू रहेगा। आप इसे सेटिंग्स में बदल सकते हैं।';
+
+  @override
+  String get linuxCloseKeep => 'चालू रखें';
+
+  @override
+  String get linuxCloseQuit => 'बंद करें';
+
+  @override
+  String get linuxKeepRunningTitle => 'बैकग्राउंड में चालू रखें';
+
+  @override
+  String get linuxKeepRunningSubtitleTray =>
+      'विंडो बंद करने पर ट्रे में रहता है, ताकि मैसेज और कॉल आप तक पहुँचते रहें';
+
+  @override
+  String get linuxKeepRunningSubtitleNoTray =>
+      'विंडो बंद करने पर मिनिमाइज़ रहता है, ताकि मैसेज और कॉल आप तक पहुँचते रहें';
 }

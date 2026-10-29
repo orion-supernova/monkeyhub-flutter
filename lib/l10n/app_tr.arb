@@ -3982,5 +3982,14 @@
   "deviceLinkEnterCodeBody": "Bağlamak istediğin cihazda görünen 6 haneli kodu yaz.",
   "deviceLinkFinishTitle": "Bağlamayı tamamla",
   "deviceLinkLinkedHud": "Bağlandı",
-  "deviceLinkLinkedToast": "Cihaz bağlandı"
+  "deviceLinkLinkedToast": "Cihaz bağlandı",
+  "linuxTrayOpen": "MonkeyHub'ı aç",
+  "linuxTrayQuit": "MonkeyHub'tan çık",
+  "linuxCloseTitle": "MonkeyHub çalışmaya devam etsin mi?",
+  "linuxCloseBody": "Pencereyi kapattıktan sonra da mesaj almaya devam et. Bu masaüstünde tepsi simgesi yok, bu yüzden MonkeyHub simge durumunda kalır. Bunu Ayarlar'dan değiştirebilirsin.",
+  "linuxCloseKeep": "Çalışmaya devam etsin",
+  "linuxCloseQuit": "Çık",
+  "linuxKeepRunningTitle": "Arka planda çalışmaya devam et",
+  "linuxKeepRunningSubtitleTray": "Pencereyi kapatınca tepside kalır, mesajlar ve aramalar sana ulaşmaya devam eder",
+  "linuxKeepRunningSubtitleNoTray": "Pencereyi kapatınca simge durumunda kalır, mesajlar ve aramalar sana ulaşmaya devam eder"
 }

@@ -93,6 +93,7 @@ import 'push/badge_manager.dart';
 import 'push/device_identity.dart';
 import 'push/message_alerts.dart';
 import 'push/web_push.dart';
+import 'push/linux_notifier.dart';
 import 'push/push_manager.dart';
 import 'push/web_notifier.dart';
 import 'push/web_presence.dart';
@@ -2082,6 +2083,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
               // most people, and a device language may be one this app does not
               // ship. No-ops unless it actually moved.
               PushManager.instance.noteAppLocale(resolvedLocale);
+              // The Linux tray menu is native and built before any of this
+              // exists; same trigger, so it follows a language change too.
+              final l10n = AppLocalizations.of(context);
+              LinuxNotifier.instance.setTrayLabels(
+                open: l10n.linuxTrayOpen,
+                quit: l10n.linuxTrayQuit,
+              );
 
               // _WindowClassProvider hosts the single app-wide LayoutBuilder
               // ABOVE the root navigator, so every route — the shell and any

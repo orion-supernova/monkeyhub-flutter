@@ -3982,5 +3982,14 @@
   "deviceLinkEnterCodeBody": "Escribe el código de 6 dígitos que aparece en el dispositivo que quieres vincular.",
   "deviceLinkFinishTitle": "Terminar de vincular",
   "deviceLinkLinkedHud": "Vinculado",
-  "deviceLinkLinkedToast": "Dispositivo vinculado"
+  "deviceLinkLinkedToast": "Dispositivo vinculado",
+  "linuxTrayOpen": "Abrir MonkeyHub",
+  "linuxTrayQuit": "Salir de MonkeyHub",
+  "linuxCloseTitle": "¿Mantener MonkeyHub abierto?",
+  "linuxCloseBody": "Sigue recibiendo mensajes después de cerrar la ventana. Este escritorio no tiene icono en la bandeja, así que MonkeyHub se quedará minimizado. Puedes cambiarlo en Ajustes.",
+  "linuxCloseKeep": "Mantener abierto",
+  "linuxCloseQuit": "Salir",
+  "linuxKeepRunningTitle": "Seguir en segundo plano",
+  "linuxKeepRunningSubtitleTray": "Se queda en la bandeja al cerrar la ventana, así te siguen llegando mensajes y llamadas",
+  "linuxKeepRunningSubtitleNoTray": "Se queda minimizado al cerrar la ventana, así te siguen llegando mensajes y llamadas"
 }

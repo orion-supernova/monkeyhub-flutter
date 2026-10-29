@@ -1,9 +1,15 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/foundation.dart' show VoidCallback, visibleForTesting;
 
 import '../audio/alert_sounds.dart';
+import '../l10n/app_labels.dart';
 import '../platform.dart';
 import '../data/chat_repository.dart';
 import '../models/chat_room.dart';
+import '../privacy/app_only.dart';
+import 'alert_burst.dart';
+import 'linux_notifier.dart';
 import 'push_manager.dart';
 import 'viewer_presence.dart';
 import 'web_notifier.dart';
@@ -22,6 +28,12 @@ import 'web_notifier.dart';
 /// user's own send) and isn't the room on screen.
 ///
 /// Scope: web + desktop only. Mobile is served by the OS notification.
+///
+/// Linux also gets a desktop banner per room from here ([LinuxNotifier]),
+/// because nothing else can give it one: it has no push service at all, so
+/// the socket this observes is the only way a message reaches it. While the
+/// window is in the background a burst from one room pings once, not per
+/// line ([AlertBurst]).
 ///
 /// On a Mac with working push ([PushManager.osDeliversMessageAlerts]) the work
 /// is split by whether anyone is looking: in front of the user this pings and
@@ -45,8 +57,12 @@ class MessageAlerts {
   // roomId → newest message time we've already alerted on (ms since epoch).
   final Map<String, int> _lastSeen = {};
 
-  void setOnOpenRoom(void Function(String roomId) cb) =>
-      WebNotifier.setOnOpenRoom(cb);
+  void setOnOpenRoom(void Function(String roomId) cb) {
+    WebNotifier.setOnOpenRoom(cb);
+    LinuxNotifier.instance.setOnOpenRoom(cb);
+  }
+
+  final AlertBurst _burst = AlertBurst();
 
   void bind(ChatRepository repo) {
     if (!_enabled) return;
@@ -65,6 +81,7 @@ class MessageAlerts {
     _repo?.removeListener(_onChange);
     _repo = null;
     _lastSeen.clear();
+    _burst.clear();
   }
 
   int _msgTime(ChatRoom room) =>
@@ -99,6 +116,14 @@ class MessageAlerts {
       return;
     }
     final me = repo.userId;
+    // A Linux banner stands in for the push this build cannot receive, so it
+    // follows the same rule the phones' banners do: only while nobody is
+    // looking.
+    final banners = LinuxNotifier.supported && !focused;
+    // Opening the room is reading it; its banner has nothing left to say.
+    if (LinuxNotifier.supported && focused && active != null) {
+      unawaited(LinuxNotifier.instance.dismissRoom(active));
+    }
     var pinged = false;
     for (final r in repo.rooms) {
       final t = _msgTime(r);
@@ -133,6 +158,20 @@ class MessageAlerts {
       final shouldAlert = isActive ? !focused : r.hasUnread;
       if (!shouldAlert) continue;
 
+      if (banners) {
+        unawaited(LinuxNotifier.instance.show(
+          roomId: r.id,
+          title: _bannerTitle(repo, r),
+          body: _bannerBody(repo, r),
+        ));
+        // The banner always updates; only the first line of a burst is heard.
+        // No `mention:` here — `hasMention` is the room's sticky unread flag,
+        // so passing it would un-quiet every later line until the room is read.
+        if (!_burst.shouldAlert(r.id, DateTime.now())) {
+          continue;
+        }
+      }
+
       // One ping per notify tick even if several rooms advanced at once. This
       // is the in-app awareness sound; the background BANNER belongs to Web
       // Push (`web/mh-push-sw.js`, encrypted by backend/convex/webPush.ts),
@@ -149,5 +188,25 @@ class MessageAlerts {
         }
       }
     }
+  }
+
+  /// A DM is titled by the person, a group by its name — what the room list
+  /// shows on the same row.
+  String _bannerTitle(ChatRepository repo, ChatRoom r) {
+    if (r.isDm) return repo.otherUserFor(r)?.displayName ?? 'MonkeyHub';
+    return r.name;
+  }
+
+  /// The preview line, attributed in a group. A secret room says only what
+  /// its chat-list row says here, because Linux does not open it.
+  String _bannerBody(ChatRepository repo, ChatRoom r) {
+    if (r.isEphemeral && AppOnly.gatesCapture) {
+      return appLabels().appOnlySecretPreview;
+    }
+    final text = r.lastMessage?.trim() ?? '';
+    if (r.isDm) return text;
+    final sender = r.lastMessageSenderId;
+    final name = sender == null ? null : repo.userById(sender)?.displayName;
+    return name == null || name.isEmpty ? text : '$name: $text';
   }
 }

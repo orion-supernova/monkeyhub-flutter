@@ -3982,5 +3982,14 @@
   "deviceLinkEnterCodeBody": "जिस डिवाइस को लिंक करना है, उस पर दिखाया गया 6 अंकों का कोड लिखो।",
   "deviceLinkFinishTitle": "लिंक करना पूरा करो",
   "deviceLinkLinkedHud": "लिंक हो गया",
-  "deviceLinkLinkedToast": "डिवाइस लिंक हो गया"
+  "deviceLinkLinkedToast": "डिवाइस लिंक हो गया",
+  "linuxTrayOpen": "MonkeyHub खोलें",
+  "linuxTrayQuit": "MonkeyHub बंद करें",
+  "linuxCloseTitle": "MonkeyHub चालू रखें?",
+  "linuxCloseBody": "विंडो बंद करने के बाद भी मैसेज मिलते रहें। इस डेस्कटॉप पर ट्रे आइकन नहीं है, इसलिए MonkeyHub मिनिमाइज़ होकर चालू रहेगा। आप इसे सेटिंग्स में बदल सकते हैं।",
+  "linuxCloseKeep": "चालू रखें",
+  "linuxCloseQuit": "बंद करें",
+  "linuxKeepRunningTitle": "बैकग्राउंड में चालू रखें",
+  "linuxKeepRunningSubtitleTray": "विंडो बंद करने पर ट्रे में रहता है, ताकि मैसेज और कॉल आप तक पहुँचते रहें",
+  "linuxKeepRunningSubtitleNoTray": "विंडो बंद करने पर मिनिमाइज़ रहता है, ताकि मैसेज और कॉल आप तक पहुँचते रहें"
 }

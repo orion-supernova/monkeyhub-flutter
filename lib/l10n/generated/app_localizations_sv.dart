@@ -14476,4 +14476,34 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get deviceLinkLinkedToast => 'Enheten är kopplad';
+
+  @override
+  String get linuxTrayOpen => 'Öppna MonkeyHub';
+
+  @override
+  String get linuxTrayQuit => 'Avsluta MonkeyHub';
+
+  @override
+  String get linuxCloseTitle => 'Låta MonkeyHub vara igång?';
+
+  @override
+  String get linuxCloseBody =>
+      'Fortsätt få meddelanden efter att du stängt fönstret. Det här skrivbordet har ingen ikon i systemfältet, så MonkeyHub ligger minimerat i stället. Du kan ändra det i Inställningar.';
+
+  @override
+  String get linuxCloseKeep => 'Låt den vara igång';
+
+  @override
+  String get linuxCloseQuit => 'Avsluta';
+
+  @override
+  String get linuxKeepRunningTitle => 'Fortsätt köra i bakgrunden';
+
+  @override
+  String get linuxKeepRunningSubtitleTray =>
+      'Ligger kvar i systemfältet när du stänger fönstret, så att meddelanden och samtal fortfarande når dig';
+
+  @override
+  String get linuxKeepRunningSubtitleNoTray =>
+      'Ligger kvar minimerat när du stänger fönstret, så att meddelanden och samtal fortfarande når dig';
 }

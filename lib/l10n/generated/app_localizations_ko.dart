@@ -13824,4 +13824,33 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get deviceLinkLinkedToast => '기기가 연결됐어요';
+
+  @override
+  String get linuxTrayOpen => 'MonkeyHub 열기';
+
+  @override
+  String get linuxTrayQuit => 'MonkeyHub 종료';
+
+  @override
+  String get linuxCloseTitle => 'MonkeyHub를 계속 실행할까요?';
+
+  @override
+  String get linuxCloseBody =>
+      '창을 닫은 뒤에도 메시지를 계속 받아요. 이 데스크톱에는 트레이 아이콘이 없어서 MonkeyHub가 최소화된 채로 실행돼요. 설정에서 바꿀 수 있어요.';
+
+  @override
+  String get linuxCloseKeep => '계속 실행';
+
+  @override
+  String get linuxCloseQuit => '종료';
+
+  @override
+  String get linuxKeepRunningTitle => '백그라운드에서 계속 실행';
+
+  @override
+  String get linuxKeepRunningSubtitleTray => '창을 닫아도 트레이에 남아 메시지와 전화를 계속 받아요';
+
+  @override
+  String get linuxKeepRunningSubtitleNoTray =>
+      '창을 닫아도 최소화된 채로 남아 메시지와 전화를 계속 받아요';
 }

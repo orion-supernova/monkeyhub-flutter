@@ -16,6 +16,7 @@ import 'backend/server_store.dart';
 import 'calls/native_call_handler.dart';
 import 'companions/brain_manager.dart';
 import 'companions/device_capability.dart';
+import 'data/linux_secure_storage.dart';
 import 'data/settings_store.dart';
 import 'diagnostics/diag_boot.dart';
 import 'media/storage/data_usage_store.dart';
@@ -26,6 +27,7 @@ import 'media/file_url_cache.dart';
 import 'media/media_aspect_cache.dart';
 import 'push/push_manager.dart';
 import 'services/app_binding.dart';
+import 'services/linux_app_chrome.dart';
 import 'transcripts/apple_builtin_speech.dart';
 import 'transcripts/voice_transcriber.dart';
 import 'transcripts/whisper_engine.dart';
@@ -47,6 +49,13 @@ Future<void> main() async {
   // Everything it records is redacted at capture time and never leaves the
   // device on its own; see Redactor and DiagExport.
   await DiagBoot.install();
+
+  // Before anything reads secure storage — the settings load below is the
+  // first. Linux only: the session, device id and settings move from the
+  // keyring to a private file, because a keyring that is locked, missing or
+  // in-memory only signed the user out on every launch. See
+  // LinuxFileSecureStorage.
+  LinuxFileSecureStorage.install();
 
   // The official sticker packs are Google's Noto Animated Emoji, licensed
   // CC BY 4.0 — whose one condition is credit. The packs' info lines carry it
@@ -177,6 +186,9 @@ Future<void> main() async {
   if (kIsWeb) {
     await BrowserContextMenu.disableContextMenu();
   } else {
+    // Linux: answer the window's close button (tray, minimize or quit). Before
+    // runApp, so a close in the first second is not left unanswered.
+    LinuxAppChrome.instance.install();
     // Initialize push and native call handler asynchronously without delaying runApp.
     PushManager.instance
         .initialize()

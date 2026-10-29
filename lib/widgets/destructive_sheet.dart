@@ -55,22 +55,44 @@ Future<bool> showConfirmSheet(
   required String confirmLabel,
   IconData? icon,
   bool destructive = true,
-}) async {
-  final res = await showAdaptiveSheet<bool>(
-    context,
-    builder: (ctx) => _ConfirmSheet(
+}) async =>
+    await showConfirmSheetChoice(
+      context,
       headline: headline,
       body: body,
       confirmLabel: confirmLabel,
-      icon: icon ??
-          (destructive
-              ? CupertinoIcons.exclamationmark_triangle_fill
-              : CupertinoIcons.info_circle_fill),
+      icon: icon,
       destructive: destructive,
-    ),
-  );
-  return res ?? false;
-}
+    ) ??
+    false;
+
+/// [showConfirmSheet] for a question with two real answers rather than "do
+/// it / never mind": [cancelLabel] names the second one, and the result tells
+/// the three outcomes apart — true for confirm, false for the second button,
+/// null when the sheet was dismissed without answering.
+Future<bool?> showConfirmSheetChoice(
+  BuildContext context, {
+  required String headline,
+  required String body,
+  required String confirmLabel,
+  String? cancelLabel,
+  IconData? icon,
+  bool destructive = true,
+}) =>
+    showAdaptiveSheet<bool>(
+      context,
+      builder: (ctx) => _ConfirmSheet(
+        headline: headline,
+        body: body,
+        confirmLabel: confirmLabel,
+        cancelLabel: cancelLabel,
+        icon: icon ??
+            (destructive
+                ? CupertinoIcons.exclamationmark_triangle_fill
+                : CupertinoIcons.info_circle_fill),
+        destructive: destructive,
+      ),
+    );
 
 class _ConfirmSheet extends StatelessWidget {
   const _ConfirmSheet({
@@ -79,11 +101,13 @@ class _ConfirmSheet extends StatelessWidget {
     required this.confirmLabel,
     required this.icon,
     required this.destructive,
+    this.cancelLabel,
   });
 
   final String headline;
   final String body;
   final String confirmLabel;
+  final String? cancelLabel;
   final IconData icon;
   final bool destructive;
 
@@ -127,7 +151,7 @@ class _ConfirmSheet extends StatelessWidget {
               // Autofocused so Enter on a freshly opened sheet backs out
               // rather than destroys: the desktop convention.
               DialogCancelButton(
-                label: l10n.destructiveSheetCancelButtonLabel,
+                label: cancelLabel ?? l10n.destructiveSheetCancelButtonLabel,
                 autofocus: true,
                 onTap: () => Navigator.of(context).pop(false),
               ),

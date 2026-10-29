@@ -110,7 +110,10 @@ class NotificationService: UNNotificationServiceExtension {
     // no-face path below delivers this as is, so a group message reads the
     // same whether or not a picture was fetched — the same room must not
     // alternate between two layouts depending on who spoke.
-    let content = Self.composed(original)
+    //
+    // Then the burst rule: the first line of a burst from one room buzzes, the
+    // rest arrive silently into the same stack. See `AlertBurst`.
+    let content = Self.quietedInBurst(Self.composed(original))
     pending = content
 
     guard
@@ -259,6 +262,31 @@ class NotificationService: UNNotificationServiceExtension {
       return mutable
     }
     return content
+  }
+
+  /// [content] with its sound taken away when it is not the first line of a
+  /// burst from its room: `.passive` lands it in Notification Center, stacked
+  /// under the room's `thread-id`, without a sound, a vibration or a lit
+  /// screen. An active group used to buzz once per line.
+  ///
+  /// Decided here rather than on the server because a buzz is per device —
+  /// the phone should not stay quiet because the Mac on the desk chimed — and
+  /// because it costs the backend nothing per message per recipient. And it is
+  /// still delivered: quiet is a way of arriving, not a way of being dropped.
+  ///
+  /// Anything that is not a chat message is returned untouched.
+  static func quietedInBurst(_ content: UNNotificationContent) -> UNNotificationContent {
+    let info = content.userInfo
+    guard (info["kind"] as? String) == "message",
+          let roomId = info["roomId"] as? String, !roomId.isEmpty
+    else { return content }
+    let mentioned = (info["mention"] as? String) == "true"
+    guard !AlertBurst.shouldAlert(roomId: roomId, mention: mentioned),
+          let mutable = content.mutableCopy() as? UNMutableNotificationContent
+    else { return content }
+    mutable.sound = nil
+    mutable.interruptionLevel = .passive
+    return mutable
   }
 
   /// Longest edge the face is drawn at. The banner renders it at about 40pt;
@@ -470,5 +498,46 @@ class NotificationService: UNNotificationServiceExtension {
       NSLog("[push] communication notification refused: \(error.localizedDescription)")
       return content
     }
+  }
+}
+
+/// Whether a chat message should make a sound, per room — the same rule with
+/// the same two numbers as lib/push/alert_burst.dart (desktop) and
+/// ChatNotifications.kt (Android); keep them in step.
+///
+/// A message within `gap` of the room's previous one is the same burst and
+/// arrives quietly; however long a burst runs, it alerts again after
+/// `reminder`; a mention always alerts.
+///
+/// Kept in the App Group's defaults because every push may be a fresh
+/// extension process, so nothing in memory survives from one to the next.
+enum AlertBurst {
+  static let gap: TimeInterval = 45
+  static let reminder: TimeInterval = 180
+  private static let key = "mh.alertBurst"
+
+  private static let lock = NSLock()
+
+  static func shouldAlert(roomId: String, mention: Bool, now: Date = Date()) -> Bool {
+    lock.lock()
+    defer { lock.unlock() }
+    let defaults = UserDefaults(suiteName: ShareGroup.identifier) ?? .standard
+    var rooms = defaults.dictionary(forKey: key) as? [String: [Double]] ?? [:]
+    let t = now.timeIntervalSince1970
+    // Rooms quiet for longer than the reminder can only alert next time, so
+    // forgetting them changes nothing and keeps this from growing per room.
+    rooms = rooms.filter { t - ($0.value.first ?? 0) < reminder }
+    let prev = rooms[roomId]
+    let alert: Bool
+    if let prev, prev.count == 2, !mention,
+       t - prev[0] < gap, t - prev[1] < reminder {
+      alert = false
+      rooms[roomId] = [t, prev[1]]
+    } else {
+      alert = true
+      rooms[roomId] = [t, t]
+    }
+    defaults.set(rooms, forKey: key)
+    return alert
   }
 }

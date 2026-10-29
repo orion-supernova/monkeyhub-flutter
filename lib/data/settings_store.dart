@@ -52,6 +52,9 @@ class SettingsStore extends ChangeNotifier {
   static const _kShortcutPeek = 'mh.shortcutPeek';
   static const _kAlbumCards = 'mh.albumCards';
   static const _kCompactDesktop = 'mh.compactDesktop';
+  /// Linux: what the window's close button does. Absent until asked — see
+  /// [closeKeepsRunning].
+  static const _kCloseKeepsRunning = 'mh.closeKeepsRunning';
   static const _kMapAppId = 'mh.maps.app';
   static const _kMapAppName = 'mh.maps.name';
   static const _kAutoplayExpressions = 'mh.autoplayExpressions';
@@ -101,7 +104,7 @@ class SettingsStore extends ChangeNotifier {
     _kLayout, _kNav, _kSection, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
-    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd, _kTipsSeen,
+    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd, _kTipsSeen,
     _kVideoQualityTier, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel, _kPowerSaving,
@@ -153,6 +156,7 @@ class SettingsStore extends ChangeNotifier {
   bool _shortcutPeek = true;
   bool _albumCards = true;
   bool _compactDesktop = true;
+  bool? _closeKeepsRunning;
   String? _mapAppId;
   String? _mapAppName;
   bool _autoplayExpressions = true;
@@ -301,6 +305,15 @@ class SettingsStore extends ChangeNotifier {
   /// Desktop and desktop-browser density: shorter rows, smaller chrome
   /// buttons (see `Density`). On by default there; phones ignore it.
   bool get compactDesktop => _compactDesktop;
+
+  /// Linux: whether closing the window keeps MonkeyHub running — hidden to
+  /// the tray when there is one, minimized when there is not — so messages
+  /// keep arriving as desktop notifications. False quits, as closing used to.
+  ///
+  /// Null means never decided. With a tray that reads as true, Steam-style;
+  /// without one, the first close asks (`LinuxAppChrome`), because minimizing
+  /// on close is unusual enough that it should not happen unannounced.
+  bool? get closeKeepsRunning => _closeKeepsRunning;
   /// Null means ask every time, including the first time a location is opened.
   String? get mapAppId => _mapAppId;
   String? get mapAppName => _mapAppName;
@@ -661,6 +674,8 @@ class SettingsStore extends ChangeNotifier {
     _shortcutPeek = s[_kShortcutPeek] != 'false'; // default true
     _albumCards = s[_kAlbumCards] != 'false'; // default true
     _compactDesktop = s[_kCompactDesktop] != 'false'; // default true
+    final ckr = s[_kCloseKeepsRunning];
+    _closeKeepsRunning = ckr == null ? null : ckr == 'true';
     _mapAppId = s[_kMapAppId];
     _mapAppName = s[_kMapAppName];
     _autoplayExpressions = s[_kAutoplayExpressions] != 'false'; // default true
@@ -989,6 +1004,13 @@ class SettingsStore extends ChangeNotifier {
     _compactDesktop = v;
     notifyListeners();
     await _storage.write(key: _kCompactDesktop, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setCloseKeepsRunning(bool v) async {
+    if (_closeKeepsRunning == v) return;
+    _closeKeepsRunning = v;
+    notifyListeners();
+    await _storage.write(key: _kCloseKeepsRunning, value: v ? 'true' : 'false');
   }
 
   Future<void> setShortcutPeek(bool v) async {

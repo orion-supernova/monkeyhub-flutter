@@ -141,6 +141,16 @@ dependencies:
   # Auth / crypto
   crypto: ^3.0.3
   flutter_secure_storage: ^10.3.1
+  # Transitively present via flutter_secure_storage; declared because the Linux
+  # build replaces the keyring-backed implementation with a private file
+  # (`lib/data/linux_secure_storage_io.dart`), and `test/device_identity_test.dart`
+  # implements `FlutterSecureStoragePlatform` directly to assert the iOS
+  # accessibility class, which the package's own in-memory double ignores.
+  flutter_secure_storage_platform_interface: ^2.0.1
+  # Transitively present (geolocator_linux, wakelock_plus); declared because
+  # the Linux build talks to the desktop's notification daemon itself over
+  # org.freedesktop.Notifications (`lib/push/linux_notifier_io.dart`).
+  dbus: ^0.7.14
 
   # Social sign-in. NATIVE flows only, on purpose: the native SDKs hand back an
   # ID token the backend verifies itself (`backend/convex/idToken.ts`), so there
@@ -403,12 +413,6 @@ dev_dependencies:
   # needed a 328 MB download to run is a suite nobody runs.
   integration_test:
     sdk: flutter
-
-  # Transitively present via flutter_secure_storage; declared explicitly because
-  # `test/device_identity_test.dart` implements `FlutterSecureStoragePlatform`
-  # directly. The package's own in-memory double ignores the `options` map, and
-  # the accessibility class inside it is the entire subject of that test.
-  flutter_secure_storage_platform_interface: ^2.0.1
 
   # Transitively present via flutter_test; declared explicitly because
   # `test/username_rename_test.dart` calls `fakeAsync` directly. The username

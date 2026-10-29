@@ -14580,4 +14580,34 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get deviceLinkLinkedToast => 'Dispositivo vinculado';
+
+  @override
+  String get linuxTrayOpen => 'Abrir MonkeyHub';
+
+  @override
+  String get linuxTrayQuit => 'Salir de MonkeyHub';
+
+  @override
+  String get linuxCloseTitle => '¿Mantener MonkeyHub abierto?';
+
+  @override
+  String get linuxCloseBody =>
+      'Sigue recibiendo mensajes después de cerrar la ventana. Este escritorio no tiene icono en la bandeja, así que MonkeyHub se quedará minimizado. Puedes cambiarlo en Ajustes.';
+
+  @override
+  String get linuxCloseKeep => 'Mantener abierto';
+
+  @override
+  String get linuxCloseQuit => 'Salir';
+
+  @override
+  String get linuxKeepRunningTitle => 'Seguir en segundo plano';
+
+  @override
+  String get linuxKeepRunningSubtitleTray =>
+      'Se queda en la bandeja al cerrar la ventana, así te siguen llegando mensajes y llamadas';
+
+  @override
+  String get linuxKeepRunningSubtitleNoTray =>
+      'Se queda minimizado al cerrar la ventana, así te siguen llegando mensajes y llamadas';
 }

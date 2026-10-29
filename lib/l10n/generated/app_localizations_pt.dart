@@ -14584,6 +14584,36 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get deviceLinkLinkedToast => 'Dispositivo ligado';
+
+  @override
+  String get linuxTrayOpen => 'Abrir o MonkeyHub';
+
+  @override
+  String get linuxTrayQuit => 'Sair do MonkeyHub';
+
+  @override
+  String get linuxCloseTitle => 'Manter o MonkeyHub aberto?';
+
+  @override
+  String get linuxCloseBody =>
+      'Continua a receber mensagens depois de fechar a janela. Este ambiente de trabalho não tem ícone na bandeja, por isso o MonkeyHub fica minimizado. Podes mudar isto nas Definições.';
+
+  @override
+  String get linuxCloseKeep => 'Manter aberto';
+
+  @override
+  String get linuxCloseQuit => 'Sair';
+
+  @override
+  String get linuxKeepRunningTitle => 'Continuar em segundo plano';
+
+  @override
+  String get linuxKeepRunningSubtitleTray =>
+      'Fica na bandeja quando fechas a janela, para que mensagens e chamadas continuem a chegar';
+
+  @override
+  String get linuxKeepRunningSubtitleNoTray =>
+      'Fica minimizado quando fechas a janela, para que mensagens e chamadas continuem a chegar';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -29148,4 +29178,34 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get deviceLinkLinkedToast => 'Dispositivo vinculado';
+
+  @override
+  String get linuxTrayOpen => 'Abrir o MonkeyHub';
+
+  @override
+  String get linuxTrayQuit => 'Sair do MonkeyHub';
+
+  @override
+  String get linuxCloseTitle => 'Manter o MonkeyHub aberto?';
+
+  @override
+  String get linuxCloseBody =>
+      'Continue recebendo mensagens depois de fechar a janela. Esta área de trabalho não tem ícone na bandeja, então o MonkeyHub vai ficar minimizado. Você pode mudar isso nos Ajustes.';
+
+  @override
+  String get linuxCloseKeep => 'Manter aberto';
+
+  @override
+  String get linuxCloseQuit => 'Sair';
+
+  @override
+  String get linuxKeepRunningTitle => 'Continuar em segundo plano';
+
+  @override
+  String get linuxKeepRunningSubtitleTray =>
+      'Fica na bandeja quando você fecha a janela, para que mensagens e chamadas continuem chegando';
+
+  @override
+  String get linuxKeepRunningSubtitleNoTray =>
+      'Fica minimizado quando você fecha a janela, para que mensagens e chamadas continuem chegando';
 }

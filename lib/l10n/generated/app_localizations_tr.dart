@@ -14376,4 +14376,34 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get deviceLinkLinkedToast => 'Cihaz bağlandı';
+
+  @override
+  String get linuxTrayOpen => 'MonkeyHub\'ı aç';
+
+  @override
+  String get linuxTrayQuit => 'MonkeyHub\'tan çık';
+
+  @override
+  String get linuxCloseTitle => 'MonkeyHub çalışmaya devam etsin mi?';
+
+  @override
+  String get linuxCloseBody =>
+      'Pencereyi kapattıktan sonra da mesaj almaya devam et. Bu masaüstünde tepsi simgesi yok, bu yüzden MonkeyHub simge durumunda kalır. Bunu Ayarlar\'dan değiştirebilirsin.';
+
+  @override
+  String get linuxCloseKeep => 'Çalışmaya devam etsin';
+
+  @override
+  String get linuxCloseQuit => 'Çık';
+
+  @override
+  String get linuxKeepRunningTitle => 'Arka planda çalışmaya devam et';
+
+  @override
+  String get linuxKeepRunningSubtitleTray =>
+      'Pencereyi kapatınca tepside kalır, mesajlar ve aramalar sana ulaşmaya devam eder';
+
+  @override
+  String get linuxKeepRunningSubtitleNoTray =>
+      'Pencereyi kapatınca simge durumunda kalır, mesajlar ve aramalar sana ulaşmaya devam eder';
 }

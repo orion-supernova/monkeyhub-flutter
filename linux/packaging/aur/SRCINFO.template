@@ -8,6 +8,7 @@ pkgbase = monkeyhub-bin
 	depends = gtk3
 	depends = libsecret
 	depends = jsoncpp
+	optdepends = libayatana-appindicator: system tray icon
 	provides = monkeyhub
 	conflicts = monkeyhub
 	options = !strip

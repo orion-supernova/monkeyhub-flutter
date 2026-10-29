@@ -3982,5 +3982,14 @@
   "deviceLinkEnterCodeBody": "Saisis le code à 6 chiffres affiché sur l’appareil que tu veux lier.",
   "deviceLinkFinishTitle": "Terminer la liaison",
   "deviceLinkLinkedHud": "Lié",
-  "deviceLinkLinkedToast": "Appareil lié"
+  "deviceLinkLinkedToast": "Appareil lié",
+  "linuxTrayOpen": "Ouvrir MonkeyHub",
+  "linuxTrayQuit": "Quitter MonkeyHub",
+  "linuxCloseTitle": "Garder MonkeyHub ouvert ?",
+  "linuxCloseBody": "Continue de recevoir tes messages après avoir fermé la fenêtre. Ce bureau n'a pas d'icône dans la zone de notification, donc MonkeyHub restera réduit. Tu peux changer ça dans les Réglages.",
+  "linuxCloseKeep": "Garder ouvert",
+  "linuxCloseQuit": "Quitter",
+  "linuxKeepRunningTitle": "Rester actif en arrière-plan",
+  "linuxKeepRunningSubtitleTray": "Reste dans la zone de notification quand tu fermes la fenêtre, pour que messages et appels te parviennent toujours",
+  "linuxKeepRunningSubtitleNoTray": "Reste réduit quand tu fermes la fenêtre, pour que messages et appels te parviennent toujours"
 }

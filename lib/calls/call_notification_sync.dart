@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'dart:io' show Platform;
-import 'dart:ui' show Locale;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-import '../diagnostics/device_report.dart';
-import '../l10n/generated/app_localizations.dart';
+import '../l10n/app_labels.dart';
 import 'call_models.dart';
 import 'call_service.dart';
 
@@ -145,7 +143,7 @@ class CallNotificationSync {
     if (next == _sent) return;
     final prev = _sent;
     _sent = next;
-    final l10n = _labels();
+    final l10n = appLabels();
     for (final (method, args) in callNotificationOps(
       prev,
       next,
@@ -159,31 +157,5 @@ class CallNotificationSync {
         },
       ));
     }
-  }
-
-  /// The app's settled language (recorded by the root builder), English
-  /// when it is not known yet.
-  static AppLocalizations _labels() {
-    final tag = DeviceReport.appLocaleTag;
-    if (tag != null) {
-      final parts = tag.split('-');
-      String? script;
-      String? country;
-      for (final p in parts.skip(1)) {
-        if (p.length == 4) {
-          script = p;
-        } else {
-          country = p;
-        }
-      }
-      try {
-        return lookupAppLocalizations(Locale.fromSubtags(
-          languageCode: parts.first,
-          scriptCode: script,
-          countryCode: country,
-        ));
-      } catch (_) {}
-    }
-    return lookupAppLocalizations(const Locale('en'));
   }
 }

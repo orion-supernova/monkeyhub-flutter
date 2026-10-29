@@ -24054,6 +24054,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Device linked'**
   String get deviceLinkLinkedToast;
+
+  /// Linux system-tray menu item that brings the hidden app window back.
+  ///
+  /// In en, this message translates to:
+  /// **'Open MonkeyHub'**
+  String get linuxTrayOpen;
+
+  /// Linux system-tray menu item that fully quits the app (closing the window only hides it to the tray).
+  ///
+  /// In en, this message translates to:
+  /// **'Quit MonkeyHub'**
+  String get linuxTrayQuit;
+
+  /// Linux: headline of the one-time prompt shown the first time the window is closed on a desktop with no system tray.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep MonkeyHub running?'**
+  String get linuxCloseTitle;
+
+  /// Linux: body of that prompt. Explains that keeping the app running (minimized, since there is no tray) keeps messages arriving.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep getting messages after you close the window. This desktop has no tray icon, so MonkeyHub will stay minimized instead. You can change this in Settings.'**
+  String get linuxCloseBody;
+
+  /// Linux: prompt button that keeps the app running minimized.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep running'**
+  String get linuxCloseKeep;
+
+  /// Linux: prompt button that quits the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Quit'**
+  String get linuxCloseQuit;
+
+  /// Linux settings switch (General section): closing the window keeps the whole app running in the background, in the tray or minimized, instead of quitting.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep running in the background'**
+  String get linuxKeepRunningTitle;
+
+  /// Subtitle of that switch when the desktop has a system tray.
+  ///
+  /// In en, this message translates to:
+  /// **'Stays in the tray when you close the window, so messages and calls still reach you'**
+  String get linuxKeepRunningSubtitleTray;
+
+  /// Subtitle of that switch when the desktop has no system tray.
+  ///
+  /// In en, this message translates to:
+  /// **'Stays minimized when you close the window, so messages and calls still reach you'**
+  String get linuxKeepRunningSubtitleNoTray;
 }
 
 class _AppLocalizationsDelegate

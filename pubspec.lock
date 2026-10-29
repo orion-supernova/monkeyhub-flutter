@@ -304,7 +304,7 @@ packages:
     source: hosted
     version: "1.8.1"
   dbus:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: dbus
       sha256: "0ce9b0a839e6dee59a37a623d2fc26a35bbbe6404213e419b0d6411023d62645"
@@ -622,7 +622,7 @@ packages:
     source: hosted
     version: "3.0.1"
   flutter_secure_storage_platform_interface:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: flutter_secure_storage_platform_interface
       sha256: "06686df417f34fe9f963ed217b7fdce250e2f637ddd6c374d7eb054549770633"

@@ -14611,4 +14611,34 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deviceLinkLinkedToast => 'تم ربط الجهاز';
+
+  @override
+  String get linuxTrayOpen => 'فتح MonkeyHub';
+
+  @override
+  String get linuxTrayQuit => 'إنهاء MonkeyHub';
+
+  @override
+  String get linuxCloseTitle => 'هل تريد إبقاء MonkeyHub قيد التشغيل؟';
+
+  @override
+  String get linuxCloseBody =>
+      'استمر في تلقي الرسائل بعد إغلاق النافذة. لا يوجد رمز في شريط النظام على سطح المكتب هذا، لذا سيبقى MonkeyHub مصغرًا. يمكنك تغيير ذلك من الإعدادات.';
+
+  @override
+  String get linuxCloseKeep => 'إبقاؤه قيد التشغيل';
+
+  @override
+  String get linuxCloseQuit => 'إنهاء';
+
+  @override
+  String get linuxKeepRunningTitle => 'الاستمرار في العمل في الخلفية';
+
+  @override
+  String get linuxKeepRunningSubtitleTray =>
+      'يبقى في شريط النظام عند إغلاق النافذة، لتصلك الرسائل والمكالمات دائمًا';
+
+  @override
+  String get linuxKeepRunningSubtitleNoTray =>
+      'يبقى مصغرًا عند إغلاق النافذة، لتصلك الرسائل والمكالمات دائمًا';
 }

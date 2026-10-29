@@ -13661,4 +13661,32 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deviceLinkLinkedToast => '设备已关联';
+
+  @override
+  String get linuxTrayOpen => '打开 MonkeyHub';
+
+  @override
+  String get linuxTrayQuit => '退出 MonkeyHub';
+
+  @override
+  String get linuxCloseTitle => '让 MonkeyHub 保持运行？';
+
+  @override
+  String get linuxCloseBody =>
+      '关闭窗口后仍能继续收到消息。此桌面没有托盘图标，所以 MonkeyHub 会保持最小化。你可以在设置中更改。';
+
+  @override
+  String get linuxCloseKeep => '保持运行';
+
+  @override
+  String get linuxCloseQuit => '退出';
+
+  @override
+  String get linuxKeepRunningTitle => '在后台保持运行';
+
+  @override
+  String get linuxKeepRunningSubtitleTray => '关闭窗口后仍留在托盘中，消息和通话照常送达';
+
+  @override
+  String get linuxKeepRunningSubtitleNoTray => '关闭窗口后保持最小化，消息和通话照常送达';
 }

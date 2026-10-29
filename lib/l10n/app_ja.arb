@@ -3982,5 +3982,14 @@
   "deviceLinkEnterCodeBody": "連携したいデバイスに表示された6桁のコードを入力してください。",
   "deviceLinkFinishTitle": "連携を完了",
   "deviceLinkLinkedHud": "連携しました",
-  "deviceLinkLinkedToast": "デバイスを連携しました"
+  "deviceLinkLinkedToast": "デバイスを連携しました",
+  "linuxTrayOpen": "MonkeyHubを開く",
+  "linuxTrayQuit": "MonkeyHubを終了",
+  "linuxCloseTitle": "MonkeyHubを起動したままにしますか？",
+  "linuxCloseBody": "ウィンドウを閉じた後もメッセージを受け取れます。このデスクトップにはトレイアイコンがないため、MonkeyHubは最小化されたままになります。設定でいつでも変更できます。",
+  "linuxCloseKeep": "起動したままにする",
+  "linuxCloseQuit": "終了",
+  "linuxKeepRunningTitle": "バックグラウンドで実行し続ける",
+  "linuxKeepRunningSubtitleTray": "ウィンドウを閉じてもトレイに残り、メッセージや通話を受け取れます",
+  "linuxKeepRunningSubtitleNoTray": "ウィンドウを閉じても最小化されたまま残り、メッセージや通話を受け取れます"
 }

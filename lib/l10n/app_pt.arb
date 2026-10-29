@@ -3982,5 +3982,14 @@
   "deviceLinkEnterCodeBody": "Escreve o código de 6 dígitos apresentado no dispositivo que queres ligar.",
   "deviceLinkFinishTitle": "Concluir ligação",
   "deviceLinkLinkedHud": "Ligado",
-  "deviceLinkLinkedToast": "Dispositivo ligado"
+  "deviceLinkLinkedToast": "Dispositivo ligado",
+  "linuxTrayOpen": "Abrir o MonkeyHub",
+  "linuxTrayQuit": "Sair do MonkeyHub",
+  "linuxCloseTitle": "Manter o MonkeyHub aberto?",
+  "linuxCloseBody": "Continua a receber mensagens depois de fechar a janela. Este ambiente de trabalho não tem ícone na bandeja, por isso o MonkeyHub fica minimizado. Podes mudar isto nas Definições.",
+  "linuxCloseKeep": "Manter aberto",
+  "linuxCloseQuit": "Sair",
+  "linuxKeepRunningTitle": "Continuar em segundo plano",
+  "linuxKeepRunningSubtitleTray": "Fica na bandeja quando fechas a janela, para que mensagens e chamadas continuem a chegar",
+  "linuxKeepRunningSubtitleNoTray": "Fica minimizado quando fechas a janela, para que mensagens e chamadas continuem a chegar"
 }

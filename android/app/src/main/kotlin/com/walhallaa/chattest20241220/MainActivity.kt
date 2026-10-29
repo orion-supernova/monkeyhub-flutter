@@ -489,8 +489,11 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "dismiss" -> {
                         val ids = call.argument<List<String>>("ids").orEmpty()
-                        val nm = NotificationManagerCompat.from(this)
-                        for (id in ids) nm.cancel(id, ChatNotifications.ID)
+                        // Through ChatNotifications, which also takes the
+                        // lines out of a room's one notification.
+                        ChatNotifications.dismissIds(
+                            this, ids, call.argument<String>("roomId").orEmpty()
+                        )
                         result.success(null)
                     }
                     "dismissRoom" -> {

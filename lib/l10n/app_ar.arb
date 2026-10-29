@@ -3982,5 +3982,14 @@
   "deviceLinkEnterCodeBody": "اكتب الرمز المكون من 6 أرقام المعروض على الجهاز الذي تريد ربطه.",
   "deviceLinkFinishTitle": "إنهاء الربط",
   "deviceLinkLinkedHud": "تم الربط",
-  "deviceLinkLinkedToast": "تم ربط الجهاز"
+  "deviceLinkLinkedToast": "تم ربط الجهاز",
+  "linuxTrayOpen": "فتح MonkeyHub",
+  "linuxTrayQuit": "إنهاء MonkeyHub",
+  "linuxCloseTitle": "هل تريد إبقاء MonkeyHub قيد التشغيل؟",
+  "linuxCloseBody": "استمر في تلقي الرسائل بعد إغلاق النافذة. لا يوجد رمز في شريط النظام على سطح المكتب هذا، لذا سيبقى MonkeyHub مصغرًا. يمكنك تغيير ذلك من الإعدادات.",
+  "linuxCloseKeep": "إبقاؤه قيد التشغيل",
+  "linuxCloseQuit": "إنهاء",
+  "linuxKeepRunningTitle": "الاستمرار في العمل في الخلفية",
+  "linuxKeepRunningSubtitleTray": "يبقى في شريط النظام عند إغلاق النافذة، لتصلك الرسائل والمكالمات دائمًا",
+  "linuxKeepRunningSubtitleNoTray": "يبقى مصغرًا عند إغلاق النافذة، لتصلك الرسائل والمكالمات دائمًا"
 }

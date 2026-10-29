@@ -14649,4 +14649,34 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get deviceLinkLinkedToast => 'Appareil lié';
+
+  @override
+  String get linuxTrayOpen => 'Ouvrir MonkeyHub';
+
+  @override
+  String get linuxTrayQuit => 'Quitter MonkeyHub';
+
+  @override
+  String get linuxCloseTitle => 'Garder MonkeyHub ouvert ?';
+
+  @override
+  String get linuxCloseBody =>
+      'Continue de recevoir tes messages après avoir fermé la fenêtre. Ce bureau n\'a pas d\'icône dans la zone de notification, donc MonkeyHub restera réduit. Tu peux changer ça dans les Réglages.';
+
+  @override
+  String get linuxCloseKeep => 'Garder ouvert';
+
+  @override
+  String get linuxCloseQuit => 'Quitter';
+
+  @override
+  String get linuxKeepRunningTitle => 'Rester actif en arrière-plan';
+
+  @override
+  String get linuxKeepRunningSubtitleTray =>
+      'Reste dans la zone de notification quand tu fermes la fenêtre, pour que messages et appels te parviennent toujours';
+
+  @override
+  String get linuxKeepRunningSubtitleNoTray =>
+      'Reste réduit quand tu fermes la fenêtre, pour que messages et appels te parviennent toujours';
 }

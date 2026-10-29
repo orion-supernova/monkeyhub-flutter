@@ -28,6 +28,7 @@ import '../models/chat_user.dart';
 import '../push/android_call_reliability.dart';
 import '../push/push_manager.dart';
 import '../services/link_opener.dart';
+import '../services/linux_app_chrome.dart';
 import '../services/mac_app_chrome.dart';
 import '../theme/app_theme.dart';
 import '../theme/density.dart';
@@ -155,6 +156,12 @@ class _SettingsScreenState extends State<SettingsScreen>
     // download rather than a stale label.
     BrainManager.instance.addListener(_onSettings);
     _callDelivery.addListener(_onSettings);
+    if (LinuxAppChrome.isSupported) {
+      LinuxAppChrome.instance.addListener(_onSettings);
+      // Re-read on every visit: the row's wording depends on whether a tray
+      // is on screen, and a tray can come and go while the app runs.
+      LinuxAppChrome.instance.load();
+    }
     if (MacAppChrome.isSupported) {
       MacAppChrome.instance.addListener(_onSettings);
       // Re-read on every visit: the item can also be removed by ⌘-dragging it
@@ -178,6 +185,9 @@ class _SettingsScreenState extends State<SettingsScreen>
       ..dispose();
     if (MacAppChrome.isSupported) {
       MacAppChrome.instance.removeListener(_onSettings);
+    }
+    if (LinuxAppChrome.isSupported) {
+      LinuxAppChrome.instance.removeListener(_onSettings);
     }
     _scroll.dispose();
     _searchCtrl.dispose();
@@ -637,6 +647,23 @@ class _SettingsScreenState extends State<SettingsScreen>
                     onChanged: store.setShortcutPeek,
                   )),
                 ],
+                // Linux: whether the whole app stays alive once the window is
+                // closed (in the tray, or minimized without one), which is the
+                // only way messages and calls reach a build with no push
+                // service. App behaviour rather than a notification setting,
+                // hence here. Unset reads as on, which is what closing does
+                // when there is a tray.
+                if (LinuxAppChrome.isSupported)
+                  _IconLed(_StoreToggle(
+                    icon: CupertinoIcons.tray_fill,
+                    tone: TileTone.gray,
+                    title: l10n.linuxKeepRunningTitle,
+                    subtitle: LinuxAppChrome.instance.trayShown == false
+                        ? l10n.linuxKeepRunningSubtitleNoTray
+                        : l10n.linuxKeepRunningSubtitleTray,
+                    value: () => store.closeKeepsRunning ?? true,
+                    onChanged: store.setCloseKeepsRunning,
+                  )),
               ],
             ),
 

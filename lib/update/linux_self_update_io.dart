@@ -105,6 +105,20 @@ class LinuxSelfUpdate {
         debugPrint('LINUX UPDATE: no $exeName in the tarball');
         return false;
       }
+      // What the new build will SAY it is, which is what the next launch's
+      // check compares — not the manifest's word for it. 1.3.138's tarball
+      // called itself 1.3.137, and installing it put the app straight back
+      // behind the row: the banner never cleared and every tap downloaded the
+      // same 70 MB again. A build that isn't newer by its own account is not
+      // an update.
+      final reports = _bundleVersion(unpacked);
+      if (reports == null || compareVersions(reports, current) <= 0) {
+        debugPrint(
+          'LINUX UPDATE: ${entry.file} reports ${reports ?? 'no version'}, '
+          'not newer than $current; refusing',
+        );
+        return false;
+      }
 
       final previous = Directory('${install.path}$_previous');
       if (previous.existsSync()) previous.deleteSync(recursive: true);
@@ -118,9 +132,13 @@ class LinuxSelfUpdate {
         rethrow;
       }
 
+      // The app is single-instance (so a hidden-to-tray window comes back
+      // when launched again), and without this flag the new build would
+      // just hand its launch to this one and exit. With it, the new build
+      // takes the name over and this one is told to quit.
       await Process.start(
         '${install.path}/$exeName',
-        const [],
+        const ['--gapplication-replace'],
         mode: ProcessStartMode.detached,
       );
       exit(0);
@@ -147,6 +165,21 @@ class LinuxSelfUpdate {
       } catch (_) {
         // Not ours to delete (another user's install) or already gone.
       }
+    }
+  }
+
+  /// The version an unpacked bundle will report through package_info_plus,
+  /// which reads exactly this file.
+  static String? _bundleVersion(Directory bundle) {
+    try {
+      final json = jsonDecode(
+        File('${bundle.path}/data/flutter_assets/version.json')
+            .readAsStringSync(),
+      );
+      final v = json is Map ? json['version'] : null;
+      return v is String && v.isNotEmpty ? v : null;
+    } catch (_) {
+      return null;
     }
   }
 

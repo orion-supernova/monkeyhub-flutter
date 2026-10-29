@@ -20,6 +20,7 @@ import androidx.core.app.Person
 import androidx.core.graphics.drawable.IconCompat
 import androidx.exifinterface.media.ExifInterface
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -250,6 +251,13 @@ object ChatNotifications {
         // network for something the phone was just told.
         stageForSeeding(ctx, data)
 
+        // A chat message joins its room's one notification; see
+        // [showConversation]. Everything else is still one per item.
+        if (kind == "message" && roomId.isNotEmpty()) {
+            showConversation(ctx, roomId, data)
+            return
+        }
+
         val avatarUrl = data["senderAvatarUrl"].orEmpty()
         if (avatarUrl.isEmpty()) {
             post(ctx, kind, roomId, data, avatar = null)
@@ -318,6 +326,233 @@ object ChatNotifications {
             Thread { upgrade() }.start()
         } else {
             upgrade()
+        }
+    }
+
+    // ── One notification per room ─────────────────────────────────────────
+    //
+    // A chat message used to be its own notification (tag = messageId), each
+    // alerting, stacked under a per-room summary. An active group was a column
+    // of entries and a buzz per line. Now a room is ONE notification — the
+    // MessagingStyle transcript WhatsApp, Telegram and Signal post, keeping the
+    // room's last [MAX_LINES] lines — and only the first line of a burst makes
+    // a sound ([AlertBurst]); the rest update it silently.
+    //
+    // The lines live in [ROOM_PREFS] rather than being read back out of the
+    // posted notification, so a deleted message can be taken out of the
+    // transcript ([dismissIds]) and the rest re-posted, and so the face of
+    // every sender survives a re-post. A room whose notification is no longer
+    // showing (swiped away, tapped, or cleared when the room opened) starts a
+    // fresh transcript with its next message.
+
+    private const val ROOM_PREFS = "mh_room_notifications"
+    private const val MAX_LINES = 8
+    private val ROOM_KEYS = setOf("title", "roomName", "isGroup", "focus")
+
+    private fun roomTag(roomId: String) = "room:$roomId"
+
+    /// Edge, in px, of a face drawn beside a transcript line, and of the large
+    /// icon. A transcript carries a face per line and the whole notification
+    /// must fit a 1 MB Binder transaction: eight full 512px faces would be
+    /// 8 MB and the post would fail with TransactionTooLargeException. At
+    /// these sizes the worst case is under half a megabyte.
+    private const val LINE_FACE_EDGE = 96
+    private const val LARGE_FACE_EDGE = 192
+
+    private val scaledFaces = object : LruCache<String, Bitmap>(1024 * 1024) {
+        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
+    }
+
+    /// [url]'s cached face at no more than [edge] px, or null if it has not
+    /// been fetched. Never fetches: a re-post must not wait on the network.
+    private fun face(url: String, edge: Int): Bitmap? {
+        if (url.isEmpty()) return null
+        val key = "$edge|$url"
+        scaledFaces.get(key)?.let { return it }
+        val src = avatarCache.get(url) ?: return null
+        val longest = maxOf(src.width, src.height)
+        val scaled = if (longest <= edge) src else Bitmap.createScaledBitmap(
+            src,
+            maxOf(1, src.width * edge / longest),
+            maxOf(1, src.height * edge / longest),
+            true,
+        )
+        scaledFaces.put(key, scaled)
+        return scaled
+    }
+
+    private fun isShowing(ctx: Context, roomId: String): Boolean {
+        val nm = ctx.getSystemService(NotificationManager::class.java) ?: return false
+        return activeOrEmpty(nm).any { it.tag == roomTag(roomId) }
+    }
+
+    private fun showConversation(ctx: Context, roomId: String, data: Map<String, String>) {
+        appendLine(ctx, roomId, data, fresh = !isShowing(ctx, roomId))
+        val alert = AlertBurst.shouldAlert(ctx, roomId, data["mention"] == "true")
+        postConversation(ctx, roomId, alert)
+
+        // Text first, face second, exactly as [show] does for the other kinds
+        // and for the same reason. The re-post never alerts, and is skipped if
+        // the notification went away while the face was loading.
+        val avatarUrl = data["senderAvatarUrl"].orEmpty()
+        if (avatarUrl.isEmpty() || avatarCache.get(avatarUrl) != null) return
+        val upgrade = {
+            val avatar = runCatching { fetchAvatar(avatarUrl) }
+                .onFailure { Log.w(TAG, "avatar fetch failed: ${it.message}") }
+                .getOrNull()
+            if (avatar != null) {
+                avatarCache.put(avatarUrl, avatar)
+                postConversation(ctx, roomId, alert = false, onlyIfShowing = true)
+            }
+        }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            Thread { upgrade() }.start()
+        } else {
+            upgrade()
+        }
+    }
+
+    private fun readRecord(ctx: Context, roomId: String): JSONObject? =
+        ctx.getSharedPreferences(ROOM_PREFS, Context.MODE_PRIVATE)
+            .getString(roomId, null)
+            ?.let { runCatching { JSONObject(it) }.getOrNull() }
+
+    /// `commit`, not `apply`: this runs in `onMessageReceived`, and the process
+    /// may be reaped the moment that returns.
+    private fun writeRecord(ctx: Context, roomId: String, record: JSONObject?) {
+        val edit = ctx.getSharedPreferences(ROOM_PREFS, Context.MODE_PRIVATE).edit()
+        if (record == null) edit.remove(roomId) else edit.putString(roomId, record.toString())
+        edit.commit()
+    }
+
+    private fun linesOf(record: JSONObject?): List<JSONObject> {
+        val arr = record?.optJSONArray("lines") ?: return emptyList()
+        return (0 until arr.length()).mapNotNull { arr.optJSONObject(it) }
+    }
+
+    @Synchronized
+    private fun appendLine(ctx: Context, roomId: String, data: Map<String, String>, fresh: Boolean) {
+        val id = data["collapseId"].orEmpty().ifEmpty { data["messageId"].orEmpty() }
+        // Same id = the same message delivered twice; it keeps one line.
+        val kept = (if (fresh) emptyList<JSONObject>() else linesOf(readRecord(ctx, roomId)))
+            .filter { id.isEmpty() || it.optString("id") != id }
+        val line = JSONObject()
+            .put("id", id)
+            .put("body", data["body"].orEmpty())
+            .put("sender", data["senderName"].orEmpty().ifEmpty { data["title"].orEmpty() })
+            .put("key", data["senderId"].orEmpty().ifEmpty { roomId })
+            .put("avatar", data["senderAvatarUrl"].orEmpty())
+            .put("at", data["createdAt"]?.toLongOrNull() ?: System.currentTimeMillis())
+            .put("mention", data["mention"] == "true")
+        val lines = (kept + line).takeLast(MAX_LINES)
+        writeRecord(
+            ctx,
+            roomId,
+            // The newest push's keys describe the room for the re-posts that
+            // carry no push of their own (a dismissal, the face arriving).
+            // Only these: the push also carries the message's raw `content`
+            // and its receipt signature, and neither has any business sitting
+            // on disk for a notification that only needs its title.
+            JSONObject()
+                .put("data", JSONObject(data.filterKeys { it in ROOM_KEYS }))
+                .put("lines", JSONArray(lines)),
+        )
+    }
+
+    /// Takes [ids] out of [roomId]'s transcript. True if any were in it.
+    @Synchronized
+    private fun removeLines(ctx: Context, roomId: String, ids: List<String>): Boolean {
+        val record = readRecord(ctx, roomId) ?: return false
+        val lines = linesOf(record)
+        val kept = lines.filter { it.optString("id") !in ids }
+        if (kept.size == lines.size) return false
+        writeRecord(ctx, roomId, if (kept.isEmpty()) null else record.put("lines", JSONArray(kept)))
+        return true
+    }
+
+    private fun roomsWithLines(ctx: Context): List<String> =
+        ctx.getSharedPreferences(ROOM_PREFS, Context.MODE_PRIVATE).all.keys.toList()
+
+    /// (Re)posts [roomId]'s notification from its stored transcript, or takes
+    /// it down when nothing is left in it.
+    private fun postConversation(
+        ctx: Context,
+        roomId: String,
+        alert: Boolean,
+        onlyIfShowing: Boolean = false,
+    ) {
+        val nm = NotificationManagerCompat.from(ctx)
+        val record = readRecord(ctx, roomId)
+        // Delivery order is not send order under FCM; the transcript is.
+        val lines = linesOf(record).sortedBy { it.optLong("at") }
+        if (lines.isEmpty()) {
+            runCatching { nm.cancel(roomTag(roomId), ID) }
+            return
+        }
+        if (onlyIfShowing && !isShowing(ctx, roomId)) return
+        val data = record?.optJSONObject("data")?.let { o ->
+            o.keys().asSequence().associateWith { o.optString(it) }
+        }.orEmpty()
+        val last = lines.last()
+        val lastBody = last.optString("body")
+        val isGroup = data["isGroup"] == "true"
+        val roomName = data["roomName"].orEmpty()
+        val pi = contentIntent(ctx, "message", roomId, "", data["focus"].orEmpty()) ?: return
+
+        val builder = NotificationCompat.Builder(ctx, CH_MESSAGES)
+            .setSmallIcon(R.drawable.ic_stat_notify)
+            .setContentTitle(data["title"].orEmpty())
+            .setContentText(lastBody)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(lastBody))
+            .setAutoCancel(true)
+            // The burst rule. Silent covers the case setOnlyAlertOnce cannot:
+            // a quiet line arriving after the notification was swiped away,
+            // which is a NEW notification as far as the system knows.
+            .setSilent(!alert)
+            .setOnlyAlertOnce(!alert)
+            .setWhen(last.optLong("at"))
+            .setContentIntent(pi)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setGroup(roomId)
+        if (lines.size > 1) builder.setNumber(lines.size)
+        val lastFace = face(last.optString("avatar"), LARGE_FACE_EDGE)
+        if (lastFace != null) builder.setLargeIcon(lastFace)
+
+        // See [post] for why MessagingStyle, why the "You" person must have a
+        // name, and why a style it refuses must cost the layout and not the
+        // message (the BigTextStyle above stays).
+        runCatching {
+            val style = NotificationCompat.MessagingStyle(
+                Person.Builder().setName("You").build()
+            )
+            for (l in lines) {
+                val lineFace = face(l.optString("avatar"), LINE_FACE_EDGE)
+                val sender = Person.Builder()
+                    .setName(l.optString("sender").ifEmpty { data["title"].orEmpty() })
+                    .setKey(l.optString("key").ifEmpty { roomId })
+                    .apply { if (lineFace != null) setIcon(IconCompat.createWithBitmap(lineFace)) }
+                    .build()
+                style.addMessage(l.optString("body"), l.optLong("at"), sender)
+            }
+            if (isGroup && roomName.isNotEmpty()) {
+                style.conversationTitle = roomName
+                style.isGroupConversation = true
+            }
+            builder.setStyle(style)
+        }.onFailure { Log.w(TAG, "MessagingStyle refused, posting plain: ${it.message}") }
+        if (last.optBoolean("mention")) builder.setSubText("Mentioned you")
+
+        try {
+            nm.notify(roomTag(roomId), ID, builder.build())
+            val summaryTitle = if (isGroup && roomName.isNotEmpty()) {
+                roomName
+            } else {
+                last.optString("sender").ifEmpty { data["title"].orEmpty() }
+            }
+            postSummary(ctx, roomId, CH_MESSAGES, summaryTitle)
+        } catch (se: SecurityException) {
+            Log.w(TAG, "notify denied: ${se.message}")
         }
     }
 
@@ -616,6 +851,11 @@ object ChatNotifications {
             .setSmallIcon(R.drawable.ic_stat_notify)
             .setGroup(roomId)
             .setGroupSummary(true)
+            // The summary is re-posted with every notification in the room, and
+            // it alerted on each of those as well — a second buzz per message.
+            // Whether anything is heard is the children's call alone.
+            .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
+            .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .setContentIntent(contentIntent(ctx, "message", roomId))
             .setContentTitle(title)
@@ -627,21 +867,40 @@ object ChatNotifications {
     }
 
     fun dismiss(ctx: Context, data: Map<String, String>) {
-        val nm = NotificationManagerCompat.from(ctx)
         val roomId = data["roomId"].orEmpty()
         val ids = parseIds(data["dismissIds"])
         if (ids.isNotEmpty()) {
-            for (id in ids) nm.cancel(id, ID)
+            dismissIds(ctx, ids, roomId)
         } else if (roomId.isNotEmpty()) {
             cancelRoom(ctx, roomId)
         }
         if (roomId.isNotEmpty()) reconcileSummary(ctx, roomId)
     }
 
+    /// Pulls back exactly the messages in [ids]: a notification of their own
+    /// (anything posted before one-per-room, and the non-message kinds), and
+    /// their lines in a room's transcript, which is re-posted silently without
+    /// them or taken down if they were all it had. [roomId] narrows the search
+    /// when the caller knows it; empty searches every room.
+    fun dismissIds(ctx: Context, ids: List<String>, roomId: String) {
+        val nm = NotificationManagerCompat.from(ctx)
+        for (id in ids) runCatching { nm.cancel(id, ID) }
+        val rooms = if (roomId.isNotEmpty()) listOf(roomId) else roomsWithLines(ctx)
+        for (r in rooms) {
+            if (removeLines(ctx, r, ids)) {
+                postConversation(ctx, r, alert = false, onlyIfShowing = true)
+                reconcileSummary(ctx, r)
+            }
+        }
+    }
+
     /// Clear every notification for one room. Backs
     /// PushManager.dismissRoomNotifications, and is what the whole-room
     /// dismiss push does when it carries no explicit id list.
     fun cancelRoom(ctx: Context, roomId: String) {
+        // The transcript goes too, or the room's next message would bring back
+        // every line the user just read.
+        writeRecord(ctx, roomId, null)
         val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
         for (sb in activeOrEmpty(nm)) {
             if (sb.notification.group == roomId) {
@@ -771,4 +1030,47 @@ object ChatNotifications {
     /// on every other notification; MainActivity forwards it to Dart, which
     /// owns the vocabulary.
     const val EXTRA_FOCUS = "mh.notif.focus"
+}
+
+/// Whether a chat message should make a sound, per room — the same rule with
+/// the same two numbers as lib/push/alert_burst.dart (desktop) and
+/// NotificationService.swift (iOS); keep them in step.
+///
+/// A message within [GAP_MS] of the room's previous one is the same burst and
+/// arrives silently; however long a burst runs, it alerts again after
+/// [REMINDER_MS]; a mention always alerts. On the device rather than the
+/// server because a buzz is per device, and it costs the backend nothing.
+///
+/// In SharedPreferences because a push can be the first thing a cold process
+/// does, so nothing in memory survives from one to the next.
+internal object AlertBurst {
+    private const val GAP_MS = 45_000L
+    private const val REMINDER_MS = 180_000L
+    private const val PREFS = "mh_alert_burst"
+
+    @Synchronized
+    fun shouldAlert(
+        ctx: Context,
+        roomId: String,
+        mention: Boolean,
+        now: Long = System.currentTimeMillis(),
+    ): Boolean {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val prev = prefs.getString(roomId, null)
+            ?.split(',')
+            ?.mapNotNull { it.toLongOrNull() }
+            ?.takeIf { it.size == 2 }
+        val quiet = prev != null && !mention &&
+            now - prev[0] < GAP_MS && now - prev[1] < REMINDER_MS
+        val edit = prefs.edit()
+        // A room quiet for longer than the reminder can only alert next time,
+        // so forgetting it changes nothing and keeps this from growing.
+        for ((key, value) in prefs.all) {
+            val seen = (value as? String)?.substringBefore(',')?.toLongOrNull() ?: 0L
+            if (key != roomId && now - seen >= REMINDER_MS) edit.remove(key)
+        }
+        edit.putString(roomId, "$now,${if (quiet) prev!![1] else now}")
+        edit.commit()
+        return !quiet
+    }
 }

@@ -13791,4 +13791,33 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get deviceLinkLinkedToast => 'デバイスを連携しました';
+
+  @override
+  String get linuxTrayOpen => 'MonkeyHubを開く';
+
+  @override
+  String get linuxTrayQuit => 'MonkeyHubを終了';
+
+  @override
+  String get linuxCloseTitle => 'MonkeyHubを起動したままにしますか？';
+
+  @override
+  String get linuxCloseBody =>
+      'ウィンドウを閉じた後もメッセージを受け取れます。このデスクトップにはトレイアイコンがないため、MonkeyHubは最小化されたままになります。設定でいつでも変更できます。';
+
+  @override
+  String get linuxCloseKeep => '起動したままにする';
+
+  @override
+  String get linuxCloseQuit => '終了';
+
+  @override
+  String get linuxKeepRunningTitle => 'バックグラウンドで実行し続ける';
+
+  @override
+  String get linuxKeepRunningSubtitleTray => 'ウィンドウを閉じてもトレイに残り、メッセージや通話を受け取れます';
+
+  @override
+  String get linuxKeepRunningSubtitleNoTray =>
+      'ウィンドウを閉じても最小化されたまま残り、メッセージや通話を受け取れます';
 }

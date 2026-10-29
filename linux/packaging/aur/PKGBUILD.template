@@ -12,6 +12,9 @@ arch=('x86_64')
 url="https://monkeyhub.walhallaa.com"
 license=('LicenseRef-proprietary')
 depends=('gtk3' 'libsecret' 'jsoncpp')
+# Loaded at runtime when present: the tray icon that closing the window
+# hides to. Without it, closing the window quits.
+optdepends=('libayatana-appindicator: system tray icon')
 provides=('monkeyhub')
 conflicts=('monkeyhub')
 options=('!strip' '!debug')

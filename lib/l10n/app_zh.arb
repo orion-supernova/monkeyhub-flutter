@@ -3982,5 +3982,14 @@
   "deviceLinkEnterCodeBody": "输入要关联的设备上显示的 6 位数字代码。",
   "deviceLinkFinishTitle": "完成关联",
   "deviceLinkLinkedHud": "已关联",
-  "deviceLinkLinkedToast": "设备已关联"
+  "deviceLinkLinkedToast": "设备已关联",
+  "linuxTrayOpen": "打开 MonkeyHub",
+  "linuxTrayQuit": "退出 MonkeyHub",
+  "linuxCloseTitle": "让 MonkeyHub 保持运行？",
+  "linuxCloseBody": "关闭窗口后仍能继续收到消息。此桌面没有托盘图标，所以 MonkeyHub 会保持最小化。你可以在设置中更改。",
+  "linuxCloseKeep": "保持运行",
+  "linuxCloseQuit": "退出",
+  "linuxKeepRunningTitle": "在后台保持运行",
+  "linuxKeepRunningSubtitleTray": "关闭窗口后仍留在托盘中，消息和通话照常送达",
+  "linuxKeepRunningSubtitleNoTray": "关闭窗口后保持最小化，消息和通话照常送达"
 }
