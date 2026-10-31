@@ -150,6 +150,7 @@ class UpdateChecker {
   /// and reported back as [UpdateCheckOutcome.error] instead — a manual check
   /// button still needs to say *something* on failure, just not a crash.
   Future<UpdateCheckOutcome> checkNow() async {
+    if (!inAppUpdatesAllowed) return UpdateCheckOutcome.unsupported;
     try {
       final channel = await resolveChannel();
       // Debug builds, simulators and unrecognised defines: no meaningful
@@ -244,6 +245,7 @@ class UpdateChecker {
       // session.
       _watchSub?.cancel();
       _watchSub = null;
+      if (!inAppUpdatesAllowed) return;
 
       final channel = await resolveChannel();
       // Debug builds and simulators hold no subscription at all — there is no

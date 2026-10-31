@@ -52,6 +52,18 @@ enum ReleaseChannel {
 /// built by hand. Must be a `const` read to survive AOT compilation.
 const String _definedChannel = String.fromEnvironment('MH_CHANNEL');
 
+/// False for the macOS binary deploy.sh ships to TestFlight and the Mac App
+/// Store. Guideline 2.4.5(vii): an app sold there may not check for updates
+/// itself, since the Mac App Store already tells users about them; a build was
+/// rejected for it. App Review installs read as TestFlight (sandbox), so the
+/// TestFlight half has to go quiet too. No check, no badge, no sheet, no
+/// Settings row. Sync so the Settings list can decide without awaiting.
+bool get inAppUpdatesAllowed =>
+    kIsWeb ||
+    defaultTargetPlatform != TargetPlatform.macOS ||
+    (_definedChannel != 'macos-testflight' &&
+        _definedChannel != 'macos-appstore');
+
 /// The channel this build belongs to.
 ///
 /// The build-time define wins, because it's the only thing that can distinguish

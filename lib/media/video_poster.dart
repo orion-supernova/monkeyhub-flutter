@@ -53,7 +53,9 @@ class VideoPoster {
         // the retriever seeks either way.
         timeMs: 500,
         quality: _quality,
-      );
+        // A poster is optional; a plugin that never answers must not hold up
+        // the pick.
+      ).timeout(const Duration(seconds: 10));
       if (bytes == null || bytes.isEmpty) return null;
       return bytes;
     } catch (e) {

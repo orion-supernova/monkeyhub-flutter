@@ -71,7 +71,7 @@ class FeedApi {
       'mediaStorageId': ?mediaStorageId,
       'posterStorageId': ?posterStorageId,
       if (mediaKind != MomentMedia.none) 'mediaKind': mediaKind.name,
-    });
+    }).timeout(const Duration(seconds: 30));
     return res.toString();
   }
 

@@ -76,6 +76,9 @@ class UploadService {
   /// watch — see [_upload]. Generous, because it is the only limit there is.
   static const webTimeout = Duration(minutes: 5);
 
+  /// How long the "give me an upload URL" round trip may take.
+  static const urlTimeout = Duration(seconds: 30);
+
   Future<String> uploadFile({
     required Uint8List bytes,
     required String contentType,
@@ -95,7 +98,10 @@ class UploadService {
     void Function(int sent, int total)? onProgress,
     UploadTask? task,
   }) async {
-    final url = await _api.generateUploadUrl();
+    // Bounded: a mutation that never answers (socket half-open, sandbox
+    // networking quirk) would otherwise leave the caller's spinner up forever,
+    // because the stall watchdog below only starts once bytes are moving.
+    final url = await _api.generateUploadUrl().timeout(urlTimeout);
     if (task?.cancelled ?? false) throw const UploadCancelled();
     final id = await _upload(
       url: url,
@@ -153,7 +159,9 @@ class UploadService {
           ? await client.send(request).timeout(webTimeout)
           : await client.send(request);
       watchdog?.cancel();
-      final resp = await http.Response.fromStream(streamed);
+      // Bounded too: the headers can arrive and the body still never finish.
+      final resp = await http.Response.fromStream(streamed)
+          .timeout(onProgress == null ? webTimeout : stallTimeout);
 
       if (resp.statusCode < 200 || resp.statusCode >= 300) {
         throw Exception('Upload failed (${resp.statusCode}): ${resp.body}');

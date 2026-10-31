@@ -37,6 +37,7 @@ import '../theme/layout.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../update/update_availability.dart';
+import '../update/release_channel.dart' show inAppUpdatesAllowed;
 import '../update/update_checker.dart';
 import '../widgets/app_brand_mark.dart' show canonicalLogoId;
 import '../widgets/monkey_collection.dart';
@@ -618,7 +619,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                     selected: _isOpen('dataStorage'),
                     onTap: _openDataStorage,
                   ),
-                const _IconLed(_CheckForUpdatesRow()),
+                if (inAppUpdatesAllowed) const _IconLed(_CheckForUpdatesRow()),
                 linkUrlsToggle(),
                 autoplayToggle(),
                 albumCardsToggle(),
@@ -1049,13 +1050,14 @@ class _SettingsScreenState extends State<SettingsScreen>
             kw: l10n.settingsSearchKwDataStorage,
             enKw: en.settingsSearchKwDataStorage,
             onOpen: _openDataStorage),
-      live('updates',
-          title: l10n.settingsHubCheckForUpdates,
-          enTitle: en.settingsHubCheckForUpdates,
-          section: general,
-          kw: l10n.settingsSearchKwUpdates,
-          enKw: en.settingsSearchKwUpdates,
-          row: () => const _IconLed(_CheckForUpdatesRow())),
+      if (inAppUpdatesAllowed)
+        live('updates',
+            title: l10n.settingsHubCheckForUpdates,
+            enTitle: en.settingsHubCheckForUpdates,
+            section: general,
+            kw: l10n.settingsSearchKwUpdates,
+            enKw: en.settingsSearchKwUpdates,
+            row: () => const _IconLed(_CheckForUpdatesRow())),
       live('linkUrls',
           title: l10n.settingsHubShowLinkUrls,
           enTitle: en.settingsHubShowLinkUrls,

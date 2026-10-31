@@ -184,8 +184,15 @@ class _MomentComposerState extends State<_MomentComposer> {
         case CameraUnavailable():
           // No in-app camera (web, or a denied permission). The system camera
           // is still a way through.
-          final picked = await pickPhoto(source: ImageSource.camera);
-          await _cropInto(await picked.file?.readAsBytes());
+          // macOS and Linux have no system camera behind image_picker: it throws
+          // an UnimplementedError rather than a PlatformException, which must
+          // not escape as an unhandled error with no word to the user.
+          try {
+            final picked = await pickPhoto(source: ImageSource.camera);
+            await _cropInto(await picked.file?.readAsBytes());
+          } catch (_) {
+            if (mounted) setState(() => _errorCode = 'PICK_FAILED');
+          }
         case null:
           break; // backed out
       }
@@ -232,7 +239,9 @@ class _MomentComposerState extends State<_MomentComposer> {
       // web implementation to receive it — so a video composed there keeps the
       // play glyph permanently. That is a designed state, not a placeholder.
       final poster = kIsWeb ? null : await VideoPoster.extract(picked.path);
-      final bytes = await picked.readAsBytes();
+      final bytes = await picked.readAsBytes().timeout(
+        const Duration(seconds: 60),
+      );
 
       if (!mounted) return;
       if (bytes.length > kMaxFileUploadBytes) {
@@ -247,6 +256,10 @@ class _MomentComposerState extends State<_MomentComposer> {
         _image = null;
         _errorCode = null;
       });
+    } catch (_) {
+      // A read that timed out or a sandbox refusal: say so instead of
+      // surfacing an unhandled error behind a cleared spinner.
+      if (mounted) setState(() => _errorCode = 'PICK_FAILED');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -310,6 +323,8 @@ class _MomentComposerState extends State<_MomentComposer> {
         storageId = await uploader.uploadFile(
           bytes: image.bytes,
           contentType: image.contentType,
+          // Arms the upload's stall watchdog (native only).
+          onProgress: (_, _) {},
         );
         kind = MomentMedia.image;
       } else if (video != null) {
@@ -322,6 +337,7 @@ class _MomentComposerState extends State<_MomentComposer> {
             posterId = await uploader.uploadFile(
               bytes: posterBytes,
               contentType: 'image/jpeg',
+              onProgress: (_, _) {},
             );
           } catch (_) {
             /* the glyph is a fine fallback */
@@ -330,6 +346,7 @@ class _MomentComposerState extends State<_MomentComposer> {
         storageId = await uploader.uploadFile(
           bytes: video.bytes,
           contentType: mimeTypeForFileName(video.name),
+          onProgress: (_, _) {},
         );
         kind = MomentMedia.video;
       }
