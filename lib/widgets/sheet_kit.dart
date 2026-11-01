@@ -17,6 +17,7 @@ import 'hover_hint.dart';
 import 'labeled_field.dart';
 import 'ios_kit.dart';
 import 'liquid_glass.dart' show SpecularRim;
+import 'sheet_drag.dart' show SheetPullPhysics;
 import 'sunlit_surface.dart' show sunlitShadows;
 import '../l10n/text_case.dart';
 
@@ -1458,6 +1459,106 @@ class SheetGroup extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// A sheet's scrolling list whose cut edges fade instead of ending on a hard
+/// line: the top once rows have scrolled up under the bar, the bottom while
+/// more rows wait under the sheet's rounded edge. Nothing to scroll, no fade.
+/// Pulls the sheet closed from its top, like [SheetScrollBody].
+///
+/// For a list that sits straight on the sheet (rows on the sheet's own fill,
+/// not boxed in a [SheetGroup]) and runs to its bottom edge — pair with
+/// [SheetFrame.scrollsUnderInset] and put the home-indicator room in
+/// [padding].
+class SheetFadedScroll extends StatefulWidget {
+  const SheetFadedScroll({
+    super.key,
+    required this.child,
+    this.padding = EdgeInsets.zero,
+    this.topFade = 18,
+    this.bottomFade = 40,
+  });
+
+  final Widget child;
+  final EdgeInsets padding;
+  final double topFade;
+  final double bottomFade;
+
+  @override
+  State<SheetFadedScroll> createState() => _SheetFadedScrollState();
+}
+
+class _SheetFadedScrollState extends State<SheetFadedScroll> {
+  final _scroll = ScrollController();
+  bool _above = false;
+  bool _below = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_sync);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _sync());
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  // Flips two booleans, so a scroll rebuilds this only when an edge's fade
+  // turns on or off, never per pixel.
+  void _sync() {
+    if (!mounted || !_scroll.hasClients) return;
+    final p = _scroll.position;
+    final above = p.pixels > 0.5;
+    final below = p.pixels < p.maxScrollExtent - 0.5;
+    if (above != _above || below != _below) {
+      setState(() {
+        _above = above;
+        _below = below;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final list = NotificationListener<ScrollMetricsNotification>(
+      onNotification: (_) {
+        _sync();
+        return false;
+      },
+      child: SingleChildScrollView(
+        controller: _scroll,
+        padding: widget.padding,
+        physics: SheetPullPhysics.of(context),
+        child: widget.child,
+      ),
+    );
+    // Always mounted, even with nothing faded: adding the mask when the
+    // first fade turns on would reparent the scroll view and throw its
+    // position back to the top mid-drag.
+    return ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (rect) {
+        final h = rect.height <= 0 ? 1.0 : rect.height;
+        final top = (widget.topFade / h).clamp(0.0, 0.4);
+        final bottom = (widget.bottomFade / h).clamp(0.0, 0.4);
+        return LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            _above ? Colors.transparent : Colors.black,
+            Colors.black,
+            Colors.black,
+            _below ? Colors.transparent : Colors.black,
+          ],
+          stops: [0, top, 1 - bottom, 1],
+        ).createShader(rect);
+      },
+      child: list,
     );
   }
 }

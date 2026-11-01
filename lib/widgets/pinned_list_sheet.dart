@@ -88,31 +88,44 @@ class PinnedListSheet extends StatelessWidget {
     // stops reading as a sheet.
     final maxH = MediaQuery.sizeOf(context).height * 0.6;
 
-    // A grouped block of rows, each led by the sender's face (or the photo
-    // itself) — the archived sheet's shape, not bare lines of text.
+    // Rows sit straight on the sheet, hairlines between them: the sheet is
+    // already the card, and a second rounded block inside it read as a layer
+    // inside a layer. The list runs to the sheet's rounded bottom edge and
+    // scrolls under it, faded, instead of stopping above a solid band.
     return SheetFrame(
       title: sentenceCaseOf(context, l10n.activeCallPillPinnedHeader),
       subtitle: pins.isEmpty
           ? null
           : l10n.pinnedListSheetCount(pins.length),
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      padding: pins.isEmpty
+          ? const EdgeInsets.fromLTRB(16, 4, 16, 16)
+          : EdgeInsets.zero,
+      scrollsUnderInset: pins.isNotEmpty,
       child: pins.isEmpty
           // The last pin went while this was open. Say so and let the reader
           // dismiss — popping a sheet out from under a finger is worse.
           ? EmptyLine(l10n.activeCallPillNothingPinned)
           : ConstrainedBox(
               constraints: BoxConstraints(maxHeight: maxH),
-              child: SingleChildScrollView(
-                child: SheetGroup(
+              child: SheetFadedScroll(
+                padding: EdgeInsets.only(
+                  top: 2,
+                  bottom: 10 + sheetBottomInset(MediaQuery.of(context)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final pin in pins)
+                    for (var i = 0; i < pins.length; i++) ...[
+                      if (i > 0) const _Hairline(),
                       _PinRow(
-                        pin: pin,
+                        key: ValueKey(pins[i].message.id),
+                        pin: pins[i],
                         repo: repo,
                         api: api,
-                        onTap: () => _jump(context, pin),
-                        onUnpin: () => _unpin(pin),
+                        onTap: () => _jump(context, pins[i]),
+                        onUnpin: () => _unpin(pins[i]),
                       ),
+                    ],
                   ],
                 ),
               ),
@@ -121,8 +134,30 @@ class PinnedListSheet extends StatelessWidget {
   }
 }
 
+/// The rule between two rows: from under the name to 16 short of the edge,
+/// so it never touches the sheet's sides.
+class _Hairline extends StatelessWidget {
+  const _Hairline();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(
+        start: kPersonRowTextInset,
+        end: 16,
+      ),
+      child: Container(
+        height: 1 / MediaQuery.devicePixelRatioOf(context),
+        color: theme.ink.withValues(alpha: 0.08),
+      ),
+    );
+  }
+}
+
 class _PinRow extends StatelessWidget {
   const _PinRow({
+    super.key,
     required this.pin,
     required this.repo,
     required this.api,
