@@ -123,12 +123,12 @@ void main() {
 
     final hold = await tester.startGesture(const Offset(400, 300));
     await wait(tester, const Duration(seconds: 3));
-    // Held: the chrome is cleared off the picture (offstage), the item stays.
-    expect(find.text('caption a'), findsNothing);
-    expect(find.text('caption a', skipOffstage: false), findsOneWidget);
+    // Held: the chrome has faded off the picture, the item stays.
+    expect(_stageOpacity(tester, find.text('caption a')), 0);
     await hold.up();
     await tester.pump();
-    expect(find.text('caption a'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(_stageOpacity(tester, find.text('caption a')), 1);
 
     // 5 s were left on the clock when the finger went down.
     await wait(tester, const Duration(milliseconds: 4600));
@@ -302,4 +302,17 @@ void main() {
     expect(trash.dx, greaterThan(close.dx));
     expect((trash.dy - close.dy).abs(), lessThan(1));
   });
+}
+
+/// The stage's own opacity over [f] (the route's fade is a `FadeTransition`
+/// and is not counted).
+double _stageOpacity(WidgetTester tester, Finder f) {
+  expect(f, findsOneWidget);
+  var o = 1.0;
+  tester.element(f).visitAncestorElements((e) {
+    final w = e.widget;
+    if (w is Opacity) o *= w.opacity;
+    return true;
+  });
+  return o;
 }

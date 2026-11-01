@@ -771,6 +771,38 @@ class _MomentStageState extends State<_MomentStage>
           if (s == AnimationStatus.completed) _next();
         });
 
+  /// How present the chrome is, 0 → 1: the bars, the author, the caption and
+  /// the comment bar.
+  ///
+  /// **The chrome belongs to the stage, not to the route's flight.** The route
+  /// fades everything in as it opens, but the photograph does not ride the
+  /// route: it flies in its own overlay, above the page, from the tile to the
+  /// card. A chrome that came in with the route showed up, was swallowed by the
+  /// flying picture, and showed up again when it landed — a flicker. So it
+  /// waits (0) until the route has landed, then fades in; and the moment a
+  /// close begins it goes quickly, rather than hanging at the spot a dismiss
+  /// drag let go of while the picture flies home without it.
+  late final AnimationController _chrome = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 160),
+    reverseDuration: const Duration(milliseconds: 80),
+  );
+
+  /// How far a held finger has put the chrome away, 0 → 1 (1 = away). A fade,
+  /// not a cut: the bars ease out under the finger and back on release. The
+  /// chrome is plain type, glyphs and a scrim, never glass, and it is painted
+  /// once and only faded (see [_FadingChrome]), so this costs an opacity.
+  late final AnimationController _hold = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 140),
+    reverseDuration: const Duration(milliseconds: 180),
+  );
+
+  @override
+  void onRouteLandingChanged() {
+    if (landed && !_closing) _chrome.forward();
+  }
+
   /// Live dismiss-drag offset, written by whichever page is under a finger and
   /// painted here. Shared across the pages on purpose — only one of them can be
   /// dragged at a time, and the thing that moves is the whole gallery.
@@ -1073,6 +1105,8 @@ class _MomentStageState extends State<_MomentStage>
     _loadFallback?.cancel();
     _afterVideo?.cancel();
     _clock.dispose();
+    _chrome.dispose();
+    _hold.dispose();
     _panel.removeListener(_onPanel);
     _panel.dispose();
     _commentFocus.dispose();
@@ -1336,6 +1370,7 @@ class _MomentStageState extends State<_MomentStage>
     if (down == _holding) return;
     if (down) HapticFeedback.selectionClick();
     setState(() => _holding = down);
+    down ? _hold.forward() : _hold.reverse();
     _sync();
   }
 
@@ -1363,6 +1398,7 @@ class _MomentStageState extends State<_MomentStage>
   void _close() {
     if (_closing) return;
     _closing = true;
+    _chrome.reverse();
     _syncCover();
     _sync();
     Navigator.of(context).maybePop();
@@ -1397,7 +1433,6 @@ class _MomentStageState extends State<_MomentStage>
     if (widget.moments.isEmpty) return const SizedBox.shrink();
     final screen = MediaQuery.sizeOf(context);
     final current = _current;
-    final chrome = !_holding;
     final bar = _kCommentBar + MediaQuery.paddingOf(context).bottom;
     final top = MediaQuery.paddingOf(context).top;
 
@@ -1413,6 +1448,7 @@ class _MomentStageState extends State<_MomentStage>
           // during the exit transition and call [_close] on whatever route is
           // underneath.
           _closing = true;
+          _chrome.reverse();
           _syncCover();
           _sync();
         }
@@ -1458,58 +1494,40 @@ class _MomentStageState extends State<_MomentStage>
                   // with the progress bar and the author riding on its top
                   // edge. Never under the bar: the bar is the floor it stands
                   // on. One clip around the whole pager, not one per page.
-                  ValueListenableBuilder<Offset>(
-                    valueListenable: _drag,
-                    builder: (context, drag, pages) {
-                      final t = photoDismissProgress(drag, screen);
-                      return Positioned(
-                        left: 0,
-                        right: 0,
-                        // The whole screen, so a pinch grows over the status
-                        // bar and the comment bar too. The card is still the
-                        // card: each page rests inside [_StagePage.inset] and
-                        // the clip below trims it to the same rectangle.
-                        // Never resized, so nothing jumps when the second
-                        // finger lands.
-                        top: 0,
-                        bottom: 0,
-                        child: Transform.translate(
-                          offset: drag,
-                          child: Transform.scale(
-                            scale: 1 - t * kPhotoDismissShrink,
-                            // One widget type either way. Swapping the clip
-                            // for nothing at the first sign of a pinch changed
-                            // the tree under the gesture and rebuilt the pager
-                            // mid-pinch, which is what made the zoom lurch.
-                            child: ValueListenableBuilder<bool>(
-                              valueListenable: _zoomedNotifier,
-                              child: pages,
-                              builder: (context, zoomed, pages) => ClipRRect(
-                                clipper: _CardClip(
-                                  top: top,
-                                  bottom: bar,
-                                  radius: _kStoryCardRadius,
-                                  enabled: !zoomed,
-                                ),
-                                clipBehavior: zoomed
-                                    ? Clip.none
-                                    : Clip.antiAlias,
-                                child: pages,
-                              ),
-                            ),
+                  Positioned.fill(
+                    // The whole screen, so a pinch grows over the status bar
+                    // and the comment bar too. The card is still the card: each
+                    // page rests inside [_StagePage.inset] and the clip below
+                    // trims it to the same rectangle. Never resized, so nothing
+                    // jumps when the second finger lands.
+                    child: _DragFollow(
+                      drag: _drag,
+                      // One widget type either way. Swapping the clip for
+                      // nothing at the first sign of a pinch changed the tree
+                      // under the gesture and rebuilt the pager mid-pinch,
+                      // which is what made the zoom lurch.
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: _zoomedNotifier,
+                        child: _pages(),
+                        builder: (context, zoomed, pages) => ClipRRect(
+                          clipper: _CardClip(
+                            top: top,
+                            bottom: bar,
+                            radius: _kStoryCardRadius,
+                            enabled: !zoomed,
                           ),
+                          clipBehavior: zoomed ? Clip.none : Clip.antiAlias,
+                          child: pages,
                         ),
-                      );
-                    },
-                    // Built once and passed through the builder: the pages are
-                    // the expensive part and none of them depend on the drag.
-                    child: _pages(),
+                      ),
+                    ),
                   ),
-                  // The progress bar stays through a hold — it is how you know
-                  // the picture is paused rather than gone.
+                  // A hold puts everything away, the progress bar with the rest:
+                  // the picture alone, held still, is how you know it is paused.
                   _FadingChrome(
                     drag: _drag,
-                    visible: true,
+                    reveal: _chrome,
+                    hold: _hold,
                     hiddenWhen: _zoomedNotifier,
                     child: RepaintBoundary(
                       // Fades out as the cube turns away and back in for the
@@ -1539,7 +1557,8 @@ class _MomentStageState extends State<_MomentStage>
                   // blurred glass surfaces sixty times a second.
                   _FadingChrome(
                     drag: _drag,
-                    visible: chrome,
+                    reveal: _chrome,
+                    hold: _hold,
                     hiddenWhen: _chromeAway,
                     child: _StageTopBar(
                       moment: current,
@@ -1582,9 +1601,11 @@ class _MomentStageState extends State<_MomentStage>
                   ),
                   _FadingChrome(
                     drag: _drag,
+                    reveal: _chrome,
                     // Gone under the reply mode: its own composer takes this
                     // place, and the bar's outline would peek out beside it.
-                    visible: chrome && !_panelUp,
+                    hold: _hold,
+                    visible: !_panelUp,
                     hiddenWhen: _chromeAway,
                     alignBottom: true,
                     child: Column(
@@ -2157,32 +2178,46 @@ class _CardClip extends CustomClipper<RRect> {
       old.enabled != enabled;
 }
 
-/// Holds a piece of chrome against an edge of the screen and fades it with
-/// the dismiss drag.
+/// Holds a piece of chrome against an edge of the screen, and carries and fades
+/// it with the dismiss drag.
 ///
 /// **Subscribes to the drag itself, and takes [child] pre-built.** The chrome
 /// is a dozen blurred glass surfaces; rebuilding it from inside the drag's own
 /// builder meant reconstructing all of them on every frame of a gesture.
 ///
-/// [visible] (the hold) is a cut, not a fade: the chrome is glass, and a
-/// glass surface is never animated — an opacity tween over a BackdropFilter
-/// re-blurs the whole photograph every frame of it.
+/// A held finger ([hold]) fades it away and a release fades it back. [visible]
+/// is the other kind, a cut: false puts it away outright (the reply panel,
+/// which brings its own composer to the same place).
+///
+/// None of it is glass, and it is painted once into its own layer, so all of
+/// this is an opacity on a retained layer.
 class _FadingChrome extends StatelessWidget {
   const _FadingChrome({
     required this.drag,
-    required this.visible,
+    required this.reveal,
+    required this.hold,
     required this.child,
+    this.visible = true,
     this.hiddenWhen,
     this.alignBottom = false,
   });
 
   final ValueNotifier<Offset> drag;
 
+  /// 0 → 1, how present the chrome is: the stage waits for the picture to land
+  /// before bringing it in, and takes it away as a close begins. See
+  /// `_MomentStageState._chrome`.
+  final Animation<double> reveal;
+
+  /// 0 → 1, how far a held finger has put the chrome away (1 is gone). See
+  /// `_MomentStageState._hold`.
+  final Animation<double> hold;
+
   /// Also hides the chrome while this is true (a zoom). Listened to here, so
   /// the stage itself does not rebuild when it flips.
   final ValueListenable<bool>? hiddenWhen;
 
-  /// False hides the chrome regardless of the drag (a held finger).
+  /// False cuts the chrome away regardless of the drag.
   final bool visible;
 
   final Widget child;
@@ -2191,32 +2226,97 @@ class _FadingChrome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screen = MediaQuery.sizeOf(context);
-    return Positioned(
-      left: 0,
-      right: 0,
-      top: alignBottom ? null : 0,
-      bottom: alignBottom ? 0 : null,
+    return Positioned.fill(
       child: _HiddenWhen(
         hidden: !visible,
         listenable: hiddenWhen,
-        child: ValueListenableBuilder<Offset>(
-          valueListenable: drag,
-          builder: (context, value, child) {
-            // The chrome leaves twice as fast as the picture does, so it is
-            // gone before the photograph is halfway home.
-            final t = photoDismissProgress(value, screen);
-            final opacity = (1 - t * 2).clamp(0.0, 1.0);
-            return IgnorePointer(
-              ignoring: opacity < 0.05,
-              // Always wrapped (Opacity at 1 paints straight through): adding
-              // the wrapper as a dismiss drag starts and dropping it as the
-              // photo snaps back remounted the chrome, its state and all.
-              child: Opacity(opacity: opacity, child: child),
-            );
-          },
-          child: child,
+        // Travels exactly as the photograph does (see [_DragFollow]), pivoting
+        // about the same point: this layer is the full screen, like the pager.
+        child: _DragFollow(
+          drag: drag,
+          child: AnimatedBuilder(
+            animation: Listenable.merge([drag, reveal, hold]),
+            builder: (context, child) {
+              // Fades a little faster than the picture, so it is gone before
+              // the photograph is home, but it travels the whole way meanwhile.
+              final followed =
+                  (1 - photoDismissProgress(drag.value, screen) * 1.5).clamp(
+                    0.0,
+                    1.0,
+                  );
+              final opacity =
+                  followed *
+                  Curves.easeOut.transform(reveal.value) *
+                  (1 - Curves.easeOut.transform(hold.value));
+              return IgnorePointer(
+                ignoring: opacity < 0.05,
+                // Always wrapped (Opacity at 1 paints straight through): adding
+                // the wrapper as a dismiss drag starts and dropping it as the
+                // photo snaps back remounted the chrome, its state and all.
+                child: Opacity(opacity: opacity, child: child),
+              );
+            },
+            // Pinned to its edge by a `Positioned`, not an `Align`: that hands
+            // it unbounded height, and anything inside that stretches to fill
+            // (the top bar's own `Align`) would otherwise fill the screen.
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: alignBottom ? null : 0,
+                  bottom: alignBottom ? 0 : null,
+                  // Painted once, then only moved and faded: a drag changes
+                  // this layer's transform and opacity, never its pixels, so
+                  // the text and the scrim are not re-rastered sixty times a
+                  // second, and nothing pops when the transform appears at the
+                  // start of a drag or goes at the end of one.
+                  child: RepaintBoundary(child: child),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// Moves [child] with the dismiss drag: follows the finger and shrinks as the
+/// drag lengthens, about the centre of the box it is given.
+///
+/// One definition of "what the drag does to the stage", used by the photograph
+/// and by the chrome around it. They were each doing their own translate-and-
+/// scale from the same two numbers, which is how the bars came to stay put while
+/// the picture left: whatever the drag does to the picture it now does to
+/// everything else, because it is this widget doing it. Give it the full screen
+/// and the pivot is the screen's centre for all of them.
+///
+/// A single matrix, so one render object and at most one layer however the
+/// drag moves. Subscribes to [drag] itself; [child] is built once by the caller.
+class _DragFollow extends StatelessWidget {
+  const _DragFollow({required this.drag, required this.child});
+
+  final ValueListenable<Offset> drag;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final screen = MediaQuery.sizeOf(context);
+    return ValueListenableBuilder<Offset>(
+      valueListenable: drag,
+      child: child,
+      builder: (context, value, child) {
+        final scale =
+            1 - photoDismissProgress(value, screen) * kPhotoDismissShrink;
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..translateByDouble(value.dx, value.dy, 0, 1)
+            ..scaleByDouble(scale, scale, 1, 1),
+          child: child,
+        );
+      },
     );
   }
 }

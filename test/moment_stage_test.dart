@@ -225,6 +225,135 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('the bars stay on their edges, and follow a dismiss drag down', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(moment: _moment(id: 'm1', media: 'blob1', caption: 'the sunset')),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.pump();
+
+    final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+    final close = find.byIcon(CupertinoIcons.xmark);
+    final caption = find.text('the sunset');
+    // Top bar near the top, caption in the lower half: neither stretched to
+    // fill the screen.
+    expect(tester.getCenter(close).dy, lessThan(screen.height * 0.2));
+    expect(tester.getCenter(caption).dy, greaterThan(screen.height * 0.6));
+
+    final closeAt = tester.getCenter(close).dy;
+    final captionAt = tester.getCenter(caption).dy;
+    final g = await tester.startGesture(const Offset(200, 400));
+    await g.moveBy(const Offset(0, 40));
+    await g.moveBy(const Offset(0, 40));
+    await tester.pump();
+    // They travel with the picture rather than waiting behind it.
+    expect(tester.getCenter(close).dy, greaterThan(closeAt + 40));
+    expect(tester.getCenter(caption).dy, greaterThan(captionAt + 40));
+
+    await g.up();
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(close).dy, closeAt);
+  });
+
+  testWidgets('the bars wait for the picture to land, and leave as it goes '
+      'home', (tester) async {
+    await tester.pumpWidget(
+      _host(moment: _moment(id: 'm1', media: 'blob1', caption: 'the sunset')),
+    );
+    // How present the bars are, counting only the stage's own opacity: the
+    // route's fade is a `FadeTransition`, and it is not what is under test.
+    double present() {
+      final close = find.byIcon(CupertinoIcons.xmark);
+      if (close.evaluate().isEmpty) return 0;
+      var o = 1.0;
+      tester.element(close).visitAncestorElements((e) {
+        final w = e.widget;
+        if (w is Opacity) o *= w.opacity;
+        return true;
+      });
+      return o;
+    }
+
+    await tester.tap(find.text('open'));
+    await tester.pump();
+    // Mid-flight the picture is crossing the screen over the page, so showing
+    // the bars now would have them swallowed by it and shown again.
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(present(), 0);
+    await tester.pump(const Duration(milliseconds: 90));
+    expect(present(), 0);
+
+    // Landed: they come in.
+    await tester.pumpAndSettle();
+    expect(present(), 1);
+
+    // A close takes them away at once, not after the route has finished.
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(present(), 0);
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('a hold fades every bar away, the progress bar too, and a '
+      'release fades them back', (tester) async {
+    await tester.pumpWidget(
+      _host(moment: _moment(id: 'm1', media: 'blob1', caption: 'the sunset')),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    // The stage's own opacity over a widget; the route's fade is a
+    // `FadeTransition` and is not counted.
+    double present(Finder f) {
+      expect(f, findsOneWidget);
+      var o = 1.0;
+      tester.element(f).visitAncestorElements((e) {
+        final w = e.widget;
+        if (w is Opacity) o *= w.opacity;
+        return true;
+      });
+      return o;
+    }
+
+    final progress = find.byWidgetPredicate(
+      (w) => w.runtimeType.toString() == '_StoryProgress',
+    );
+    final close = find.byIcon(CupertinoIcons.xmark);
+    final comment = find.text('the sunset');
+    final all = [progress, close, comment];
+    for (final f in all) {
+      expect(present(f), 1);
+    }
+
+    final g = await tester.startGesture(const Offset(200, 400));
+    // Past the hold threshold, then partway through the fade: neither cut nor
+    // finished.
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 60));
+    for (final f in all) {
+      expect(present(f), allOf(greaterThan(0), lessThan(1)));
+    }
+    await tester.pump(const Duration(milliseconds: 300));
+    for (final f in all) {
+      expect(present(f), 0);
+    }
+
+    await g.up();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    for (final f in all) {
+      expect(present(f), allOf(greaterThan(0), lessThan(1)));
+    }
+    await tester.pumpAndSettle();
+    for (final f in all) {
+      expect(present(f), 1);
+    }
+  });
+
   testWidgets('a point with no picture opens as a card', (tester) async {
     await tester.pumpWidget(
       _host(
