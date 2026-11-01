@@ -533,6 +533,7 @@ class ChatRepository extends ChangeNotifier {
   Subscription? _readStateSub;
   Subscription? _pinsSub;
   Subscription? _bookmarksSub;
+  Subscription? _mentionsSub;
   Subscription? _scheduledSub;
   Subscription? _interactionsSub;
   Subscription? _membersSub;
@@ -662,6 +663,81 @@ class ChatRepository extends ChangeNotifier {
   /// menu. [detach] still clears it, because the next account's rooms are not
   /// this one's.
   final Map<String, List<MessageBookmark>> _bookmarks = {};
+
+  // ──── unseen mentions ────
+  // The open room's `@` stack, oldest first, as `mentions:pendingForRoom`
+  // last delivered it, minus what this device has seen and not yet heard the
+  // server confirm. See mentions.ts for why it is not the read cursor.
+  final Map<String, ({List<String> ids, bool capped})> _pendingMentions = {};
+  final Map<String, Set<String>> _mentionsSeenLocally = {};
+  final Map<String, Set<String>> _mentionsSeenQueue = {};
+  Timer? _mentionsSeenFlush;
+
+  /// Messages in [roomId] that named this reader and that they have not seen
+  /// on screen yet, oldest first.
+  List<String> pendingMentionsFor(String roomId) {
+    final p = _pendingMentions[roomId];
+    if (p == null) return const [];
+    final local = _mentionsSeenLocally[roomId];
+    if (local == null || local.isEmpty) return p.ids;
+    return [for (final id in p.ids) if (!local.contains(id)) id];
+  }
+
+  /// Whether [pendingMentionsFor] stopped at the server's cap (99).
+  bool pendingMentionsCapped(String roomId) =>
+      _pendingMentions[roomId]?.capped ?? false;
+
+  /// The reader saw these bubbles. Hidden locally at once; written in one
+  /// batch a beat later, because a single fling can reveal several.
+  void markMentionsSeen(String roomId, Iterable<String> messageIds) {
+    final pending = _pendingMentions[roomId]?.ids;
+    if (pending == null || pending.isEmpty) return;
+    final local = _mentionsSeenLocally.putIfAbsent(roomId, () => <String>{});
+    final queue = _mentionsSeenQueue.putIfAbsent(roomId, () => <String>{});
+    var changed = false;
+    for (final id in messageIds) {
+      if (!pending.contains(id) || !local.add(id)) continue;
+      queue.add(id);
+      changed = true;
+    }
+    if (!changed) return;
+    notifyListeners();
+    _mentionsSeenFlush?.cancel();
+    _mentionsSeenFlush = Timer(const Duration(milliseconds: 350), _flushMentionsSeen);
+  }
+
+  void _flushMentionsSeen() {
+    _mentionsSeenFlush = null;
+    if (_userId == null) return;
+    final batches = Map.of(_mentionsSeenQueue);
+    _mentionsSeenQueue.clear();
+    batches.forEach((roomId, ids) {
+      if (ids.isEmpty) return;
+      unawaited(api
+          .markMentionsSeen(roomId: roomId, messageIds: ids.toList())
+          .catchError((Object e) {
+        // Shown again so the next sighting retries, rather than lost.
+        _mentionsSeenLocally[roomId]?.removeAll(ids);
+        notifyListeners();
+        debugPrint('markMentionsSeen failed: $e');
+      }));
+    });
+  }
+
+  /// The `@` button's long-press: empty the stack without visiting it.
+  Future<void> markAllMentionsSeen(String roomId) async {
+    final pending = pendingMentionsFor(roomId);
+    if (pending.isEmpty) return;
+    _mentionsSeenLocally.putIfAbsent(roomId, () => <String>{}).addAll(pending);
+    notifyListeners();
+    try {
+      await api.markAllMentionsSeen(roomId: roomId);
+    } catch (e) {
+      _mentionsSeenLocally[roomId]?.removeAll(pending);
+      notifyListeners();
+      debugPrint('markAllMentionsSeen failed: $e');
+    }
+  }
 
   /// This viewer's queued messages, keyed by room. Room-keyed for the same
   /// reason [_pins] is, and holding only the signed-in user's rows for the same
@@ -1369,6 +1445,7 @@ class ChatRepository extends ChangeNotifier {
     _readStateSub?.cancel();
     _pinsSub?.cancel();
     _bookmarksSub?.cancel();
+    _mentionsSub?.cancel();
     _scheduledSub?.cancel();
     // Left live it would keep writing the previous account's roster into
     // `_roomMembers`, and its `onData` re-reads `_userId` to decide where to
@@ -1387,6 +1464,7 @@ class ChatRepository extends ChangeNotifier {
     _readStateSub = null;
     _pinsSub = null;
     _bookmarksSub = null;
+    _mentionsSub = null;
     _scheduledSub = null;
     _membersSub = null;
     _speakerColorsSub = null;
@@ -1429,6 +1507,8 @@ class ChatRepository extends ChangeNotifier {
     // And these are the previous account's PRIVATE room state, so if anything
     // the case for dropping them is stronger.
     _bookmarks.clear();
+    _pendingMentions.clear();
+    _mentionsSeenLocally.clear();
     // Poll state, which is both: the tallies are shared, but `myChoiceIds` is
     // the departing account's own ballot. Leaving it would show the next person
     // on this handset their predecessor's votes rendered as their own.
@@ -1976,6 +2056,7 @@ class ChatRepository extends ChangeNotifier {
     _readStateSub?.cancel();
     _pinsSub?.cancel();
     _bookmarksSub?.cancel();
+    _mentionsSub?.cancel();
     _scheduledSub?.cancel();
     _interactionsSub?.cancel();
     _membersSub?.cancel();
@@ -1987,6 +2068,7 @@ class ChatRepository extends ChangeNotifier {
     _readStateSub = null;
     _pinsSub = null;
     _bookmarksSub = null;
+    _mentionsSub = null;
     _scheduledSub = null;
     _interactionsSub = null;
     _membersSub = null;
@@ -2408,6 +2490,43 @@ class ChatRepository extends ChangeNotifier {
       _bookmarksSub = bookmarksSub;
     }
 
+    // This viewer's unseen mentions here — the `@` button's stack. Same gating
+    // as the bookmarks: the server reads only the caller's own rows, and a
+    // signed-out reader has nobody to have been named.
+    if (me != null) {
+      final mentionsSub = await cv.subscribe(
+        'mentions:pendingForRoom',
+        {'roomId': roomId},
+        onData: (data) {
+          final map = (data as Map?)?.cast<String, dynamic>() ?? const {};
+          final items = (map['items'] as List?) ?? const [];
+          final ids = [
+            for (final e in items.whereType<Map>())
+              if (e['messageId'] is String) e['messageId'] as String,
+          ];
+          final capped = map['capped'] == true;
+          // Every send or seen-mark by this reader re-delivers; only a real
+          // change rebuilds the room.
+          final prev = _pendingMentions[roomId];
+          final same = prev != null &&
+              prev.capped == capped &&
+              listEquals(prev.ids, ids);
+          // A local "seen" the server has now confirmed is no longer needed.
+          final local = _mentionsSeenLocally[roomId];
+          if (local != null) local.removeWhere((id) => !ids.contains(id));
+          if (same) return;
+          _pendingMentions[roomId] = (ids: ids, capped: capped);
+          notifyListeners();
+        },
+        onError: (err) => debugPrint('mentions sub error: $err'),
+      );
+      if (gen != _openGen) {
+        mentionsSub.cancel();
+        return;
+      }
+      _mentionsSub = mentionsSub;
+    }
+
     // This viewer's queued messages for this room. Gated on `me` for the same
     // reason the bookmarks above are: the server's `userId` is required, and a
     // scheduled message is private to its author, so there is nothing to
@@ -2590,6 +2709,7 @@ class ChatRepository extends ChangeNotifier {
     _readStateSub?.cancel();
     _pinsSub?.cancel();
     _bookmarksSub?.cancel();
+    _mentionsSub?.cancel();
     _scheduledSub?.cancel();
     _interactionsSub?.cancel();
     _membersSub?.cancel();
@@ -2602,6 +2722,7 @@ class ChatRepository extends ChangeNotifier {
     _readStateSub = null;
     _pinsSub = null;
     _bookmarksSub = null;
+    _mentionsSub = null;
     _scheduledSub = null;
     _interactionsSub = null;
     _membersSub = null;

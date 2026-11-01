@@ -65,6 +65,7 @@ import type * as interactions from "../interactions.js";
 import type * as matchCopy from "../matchCopy.js";
 import type * as matchCore from "../matchCore.js";
 import type * as matches from "../matches.js";
+import type * as mentions from "../mentions.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as moderation from "../moderation.js";
@@ -210,6 +211,7 @@ declare const fullApi: ApiFromModules<{
   matchCopy: typeof matchCopy;
   matchCore: typeof matchCore;
   matches: typeof matches;
+  mentions: typeof mentions;
   messages: typeof messages;
   migrations: typeof migrations;
   moderation: typeof moderation;

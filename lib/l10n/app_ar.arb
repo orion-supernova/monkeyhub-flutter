@@ -27,6 +27,8 @@
   "roomScreenDeleteConfirmButton": "حذف للجميع",
   "roomScreenJumpFailedSnack": "تعذّر الانتقال إلى تلك الرسالة",
   "roomScreenUnreadDivider": "رسائل غير مقروءة",
+  "roomScreenJumpToMentionSemanticLabel": "{count, plural, zero{انتقل إلى الإشارات إليك، لا شيء لم يُشاهد} one{انتقل إلى الإشارة إليك، 1 لم تُشاهد} two{انتقل إلى الإشارات إليك، 2 لم تُشاهدا} few{انتقل إلى الإشارات إليك، {count} لم تُشاهد} many{انتقل إلى الإشارات إليك، {count} لم تُشاهد} other{انتقل إلى الإشارات إليك، {count} لم تُشاهد}}",
+  "roomScreenMentionsClearedToast": "تم وضع علامة مشاهدة على الإشارات",
   "roomScreenViewOnceAlreadyViewed": "لقد فتحت هذه الصورة من قبل.",
   "roomScreenViewOnceGone": "لم تعد هذه الصورة متاحة.",
   "roomScreenViewOnceNetworkError": "تعذّر تحميل تلك الصورة.",

@@ -2189,6 +2189,23 @@ class ChatApi {
     });
   }
 
+  /// The reader saw these mentions on screen — see `mentions.ts`. The server
+  /// takes the reader from the session, so no userId is sent.
+  Future<void> markMentionsSeen({
+    required String roomId,
+    required List<String> messageIds,
+  }) async {
+    await _cv.mutation('mentions:markSeen', {
+      'roomId': roomId,
+      'messageIds': messageIds,
+    });
+  }
+
+  /// Empties the reader's `@` stack for [roomId].
+  Future<void> markAllMentionsSeen({required String roomId}) async {
+    await _cv.mutation('mentions:markAllSeen', {'roomId': roomId});
+  }
+
   Future<void> unsaveMessage({
     required String messageId,
     required String userId,

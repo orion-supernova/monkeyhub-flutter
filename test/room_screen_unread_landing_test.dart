@@ -181,4 +181,54 @@ void main() {
           'landing\'s own programmatic scroll must not cancel itself',
     );
   });
+
+  String settleBody() {
+    final start = source.indexOf('void _settleUnreadDivider() {');
+    return source.substring(start, source.indexOf('\n  }\n', start));
+  }
+
+  // A disk cache, or the bubble seeded off the push that was just tapped, can
+  // be all the transcript holds when the cursor resolves — and its first
+  // message past the cursor is then the NEWEST one, not the first unread.
+  test('a message is only settled on once the subscription has spoken', () {
+    final body = settleBody();
+    final liveAt = body.indexOf('final live = repo.hasLiveMessages(widget.roomId);');
+    final loopAt = body.indexOf('for (final m in timeline)');
+    expect(liveAt, isNonNegative);
+    expect(loopAt, isNonNegative);
+    expect(liveAt, lessThan(loopAt),
+        reason: 'the wait has to come before any row is picked');
+    expect(body.contains('_unreadLiveGraceEnds'), isTrue,
+        reason: 'bounded, so an offline open still gets its line');
+  });
+
+  // The live window is 25 messages. Any longer backlog used to put the line
+  // on the oldest LOADED message instead of where the reader left off.
+  test('a backlog longer than what is loaded pages toward the cursor first', () {
+    final body = settleBody();
+    expect(body.contains('timeline.first.createdAt.isAfter(anchor)'), isTrue);
+    expect(body.contains('repo.hasMoreOlderTimeline(widget.roomId)'), isTrue);
+    expect(body.contains('_backfillTowardUnread();'), isTrue);
+    expect(body.contains('_kUnreadBackfillPages'), isTrue,
+        reason: 'bounded, so a months-old backlog cannot page forever');
+    final start = source.indexOf('void _backfillTowardUnread() {');
+    final backfill =
+        source.substring(start, source.indexOf('\n  }\n', start));
+    expect(backfill.contains('addPostFrameCallback'), isTrue,
+        reason: 'the settle runs in build, and a page load notifies at once');
+  });
+
+  test('mentions are cleared by sight, never by the tap alone', () {
+    final start = source.indexOf('Future<void> _onMentionJumpTapped() async {');
+    expect(start, isNonNegative);
+    final body = source.substring(start, source.indexOf('\n  }\n', start));
+    final travelAt = body.indexOf('await _travelTo(id, from: target);');
+    expect(travelAt, isNonNegative);
+    // The only marks in the tap are for a mention that cannot be shown.
+    final marks = RegExp(r'markMentionsSeen').allMatches(body).length;
+    expect(marks, 3,
+        reason: 'gone, still missing after the fetch, or folded into a thread');
+    expect(source.contains('repo.markMentionsSeen(widget.roomId, seen);'), isTrue,
+        reason: 'the scan is what clears a mention that was landed on');
+  });
 }

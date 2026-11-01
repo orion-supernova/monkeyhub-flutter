@@ -37,6 +37,8 @@
   "roomScreenDeleteConfirmButton": "Eliminar para todos",
   "roomScreenJumpFailedSnack": "Não foi possível saltar para essa mensagem",
   "roomScreenUnreadDivider": "Mensagens não lidas",
+  "roomScreenJumpToMentionSemanticLabel": "{count, plural, one{Ir para a tua menção, 1 por ver} other{Ir para as tuas menções, {count} por ver}}",
+  "roomScreenMentionsClearedToast": "Menções marcadas como vistas",
   "roomScreenViewOnceAlreadyViewed": "Já abriste esta fotografia.",
   "roomScreenViewOnceGone": "Esta fotografia já não está disponível.",
   "roomScreenViewOnceNetworkError": "Não foi possível carregar essa fotografia.",

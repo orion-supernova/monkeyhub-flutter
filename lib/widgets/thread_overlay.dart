@@ -1461,35 +1461,42 @@ class _ThreadSheetState extends State<_ThreadSheet>
                                         bottom: 12,
                                         left: 0,
                                         right: 0,
-                                        child: Center(
-                                          // Back pill above the jump-to-latest
-                                          // one, same order as the room, so the
-                                          // fixture stays in the slot the reader
-                                          // already knows and the transient one
-                                          // floats over it.
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              TransientPillSlot(
-                                                visible: _jumpBack.isNotEmpty,
-                                                child: JumpBackPill(
-                                                  depth: _jumpBack.depth,
-                                                  onTap: _jumpBackOneHop,
+                                        // Back pill centred, the round
+                                        // jump-to-latest button at the right
+                                        // edge — the room's layout, so the
+                                        // two transcripts read the same.
+                                        child: Stack(
+                                          alignment: Alignment.bottomCenter,
+                                          children: [
+                                            TransientPillSlot(
+                                              visible: _jumpBack.isNotEmpty,
+                                              child: JumpBackPill(
+                                                depth: _jumpBack.depth,
+                                                onTap: _jumpBackOneHop,
+                                              ),
+                                            ),
+                                            Align(
+                                              alignment: Alignment.bottomRight,
+                                              heightFactor: 1,
+                                              child: Padding(
+                                                padding: const EdgeInsets.only(
+                                                  right: 10,
+                                                ),
+                                                child: ValueListenableBuilder<
+                                                  bool
+                                                >(
+                                                  valueListenable: _scrolledUp,
+                                                  builder:
+                                                      (context, scrolledUp, _) =>
+                                                          ScrollToLatestSlot(
+                                                            visible: scrolledUp,
+                                                            onTap:
+                                                                _scrollToBottom,
+                                                          ),
                                                 ),
                                               ),
-                                              const SizedBox(height: 8),
-                                              ValueListenableBuilder<bool>(
-                                                valueListenable: _scrolledUp,
-                                                builder:
-                                                    (context, scrolledUp, _) =>
-                                                        ScrollToLatestSlot(
-                                                          visible: scrolledUp,
-                                                          onTap:
-                                                              _scrollToBottom,
-                                                        ),
-                                              ),
-                                            ],
-                                          ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ],

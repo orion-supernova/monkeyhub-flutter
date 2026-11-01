@@ -1625,6 +1625,33 @@ export default defineSchema({
     // Account teardown: rows where the departing user was the VIEWER.
     .index("by_user", ["userId"]),
 
+  // One row per (person named, message that named them) they have not SEEN
+  // yet: the room's `@` badge and its jump-to-mention stack. See mentions.ts.
+  //
+  // A side table rather than a derivation from `roomMembers.lastReadAt`, which
+  // is what `badges.unreadForRoom` does for the chat list: opening a room moves
+  // that cursor to the newest message at once, so a mention three screens up
+  // would be "read" before the reader ever scrolled to it. This table is
+  // cleared by sight (`mentions.markSeen`), message by message, and works the
+  // same across devices.
+  //
+  // Written by `sendCore` (explicit mentions inline, `@everyone` by a paged
+  // fan-out) and by `editMessage` for mentions an edit adds. Never patched,
+  // so nothing here invalidates any subscription but the named reader's own.
+  mentionInbox: defineTable({
+    userId: v.id("users"),
+    roomId: v.id("rooms"),
+    messageId: v.id("messages"),
+    // The message's own `createdAt`, so the stack orders oldest-first.
+    createdAt: v.number(),
+  })
+    // The reader's stack for one room, oldest first. Also account teardown.
+    .index("by_user_room", ["userId", "roomId", "createdAt"])
+    // Seen / message teardown / idempotent insert.
+    .index("by_message_user", ["messageId", "userId"])
+    // Room teardown and leaving a room.
+    .index("by_room_user", ["roomId", "userId"]),
+
   reactions: defineTable({
     messageId: v.id("messages"),
     userId: v.id("users"),

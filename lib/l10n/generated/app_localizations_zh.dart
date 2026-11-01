@@ -99,6 +99,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomScreenUnreadDivider => '未读消息';
 
   @override
+  String roomScreenJumpToMentionSemanticLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '前往提及你的消息，$count 条未查看',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomScreenMentionsClearedToast => '已将提及标记为已查看';
+
+  @override
   String get roomScreenViewOnceAlreadyViewed => '你已经打开过这张照片了。';
 
   @override

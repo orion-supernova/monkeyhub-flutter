@@ -27,6 +27,8 @@
   "roomScreenDeleteConfirmButton": "为所有人删除",
   "roomScreenJumpFailedSnack": "无法跳转到该消息",
   "roomScreenUnreadDivider": "未读消息",
+  "roomScreenJumpToMentionSemanticLabel": "{count, plural, other{前往提及你的消息，{count} 条未查看}}",
+  "roomScreenMentionsClearedToast": "已将提及标记为已查看",
   "roomScreenViewOnceAlreadyViewed": "你已经打开过这张照片了。",
   "roomScreenViewOnceGone": "这张照片已不可用。",
   "roomScreenViewOnceNetworkError": "无法加载这张照片。",

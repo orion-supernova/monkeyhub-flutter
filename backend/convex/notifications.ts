@@ -413,7 +413,9 @@ export const sendMessagePush = internalAction({
               ? `mentioned you in ${roomName}`
               : "mentioned you",
           ...(ownBody !== undefined ? { body: ownBody } : {}),
-          data: { mention: "true", ...extra },
+          // `focus` lands the tap on the mention itself rather than on the
+          // first unread message — see `_openRoomFromPush` in the app.
+          data: { mention: "true", focus: `message:${messageId}`, ...extra },
         };
       } else if (Object.keys(extra).length > 0) {
         perUser[uid] = {

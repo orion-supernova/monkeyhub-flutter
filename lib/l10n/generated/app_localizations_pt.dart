@@ -106,6 +106,20 @@ class AppLocalizationsPt extends AppLocalizations {
   String get roomScreenUnreadDivider => 'Mensagens não lidas';
 
   @override
+  String roomScreenJumpToMentionSemanticLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ir para as tuas menções, $count por ver',
+      one: 'Ir para a tua menção, 1 por ver',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomScreenMentionsClearedToast => 'Menções marcadas como vistas';
+
+  @override
   String get roomScreenViewOnceAlreadyViewed => 'Já abriste esta fotografia.';
 
   @override
@@ -14765,6 +14779,20 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get roomScreenUnreadDivider => 'Mensagens não lidas';
+
+  @override
+  String roomScreenJumpToMentionSemanticLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ir para suas menções, $count não vistas',
+      one: 'Ir para sua menção, 1 não vista',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomScreenMentionsClearedToast => 'Menções marcadas como vistas';
 
   @override
   String get roomScreenViewOnceAlreadyViewed => 'Você já abriu essa foto.';

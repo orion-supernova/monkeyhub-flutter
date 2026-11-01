@@ -279,6 +279,18 @@ abstract class AppLocalizations {
   /// **'Unread messages'**
   String get roomScreenUnreadDivider;
 
+  /// Screen-reader label and hover hint of the round @ button above the scroll-to-bottom button in a chat. Jumps to the oldest message that mentioned the reader and that they have not seen yet. {count} is how many such mentions are left.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{Go to your mention, 1 unseen} other{Go to your mentions, {count} unseen}}'**
+  String roomScreenJumpToMentionSemanticLabel(int count);
+
+  /// Toast after long-pressing the @ button in a chat, which clears every unseen mention of the reader in that room without visiting them.
+  ///
+  /// In en, this message translates to:
+  /// **'Mentions marked as seen'**
+  String get roomScreenMentionsClearedToast;
+
   /// SnackBar shown when trying to reopen a view-once photo that was already viewed by this user.
   ///
   /// In en, this message translates to:

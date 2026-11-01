@@ -540,6 +540,37 @@ class _RoomScreenState extends State<_RoomView>
   static const Duration _kUnreadLandingWindow = Duration(seconds: 12);
   DateTime? _unreadLandingDeadline;
 
+  // How long the divider waits for the live subscription before settling on
+  // whatever the disk cache holds. A cache (or a bubble seeded off the push
+  // that was just tapped) can predate the messages the push was about, and
+  // settling on it put the UNREAD line above the NEWEST message instead of
+  // the first unread one. Only an offline open ever reaches this.
+  static const Duration _kUnreadLiveGrace = Duration(seconds: 3);
+  DateTime? _unreadLiveGraceEnds;
+  Timer? _unreadGraceTimer;
+
+  // Older pages fetched to reach the first unread message. The live window is
+  // only [ChatRepository.kLiveWindow] messages, so any backlog longer than
+  // that used to put the line on the oldest LOADED message — 25 up, not where
+  // the reader left off. Bounded so a months-old backlog cannot page forever.
+  static const int _kUnreadBackfillPages = 4;
+  static const int _kUnreadBackfillPageSize = 100;
+  int _unreadBackfillsUsed = 0;
+  bool _unreadBackfillQueued = false;
+
+  // ──── what the reader has seen ────
+  // Drives the count on the scroll-to-bottom button and clears `@` mentions by
+  // sight. [_seenUpTo] is the newest message the reader has had on screen (or
+  // the unread cursor, before they have looked at anything); every message by
+  // someone else after it is "below" and counted. Null until the divider has
+  // settled, which is when the cursor is known.
+  DateTime? _seenUpTo;
+  final ValueNotifier<int> _unreadBelow = ValueNotifier<int>(0);
+  bool _seenScanQueued = false;
+  // Coming back to the app with this room open: what is on screen now has
+  // been seen, and nothing scrolled to say so.
+  late final AppLifecycleListener _seenOnResume;
+
   /// Which pin the banner is describing, counted back from the newest — see
   /// [pinIndexForCursor], which is the only way it is read. 0 is the latest
   /// pin, so that is what a room opens on.
@@ -693,6 +724,15 @@ class _RoomScreenState extends State<_RoomView>
     widget.repo.beginUnreadAnchor(widget.roomId);
     _unreadLandingPending = true;
     _unreadLandingDeadline = DateTime.now().add(_kUnreadLandingWindow);
+    _unreadLiveGraceEnds = DateTime.now().add(_kUnreadLiveGrace);
+    _seenOnResume = AppLifecycleListener(onResume: _scheduleSeenScan);
+    // The grace expiring is not a repository change, so nothing else would
+    // re-run the settle for a room that stays offline.
+    _unreadGraceTimer = Timer(_kUnreadLiveGrace + const Duration(milliseconds: 50), () {
+      if (!mounted || _unreadDividerSettled) return;
+      setState(() {});
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeLandOnUnread());
+    });
     // "Somebody suggested a new group photo", tapped. The push routed the tap
     // into this room by its roomId; this is the last hop, and it has to happen
     // from HERE because Room Info is pushed onto this screen's navigator — the
@@ -1015,6 +1055,7 @@ class _RoomScreenState extends State<_RoomView>
     // Scroll-to-latest pill. Hysteresis lives in BottomProximity and the
     // notifier swallows the no-change case, so the common frame ends here.
     _scrolledUp.update(pos);
+    _scheduleSeenScan();
 
     // Floating date chip: show while scrolling, fade out 800ms after the
     // last scroll event. Hidden when at the newest end (pixels < 8) since
@@ -1302,7 +1343,9 @@ class _RoomScreenState extends State<_RoomView>
     // just triggered above, rather than whatever it held before it.
     if (_unreadLandingPending) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _maybeLandOnUnread());
-    }
+    }    // A message arriving at the bottom, a mention landing on screen, a page
+    // shifting rows: all change what the reader can see without a scroll.
+    _scheduleSeenScan();
   }
 
   /// TRANSLATE, from a bubble's long-press menu.
@@ -1412,19 +1455,40 @@ class _RoomScreenState extends State<_RoomView>
     final anchor = repo.unreadAnchorFor(widget.roomId);
     if (anchor == null) {
       _unreadDividerSettled = true;
+      _seedSeenUpTo(null);
+      return;
+    }
+    // A cache hydrate (and a bubble seeded off the very push that was tapped)
+    // can predate the backlog, and the first "unread" message in it is then
+    // the newest one. Wait for the subscription, within a short grace.
+    final live = repo.hasLiveMessages(widget.roomId);
+    final graceEnds = _unreadLiveGraceEnds;
+    if (!live && (graceEnds == null || DateTime.now().isBefore(graceEnds))) {
       return;
     }
     final me = repo.userId;
-    for (final m in repo.timelineFor(widget.roomId)) {
+    final timeline = repo.timelineFor(widget.roomId);
+    for (final m in timeline) {
       if (m.senderId == me) continue;
       if (!m.createdAt.isAfter(anchor)) continue;
+      // Nothing loaded is at or before the cursor, so the first unread
+      // message is further up than what we hold: page towards it first, or
+      // the line lands on the oldest LOADED message instead.
+      if (timeline.first.createdAt.isAfter(anchor) &&
+          repo.hasMoreOlderTimeline(widget.roomId) &&
+          _unreadBackfillsUsed < _kUnreadBackfillPages) {
+        _backfillTowardUnread();
+        return;
+      }
       _unreadDividerId = m.id;
       _unreadDividerSettled = true;
+      _seedSeenUpTo(anchor);
       DiagLog.roomOpen('unread-divider', '${widget.roomId} at ${m.id}');
       return;
     }
-    if (repo.hasLiveMessages(widget.roomId)) {
+    if (live) {
       _unreadDividerSettled = true;
+      _seedSeenUpTo(anchor);
       // Not a failure on its own — a room genuinely read to the end settles
       // here every time. It is only news next to an `unread-anchor` line whose
       // cursor is older than the message the reader was just notified about,
@@ -1432,10 +1496,146 @@ class _RoomScreenState extends State<_RoomView>
       DiagLog.roomOpen(
         'unread-divider',
         '${widget.roomId} none past ${anchor.toIso8601String()} '
-        'in ${repo.timelineFor(widget.roomId).length} msgs',
+        'in ${timeline.length} msgs',
       );
     }
   }
+
+  /// One older page towards the unread cursor. The repository notifies when
+  /// it lands, which re-runs the settle (from build, and from the landing).
+  void _backfillTowardUnread() {
+    // Runs from the settle, which runs from build — and a page load notifies
+    // synchronously, which would setState mid-build. So: next frame, once.
+    if (_unreadBackfillQueued || widget.repo.isLoadingTimeline(widget.roomId)) {
+      return;
+    }
+    _unreadBackfillQueued = true;
+    _unreadBackfillsUsed++;
+    // The landing waits on this page; give it the time the page takes.
+    final deadline = _unreadLandingDeadline;
+    if (deadline != null) {
+      final floor = DateTime.now().add(const Duration(seconds: 6));
+      if (deadline.isBefore(floor)) _unreadLandingDeadline = floor;
+    }
+    DiagLog.roomOpen(
+      'unread-divider',
+      '${widget.roomId} backfill page $_unreadBackfillsUsed',
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _unreadBackfillQueued = false;
+      if (!mounted) return;
+      unawaited(widget.repo.loadOlderTimeline(
+        widget.roomId,
+        pageSize: _kUnreadBackfillPageSize,
+      ));
+    });
+  }
+
+  /// Look at what is on screen once, after this frame — at most once a frame
+  /// however many scroll events and notifications ask.
+  void _scheduleSeenScan() {
+    if (_seenScanQueued || !mounted) return;
+    _seenScanQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _seenScanQueued = false;
+      _scanSeen();
+    });
+  }
+
+  /// How much of [messageId]'s row is inside the band the reader can see —
+  /// the viewport minus whatever chrome floats over its edges. Zero when the
+  /// row is not laid out.
+  double _visibleShare(String messageId, RenderBox viewport, double top, double bottom) {
+    final ctx = _rowContextOf(messageId);
+    if (ctx == null || !ctx.mounted) return 0;
+    final rb = ctx.findRenderObject();
+    if (rb is! RenderBox || !rb.attached || !rb.hasSize) return 0;
+    final dy = rb.localToGlobal(Offset.zero, ancestor: viewport).dy;
+    final h = rb.size.height;
+    if (h <= 0) return 0;
+    final shown = math.min(dy + h, bottom) - math.max(dy, top);
+    return shown <= 0 ? 0 : shown / h;
+  }
+
+  /// What the reader has actually had in front of them: clears the `@`
+  /// mentions whose bubbles are on screen, and moves [_seenUpTo] — the count
+  /// on the scroll-to-bottom button — past the newest message in view.
+  ///
+  /// Only while the app is in the foreground: a phone face-down on the table
+  /// with the room open has seen nothing.
+  void _scanSeen() {
+    if (!mounted || !_scroll.hasClients) return;
+    final life = WidgetsBinding.instance.lifecycleState;
+    if (life != null && life != AppLifecycleState.resumed) return;
+    final viewportBox = _listViewportKey.currentContext?.findRenderObject();
+    if (viewportBox is! RenderBox || !viewportBox.attached) return;
+    final top = _topChromeOverList;
+    final bottom = viewportBox.size.height - _bottomChromeOverList;
+    if (bottom <= top) return;
+    final repo = widget.repo;
+
+    // `@` mentions: half a bubble in view is seen, and so is a tall bubble
+    // that fills most of the screen without ever fitting on it.
+    final pending = repo.pendingMentionsFor(widget.roomId);
+    if (pending.isNotEmpty) {
+      final band = bottom - top;
+      final seen = <String>[];
+      for (final id in pending) {
+        final share = _visibleShare(id, viewportBox, top, bottom);
+        if (share <= 0) continue;
+        final h = _rowContextOf(id)?.size?.height ?? 0;
+        if (share >= 0.5 || share * h >= band * 0.6) seen.add(id);
+      }
+      if (seen.isNotEmpty) repo.markMentionsSeen(widget.roomId, seen);
+    }
+
+    // Unread below.
+    final from = _seenUpTo;
+    if (from == null) return;
+    final live = repo.messagesFor(widget.roomId);
+    if (live.isEmpty) {
+      _unreadBelow.value = 0;
+      return;
+    }
+    var upTo = from;
+    final atBottom = !repo.inHistoryWindow(widget.roomId) &&
+        _scroll.position.pixels <= BottomProximity.hideBelow;
+    if (atBottom) {
+      if (live.last.createdAt.isAfter(upTo)) upTo = live.last.createdAt;
+    } else {
+      // Newest first: the first one in view is the high-water mark. Bounded,
+      // because only the rows near the viewport can be in it.
+      var checked = 0;
+      for (var i = live.length - 1; i >= 0 && checked < 150; i--, checked++) {
+        final m = live[i];
+        if (!m.createdAt.isAfter(upTo)) break;
+        if (_visibleShare(m.id, viewportBox, top, bottom) > 0.5) {
+          upTo = m.createdAt;
+          break;
+        }
+      }
+    }
+    _seenUpTo = upTo;
+    final me = repo.userId;
+    var below = 0;
+    for (var i = live.length - 1; i >= 0; i--) {
+      final m = live[i];
+      if (!m.createdAt.isAfter(upTo)) break;
+      if (m.senderId == me || m.type == MessageType.system) continue;
+      below++;
+    }
+    _unreadBelow.value = below;
+  }
+
+  /// Start counting "below" from the unread cursor — or, for a room with no
+  /// cursor (never read), from the newest message, so nothing counts at all.
+  void _seedSeenUpTo(DateTime? anchor) {
+    if (_seenUpTo != null) return;
+    final live = widget.repo.messagesFor(widget.roomId);
+    _seenUpTo = anchor ?? (live.isEmpty ? DateTime.now() : live.last.createdAt);
+    _scheduleSeenScan();
+  }
+
 
   /// The reader has taken the viewport somewhere on purpose — a pin, a reply,
   /// the latest pill, a send, a drag. Whatever the opening scroll was still
@@ -1694,6 +1894,9 @@ class _RoomScreenState extends State<_RoomView>
     _scroll.dispose();
     _scrolledUp.removeListener(_onBottomProximity);
     _scrolledUp.dispose();
+    _unreadGraceTimer?.cancel();
+    _seenOnResume.dispose();
+    _unreadBelow.dispose();
     _bottomChrome.dispose();
     _jumpBack.removeListener(_onJumpBackChanged);
     _jumpBack.dispose();
@@ -2614,6 +2817,63 @@ class _RoomScreenState extends State<_RoomView>
     HapticFeedback.selectionClick();
     _jumpBack.clear();
     _scrollToBottom();
+  }
+
+  /// The `@` button: travel to the oldest mention of the reader they have not
+  /// seen. Landing puts it on screen, the scan that follows marks it seen, and
+  /// the next tap goes to the next one — so the stack empties by sight, never
+  /// by tapping alone.
+  bool _mentionTripInFlight = false;
+  Future<void> _onMentionJumpTapped() async {
+    if (_mentionTripInFlight) return;
+    final repo = widget.repo;
+    final pending = repo.pendingMentionsFor(widget.roomId);
+    if (pending.isEmpty) return;
+    HapticFeedback.selectionClick();
+    _mentionTripInFlight = true;
+    try {
+      final id = pending.first;
+      ChatMessage? find() {
+        for (final m in repo.timelineFor(widget.roomId)) {
+          if (m.id == id) return m;
+        }
+        return null;
+      }
+
+      var target = find();
+      if (target == null) {
+        if (!await repo.jumpToMessage(widget.roomId, id)) {
+          // Gone (deleted, expired) or unreachable: drop it from the stack
+          // rather than leave a button that goes nowhere.
+          repo.markMentionsSeen(widget.roomId, [id]);
+          return;
+        }
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted) return;
+        target = find();
+        if (target == null) {
+          repo.markMentionsSeen(widget.roomId, [id]);
+          return;
+        }
+      }
+      // Folded into a thread chip: the overlay is where it is seen, and the
+      // transcript scan never will.
+      if (_hiddenMessageIds.contains(id)) {
+        repo.markMentionsSeen(widget.roomId, [id]);
+      }
+      await _travelTo(id, from: target);
+      _scheduleSeenScan();
+    } finally {
+      _mentionTripInFlight = false;
+    }
+  }
+
+  /// Long-press on the `@` button: clear the stack without visiting it.
+  void _onMentionsClearAll() {
+    final toast = AppToast.of(context);
+    final l10n = AppLocalizations.of(context);
+    unawaited(widget.repo.markAllMentionsSeen(widget.roomId));
+    toast.show(l10n.roomScreenMentionsClearedToast, tone: ToastTone.neutral);
   }
 
   /// What every media entry point owes the user before it opens anything: not
@@ -7171,49 +7431,92 @@ class _RoomScreenState extends State<_RoomView>
                       ),
                       child: child,
                     ),
-                    child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Stack(
+                      alignment: Alignment.bottomCenter,
                       children: [
-                        // A warm cache makes the transcript useful before the
-                        // server answers, but it can be stale by hours, so say
-                        // a refresh is under way. Floated here with the other
-                        // pills rather than spent as a list row: a row has to
-                        // leave again, and when it did the whole transcript
-                        // dropped by its height a beat after the room opened.
-                        _TimelineSyncPill(pending: !serverAnswered),
-                        // Back one hop up the reply trail. Above the jump-to-
-                        // latest pill because it is the transient one: it comes
-                        // and goes with the trail, while the pill below it is
-                        // the fixture a reader always knows where to find.
-                        TransientPillSlot(
-                          visible: _jumpBack.isNotEmpty,
-                          child: JumpBackPill(
-                            depth: _jumpBack.depth,
-                            onTap: _jumpBackOneHop,
-                          ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // A warm cache makes the transcript useful before the
+                            // server answers, but it can be stale by hours, so say
+                            // a refresh is under way. Floated here with the other
+                            // pills rather than spent as a list row: a row has to
+                            // leave again, and when it did the whole transcript
+                            // dropped by its height a beat after the room opened.
+                            _TimelineSyncPill(pending: !serverAnswered),
+                            // Back one hop up the reply trail. Above the jump-to-
+                            // latest pill because it is the transient one: it comes
+                            // and goes with the trail, while the pill below it is
+                            // the fixture a reader always knows where to find.
+                            TransientPillSlot(
+                              visible: _jumpBack.isNotEmpty,
+                              child: JumpBackPill(
+                                depth: _jumpBack.depth,
+                                onTap: _jumpBackOneHop,
+                              ),
+                            ),
+                          ],
                         ),
-                        // Unconditional: when the slot below is unmounted this
-                        // just lifts the back pill 8px off the composer, which
-                        // beats racing its fade-out to decide whether to render.
-                        const SizedBox(height: 8),
-                        // Two reasons to be here: scrolled away from the newest
-                        // message, or parked on a detached slice of history
-                        // where the bottom of the list isn't the present at
-                        // all. Both want the same button, and _scrollToBottom
-                        // already tells them apart.
-                        ValueListenableBuilder<bool>(
-                          valueListenable: _scrolledUp,
-                          builder: (context, scrolledUp, _) =>
-                              ScrollToLatestSlot(
-                            visible: scrolledUp ||
-                                widget.repo.inHistoryWindow(widget.roomId),
-                            onTap: _onJumpToLatestTapped,
+                        // The round scroll buttons, at the right edge where the
+                        // thumb already is: `@` (unseen mentions of the reader)
+                        // stacked over the chevron (back to the newest message,
+                        // with how many unread wait below). Out of the centre
+                        // column so they never cover the bubbles mid-screen.
+                        Align(
+                          alignment: Alignment.bottomRight,
+                          heightFactor: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 10),
+                            child: ValueListenableBuilder<bool>(
+                              valueListenable: _scrolledUp,
+                              builder: (context, scrolledUp, _) {
+                                // Two reasons to show the chevron: scrolled away
+                                // from the newest message, or parked on a
+                                // detached slice of history where the bottom of
+                                // the list isn't the present at all.
+                                // _scrollToBottom already tells them apart.
+                                final downVisible = scrolledUp ||
+                                    widget.repo.inHistoryWindow(widget.roomId);
+                                final mentions = widget.repo
+                                    .pendingMentionsFor(widget.roomId);
+                                return Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    TransientPillSlot(
+                                      visible: mentions.isNotEmpty,
+                                      child: AnimatedPadding(
+                                        duration:
+                                            ThemeScope.of(context).motionFast,
+                                        curve: Curves.easeOutCubic,
+                                        padding: EdgeInsets.only(
+                                          bottom: downVisible ? 6 : 0,
+                                        ),
+                                        child: MentionJumpButton(
+                                          count: mentions.length,
+                                          capped: widget.repo
+                                              .pendingMentionsCapped(widget.roomId),
+                                          onTap: _onMentionJumpTapped,
+                                          onClearAll: _onMentionsClearAll,
+                                        ),
+                                      ),
+                                    ),
+                                    ValueListenableBuilder<int>(
+                                      valueListenable: _unreadBelow,
+                                      builder: (context, below, _) =>
+                                          ScrollToLatestSlot(
+                                        visible: downVisible,
+                                        count: below,
+                                        onTap: _onJumpToLatestTapped,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
                   ),
                 ),
               ],

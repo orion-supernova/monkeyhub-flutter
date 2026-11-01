@@ -37,6 +37,8 @@
   "roomScreenDeleteConfirmButton": "Ta bort för alla",
   "roomScreenJumpFailedSnack": "Kunde inte hoppa till det meddelandet",
   "roomScreenUnreadDivider": "Olästa meddelanden",
+  "roomScreenJumpToMentionSemanticLabel": "{count, plural, one{Gå till ditt omnämnande, 1 osett} other{Gå till dina omnämnanden, {count} osedda}}",
+  "roomScreenMentionsClearedToast": "Omnämnanden markerade som sedda",
   "roomScreenViewOnceAlreadyViewed": "Du har redan öppnat det här fotot.",
   "roomScreenViewOnceGone": "Det här fotot finns inte längre.",
   "roomScreenViewOnceNetworkError": "Kunde inte läsa in fotot.",

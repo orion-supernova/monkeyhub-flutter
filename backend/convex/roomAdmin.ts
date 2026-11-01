@@ -31,6 +31,7 @@
  */
 
 import { mutation, query } from "./functions";
+import { purgeMentionsForMember } from "./mentions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { assertNotSystemRoom } from "./systemAccount";
@@ -317,6 +318,9 @@ export async function removeMembership(
     )
     .collect();
   for (const b of bookmarks) await ctx.db.delete(b._id);
+
+  // Their `@` stack here: nothing in this room is addressed to them any more.
+  await purgeMentionsForMember(ctx, roomId, userId);
 
   // Their manual speaker colours, and — the half that is easy to miss —
   // everyone ELSE's pins on them. See `purgeSpeakerColorsForMember`: a pin left

@@ -151,4 +151,58 @@ void main() {
       expect(taps, 1);
     });
   });
+
+  group('scroll buttons', () {
+    Widget host(Widget child) => MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: ThemeScope(
+        controller: ThemeController(BasicTheme.midnight()),
+        child: Scaffold(body: Center(child: child)),
+      ),
+    );
+
+    testWidgets('the chevron carries the unread count, and no zero', (
+      tester,
+    ) async {
+      await tester.pumpWidget(host(ScrollToLatestPill(onTap: () {}, count: 0)));
+      expect(find.text('0'), findsNothing);
+      await tester.pumpWidget(host(ScrollToLatestPill(onTap: () {}, count: 7)));
+      expect(find.text('7'), findsOneWidget);
+      await tester.pumpWidget(
+        host(ScrollToLatestPill(onTap: () {}, count: 140)),
+      );
+      expect(find.text('99+'), findsOneWidget);
+    });
+
+    testWidgets('the @ button taps through, and long-press clears all', (
+      tester,
+    ) async {
+      var taps = 0;
+      var cleared = 0;
+      await tester.pumpWidget(host(MentionJumpButton(
+        count: 3,
+        onTap: () => taps++,
+        onClearAll: () => cleared++,
+      )));
+      expect(find.text('@'), findsOneWidget);
+      expect(find.text('3'), findsOneWidget);
+      await tester.tap(find.text('@'));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(taps, 1);
+      await tester.longPress(find.text('@'));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(cleared, 1);
+      expect(taps, 1);
+    });
+
+    testWidgets('a capped stack says so', (tester) async {
+      await tester.pumpWidget(host(MentionJumpButton(
+        count: 99,
+        capped: true,
+        onTap: () {},
+      )));
+      expect(find.text('99+'), findsOneWidget);
+    });
+  });
 }

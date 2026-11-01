@@ -453,15 +453,21 @@ class _BasicPalette {
 // and the steps follow iOS's black → #1C1C1E → #2C2C2E rhythm a shade deeper
 // so glass bars separate cleanly from what scrolls under them.
 //
-// The accent and the outgoing bubble are split on purpose. #3D80F2 is the
-// balance point for a token that is both TEXT on the page (5.2:1) and a FILL
-// under white (unread pips, 3.8:1) — on a near-black page no single blue
-// reaches 4.5 on both, so the pip, bold 13pt, takes the large-text floor.
-// The bubble is the deeper #2F6BE8 so white message text clears AA.
+// The accent is a night-sky blue, not an electric one. The old #3D80F2
+// (saturation 0.87, hue 218) was the iOS system blue at full voltage, and on
+// a near-black page it lit up every pip, link and control until the whole
+// app read as blue. #4092D9 leans toward sky (hue 208) at two-thirds the
+// saturation: TEXT on the page 5.9:1, a FILL under white (unread pips, bold
+// 13pt) 3.3:1 — the large-text floor, which no blue reaches 4.5 on both.
+//
+// The outgoing bubble is split off because it is the biggest area of colour
+// on screen: a deep midnight blue, #2B5A88, quiet enough to sit in a
+// transcript of them and carrying white text at 7.2:1 — the Telegram-night
+// recipe rather than a wall of bright fills.
 const _midnight = _BasicPalette(
   id: 'basic',
   name: 'Midnight',
-  tagline: 'clean. quiet. blue.',
+  tagline: 'clean. quiet. night sky.',
   background: Color(0xFF0A0B0F),
   surface: Color(0xFF15171D),
   surfaceRaised: Color(0xFF1F222A),
@@ -470,9 +476,9 @@ const _midnight = _BasicPalette(
   ink: Color(0xFFF3F5F9),
   inkSoft: Color(0xFFA3A9B6),
   inkMuted: Color(0xFF7C8089),
-  accent: Color(0xFF3D80F2),
+  accent: Color(0xFF4092D9),
   accentInk: Color(0xFFFFFFFF),
-  bubble: Color(0xFF2F6BE8),
+  bubble: Color(0xFF2B5A88),
   danger: Color(0xFFFF3B30),
   success: Color(0xFF34C759),
   // Deep enough that a white initial clears 3:1 even at the gradient's lit top.

@@ -105,6 +105,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String get roomScreenUnreadDivider => 'Messages non lus';
 
   @override
+  String roomScreenJumpToMentionSemanticLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Aller à tes mentions, $count non vues',
+      one: 'Aller à ta mention, 1 non vue',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomScreenMentionsClearedToast => 'Mentions marquées comme vues';
+
+  @override
   String get roomScreenViewOnceAlreadyViewed =>
       'Tu as déjà ouvert cette photo.';
 

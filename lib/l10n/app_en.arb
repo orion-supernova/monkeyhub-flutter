@@ -108,6 +108,15 @@
   "@roomScreenUnreadDivider": {
     "description": "All-caps label on the divider marking the first unread message when the room screen opens onto a backlog — shown once, above the messages that are new since the reader's last visit."
   },
+  "roomScreenJumpToMentionSemanticLabel": "{count, plural, one{Go to your mention, 1 unseen} other{Go to your mentions, {count} unseen}}",
+  "@roomScreenJumpToMentionSemanticLabel": {
+    "description": "Screen-reader label and hover hint of the round @ button above the scroll-to-bottom button in a chat. Jumps to the oldest message that mentioned the reader and that they have not seen yet. {count} is how many such mentions are left.",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "roomScreenMentionsClearedToast": "Mentions marked as seen",
+  "@roomScreenMentionsClearedToast": {
+    "description": "Toast after long-pressing the @ button in a chat, which clears every unseen mention of the reader in that room without visiting them."
+  },
   "roomScreenViewOnceAlreadyViewed": "You’ve already opened this photo.",
   "@roomScreenViewOnceAlreadyViewed": {
     "description": "SnackBar shown when trying to reopen a view-once photo that was already viewed by this user."

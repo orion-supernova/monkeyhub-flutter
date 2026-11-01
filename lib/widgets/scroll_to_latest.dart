@@ -1,7 +1,12 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../l10n/generated/app_localizations.dart';
+import '../theme/app_theme.dart';
+import '../theme/theme_scope.dart';
 import 'glass_pill.dart';
+import 'hover_hint.dart';
+import 'liquid_glass.dart';
 
 /// Tracks whether a `reverse: true` transcript is scrolled away from its bottom.
 ///
@@ -89,34 +94,211 @@ class ScrollToLatestSlot extends StatelessWidget {
     super.key,
     required this.visible,
     required this.onTap,
+    this.count = 0,
   });
 
   final bool visible;
   final VoidCallback onTap;
 
+  /// Unread messages below the viewport. Zero shows the bare chevron.
+  final int count;
+
   @override
   Widget build(BuildContext context) => TransientPillSlot(
         visible: visible,
-        child: ScrollToLatestPill(onTap: onTap),
+        child: ScrollToLatestPill(onTap: onTap, count: count),
       );
 }
 
-/// Returns the reader to the newest message.
+/// Returns the reader to the newest message: a round glass button at the
+/// transcript's right edge with a chevron, and the number of unread messages
+/// waiting below riding its top edge — the iMessage / Telegram shape.
 ///
-/// Same glass capsule as the back-to-reply pill and the room's floating date
-/// chip, on purpose: they are one family of transient list chrome, and a reader
-/// who has learned to read one shouldn't have to learn the others.
+/// It used to be a centred capsule reading "Jump to latest". A word-label is
+/// the wrong size for a fixture that sits over the transcript every time the
+/// reader scrolls up: it covered the bubbles it was floating over, and a
+/// round button by the thumb says the same thing in a glyph.
 class ScrollToLatestPill extends StatelessWidget {
-  const ScrollToLatestPill({super.key, required this.onTap});
+  const ScrollToLatestPill({super.key, required this.onTap, this.count = 0});
 
   final VoidCallback onTap;
+  final int count;
 
   @override
-  Widget build(BuildContext context) => GlassPill(
-        icon: CupertinoIcons.arrow_down,
-        label: AppLocalizations.of(context).reactionBubbleJumpToLatestLabel,
-        semanticLabel:
-            AppLocalizations.of(context).reactionBubbleJumpToLatestSemanticLabel,
-        onTap: onTap,
-      );
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return ChatScrollFab(
+      onTap: onTap,
+      count: count,
+      semanticLabel: l10n.reactionBubbleJumpToLatestSemanticLabel,
+      glyph: Padding(
+        // The chevron's ink sits high in its box; this centres it optically.
+        padding: const EdgeInsets.only(top: 2),
+        child: Icon(CupertinoIcons.chevron_down, size: 19, color: theme.ink),
+      ),
+    );
+  }
+}
+
+/// The room's `@` button: jumps to the oldest mention of the reader they have
+/// not yet seen, stacked above [ScrollToLatestPill]. Each tap goes to the next
+/// one; a mention leaves the stack only once its bubble has been on screen.
+/// Long-press clears the whole stack ([onClearAll]).
+class MentionJumpButton extends StatelessWidget {
+  const MentionJumpButton({
+    super.key,
+    required this.count,
+    required this.onTap,
+    this.onClearAll,
+    this.capped = false,
+  });
+
+  final int count;
+  final bool capped;
+  final VoidCallback onTap;
+  final VoidCallback? onClearAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return ChatScrollFab(
+      onTap: onTap,
+      onLongPress: onClearAll == null
+          ? null
+          : () {
+              HapticFeedback.mediumImpact();
+              onClearAll!();
+            },
+      count: count,
+      countCapped: capped,
+      semanticLabel: l10n.roomScreenJumpToMentionSemanticLabel(count),
+      glyph: Text(
+        '@',
+        style: TextStyle(
+          fontFamily: 'CupertinoSystemText',
+          fontSize: 20,
+          height: 1,
+          fontWeight: FontWeight.w600,
+          color: theme.accent,
+          decoration: TextDecoration.none,
+        ),
+      ),
+    );
+  }
+}
+
+/// The round glass button both scroll affordances are made of: a 40pt
+/// [LiquidGlass] disc with a glyph, and an optional count capsule centred on
+/// its top edge. One widget so the `@` and the chevron can never drift apart.
+class ChatScrollFab extends StatelessWidget {
+  const ChatScrollFab({
+    super.key,
+    required this.glyph,
+    required this.onTap,
+    required this.semanticLabel,
+    this.onLongPress,
+    this.count = 0,
+    this.countCapped = false,
+  });
+
+  /// Edge of the disc. A step under the 44pt chrome buttons: this one floats
+  /// over content rather than sitting in a bar, and should yield to it.
+  static const double size = 40;
+
+  final Widget glyph;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final String semanticLabel;
+  final int count;
+
+  /// The count stopped at the server's cap: render it as "N+".
+  final bool countCapped;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    Widget disc = LiquidGlass(
+      size: const Size(size, size),
+      onTap: onTap,
+      semanticLabel: semanticLabel,
+      child: Center(child: glyph),
+    );
+    if (onLongPress != null) {
+      disc = GestureDetector(onLongPress: onLongPress, child: disc);
+    }
+    return HoverHint(
+      label: semanticLabel,
+      child: SizedBox(
+        width: size,
+        // Room above the disc for the capsule's top half, so the badge
+        // straddles the disc's top edge while staying inside this widget's
+        // bounds (and its hit area) rather than hanging off it.
+        height: size + 10,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: [
+            disc,
+            if (count > 0)
+              Positioned(
+                top: 0,
+                child: IgnorePointer(
+                  child: _FabCount(
+                    count: count,
+                    capped: countCapped,
+                    theme: theme,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FabCount extends StatelessWidget {
+  const _FabCount({
+    required this.count,
+    required this.capped,
+    required this.theme,
+  });
+
+  final int count;
+  final bool capped;
+  final AppTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final digits = count > 99 ? '99+' : (capped ? '$count+' : '$count');
+    return Container(
+      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      decoration: BoxDecoration(
+        color: theme.accent,
+        borderRadius: BorderRadius.circular(999),
+        // A ring of the page colour, so the capsule reads as sitting ON the
+        // glass rather than as part of it.
+        border: Border.all(color: theme.background, width: 1.5),
+      ),
+      child: Center(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Text(
+          digits,
+          style: TextStyle(
+            fontFamily: 'CupertinoSystemText',
+            fontSize: 11.5,
+            height: 1.15,
+            fontWeight: FontWeight.w700,
+            color: theme.accentInk,
+            decoration: TextDecoration.none,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ),
+    );
+  }
 }

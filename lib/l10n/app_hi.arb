@@ -27,6 +27,8 @@
   "roomScreenDeleteConfirmButton": "सबके लिए डिलीट करें",
   "roomScreenJumpFailedSnack": "उस मैसेज तक नहीं पहुंच पाए",
   "roomScreenUnreadDivider": "अपठित मैसेज",
+  "roomScreenJumpToMentionSemanticLabel": "{count, plural, one{अपने मेंशन पर जाएं, 1 अनदेखा} other{अपने मेंशन पर जाएं, {count} अनदेखे}}",
+  "roomScreenMentionsClearedToast": "मेंशन देखे गए के रूप में चिह्नित",
   "roomScreenViewOnceAlreadyViewed": "यह फ़ोटो पहले ही खोली जा चुकी है।",
   "roomScreenViewOnceGone": "यह फ़ोटो अब उपलब्ध नहीं है।",
   "roomScreenViewOnceNetworkError": "वह फ़ोटो लोड नहीं हो सकी।",

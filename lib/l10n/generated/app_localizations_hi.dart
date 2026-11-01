@@ -104,6 +104,21 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomScreenUnreadDivider => 'अपठित मैसेज';
 
   @override
+  String roomScreenJumpToMentionSemanticLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'अपने मेंशन पर जाएं, $count अनदेखे',
+      one: 'अपने मेंशन पर जाएं, 1 अनदेखा',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomScreenMentionsClearedToast =>
+      'मेंशन देखे गए के रूप में चिह्नित';
+
+  @override
   String get roomScreenViewOnceAlreadyViewed =>
       'यह फ़ोटो पहले ही खोली जा चुकी है।';
 

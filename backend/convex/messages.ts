@@ -39,6 +39,7 @@ import { isSystemAccount, isSystemRoom } from "./systemAccount";
 import { canReadRoom } from "./roomAccess";
 import { copiesOn } from "./profileCopyGate";
 import { consume } from "./rateLimit";
+import { recordMentions } from "./mentions";
 
 // ── Delivery-receipt tuning ─────────────────────────────────────────────────
 
@@ -1740,6 +1741,25 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     lastMessageSenderId: userId,
   });
 
+  // The `@` stack for everyone named (see mentions.ts). Explicit mentions are
+  // at most 20 and go in this transaction; `@everyone` can be a whole crowd,
+  // so it fans out in pages behind the send instead of inside it.
+  if (resolvedMentions && resolvedMentions.length > 0) {
+    await recordMentions(ctx, {
+      roomId,
+      messageId,
+      createdAt: sentAt,
+      userIds: resolvedMentions.map((m) => m.userId),
+    });
+  }
+  if (everyone) {
+    await ctx.scheduler.runAfter(0, internal.mentions.fanOutEveryone, {
+      roomId,
+      messageId,
+      senderId: userId,
+    });
+  }
+
   // Fire push notifications in background (non-blocking). [quiet] is for a
   // caller that sends its own, better worded push: a game move's "your move"
   // banner collapses per game, where a message push would stack one per move.
@@ -2371,6 +2391,30 @@ export const editMessage = mutation({
       hasLink: hasLink ? true : undefined,
       formatting: fmt,
     });
+
+    // A mention the edit ADDED joins its target's `@` stack; one it removed is
+    // dropped by `mentions.pendingForRoom`, which re-checks the row.
+    const before = new Set(
+      ((msg as any).mentions ?? []).map((m: any) => m.userId.toString()),
+    );
+    const added = (resolvedMentions ?? [])
+      .map((m) => m.userId)
+      .filter((id: any) => !before.has(id.toString()));
+    if (added.length > 0) {
+      await recordMentions(ctx, {
+        roomId: msg.roomId,
+        messageId,
+        createdAt: msg.createdAt,
+        userIds: added,
+      });
+    }
+    if (everyone && (msg as any).mentionsEveryone !== true) {
+      await ctx.scheduler.runAfter(0, internal.mentions.fanOutEveryone, {
+        roomId: msg.roomId,
+        messageId,
+        senderId: userId,
+      });
+    }
 
     // Repair the room card, but only when this message is what it shows —
     // the `removeMessageAndFanout` guard. A mid-history edit re-writing the

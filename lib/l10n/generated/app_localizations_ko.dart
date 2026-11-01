@@ -102,6 +102,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get roomScreenUnreadDivider => '읽지 않은 메시지';
 
   @override
+  String roomScreenJumpToMentionSemanticLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '나를 언급한 메시지로 이동, 확인 안 함 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomScreenMentionsClearedToast => '언급을 확인함으로 표시했어요';
+
+  @override
   String get roomScreenViewOnceAlreadyViewed => '이 사진은 이미 열어봤어요.';
 
   @override

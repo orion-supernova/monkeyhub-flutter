@@ -107,6 +107,25 @@ class AppLocalizationsAr extends AppLocalizations {
   String get roomScreenUnreadDivider => 'رسائل غير مقروءة';
 
   @override
+  String roomScreenJumpToMentionSemanticLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'انتقل إلى الإشارات إليك، $count لم تُشاهد',
+      many: 'انتقل إلى الإشارات إليك، $count لم تُشاهد',
+      few: 'انتقل إلى الإشارات إليك، $count لم تُشاهد',
+      two: 'انتقل إلى الإشارات إليك، 2 لم تُشاهدا',
+      one: 'انتقل إلى الإشارة إليك، 1 لم تُشاهد',
+      zero: 'انتقل إلى الإشارات إليك، لا شيء لم يُشاهد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomScreenMentionsClearedToast =>
+      'تم وضع علامة مشاهدة على الإشارات';
+
+  @override
   String get roomScreenViewOnceAlreadyViewed => 'لقد فتحت هذه الصورة من قبل.';
 
   @override

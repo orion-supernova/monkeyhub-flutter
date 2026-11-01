@@ -424,10 +424,22 @@ extension FormattingSurface on AppTheme {
   /// bubble whose white text sat at about 5:1 — Daylight, Rose, Ivory,
   /// Risograph. Only when that side has no room (a near-black bubble cannot
   /// get 1.55:1 darker) does the cheaper pole decide, as before.
+  ///
+  /// "Can reach" means the fill AND the border: a mid-dark bubble (Midnight's
+  /// #2B5A88) has room for the fill to darken but not for the border, which
+  /// then fell back to the light pole on its own and split the pair. So the
+  /// away side is taken only when both fit there, then the other side, and
+  /// only then the fill-only rule.
   Color _codePole(Color bubble, Color codeInk) {
     final away = codeInk.computeLuminance() > bubble.computeLuminance()
         ? _black
         : _white;
+    bool fits(Color pole) =>
+        _alphaFor(bubble, pole, 1.55, 0.34) != null &&
+        _alphaFor(bubble, pole, 2.60, 0.62) != null;
+    if (fits(away)) return away;
+    final toward = away == _black ? _white : _black;
+    if (fits(toward)) return toward;
     if (_alphaFor(bubble, away, 1.55, 0.34) != null) return away;
     return _cheaperPole(bubble, target: 1.55, maxAlpha: 0.34);
   }

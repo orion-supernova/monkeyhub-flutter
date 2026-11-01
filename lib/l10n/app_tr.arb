@@ -27,6 +27,8 @@
   "roomScreenDeleteConfirmButton": "Herkes için sil",
   "roomScreenJumpFailedSnack": "O mesaja gidilemedi",
   "roomScreenUnreadDivider": "Okunmamış mesajlar",
+  "roomScreenJumpToMentionSemanticLabel": "{count, plural, one{Bahsedildiğin mesaja git, 1 görülmedi} other{Bahsedildiğin mesajlara git, {count} görülmedi}}",
+  "roomScreenMentionsClearedToast": "Bahsetmeler görüldü olarak işaretlendi",
   "roomScreenViewOnceAlreadyViewed": "Bu fotoğrafı zaten açtın.",
   "roomScreenViewOnceGone": "Bu fotoğraf artık mevcut değil.",
   "roomScreenViewOnceNetworkError": "Fotoğraf yüklenemedi.",

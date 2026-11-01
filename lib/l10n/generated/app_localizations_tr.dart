@@ -102,6 +102,21 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roomScreenUnreadDivider => 'Okunmamış mesajlar';
 
   @override
+  String roomScreenJumpToMentionSemanticLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Bahsedildiğin mesajlara git, $count görülmedi',
+      one: 'Bahsedildiğin mesaja git, 1 görülmedi',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomScreenMentionsClearedToast =>
+      'Bahsetmeler görüldü olarak işaretlendi';
+
+  @override
   String get roomScreenViewOnceAlreadyViewed => 'Bu fotoğrafı zaten açtın.';
 
   @override
