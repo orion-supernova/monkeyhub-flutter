@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'count_bump.dart';
@@ -30,7 +31,7 @@ class CountBadge extends StatelessWidget {
     this.mention = false,
   }) : tab = false;
 
-  /// THE tab-bar badge: a solid danger capsule, white 13/w600 tabular digits
+  /// THE tab-bar badge: a solid [AppThemeBadge.badge] capsule, white 13/w600 tabular digits
   /// in the system face whatever the theme — the iOS tab badge, which reads
   /// the same on every theme because it belongs to the chrome, not the page.
   const CountBadge.tab({super.key, required this.count, this.max = 99})
@@ -74,7 +75,7 @@ class CountBadge extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 6),
 
         decoration: BoxDecoration(
-          color: theme.danger,
+          color: theme.badge,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Center(
@@ -89,7 +90,7 @@ class CountBadge extends StatelessWidget {
               fontFamily: 'CupertinoSystemText',
               fontSize: 13,
               height: 1.1,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               color: Color(0xFFFFFFFF),
               decoration: TextDecoration.none,
               fontFeatures: [FontFeature.tabularFigures()],
@@ -162,7 +163,7 @@ class DotBadge extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: theme.accent,
+        color: theme.badge,
         shape: BoxShape.circle,
         border: Border.all(color: theme.background, width: 1.5),
       ),

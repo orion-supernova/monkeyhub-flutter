@@ -465,3 +465,28 @@ extension FormattingSurface on AppTheme {
   Color spoilerDust({required bool isMine, bool onMedia = false}) =>
       onMedia ? const Color(0xFFFFFFFF) : (isMine ? accentInk : ink);
 }
+
+/// The one unread-badge colour. Every notification marker in the app (tab bar,
+/// chat rows, cards, tiles, the sidebar) fills with this and nothing else, so
+/// "something needs you" always reads as the same signal, on every theme.
+///
+/// Deliberately NOT [AppTheme.accent] (themes use that on everything, so a
+/// badge in it is just more decoration; some accents are pastel or grey) and
+/// not [AppTheme.danger] (tuned for destructive text, and muted to pink or
+/// salmon on several themes). It is the saturated red of the app icon's own
+/// badge: iOS red, pushed a step brighter on dark pages so it glows, and a hot
+/// neon red on the neon themes so it belongs to them.
+extension AppThemeBadge on AppTheme {
+  Color get badge {
+    switch (id) {
+      case 'neon_night':
+      case 'cyberpunk':
+        return const Color(0xFFFF1F5A);
+      case 'retro_wave':
+        return const Color(0xFFFF2D6F);
+    }
+    return background.computeLuminance() < 0.3
+        ? const Color(0xFFFF453A)
+        : const Color(0xFFFF3B30);
+  }
+}

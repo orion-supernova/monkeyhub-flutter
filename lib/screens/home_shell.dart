@@ -706,7 +706,7 @@ class _SideRail extends StatelessWidget {
                       Positioned(
                         top: -6,
                         left: 13,
-                        child: CountBadge(count: badge, onAccent: isActive),
+                        child: CountBadge.tab(count: badge),
                       ),
                   ],
                 ),

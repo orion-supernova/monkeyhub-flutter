@@ -279,9 +279,11 @@ class ChatListTrailing extends StatelessWidget {
   }
 }
 
-/// Signal's unread marker: a solid accent circle (pill past two digits) with
-/// the count in the accent's own ink; a bare dot when only "unread" is known.
-/// Muted rooms go grey rather than silent. Replaces the tinted bordered
+/// The unread marker: a solid [AppThemeBadge.badge] capsule (circle for one
+/// digit) with bold white digits; a bare dot when only "unread" is known. It is
+/// the same red on every theme and every list layout, so a row with something
+/// waiting is the first thing the eye lands on. Muted rooms go grey rather
+/// than silent. Replaces the tinted bordered
 /// [RoomUnreadBadge] in every [ChatListTrailing] slot (rows, cards, tiles).
 class ChatUnreadBadge extends StatelessWidget {
   const ChatUnreadBadge({
@@ -299,7 +301,7 @@ class ChatUnreadBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     if (count <= 0 && !unread) return const SizedBox.shrink();
     final theme = ThemeScope.of(context);
-    final fill = quiet ? theme.inkMuted.withValues(alpha: 0.45) : theme.accent;
+    final fill = quiet ? theme.inkMuted.withValues(alpha: 0.45) : theme.badge;
     final numbered = count > 0;
     final label = count > 99 ? '99+' : '$count';
     return Semantics(
@@ -311,10 +313,10 @@ class ChatUnreadBadge extends StatelessWidget {
         count: count,
         child: Container(
           constraints: BoxConstraints(
-            minWidth: numbered ? 22 : 10,
-            minHeight: numbered ? 22 : 10,
+            minWidth: numbered ? 22 : 12,
+            minHeight: numbered ? 22 : 12,
           ),
-          padding: EdgeInsets.symmetric(horizontal: numbered ? 6 : 0),
+          padding: EdgeInsets.symmetric(horizontal: numbered ? 7 : 0),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: fill,
@@ -327,8 +329,8 @@ class ChatUnreadBadge extends StatelessWidget {
                   style: theme.bodyEmph.copyWith(
                     fontSize: 13,
                     height: 1,
-                    fontWeight: FontWeight.w600,
-                    color: quiet ? theme.surface : theme.accentInk,
+                    fontWeight: FontWeight.w700,
+                    color: quiet ? theme.surface : const Color(0xFFFFFFFF),
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 )

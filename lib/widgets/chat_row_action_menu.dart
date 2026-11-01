@@ -19,7 +19,7 @@ import '../models/message_preview.dart';
 import '../theme/app_theme.dart';
 import '../theme/interaction.dart';
 import '../theme/theme_scope.dart';
-import 'count_badge.dart';
+import 'chat_list_parts.dart' show ChatUnreadBadge;
 import 'muted_badge.dart';
 import 'pinned_badge.dart';
 import 'room_identity.dart';
@@ -817,7 +817,7 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
                 ),
                 if (room.visibleUnreadCount > 0) ...[
                   const SizedBox(width: 8),
-                  CountBadge(count: room.visibleUnreadCount, mention: room.hasVisibleMention),
+                  ChatUnreadBadge(count: room.visibleUnreadCount, quiet: room.isMuted),
                 ],
               ],
             ),
