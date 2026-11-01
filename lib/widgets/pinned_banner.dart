@@ -5,7 +5,9 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../models/message_preview.dart';
 import '../models/room_pin.dart';
+import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import 'chrome_motion.dart';
 import 'liquid_glass.dart';
 import 'teardown_safe.dart';
 
@@ -109,51 +111,62 @@ class _PinTicksPainter extends CustomPainter {
   const _PinTicksPainter({
     required this.count,
     required this.activeIndex,
+    required this.position,
     required this.activeColor,
     required this.inactiveColor,
   });
 
   final int count;
   final int activeIndex;
+
+  /// [activeIndex] mid-glide: the active mark slides from segment to segment
+  /// instead of jumping, the way Telegram's pinned bar steps.
+  final double position;
   final Color activeColor;
   final Color inactiveColor;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rects = pinTickRects(
-      count: count,
-      activeIndex: activeIndex,
-      size: size,
-    );
-    if (rects.isEmpty) return;
+    if (count <= 0) return;
     final radius = Radius.circular(size.width / 2);
-    final active = activeIndex.clamp(0, count - 1);
+    final pos = position.clamp(0.0, (count - 1).toDouble());
+    final lo = pos.floor();
+    final hi = pos.ceil();
+    final f = pos - lo;
+    Rect lerpRect(List<Rect> a, List<Rect> b, int ai, int bi) =>
+        Rect.lerp(a[ai], b[bi], f)!;
+
+    final atLo = pinTickRects(count: count, activeIndex: lo, size: size);
+    final atHi = pinTickRects(count: count, activeIndex: hi, size: size);
+    if (atLo.isEmpty) return;
 
     if (count > _kMaxTickSegments) {
-      // [track, thumb] — the track is always inactive, the thumb always active.
       canvas.drawRRect(
-        RRect.fromRectAndRadius(rects[0], radius),
+        RRect.fromRectAndRadius(atLo[0], radius),
         Paint()..color = inactiveColor,
       );
       canvas.drawRRect(
-        RRect.fromRectAndRadius(rects[1], radius),
+        RRect.fromRectAndRadius(lerpRect(atLo, atHi, 1, 1), radius),
         Paint()..color = activeColor,
       );
       return;
     }
 
-    for (var i = 0; i < rects.length; i++) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rects[i], radius),
-        Paint()..color = i == active ? activeColor : inactiveColor,
-      );
+    final idle = Paint()..color = inactiveColor;
+    for (final r in atLo) {
+      canvas.drawRRect(RRect.fromRectAndRadius(r, radius), idle);
     }
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(lerpRect(atLo, atLo, lo, hi), radius),
+      Paint()..color = activeColor,
+    );
   }
 
   @override
   bool shouldRepaint(_PinTicksPainter old) =>
       old.count != count ||
       old.activeIndex != activeIndex ||
+      old.position != position ||
       old.activeColor != activeColor ||
       old.inactiveColor != inactiveColor;
 }
@@ -219,7 +232,7 @@ class PinnedMessageBanner extends StatelessWidget {
   }
 }
 
-class _Strip extends StatelessWidget {
+class _Strip extends StatefulWidget {
   const _Strip({
     required this.pins,
     required this.activeIndex,
@@ -235,15 +248,35 @@ class _Strip extends StatelessWidget {
   final bool glass;
 
   @override
+  State<_Strip> createState() => _StripState();
+}
+
+class _StripState extends State<_Strip> {
+  /// Which way the last step went: 1 toward older pins (content slides up),
+  /// -1 back. Read by the label's slide.
+  int _direction = 1;
+
+  /// Bumped on every step, so the pin glyph presses down once per step.
+  int _steps = 0;
+
+  @override
+  void didUpdateWidget(_Strip old) {
+    super.didUpdateWidget(old);
+    if (old.activeIndex != widget.activeIndex) {
+      _direction = widget.activeIndex < old.activeIndex ? 1 : -1;
+      _steps++;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final active = activeIndex.clamp(0, pins.length - 1);
+    final pins = widget.pins;
+    final active = widget.activeIndex.clamp(0, pins.length - 1);
     final pin = pins[active];
     final l10n = AppLocalizations.of(context);
+    final glass = widget.glass;
 
-    // Used to head the strip as its own line of accent text. It says nothing
-    // the glyph beside it and the message next to that don't already say, so it
-    // now lives only in the semantics tree — see [_Label] and the icon below.
     final title = pins.length > 1
         ? l10n.pinnedBannerTitleWithIndex(pins.length, active + 1)
         : l10n.pinnedBannerTitleSingle;
@@ -253,39 +286,49 @@ class _Strip extends StatelessWidget {
       child: Row(
         children: [
           const SizedBox(width: 12),
-          CustomPaint(
-            size: const Size(_kTickWidth, _kTickHeight),
-            painter: _PinTicksPainter(
-              count: pins.length,
-              activeIndex: active,
-              activeColor: theme.accent,
-              inactiveColor: theme.accent.withValues(alpha: 0.25),
+          // The position marker: accent only on the pin being shown, the rest
+          // a faint ink, so the strip carries one touch of colour, not five.
+          TweenAnimationBuilder<double>(
+            tween: Tween(end: active.toDouble()),
+            duration: MotionScope.of(context).calm
+                ? Duration.zero
+                : const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+            builder: (context, position, _) => CustomPaint(
+              size: const Size(_kTickWidth, _kTickHeight),
+              painter: _PinTicksPainter(
+                count: pins.length,
+                activeIndex: active,
+                position: position,
+                activeColor: theme.accent,
+                inactiveColor: theme.ink.withValues(alpha: 0.16),
+              ),
             ),
           ),
           const SizedBox(width: 10),
-          // What the words "Pinned message" used to do, in 14pt. Deliberately
-          // OUTSIDE the tap target beside it: it identifies the whole strip
-          // rather than the row's text, and as a sibling of the button its
-          // semantics node stands on its own instead of competing with the
-          // button's label for the screen reader's attention.
-          Icon(
-            CupertinoIcons.pin_fill,
-            size: 14,
-            color: theme.accent,
-            semanticLabel: title,
+          KickGlyph(
+            kick: GlyphKick.lift,
+            trigger: _steps,
+            amplitude: -0.8,
+            child: Icon(
+              CupertinoIcons.pin_fill,
+              size: 14,
+              color: theme.inkSoft,
+              semanticLabel: title,
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: _TapTarget(
-              onTap: onTap,
+              onTap: widget.onTap,
               semanticLabel: l10n.pinnedBannerJumpToPinnedSemanticLabel,
               radius: theme.radiusSm,
-              child: _Label(pin: pin),
+              child: _Label(pin: pin, direction: _direction),
             ),
           ),
           const SizedBox(width: 8),
           _TapTarget(
-            onTap: onOpenList,
+            onTap: widget.onOpenList,
             semanticLabel: l10n.pinnedBannerAllPinnedSemanticLabel,
             radius: theme.radiusSm,
             child: Padding(
@@ -351,9 +394,10 @@ class _Strip extends StatelessWidget {
 /// [GestureDetector] only covers what this returns — shrink-wrapped, the tap
 /// target would be the height of one line of text inside a 44pt strip.
 class _Label extends StatelessWidget {
-  const _Label({required this.pin});
+  const _Label({required this.pin, required this.direction});
 
   final RoomPin pin;
+  final int direction;
 
   @override
   Widget build(BuildContext context) {
@@ -361,34 +405,41 @@ class _Label extends StatelessWidget {
     final m = pin.message;
     // No thumbnail in this strip, so an uncaptioned photo needs the word.
     final preview = messagePreviewLine(m, hasThumbnail: false);
+    final name = m.resolvedSenderName(context);
 
-    return AnimatedSwitcher(
-      duration: theme.motionFast,
-      switchInCurve: theme.motionEntrance,
-      transitionBuilder: (child, animation) => FadeTransition(
-        opacity: animation,
-        child: SlideTransition(
-          position: Tween(
-            begin: const Offset(0, 0.35),
-            end: Offset.zero,
-          ).animate(animation),
-          child: child,
-        ),
-      ),
+    return SlideSwap(
+      direction: direction,
       child: SizedBox(
         // Keyed on the message, not the index: two pins removed at once can
-        // leave the index pointing at a different message without changing, and
-        // the strip would then swap text with no transition.
+        // leave the index pointing at a different message without changing,
+        // and the strip would then swap text with no transition.
         key: ValueKey(m.id),
         width: double.infinity,
         height: kPinnedBannerHeight,
         child: Align(
           alignment: Alignment.centerLeft,
-          child: Text(
-            preview.isEmpty ? m.resolvedSenderName(context) : '${m.resolvedSenderName(context)}  $preview',
+          // Who in the primary ink and weight, what in the soft ink: one line
+          // that still reads as two facts.
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: name,
+                  style: TextStyle(
+                    color: theme.ink,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (preview.isNotEmpty)
+                  TextSpan(
+                    text: '  $preview',
+                    style: TextStyle(color: theme.inkSoft),
+                  ),
+              ],
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.bodySoft.copyWith(color: theme.ink),
+            style: theme.bodySoft.copyWith(fontSize: 15),
           ),
         ),
       ),

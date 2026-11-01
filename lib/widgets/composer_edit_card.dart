@@ -1,12 +1,12 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show MaterialLocalizations;
 
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../models/chat_message.dart';
 import '../models/message_preview.dart';
 import '../theme/theme_scope.dart';
-import 'spring_press.dart';
+import 'chrome_motion.dart';
+import 'composer_context_card.dart';
 
 /// Sits above the composer while the user is rewriting one of their own
 /// messages — [ComposerReplyCard]'s sibling, with the arrow swapped for a
@@ -36,129 +36,28 @@ class ComposerEditCard extends StatefulWidget {
   State<ComposerEditCard> createState() => _ComposerEditCardState();
 }
 
-class _ComposerEditCardState extends State<ComposerEditCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 180),
-    )..forward();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
+class _ComposerEditCardState extends State<ComposerEditCard> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final m = widget.message;
-
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, child) {
-        final t = Curves.easeOutCubic.transform(_ctrl.value);
-        return Opacity(
-          opacity: t,
-          child: Transform.translate(
-            offset: Offset(0, 8 * (1 - t)),
-            child: child,
-          ),
-        );
-      },
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
-        // Same construction as the reply card, for the same reason: the strip
-        // as a sibling inside a ClipRRect avoids Flutter's "non-uniform border
-        // colors can't have borderRadius" assertion.
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            decoration: BoxDecoration(
-              color: theme.surfaceRaised,
-              border: Border.all(color: theme.divider, width: 0.5),
-            ),
-            child: IntrinsicHeight(
-              child: Row(
-                children: [
-                  Container(width: 3, color: theme.accent),
-                  const SizedBox(width: 10),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Icon(
-                      CupertinoIcons.pencil,
-                      size: 14,
-                      color: theme.accent,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            sentenceCaseOf(
-                              context,
-                              AppLocalizations.of(context).composerEditCardTitle,
-                            ),
-                            style: theme.bodySoft.copyWith(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: theme.accent,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            // The ORIGINAL text, held by this card while the
-                            // composer holds the replacement — so mid-edit the
-                            // user can still see what they are replacing.
-                            messagePreviewLine(m, hasThumbnail: false),
-                            style:
-                                theme.bodySoft.copyWith(color: theme.inkSoft),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  // THE press — a spring, a keyboard focus stop and a
-                  // spoken name — on an inline dismisser.
-                  SpringPress(
-                    onTap: widget.onCancel,
-                    haptic: false,
-                    semanticLabel:
-                        MaterialLocalizations.of(context).closeButtonLabel,
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      alignment: Alignment.center,
-                      child: Icon(
-                        CupertinoIcons.xmark,
-                        size: 14,
-                        color: theme.inkMuted,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                ],
-              ),
-            ),
-          ),
-        ),
+    return ComposerContextCard(
+      // Your own message, so your own colour.
+      tone: theme.accent,
+      titleInk: theme.accent,
+      icon: CupertinoIcons.pencil,
+      // A small scribble: the pencil rocks as if writing.
+      kick: GlyphKick.rock,
+      kickAmplitude: 0.6,
+      title: sentenceCaseOf(
+        context,
+        AppLocalizations.of(context).composerEditCardTitle,
       ),
+      // The ORIGINAL text, held by this card while the composer holds the
+      // replacement, so mid-edit the user can still see what they replace.
+      line: messagePreviewLine(m, hasThumbnail: false),
+      contentKey: m.id,
+      onCancel: widget.onCancel,
     );
   }
 }

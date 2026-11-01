@@ -5,6 +5,8 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'chat_composer.dart' show composerTrailingCenter;
+import 'chrome_motion.dart';
+import 'count_bump.dart';
 import 'glass_pill.dart';
 import 'hover_hint.dart';
 import 'liquid_glass.dart';
@@ -135,6 +137,8 @@ class ScrollToLatestPill extends StatelessWidget {
     return ChatScrollFab(
       onTap: onTap,
       count: count,
+      kick: GlyphKick.dip,
+      kickOnIncrease: GlyphKick.dip,
       semanticLabel: l10n.reactionBubbleJumpToLatestSemanticLabel,
       glyph: Padding(
         // The chevron's ink sits high in its box; this centres it optically.
@@ -177,6 +181,9 @@ class MentionJumpButton extends StatelessWidget {
             },
       count: count,
       countCapped: capped,
+      kick: GlyphKick.pop,
+      // A new mention rocks the @ once: something addressed to you arrived.
+      kickOnIncrease: GlyphKick.rock,
       semanticLabel: l10n.roomScreenJumpToMentionSemanticLabel(count),
       glyph: Text(
         '@',
@@ -201,7 +208,7 @@ class MentionJumpButton extends StatelessWidget {
 double scrollFabRightInset({required bool classic}) =>
     composerTrailingCenter(classic: classic) - ChatScrollFab.size / 2;
 
-class ChatScrollFab extends StatelessWidget {
+class ChatScrollFab extends StatefulWidget {
   const ChatScrollFab({
     super.key,
     required this.glyph,
@@ -211,6 +218,8 @@ class ChatScrollFab extends StatelessWidget {
     this.count = 0,
     this.countCapped = false,
     this.quietCount = false,
+    this.kick = GlyphKick.pop,
+    this.kickOnIncrease,
   });
 
   /// Edge of the disc. Well under the composer's 44pt buttons: this floats
@@ -233,20 +242,60 @@ class ChatScrollFab extends StatelessWidget {
   /// jump-back trail goes).
   final bool quietCount;
 
+  /// The glyph's nudge when tapped — what the button does, in one move.
+  final GlyphKick kick;
+
+  /// The glyph's nudge when [count] goes UP (a new unread, a new mention),
+  /// so a change the reader did not cause still catches the eye once. Null
+  /// keeps it still.
+  final GlyphKick? kickOnIncrease;
+
+  @override
+  State<ChatScrollFab> createState() => _ChatScrollFabState();
+}
+
+class _ChatScrollFabState extends State<ChatScrollFab> {
+  int _taps = 0;
+  int _rises = 0;
+
+  @override
+  void didUpdateWidget(ChatScrollFab old) {
+    super.didUpdateWidget(old);
+    if (widget.kickOnIncrease != null && widget.count > old.count) _rises++;
+  }
+
+  void _tap() {
+    setState(() => _taps++);
+    widget.onTap();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    const size = ChatScrollFab.size;
+    // The tap's kick and the arrival's kick are separate glyph layers so each
+    // keeps its own character and neither cancels the other mid-move.
+    Widget glyph = KickGlyph(
+      kick: widget.kick,
+      trigger: _taps,
+      child: widget.glyph,
+    );
+    final rise = widget.kickOnIncrease;
+    if (rise != null) {
+      glyph = KickGlyph(kick: rise, trigger: _rises, child: glyph);
+    }
     Widget disc = LiquidGlass(
       size: const Size(size, size),
-      onTap: onTap,
-      semanticLabel: semanticLabel,
+      onTap: _tap,
+      semanticLabel: widget.semanticLabel,
       child: Center(child: glyph),
     );
-    if (onLongPress != null) {
-      disc = GestureDetector(onLongPress: onLongPress, child: disc);
+    final longPress = widget.onLongPress;
+    if (longPress != null) {
+      disc = GestureDetector(onLongPress: longPress, child: disc);
     }
     return HoverHint(
-      label: semanticLabel,
+      label: widget.semanticLabel,
       child: SizedBox(
         width: size,
         // Room above the disc for the capsule's top half, so the badge
@@ -258,15 +307,19 @@ class ChatScrollFab extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           children: [
             disc,
-            if (count > 0)
+            if (widget.count > 0)
               Positioned(
                 top: 0,
                 child: IgnorePointer(
-                  child: _FabCount(
-                    count: count,
-                    capped: countCapped,
-                    quiet: quietCount,
-                    theme: theme,
+                  // Pops on every change, like the room list's badges.
+                  child: CountBump(
+                    count: widget.count,
+                    child: _FabCount(
+                      count: widget.count,
+                      capped: widget.countCapped,
+                      quiet: widget.quietCount,
+                      theme: theme,
+                    ),
                   ),
                 ),
               ),

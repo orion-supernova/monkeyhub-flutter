@@ -158,16 +158,23 @@ void main() {
     expect(classicStart, isNonNegative, reason: '_ClassicCallButton missing');
     final classicEnd = callButton.indexOf('\nclass ', classicStart + 1);
     final classic = callButton.substring(classicStart, classicEnd);
-    expect(classic.contains('LiquidGlass('), isTrue);
-    expect(classic.contains('size: Size(disc, disc),'), isTrue);
+    // Both header styles now draw through the one CallGlyphButton, a
+    // LiquidGlass circle at the size it is handed.
+    expect(classic.contains('CallGlyphButton('), isTrue);
     expect(classic.contains('Density.of(context).iconButton'), isTrue);
+    final shared = callButton.substring(
+        callButton.indexOf('class _CallGlyphButtonState'));
+    expect(shared.contains('LiquidGlass('), isTrue);
+    expect(shared.contains('size: Size(widget.size, widget.size),'), isTrue);
     expect(classic.contains('IconButton('), isFalse);
 
     final groupButton =
         File('lib/calls/group_call_button.dart').readAsStringSync();
     expect(groupButton.contains('IconButton('), isFalse,
         reason: 'the classic group call button is glass too');
-    expect(groupButton.contains('size: Size(disc, disc),'), isTrue);
+    expect(groupButton.contains('CallGlyphButton('), isTrue,
+        reason: 'one button for one-to-one and group calls');
+    expect(groupButton.contains('Density.of(context).iconButton'), isTrue);
   });
 
   test('the call-kind picker is gone with nothing left pointing at it', () {

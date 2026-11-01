@@ -15,7 +15,9 @@ import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../models/expression_item.dart';
+import 'chrome_motion.dart' show ContextRail;
 import 'expressions/expression_media.dart';
+import 'spring_press.dart';
 import 'media_spoiler.dart';
 import 'remote_image.dart';
 import 'speaker_scope.dart';
@@ -1646,13 +1648,13 @@ class InlineReplyQuote extends StatelessWidget {
       color: deleted ? theme.inkMuted : lineInk,
     );
 
-    return Semantics(
-      button: !deleted,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: deleted ? null : onTap,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(standalone ? 12 : 8),
+    // The shared rail (see [ContextRail]), inset on a softly tinted plate:
+    // the same mark the reply card over the composer and the pinned banner
+    // wear, so "this is about another message" reads one way everywhere.
+    // Pressed, the quote springs like every other tappable in the chrome.
+    final radius = BorderRadius.circular(standalone ? 12 : 10);
+    final quote = ClipRRect(
+          borderRadius: radius,
           child: ColoredBox(
             color: fill,
             child: IntrinsicHeight(
@@ -1660,7 +1662,10 @@ class InlineReplyQuote extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(width: 3, color: rail),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(5, 5, 0, 5),
+                    child: ContextRail(color: rail),
+                  ),
                   if (isMedia && !deleted)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(7, 5, 0, 5),
@@ -1700,8 +1705,18 @@ class InlineReplyQuote extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ),
+        );
+    return Semantics(
+      button: !deleted,
+      child: deleted
+          ? quote
+          : SpringPress(
+              onTap: onTap,
+              haptic: false,
+              scale: 0.97,
+              focusRadius: radius.topLeft.x,
+              child: quote,
+            ),
     );
   }
 }

@@ -1,13 +1,10 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
-import '../l10n/generated/app_localizations.dart';
 import '../theme/density.dart';
-import '../theme/theme_scope.dart';
-import '../widgets/liquid_glass.dart';
+import 'call_button.dart' show CallGlyphButton;
 import 'call_models.dart';
 import 'call_service.dart';
 import 'group_call_service.dart';
@@ -60,52 +57,17 @@ class GroupCallButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
     final service = GroupCallService.maybeInstance;
     final busy = (service?.inCall ?? false) ||
         (CallService.maybeInstance?.inCall ?? false);
-    // Outlined, the classic header's glyphs — a DM header wore outlined
-    // handsets while a group header wore filled ones.
-    final icon = kind == CallMediaKind.video
-        ? CupertinoIcons.video_camera
-        : CupertinoIcons.phone;
-    final tooltip = switch (kind) {
-      CallMediaKind.audio => l10n.callButtonVoiceCallTooltip,
-      CallMediaKind.video => l10n.callButtonVideoCallTooltip,
-    };
-    if (liquid) {
-      return Tooltip(
-        message: tooltip,
-        // 44pt to match the liquid header's own back button and capsule
-        // (room_screen `_controlSize`); both move to 40 together.
-        child: LiquidGlass(
-          shape: LiquidGlassShape.circle,
-          size: const Size(44, 44),
-          onTap: busy ? null : () => _open(context),
-          child: Icon(
-            icon,
-            size: 20,
-            color: busy ? theme.inkMuted : theme.accent,
-          ),
-        ),
-      );
-    }
-    // A glass circle, the same size (Density.iconButton) as the classic header's back button.
-    final disc = Density.of(context).iconButton;
-    return Semantics(
-      button: true,
-      label: tooltip,
-      child: LiquidGlass(
-        shape: LiquidGlassShape.circle,
-        size: Size(disc, disc),
-        onTap: busy ? null : () => _open(context),
-        child: Icon(
-          icon,
-          color: busy ? theme.inkMuted : theme.inkSoft,
-          size: 20,
-        ),
-      ),
+    // The same button the one-to-one header wears — see [CallGlyphButton].
+    // 44pt to match the liquid header's own back button and capsule
+    // (room_screen `_controlSize`); classic follows Density.
+    return CallGlyphButton(
+      kind: kind,
+      enabled: !busy,
+      onTap: busy ? null : () => _open(context),
+      size: liquid ? 44 : Density.of(context).iconButton,
     );
   }
 }

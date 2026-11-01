@@ -7,6 +7,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/density.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/chrome_motion.dart';
 import '../widgets/liquid_glass.dart';
 import 'call_models.dart';
 import 'call_service.dart';
@@ -161,26 +162,12 @@ class _ClassicCallButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final color = enabled
-        ? theme.inkSoft
-        : theme.inkSoft.withValues(alpha: 0.35);
-    final face = _face(context, kind);
-    // A glass circle, the same size as the classic header's back button
-    // beside it (Density.iconButton) — the two are one toolbar group.
-    final disc = Density.of(context).iconButton;
-    return Semantics(
-      button: true,
-      label: face.tooltip,
-      child: LiquidGlass(
-        shape: LiquidGlassShape.circle,
-        size: Size(disc, disc),
+  Widget build(BuildContext context) => CallGlyphButton(
+        kind: kind,
+        enabled: enabled,
         onTap: onTap,
-        child: Icon(face.icon, color: color, size: 20),
-      ),
-    );
-  }
+        size: Density.of(context).iconButton,
+      );
 }
 
 class _LiquidCallButton extends StatelessWidget {
@@ -195,21 +182,67 @@ class _LiquidCallButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  Widget build(BuildContext context) =>
+      CallGlyphButton(kind: kind, enabled: enabled, onTap: onTap, size: 44);
+}
+
+/// THE header call button — voice or video, one-to-one or group. A glass disc
+/// with an ink glyph: no accent, because a header that wore two blue handsets
+/// next to the title was the loudest thing on the screen while doing nothing.
+///
+/// The glyph says what it does when tapped: the handset rocks like a phone
+/// ringing on a table, the camera swells like a shutter. [enabled] false
+/// (already in a call) dims the glyph but keeps the tap, which explains why.
+class CallGlyphButton extends StatefulWidget {
+  const CallGlyphButton({
+    super.key,
+    required this.kind,
+    required this.enabled,
+    required this.onTap,
+    required this.size,
+  });
+
+  final CallMediaKind kind;
+  final bool enabled;
+  final VoidCallback? onTap;
+  final double size;
+
+  @override
+  State<CallGlyphButton> createState() => _CallGlyphButtonState();
+}
+
+class _CallGlyphButtonState extends State<CallGlyphButton> {
+  int _taps = 0;
+
+  @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final color = enabled
-        ? theme.accent
-        : theme.accent.withValues(alpha: 0.35);
-    final face = _face(context, kind);
+    final face = _face(context, widget.kind);
+    final color = widget.enabled ? theme.ink : theme.inkMuted;
+    final onTap = widget.onTap;
     return Tooltip(
       message: face.tooltip,
-      // 44pt to match the liquid header's own back button and capsule
-      // (room_screen `_controlSize`); both move to 40 together.
-      child: LiquidGlass(
-        shape: LiquidGlassShape.circle,
-        size: const Size(44, 44),
-        onTap: onTap,
-        child: Icon(face.icon, size: 20, color: color),
+      child: Semantics(
+        button: true,
+        enabled: widget.enabled,
+        label: face.tooltip,
+        child: LiquidGlass(
+          shape: LiquidGlassShape.circle,
+          size: Size(widget.size, widget.size),
+          onTap: onTap == null
+              ? null
+              : () {
+                  if (widget.enabled) setState(() => _taps++);
+                  onTap();
+                },
+          child: KickGlyph(
+            kick: widget.kind == CallMediaKind.audio
+                ? GlyphKick.rock
+                : GlyphKick.pop,
+            trigger: _taps,
+            child: Icon(face.icon, size: 20, color: color),
+          ),
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../theme/theme_scope.dart';
+import 'chrome_motion.dart';
 import 'scroll_to_latest.dart';
 
 /// The trail of messages a reader has jumped *away from* while following reply
@@ -133,6 +134,7 @@ class JumpBackPill extends StatelessWidget {
       onTap: onTap,
       count: depth > 1 ? depth : 0,
       quietCount: true,
+      kick: GlyphKick.back,
       // Says where it goes, not why you left — a pin banner and "show in
       // chat" push onto this same trail, and neither involves a reply.
       semanticLabel: depth > 1

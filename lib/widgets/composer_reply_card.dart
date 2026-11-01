@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show MaterialLocalizations;
 
 import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -7,7 +6,8 @@ import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../models/message_preview.dart';
 import '../theme/theme_scope.dart';
-import 'spring_press.dart';
+import 'chrome_motion.dart';
+import 'composer_context_card.dart';
 import 'expressions/expression_media.dart';
 import 'media_spoiler.dart';
 import 'remote_image.dart';
@@ -38,25 +38,7 @@ class ComposerReplyCard extends StatefulWidget {
   State<ComposerReplyCard> createState() => _ComposerReplyCardState();
 }
 
-class _ComposerReplyCardState extends State<ComposerReplyCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 180),
-    )..forward();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
+class _ComposerReplyCardState extends State<ComposerReplyCard> {
   // This card draws the picture beside the text, so it asks for the caption
   // alone. Shared with the pin banner and pin list via `messagePreviewLine` so
   // the three surfaces cannot drift on what a voice note or an uncaptioned
@@ -69,178 +51,78 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
     return messagePreviewLine(widget.parent, hasThumbnail: true);
   }
 
+  Widget? _thumb(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final m = widget.parent;
+    const size = 34.0;
+    final expression = expressionThumbnail(
+      type: m.type,
+      url: m.mediaPreviewUrl ?? m.mediaUrl,
+      stickerStorageId: m.stickerStorageId,
+      stickerFormat: m.stickerFormat,
+      alt: m.content,
+      api: widget.api,
+      size: size,
+    );
+    if (expression != null) return expression;
+    final isMedia = m.type == MessageType.image || m.type == MessageType.video;
+    // A video's thumbnail is its poster; the video blob is not a picture.
+    final storageId =
+        m.type == MessageType.video ? m.posterStorageId : m.mediaStorageId;
+    if (!isMedia || storageId == null) return null;
+    final radius = BorderRadius.circular(8);
+    Widget image = ClipRRect(
+      borderRadius: radius,
+      child: RemoteImage(
+        storageId: storageId,
+        api: widget.api,
+        width: size,
+        height: size,
+        borderRadius: radius,
+      ),
+    );
+    // Replying to a spoiler does not show it either.
+    if (m.mediaSpoiler) {
+      image = MediaSpoilerCover(
+        interactive: false,
+        dust: false,
+        sigma: 4,
+        borderRadius: radius,
+        child: image,
+      );
+    }
+    return widget.albumCount == null
+        ? image
+        : albumStackThumb(theme: theme, size: size, child: image);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final m = widget.parent;
-    final isMedia = m.type == MessageType.image || m.type == MessageType.video;
     // The card names the person you are about to answer, so it is exactly the
     // kind of place their own colour belongs — and it is the one surface where
     // the reader can no longer see the bubble they tapped. Falls back to the
-    // accent in a DM and wherever colours are off, which is what it always was.
-    final strip =
+    // accent in a DM and wherever colours are off.
+    final tone =
         SpeakerScope.markOf(context, m.senderId, on: theme.surfaceRaised) ??
             theme.accent;
     final nameInk =
         SpeakerScope.inkOf(context, m.senderId, on: theme.surfaceRaised) ??
             theme.accent;
-
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, child) {
-        final t = Curves.easeOutCubic.transform(_ctrl.value);
-        return Opacity(
-          opacity: t,
-          child: Transform.translate(
-            offset: Offset(0, 8 * (1 - t)),
-            child: child,
-          ),
-        );
-      },
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
-        // ClipRRect handles the rounded corners; the inner content uses an
-        // intrinsic-height Row so the 3-px accent strip stretches the full
-        // card height. Putting the strip as a sibling (rather than as a
-        // BorderSide on the outer container) avoids Flutter's "non-uniform
-        // border colors can't have borderRadius" assertion.
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            decoration: BoxDecoration(
-              color: theme.surfaceRaised,
-              border: Border.all(color: theme.divider, width: 0.5),
-            ),
-            child: IntrinsicHeight(
-              child: Row(
-                children: [
-                  // Accent strip — visual anchor mirroring the inline tether.
-                  Container(width: 3, color: strip),
-                  const SizedBox(width: 10),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Icon(
-                      CupertinoIcons.arrowshape_turn_up_left_fill,
-                      size: 14,
-                      color: strip,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // The name as written, never `toUpperCase()`d — Dart's
-                          // invariant mapping turns Turkish "i" into "I", not
-                          // "İ" — on the body face, never the tracked mono.
-                          Text(
-                            AppLocalizations.of(context)
-                                .composerReplyCardReplyingToLabel(
-                              m.resolvedSenderName(context),
-                            ),
-                            style: theme.bodySoft.copyWith(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: nameInk,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _previewText(),
-                            style: theme.bodySoft.copyWith(color: theme.inkSoft),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (expressionThumbnail(
-                        type: m.type,
-                        url: m.mediaPreviewUrl ?? m.mediaUrl,
-                        stickerStorageId: m.stickerStorageId,
-                        stickerFormat: m.stickerFormat,
-                        alt: m.content,
-                        api: widget.api,
-                        size: 32,
-                      ) case final thumb?) ...[
-                    const SizedBox(width: 10),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: thumb,
-                    ),
-                  ],
-                  // A video's thumbnail is its poster; the video blob is not a
-                  // picture.
-                  if (isMedia &&
-                      (m.type == MessageType.video
-                              ? m.posterStorageId
-                              : m.mediaStorageId) !=
-                          null) ...[
-                    const SizedBox(width: 10),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: () {
-                        Widget image = ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: RemoteImage(
-                            storageId: (m.type == MessageType.video
-                                ? m.posterStorageId
-                                : m.mediaStorageId)!,
-                            api: widget.api,
-                            width: 32,
-                            height: 32,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        );
-                        // Replying to a spoiler does not show it either.
-                        if (m.mediaSpoiler) {
-                          image = MediaSpoilerCover(
-                            interactive: false,
-                            dust: false,
-                            sigma: 4,
-                            borderRadius: BorderRadius.circular(6),
-                            child: image,
-                          );
-                        }
-                        return widget.albumCount == null
-                            ? image
-                            : albumStackThumb(
-                                theme: theme, size: 32, child: image);
-                      }(),
-                    ),
-                  ],
-                  const SizedBox(width: 4),
-                  // THE press — a spring, a keyboard focus stop and a
-                  // spoken name — on an inline dismisser.
-                  SpringPress(
-                    onTap: widget.onCancel,
-                    haptic: false,
-                    semanticLabel:
-                        MaterialLocalizations.of(context).closeButtonLabel,
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      alignment: Alignment.center,
-                      child: Icon(
-                        CupertinoIcons.xmark,
-                        size: 14,
-                        color: theme.inkMuted,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+    return ComposerContextCard(
+      tone: tone,
+      titleInk: nameInk,
+      icon: CupertinoIcons.arrowshape_turn_up_left,
+      // The reply arrow swings back toward the message it points at.
+      kick: GlyphKick.back,
+      kickAmplitude: -1,
+      title: AppLocalizations.of(context)
+          .composerReplyCardReplyingToLabel(m.resolvedSenderName(context)),
+      line: _previewText(),
+      contentKey: '${m.id}:${widget.albumCount ?? 0}',
+      onCancel: widget.onCancel,
+      thumb: _thumb(context),
     );
   }
 }
