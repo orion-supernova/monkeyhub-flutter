@@ -2725,6 +2725,16 @@
   "loginNewPasswordField": "新しいパスワード",
   "roomHeaderStatusOnline": "オンライン",
   "roomHeaderStatusMembers": "{count, plural, other{メンバー{count}人}}",
+  "roomHeaderLastSeenJustNow": "最終オンライン: たった今",
+  "roomHeaderLastSeenMinutes": "最終オンライン: {minutes}分前",
+  "roomHeaderLastSeenToday": "最終オンライン: 今日 {time}",
+  "roomHeaderLastSeenYesterday": "最終オンライン: 昨日 {time}",
+  "roomHeaderLastSeenDate": "最終オンライン: {date} {time}",
+  "roomHeaderSeenShortJustNow": "最終: たった今",
+  "roomHeaderSeenShortMinutes": "最終: {minutes}分前",
+  "roomHeaderSeenShortToday": "最終: {time}",
+  "roomHeaderSeenShortYesterday": "最終: 昨日 {time}",
+  "roomHeaderSeenShortDate": "最終: {date}",
   "settingsHubTitle": "設定",
   "settingsHubAccountHintAdult": "プロフィール、ファミリー、リンク済みアカウント、プライバシー",
   "settingsHubAccountHintChild": "プロフィール、プライバシー、保護者",
@@ -3991,5 +4001,6 @@
   "linuxCloseQuit": "終了",
   "linuxKeepRunningTitle": "バックグラウンドで実行し続ける",
   "linuxKeepRunningSubtitleTray": "ウィンドウを閉じてもトレイに残り、メッセージや通話を受け取れます",
-  "linuxKeepRunningSubtitleNoTray": "ウィンドウを閉じても最小化されたまま残り、メッセージや通話を受け取れます"
+  "linuxKeepRunningSubtitleNoTray": "ウィンドウを閉じても最小化されたまま残り、メッセージや通話を受け取れます",
+  "lowPowerToast": "省電力がオンのため、一部のアニメーションを停止しています"
 }

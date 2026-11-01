@@ -9830,6 +9830,52 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String get roomHeaderLastSeenJustNow => 'अंतिम बार देखा गया: अभी अभी';
+
+  @override
+  String roomHeaderLastSeenMinutes(int minutes) {
+    return 'अंतिम बार देखा गया: $minutes मिनट पहले';
+  }
+
+  @override
+  String roomHeaderLastSeenToday(String time) {
+    return 'अंतिम बार देखा गया: आज $time बजे';
+  }
+
+  @override
+  String roomHeaderLastSeenYesterday(String time) {
+    return 'अंतिम बार देखा गया: कल $time बजे';
+  }
+
+  @override
+  String roomHeaderLastSeenDate(String date, String time) {
+    return 'अंतिम बार देखा गया: $date, $time बजे';
+  }
+
+  @override
+  String get roomHeaderSeenShortJustNow => 'देखा: अभी';
+
+  @override
+  String roomHeaderSeenShortMinutes(int minutes) {
+    return 'देखा: $minutes मिनट पहले';
+  }
+
+  @override
+  String roomHeaderSeenShortToday(String time) {
+    return 'देखा: आज $time';
+  }
+
+  @override
+  String roomHeaderSeenShortYesterday(String time) {
+    return 'देखा: कल $time';
+  }
+
+  @override
+  String roomHeaderSeenShortDate(String date) {
+    return 'देखा: $date';
+  }
+
+  @override
   String get settingsHubTitle => 'सेटिंग्स';
 
   @override
@@ -14447,4 +14493,8 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get linuxKeepRunningSubtitleNoTray =>
       'विंडो बंद करने पर मिनिमाइज़ रहता है, ताकि मैसेज और कॉल आप तक पहुँचते रहें';
+
+  @override
+  String get lowPowerToast =>
+      'पावर सेविंग चालू है, इसलिए कुछ एनिमेशन रुके हुए हैं';
 }

@@ -1722,9 +1722,9 @@ class GroupCallService extends ChangeNotifier
   Map<String, dynamic> _stateJson() => {
         ...PeerMediaState(
           audioMuted: localMuted,
-          // A suspended camera is off as far as the peers can see.
+          // A suspended camera is off as far as the peers can see, and that
+          // is all they are told: never "paused". See [CallService._sendState].
           videoOff: localVideoOff || _camSuspended,
-          videoPaused: !localVideoOff && _camSuspended,
           screenSharing: localScreenSharing,
           camStreamId: _localStream?.id,
           screenStreamId: _screenStream?.id,
@@ -1998,9 +1998,11 @@ class GroupCallService extends ChangeNotifier
     _camRestarts = 0;
     localVideoOff = true;
     notifyListeners();
-    // Privacy first: every slot is emptied and the camera released on the
-    // tap, not after a state signal per peer has made the round trip
-    // through the backend, one after another, while they all still saw us.
+    // Everyone is told first and at once (not awaited), while every slot is
+    // emptied and the camera released on the tap just the same, below. A
+    // track that goes quiet before its state arrives leaves a frozen last
+    // frame, which reads as "paused", the thing an off camera is not.
+    unawaited(_broadcastState());
     for (final peer in _peers.values.toList(growable: false)) {
       final sender = peer.camSender;
       if (sender != null) {
@@ -2016,8 +2018,6 @@ class GroupCallService extends ChangeNotifier
     }
     localStreamTick++;
     notifyListeners();
-    // Never awaited inside the camera queue.
-    unawaited(_broadcastState());
     return true;
   }
 

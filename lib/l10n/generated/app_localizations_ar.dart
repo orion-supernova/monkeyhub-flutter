@@ -9991,6 +9991,61 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get roomHeaderLastSeenJustNow => 'آخر ظهور: الآن';
+
+  @override
+  String roomHeaderLastSeenMinutes(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes دقيقة',
+      many: '$minutes دقيقة',
+      few: '$minutes دقائق',
+      two: 'دقيقتين',
+      one: 'دقيقة',
+    );
+    return 'آخر ظهور منذ $_temp0';
+  }
+
+  @override
+  String roomHeaderLastSeenToday(String time) {
+    return 'آخر ظهور اليوم الساعة $time';
+  }
+
+  @override
+  String roomHeaderLastSeenYesterday(String time) {
+    return 'آخر ظهور أمس الساعة $time';
+  }
+
+  @override
+  String roomHeaderLastSeenDate(String date, String time) {
+    return 'آخر ظهور $date الساعة $time';
+  }
+
+  @override
+  String get roomHeaderSeenShortJustNow => 'ظهر الآن';
+
+  @override
+  String roomHeaderSeenShortMinutes(int minutes) {
+    return 'ظهر منذ $minutes د';
+  }
+
+  @override
+  String roomHeaderSeenShortToday(String time) {
+    return 'ظهر اليوم $time';
+  }
+
+  @override
+  String roomHeaderSeenShortYesterday(String time) {
+    return 'ظهر أمس $time';
+  }
+
+  @override
+  String roomHeaderSeenShortDate(String date) {
+    return 'ظهر $date';
+  }
+
+  @override
   String get settingsHubTitle => 'الإعدادات';
 
   @override
@@ -14641,4 +14696,8 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get linuxKeepRunningSubtitleNoTray =>
       'يبقى مصغرًا عند إغلاق النافذة، لتصلك الرسائل والمكالمات دائمًا';
+
+  @override
+  String get lowPowerToast =>
+      'توفير الطاقة قيد التشغيل، لذا تم إيقاف بعض الحركات مؤقتاً';
 }

@@ -7,8 +7,9 @@ import 'package:flutter/widgets.dart';
 
 import '../platform.dart';
 
-/// The gesture layer under every fullscreen picture: pinch and double-tap to
-/// zoom, drag in either vertical direction to dismiss.
+/// Shared zoom and gesture layer for full-screen photos and story slides:
+/// pinch zoom and edge-clamped panning, with optional double-tap zoom and
+/// caller-owned tap, hold and drag gestures.
 ///
 /// Lifted out of `FullscreenImageViewer`, which had all of this and was the
 /// only screen with it — so the swipeable gallery beside it could only be
@@ -29,6 +30,16 @@ class PhotoDismissArea extends StatefulWidget {
     required this.drag,
     required this.onDismiss,
     this.onTap,
+    this.onTapUp,
+    this.onHold,
+    this.holdDuration = kLongPressTimeout,
+    this.onDragStart,
+    this.onDragUpdate,
+    this.onDragEnd,
+    this.onDragCancel,
+    this.doubleTapZoom = true,
+    this.resetZoomOnInteractionEnd = false,
+    this.contentInset = EdgeInsets.zero,
     this.onZoomChanged,
     this.maxScale = 5,
     this.zoom,
@@ -53,6 +64,32 @@ class PhotoDismissArea extends StatefulWidget {
   /// for a viewer with no chrome to toggle, and avoids paying the double-tap
   /// timeout on a screen where nothing waits on it.
   final VoidCallback? onTap;
+
+  /// Receives tap details when the caller needs to interpret tap position.
+  final ValueChanged<TapUpDetails>? onTapUp;
+
+  /// Optional hold state, with [holdDuration] for the long-press threshold.
+  final ValueChanged<bool>? onHold;
+  final Duration holdDuration;
+
+  /// Optional single-finger, unzoomed drag handlers. Used by story viewers
+  /// that share this zoom layer but have their own vertical drag behavior.
+  final VoidCallback? onDragStart;
+  final ValueChanged<double>? onDragUpdate;
+  final ValueChanged<double>? onDragEnd;
+  final VoidCallback? onDragCancel;
+
+  /// Whether a double tap toggles between fit and a focal-point zoom.
+  final bool doubleTapZoom;
+
+  /// Whether to animate back to fit when the last pointer leaves the image.
+  final bool resetZoomOnInteractionEnd;
+
+  /// Where the picture rests at fit, as insets from this area's edges. The
+  /// zoom still spreads over the WHOLE area: a story shows its picture as a
+  /// card between the status bar and the comment bar, and a pinch on it has to
+  /// grow past those edges rather than stop at the card's.
+  final EdgeInsets contentInset;
 
   /// Fires when the picture starts or stops owning the gesture: zoomed in, or
   /// two fingers down. The pager uses it to stop the `PageView` from stealing
@@ -167,6 +204,7 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
   Duration _wheelLast = Duration.zero;
   Duration _wheelLockedUntil = Duration.zero;
   bool _clamping = false;
+  bool _externalDrag = false;
   int _pointers = 0;
   _Pan _pan = _Pan.undecided;
 
@@ -246,6 +284,9 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
   }
 
   void _onPointerDown(PointerDownEvent e) {
+    if (widget.resetZoomOnInteractionEnd && _zoomCtrl.isAnimating) {
+      _zoomCtrl.stop();
+    }
     _pointers++;
     _mouse = isWebOrDesktop && e.kind == PointerDeviceKind.mouse;
     if (_mouse && _zoomed && !_grabbing) setState(() => _grabbing = true);
@@ -255,6 +296,13 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
   void _onPointerGone(PointerEvent _) {
     if (_pointers > 0) _pointers--;
     if (_grabbing) setState(() => _grabbing = false);
+    // The last finger is up on a zoomed picture: it goes home on the release
+    // itself. By now the viewer has had its own say about the gesture (this
+    // listener sits outside it, so it hears the lift second), and with its
+    // momentum switched off it leaves the matrix alone.
+    if (_pointers == 0 && widget.resetZoomOnInteractionEnd && _zoomed) {
+      _returnToFit();
+    }
     _report();
   }
 
@@ -288,11 +336,24 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
     }
   }
 
-  void _animateTo(Matrix4 target) {
+  static const _zoomDuration = Duration(milliseconds: 220);
+
+  /// The way back to fit after a pinch is let go. Longer than a tap's zoom:
+  /// it travels further, and the first frames of an ease-out are its biggest
+  /// steps, so a short one reads as a snap and drops frames doing it.
+  static const _returnDuration = Duration(milliseconds: 320);
+
+  void _returnToFit() {
+    if (_zoomCtrl.isAnimating) return;
+    _animateTo(Matrix4.identity(), duration: _returnDuration);
+  }
+
+  void _animateTo(Matrix4 target, {Duration duration = _zoomDuration}) {
     _zoomTween = Matrix4Tween(begin: _xform.value, end: target).animate(
       CurvedAnimation(parent: _zoomCtrl, curve: Curves.easeOutCubic),
     );
     _zoomCtrl
+      ..duration = duration
       ..value = 0
       ..forward();
   }
@@ -313,6 +374,10 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
     final scene =
         picture.localToGlobal(Offset.zero, ancestor: content) & picture.size;
     return MatrixUtils.transformRect(_xform.value, scene);
+  }
+
+  void _onPanZoomEnd(PointerPanZoomEndEvent _) {
+    if (_pointers == 0 && _zoomed) _returnToFit();
   }
 
   void _onPanZoomStart(PointerPanZoomStartEvent e) {
@@ -396,12 +461,18 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
   void _onTapUp(TapUpDetails d) {
     if (isWebOrDesktop && d.kind == PointerDeviceKind.mouse) {
       final click = widget.onBackdropClick;
-      if (click == null) return;
-      final picture = _pictureOnScreen();
-      if (picture != null && !picture.contains(d.localPosition)) click();
-      return;
+      if (click != null) {
+        final picture = _pictureOnScreen();
+        if (picture != null && !picture.contains(d.localPosition)) click();
+        return;
+      }
+      if (widget.onTapUp == null) return;
     }
-    widget.onTap?.call();
+    if (widget.onTapUp != null) {
+      widget.onTapUp!(d);
+    } else {
+      widget.onTap?.call();
+    }
   }
 
   /// "100%": one image pixel to one screen pixel, which is what a desk
@@ -437,7 +508,9 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
     final t = m.getTranslation();
     double axis(double at, double lo, double extent, double viewExtent) {
       final scaled = extent * s;
-      if (scaled <= viewExtent) return (viewExtent - scaled) / 2 - lo * s;
+      // Small enough to fit: stay centred on where the picture rests (the
+      // view's own centre unless [PhotoDismissArea.contentInset] moved it).
+      if (scaled <= viewExtent) return (lo + extent / 2) * (1 - s);
       return at.clamp(viewExtent - (lo + extent) * s, -lo * s);
     }
     final x = axis(t.x, rect.left, rect.width, view.width);
@@ -500,6 +573,11 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
   void _onInteractionStart(ScaleStartDetails d) {
     _settleCtrl.stop();
     _zoomCtrl.stop();
+    if (widget.onDragUpdate != null) {
+      _externalDrag = d.pointerCount == 1 && !_zoomed && !_mouse;
+      if (_externalDrag) widget.onDragStart?.call();
+      return;
+    }
     _pan = d.pointerCount == 1 && !_zoomed && !_mouse
         ? _Pan.undecided
         : _Pan.picture;
@@ -507,6 +585,16 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
 
   void _onInteractionUpdate(ScaleUpdateDetails d) {
     if (_dismissing) return;
+    if (widget.onDragUpdate != null) {
+      if (!_externalDrag) return;
+      if (d.pointerCount > 1 || _zoomed) {
+        _externalDrag = false;
+        widget.onDragCancel?.call();
+        return;
+      }
+      widget.onDragUpdate!(d.focalPointDelta.dy);
+      return;
+    }
     if (d.pointerCount > 1 || _zoomed) {
       // A second finger turns a dismiss into a pinch; the picture goes back
       // to where it was rather than pinching somewhere mid-air.
@@ -523,6 +611,19 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
   }
 
   void _onInteractionEnd(ScaleEndDetails d) {
+    // The last finger came off a zoomed picture: it goes home on the release
+    // itself, not a beat later. (A finger still down is the gesture changing
+    // shape, not the reader letting go.)
+    if (widget.onDragUpdate != null) {
+      if (!_externalDrag) return;
+      _externalDrag = false;
+      if (d.pointerCount > 0) {
+        widget.onDragCancel?.call();
+      } else {
+        widget.onDragEnd?.call(d.velocity.pixelsPerSecond.dy);
+      }
+      return;
+    }
     final pan = _pan;
     _pan = _Pan.undecided;
     if (_dismissing) return;
@@ -565,40 +666,81 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
       onPointerCancel: _onPointerGone,
       onPointerSignal: desktop ? _onSignal : null,
       onPointerPanZoomStart: desktop ? _onPanZoomStart : null,
+      // A trackpad pinch has no pointer up: its end is its own event. Without
+      // this a story zoomed by a trackpad (a Mac, the simulator's device hub)
+      // never came home.
+      onPointerPanZoomEnd: widget.resetZoomOnInteractionEnd
+          ? _onPanZoomEnd
+          : null,
       onPointerPanZoomUpdate: desktop ? _onPanZoomUpdate : null,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        // onTapUp rather than onTap for the pointer's kind; it fires at the
-        // same moment, after the double-tap window, as onTap did.
-        onTapUp: widget.onTap != null ||
-                (desktop && widget.onBackdropClick != null)
-            ? _onTapUp
-            : null,
-        onDoubleTapDown: _handleDoubleTap,
-        onDoubleTap: () {},
-        // The viewer fills the whole area, not just the picture: a pinch
-        // starting on the black around a photo zooms it, and a zoomed photo
-        // spreads over the screen instead of being cut off at the box it
-        // was letterboxed into.
-        child: InteractiveViewer(
-          transformationController: _xform,
-          minScale: 1,
-          maxScale: widget.maxScale,
-          clipBehavior: Clip.none,
-          // The wheel is this widget's (see [_onSignal]): left to the viewer
-          // a plain scroll zoomed, which is not what a wheel does over a
-          // photograph anywhere else on a desk. Infinity makes the viewer's
-          // own wheel zoom a factor of exactly 1. A trackpad pinch (and on
-          // the web ⌘+pinch, which arrives as a scale event) still zooms
-          // through the viewer, around the fingers.
-          scaleFactor: desktop ? double.infinity : 200,
-          onInteractionStart: _onInteractionStart,
-          onInteractionUpdate: _onInteractionUpdate,
-          onInteractionEnd: _onInteractionEnd,
-          child: SizedBox.expand(
-            key: _contentKey,
-            child: Center(
-              child: KeyedSubtree(key: _pictureKey, child: widget.child),
+      child: RawGestureDetector(
+        gestures: {
+          if (widget.onHold != null)
+            LongPressGestureRecognizer:
+                GestureRecognizerFactoryWithHandlers<
+                  LongPressGestureRecognizer
+                >(
+                  () =>
+                      LongPressGestureRecognizer(duration: widget.holdDuration),
+                  (recognizer) {
+                    recognizer
+                      ..onLongPressStart = (_) {
+                        widget.onHold?.call(true);
+                      }
+                      ..onLongPressEnd = (_) {
+                        widget.onHold?.call(false);
+                      }
+                      ..onLongPressCancel = () {
+                        widget.onHold?.call(false);
+                      };
+                  },
+                ),
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          // onTapUp rather than onTap for the pointer's kind; it fires at the
+          // same moment, after the double-tap window, as onTap did.
+          onTapUp:
+              widget.onTap != null ||
+                  widget.onTapUp != null ||
+                  (desktop && widget.onBackdropClick != null)
+              ? _onTapUp
+              : null,
+          onDoubleTapDown: widget.doubleTapZoom ? _handleDoubleTap : null,
+          onDoubleTap: widget.doubleTapZoom ? () {} : null,
+          // The viewer fills the whole area, not just the picture: a pinch
+          // starting on the black around a photo zooms it, and a zoomed photo
+          // spreads over the screen instead of being cut off at the box it
+          // was letterboxed into.
+          child: InteractiveViewer(
+            transformationController: _xform,
+            minScale: 1,
+            maxScale: widget.maxScale,
+            // End momentum before returning moments to fit. A value of 1
+            // prolongs InteractiveViewer's fling and can leave it fighting
+            // the reset animation.
+            interactionEndFrictionCoefficient: widget.resetZoomOnInteractionEnd
+                ? 1e-300
+                : 0.0000135,
+            clipBehavior: Clip.none,
+            // The wheel is this widget's (see [_onSignal]): left to the viewer
+            // a plain scroll zoomed, which is not what a wheel does over a
+            // photograph anywhere else on a desk. Infinity makes the viewer's
+            // own wheel zoom a factor of exactly 1. A trackpad pinch (and on
+            // the web ⌘+pinch, which arrives as a scale event) still zooms
+            // through the viewer, around the fingers.
+            scaleFactor: desktop ? double.infinity : 200,
+            onInteractionStart: _onInteractionStart,
+            onInteractionUpdate: _onInteractionUpdate,
+            onInteractionEnd: _onInteractionEnd,
+            child: SizedBox.expand(
+              key: _contentKey,
+              child: Padding(
+                padding: widget.contentInset,
+                child: Center(
+                  child: KeyedSubtree(key: _pictureKey, child: widget.child),
+                ),
+              ),
             ),
           ),
         ),
@@ -611,10 +753,10 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
         cursor: widget.cursorHidden
             ? SystemMouseCursors.none
             : _zoomedUi
-                ? (_grabbing
-                    ? SystemMouseCursors.grabbing
-                    : SystemMouseCursors.grab)
-                : MouseCursor.defer,
+            ? (_grabbing
+              ? SystemMouseCursors.grabbing
+              : SystemMouseCursors.grab)
+            : MouseCursor.defer,
         child: area,
       ),
     );

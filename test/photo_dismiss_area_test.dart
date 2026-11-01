@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/widgets/photo_dismiss_area.dart';
@@ -10,17 +11,17 @@ class _Harness {
   final zoom = <bool>[];
 
   Widget build() => MaterialApp(
-        home: PhotoDismissArea(
-          drag: drag,
-          onDismiss: () => dismissed++,
-          onZoomChanged: zoom.add,
-          child: Container(
-            key: const ValueKey('photo'),
-            width: 400,
-            height: 200,
-            color: Colors.red,
-          ),
+      home: PhotoDismissArea(
+        drag: drag,
+        onDismiss: () => dismissed++,
+        onZoomChanged: zoom.add,
+        child: Container(
+          key: const ValueKey('photo'),
+          width: 400,
+          height: 200,
+          color: Colors.red,
         ),
+      ),
       );
 }
 
@@ -58,6 +59,172 @@ void main() {
         spread: 200);
     expect(_matrix(tester).getMaxScaleOnAxis(), greaterThan(1.5));
     expect(h.dismissed, 0);
+  });
+
+  testWidgets('story gestures reuse zoom without double-tap or dismiss', (
+    tester,
+  ) async {
+    final drag = ValueNotifier(Offset.zero);
+    var taps = 0;
+    var dragDistance = 0.0;
+    var dragEnds = 0;
+    var dismissed = 0;
+    final holds = <bool>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PhotoDismissArea(
+          drag: drag,
+          onDismiss: () => dismissed++,
+          maxScale: 4,
+          doubleTapZoom: false,
+          onTapUp: (_) => taps++,
+          onHold: holds.add,
+          holdDuration: const Duration(milliseconds: 300),
+          onDragUpdate: (dy) => dragDistance += dy,
+          onDragEnd: (_) => dragEnds++,
+          child: Container(width: 400, height: 200, color: Colors.red),
+        ),
+      ),
+    );
+
+    final hold = await tester.startGesture(const Offset(400, 300));
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(holds, [true]);
+    await hold.up();
+    await tester.pump();
+    expect(holds, [true, false]);
+
+    await tester.tapAt(const Offset(400, 300));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tapAt(const Offset(400, 300));
+    await tester.pumpAndSettle();
+    expect(taps, 2);
+    expect(_matrix(tester).getMaxScaleOnAxis(), 1);
+
+    await tester.dragFrom(const Offset(400, 300), const Offset(0, 100));
+    await tester.pumpAndSettle();
+    expect(dragDistance, greaterThan(0));
+    expect(dragEnds, 1);
+    expect(drag.value, Offset.zero);
+    expect(dismissed, 0);
+
+    await _pinch(
+      tester,
+      const Offset(350, 500),
+      const Offset(450, 500),
+      spread: 200,
+    );
+    expect(_matrix(tester).getMaxScaleOnAxis(), greaterThan(1.5));
+  });
+
+  testWidgets('zoom returns to fit after the last finger is released', (
+    tester,
+  ) async {
+    final zoom = <bool>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PhotoDismissArea(
+          drag: ValueNotifier(Offset.zero),
+          onDismiss: () {},
+          maxScale: 4,
+          resetZoomOnInteractionEnd: true,
+          onZoomChanged: zoom.add,
+          child: Container(width: 400, height: 200, color: Colors.red),
+        ),
+      ),
+    );
+
+    final viewer = tester.widget<InteractiveViewer>(
+      find.byType(InteractiveViewer),
+    );
+    expect(viewer.interactionEndFrictionCoefficient, 1e-300);
+
+    final first = await tester.startGesture(const Offset(350, 300), pointer: 1);
+    final second = await tester.startGesture(
+      const Offset(450, 300),
+      pointer: 2,
+    );
+    for (var i = 0; i < 10; i++) {
+      await first.moveBy(const Offset(-10, 10));
+      await second.moveBy(const Offset(10, 10));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await first.up();
+    await second.up();
+    await tester.pumpAndSettle();
+
+    expect(_matrix(tester).getMaxScaleOnAxis(), closeTo(1, 0.01));
+    expect(zoom, [true, false]);
+  });
+
+  testWidgets('a trackpad pinch returns to fit when it ends', (tester) async {
+    final zoom = <bool>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PhotoDismissArea(
+          drag: ValueNotifier(Offset.zero),
+          onDismiss: () {},
+          maxScale: 4,
+          resetZoomOnInteractionEnd: true,
+          onZoomChanged: zoom.add,
+          child: Container(width: 400, height: 200, color: Colors.red),
+        ),
+      ),
+    );
+
+    // No pointer ever goes down: a trackpad pinch is pan-zoom events only.
+    final pad = await tester.createGesture(kind: PointerDeviceKind.trackpad);
+    await pad.panZoomStart(const Offset(400, 300));
+    for (var i = 1; i <= 10; i++) {
+      await pad.panZoomUpdate(const Offset(400, 300), scale: 1 + i * 0.2);
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(_matrix(tester).getMaxScaleOnAxis(), greaterThan(1.5));
+    expect(zoom, [true]);
+
+    await pad.panZoomEnd();
+    await tester.pumpAndSettle();
+
+    expect(_matrix(tester).getMaxScaleOnAxis(), closeTo(1, 0.01));
+    expect(zoom, [true, false]);
+  });
+
+  testWidgets('a new touch stops the return-to-fit animation', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PhotoDismissArea(
+          drag: ValueNotifier(Offset.zero),
+          onDismiss: () {},
+          maxScale: 4,
+          resetZoomOnInteractionEnd: true,
+          child: Container(width: 400, height: 200, color: Colors.red),
+        ),
+      ),
+    );
+
+    final first = await tester.startGesture(const Offset(350, 300), pointer: 1);
+    final second = await tester.startGesture(
+      const Offset(450, 300),
+      pointer: 2,
+    );
+    for (var i = 0; i < 10; i++) {
+      await first.moveBy(const Offset(-10, 0));
+      await second.moveBy(const Offset(10, 0));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await first.up();
+    await second.up();
+
+    await tester.pump(const Duration(milliseconds: 116));
+    await tester.pump(const Duration(milliseconds: 64));
+    final beforeTouch = _matrix(tester).clone();
+    final third = await tester.startGesture(const Offset(400, 300), pointer: 3);
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(_matrix(tester).storage, beforeTouch.storage);
+
+    await third.up();
+    await tester.pumpAndSettle();
+    expect(_matrix(tester).getMaxScaleOnAxis(), closeTo(1, 0.01));
   });
 
   testWidgets('a zoomed photo is not clipped to its letterbox', (

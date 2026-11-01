@@ -1421,10 +1421,14 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     _camRestarts = 0;
     _session = s.copyWith(localVideoOff: true);
     notifyListeners();
-    // Privacy first: the picture stops leaving the phone on the tap, not
-    // after the state signal has made the round trip through the backend
-    // (seconds on a slow link, during which the peer still saw us). The
-    // peer learns "off" right after; until then it sees a frozen frame.
+    // The peer is told FIRST, and at once (not awaited, so it never holds the
+    // camera queue). The picture stops leaving the phone on the tap just the
+    // same, in parallel below, but a track that goes quiet before its state
+    // arrives leaves the peer a frozen last frame, which reads as "paused" and
+    // is exactly what turning the camera off is not. Sent after the teardown,
+    // as it used to be, the signal queued behind a replaceTrack and a camera
+    // release.
+    unawaited(_sendState());
     final sender = _camSender;
     if (sender != null) {
       try {
@@ -1438,9 +1442,6 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     }
     _localStreamTick++;
     notifyListeners();
-    // Never awaited inside the camera queue: a hanging send would hold
-    // every camera tap behind it.
-    unawaited(_sendState());
     return true;
   }
 
@@ -3647,9 +3648,13 @@ class CallService extends ChangeNotifier implements CallOptionsController {
         payload: jsonEncode({
           ...PeerMediaState(
             audioMuted: s.localMuted,
-            // A suspended camera is off as far as the peer can see.
+            // A suspended camera is off as far as the peer can see, and
+            // that is all it is told: never "paused". Whether the camera
+            // went quiet because the person turned it off, stashed the
+            // window or locked the phone, the picture is gone and the
+            // peer's screen should say so plainly, not hint that it is
+            // frozen or about to come back. It still does, by itself.
             videoOff: s.localVideoOff || _camSuspended,
-            videoPaused: !s.localVideoOff && _camSuspended,
             screenSharing: _localScreenSharing,
             camStreamId: _localStream?.id,
             screenStreamId: _screenStream?.id,

@@ -44,16 +44,14 @@ class _FakeFeedApi extends Fake implements FeedApi {
     required String userId,
     required String momentId,
     required String emoji,
-  }) async =>
-      sent.add('+$emoji');
+  }) async => sent.add('+$emoji');
 
   @override
   Future<void> unreact({
     required String userId,
     required String momentId,
     required String emoji,
-  }) async =>
-      sent.add('-$emoji');
+  }) async => sent.add('-$emoji');
 }
 
 Moment _moment({
@@ -86,36 +84,37 @@ Widget _host({
   required Moment moment,
   List<Moment> siblings = const [],
   _FakeFeedApi? feedApi,
-}) =>
-    ThemeScope(
-      controller: ThemeController(BasicTheme.midnight()),
-      child: MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: ElevatedButton(
-                onPressed: () => showMomentViewer(
-                  context,
-                  moment: moment,
-                  api: _FakeChatApi(),
-                  feedApi: feedApi ?? _FakeFeedApi(),
-                  userId: 'u1',
-                  siblings: siblings,
-                ),
-                child: const Text('open'),
-              ),
+}) => ThemeScope(
+  controller: ThemeController(BasicTheme.midnight()),
+  child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Builder(
+      builder: (context) => Scaffold(
+        body: Center(
+          child: ElevatedButton(
+            onPressed: () => showMomentViewer(
+              context,
+              moment: moment,
+              api: _FakeChatApi(),
+              feedApi: feedApi ?? _FakeFeedApi(),
+              userId: 'u1',
+              siblings: siblings,
             ),
+            child: const Text('open'),
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
 
 void main() {
   testWidgets('a highlight with a picture opens full-screen', (tester) async {
     await tester.pumpWidget(
-      _host(moment: _moment(id: 'm1', media: 'blob1', caption: 'the sunset')),
+      _host(
+        moment: _moment(id: 'm1', media: 'blob1', caption: 'the sunset'),
+      ),
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
@@ -123,6 +122,107 @@ void main() {
     // The stage is the only one of the two surfaces built out of a PageView.
     expect(find.byType(PageView), findsOneWidget);
     expect(find.text('the sunset'), findsOneWidget);
+  });
+
+  testWidgets('the photo viewport stays fixed when a pinch begins', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        moment: _moment(id: 'm1', media: 'blob1', caption: 'the sunset'),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final viewer = find.byType(InteractiveViewer);
+    final initialRect = tester.getRect(viewer);
+    final center = initialRect.center;
+    final first = await tester.startGesture(center - const Offset(50, 0));
+    await tester.pump();
+    final second = await tester.startGesture(center + const Offset(50, 0));
+    await tester.pump();
+
+    expect(tester.getRect(viewer), initialRect);
+
+    await first.up();
+    await second.up();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('a pinch spreads over the whole screen, then settles back to '
+      'the card', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        moment: _moment(id: 'm1', media: 'blob1', caption: 'the sunset'),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+    final viewer = find.byType(InteractiveViewer);
+    // The zoom box is the whole screen, status bar and comment bar included,
+    // even though the picture rests in the card between them.
+    expect(tester.getRect(viewer), Offset.zero & screen);
+
+    ClipRRect cardClip() => tester.widget<ClipRRect>(
+      find.byWidgetPredicate(
+        (w) => w is ClipRRect && w.clipper.runtimeType.toString() == '_CardClip',
+      ),
+    );
+    expect(cardClip().clipBehavior, Clip.antiAlias);
+
+    final center = tester.getRect(viewer).center;
+    final first = await tester.startGesture(center - const Offset(30, 0));
+    final second = await tester.startGesture(center + const Offset(30, 0));
+    await tester.pump();
+    await first.moveBy(const Offset(-80, 0));
+    await second.moveBy(const Offset(80, 0));
+    await tester.pump();
+
+    // Zoomed: the card's clip is lifted so the picture lies over the bars.
+    expect(cardClip().clipBehavior, Clip.none);
+
+    await first.up();
+    await second.up();
+    await tester.pumpAndSettle();
+
+    // Let go: it returns to the card on its own.
+    expect(cardClip().clipBehavior, Clip.antiAlias);
+  });
+
+  testWidgets('the board is put away while the stage is still, and comes back '
+      'for a drag and a close', (tester) async {
+    await tester.pumpWidget(
+      _host(moment: _moment(id: 'm1', media: 'blob1', caption: 'the sunset')),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.pump();
+
+    final route = ModalRoute.of(tester.element(find.byType(PageView)))!;
+    // Landed and still: nothing of the board beneath can be seen.
+    expect(route.overlayEntries.first.opaque, isTrue);
+
+    // A dismiss drag needs the board to show through the fading scrim.
+    final g = await tester.startGesture(const Offset(200, 400));
+    await g.moveBy(const Offset(0, 40));
+    await g.moveBy(const Offset(0, 40));
+    await tester.pump();
+    expect(route.overlayEntries.first.opaque, isFalse);
+
+    // Let go short of the threshold: it springs back and the board goes again.
+    await g.up();
+    await tester.pumpAndSettle();
+    await tester.pump();
+    expect(route.overlayEntries.first.opaque, isTrue);
+
+    // Closing hands the board back for the flight home.
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
+    await tester.pump();
+    expect(route.overlayEntries.first.opaque, isFalse);
+    await tester.pumpAndSettle();
   });
 
   testWidgets('a point with no picture opens as a card', (tester) async {
@@ -152,9 +252,7 @@ void main() {
       caption: 'the cat',
       userId: 'u2',
     );
-    await tester.pumpWidget(
-      _host(moment: first, siblings: [first, second]),
-    );
+    await tester.pumpWidget(_host(moment: first, siblings: [first, second]));
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     expect(find.text('the sunset'), findsOneWidget);
@@ -168,7 +266,11 @@ void main() {
   testWidgets('caption-only siblings are not pages you can swipe onto', (
     tester,
   ) async {
-    final withPicture = _moment(id: 'm1', media: 'blob1', caption: 'the sunset');
+    final withPicture = _moment(
+      id: 'm1',
+      media: 'blob1',
+      caption: 'the sunset',
+    );
     final wordsOnly = _moment(id: 'm2', caption: 'no picture, just words');
     await tester.pumpWidget(
       _host(moment: withPicture, siblings: [withPicture, wordsOnly]),
@@ -187,7 +289,9 @@ void main() {
   // tap past them on both surfaces.
   testWidgets('both surfaces offer the full emoji picker', (tester) async {
     await tester.pumpWidget(
-      _host(moment: _moment(id: 'm1', media: 'blob1', caption: 'the sunset')),
+      _host(
+        moment: _moment(id: 'm1', media: 'blob1', caption: 'the sunset'),
+      ),
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
@@ -204,36 +308,46 @@ void main() {
   // the composer's field holds focus without a second tap.
   testWidgets('the comment bar focuses the composer', (tester) async {
     await tester.pumpWidget(
-      _host(moment: _moment(id: 'm2', media: 'blob2', caption: 'focus')),
+      _host(
+        moment: _moment(id: 'm2', media: 'blob2', caption: 'focus'),
+      ),
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Add a comment…'));
     await tester.pumpAndSettle();
     final field = tester.widget<EditableText>(find.byType(EditableText).last);
-    expect(field.focusNode.hasFocus, isTrue,
-        reason: 'primary focus: ${FocusManager.instance.primaryFocus}');
+    expect(
+      field.focusNode.hasFocus,
+      isTrue,
+      reason: 'primary focus: ${FocusManager.instance.primaryFocus}',
+    );
   });
 
   testWidgets('a point card has the picker too', (tester) async {
     await tester.pumpWidget(
-      _host(moment: _moment(id: 'p1', caption: 'npc behaviour', tag: MomentTag.npc)),
+      _host(
+        moment: _moment(id: 'p1', caption: 'npc behaviour', tag: MomentTag.npc),
+      ),
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     expect(find.byIcon(CupertinoIcons.smiley), findsOneWidget);
   });
 
-  testWidgets('a reaction lands, and is taken back from who reacted',
-      (tester) async {
+  testWidgets('a reaction lands, and is taken back from who reacted', (
+    tester,
+  ) async {
     // Every reaction change runs through one notifier that also feeds an
     // open who-reacted sheet; it once called itself and overflowed the stack
     // on the first tap.
     final feed = _FakeFeedApi();
-    await tester.pumpWidget(_host(
-      moment: _moment(id: 'p1', caption: 'npc behaviour', tag: MomentTag.npc),
-      feedApi: feed,
-    ));
+    await tester.pumpWidget(
+      _host(
+        moment: _moment(id: 'p1', caption: 'npc behaviour', tag: MomentTag.npc),
+        feedApi: feed,
+      ),
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 

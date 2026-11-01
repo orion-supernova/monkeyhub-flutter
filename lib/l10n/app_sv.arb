@@ -2725,6 +2725,16 @@
   "loginNewPasswordField": "Nytt lösenord",
   "roomHeaderStatusOnline": "Online",
   "roomHeaderStatusMembers": "{count, plural, one{{count} medlem} other{{count} medlemmar}}",
+  "roomHeaderLastSeenJustNow": "Senast sedd nyss",
+  "roomHeaderLastSeenMinutes": "Senast sedd för {minutes} min sedan",
+  "roomHeaderLastSeenToday": "Senast sedd i dag kl. {time}",
+  "roomHeaderLastSeenYesterday": "Senast sedd i går kl. {time}",
+  "roomHeaderLastSeenDate": "Senast sedd {date} kl. {time}",
+  "roomHeaderSeenShortJustNow": "Sedd nyss",
+  "roomHeaderSeenShortMinutes": "Sedd för {minutes} min sedan",
+  "roomHeaderSeenShortToday": "Sedd {time}",
+  "roomHeaderSeenShortYesterday": "Sedd i går {time}",
+  "roomHeaderSeenShortDate": "Sedd {date}",
   "settingsHubTitle": "Inställningar",
   "settingsHubAccountHintAdult": "Profil, familj, länkade konton och integritet",
   "settingsHubAccountHintChild": "Profil, integritet och dina vuxna",
@@ -3991,5 +4001,6 @@
   "linuxCloseQuit": "Avsluta",
   "linuxKeepRunningTitle": "Fortsätt köra i bakgrunden",
   "linuxKeepRunningSubtitleTray": "Ligger kvar i systemfältet när du stänger fönstret, så att meddelanden och samtal fortfarande når dig",
-  "linuxKeepRunningSubtitleNoTray": "Ligger kvar minimerat när du stänger fönstret, så att meddelanden och samtal fortfarande når dig"
+  "linuxKeepRunningSubtitleNoTray": "Ligger kvar minimerat när du stänger fönstret, så att meddelanden och samtal fortfarande når dig",
+  "lowPowerToast": "Strömsparläge är på, så vissa animationer är pausade"
 }

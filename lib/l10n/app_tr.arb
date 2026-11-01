@@ -2725,6 +2725,16 @@
   "loginNewPasswordField": "Yeni şifre",
   "roomHeaderStatusOnline": "Çevrimiçi",
   "roomHeaderStatusMembers": "{count, plural, one{{count} üye} other{{count} üye}}",
+  "roomHeaderLastSeenJustNow": "Son görülme: az önce",
+  "roomHeaderLastSeenMinutes": "Son görülme: {minutes} dk önce",
+  "roomHeaderLastSeenToday": "Son görülme: bugün {time}",
+  "roomHeaderLastSeenYesterday": "Son görülme: dün {time}",
+  "roomHeaderLastSeenDate": "Son görülme: {date} {time}",
+  "roomHeaderSeenShortJustNow": "Görüldü: az önce",
+  "roomHeaderSeenShortMinutes": "Görüldü: {minutes} dk önce",
+  "roomHeaderSeenShortToday": "Görüldü: {time}",
+  "roomHeaderSeenShortYesterday": "Görüldü: dün {time}",
+  "roomHeaderSeenShortDate": "Görüldü: {date}",
   "settingsHubTitle": "Ayarlar",
   "settingsHubAccountHintAdult": "Profil, aile, bağlı hesaplar ve gizlilik",
   "settingsHubAccountHintChild": "Profil, gizlilik ve büyüklerin",
@@ -3991,5 +4001,6 @@
   "linuxCloseQuit": "Çık",
   "linuxKeepRunningTitle": "Arka planda çalışmaya devam et",
   "linuxKeepRunningSubtitleTray": "Pencereyi kapatınca tepside kalır, mesajlar ve aramalar sana ulaşmaya devam eder",
-  "linuxKeepRunningSubtitleNoTray": "Pencereyi kapatınca simge durumunda kalır, mesajlar ve aramalar sana ulaşmaya devam eder"
+  "linuxKeepRunningSubtitleNoTray": "Pencereyi kapatınca simge durumunda kalır, mesajlar ve aramalar sana ulaşmaya devam eder",
+  "lowPowerToast": "Güç tasarrufu açık, bu yüzden bazı animasyonlar duraklatıldı"
 }

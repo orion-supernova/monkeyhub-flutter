@@ -1,7 +1,9 @@
 import 'theme/low_power.dart';
+import 'theme/motion.dart' show MotionScope;
 import 'theme/glass_page_transitions.dart';
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'dart:async';
+import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
@@ -630,6 +632,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    LowPowerMode.instance.addListener(_onLowPowerChange);
     unawaited(LowPowerMode.instance.refresh());
     _presenceChannel.setMethodCallHandler((call) async {
       if (call.method == 'willTerminate') await _awayOnTerminate();
@@ -822,11 +825,54 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     unawaited(ServerSwitch.instance.follow(target));
   }
 
+  /// Whether the user has already been told about the power saving that is
+  /// on right now. Reset when it goes off, so the next time it comes on they
+  /// are told again.
+  bool _toldLowPower = false;
+
+  /// Says so, once, when the phone's power saving starts taking animations
+  /// away. The status bar's battery turns yellow, but nothing says the app
+  /// looks different because of it, and a missing animation otherwise reads as
+  /// a bug.
+  ///
+  /// Only when something was actually taken: not when the person chose Calm or
+  /// has Reduce Motion on (the app was already calm, power saving changes
+  /// nothing), and not when they pinned Full motion or Never in Settings.
+  void _onLowPowerChange([int attempt = 0]) {
+    if (!LowPowerMode.instance.value) {
+      _toldLowPower = false;
+      return;
+    }
+    if (_toldLowPower || !LowPowerMode.active) return;
+    if (MotionScope.reducedOnRequest(
+      PlatformDispatcher.instance.accessibilityFeatures.disableAnimations,
+    )) {
+      return;
+    }
+    final ctx = rootNavigatorKey.currentContext;
+    final toast = AppToast.onOverlay(rootNavigatorKey.currentState?.overlay);
+    if (ctx == null || toast == null) {
+      // The phone says so within milliseconds of launch, before the navigator
+      // exists. Try again until it does (a few seconds is the whole boot).
+      if (attempt < 10) {
+        Timer(const Duration(milliseconds: 700), () {
+          if (mounted) _onLowPowerChange(attempt + 1);
+        });
+      }
+      return;
+    }
+    _toldLowPower = true;
+    toast.show(
+      AppLocalizations.of(ctx).lowPowerToast,
+      icon: CupertinoIcons.battery_25,
+      duration: const Duration(seconds: 4),
+    );
+  }
+
   void _toastServerChange() {
     final ctx = rootNavigatorKey.currentContext;
     if (ctx == null) return;
-    showAppToast(
-      ctx,
+    AppToast.onOverlay(rootNavigatorKey.currentState?.overlay)?.show(
       AppLocalizations.of(ctx).serverDirectiveChangedToast,
       duration: const Duration(seconds: 4),
     );
@@ -1991,6 +2037,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     _resumeSyncTimer?.cancel();
     _health.dispose();
     WidgetsBinding.instance.removeObserver(this);
+    LowPowerMode.instance.removeListener(_onLowPowerChange);
     _auth.removeListener(_onAuthChange);
     SettingsStore.instance.removeListener(_syncTheme);
     _family.removeListener(_syncAccountType);

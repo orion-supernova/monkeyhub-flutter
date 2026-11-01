@@ -9417,6 +9417,52 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get roomHeaderLastSeenJustNow => '最終オンライン: たった今';
+
+  @override
+  String roomHeaderLastSeenMinutes(int minutes) {
+    return '最終オンライン: $minutes分前';
+  }
+
+  @override
+  String roomHeaderLastSeenToday(String time) {
+    return '最終オンライン: 今日 $time';
+  }
+
+  @override
+  String roomHeaderLastSeenYesterday(String time) {
+    return '最終オンライン: 昨日 $time';
+  }
+
+  @override
+  String roomHeaderLastSeenDate(String date, String time) {
+    return '最終オンライン: $date $time';
+  }
+
+  @override
+  String get roomHeaderSeenShortJustNow => '最終: たった今';
+
+  @override
+  String roomHeaderSeenShortMinutes(int minutes) {
+    return '最終: $minutes分前';
+  }
+
+  @override
+  String roomHeaderSeenShortToday(String time) {
+    return '最終: $time';
+  }
+
+  @override
+  String roomHeaderSeenShortYesterday(String time) {
+    return '最終: 昨日 $time';
+  }
+
+  @override
+  String roomHeaderSeenShortDate(String date) {
+    return '最終: $date';
+  }
+
+  @override
   String get settingsHubTitle => '設定';
 
   @override
@@ -13820,4 +13866,7 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get linuxKeepRunningSubtitleNoTray =>
       'ウィンドウを閉じても最小化されたまま残り、メッセージや通話を受け取れます';
+
+  @override
+  String get lowPowerToast => '省電力がオンのため、一部のアニメーションを停止しています';
 }

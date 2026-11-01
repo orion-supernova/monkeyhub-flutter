@@ -2725,6 +2725,16 @@
   "loginNewPasswordField": "नया पासवर्ड",
   "roomHeaderStatusOnline": "ऑनलाइन",
   "roomHeaderStatusMembers": "{count, plural, one{{count} सदस्य} other{{count} सदस्य}}",
+  "roomHeaderLastSeenJustNow": "अंतिम बार देखा गया: अभी अभी",
+  "roomHeaderLastSeenMinutes": "अंतिम बार देखा गया: {minutes} मिनट पहले",
+  "roomHeaderLastSeenToday": "अंतिम बार देखा गया: आज {time} बजे",
+  "roomHeaderLastSeenYesterday": "अंतिम बार देखा गया: कल {time} बजे",
+  "roomHeaderLastSeenDate": "अंतिम बार देखा गया: {date}, {time} बजे",
+  "roomHeaderSeenShortJustNow": "देखा: अभी",
+  "roomHeaderSeenShortMinutes": "देखा: {minutes} मिनट पहले",
+  "roomHeaderSeenShortToday": "देखा: आज {time}",
+  "roomHeaderSeenShortYesterday": "देखा: कल {time}",
+  "roomHeaderSeenShortDate": "देखा: {date}",
   "settingsHubTitle": "सेटिंग्स",
   "settingsHubAccountHintAdult": "प्रोफ़ाइल, परिवार, जुड़े खाते और गोपनीयता",
   "settingsHubAccountHintChild": "प्रोफ़ाइल, गोपनीयता और तुम्हारे बड़े",
@@ -3991,5 +4001,6 @@
   "linuxCloseQuit": "बंद करें",
   "linuxKeepRunningTitle": "बैकग्राउंड में चालू रखें",
   "linuxKeepRunningSubtitleTray": "विंडो बंद करने पर ट्रे में रहता है, ताकि मैसेज और कॉल आप तक पहुँचते रहें",
-  "linuxKeepRunningSubtitleNoTray": "विंडो बंद करने पर मिनिमाइज़ रहता है, ताकि मैसेज और कॉल आप तक पहुँचते रहें"
+  "linuxKeepRunningSubtitleNoTray": "विंडो बंद करने पर मिनिमाइज़ रहता है, ताकि मैसेज और कॉल आप तक पहुँचते रहें",
+  "lowPowerToast": "पावर सेविंग चालू है, इसलिए कुछ एनिमेशन रुके हुए हैं"
 }

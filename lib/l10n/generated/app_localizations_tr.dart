@@ -9779,6 +9779,52 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get roomHeaderLastSeenJustNow => 'Son görülme: az önce';
+
+  @override
+  String roomHeaderLastSeenMinutes(int minutes) {
+    return 'Son görülme: $minutes dk önce';
+  }
+
+  @override
+  String roomHeaderLastSeenToday(String time) {
+    return 'Son görülme: bugün $time';
+  }
+
+  @override
+  String roomHeaderLastSeenYesterday(String time) {
+    return 'Son görülme: dün $time';
+  }
+
+  @override
+  String roomHeaderLastSeenDate(String date, String time) {
+    return 'Son görülme: $date $time';
+  }
+
+  @override
+  String get roomHeaderSeenShortJustNow => 'Görüldü: az önce';
+
+  @override
+  String roomHeaderSeenShortMinutes(int minutes) {
+    return 'Görüldü: $minutes dk önce';
+  }
+
+  @override
+  String roomHeaderSeenShortToday(String time) {
+    return 'Görüldü: $time';
+  }
+
+  @override
+  String roomHeaderSeenShortYesterday(String time) {
+    return 'Görüldü: dün $time';
+  }
+
+  @override
+  String roomHeaderSeenShortDate(String date) {
+    return 'Görüldü: $date';
+  }
+
+  @override
   String get settingsHubTitle => 'Ayarlar';
 
   @override
@@ -14406,4 +14452,8 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get linuxKeepRunningSubtitleNoTray =>
       'Pencereyi kapatınca simge durumunda kalır, mesajlar ve aramalar sana ulaşmaya devam eder';
+
+  @override
+  String get lowPowerToast =>
+      'Güç tasarrufu açık, bu yüzden bazı animasyonlar duraklatıldı';
 }

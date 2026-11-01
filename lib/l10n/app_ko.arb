@@ -2725,6 +2725,16 @@
   "loginNewPasswordField": "새 비밀번호",
   "roomHeaderStatusOnline": "온라인",
   "roomHeaderStatusMembers": "{count, plural, other{멤버 {count}명}}",
+  "roomHeaderLastSeenJustNow": "마지막 접속: 방금",
+  "roomHeaderLastSeenMinutes": "마지막 접속: {minutes}분 전",
+  "roomHeaderLastSeenToday": "마지막 접속: 오늘 {time}",
+  "roomHeaderLastSeenYesterday": "마지막 접속: 어제 {time}",
+  "roomHeaderLastSeenDate": "마지막 접속: {date} {time}",
+  "roomHeaderSeenShortJustNow": "접속: 방금",
+  "roomHeaderSeenShortMinutes": "접속: {minutes}분 전",
+  "roomHeaderSeenShortToday": "접속: {time}",
+  "roomHeaderSeenShortYesterday": "접속: 어제 {time}",
+  "roomHeaderSeenShortDate": "접속: {date}",
   "settingsHubTitle": "설정",
   "settingsHubAccountHintAdult": "프로필, 가족, 연결된 계정 및 개인정보",
   "settingsHubAccountHintChild": "프로필, 개인정보 및 보호자",
@@ -3991,5 +4001,6 @@
   "linuxCloseQuit": "종료",
   "linuxKeepRunningTitle": "백그라운드에서 계속 실행",
   "linuxKeepRunningSubtitleTray": "창을 닫아도 트레이에 남아 메시지와 전화를 계속 받아요",
-  "linuxKeepRunningSubtitleNoTray": "창을 닫아도 최소화된 채로 남아 메시지와 전화를 계속 받아요"
+  "linuxKeepRunningSubtitleNoTray": "창을 닫아도 최소화된 채로 남아 메시지와 전화를 계속 받아요",
+  "lowPowerToast": "절전 모드가 켜져 있어 일부 애니메이션이 일시 중지되었습니다"
 }

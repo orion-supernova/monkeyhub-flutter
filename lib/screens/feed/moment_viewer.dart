@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
@@ -121,7 +122,11 @@ Future<void> showMomentViewer(
   String? viewerAvatarStorageId,
   ChatUser? Function(String userId)? resolveUser,
 }) {
-  final faces = _Faces(viewerId: userId, viewerAvatar: viewerAvatarStorageId, resolve: resolveUser);
+  final faces = _Faces(
+    viewerId: userId,
+    viewerAvatar: viewerAvatarStorageId,
+    resolve: resolveUser,
+  );
   if (moment.thumbStorageId != null) {
     // Only the ones with something to look at. A caption-only highlight sitting
     // in the middle of the rail is a legitimate page of *nothing* full-screen,
@@ -169,13 +174,14 @@ class _Faces {
   static const none = _Faces(viewerId: '');
 
   List<MomentReactor> fill(List<MomentReactor> reactors) => [
-        for (final r in reactors)
-          r.avatarStorageId != null && r.username != null ? r : _filled(r),
-      ];
+    for (final r in reactors)
+      r.avatarStorageId != null && r.username != null ? r : _filled(r),
+  ];
 
   MomentReactor _filled(MomentReactor r) {
     final known = r.userId == viewerId ? null : resolve?.call(r.userId);
-    final face = r.avatarStorageId ??
+    final face =
+        r.avatarStorageId ??
         (r.userId == viewerId ? viewerAvatar : known?.avatarStorageId);
     return MomentReactor(
       emoji: r.emoji,
@@ -286,9 +292,9 @@ Future<void> _openCard(
 /// opened.
 class _Reactions {
   _Reactions(Moment m)
-      : mine = {...m.myReactions},
-        counts = {...m.reactionCounts},
-        reactors = [...m.reactors];
+    : mine = {...m.myReactions},
+      counts = {...m.reactionCounts},
+      reactors = [...m.reactors];
 
   final Set<String> mine;
   final Map<String, int> counts;
@@ -363,14 +369,16 @@ class _ReactionBook {
       for (final x in r.reactors) {
         if (x.userId == userId) me = x;
       }
-      r.reactors.add(MomentReactor(
-        emoji: emoji,
-        userId: userId,
-        name: me?.name ?? '',
-        username: me?.username,
-        avatarStorageId: me?.avatarStorageId,
-        createdAt: DateTime.now(),
-      ));
+      r.reactors.add(
+        MomentReactor(
+          emoji: emoji,
+          userId: userId,
+          name: me?.name ?? '',
+          username: me?.username,
+          avatarStorageId: me?.avatarStorageId,
+          createdAt: DateTime.now(),
+        ),
+      );
     } else {
       r.mine.remove(emoji);
       final n = (r.counts[emoji] ?? 1) - 1;
@@ -410,7 +418,6 @@ class _ReactionBook {
       if (e.toString().contains(kReactionLimitError)) onLimit();
     }
   }
-
 }
 
 /// Reacts to [m] with any emoji from the full picker — the same sheet chat
@@ -695,8 +702,7 @@ List<_StoryRun> _runsOf(List<Moment> moments) {
 /// **Gestures.** Tap the leading 30% to go back, anywhere else to go forward;
 /// hold to pause and clear the furniture off the picture; swipe sideways for
 /// the next or previous person; drag down to put it away; pinch to zoom.
-/// Double-tap zoom is gone here — it would collide with tap-next, and a
-/// story is looked at, not inspected.
+/// Double-tap zoom is disabled here because it would collide with tap-next.
 class _MomentStage extends StatefulWidget {
   const _MomentStage({
     required this.moments,
@@ -789,7 +795,13 @@ class _MomentStageState extends State<_MomentStage>
   bool _keyPaused = false;
   bool _paging = false;
   bool _dragging = false;
-  bool _zoomed = false;
+  /// A pinch is under way or the picture is zoomed. A notifier, not a field
+  /// behind `setState`: it flips as the second finger lands and again as the
+  /// picture settles, and rebuilding the whole stage (pager, glass chrome and
+  /// all) on each of those was the hitch at both ends of every pinch. Only
+  /// the few things that follow it listen.
+  final ValueNotifier<bool> _zoomedNotifier = ValueNotifier<bool>(false);
+  bool get _zoomed => _zoomedNotifier.value;
   bool _routeCurrent = true;
   bool _keyboard = false;
   bool _appActive = true;
@@ -817,11 +829,14 @@ class _MomentStageState extends State<_MomentStage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _runs = _runsOf(widget.moments);
-    final start = widget.moments[
-        widget.initialIndex.clamp(0, widget.moments.length - 1)];
-    _run = _runs.indexWhere((r) => r.userId == start.userId).clamp(0, _runs.length - 1);
-    _itemOf[_run] =
-        _runs[_run].items.indexWhere((m) => m.id == start.id).clamp(0, _runs[_run].items.length - 1);
+    final start =
+        widget.moments[widget.initialIndex.clamp(0, widget.moments.length - 1)];
+    _run = _runs
+        .indexWhere((r) => r.userId == start.userId)
+        .clamp(0, _runs.length - 1);
+    _itemOf[_run] = _runs[_run].items
+        .indexWhere((m) => m.id == start.id)
+        .clamp(0, _runs[_run].items.length - 1);
     _pager = PageController(initialPage: _run);
     _drag.addListener(_onDrag);
     _arrive();
@@ -863,17 +878,21 @@ class _MomentStageState extends State<_MomentStage>
   /// The full conversation, in a sheet over the stage (the clock pauses while
   /// it is up: the route stops being current).
   Future<void> _comments(Moment m) => _openComments(
-        context,
-        _book,
-        m: m,
-        api: widget.api,
-        feedApi: widget.feedApi,
-        userId: widget.userId,
-        onOpenProfile: widget.onOpenProfile,
-      );
+    context,
+    _book,
+    m: m,
+    api: widget.api,
+    feedApi: widget.feedApi,
+    userId: widget.userId,
+    onOpenProfile: widget.onOpenProfile,
+  );
 
   /// Posts a comment from the reply mode, then puts the reply mode away.
-  Future<bool> _submitReply(Moment m, {String? text, ExpressionItem? item}) async {
+  Future<bool> _submitReply(
+    Moment m, {
+    String? text,
+    ExpressionItem? item,
+  }) async {
     final l10n = AppLocalizations.of(context);
     final toast = AppToast.of(context);
     try {
@@ -939,8 +958,8 @@ class _MomentStageState extends State<_MomentStage>
     final open = velocity < -350
         ? true
         : velocity > 350
-            ? false
-            : _panel.value > 0.5;
+        ? false
+        : _panel.value > 0.5;
     open ? _openPanel() : _closePanel();
   }
 
@@ -1010,6 +1029,7 @@ class _MomentStageState extends State<_MomentStage>
     // one of them changes: a sheet pushed over the viewer, the keyboard, a
     // screen reader switching on.
     _routeCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+    _watchCover();
     _keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
     _screenReader = MediaQuery.accessibleNavigationOf(context);
     _sync();
@@ -1035,6 +1055,8 @@ class _MomentStageState extends State<_MomentStage>
     _pager.dispose();
     _drag.removeListener(_onDrag);
     _drag.dispose();
+    _coverRoute?.animation?.removeStatusListener(_onCoverStatus);
+    _zoomedNotifier.dispose();
     super.dispose();
   }
 
@@ -1071,7 +1093,50 @@ class _MomentStageState extends State<_MomentStage>
     final now = _drag.value != Offset.zero;
     if (now == _dragging) return;
     _dragging = now;
+    _syncCover();
     _sync();
+  }
+
+  /// Stops the page UNDER the viewer from being laid out, painted and animated
+  /// for as long as it cannot be seen.
+  ///
+  /// The route is not opaque: the board has to show through while the picture
+  /// flies in and home, and while a dismiss drag fades the scrim. But the rest
+  /// of the time the stage is solid black, and the whole board beneath (loops,
+  /// glass blurs and all) was still being drawn behind it on every frame,
+  /// which cost far more than the viewer itself: measured on a pinch, ~10 to
+  /// 30 ms of GPU time a frame against ~1 ms with the board put away. So once
+  /// the opening transition has landed the route turns opaque, and turns
+  /// translucent again the moment anything needs the board: a dismiss drag
+  /// beginning, or a close. (The route also sets it back itself at the start of
+  /// any pop.) Tickers beneath stop with it, which is battery as well as frames.
+  void _syncCover() {
+    final route = _coverRoute;
+    if (route == null || route.overlayEntries.isEmpty) return;
+    final landed = route.animation?.status == AnimationStatus.completed;
+    route.overlayEntries.first.opaque = landed && !_dragging && !_closing;
+  }
+
+  ModalRoute<dynamic>? _coverRoute;
+
+  void _watchCover() {
+    final route = ModalRoute.of(context);
+    if (identical(route, _coverRoute)) return;
+    _coverRoute?.animation?.removeStatusListener(_onCoverStatus);
+    _coverRoute = route;
+    route?.animation?.addStatusListener(_onCoverStatus);
+  }
+
+  void _onCoverStatus(AnimationStatus status) {
+    // `completed` lands in the route's own listener first (which resets the
+    // entry to the route's static `opaque`); this runs after and wins.
+    if (status == AnimationStatus.completed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _syncCover();
+      });
+    } else {
+      _syncCover();
+    }
   }
 
   /// A new item is on screen: reset the clock, wait for its picture, and
@@ -1181,13 +1246,11 @@ class _MomentStageState extends State<_MomentStage>
   }
 
   void _onPageChanged(int run) {
-    setState(() {
-      _run = run;
-      // A zoomed page cannot be swiped away, so this should already be false
-      // — but a stuck `true` would leave the run paused with nothing on
-      // screen to explain why.
-      _zoomed = false;
-    });
+    // A zoomed page cannot be swiped away, so this should already be false
+    // — but a stuck `true` would leave the run paused with nothing on
+    // screen to explain why.
+    _zoomedNotifier.value = false;
+    setState(() => _run = run);
     _arrive();
   }
 
@@ -1246,6 +1309,7 @@ class _MomentStageState extends State<_MomentStage>
   void _close() {
     if (_closing) return;
     _closing = true;
+    _syncCover();
     _sync();
     Navigator.of(context).maybePop();
   }
@@ -1295,123 +1359,149 @@ class _MomentStageState extends State<_MomentStage>
           // during the exit transition and call [_close] on whatever route is
           // underneath.
           _closing = true;
+          _syncCover();
           _sync();
         }
       },
       child: Material(
-      type: MaterialType.transparency,
-      // Every media `LiquidGlass` under here calls `BackdropFilter.grouped`,
-      // which shares ONE full-screen rasterization with its siblings — but only
-      // when a group is actually in scope. Without this the top-bar buttons
-      // and the whole reaction rail each cost their own blur pass over a
-      // fullscreen photograph, every frame.
-      child: BackdropGroup(
-        child: DefaultTextStyle(
-          style: theme.body.copyWith(color: MediaGlass.ink),
-          child: Semantics(
-            // A screen reader never auto-advances; these are its way through.
-            customSemanticsActions: {
-              CustomSemanticsAction(label: l10n.momentStoryNext): _next,
-              CustomSemanticsAction(label: l10n.momentStoryPrevious): _previous,
-            },
-            child: Stack(
-              children: [
-                // Solid black, like every other photo viewer in the app: no
-                // blurred copy of the picture behind it. Painted inside the
-                // route rather than left to the barrier, so it can fade to
-                // nothing as the drag commits and the Hero return reads as
-                // the picture going back where it came from.
-                ValueListenableBuilder<Offset>(
-                  valueListenable: _drag,
-                  builder: (context, drag, _) => Positioned.fill(
-                    child: IgnorePointer(
-                      child: ColoredBox(
-                        color: Colors.black.withValues(
-                          alpha: 1 - photoDismissProgress(drag, screen),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                // The story is a card, Instagram's: from just under the
-                // status bar to the comment bar, rounded at all four corners,
-                // with the progress bar and the author riding on its top
-                // edge. Never under the bar: the bar is the floor it stands
-                // on. One clip around the whole pager, not one per page.
-                ValueListenableBuilder<Offset>(
-                  valueListenable: _drag,
-                  builder: (context, drag, pages) {
-                    final t = photoDismissProgress(drag, screen);
-                    return Positioned(
-                      left: 0,
-                      right: 0,
-                      top: top,
-                      bottom: bar,
-                      child: Transform.translate(
-                        offset: drag,
-                        child: Transform.scale(
-                          scale: 1 - t * kPhotoDismissShrink,
-                          child: ClipRRect(
-                            borderRadius:
-                                BorderRadius.circular(_kStoryCardRadius),
-                            child: pages,
+        type: MaterialType.transparency,
+        // Every media `LiquidGlass` under here calls `BackdropFilter.grouped`,
+        // which shares ONE full-screen rasterization with its siblings — but only
+        // when a group is actually in scope. Without this the top-bar buttons
+        // and the whole reaction rail each cost their own blur pass over a
+        // fullscreen photograph, every frame.
+        child: BackdropGroup(
+          child: DefaultTextStyle(
+            style: theme.body.copyWith(color: MediaGlass.ink),
+            child: Semantics(
+              // A screen reader never auto-advances; these are its way through.
+              customSemanticsActions: {
+                CustomSemanticsAction(label: l10n.momentStoryNext): _next,
+                CustomSemanticsAction(label: l10n.momentStoryPrevious):
+                    _previous,
+              },
+              child: Stack(
+                children: [
+                  // Solid black, like every other photo viewer in the app: no
+                  // blurred copy of the picture behind it. Painted inside the
+                  // route rather than left to the barrier, so it can fade to
+                  // nothing as the drag commits and the Hero return reads as
+                  // the picture going back where it came from.
+                  ValueListenableBuilder<Offset>(
+                    valueListenable: _drag,
+                    builder: (context, drag, _) => Positioned.fill(
+                      child: IgnorePointer(
+                        child: ColoredBox(
+                          color: Colors.black.withValues(
+                            alpha: 1 - photoDismissProgress(drag, screen),
                           ),
                         ),
                       ),
-                    );
-                  },
-                  // Built once and passed through the builder: the pages are
-                  // the expensive part and none of them depend on the drag.
-                  child: _pages(),
-                ),
-                // The progress bar stays through a hold — it is how you know
-                // the picture is paused rather than gone.
-                _FadingChrome(
-                  drag: _drag,
-                  visible: true,
-                  child: RepaintBoundary(
-                    child: _StoryProgress(
-                      count: _runs[_run].items.length,
-                      index: _item,
-                      clock: _clock,
-                      video: _isVideo(current),
                     ),
                   ),
-                ),
-                // The chrome is handed to `_FadingChrome` as a pre-built child
-                // so a drag repaints one opacity rather than rebuilding a dozen
-                // blurred glass surfaces sixty times a second.
-                _FadingChrome(
-                  drag: _drag,
-                  visible: chrome,
-                  child: _StageTopBar(
-                    moment: current,
-                    api: widget.api,
-                    onClose: _close,
-                    onDelete: current.mine ? () => _delete(current) : null,
-                    onReport: current.mine
-                        ? null
-                        : () => fileReport(
+                  // The story is a card, Instagram's: from just under the
+                  // status bar to the comment bar, rounded at all four corners,
+                  // with the progress bar and the author riding on its top
+                  // edge. Never under the bar: the bar is the floor it stands
+                  // on. One clip around the whole pager, not one per page.
+                  ValueListenableBuilder<Offset>(
+                    valueListenable: _drag,
+                    builder: (context, drag, pages) {
+                      final t = photoDismissProgress(drag, screen);
+                      return Positioned(
+                        left: 0,
+                        right: 0,
+                        // The whole screen, so a pinch grows over the status
+                        // bar and the comment bar too. The card is still the
+                        // card: each page rests inside [_StagePage.inset] and
+                        // the clip below trims it to the same rectangle.
+                        // Never resized, so nothing jumps when the second
+                        // finger lands.
+                        top: 0,
+                        bottom: 0,
+                        child: Transform.translate(
+                          offset: drag,
+                          child: Transform.scale(
+                            scale: 1 - t * kPhotoDismissShrink,
+                            // One widget type either way. Swapping the clip
+                            // for nothing at the first sign of a pinch changed
+                            // the tree under the gesture and rebuilt the pager
+                            // mid-pinch, which is what made the zoom lurch.
+                            child: ValueListenableBuilder<bool>(
+                              valueListenable: _zoomedNotifier,
+                              child: pages,
+                              builder: (context, zoomed, pages) => ClipRRect(
+                                clipper: _CardClip(
+                                  top: top,
+                                  bottom: bar,
+                                  radius: _kStoryCardRadius,
+                                  enabled: !zoomed,
+                                ),
+                                clipBehavior: zoomed
+                                    ? Clip.none
+                                    : Clip.antiAlias,
+                                child: pages,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    // Built once and passed through the builder: the pages are
+                    // the expensive part and none of them depend on the drag.
+                    child: _pages(),
+                  ),
+                  // The progress bar stays through a hold — it is how you know
+                  // the picture is paused rather than gone.
+                  _FadingChrome(
+                    drag: _drag,
+                    visible: true,
+                    hiddenWhen: _zoomedNotifier,
+                    child: RepaintBoundary(
+                      child: _StoryProgress(
+                        count: _runs[_run].items.length,
+                        index: _item,
+                        clock: _clock,
+                        video: _isVideo(current),
+                      ),
+                    ),
+                  ),
+                  // The chrome is handed to `_FadingChrome` as a pre-built child
+                  // so a drag repaints one opacity rather than rebuilding a dozen
+                  // blurred glass surfaces sixty times a second.
+                  _FadingChrome(
+                    drag: _drag,
+                    visible: chrome,
+                    hiddenWhen: _zoomedNotifier,
+                    child: _StageTopBar(
+                      moment: current,
+                      api: widget.api,
+                      onClose: _close,
+                      onDelete: current.mine ? () => _delete(current) : null,
+                      onReport: current.mine
+                          ? null
+                          : () => fileReport(
                               context,
                               api: widget.api,
                               reporterId: widget.userId,
                               target: ReportTarget.moment,
                               targetId: current.id,
                             ),
-                    // Offered only when it would change something: a landscape
-                    // or square picture is shown whole either way.
-                    onToggleFill: photoFillsScreen(
-                          MediaAspectCache.instance.peek(
-                            current.thumbStorageId ?? '',
-                          ),
-                          screen,
-                        )
-                        ? () => setState(() => _fill = !_fill)
-                        : null,
-                    filled: _fill,
-                    onOpenAuthor: current.mine || widget.onOpenProfile == null
-                        ? null
-                        : () => widget.onOpenProfile!(
+                      // Offered only when it would change something: a landscape
+                      // or square picture is shown whole either way.
+                      onToggleFill:
+                          photoFillsScreen(
+                            MediaAspectCache.instance.peek(
+                              current.thumbStorageId ?? '',
+                            ),
+                            screen,
+                          )
+                          ? () => setState(() => _fill = !_fill)
+                          : null,
+                      filled: _fill,
+                      onOpenAuthor: current.mine || widget.onOpenProfile == null
+                          ? null
+                          : () => widget.onOpenProfile!(
                               profileUser(
                                 context,
                                 userId: current.userId,
@@ -1420,62 +1510,89 @@ class _MomentStageState extends State<_MomentStage>
                                 avatarStorageId: current.authorAvatarStorageId,
                               ),
                             ),
-                  ),
-                ),
-                _FadingChrome(
-                  drag: _drag,
-                  // Gone under the reply mode: its own composer takes this
-                  // place, and the bar's outline would peek out beside it.
-                  visible: chrome && !_panelUp,
-                  alignBottom: true,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _StageCaption(moment: current),
-                      // Who reacted: faces wearing their emoji, newest first.
-                      if (_book.of(current).reactors.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-                          child: Align(
-                            alignment: AlignmentDirectional.centerStart,
-                            child: MomentReactorStack(
-                              groups: groupReactors(
-                                widget.faces.fill(_book.of(current).reactors),
-                              ),
-                              api: widget.api,
-                              viewerId: widget.userId,
-                              onTap: () => _showReactors(current),
-                            ),
-                          ),
-                        ),
-                      _StageCommentBar(
-                        height: _kCommentBar,
-                        count: _book.commentsOf(current),
-                        onField: _openPanel,
-                        onComments: () => _comments(current),
-                      ),
-                    ],
-                  ),
-                ),
-                if (_panelUp) _panelLayer(current),
-                for (final (key, emoji, origin) in _bursts)
-                  Positioned.fill(
-                    child: _EmojiBurst(
-                      key: key,
-                      emoji: emoji,
-                      origin: origin,
-                      onDone: () {
-                        if (!mounted) return;
-                        setState(() => _bursts.removeWhere((b) => b.$1 == key));
-                      },
                     ),
                   ),
-              ],
+                  _FadingChrome(
+                    drag: _drag,
+                    // Gone under the reply mode: its own composer takes this
+                    // place, and the bar's outline would peek out beside it.
+                    visible: chrome && !_panelUp,
+                    hiddenWhen: _zoomedNotifier,
+                    alignBottom: true,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // The words and faces over the photograph sit on a
+                        // scrim, because "plain type on a soft shadow" is
+                        // only legible on the middle of the tonal range: a
+                        // white sky or a black night each took it away.
+                        _StageScrim(
+                          show:
+                              current.tag != null ||
+                              (current.caption?.isNotEmpty ?? false) ||
+                              _book.of(current).reactors.isNotEmpty,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _StageCaption(moment: current),
+                              // Who reacted: faces wearing their emoji, newest
+                              // first.
+                              if (_book.of(current).reactors.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    14,
+                                    0,
+                                    14,
+                                    10,
+                                  ),
+                                  child: Align(
+                                    alignment: AlignmentDirectional.centerStart,
+                                    child: MomentReactorStack(
+                                      groups: groupReactors(
+                                        widget.faces.fill(
+                                          _book.of(current).reactors,
+                                        ),
+                                      ),
+                                      api: widget.api,
+                                      viewerId: widget.userId,
+                                      onTap: () => _showReactors(current),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        _StageCommentBar(
+                          height: _kCommentBar,
+                          count: _book.commentsOf(current),
+                          onField: _openPanel,
+                          onComments: () => _comments(current),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_panelUp) _panelLayer(current),
+                  for (final (key, emoji, origin) in _bursts)
+                    Positioned.fill(
+                      child: _EmojiBurst(
+                        key: key,
+                        emoji: emoji,
+                        origin: origin,
+                        onDone: () {
+                          if (!mounted) return;
+                          setState(
+                            () => _bursts.removeWhere((b) => b.$1 == key),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
       ),
     );
     if (!isWebOrDesktop) return stage;
@@ -1591,8 +1708,7 @@ class _MomentStageState extends State<_MomentStage>
             // The stage's own black: the composer stands on the floor the
             // story stands on, never as glass over the photograph.
             floor: Colors.black,
-            onSubmit: ({text, item}) =>
-                _submitReply(m, text: text, item: item),
+            onSubmit: ({text, item}) => _submitReply(m, text: text, item: item),
           ),
         ),
       ),
@@ -1617,9 +1733,7 @@ class _MomentStageState extends State<_MomentStage>
       },
       child: PageView.builder(
         controller: _pager,
-        physics: _zoomed
-            ? const NeverScrollableScrollPhysics()
-            : const PageScrollPhysics(),
+        physics: _ZoomLockedPhysics(_zoomedNotifier),
         itemCount: _runs.length,
         onPageChanged: _onPageChanged,
         itemBuilder: (_, i) {
@@ -1636,9 +1750,20 @@ class _MomentStageState extends State<_MomentStage>
               moment: m,
               api: widget.api,
               // Only the picture the flight opened on, while it flies.
-              deferDecode: m.id == widget.moments[widget.initialIndex.clamp(0, widget.moments.length - 1)].id &&
+              deferDecode:
+                  m.id ==
+                      widget
+                          .moments[widget.initialIndex.clamp(
+                            0,
+                            widget.moments.length - 1,
+                          )]
+                          .id &&
                   !landed,
               fill: _fill,
+              inset: EdgeInsets.only(
+                top: MediaQuery.paddingOf(context).top,
+                bottom: _kCommentBar + MediaQuery.paddingOf(context).bottom,
+              ),
               drag: _drag,
               onDismiss: _close,
               onPanelDrag: _panelDrag,
@@ -1648,7 +1773,7 @@ class _MomentStageState extends State<_MomentStage>
               onReady: () => _onReady(m.id),
               onZoomChanged: (z) {
                 if (i != _run || z == _zoomed) return;
-                setState(() => _zoomed = z);
+                _zoomedNotifier.value = z;
                 _sync();
               },
             ),
@@ -1660,15 +1785,15 @@ class _MomentStageState extends State<_MomentStage>
 
   /// Who reacted, as a list; [emoji] narrows it to one reaction.
   void _showReactors(Moment m, [String? emoji]) => _showReactorsFor(
-        context,
-        _book,
-        widget.faces,
-        m,
-        api: widget.api,
-        userId: widget.userId,
-        emoji: emoji,
-        onOpenProfile: widget.onOpenProfile,
-      );
+    context,
+    _book,
+    widget.faces,
+    m,
+    api: widget.api,
+    userId: widget.userId,
+    emoji: emoji,
+    onOpenProfile: widget.onOpenProfile,
+  );
 }
 
 /// One photograph, filling the screen: tap zones, hold, pinch, drag away.
@@ -1679,6 +1804,7 @@ class _StagePage extends StatefulWidget {
     required this.api,
     required this.deferDecode,
     required this.fill,
+    required this.inset,
     required this.drag,
     required this.onDismiss,
     required this.onPanelDrag,
@@ -1699,6 +1825,9 @@ class _StagePage extends StatefulWidget {
   /// The route's fill preference. Whether it is honoured for THIS picture is
   /// [photoFillsScreen]'s call — see `_MomentStageState._fill`.
   final bool fill;
+
+  /// The card the picture rests in, as insets from the (full-screen) page.
+  final EdgeInsets inset;
 
   final ValueNotifier<Offset> drag;
   final VoidCallback onDismiss;
@@ -1735,11 +1864,6 @@ class _StagePageState extends State<_StagePage>
   /// is going to be. [MediaAspectCache] usually already knows.
   double? _aspect;
 
-  /// Pinch zoom. Double-tap zoom is deliberately absent: in a stories viewer a
-  /// second tap is "next" again.
-  final TransformationController _xform = TransformationController();
-  bool _wasZoomed = false;
-
   /// Springs a released, uncommitted dismiss drag back home.
   late final AnimationController _settle = AnimationController(
     vsync: this,
@@ -1758,24 +1882,12 @@ class _StagePageState extends State<_StagePage>
     super.initState();
     final id = widget.moment.thumbStorageId;
     if (id != null) _aspect = MediaAspectCache.instance.peek(id);
-    _xform.addListener(_reportZoom);
   }
 
   @override
   void dispose() {
-    _xform.removeListener(_reportZoom);
-    _xform.dispose();
     _settle.dispose();
     super.dispose();
-  }
-
-  bool get _zoomed => _xform.value.getMaxScaleOnAxis() > 1.05;
-
-  void _reportZoom() {
-    final now = _zoomed;
-    if (now == _wasZoomed) return;
-    _wasZoomed = now;
-    widget.onZoomChanged(now);
   }
 
   /// Fires once the displayed decode exists: [RemoteImage] reports the
@@ -1796,32 +1908,30 @@ class _StagePageState extends State<_StagePage>
   /// dismisses. Decided on the first movement and kept for the whole drag.
   bool? _toPanel;
 
-  void _onDragStart(DragStartDetails _) {
+  void _onDragStart() {
     _settle.stop();
     _toPanel = null;
   }
 
-  void _onDragUpdate(DragUpdateDetails d) {
-    // While zoomed the same gesture is panning the image.
-    if (_zoomed || _dismissing) return;
-    _toPanel ??= d.delta.dy < 0 && widget.drag.value == Offset.zero;
+  void _onDragUpdate(double deltaY) {
+    if (_dismissing) return;
+    _toPanel ??= deltaY < 0 && widget.drag.value == Offset.zero;
     if (_toPanel!) {
-      widget.onPanelDrag(d.delta.dy);
+      widget.onPanelDrag(deltaY);
       return;
     }
-    widget.drag.value += Offset(0, d.delta.dy);
+    widget.drag.value += Offset(0, deltaY);
   }
 
-  void _onDragEnd(DragEndDetails d) {
+  void _onDragEnd(double velocity) {
     if (_toPanel == true) {
       _toPanel = null;
-      widget.onPanelEnd(d.velocity.pixelsPerSecond.dy);
+      widget.onPanelEnd(velocity);
       return;
     }
     _toPanel = null;
     if (_dismissing) return;
     final dy = widget.drag.value.dy;
-    final velocity = d.velocity.pixelsPerSecond.dy;
     final threshold = MediaQuery.sizeOf(context).height * _dismissFraction;
     // Velocity has to agree with the direction of travel, or a fast *upward*
     // correction at the end of a downward drag would read as a dismiss.
@@ -1834,6 +1944,16 @@ class _StagePageState extends State<_StagePage>
     if (dy == 0) return;
     _settleFrom = widget.drag.value;
     _settle.forward(from: 0);
+  }
+
+  void _onDragCancel() {
+    if (_toPanel == true) {
+      widget.onPanelEnd(0);
+    } else if (widget.drag.value != Offset.zero && !_dismissing) {
+      _settleFrom = widget.drag.value;
+      _settle.forward(from: 0);
+    }
+    _toPanel = null;
   }
 
   @override
@@ -1857,72 +1977,44 @@ class _StagePageState extends State<_StagePage>
     );
 
     return LayoutBuilder(
-      builder: (context, box) => Stack(
-        fit: StackFit.expand,
-        children: [
-          // The stories' own gesture set: `PhotoDismissArea` (the chat
-          // gallery's) answers a tap with "toggle the chrome" and a double tap
-          // with a zoom, and both of those are wrong here.
-          RawGestureDetector(
-            behavior: HitTestBehavior.opaque,
-            gestures: {
-              TapGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
-                    () => TapGestureRecognizer(),
-                    (r) => r.onTapUp =
-                        (d) => widget.onTap(d.localPosition.dx, box.maxWidth),
-                  ),
-              LongPressGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<
-                    LongPressGestureRecognizer
-                  >(
-                    () => LongPressGestureRecognizer(duration: _kStoryHold),
-                    (r) => r
-                      ..onLongPressStart = ((_) => widget.onHold(true))
-                      ..onLongPressEnd = ((_) => widget.onHold(false))
-                      ..onLongPressCancel = () => widget.onHold(false),
-                  ),
-              VerticalDragGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<
-                    VerticalDragGestureRecognizer
-                  >(
-                    () => VerticalDragGestureRecognizer(),
-                    (r) => r
-                      ..onStart = _onDragStart
-                      ..onUpdate = _onDragUpdate
-                      ..onEnd = _onDragEnd,
-                  ),
-            },
-            child: Center(
-              child: InteractiveViewer(
-                transformationController: _xform,
-                minScale: 1,
-                // A poster is not a photograph to examine.
-                maxScale: video ? 1 : 4,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // `SteadyHero` rather than `Hero`: a plain one tears the
-                    // child out of the tree at both ends of a flight.
-                    SteadyHero(
-                      tag: momentMediaHeroTag(widget.moment.id),
-                      child: fills
-                          ? SizedBox.expand(child: _fillImage(id))
-                          : (_aspect == null
-                                ? image
-                                : AspectRatio(aspectRatio: _aspect!, child: image)),
-                    ),
-                    if (playable)
-                      // Drawn only: the tap is the page's (the middle of a
-                      // video plays it — see `_MomentStageState._onTap`).
-                      const IgnorePointer(child: MediaPlayDisc(size: 64)),
-                  ],
-                ),
+      builder: (context, box) {
+        return PhotoDismissArea(
+          drag: widget.drag,
+          onDismiss: widget.onDismiss,
+          onTapUp: (details) =>
+              widget.onTap(details.localPosition.dx, box.maxWidth),
+          onHold: widget.onHold,
+          holdDuration: _kStoryHold,
+          onZoomChanged: widget.onZoomChanged,
+          maxScale: video ? 1 : 4,
+          doubleTapZoom: false,
+          resetZoomOnInteractionEnd: true,
+          contentInset: widget.inset,
+          onDragStart: _onDragStart,
+          onDragUpdate: _onDragUpdate,
+          onDragEnd: _onDragEnd,
+          onDragCancel: _onDragCancel,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Keep the Hero around the picture only; zooming the flight
+              // itself would leave the interactive layer with stale geometry.
+              SteadyHero(
+                tag: momentMediaHeroTag(widget.moment.id),
+                child: fills
+                    ? SizedBox.expand(child: _fillImage(id))
+                    : (_aspect == null
+                          ? image
+                          : AspectRatio(aspectRatio: _aspect!, child: image)),
               ),
-            ),
+              if (playable)
+                // Drawn only: the tap is the page's (the middle of a
+                // video plays it — see `_MomentStageState._onTap`).
+                const IgnorePointer(child: MediaPlayDisc(size: 64)),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1937,6 +2029,43 @@ class _StagePageState extends State<_StagePage>
     decodeWidth: widget.deferDecode ? momentThumbDecodeWidth : null,
     onAspectRatio: (a) => _decoded(id, a),
   );
+}
+
+/// The story card's outline: the full-screen page trimmed to the rectangle
+/// between the status bar and the comment bar, rounded at the corners.
+///
+/// [enabled] false (a pinch is under way) lets the page through whole, so the
+/// zoomed picture lies over the bars as it does in every other photo viewer.
+class _CardClip extends CustomClipper<RRect> {
+  const _CardClip({
+    required this.top,
+    required this.bottom,
+    required this.radius,
+    required this.enabled,
+  });
+
+  final double top;
+  final double bottom;
+  final double radius;
+  final bool enabled;
+
+  @override
+  RRect getClip(Size size) => enabled
+      ? RRect.fromLTRBR(
+          0,
+          top,
+          size.width,
+          size.height - bottom,
+          Radius.circular(radius),
+        )
+      : RRect.fromRectAndRadius(Offset.zero & size, Radius.zero);
+
+  @override
+  bool shouldReclip(_CardClip old) =>
+      old.top != top ||
+      old.bottom != bottom ||
+      old.radius != radius ||
+      old.enabled != enabled;
 }
 
 /// Holds a piece of chrome against an edge of the screen and fades it with
@@ -1954,10 +2083,15 @@ class _FadingChrome extends StatelessWidget {
     required this.drag,
     required this.visible,
     required this.child,
+    this.hiddenWhen,
     this.alignBottom = false,
   });
 
   final ValueNotifier<Offset> drag;
+
+  /// Also hides the chrome while this is true (a zoom). Listened to here, so
+  /// the stage itself does not rebuild when it flips.
+  final ValueListenable<bool>? hiddenWhen;
 
   /// False hides the chrome regardless of the drag (a held finger).
   final bool visible;
@@ -1973,8 +2107,9 @@ class _FadingChrome extends StatelessWidget {
       right: 0,
       top: alignBottom ? null : 0,
       bottom: alignBottom ? 0 : null,
-      child: Offstage(
-        offstage: !visible,
+      child: _HiddenWhen(
+        hidden: !visible,
+        listenable: hiddenWhen,
         child: ValueListenableBuilder<Offset>(
           valueListenable: drag,
           builder: (context, value, child) {
@@ -1995,6 +2130,51 @@ class _FadingChrome extends StatelessWidget {
       ),
     );
   }
+}
+
+/// [Offstage] that also follows a notifier, so a piece of chrome can be put
+/// away by something that changes often without its owner rebuilding.
+class _HiddenWhen extends StatelessWidget {
+  const _HiddenWhen({
+    required this.hidden,
+    required this.listenable,
+    required this.child,
+  });
+
+  final bool hidden;
+  final ValueListenable<bool>? listenable;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = listenable;
+    if (l == null) return Offstage(offstage: hidden, child: child);
+    return ValueListenableBuilder<bool>(
+      valueListenable: l,
+      child: child,
+      builder: (context, also, child) =>
+          Offstage(offstage: hidden || also, child: child),
+    );
+  }
+}
+
+/// The pager's physics, locked while a picture is zoomed or being pinched.
+///
+/// One instance for the life of the pager, asking a notifier each time, so
+/// the pager need not be rebuilt (and every page in it with it) just to change
+/// whether it may scroll.
+class _ZoomLockedPhysics extends PageScrollPhysics {
+  const _ZoomLockedPhysics(this.locked, {super.parent});
+
+  final ValueListenable<bool> locked;
+
+  @override
+  _ZoomLockedPhysics applyTo(ScrollPhysics? ancestor) =>
+      _ZoomLockedPhysics(locked, parent: buildParent(ancestor));
+
+  @override
+  bool shouldAcceptUserOffset(ScrollMetrics position) =>
+      !locked.value && super.shouldAcceptUserOffset(position);
 }
 
 /// The stories progress bar: one segment per picture in this person's run.
@@ -2281,7 +2461,9 @@ class _StageTopBar extends StatelessWidget {
           if (hasMenu)
             _ChromeGlyph(
               icon: CupertinoIcons.ellipsis,
-              semanticLabel: MaterialLocalizations.of(context).moreButtonTooltip,
+              semanticLabel: MaterialLocalizations.of(
+                context,
+              ).moreButtonTooltip,
               onTap: () => _menu(context),
             ),
           _ChromeGlyph(
@@ -2439,8 +2621,11 @@ class _StageCaption extends StatelessWidget {
               style: theme.body.copyWith(
                 color: MediaGlass.ink,
                 decoration: TextDecoration.none,
+                // Two shadows: a tight one that edges every letter, and a wide
+                // one that darkens the patch behind it.
                 shadows: const [
-                  Shadow(color: Color(0xCC000000), blurRadius: 10),
+                  Shadow(color: Color(0xE6000000), blurRadius: 3),
+                  Shadow(color: Color(0xB3000000), blurRadius: 14),
                 ],
               ),
               // Enough for a paragraph, capped so a wall of text cannot
@@ -2450,6 +2635,38 @@ class _StageCaption extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// A dark fade from clear to nearly black, behind whatever is written over the
+/// photograph at the foot of a story.
+///
+/// Static, and drawn once: the chrome it lives in is faded as a whole by
+/// [_FadingChrome], and a gradient is the one backdrop that costs nothing to
+/// move (a blur here would re-blur the whole photograph every frame of a drag).
+/// It ends at 0.92 rather than 1 so that it meets the comment bar's black floor
+/// without a visible step, and starts a little above the first line so the
+/// text sits in the dark rather than on its edge.
+class _StageScrim extends StatelessWidget {
+  const _StageScrim({required this.show, required this.child});
+
+  final bool show;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!show) return child;
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x00000000), Color(0x99000000), Color(0xEB000000)],
+          stops: [0, 0.5, 1],
+        ),
+      ),
+      child: Padding(padding: const EdgeInsets.only(top: 44), child: child),
     );
   }
 }
@@ -2473,7 +2690,6 @@ class _StageCommentBar extends StatelessWidget {
 
   /// Opens the reply mode with the keyboard up, to write.
   final VoidCallback onField;
-
 
   /// Opens the whole conversation.
   final VoidCallback onComments;
@@ -2515,7 +2731,9 @@ class _StageCommentBar extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Padding(
-                              padding: const EdgeInsetsDirectional.only(start: 18),
+                              padding: const EdgeInsetsDirectional.only(
+                                start: 18,
+                              ),
                               child: Text(
                                 hint,
                                 maxLines: 1,
@@ -2536,7 +2754,9 @@ class _StageCommentBar extends StatelessWidget {
                                 behavior: HitTestBehavior.opaque,
                                 onTap: onComments,
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
                                   child: SizedBox(
                                     height: 44,
                                     child: Row(
@@ -2625,36 +2845,36 @@ class _ReplyEmojiGrid extends StatelessWidget {
       _GridPop(
         index: emojis.length,
         child: SizedBox(
-        width: _cell,
-        height: _cell + 18,
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: SpringPress(
-            onTap: onMore,
-            semanticLabel: more,
-            focusShape: FocusRingShape.circle,
-            child: Container(
-              width: 72,
-              height: 72,
-              margin: const EdgeInsets.only(top: 12),
-              // An outline, not a fill: a filled disc is what "yours" looks
-              // like in this grid, and the + must never read as chosen.
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.38),
-                  width: 1.5,
+          width: _cell,
+          height: _cell + 18,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: SpringPress(
+              onTap: onMore,
+              semanticLabel: more,
+              focusShape: FocusRingShape.circle,
+              child: Container(
+                width: 72,
+                height: 72,
+                margin: const EdgeInsets.only(top: 12),
+                // An outline, not a fill: a filled disc is what "yours" looks
+                // like in this grid, and the + must never read as chosen.
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.38),
+                    width: 1.5,
+                  ),
                 ),
-              ),
-              child: const Icon(
-                CupertinoIcons.add,
-                size: 34,
-                color: Colors.white,
+                child: const Icon(
+                  CupertinoIcons.add,
+                  size: 34,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
         ),
-      ),
       ),
     ];
     return Wrap(
@@ -2690,7 +2910,10 @@ class _ReplyEmoji extends StatelessWidget {
       final center = box == null || !box.attached
           ? Offset.zero
           : box.localToGlobal(
-              const Offset(_ReplyEmojiGrid._cell / 2, _ReplyEmojiGrid._cell / 2),
+              const Offset(
+                _ReplyEmojiGrid._cell / 2,
+                _ReplyEmojiGrid._cell / 2,
+              ),
             );
       onTap(center);
     }
@@ -2780,7 +3003,8 @@ class _GridPop extends StatefulWidget {
   State<_GridPop> createState() => _GridPopState();
 }
 
-class _GridPopState extends State<_GridPop> with SingleTickerProviderStateMixin {
+class _GridPopState extends State<_GridPop>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
     duration: Duration(milliseconds: 620 + widget.index * 55),
@@ -2859,14 +3083,15 @@ class _EmojiBurstState extends State<_EmojiBurst>
     with SingleTickerProviderStateMixin {
   static const _copies = 9;
 
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1250),
-  )
-    ..addStatusListener((s) {
-      if (s == AnimationStatus.completed) widget.onDone();
-    })
-    ..forward();
+  late final AnimationController _c =
+      AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 1250),
+        )
+        ..addStatusListener((s) {
+          if (s == AnimationStatus.completed) widget.onDone();
+        })
+        ..forward();
 
   /// Per copy: sideways drift, rise, size, start delay (0..1 of the run), sway.
   late final List<(double, double, double, double, double)> _paths = () {
@@ -2923,7 +3148,10 @@ class _EmojiBurstState extends State<_EmojiBurst>
     final grow = Curves.easeOutBack.transform((local * 2.5).clamp(0.0, 1.0));
     const glyph = 46.0;
     return Positioned(
-      left: widget.origin.dx + dx * up + math.sin(local * math.pi * 2) * sway -
+      left:
+          widget.origin.dx +
+          dx * up +
+          math.sin(local * math.pi * 2) * sway -
           glyph / 2,
       top: widget.origin.dy - rise * up - glyph / 2,
       child: Opacity(
@@ -2968,7 +3196,11 @@ class _ViewCommentsLink extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(CupertinoIcons.chat_bubble_2, size: 17, color: MediaGlass.ink),
+            const Icon(
+              CupertinoIcons.chat_bubble_2,
+              size: 17,
+              color: MediaGlass.ink,
+            ),
             const SizedBox(width: 8),
             Text(
               label,
@@ -3044,14 +3276,14 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
   );
 
   Future<void> _comments() => _openComments(
-        context,
-        _book,
-        m: widget.moment,
-        api: widget.api,
-        feedApi: widget.feedApi,
-        userId: widget.userId,
-        onOpenProfile: widget.onOpenProfile,
-      );
+    context,
+    _book,
+    m: widget.moment,
+    api: widget.api,
+    feedApi: widget.feedApi,
+    userId: widget.userId,
+    onOpenProfile: widget.onOpenProfile,
+  );
 
   /// Fraction of screen height that commits a slow drag to a dismiss.
   static const _dismissFraction = 0.16;
@@ -3094,13 +3326,14 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
     // Fixed rather than read off the theme: this is the release of a gesture,
     // not decoration, and it matches the full-screen stage's settle so the two
     // dismissals feel like the same gesture.
-    _settleCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 240),
-    )..addListener(() {
-        final t = _settleTween;
-        if (t != null) _drag.value = t.value;
-      });
+    _settleCtrl =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 240),
+        )..addListener(() {
+          final t = _settleTween;
+          if (t != null) _drag.value = t.value;
+        });
     if (widget.openComments) {
       Future<void>.delayed(const Duration(milliseconds: 320), () {
         if (mounted) _comments();
@@ -3141,9 +3374,10 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
       Navigator.of(context).maybePop();
       return;
     }
-    _settleTween = Tween(begin: _drag.value, end: 0.0).animate(
-      CurvedAnimation(parent: _settleCtrl, curve: Curves.easeOutCubic),
-    );
+    _settleTween = Tween(
+      begin: _drag.value,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _settleCtrl, curve: Curves.easeOutCubic));
     _settleCtrl
       ..value = 0
       ..forward();
@@ -3155,15 +3389,15 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
       (drag.abs() / (screen.height * _fadeSpan)).clamp(0.0, 1.0);
 
   void _showReactors(String emoji) => _showReactorsFor(
-        context,
-        _book,
-        widget.faces,
-        widget.moment,
-        api: widget.api,
-        userId: widget.userId,
-        emoji: emoji,
-        onOpenProfile: widget.onOpenProfile,
-      );
+    context,
+    _book,
+    widget.faces,
+    widget.moment,
+    api: widget.api,
+    userId: widget.userId,
+    emoji: emoji,
+    onOpenProfile: widget.onOpenProfile,
+  );
 
   Future<void> _delete() async {
     final l10n = AppLocalizations.of(context);
@@ -3323,7 +3557,9 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
           // pattern for everything of yours: a trash at the top-trailing
           // edge, then a confirm — the same as the photo viewer's.
           SheetBar(
-            title: m.mine ? sentenceCaseOf(context, l10n.momentRailYouLabel) : m.nameIn(context),
+            title: m.mine
+                ? sentenceCaseOf(context, l10n.momentRailYouLabel)
+                : m.nameIn(context),
             subtitle: _StageTopBar._ago(l10n, m.createdAt),
             leading: SheetCloseButton(
               onTap: () => Navigator.of(context).maybePop(),
@@ -3489,52 +3725,55 @@ class _CardReactionPill extends StatelessWidget {
         // cannot give on their own (a flat fill, so scaling it is cheap).
         child: SpringPress.passive(
           child: AnimatedContainer(
-          duration: theme.motionFast,
-          height: _kPillContent + 14,
-          padding: const EdgeInsets.symmetric(horizontal: 11),
-          decoration: BoxDecoration(
-            color: active
-                ? theme.accent.withValues(alpha: 0.18)
-                : quietFill(theme),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(emoji, style: theme.body.copyWith(fontSize: 15, height: 1.1)),
-              if (count > 0) ...[
-                const SizedBox(width: 5),
-                // AnimatedSwitcher keyed on the value so the number rolls
-                // rather than swapping — the board's odometer idiom in
-                // miniature.
-                AnimatedSwitcher(
-                  duration: theme.motionFast,
-                  switchInCurve: theme.motionEntrance,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, anim) => ClipRect(
-                    child: SlideTransition(
-                      position: Tween(
-                        begin: const Offset(0, 1),
-                        end: Offset.zero,
-                      ).animate(anim),
-                      child: child,
-                    ),
-                  ),
-                  child: Text(
-                    '$count',
-                    key: ValueKey(count),
-                    style: theme.bodySoft.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: active ? theme.accent : theme.inkSoft,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
+            duration: theme.motionFast,
+            height: _kPillContent + 14,
+            padding: const EdgeInsets.symmetric(horizontal: 11),
+            decoration: BoxDecoration(
+              color: active
+                  ? theme.accent.withValues(alpha: 0.18)
+                  : quietFill(theme),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  emoji,
+                  style: theme.body.copyWith(fontSize: 15, height: 1.1),
                 ),
+                if (count > 0) ...[
+                  const SizedBox(width: 5),
+                  // AnimatedSwitcher keyed on the value so the number rolls
+                  // rather than swapping — the board's odometer idiom in
+                  // miniature.
+                  AnimatedSwitcher(
+                    duration: theme.motionFast,
+                    switchInCurve: theme.motionEntrance,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, anim) => ClipRect(
+                      child: SlideTransition(
+                        position: Tween(
+                          begin: const Offset(0, 1),
+                          end: Offset.zero,
+                        ).animate(anim),
+                        child: child,
+                      ),
+                    ),
+                    child: Text(
+                      '$count',
+                      key: ValueKey(count),
+                      style: theme.bodySoft.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: active ? theme.accent : theme.inkSoft,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
         ),
       ),
     );

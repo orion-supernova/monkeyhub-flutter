@@ -11350,6 +11350,89 @@
       }
     }
   },
+  "roomHeaderLastSeenJustNow": "Last seen just now",
+  "@roomHeaderLastSeenJustNow": {
+    "description": "Header line for a DM whose other person left less than a minute ago."
+  },
+  "roomHeaderLastSeenMinutes": "Last seen {minutes, plural, one{{minutes} minute ago} other{{minutes} minutes ago}}",
+  "@roomHeaderLastSeenMinutes": {
+    "description": "Header line under the other person's name: they were last around under an hour ago.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "roomHeaderLastSeenToday": "Last seen today at {time}",
+  "@roomHeaderLastSeenToday": {
+    "description": "Header line under the other person's name: last around earlier today. time is a clock time.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "roomHeaderLastSeenYesterday": "Last seen yesterday at {time}",
+  "@roomHeaderLastSeenYesterday": {
+    "description": "Header line under the other person's name: last around yesterday.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "roomHeaderLastSeenDate": "Last seen {date} at {time}",
+  "@roomHeaderLastSeenDate": {
+    "description": "Header line under the other person's name: last around on an older date. date is a short date like 'Oct 3'.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "roomHeaderSeenShortJustNow": "Seen just now",
+  "@roomHeaderSeenShortJustNow": {
+    "description": "Compact variant of the roomHeaderLastSeen line, used only when the full wording does not fit beside the call buttons."
+  },
+  "roomHeaderSeenShortMinutes": "Seen {minutes}m ago",
+  "@roomHeaderSeenShortMinutes": {
+    "description": "Compact variant of the roomHeaderLastSeen line, used only when the full wording does not fit beside the call buttons.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "roomHeaderSeenShortToday": "Seen today, {time}",
+  "@roomHeaderSeenShortToday": {
+    "description": "Compact variant of the roomHeaderLastSeen line, used only when the full wording does not fit beside the call buttons.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "roomHeaderSeenShortYesterday": "Seen yest. {time}",
+  "@roomHeaderSeenShortYesterday": {
+    "description": "Compact variant of the roomHeaderLastSeen line, used only when the full wording does not fit beside the call buttons.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "roomHeaderSeenShortDate": "Seen {date}",
+  "@roomHeaderSeenShortDate": {
+    "description": "Compact variant of the roomHeaderLastSeen line, used only when the full wording does not fit beside the call buttons.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "settingsHubTitle": "Settings",
   "@settingsHubTitle": {
     "description": "Settings hub (iOS-style grouped list). Large title of the Settings tab."
@@ -17308,5 +17391,9 @@
   "linuxKeepRunningSubtitleTray": "Stays in the tray when you close the window, so messages and calls still reach you",
   "@linuxKeepRunningSubtitleTray": {"description": "Subtitle of that switch when the desktop has a system tray."},
   "linuxKeepRunningSubtitleNoTray": "Stays minimized when you close the window, so messages and calls still reach you",
-  "@linuxKeepRunningSubtitleNoTray": {"description": "Subtitle of that switch when the desktop has no system tray."}
+  "@linuxKeepRunningSubtitleNoTray": {"description": "Subtitle of that switch when the desktop has no system tray."},
+  "lowPowerToast": "Power saving is on, so some animations are paused",
+  "@lowPowerToast": {
+    "description": "Toast shown once when the phone's power saving (Low Power Mode / Battery Saver) switches on and the app pauses decorative animations because of it. Generic name on purpose: iOS and Android call it different things."
+  }
 }

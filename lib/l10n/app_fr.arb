@@ -2725,6 +2725,16 @@
   "loginNewPasswordField": "Nouveau mot de passe",
   "roomHeaderStatusOnline": "En ligne",
   "roomHeaderStatusMembers": "{count, plural, one{{count} membre} other{{count} membres}}",
+  "roomHeaderLastSeenJustNow": "Vu à l’instant",
+  "roomHeaderLastSeenMinutes": "Vu il y a {minutes} min",
+  "roomHeaderLastSeenToday": "Vu aujourd’hui à {time}",
+  "roomHeaderLastSeenYesterday": "Vu hier à {time}",
+  "roomHeaderLastSeenDate": "Vu le {date} à {time}",
+  "roomHeaderSeenShortJustNow": "Vu à l’instant",
+  "roomHeaderSeenShortMinutes": "Vu il y a {minutes} min",
+  "roomHeaderSeenShortToday": "Vu à {time}",
+  "roomHeaderSeenShortYesterday": "Vu hier {time}",
+  "roomHeaderSeenShortDate": "Vu le {date}",
   "settingsHubTitle": "Réglages",
   "settingsHubAccountHintAdult": "Profil, famille, comptes associés et confidentialité",
   "settingsHubAccountHintChild": "Profil, confidentialité et tes adultes",
@@ -3991,5 +4001,6 @@
   "linuxCloseQuit": "Quitter",
   "linuxKeepRunningTitle": "Rester actif en arrière-plan",
   "linuxKeepRunningSubtitleTray": "Reste dans la zone de notification quand tu fermes la fenêtre, pour que messages et appels te parviennent toujours",
-  "linuxKeepRunningSubtitleNoTray": "Reste réduit quand tu fermes la fenêtre, pour que messages et appels te parviennent toujours"
+  "linuxKeepRunningSubtitleNoTray": "Reste réduit quand tu fermes la fenêtre, pour que messages et appels te parviennent toujours",
+  "lowPowerToast": "L'économie d'énergie est activée, certaines animations sont donc en pause"
 }

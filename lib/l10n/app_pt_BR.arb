@@ -2725,6 +2725,16 @@
   "loginNewPasswordField": "Nova senha",
   "roomHeaderStatusOnline": "Online",
   "roomHeaderStatusMembers": "{count, plural, one{{count} membro} other{{count} membros}}",
+  "roomHeaderLastSeenJustNow": "Visto por último agora mesmo",
+  "roomHeaderLastSeenMinutes": "Visto por último há {minutes} min",
+  "roomHeaderLastSeenToday": "Visto por último hoje às {time}",
+  "roomHeaderLastSeenYesterday": "Visto por último ontem às {time}",
+  "roomHeaderLastSeenDate": "Visto por último em {date} às {time}",
+  "roomHeaderSeenShortJustNow": "Visto agora",
+  "roomHeaderSeenShortMinutes": "Visto há {minutes} min",
+  "roomHeaderSeenShortToday": "Visto hoje {time}",
+  "roomHeaderSeenShortYesterday": "Visto ontem {time}",
+  "roomHeaderSeenShortDate": "Visto {date}",
   "settingsHubTitle": "Ajustes",
   "settingsHubAccountHintAdult": "Perfil, família, contas vinculadas e privacidade",
   "settingsHubAccountHintChild": "Perfil, privacidade e seus responsáveis",
@@ -3991,5 +4001,6 @@
   "linuxCloseQuit": "Sair",
   "linuxKeepRunningTitle": "Continuar em segundo plano",
   "linuxKeepRunningSubtitleTray": "Fica na bandeja quando você fecha a janela, para que mensagens e chamadas continuem chegando",
-  "linuxKeepRunningSubtitleNoTray": "Fica minimizado quando você fecha a janela, para que mensagens e chamadas continuem chegando"
+  "linuxKeepRunningSubtitleNoTray": "Fica minimizado quando você fecha a janela, para que mensagens e chamadas continuem chegando",
+  "lowPowerToast": "A economia de energia está ativada, então algumas animações estão pausadas"
 }

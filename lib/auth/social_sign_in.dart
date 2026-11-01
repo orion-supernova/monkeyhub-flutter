@@ -223,6 +223,16 @@ class SocialSignIn {
     // this only collects what it produced.
     if (googleUsesRenderedButton) return _collectWebGoogle();
     await _ensureGoogleInitialised();
+    // Forget the last account first, EVERY time. Left remembered, Android's
+    // Credential Manager auto-selects it and iOS reuses its session, so the
+    // person who signed out to switch accounts is handed straight back the
+    // one they just left with no chooser. Clearing it is what makes Google
+    // show "choose an account" (with "Add another account") on each tap.
+    try {
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {
+      /* a failed clear only means the chooser may be skipped; sign-in goes on */
+    }
     try {
       return _googleCredential(await GoogleSignIn.instance.authenticate());
     } on GoogleSignInException catch (e) {

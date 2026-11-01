@@ -71,6 +71,24 @@ class AppToast {
     );
   }
 
+  /// A toast on the root navigator's own overlay, for code that has no widget
+  /// context to start from (the app shell, a service). Null until the
+  /// navigator has been built.
+  ///
+  /// [Navigator.context] is no use as a starting point for [AppToast.of]: the
+  /// Overlay is a DESCENDANT of the navigator, so looking for one among its
+  /// ancestors finds nothing and the toast is silently dropped. The overlay's
+  /// own state is the thing to ask the navigator for.
+  static AppToast? onOverlay(OverlayState? overlay) {
+    if (overlay == null || !overlay.mounted) return null;
+    final context = overlay.context;
+    return AppToast._(
+      overlay,
+      ThemeScope.of(context),
+      MotionScope.of(context).calm,
+    );
+  }
+
   /// Shows [message]. Silently does nothing when there was no overlay to show
   /// it in — see [AppToast.of].
   void show(

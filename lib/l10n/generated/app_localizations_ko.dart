@@ -9441,6 +9441,52 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get roomHeaderLastSeenJustNow => '마지막 접속: 방금';
+
+  @override
+  String roomHeaderLastSeenMinutes(int minutes) {
+    return '마지막 접속: $minutes분 전';
+  }
+
+  @override
+  String roomHeaderLastSeenToday(String time) {
+    return '마지막 접속: 오늘 $time';
+  }
+
+  @override
+  String roomHeaderLastSeenYesterday(String time) {
+    return '마지막 접속: 어제 $time';
+  }
+
+  @override
+  String roomHeaderLastSeenDate(String date, String time) {
+    return '마지막 접속: $date $time';
+  }
+
+  @override
+  String get roomHeaderSeenShortJustNow => '접속: 방금';
+
+  @override
+  String roomHeaderSeenShortMinutes(int minutes) {
+    return '접속: $minutes분 전';
+  }
+
+  @override
+  String roomHeaderSeenShortToday(String time) {
+    return '접속: $time';
+  }
+
+  @override
+  String roomHeaderSeenShortYesterday(String time) {
+    return '접속: 어제 $time';
+  }
+
+  @override
+  String roomHeaderSeenShortDate(String date) {
+    return '접속: $date';
+  }
+
+  @override
   String get settingsHubTitle => '설정';
 
   @override
@@ -13853,4 +13899,7 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get linuxKeepRunningSubtitleNoTray =>
       '창을 닫아도 최소화된 채로 남아 메시지와 전화를 계속 받아요';
+
+  @override
+  String get lowPowerToast => '절전 모드가 켜져 있어 일부 애니메이션이 일시 중지되었습니다';
 }

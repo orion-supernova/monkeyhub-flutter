@@ -2725,6 +2725,16 @@
   "loginNewPasswordField": "كلمة مرور جديدة",
   "roomHeaderStatusOnline": "متصل الآن",
   "roomHeaderStatusMembers": "{count, plural, zero{لا أعضاء} one{عضو واحد} two{عضوان} few{{count} أعضاء} many{{count} عضوًا} other{{count} عضو}}",
+  "roomHeaderLastSeenJustNow": "آخر ظهور: الآن",
+  "roomHeaderLastSeenMinutes": "آخر ظهور منذ {minutes, plural, one{دقيقة} two{دقيقتين} few{{minutes} دقائق} many{{minutes} دقيقة} other{{minutes} دقيقة}}",
+  "roomHeaderLastSeenToday": "آخر ظهور اليوم الساعة {time}",
+  "roomHeaderLastSeenYesterday": "آخر ظهور أمس الساعة {time}",
+  "roomHeaderLastSeenDate": "آخر ظهور {date} الساعة {time}",
+  "roomHeaderSeenShortJustNow": "ظهر الآن",
+  "roomHeaderSeenShortMinutes": "ظهر منذ {minutes} د",
+  "roomHeaderSeenShortToday": "ظهر اليوم {time}",
+  "roomHeaderSeenShortYesterday": "ظهر أمس {time}",
+  "roomHeaderSeenShortDate": "ظهر {date}",
   "settingsHubTitle": "الإعدادات",
   "settingsHubAccountHintAdult": "الملف الشخصي والعائلة والحسابات المرتبطة والخصوصية",
   "settingsHubAccountHintChild": "الملف الشخصي والخصوصية والكبار المسؤولون عنك",
@@ -3991,5 +4001,6 @@
   "linuxCloseQuit": "إنهاء",
   "linuxKeepRunningTitle": "الاستمرار في العمل في الخلفية",
   "linuxKeepRunningSubtitleTray": "يبقى في شريط النظام عند إغلاق النافذة، لتصلك الرسائل والمكالمات دائمًا",
-  "linuxKeepRunningSubtitleNoTray": "يبقى مصغرًا عند إغلاق النافذة، لتصلك الرسائل والمكالمات دائمًا"
+  "linuxKeepRunningSubtitleNoTray": "يبقى مصغرًا عند إغلاق النافذة، لتصلك الرسائل والمكالمات دائمًا",
+  "lowPowerToast": "توفير الطاقة قيد التشغيل، لذا تم إيقاف بعض الحركات مؤقتاً"
 }

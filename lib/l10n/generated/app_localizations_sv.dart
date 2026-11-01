@@ -9855,6 +9855,52 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String get roomHeaderLastSeenJustNow => 'Senast sedd nyss';
+
+  @override
+  String roomHeaderLastSeenMinutes(int minutes) {
+    return 'Senast sedd för $minutes min sedan';
+  }
+
+  @override
+  String roomHeaderLastSeenToday(String time) {
+    return 'Senast sedd i dag kl. $time';
+  }
+
+  @override
+  String roomHeaderLastSeenYesterday(String time) {
+    return 'Senast sedd i går kl. $time';
+  }
+
+  @override
+  String roomHeaderLastSeenDate(String date, String time) {
+    return 'Senast sedd $date kl. $time';
+  }
+
+  @override
+  String get roomHeaderSeenShortJustNow => 'Sedd nyss';
+
+  @override
+  String roomHeaderSeenShortMinutes(int minutes) {
+    return 'Sedd för $minutes min sedan';
+  }
+
+  @override
+  String roomHeaderSeenShortToday(String time) {
+    return 'Sedd $time';
+  }
+
+  @override
+  String roomHeaderSeenShortYesterday(String time) {
+    return 'Sedd i går $time';
+  }
+
+  @override
+  String roomHeaderSeenShortDate(String date) {
+    return 'Sedd $date';
+  }
+
+  @override
   String get settingsHubTitle => 'Inställningar';
 
   @override
@@ -14506,4 +14552,8 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get linuxKeepRunningSubtitleNoTray =>
       'Ligger kvar minimerat när du stänger fönstret, så att meddelanden och samtal fortfarande når dig';
+
+  @override
+  String get lowPowerToast =>
+      'Strömsparläge är på, så vissa animationer är pausade';
 }

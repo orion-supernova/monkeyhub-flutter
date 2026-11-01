@@ -9313,6 +9313,52 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get roomHeaderLastSeenJustNow => '最后上线：刚刚';
+
+  @override
+  String roomHeaderLastSeenMinutes(int minutes) {
+    return '最后上线：$minutes分钟前';
+  }
+
+  @override
+  String roomHeaderLastSeenToday(String time) {
+    return '最后上线：今天 $time';
+  }
+
+  @override
+  String roomHeaderLastSeenYesterday(String time) {
+    return '最后上线：昨天 $time';
+  }
+
+  @override
+  String roomHeaderLastSeenDate(String date, String time) {
+    return '最后上线：$date $time';
+  }
+
+  @override
+  String get roomHeaderSeenShortJustNow => '上线：刚刚';
+
+  @override
+  String roomHeaderSeenShortMinutes(int minutes) {
+    return '上线：$minutes分钟前';
+  }
+
+  @override
+  String roomHeaderSeenShortToday(String time) {
+    return '上线：$time';
+  }
+
+  @override
+  String roomHeaderSeenShortYesterday(String time) {
+    return '上线：昨天 $time';
+  }
+
+  @override
+  String roomHeaderSeenShortDate(String date) {
+    return '上线：$date';
+  }
+
+  @override
   String get settingsHubTitle => '设置';
 
   @override
@@ -13689,4 +13735,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get linuxKeepRunningSubtitleNoTray => '关闭窗口后保持最小化，消息和通话照常送达';
+
+  @override
+  String get lowPowerToast => '省电模式已开启，部分动画已暂停';
 }

@@ -2725,6 +2725,16 @@
   "loginNewPasswordField": "新密码",
   "roomHeaderStatusOnline": "在线",
   "roomHeaderStatusMembers": "{count, plural, other{{count} 位成员}}",
+  "roomHeaderLastSeenJustNow": "最后上线：刚刚",
+  "roomHeaderLastSeenMinutes": "最后上线：{minutes}分钟前",
+  "roomHeaderLastSeenToday": "最后上线：今天 {time}",
+  "roomHeaderLastSeenYesterday": "最后上线：昨天 {time}",
+  "roomHeaderLastSeenDate": "最后上线：{date} {time}",
+  "roomHeaderSeenShortJustNow": "上线：刚刚",
+  "roomHeaderSeenShortMinutes": "上线：{minutes}分钟前",
+  "roomHeaderSeenShortToday": "上线：{time}",
+  "roomHeaderSeenShortYesterday": "上线：昨天 {time}",
+  "roomHeaderSeenShortDate": "上线：{date}",
   "settingsHubTitle": "设置",
   "settingsHubAccountHintAdult": "个人资料、家庭、关联账户和隐私",
   "settingsHubAccountHintChild": "个人资料、隐私和你的监护人",
@@ -3991,5 +4001,6 @@
   "linuxCloseQuit": "退出",
   "linuxKeepRunningTitle": "在后台保持运行",
   "linuxKeepRunningSubtitleTray": "关闭窗口后仍留在托盘中，消息和通话照常送达",
-  "linuxKeepRunningSubtitleNoTray": "关闭窗口后保持最小化，消息和通话照常送达"
+  "linuxKeepRunningSubtitleNoTray": "关闭窗口后保持最小化，消息和通话照常送达",
+  "lowPowerToast": "省电模式已开启，部分动画已暂停"
 }

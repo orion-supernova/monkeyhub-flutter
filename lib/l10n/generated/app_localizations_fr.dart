@@ -9967,6 +9967,52 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get roomHeaderLastSeenJustNow => 'Vu à l’instant';
+
+  @override
+  String roomHeaderLastSeenMinutes(int minutes) {
+    return 'Vu il y a $minutes min';
+  }
+
+  @override
+  String roomHeaderLastSeenToday(String time) {
+    return 'Vu aujourd’hui à $time';
+  }
+
+  @override
+  String roomHeaderLastSeenYesterday(String time) {
+    return 'Vu hier à $time';
+  }
+
+  @override
+  String roomHeaderLastSeenDate(String date, String time) {
+    return 'Vu le $date à $time';
+  }
+
+  @override
+  String get roomHeaderSeenShortJustNow => 'Vu à l’instant';
+
+  @override
+  String roomHeaderSeenShortMinutes(int minutes) {
+    return 'Vu il y a $minutes min';
+  }
+
+  @override
+  String roomHeaderSeenShortToday(String time) {
+    return 'Vu à $time';
+  }
+
+  @override
+  String roomHeaderSeenShortYesterday(String time) {
+    return 'Vu hier $time';
+  }
+
+  @override
+  String roomHeaderSeenShortDate(String date) {
+    return 'Vu le $date';
+  }
+
+  @override
   String get settingsHubTitle => 'Réglages';
 
   @override
@@ -14679,4 +14725,8 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get linuxKeepRunningSubtitleNoTray =>
       'Reste réduit quand tu fermes la fenêtre, pour que messages et appels te parviennent toujours';
+
+  @override
+  String get lowPowerToast =>
+      'L\'économie d\'énergie est activée, certaines animations sont donc en pause';
 }

@@ -9810,6 +9810,58 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get roomHeaderLastSeenJustNow => 'Last seen just now';
+
+  @override
+  String roomHeaderLastSeenMinutes(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minutes ago',
+      one: '$minutes minute ago',
+    );
+    return 'Last seen $_temp0';
+  }
+
+  @override
+  String roomHeaderLastSeenToday(String time) {
+    return 'Last seen today at $time';
+  }
+
+  @override
+  String roomHeaderLastSeenYesterday(String time) {
+    return 'Last seen yesterday at $time';
+  }
+
+  @override
+  String roomHeaderLastSeenDate(String date, String time) {
+    return 'Last seen $date at $time';
+  }
+
+  @override
+  String get roomHeaderSeenShortJustNow => 'Seen just now';
+
+  @override
+  String roomHeaderSeenShortMinutes(int minutes) {
+    return 'Seen ${minutes}m ago';
+  }
+
+  @override
+  String roomHeaderSeenShortToday(String time) {
+    return 'Seen today, $time';
+  }
+
+  @override
+  String roomHeaderSeenShortYesterday(String time) {
+    return 'Seen yest. $time';
+  }
+
+  @override
+  String roomHeaderSeenShortDate(String date) {
+    return 'Seen $date';
+  }
+
+  @override
   String get settingsHubTitle => 'Settings';
 
   @override
@@ -14470,4 +14522,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get linuxKeepRunningSubtitleNoTray =>
       'Stays minimized when you close the window, so messages and calls still reach you';
+
+  @override
+  String get lowPowerToast =>
+      'Power saving is on, so some animations are paused';
 }

@@ -42,6 +42,16 @@ class MotionScope {
     return MotionScope._(MediaQuery.disableAnimationsOf(context));
   }
 
+  /// Whether the person ASKED for less motion — Calm in Settings, or the OS
+  /// Reduce Motion flag ([osReduceMotion], read from the platform so that
+  /// `LowPowerCalm`'s own `disableAnimations` does not count) — as opposed to
+  /// the app calming itself for power. A pinned Full motion is a request for
+  /// the opposite.
+  static bool reducedOnRequest(bool osReduceMotion) {
+    final override = SettingsStore.instance.motionLevel;
+    return override != null ? override == MotionLevel.calm : osReduceMotion;
+  }
+
   /// Test seam. Prefer [MotionScope.of] in widgets.
   @visibleForTesting
   const MotionScope.forTest({required this.calm});

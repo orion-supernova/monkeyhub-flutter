@@ -126,6 +126,7 @@ import '../widgets/message_arrivals.dart';
 import '../widgets/message_deletions.dart';
 import '../widgets/message_departures.dart';
 import '../widgets/message_bubble.dart';
+import '../widgets/message_stamp.dart' show formatClockTime;
 import '../widgets/reaction_details_sheet.dart';
 import '../widgets/reaction_limit_notice.dart';
 import '../widgets/reaction_picker_sheet.dart';
@@ -8189,9 +8190,9 @@ class _NoMessagesPlaceholder extends StatelessWidget {
 // ───────────────────────── liquid variant chrome ─────────────────────────
 
 /// The line under a conversation's name, shared by both headers: typing,
-/// else online for a DM, else the member count for a group. Null when there
-/// is nothing true to say — a DM with someone offline shows their name alone
-/// rather than a guess.
+/// else online / last seen for a DM, else the member count for a group. Empty
+/// when there is nothing true to say — a DM with someone who hides their
+/// presence shows their name alone rather than a guess.
 Widget? roomHeaderStatus(
   BuildContext context, {
   required ChatRoom room,
@@ -8224,17 +8225,23 @@ Widget? roomHeaderStatus(
     return PresenceBuilder(
       user: dmUser,
       builder: (context, p) {
-        if (p.status != 'online') return const SizedBox.shrink();
-        return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 220),
-          child: Text(
-            l10n.roomHeaderStatusOnline,
-            key: ValueKey(l10n.roomHeaderStatusOnline),
-            style: base.copyWith(color: theme.success),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        );
+        if (p.status == 'online') {
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: Text(
+              l10n.roomHeaderStatusOnline,
+              key: ValueKey(l10n.roomHeaderStatusOnline),
+              style: base.copyWith(color: theme.success),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+        }
+        // Not online: say when they were last around, if their privacy level
+        // lets this viewer know (the store hands no lastSeen otherwise).
+        final seen = p.lastSeen;
+        if (seen == null) return const SizedBox.shrink();
+        return _LastSeenLine(at: seen, style: base.copyWith(color: color));
       },
     );
   } else if (room.isGroupChat) {
@@ -8251,6 +8258,155 @@ Widget? roomHeaderStatus(
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
     ),
+  );
+}
+
+/// "Last seen 5 minutes ago" / "today at 14:32" / "yesterday at 09:10" /
+/// "Oct 3 at 14:32", under a DM's name. Re-reads the clock every 30 s while
+/// the answer is a minutes figure, so "just now" does not outlive the minute
+/// it was true in; older answers only change at midnight, which the next
+/// rebuild catches.
+class _LastSeenLine extends StatefulWidget {
+  const _LastSeenLine({required this.at, required this.style});
+
+  final DateTime at;
+  final TextStyle style;
+
+  @override
+  State<_LastSeenLine> createState() => _LastSeenLineState();
+}
+
+class _LastSeenLineState extends State<_LastSeenLine> {
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _arm();
+  }
+
+  @override
+  void didUpdateWidget(_LastSeenLine old) {
+    super.didUpdateWidget(old);
+    if (old.at != widget.at) _arm();
+  }
+
+  void _arm() {
+    _tick?.cancel();
+    _tick = null;
+    if (DateTime.now().difference(widget.at) >= const Duration(hours: 1)) {
+      return;
+    }
+    _tick = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      setState(() {});
+      if (DateTime.now().difference(widget.at) >= const Duration(hours: 1)) {
+        _tick?.cancel();
+        _tick = null;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  String _label(BuildContext context, {required bool short}) {
+    final l10n = AppLocalizations.of(context);
+    final local = widget.at.toLocal();
+    final now = DateTime.now();
+    final ago = now.difference(local);
+    if (ago.inMinutes < 1) {
+      return short
+          ? l10n.roomHeaderSeenShortJustNow
+          : l10n.roomHeaderLastSeenJustNow;
+    }
+    if (ago.inMinutes < 60) {
+      return short
+          ? l10n.roomHeaderSeenShortMinutes(ago.inMinutes)
+          : l10n.roomHeaderLastSeenMinutes(ago.inMinutes);
+    }
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(local.year, local.month, local.day);
+    final time = formatClockTime(local);
+    if (day == today) {
+      return short
+          ? l10n.roomHeaderSeenShortToday(time)
+          : l10n.roomHeaderLastSeenToday(time);
+    }
+    if (today.difference(day).inDays == 1) {
+      return short
+          ? l10n.roomHeaderSeenShortYesterday(time)
+          : l10n.roomHeaderLastSeenYesterday(time);
+    }
+    final material = MaterialLocalizations.of(context);
+    final date = day.year == now.year
+        ? material.formatShortMonthDay(day)
+        : material.formatShortDate(day);
+    return short
+        ? l10n.roomHeaderSeenShortDate(date)
+        : l10n.roomHeaderLastSeenDate(date, time);
+  }
+
+  /// Shrinks no further than this before the compact wording takes over.
+  static const _minScale = 0.85;
+
+  double _width(BuildContext context, String text, double scale) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: widget.style.copyWith(
+          fontSize: (widget.style.fontSize ?? 13) * scale,
+        ),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final w = painter.width;
+    painter.dispose();
+    return w;
+  }
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) {
+      // Full wording at full size, then full shrunk a little, then the compact
+      // wording at full size, then compact shrunk; whatever still overflows
+      // after that ends in an ellipsis, as a name would.
+      final full = _label(context, short: false);
+      final short = _label(context, short: true);
+      final room = box.maxWidth;
+      var text = short;
+      var scale = _minScale;
+      if (!room.isFinite) {
+        text = full;
+        scale = 1;
+      } else if (_width(context, full, 1) <= room) {
+        text = full;
+        scale = 1;
+      } else if (_width(context, full, _minScale) <= room) {
+        text = full;
+        scale = _minScale;
+      } else if (_width(context, short, 1) <= room) {
+        text = short;
+        scale = 1;
+      }
+      return AnimatedSwitcher(
+        duration: const Duration(milliseconds: 220),
+        child: Text(
+          text,
+          key: ValueKey(text),
+          style: widget.style.copyWith(
+            fontSize: (widget.style.fontSize ?? 13) * scale,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+    },
   );
 }
 

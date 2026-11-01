@@ -16507,6 +16507,66 @@ abstract class AppLocalizations {
   /// **'{count, plural, one{{count} member} other{{count} members}}'**
   String roomHeaderStatusMembers(int count);
 
+  /// Header line for a DM whose other person left less than a minute ago.
+  ///
+  /// In en, this message translates to:
+  /// **'Last seen just now'**
+  String get roomHeaderLastSeenJustNow;
+
+  /// Header line under the other person's name: they were last around under an hour ago.
+  ///
+  /// In en, this message translates to:
+  /// **'Last seen {minutes, plural, one{{minutes} minute ago} other{{minutes} minutes ago}}'**
+  String roomHeaderLastSeenMinutes(int minutes);
+
+  /// Header line under the other person's name: last around earlier today. time is a clock time.
+  ///
+  /// In en, this message translates to:
+  /// **'Last seen today at {time}'**
+  String roomHeaderLastSeenToday(String time);
+
+  /// Header line under the other person's name: last around yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Last seen yesterday at {time}'**
+  String roomHeaderLastSeenYesterday(String time);
+
+  /// Header line under the other person's name: last around on an older date. date is a short date like 'Oct 3'.
+  ///
+  /// In en, this message translates to:
+  /// **'Last seen {date} at {time}'**
+  String roomHeaderLastSeenDate(String date, String time);
+
+  /// Compact variant of the roomHeaderLastSeen line, used only when the full wording does not fit beside the call buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'Seen just now'**
+  String get roomHeaderSeenShortJustNow;
+
+  /// Compact variant of the roomHeaderLastSeen line, used only when the full wording does not fit beside the call buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'Seen {minutes}m ago'**
+  String roomHeaderSeenShortMinutes(int minutes);
+
+  /// Compact variant of the roomHeaderLastSeen line, used only when the full wording does not fit beside the call buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'Seen today, {time}'**
+  String roomHeaderSeenShortToday(String time);
+
+  /// Compact variant of the roomHeaderLastSeen line, used only when the full wording does not fit beside the call buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'Seen yest. {time}'**
+  String roomHeaderSeenShortYesterday(String time);
+
+  /// Compact variant of the roomHeaderLastSeen line, used only when the full wording does not fit beside the call buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'Seen {date}'**
+  String roomHeaderSeenShortDate(String date);
+
   /// Settings hub (iOS-style grouped list). Large title of the Settings tab.
   ///
   /// In en, this message translates to:
@@ -24108,6 +24168,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stays minimized when you close the window, so messages and calls still reach you'**
   String get linuxKeepRunningSubtitleNoTray;
+
+  /// Toast shown once when the phone's power saving (Low Power Mode / Battery Saver) switches on and the app pauses decorative animations because of it. Generic name on purpose: iOS and Android call it different things.
+  ///
+  /// In en, this message translates to:
+  /// **'Power saving is on, so some animations are paused'**
+  String get lowPowerToast;
 }
 
 class _AppLocalizationsDelegate

@@ -9924,6 +9924,52 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get roomHeaderLastSeenJustNow => 'Visto por último agora mesmo';
+
+  @override
+  String roomHeaderLastSeenMinutes(int minutes) {
+    return 'Visto por último há $minutes min';
+  }
+
+  @override
+  String roomHeaderLastSeenToday(String time) {
+    return 'Visto por último hoje às $time';
+  }
+
+  @override
+  String roomHeaderLastSeenYesterday(String time) {
+    return 'Visto por último ontem às $time';
+  }
+
+  @override
+  String roomHeaderLastSeenDate(String date, String time) {
+    return 'Visto por último em $date às $time';
+  }
+
+  @override
+  String get roomHeaderSeenShortJustNow => 'Visto agora';
+
+  @override
+  String roomHeaderSeenShortMinutes(int minutes) {
+    return 'Visto há $minutes min';
+  }
+
+  @override
+  String roomHeaderSeenShortToday(String time) {
+    return 'Visto hoje $time';
+  }
+
+  @override
+  String roomHeaderSeenShortYesterday(String time) {
+    return 'Visto ontem $time';
+  }
+
+  @override
+  String roomHeaderSeenShortDate(String date) {
+    return 'Visto $date';
+  }
+
+  @override
   String get settingsHubTitle => 'Definições';
 
   @override
@@ -14614,6 +14660,10 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get linuxKeepRunningSubtitleNoTray =>
       'Fica minimizado quando fechas a janela, para que mensagens e chamadas continuem a chegar';
+
+  @override
+  String get lowPowerToast =>
+      'A poupança de energia está ativada, por isso algumas animações estão em pausa';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -24527,6 +24577,52 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
+  String get roomHeaderLastSeenJustNow => 'Visto por último agora mesmo';
+
+  @override
+  String roomHeaderLastSeenMinutes(int minutes) {
+    return 'Visto por último há $minutes min';
+  }
+
+  @override
+  String roomHeaderLastSeenToday(String time) {
+    return 'Visto por último hoje às $time';
+  }
+
+  @override
+  String roomHeaderLastSeenYesterday(String time) {
+    return 'Visto por último ontem às $time';
+  }
+
+  @override
+  String roomHeaderLastSeenDate(String date, String time) {
+    return 'Visto por último em $date às $time';
+  }
+
+  @override
+  String get roomHeaderSeenShortJustNow => 'Visto agora';
+
+  @override
+  String roomHeaderSeenShortMinutes(int minutes) {
+    return 'Visto há $minutes min';
+  }
+
+  @override
+  String roomHeaderSeenShortToday(String time) {
+    return 'Visto hoje $time';
+  }
+
+  @override
+  String roomHeaderSeenShortYesterday(String time) {
+    return 'Visto ontem $time';
+  }
+
+  @override
+  String roomHeaderSeenShortDate(String date) {
+    return 'Visto $date';
+  }
+
+  @override
   String get settingsHubTitle => 'Ajustes';
 
   @override
@@ -29208,4 +29304,8 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get linuxKeepRunningSubtitleNoTray =>
       'Fica minimizado quando você fecha a janela, para que mensagens e chamadas continuem chegando';
+
+  @override
+  String get lowPowerToast =>
+      'A economia de energia está ativada, então algumas animações estão pausadas';
 }
