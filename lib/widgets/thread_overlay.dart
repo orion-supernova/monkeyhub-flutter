@@ -1461,42 +1461,54 @@ class _ThreadSheetState extends State<_ThreadSheet>
                                         bottom: 12,
                                         left: 0,
                                         right: 0,
-                                        // Back pill centred, the round
-                                        // jump-to-latest button at the right
-                                        // edge — the room's layout, so the
-                                        // two transcripts read the same.
-                                        child: Stack(
-                                          alignment: Alignment.bottomCenter,
-                                          children: [
-                                            TransientPillSlot(
-                                              visible: _jumpBack.isNotEmpty,
-                                              child: JumpBackPill(
-                                                depth: _jumpBack.depth,
-                                                onTap: _jumpBackOneHop,
+                                        // One column of small round
+                                        // buttons over the composer's
+                                        // trailing button — the room's
+                                        // layout, so both transcripts read
+                                        // the same: back one hop (transient)
+                                        // above the chevron (the fixture).
+                                        child: Align(
+                                          alignment: Alignment.bottomRight,
+                                          heightFactor: 1,
+                                          child: Padding(
+                                            padding: EdgeInsets.only(
+                                              right: scrollFabRightInset(
+                                                classic: SettingsStore
+                                                        .instance.chatStyle ==
+                                                    ChatStyle.classic,
                                               ),
                                             ),
-                                            Align(
-                                              alignment: Alignment.bottomRight,
-                                              heightFactor: 1,
-                                              child: Padding(
-                                                padding: const EdgeInsets.only(
-                                                  right: 10,
-                                                ),
-                                                child: ValueListenableBuilder<
-                                                  bool
-                                                >(
-                                                  valueListenable: _scrolledUp,
-                                                  builder:
-                                                      (context, scrolledUp, _) =>
-                                                          ScrollToLatestSlot(
-                                                            visible: scrolledUp,
-                                                            onTap:
-                                                                _scrollToBottom,
-                                                          ),
-                                                ),
+                                            child: ValueListenableBuilder<bool>(
+                                              valueListenable: _scrolledUp,
+                                              builder: (context, scrolledUp, _) =>
+                                                  Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  TransientPillSlot(
+                                                    visible:
+                                                        _jumpBack.isNotEmpty,
+                                                    child: AnimatedPadding(
+                                                      duration:
+                                                          ThemeScope.of(context)
+                                                              .motionFast,
+                                                      padding: EdgeInsets.only(
+                                                        bottom:
+                                                            scrolledUp ? 6 : 0,
+                                                      ),
+                                                      child: JumpBackPill(
+                                                        depth: _jumpBack.depth,
+                                                        onTap: _jumpBackOneHop,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  ScrollToLatestSlot(
+                                                    visible: scrolledUp,
+                                                    onTap: _scrollToBottom,
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                          ],
+                                          ),
                                         ),
                                       ),
                                     ],

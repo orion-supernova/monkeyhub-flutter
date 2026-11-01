@@ -49,7 +49,10 @@ void main() {
       expect(p.value, isTrue);
 
       // The hysteresis band: back below the show threshold, still shown.
-      p.updateMetrics(pixels: 150, maxScrollExtent: 5000);
+      p.updateMetrics(
+        pixels: (BottomProximity.showAbove + BottomProximity.hideBelow) / 2,
+        maxScrollExtent: 5000,
+      );
       expect(p.value, isTrue);
       p.updateMetrics(pixels: BottomProximity.hideBelow, maxScrollExtent: 5000);
       expect(p.value, isFalse);
@@ -74,7 +77,7 @@ void main() {
       p.addListener(() => notifications++);
 
       // A drag up through the threshold and onwards: one transition.
-      for (final px in [0.0, 100.0, 241.0, 400.0, 900.0, 4000.0]) {
+      for (final px in [0.0, 20.0, 49.0, 400.0, 900.0, 4000.0]) {
         p.updateMetrics(pixels: px, maxScrollExtent: 5000);
       }
       expect(notifications, 1);
@@ -150,6 +153,13 @@ void main() {
       // its own; if that ever changes this catches the double-fire.
       expect(taps, 1);
     });
+  });
+
+  test('appears after a small scroll, not a whole screen', () {
+    // Asked for directly: the button is small and out at the edge, so it can
+    // come up as soon as the reader has scrolled at all.
+    expect(BottomProximity.showAbove, lessThanOrEqualTo(64));
+    expect(BottomProximity.hideBelow, lessThan(BottomProximity.showAbove));
   });
 
   group('scroll buttons', () {

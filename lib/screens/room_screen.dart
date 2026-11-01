@@ -7434,39 +7434,30 @@ class _RoomScreenState extends State<_RoomView>
                     child: Stack(
                       alignment: Alignment.bottomCenter,
                       children: [
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // A warm cache makes the transcript useful before the
-                            // server answers, but it can be stale by hours, so say
-                            // a refresh is under way. Floated here with the other
-                            // pills rather than spent as a list row: a row has to
-                            // leave again, and when it did the whole transcript
-                            // dropped by its height a beat after the room opened.
-                            _TimelineSyncPill(pending: !serverAnswered),
-                            // Back one hop up the reply trail. Above the jump-to-
-                            // latest pill because it is the transient one: it comes
-                            // and goes with the trail, while the pill below it is
-                            // the fixture a reader always knows where to find.
-                            TransientPillSlot(
-                              visible: _jumpBack.isNotEmpty,
-                              child: JumpBackPill(
-                                depth: _jumpBack.depth,
-                                onTap: _jumpBackOneHop,
-                              ),
-                            ),
-                          ],
-                        ),
-                        // The round scroll buttons, at the right edge where the
-                        // thumb already is: `@` (unseen mentions of the reader)
-                        // stacked over the chevron (back to the newest message,
-                        // with how many unread wait below). Out of the centre
-                        // column so they never cover the bubbles mid-screen.
+                        // A warm cache makes the transcript useful before the
+                        // server answers, but it can be stale by hours, so say
+                        // a refresh is under way. Floated here rather than
+                        // spent as a list row: a row has to leave again, and
+                        // when it did the whole transcript dropped by its
+                        // height a beat after the room opened.
+                        _TimelineSyncPill(pending: !serverAnswered),
+                        // Every way of moving through the transcript, as one
+                        // column of small round buttons standing directly over
+                        // the composer's send / record button — the thumb's
+                        // column. Top to bottom: back one hop up the jump
+                        // trail (transient), `@` (unseen mentions of the
+                        // reader), the chevron (back to now, with how many
+                        // unread wait below — the fixture, nearest the thumb).
                         Align(
                           alignment: Alignment.bottomRight,
                           heightFactor: 1,
                           child: Padding(
-                            padding: const EdgeInsets.only(right: 10),
+                            padding: EdgeInsets.only(
+                              right: scrollFabRightInset(
+                                classic: SettingsStore.instance.chatStyle ==
+                                    ChatStyle.classic,
+                              ),
+                            ),
                             child: ValueListenableBuilder<bool>(
                               valueListenable: _scrolledUp,
                               builder: (context, scrolledUp, _) {
@@ -7479,19 +7470,39 @@ class _RoomScreenState extends State<_RoomView>
                                     widget.repo.inHistoryWindow(widget.roomId);
                                 final mentions = widget.repo
                                     .pendingMentionsFor(widget.roomId);
+                                final backVisible = _jumpBack.isNotEmpty;
+                                final motion =
+                                    ThemeScope.of(context).motionFast;
+                                // The gap under a button exists only while
+                                // something is showing below it, so the column
+                                // closes up instead of keeping holes.
+                                Widget gapped(bool below, Widget child) =>
+                                    AnimatedPadding(
+                                      duration: motion,
+                                      curve: Curves.easeOutCubic,
+                                      padding: EdgeInsets.only(
+                                        bottom: below ? 6 : 0,
+                                      ),
+                                      child: child,
+                                    );
                                 return Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     TransientPillSlot(
-                                      visible: mentions.isNotEmpty,
-                                      child: AnimatedPadding(
-                                        duration:
-                                            ThemeScope.of(context).motionFast,
-                                        curve: Curves.easeOutCubic,
-                                        padding: EdgeInsets.only(
-                                          bottom: downVisible ? 6 : 0,
+                                      visible: backVisible,
+                                      child: gapped(
+                                        mentions.isNotEmpty || downVisible,
+                                        JumpBackPill(
+                                          depth: _jumpBack.depth,
+                                          onTap: _jumpBackOneHop,
                                         ),
-                                        child: MentionJumpButton(
+                                      ),
+                                    ),
+                                    TransientPillSlot(
+                                      visible: mentions.isNotEmpty,
+                                      child: gapped(
+                                        downVisible,
+                                        MentionJumpButton(
                                           count: mentions.length,
                                           capped: widget.repo
                                               .pendingMentionsCapped(widget.roomId),

@@ -1555,13 +1555,14 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     final diameter = _buttonDiameter;
     _buttonSize = Size(diameter, diameter);
 
+    // Ink, not accent, and the "+" button's 20pt: the record button is the
+    // left "+"'s twin on the other side of the field. The accent is kept for
+    // the one control that sends, so an idle composer carries no colour.
     final glyph = _animatedGlyph(
       mode: mode,
       icon: _modeIcon(mode),
-      size: 18,
-      color: widget.style == ComposerCaptureStyle.classic
-          ? (mode == ComposerInputMode.camera ? theme.inkSoft : theme.accent)
-          : theme.accent,
+      size: 20,
+      color: theme.ink,
     );
 
     // The button does NOT travel with the finger, deliberately.
@@ -1583,9 +1584,6 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
             decoration: BoxDecoration(
               color: theme.surfaceRaised,
               shape: BoxShape.circle,
-              border: Border.all(
-                color: mode == ComposerInputMode.camera ? theme.divider : theme.accent.withValues(alpha: 0.55),
-              ),
             ),
             child: glyph,
           )

@@ -4,7 +4,8 @@ import 'package:flutter/cupertino.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
-import 'glass_pill.dart';
+import '../theme/theme_scope.dart';
+import 'scroll_to_latest.dart';
 
 /// The trail of messages a reader has jumped *away from* while following reply
 /// tethers, newest hop last.
@@ -109,14 +110,17 @@ class JumpBackStack extends ChangeNotifier {
 
 /// Returns the reader to the reply they jumped away from.
 ///
-/// Sits above the jump-to-latest pill rather than replacing it: "back one hop"
-/// and "all the way to now" are different destinations, and a reader mid-chain
-/// wants both available.
+/// A round button in the same right-hand column as `@` and the chevron, above
+/// them because it is the transient one: "back one hop" and "all the way to
+/// now" are different destinations, and a reader mid-chain wants both. It used
+/// to be a centred word-capsule, which covered the very bubbles it had just
+/// landed on.
 class JumpBackPill extends StatelessWidget {
   const JumpBackPill({super.key, required this.depth, required this.onTap});
 
-  /// How many hops deep the trail is. Shown from 2 up, so a reader who has
-  /// followed a long chain can see how far back the pill still goes.
+  /// How many hops deep the trail is. Shown from 2 up, as a quiet count on
+  /// the disc, so a reader who has followed a long chain can see how far back
+  /// it still goes.
   final int depth;
 
   final VoidCallback onTap;
@@ -124,25 +128,19 @@ class JumpBackPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return GlassPill(
-      // Down, because the place you jumped from is almost always newer than
-      // the message you jumped to — following a tether, opening a pin and
-      // jumping in from the shared-content browser all walk backwards through
-      // history, and in a transcript newer is below.
-      icon: CupertinoIcons.arrow_uturn_down,
-      // Says where it goes, not why you left. It used to read BACK TO REPLY,
-      // from when a reply tether was the only way to jump — but a pin banner
-      // and "show in chat" push onto this same trail, and neither of those
-      // involves a reply at all. Naming a mechanism the reader didn't use is
-      // worse than naming none: it sends them looking for a reply they never
-      // tapped.
-      label: depth > 1
-          ? l10n.bulkActionBarJumpBackLabelWithDepth(depth)
-          : l10n.bulkActionBarJumpBackLabel,
+    final theme = ThemeScope.of(context);
+    return ChatScrollFab(
+      onTap: onTap,
+      count: depth > 1 ? depth : 0,
+      quietCount: true,
+      // Says where it goes, not why you left — a pin banner and "show in
+      // chat" push onto this same trail, and neither involves a reply.
       semanticLabel: depth > 1
           ? l10n.bulkActionBarJumpBackSemanticLabelWithDepth(depth)
           : l10n.bulkActionBarJumpBackSemanticLabel,
-      onTap: onTap,
+      // Down-and-back, because the place you jumped from is almost always
+      // newer than the message you jumped to, and newer is below.
+      glyph: Icon(CupertinoIcons.arrow_uturn_down, size: 15, color: theme.ink),
     );
   }
 }

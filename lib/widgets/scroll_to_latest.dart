@@ -4,6 +4,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'chat_composer.dart' show composerTrailingCenter;
 import 'glass_pill.dart';
 import 'hover_hint.dart';
 import 'liquid_glass.dart';
@@ -24,13 +25,16 @@ class BottomProximity extends ValueNotifier<bool> {
   BottomProximity() : super(false);
 
   /// Distance from the bottom, in pixels, past which the affordance appears.
-  static const double showAbove = 240;
+  /// About half a bubble: the button is small and out at the edge now, so it
+  /// can come up as soon as the reader has scrolled at all, rather than only
+  /// after a whole screen (it used to be 240).
+  static const double showAbove = 48;
 
   /// …and within which it goes away again. Deliberately far below [showAbove];
   /// the band between the two is the sticky one. Both boundaries belong to the
   /// hidden side, so exactly [showAbove] is not yet shown and exactly
   /// [hideBelow] is already gone.
-  static const double hideBelow = 96;
+  static const double hideBelow = 12;
 
   void update(ScrollPosition position) => updateMetrics(
         pixels: position.pixels,
@@ -135,7 +139,7 @@ class ScrollToLatestPill extends StatelessWidget {
       glyph: Padding(
         // The chevron's ink sits high in its box; this centres it optically.
         padding: const EdgeInsets.only(top: 2),
-        child: Icon(CupertinoIcons.chevron_down, size: 19, color: theme.ink),
+        child: Icon(CupertinoIcons.chevron_down, size: 16, color: theme.ink),
       ),
     );
   }
@@ -178,7 +182,7 @@ class MentionJumpButton extends StatelessWidget {
         '@',
         style: TextStyle(
           fontFamily: 'CupertinoSystemText',
-          fontSize: 20,
+          fontSize: 17,
           height: 1,
           fontWeight: FontWeight.w600,
           color: theme.accent,
@@ -192,6 +196,11 @@ class MentionJumpButton extends StatelessWidget {
 /// The round glass button both scroll affordances are made of: a 40pt
 /// [LiquidGlass] disc with a glyph, and an optional count capsule centred on
 /// its top edge. One widget so the `@` and the chevron can never drift apart.
+/// How far in from the transcript's right edge the scroll buttons' column
+/// sits, so each disc is centred on the composer's trailing button below it.
+double scrollFabRightInset({required bool classic}) =>
+    composerTrailingCenter(classic: classic) - ChatScrollFab.size / 2;
+
 class ChatScrollFab extends StatelessWidget {
   const ChatScrollFab({
     super.key,
@@ -201,11 +210,14 @@ class ChatScrollFab extends StatelessWidget {
     this.onLongPress,
     this.count = 0,
     this.countCapped = false,
+    this.quietCount = false,
   });
 
-  /// Edge of the disc. A step under the 44pt chrome buttons: this one floats
-  /// over content rather than sitting in a bar, and should yield to it.
-  static const double size = 40;
+  /// Edge of the disc. Well under the composer's 44pt buttons: this floats
+  /// over content rather than sitting in a bar, and should yield to it. The
+  /// hosts centre it on the composer's trailing button (see
+  /// [composerTrailingCenter]) so the column reads as one line of controls.
+  static const double size = 34;
 
   final Widget glyph;
   final VoidCallback onTap;
@@ -215,6 +227,11 @@ class ChatScrollFab extends StatelessWidget {
 
   /// The count stopped at the server's cap: render it as "N+".
   final bool countCapped;
+
+  /// A neutral capsule instead of the accent one, for a number that is
+  /// information rather than something waiting for the reader (how deep the
+  /// jump-back trail goes).
+  final bool quietCount;
 
   @override
   Widget build(BuildContext context) {
@@ -235,7 +252,7 @@ class ChatScrollFab extends StatelessWidget {
         // Room above the disc for the capsule's top half, so the badge
         // straddles the disc's top edge while staying inside this widget's
         // bounds (and its hit area) rather than hanging off it.
-        height: size + 10,
+        height: size + 9,
         child: Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.bottomCenter,
@@ -248,6 +265,7 @@ class ChatScrollFab extends StatelessWidget {
                   child: _FabCount(
                     count: count,
                     capped: countCapped,
+                    quiet: quietCount,
                     theme: theme,
                   ),
                 ),
@@ -263,21 +281,23 @@ class _FabCount extends StatelessWidget {
   const _FabCount({
     required this.count,
     required this.capped,
+    required this.quiet,
     required this.theme,
   });
 
   final int count;
   final bool capped;
+  final bool quiet;
   final AppTheme theme;
 
   @override
   Widget build(BuildContext context) {
     final digits = count > 99 ? '99+' : (capped ? '$count+' : '$count');
     return Container(
-      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-      padding: const EdgeInsets.symmetric(horizontal: 5),
+      constraints: const BoxConstraints(minWidth: 17, minHeight: 17),
+      padding: const EdgeInsets.symmetric(horizontal: 4.5),
       decoration: BoxDecoration(
-        color: theme.accent,
+        color: quiet ? theme.surfaceRaised : theme.accent,
         borderRadius: BorderRadius.circular(999),
         // A ring of the page colour, so the capsule reads as sitting ON the
         // glass rather than as part of it.
@@ -290,10 +310,10 @@ class _FabCount extends StatelessWidget {
           digits,
           style: TextStyle(
             fontFamily: 'CupertinoSystemText',
-            fontSize: 11.5,
+            fontSize: 10.5,
             height: 1.15,
             fontWeight: FontWeight.w700,
-            color: theme.accentInk,
+            color: quiet ? theme.ink : theme.accentInk,
             decoration: TextDecoration.none,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),

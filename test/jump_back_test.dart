@@ -6,6 +6,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/glass_pill.dart';
 import 'package:monkeyhub/widgets/jump_back.dart';
+import 'package:monkeyhub/widgets/scroll_to_latest.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// The back trail is the only thing standing between a reader and being lost
@@ -242,14 +243,14 @@ void main() {
       ),
     );
 
-    testWidgets('one hop reads plainly, a deeper trail says how deep', (
+    testWidgets('one hop is a bare disc, a deeper trail says how deep', (
       tester,
     ) async {
       await tester.pumpWidget(host(1));
-      expect(find.text('Back'), findsOneWidget);
+      expect(find.text('1'), findsNothing);
 
       await tester.pumpWidget(host(3));
-      expect(find.text('Back · 3'), findsOneWidget);
+      expect(find.text('3'), findsOneWidget);
     });
 
     testWidgets('never names a mechanism the reader may not have used', (
@@ -257,17 +258,19 @@ void main() {
     ) async {
       // This read BACK TO REPLY from when a reply tether was the only way to
       // jump. A pin banner and the shared-content browser's "show in chat" now
-      // push onto the same trail, and neither involves a reply — so the label
-      // was sending readers to look for one they never tapped.
+      // push onto the same trail, and neither involves a reply.
+      final handle = tester.ensureSemantics();
       await tester.pumpWidget(host(1));
-      expect(find.textContaining('REPLY'), findsNothing);
+      expect(find.bySemanticsLabel(RegExp('REPLY', caseSensitive: false)),
+          findsNothing);
+      handle.dispose();
     });
 
-    testWidgets('is the same glass capsule as the pill below it', (
+    testWidgets('is the same round button as the chevron below it', (
       tester,
     ) async {
       await tester.pumpWidget(host(1));
-      expect(find.byType(GlassPill), findsOneWidget);
+      expect(find.byType(ChatScrollFab), findsOneWidget);
     });
 
     testWidgets('a tap fires exactly once', (tester) async {

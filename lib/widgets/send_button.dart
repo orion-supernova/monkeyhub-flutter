@@ -163,12 +163,6 @@ class _SendButtonState extends State<SendButton>
             shape: BoxShape.circle,
             // A halo, not a drop: centred so it lifts the disc off a bright
             // photo or a pale page without the Material lip under it.
-            boxShadow: [
-              BoxShadow(
-                color: fill.withValues(alpha: 0.35),
-                blurRadius: 12,
-              ),
-            ],
           ),
           child: CustomPaint(
             foregroundPainter: SpecularRim(

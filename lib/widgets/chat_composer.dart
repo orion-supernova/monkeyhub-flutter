@@ -17,6 +17,21 @@ import 'send_button.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart';
 
+/// Where each composer centres its trailing button (send / record / camera),
+/// measured in from the right edge: the side padding plus half the button.
+///
+/// Read by the transcript's floating scroll buttons, which stand in a column
+/// directly above it. Kept here, next to the paddings it is derived from, so
+/// a change to either composer's geometry moves that column with it.
+double composerTrailingCenter({required bool classic}) => classic
+    ? _kClassicSideInset + _kClassicButton / 2
+    : _kLiquidSideInset + _kLiquidButton / 2;
+
+const double _kClassicSideInset = 14;
+const double _kClassicButton = 38;
+const double _kLiquidSideInset = 16;
+const double _kLiquidButton = 44;
+
 /// The composer's send button.
 ///
 /// Tap sends. Hold opens the schedule sheet, if the host offered one — the
@@ -416,7 +431,9 @@ class ChatComposerClassic extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Container(
-      padding: padding ?? const EdgeInsets.fromLTRB(14, 8, 14, 12),
+      padding: padding ??
+          const EdgeInsets.fromLTRB(
+              _kClassicSideInset, 8, _kClassicSideInset, 12),
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
@@ -726,7 +743,9 @@ class ChatComposerLiquid extends StatelessWidget {
     // Scaffold handles the keyboard via resizeToAvoidBottomInset — the body
     // shrinks and `bottomSafe` is already reduced to 0 when the keyboard
     // covers the home indicator. Adding viewInsets here would double-count.
-    final pad = padding ?? EdgeInsets.fromLTRB(16, 8, 16, 8 + bottomSafe);
+    final pad = padding ??
+        EdgeInsets.fromLTRB(
+            _kLiquidSideInset, 8, _kLiquidSideInset, 8 + bottomSafe);
     return Padding(
       padding: pad,
       child: ComposerCaptureHost(
