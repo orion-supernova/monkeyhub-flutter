@@ -701,7 +701,10 @@ List<_StoryRun> _runsOf(List<Moment> moments) {
 ///
 /// **Gestures.** Tap the leading 30% to go back, anywhere else to go forward;
 /// hold to pause and clear the furniture off the picture; swipe sideways for
-/// the next or previous person; drag down to put it away; pinch to zoom.
+/// the next or previous person (the pager turns as a cube, following the
+/// finger, so a half drag is a half turn); drag down to put it away; pinch to
+/// zoom. Forward at the end of a person never drifts into the person beside
+/// them: it goes to the next person with something unseen, or closes.
 /// Double-tap zoom is disabled here because it would collide with tap-next.
 class _MomentStage extends StatefulWidget {
   const _MomentStage({
@@ -802,6 +805,26 @@ class _MomentStageState extends State<_MomentStage>
   /// the few things that follow it listen.
   final ValueNotifier<bool> _zoomedNotifier = ValueNotifier<bool>(false);
   bool get _zoomed => _zoomedNotifier.value;
+
+  /// The pager is between two people (a finger on it, or settling). The glass
+  /// chrome is cut for the duration rather than faded: a glass surface is never
+  /// animated, and the cube it would have to ride along on is not the chrome's
+  /// to turn.
+  final ValueNotifier<bool> _midPage = ValueNotifier<bool>(false);
+
+  /// [_zoomedNotifier] or [_midPage]: what puts the glass chrome away.
+  final ValueNotifier<bool> _chromeAway = ValueNotifier<bool>(false);
+  void _syncChromeAway() =>
+      _chromeAway.value = _zoomedNotifier.value || _midPage.value;
+
+  double get _pageValue => _pager.hasClients && _pager.position.hasPixels
+      ? (_pager.page ?? _run.toDouble())
+      : _run.toDouble();
+
+  void _onPagerMoved() {
+    final p = _pageValue;
+    _midPage.value = (p - p.roundToDouble()).abs() > 0.02;
+  }
   bool _routeCurrent = true;
   bool _keyboard = false;
   bool _appActive = true;
@@ -837,7 +860,8 @@ class _MomentStageState extends State<_MomentStage>
     _itemOf[_run] = _runs[_run].items
         .indexWhere((m) => m.id == start.id)
         .clamp(0, _runs[_run].items.length - 1);
-    _pager = PageController(initialPage: _run);
+    _pager = PageController(initialPage: _run)..addListener(_onPagerMoved);
+    _zoomedNotifier.addListener(_syncChromeAway);
     _drag.addListener(_onDrag);
     _arrive();
     _panel.addListener(_onPanel);
@@ -1052,7 +1076,11 @@ class _MomentStageState extends State<_MomentStage>
     _panel.removeListener(_onPanel);
     _panel.dispose();
     _commentFocus.dispose();
+    _pager.removeListener(_onPagerMoved);
     _pager.dispose();
+    _zoomedNotifier.removeListener(_syncChromeAway);
+    _midPage.dispose();
+    _chromeAway.dispose();
     _drag.removeListener(_onDrag);
     _drag.dispose();
     _coverRoute?.animation?.removeStatusListener(_onCoverStatus);
@@ -1201,8 +1229,23 @@ class _MomentStageState extends State<_MomentStage>
     _arrive();
   }
 
-  /// Forward one item — into the next person at the end of a run, and out of
-  /// the viewer at the end of the last one.
+  /// Whether [m] is still waiting to be looked at: not the viewer's own, not
+  /// seen before this route opened, and not seen on it either.
+  bool _unseen(Moment m) => !m.mine && !m.seen && !_seenSent.contains(m.id);
+
+  /// The next person after the one on screen who has something unseen, or
+  /// null when everyone after them has been watched through.
+  int? _nextUnseenRun() {
+    for (var r = _run + 1; r < _runs.length; r++) {
+      if (_runs[r].items.any(_unseen)) return r;
+    }
+    return null;
+  }
+
+  /// Forward one item. At the end of a person it does NOT drift into whoever
+  /// happens to be next (that is what a swipe is for): it goes to the next
+  /// person with something unseen, starting at their first unseen item, and
+  /// closes the viewer when nobody is left. Instagram's rule.
   void _next() {
     if (_closing) return;
     final items = _runs[_run].items;
@@ -1210,11 +1253,14 @@ class _MomentStageState extends State<_MomentStage>
       _setItem(_item + 1);
       return;
     }
-    if (_run < _runs.length - 1) {
-      _toRun(_run + 1);
+    final run = _nextUnseenRun();
+    if (run == null) {
+      _close();
       return;
     }
-    _close();
+    final first = _runs[run].items.indexWhere(_unseen);
+    setState(() => _itemOf[run] = first < 0 ? 0 : first);
+    _toRun(run);
   }
 
   /// Back one item — into the previous person at the start of a run. At the
@@ -1233,19 +1279,27 @@ class _MomentStageState extends State<_MomentStage>
     setState(() {});
   }
 
+  /// The page a programmatic move is heading for, so the people it flies past
+  /// on a multi-person jump are not "arrived at" (and marked seen).
+  int? _travelTo;
+
   void _toRun(int run) {
+    if (run == _run) return;
     if (MotionScope.of(context).calm) {
       _pager.jumpToPage(run);
     } else {
+      _travelTo = run;
       _pager.animateToPage(
         run,
-        duration: const Duration(milliseconds: 320),
+        duration: Duration(milliseconds: 320 + 60 * ((run - _run).abs() - 1)),
         curve: Curves.easeOutCubic,
       );
     }
   }
 
   void _onPageChanged(int run) {
+    if (_travelTo != null && run != _travelTo) return;
+    _travelTo = null;
     // A zoomed page cannot be swiped away, so this should already be false
     // — but a stuck `true` would leave the run paused with nothing on
     // screen to explain why.
@@ -1458,11 +1512,25 @@ class _MomentStageState extends State<_MomentStage>
                     visible: true,
                     hiddenWhen: _zoomedNotifier,
                     child: RepaintBoundary(
-                      child: _StoryProgress(
-                        count: _runs[_run].items.length,
-                        index: _item,
-                        clock: _clock,
-                        video: _isVideo(current),
+                      // Fades out as the cube turns away and back in for the
+                      // next person: it is a painter, never glass, so an
+                      // opacity is cheap. Zero exactly where `_run` flips.
+                      child: AnimatedBuilder(
+                        animation: _pager,
+                        builder: (context, child) {
+                          final p = _pageValue;
+                          final off = (p - p.roundToDouble()).abs();
+                          return Opacity(
+                            opacity: (1 - off * 2).clamp(0.0, 1.0),
+                            child: child,
+                          );
+                        },
+                        child: _StoryProgress(
+                          count: _runs[_run].items.length,
+                          index: _item,
+                          clock: _clock,
+                          video: _isVideo(current),
+                        ),
                       ),
                     ),
                   ),
@@ -1472,7 +1540,7 @@ class _MomentStageState extends State<_MomentStage>
                   _FadingChrome(
                     drag: _drag,
                     visible: chrome,
-                    hiddenWhen: _zoomedNotifier,
+                    hiddenWhen: _chromeAway,
                     child: _StageTopBar(
                       moment: current,
                       api: widget.api,
@@ -1517,7 +1585,7 @@ class _MomentStageState extends State<_MomentStage>
                     // Gone under the reply mode: its own composer takes this
                     // place, and the bar's outline would peek out beside it.
                     visible: chrome && !_panelUp,
-                    hiddenWhen: _zoomedNotifier,
+                    hiddenWhen: _chromeAway,
                     alignBottom: true,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -1720,6 +1788,22 @@ class _MomentStageState extends State<_MomentStage>
       // A sideways drag between people pauses the clock until it settles.
       onNotification: (n) {
         if (n.depth != 0) return false;
+        if (n is ScrollStartNotification && n.dragDetails != null) {
+          // A finger caught a programmatic move: it goes where the finger says.
+          _travelTo = null;
+        } else if (n is ScrollEndNotification) {
+          // A move interrupted on a person it had flown past never reported
+          // that page; take it from where the pager actually came to rest.
+          _travelTo = null;
+          final settled = _pageValue.round();
+          if (settled != _run && settled >= 0 && settled < _runs.length) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _pageValue.round() == settled && settled != _run) {
+                _onPageChanged(settled);
+              }
+            });
+          }
+        }
         final paging = n is ScrollStartNotification
             ? n.dragDetails != null
             : n is ScrollEndNotification
@@ -1739,7 +1823,11 @@ class _MomentStageState extends State<_MomentStage>
         itemBuilder: (_, i) {
           final run = _runs[i];
           final m = run.items[(_itemOf[i] ?? 0).clamp(0, run.items.length - 1)];
-          return HeroMode(
+          return _CubeFace(
+            pager: _pager,
+            index: i,
+            fallbackPage: _run.toDouble(),
+            child: HeroMode(
             // `Hero` collects every hero in both routes' trees, visible or
             // not, and a `PageView`'s neighbours carry the same tags their
             // rail cards do — so opening one photo would launch three flights.
@@ -1777,6 +1865,7 @@ class _MomentStageState extends State<_MomentStage>
                 _sync();
               },
             ),
+          ),
           );
         },
       ),
@@ -2154,6 +2243,107 @@ class _HiddenWhen extends StatelessWidget {
       child: child,
       builder: (context, also, child) =>
           Offstage(offstage: hidden || also, child: child),
+    );
+  }
+}
+
+/// One person's page, turned as a face of a cube: the pager is the cube, and
+/// swiping from one person to the next rotates it, Instagram's way.
+///
+/// The geometry is a real cube, not two doors on a hinge. The axis sits half a
+/// page behind the screen; a page [d] pages to the right of the one in view is
+/// turned `d × 90°` about it. Pivoting each page on its own edge would leave a
+/// wedge of black opening beside the one leaving. Because the pager lays pages
+/// out one width apart already, each face only adds the difference.
+///
+/// It follows the pager every frame, so a half drag is a half turn, a held
+/// finger holds the cube still, and a fling finishes it. At rest every page is
+/// the identity: nothing here is in the way of the picture, its gestures or its
+/// Hero. Only the pager's own listener rebuilds the transform; [child] is built
+/// once by the caller.
+class _CubeFace extends StatelessWidget {
+  const _CubeFace({
+    required this.pager,
+    required this.index,
+    required this.fallbackPage,
+    required this.child,
+  });
+
+  final PageController pager;
+  final int index;
+
+  /// Where the pager is before it has laid out.
+  final double fallbackPage;
+  final Widget child;
+
+  /// How hard the far edge falls away. Small: a cube, not a fisheye.
+  static const _perspective = 0.0009;
+
+  /// Darkest shade a face falls to when it has turned edge-on.
+  static const _shade = 0.55;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: pager,
+      child: child,
+      builder: (context, child) {
+        final page = pager.hasClients && pager.position.hasPixels
+            ? (pager.page ?? fallbackPage)
+            : fallbackPage;
+        final d = index - page;
+        // One tree shape at every angle, the resting one included: swapping
+        // the wrapper in and out would remount the page (and its Hero and its
+        // decode) at the start of every swipe.
+        return LayoutBuilder(
+          builder: (context, box) {
+            final w = box.maxWidth;
+            final h = box.maxHeight;
+            final turn = d.clamp(-1.0, 1.0);
+            final theta = turn * math.pi / 2;
+            final sinT = math.sin(theta);
+            final cosT = math.cos(theta);
+            // How far behind the screen the face's centre sits…
+            final depth = (w / 2) * (1 - cosT);
+            // …and how far the whole cube is pushed back so the corner nearest
+            // the viewer meets the screen rather than coming through it.
+            final pushed = math.max(0.0, (w / 2) * (sinT.abs() + cosT - 1));
+            final m = Matrix4.identity()
+              // Perspective is judged from the middle of the SCREEN, which is
+              // not this page's own middle while it is sliding past.
+              ..translateByDouble(w / 2 - d * w, h / 2, 0, 1)
+              ..setEntry(3, 2, _perspective)
+              ..translateByDouble(-(w / 2 - d * w), -h / 2, 0, 1)
+              // Where this face's centre goes, relative to where the pager put it.
+              ..translateByDouble((w / 2) * sinT - d * w, 0, -(depth + pushed), 1)
+              // Turned about its own centre.
+              ..translateByDouble(w / 2, h / 2, 0, 1)
+              ..rotateY(theta)
+              ..translateByDouble(-w / 2, -h / 2, 0, 1);
+            return Transform(
+              transform: m,
+              child: Stack(
+                fit: StackFit.passthrough,
+                children: [
+                  child!,
+                  // A face falls into shadow as it turns away. A plain colour
+                  // over the page, never an opacity layer.
+                  if (turn != 0)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: ColoredBox(
+                          color: Colors.black.withValues(
+                            alpha: _shade * turn.abs(),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

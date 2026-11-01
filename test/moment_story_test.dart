@@ -20,9 +20,21 @@ class _FakeChatApi extends Fake implements ChatApi {
   Future<String?> getFileUrl(String storageId) async => null;
 }
 
-class _FakeFeedApi extends Fake implements FeedApi {}
+class _FakeFeedApi extends Fake implements FeedApi {
+  @override
+  Future<void> markSeen({
+    required String userId,
+    required List<String> momentIds,
+  }) async {}
+}
 
-Moment _m(String id, {String userId = 'u1', MomentTag? tag}) => Moment(
+Moment _m(
+  String id, {
+  String userId = 'u1',
+  MomentTag? tag,
+  bool seen = true,
+  bool mine = true,
+}) => Moment(
   id: id,
   userId: userId,
   dayKey: '2026-10-04',
@@ -30,8 +42,8 @@ Moment _m(String id, {String userId = 'u1', MomentTag? tag}) => Moment(
   expiresAt: DateTime(2026, 10, 5, 9),
   authorName: 'Ada',
   authorUsername: 'ada',
-  mine: true,
-  seen: true,
+  mine: mine,
+  seen: seen,
   caption: 'caption $id',
   tag: tag,
   mediaStorageId: tag == null ? 'blob_$id' : null,
@@ -150,15 +162,62 @@ void main() {
     expect(find.text('open'), findsOneWidget);
   });
 
-  testWidgets('the end of one person moves on to the next person', (
+  Moment fresh(String id, String user) =>
+      _m(id, userId: user, seen: false, mine: false);
+  Moment watched(String id, String user) =>
+      _m(id, userId: user, seen: true, mine: false);
+
+  testWidgets('the end of one person moves on to the next UNSEEN person', (
     tester,
   ) async {
-    await open(tester, [_m('a'), _m('b', userId: 'u2')]);
-    await wait(tester, const Duration(milliseconds: 10400));
-    // Not pumpAndSettle: the next person's clock is running, and settling
-    // would play them out and close the viewer.
+    await open(tester, [fresh('a', 'u1'), fresh('b', 'u2')]);
+    await tester.tapAt(const Offset(800 * 0.8, 300));
     await wait(tester, const Duration(milliseconds: 500));
     expect(find.text('caption b'), findsOneWidget);
+  });
+
+  testWidgets('forward at the end of a person skips people already seen', (
+    tester,
+  ) async {
+    await open(tester, [
+      fresh('a', 'u1'),
+      watched('b', 'u2'),
+      fresh('c', 'u3'),
+    ]);
+    await tester.tapAt(const Offset(800 * 0.8, 300));
+    await wait(tester, const Duration(milliseconds: 700));
+    expect(find.text('caption c'), findsOneWidget);
+    expect(find.text('caption b'), findsNothing);
+  });
+
+  testWidgets('forward at the end closes when everyone after is seen', (
+    tester,
+  ) async {
+    await open(tester, [fresh('a', 'u1'), watched('b', 'u2')]);
+    await tester.tapAt(const Offset(800 * 0.8, 300));
+    await tester.pumpAndSettle();
+    expect(find.text('caption a'), findsNothing);
+    expect(find.text('open'), findsOneWidget);
+  });
+
+  testWidgets('a swipe still goes to the next person, seen or not', (
+    tester,
+  ) async {
+    await open(tester, [fresh('a', 'u1'), watched('b', 'u2')]);
+    await tester.drag(find.byType(PageView), const Offset(-600, 0));
+    await wait(tester, const Duration(milliseconds: 500));
+    expect(find.text('caption b'), findsOneWidget);
+  });
+
+  testWidgets('a person comes up at their first unseen item', (tester) async {
+    await open(tester, [
+      fresh('a', 'u1'),
+      watched('b1', 'u2'),
+      fresh('b2', 'u2'),
+    ]);
+    await tester.tapAt(const Offset(800 * 0.8, 300));
+    await wait(tester, const Duration(milliseconds: 700));
+    expect(find.text('caption b2'), findsOneWidget);
   });
 
   testWidgets('a route pushed over the viewer pauses the clock', (
