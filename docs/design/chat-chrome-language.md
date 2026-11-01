@@ -25,12 +25,18 @@ composer, the composer's own buttons, and the quote inside a bubble.
 - **Whose message it is gets that person's colour** (`SpeakerScope`): the rail
   and name on a quote and on the reply card. It falls back to the accent.
 - A screen at rest should carry almost no colour.
+- **Theme-proof by construction**: only theme tokens, never a hard-coded
+  colour; never a flat ring of `theme.background` (themes with picture or
+  gradient backgrounds show it as a mismatched circle), lift with a soft
+  shadow instead. In-content text, counts and glyph letters use the theme's
+  own face (`theme.body`, `groupedMetaStyle`); only tab-bar badges keep the
+  system face. Verified by rendering every `ThemeController.all` theme.
 
 ## 3. Shape
 
 - **One rail** (`ContextRail`) for "this is about another message": a 3pt
   rounded bar, used by the in-bubble quote, the reply/edit cards and (as
-  segments) the pinned banner's position marker.
+  segments, also 3pt) the pinned banner's position marker.
 - Round buttons: 44pt in bars and the composer, 34pt for the scroll column.
 - The scroll column is centred on the composer's trailing button
   (`composerTrailingCenter` / `scrollFabRightInset`).

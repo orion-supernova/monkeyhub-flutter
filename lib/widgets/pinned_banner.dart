@@ -24,7 +24,7 @@ const double kPinnedBannerHeight = 44.0;
 /// them and the whole marker reads as a dashed smear.
 const int _kMaxTickSegments = 5;
 
-const double _kTickWidth = 2.0;
+const double _kTickWidth = 3.0;
 const double _kTickHeight = 26.0;
 const double _kTickGap = 2.0;
 

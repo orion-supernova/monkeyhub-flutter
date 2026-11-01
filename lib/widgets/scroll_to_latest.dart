@@ -9,6 +9,7 @@ import 'chrome_motion.dart';
 import 'count_bump.dart';
 import 'glass_pill.dart';
 import 'hover_hint.dart';
+import 'ios_kit.dart' show groupedMetaStyle;
 import 'liquid_glass.dart';
 
 /// Tracks whether a `reverse: true` transcript is scrolled away from its bottom.
@@ -187,11 +188,14 @@ class MentionJumpButton extends StatelessWidget {
       semanticLabel: l10n.roomScreenJumpToMentionSemanticLabel(count),
       glyph: Text(
         '@',
-        style: TextStyle(
-          fontFamily: 'CupertinoSystemText',
+        // The theme's own body face, like every in-content badge
+        // ([CountBadge]): on Paper it is a serif @, on a character theme
+        // that theme's letter. Only tab-bar badges keep the system face.
+        style: theme.body.copyWith(
           fontSize: 17,
           height: 1,
           fontWeight: FontWeight.w600,
+          letterSpacing: 0,
           color: theme.accent,
           decoration: TextDecoration.none,
         ),
@@ -352,20 +356,30 @@ class _FabCount extends StatelessWidget {
       decoration: BoxDecoration(
         color: quiet ? theme.surfaceRaised : theme.accent,
         borderRadius: BorderRadius.circular(999),
-        // A ring of the page colour, so the capsule reads as sitting ON the
-        // glass rather than as part of it.
-        border: Border.all(color: theme.background, width: 1.5),
+        // Lifted off the glass by a soft shadow rather than a ring of the page
+        // colour: a ring is a flat fill, and over a picture or gradient
+        // background (Retro Wave's sunset, a starfield) it drew a mismatched
+        // circle. A shadow reads the same over anything.
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withValues(alpha: 0.30),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Center(
         widthFactor: 1,
         heightFactor: 1,
         child: Text(
           digits,
-          style: TextStyle(
-            fontFamily: 'CupertinoSystemText',
+          // The badge token on the theme's body face with tabular digits —
+          // the same rule as [CountBadge], at the size this capsule allows.
+          style: groupedMetaStyle(theme).copyWith(
             fontSize: 10.5,
             height: 1.15,
             fontWeight: FontWeight.w700,
+            letterSpacing: 0,
             color: quiet ? theme.ink : theme.accentInk,
             decoration: TextDecoration.none,
             fontFeatures: const [FontFeature.tabularFigures()],
