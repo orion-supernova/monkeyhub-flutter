@@ -83,6 +83,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  // Sized by count, a two-photo album's card was wider than a four-photo
+  // one's, and two albums in a row did not line up.
+  test('every album deals the same size of card, whatever its count', () {
+    final two = PhotoDeck.cardWidth(260, 2);
+    expect(PhotoDeck.cardWidth(260, 3), two);
+    expect(PhotoDeck.cardWidth(260, 10), two);
+  });
+
   testWidgets('a hand opens on its first photograph', (tester) async {
     await pump(tester, 4);
     expect(await front(tester), 'm0');

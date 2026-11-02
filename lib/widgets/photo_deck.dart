@@ -124,13 +124,16 @@ class PhotoDeck extends StatefulWidget {
 
   /// The front card's width for a deck [width] wide holding [count]
   /// photographs: what is left once the peeking edges have their room, on
-  /// both sides (cards still to come wait on the right, cards already seen on
+  /// both sides, the same for every album (cards still to come wait on the right, cards already seen on
   /// the left).
   static double cardWidth(double width, int count) =>
       width - 2 * inset(count);
 
   /// The room each side of the front card, for the cards piled there.
-  static double inset(int count) => peek * math.min(count - 1, behindMax);
+  /// The full pile's room for every album, not just as many cards as this
+  /// one has: sized by count, a two-photo album's card came out wider than a
+  /// four-photo one's, and two albums in a row did not line up.
+  static double inset(int count) => count > 1 ? peek * behindMax : 0;
 
   @override
   State<PhotoDeck> createState() => _PhotoDeckState();
