@@ -598,6 +598,24 @@ class ConvexError implements Exception {
       'ConvexError($message${value == null ? '' : ': $value'})';
 }
 
+/// Whether a failed call never got an answer from the server (the link was
+/// slow, dropped or not up yet), as opposed to the server answering "no".
+///
+/// Only the first kind is worth retrying on its own: the same call will very
+/// likely succeed once the link is back. A server that refused (a thrown
+/// function error, a [ServerRefusal], a limit) refuses again.
+///
+/// Native: our own `.timeout`, or the Rust core's `InternalError` (socket
+/// gone, its own 20s bound). Web: our own `.timeout`, or the socket not being
+/// open (`StateError`). A server-side throw is `ConvexError` / `ServerError`
+/// on native and a plain `Exception` on web, and is never transient here.
+bool isTransientBackendError(Object e) {
+  if (e is TimeoutException) return true;
+  if (e is cv.ClientError_InternalError) return true;
+  if (e is StateError) return e.message.contains('not connected');
+  return false;
+}
+
 /// A credential check the server refused WITHOUT throwing.
 ///
 /// Convex rolls back every write of a mutation that throws, and a failed

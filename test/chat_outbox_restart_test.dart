@@ -152,7 +152,7 @@ void main() {
     fail('the outbox never settled at $length');
   }
 
-  test('a failed send survives a restart, held for the sender to decide',
+  test('a send the link failed keeps going on its own, across a restart',
       () async {
     const me = 'outbox_me';
     final api = _FakeApi();
@@ -160,7 +160,8 @@ void main() {
     await before.attach(me);
     await before.sendText('r1', 'sent in a tunnel');
     final failed = before.messagesFor('r1').single;
-    expect(failed.status, MessageStatus.error);
+    // No answer is not a "no": it still says sending, and retries itself.
+    expect(failed.status, MessageStatus.pending);
     final onDisk = await settled(me, 1);
     expect(onDisk.single['message']['content'], 'sent in a tunnel');
     await before.detach();
@@ -171,20 +172,64 @@ void main() {
     final back = after.messagesFor('r1').single;
     expect(back.id, failed.id);
     expect(back.content, 'sent in a tunnel');
-    expect(back.status, MessageStatus.error);
 
-    // The reconnect sweep leaves it alone — it is the sender's call.
+    // Minutes old, so it goes out by itself once the link is back, with the
+    // same id, so the server can collapse a copy that did land before.
     api.offline = false;
     await after.flushPending();
-    expect(api.delivered, isEmpty);
-
-    // SEND AGAIN reuses the id, so the server can collapse a copy that did
-    // land before the restart.
-    await after.retryPending(back.id);
     expect(api.delivered, [failed.id]);
     expect(back.status, MessageStatus.sent);
     await settled(me, 0);
     await after.detach();
+  });
+
+  test('messages typed after a stuck one wait behind it, in order', () async {
+    const me = 'outbox_order';
+    final api = _FakeApi();
+    final repo = ChatRepository(api: api, cv: _FakeCv());
+    await repo.attach(me);
+    await repo.sendText('r1', 'first');
+    api.offline = false;
+    await repo.sendText('r1', 'second');
+    final ids = [for (final m in repo.messagesFor('r1')) m.id];
+    expect(ids, hasLength(2));
+    // The second went out only after the first, in one sweep.
+    expect(api.delivered, ids);
+    await settled(me, 0);
+    await repo.detach();
+  });
+
+  test('an unsent message from long ago waits for the sender to decide',
+      () async {
+    const me = 'outbox_old';
+    final old = ChatMessage(
+      id: 'tmp_old',
+      roomId: 'r1',
+      senderId: me,
+      senderName: '',
+      content: 'from yesterday',
+      type: MessageType.text,
+      createdAt: DateTime.now().subtract(const Duration(hours: 20)),
+      status: MessageStatus.error,
+    );
+    CacheStore.instance.scheduleSaveOutbox(me, [old]);
+    await settled(me, 1);
+
+    final api = _FakeApi()..offline = false;
+    final repo = ChatRepository(api: api, cv: _FakeCv());
+    await repo.attach(me);
+    final back = repo.messagesFor('r1').single;
+    expect(back.status, MessageStatus.error);
+
+    // The reconnect sweep leaves it alone: it is the sender's call.
+    await repo.flushPending();
+    expect(api.delivered, isEmpty);
+
+    await repo.retryPending(back.id);
+    expect(api.delivered, ['tmp_old']);
+    expect(back.status, MessageStatus.sent);
+    await settled(me, 0);
+    await repo.detach();
   });
 
   test('a photo that never finished uploading comes back with its bytes',

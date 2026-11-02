@@ -123,12 +123,19 @@ class ChatRepository extends ChangeNotifier {
       }
       list.add(m);
       touched.add(list);
-      _heldFromLastRun.add(m.id);
+      final fresh =
+          DateTime.now().difference(m.createdAt) < _outboxAutoResendWindow;
+      if (fresh && _isPostable(m) && m.liveShareDurationMs == null) {
+        _sendFailures[m.id] = 0;
+      } else {
+        _heldFromLastRun.add(m.id);
+      }
     }
     for (final list in touched) {
       list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     }
     _outboxLoadedFor = userId;
+    if (_sendFailures.isNotEmpty) _scheduleSendRetry(immediate: true);
     // Unconditionally: anything sent between launch and this read has not
     // reached the disk yet, because writes were held until now.
     notifyListeners();
@@ -360,6 +367,30 @@ class ChatRepository extends ChangeNotifier {
   /// message typed before a restart should still go out — maybe days later —
   /// is the sender's call, and a reconnect is not them making it.
   final Set<String> _heldFromLastRun = {};
+
+  /// How young an unsent message from last run must be to go out on its own.
+  /// Younger than this it is the same conversation (the app was killed in a
+  /// tunnel, the OS reclaimed it); older, whether it should still go is the
+  /// sender's call, and it waits for their tap.
+  static const _outboxAutoResendWindow = Duration(minutes: 15);
+
+  /// Messages whose post is on the wire right now, so a sweep never sends one
+  /// a second time while the first attempt is still waiting on a slow link.
+  final Set<String> _posting = {};
+
+  /// Sends the link failed (no answer, not a refusal), by message id, with how
+  /// many times in a row. These retry on their own ([_sendSweep]); the count
+  /// only decides when the bubble stops saying "sending" and says "failed".
+  final Map<String, int> _sendFailures = {};
+
+  /// Tries a send gets, shown as still sending, before its bubble says failed.
+  /// It keeps retrying after that; the bubble is just honest about it.
+  static const _sendFailuresBeforeShown = 3;
+
+  Timer? _sendRetryTimer;
+  int _sendRetryRound = 0;
+  bool _sweeping = false;
+  bool _sweepAgain = false;
   // Newest message id we've seen per room. Used to dedup [markRoomRead]
   // when the `messages:list` subscription refires for non-message reasons
   // (e.g. a reaction add/remove) so we don't trip a roomMembers patch →
@@ -1573,6 +1604,10 @@ class ChatRepository extends ChangeNotifier {
     _outboxLoadedFor = null;
     _outboxSig = '';
     _heldFromLastRun.clear();
+    _sendFailures.clear();
+    _sendRetryTimer?.cancel();
+    _sendRetryTimer = null;
+    _sendRetryRound = 0;
     _lastSeenNewestMsgId.clear();
     _lastLiveRaw.clear();
     _deletedLocally.clear();
@@ -3812,6 +3847,19 @@ class ChatRepository extends ChangeNotifier {
     // `typing:setTyping` every 2s for up to 3s more (`_scheduleStopTyping`),
     // which lands squarely inside the round trip the clock icon is waiting on.
     // It was also simply wrong: you are not still typing, you just sent.
+    // Something older in this room is still waiting on the link: this one
+    // queues behind it, or it would land first and the conversation would
+    // read out of order. The sweep sends right away if the link is fine.
+    final behind = _pending[roomId]?.any(
+          (p) => p.id != optimistic.id && _sendFailures.containsKey(p.id),
+        ) ??
+        false;
+    if (behind) {
+      _sendFailures[optimistic.id] = 0;
+      _stopTyping();
+      await _sendSweep();
+      return;
+    }
     final posted = _postMessage(roomId, optimistic);
     _stopTyping();
     await posted;
@@ -3975,9 +4023,21 @@ class ChatRepository extends ChangeNotifier {
   /// lets this one function serve the first attempt *and* both reconnect
   /// sweepers, which used to carry their own near-identical copies of this call —
   /// three places that had to be kept in step, and twice already hadn't been.
-  Future<void> _postMessage(String roomId, ChatMessage optimistic) async {
+  /// Posts [optimistic], once at a time per message. Returns true when the
+  /// link failed it (no answer at all): the caller should stop sending and
+  /// let [_sendSweep] carry on, in order, once the link is back.
+  Future<bool> _postMessage(String roomId, ChatMessage optimistic) async {
+    if (!_posting.add(optimistic.id)) return false;
+    try {
+      return await _postMessageAttempt(roomId, optimistic);
+    } finally {
+      _posting.remove(optimistic.id);
+    }
+  }
+
+  Future<bool> _postMessageAttempt(String roomId, ChatMessage optimistic) async {
     final id = _userId;
-    if (id == null) return;
+    if (id == null) return false;
     try {
       final serverId = await api.sendMessage(
         roomId: roomId,
@@ -4053,11 +4113,13 @@ class ChatRepository extends ChangeNotifier {
       // on web while the recipient's phone already had the message: the socket
       // had been rebuilt underneath us and the query set never replayed, so the
       // echo that was supposed to clear it was never coming.
+      _sendFailures.remove(optimistic.id);
       if (optimistic.status != MessageStatus.error) {
         optimistic.serverId = serverId;
         optimistic.status = MessageStatus.sent;
         notifyListeners();
       }
+      return false;
     } catch (e) {
       // A child guard rejection is not a transient failure, so it must not
       // sit in the pending list waiting to be retried forever — the retry
@@ -4069,21 +4131,44 @@ class ChatRepository extends ChangeNotifier {
         // the rest of the session.
         optimistic.upload?.dispose();
         _lastChildGateError = e.toString();
+        _sendFailures.remove(optimistic.id);
         notifyListeners();
-        return;
+        return false;
       }
       // A server limit (too fast, storage full, too large, too long) leaves
       // the bubble failed like any error, but says which, so the room can
       // tell the user why a retry won't help yet.
       final text = e.toString();
+      var limited = false;
       for (final code in kSendLimitCodes) {
         if (text.contains(code)) {
           _lastSendLimit = code;
+          limited = true;
           break;
         }
       }
+      // The link failed it, the server never said no: a subway tunnel, a
+      // 3G stall, a socket being rebuilt. It goes again on its own, with the
+      // same clientId, so an attempt that did land (the answer was what got
+      // lost) collapses into the same row server-side. A live location is
+      // left to its caller, which starts the share only on a confirmed send.
+      if (!limited &&
+          optimistic.liveShareDurationMs == null &&
+          isTransientBackendError(e) &&
+          (_pending[roomId]?.contains(optimistic) ?? false)) {
+        final n = (_sendFailures[optimistic.id] ?? 0) + 1;
+        _sendFailures[optimistic.id] = n;
+        optimistic.status = n >= _sendFailuresBeforeShown
+            ? MessageStatus.error
+            : MessageStatus.pending;
+        notifyListeners();
+        _scheduleSendRetry();
+        return true;
+      }
+      _sendFailures.remove(optimistic.id);
       optimistic.status = MessageStatus.error;
       notifyListeners();
+      return false;
     }
   }
 
@@ -4282,7 +4367,8 @@ class ChatRepository extends ChangeNotifier {
         // Bytes already up, or a text message: only the mutation is left.
         m.status = MessageStatus.pending;
         notifyListeners();
-        return _postMessage(entry.key, m);
+        await _postMessage(entry.key, m);
+        return;
       }
     }
   }
@@ -4293,6 +4379,7 @@ class ChatRepository extends ChangeNotifier {
       final i = list.indexWhere((m) => m.id == messageId);
       if (i < 0) continue;
       _heldFromLastRun.remove(messageId);
+      _sendFailures.remove(messageId);
       list.removeAt(i).upload?.dispose();
       notifyListeners();
       return;
@@ -5772,11 +5859,70 @@ class ChatRepository extends ChangeNotifier {
     if (retry.isEmpty) return;
     for (final (_, m) in retry) {
       m.status = MessageStatus.pending;
+      _sendFailures.putIfAbsent(m.id, () => 0);
     }
     notifyListeners();
-    for (final (roomId, m) in retry) {
-      await _postMessage(roomId, m);
+    // The link just came back: start the backoff over and go now.
+    _sendRetryRound = 0;
+    _sendRetryTimer?.cancel();
+    _sendRetryTimer = null;
+    await _sendSweep();
+  }
+
+  /// Retries every send the link failed, oldest first, stopping at the first
+  /// one the link fails again: the rest would only queue behind it, each
+  /// waiting out its own timeout, and would land out of order if the link
+  /// came back halfway through. The next round is on [_scheduleSendRetry]'s
+  /// backoff, or sooner on a reconnect ([flushPending]).
+  Future<void> _sendSweep() async {
+    if (_sweeping) {
+      _sweepAgain = true;
+      return;
     }
+    _sweeping = true;
+    try {
+      do {
+        _sweepAgain = false;
+        final due = <(String, ChatMessage)>[];
+        for (final entry in _pending.entries) {
+          for (final m in entry.value) {
+            if (_sendFailures.containsKey(m.id) &&
+                (m.status == MessageStatus.pending ||
+                    m.status == MessageStatus.error) &&
+                _isPostable(m) &&
+                !_heldFromLastRun.contains(m.id)) {
+              due.add((entry.key, m));
+            }
+          }
+        }
+        // Gone from the outbox some other way (the echo, a discard).
+        final live = {for (final (_, m) in due) m.id};
+        _sendFailures.removeWhere((id, _) =>
+            !live.contains(id) &&
+            !_pending.values.any((l) => l.any((m) => m.id == id)));
+        for (final (roomId, m) in due) {
+          if (_userId == null) return;
+          if (await _postMessage(roomId, m)) return;
+        }
+        _sendRetryRound = 0;
+      } while (_sweepAgain);
+    } finally {
+      _sweeping = false;
+    }
+  }
+
+  /// 1s, 2s, 4s, 8s, 15s, then every 30s for as long as something is unsent.
+  void _scheduleSendRetry({bool immediate = false}) {
+    if (_sendRetryTimer?.isActive ?? false) return;
+    const steps = [1, 2, 4, 8, 15, 30];
+    final secs = immediate
+        ? 0
+        : steps[_sendRetryRound < steps.length ? _sendRetryRound : steps.length - 1];
+    _sendRetryRound++;
+    _sendRetryTimer = Timer(Duration(seconds: secs), () {
+      _sendRetryTimer = null;
+      unawaited(_sendSweep());
+    });
   }
 }
 
