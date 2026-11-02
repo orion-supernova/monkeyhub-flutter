@@ -74,4 +74,17 @@ to Dart") ships. A bump must re-apply every patch below.
   network thread twice. The extension side ends silently
   (`ios/BroadcastExtension/SampleHandler.swift`).
 
+- **W7, camera discovery off the main thread** (after upstream #2229,
+  shipped in 1.6.3). `FlutterRTCMediaStream.m` `getSources:`
+  (`enumerateDevices`): the first `AVCaptureDeviceDiscoverySession` in a
+  process waits on the camera daemon, about a second on a Mac, and the main
+  thread is Flutter's UI thread there. The camera lookup now runs on a
+  global queue; the audio ports (iOS `RTCAudioSession`, macOS audio device
+  module) are still read on the main thread, and the result is returned
+  from it. Upstream also moved the macOS ADM listing off the main thread;
+  this does not, so nothing audio-side changes.
+
+Checked against 1.6.3 (2026-10-26): #1996, #2095, #2111 and PR #2197 are
+all still open, so the pin stands.
+
 Android and the rest of Dart are byte-identical to pub.dev 1.4.1.
