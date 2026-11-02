@@ -65,7 +65,8 @@ jobs:
       # See the Linux job's step of the same name for why --build-name is
       # not enough on its own.
       - name: Stamp version
-        run: sed -i "s/^version: .*/version: ${{ needs.meta.outputs.version }}+1/" pubspec.yaml
+        run: |
+          sed -i "s/^version: .*/version: ${{ needs.meta.outputs.version }}+1/" pubspec.yaml
       - run: flutter pub get
       # flutter_webrtc 1.4.x downloads libwebrtc.zip at configure time and
       # extracts it through windows/flutter/ephemeral/.plugin_symlinks, which
@@ -144,7 +145,8 @@ jobs:
       # This checkout is thrown away after the run; the repo's version line
       # still belongs to deploy.sh.
       - name: Stamp version
-        run: sed -i "s/^version: .*/version: ${{ needs.meta.outputs.version }}+1/" pubspec.yaml
+        run: |
+          sed -i "s/^version: .*/version: ${{ needs.meta.outputs.version }}+1/" pubspec.yaml
       - run: flutter pub get
       - name: flutter build linux
         run: >
