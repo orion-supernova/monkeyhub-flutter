@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/spoiler_store.dart';
 import 'media_spoiler.dart';
+import 'photo_dismiss_area.dart';
 
 /// The shuttle a picture is painted with while it is between the thumbnail it
 /// was tapped in and the fullscreen view of it.
@@ -46,8 +47,16 @@ HeroFlightShuttleBuilder mediaFlightShuttle({
     final flown = sealed
         ? MediaSpoilerCover(interactive: false, child: image)
         : image;
-    if (radius == BorderRadius.zero) return flown;
-    final tween = BorderRadiusTween(begin: radius, end: BorderRadius.zero);
+    // The fullscreen end is square, unless a dismiss drag rounded it on the
+    // way out: then the flight starts from those corners, not from square.
+    final lifted = direction == HeroFlightDirection.pop
+        ? PhotoDismissArea.cornerRadiusOf(fromHeroContext)
+        : 0.0;
+    if (radius == BorderRadius.zero && lifted == 0) return flown;
+    final tween = BorderRadiusTween(
+      begin: radius,
+      end: BorderRadius.circular(lifted),
+    );
     final curved = CurvedAnimation(parent: animation, curve: Curves.easeInOut);
     return AnimatedBuilder(
       animation: curved,

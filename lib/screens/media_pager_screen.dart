@@ -1296,13 +1296,9 @@ class _Page extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // The chrome above and the rail below sit on the picture's own blurred
-        // colour rather than on dead black. Reuses the thumbnail decode where
-        // the flight already warmed one, so it costs nothing on the page you
-        // opened.
-        // Black void around a photo that doesn't fill the screen, like
-          // Photos — the blurred copy of the picture read as a smudge.
-          const ColoredBox(color: Colors.black),
+        // No black of its own behind the picture: the route's barrier is the
+        // black, and it fades with the drag. A page's own box rode along with
+        // the dragged picture as a black slab over the transcript.
         PhotoDismissArea(
           drag: drag,
           onDismiss: onDismiss,
@@ -1489,10 +1485,7 @@ class _VideoPageState extends State<_VideoPage> with RouteLanding {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (poster != null)
-          // Black void around a photo that doesn't fill the screen, like
-          // Photos — the blurred copy of the picture read as a smudge.
-          const ColoredBox(color: Colors.black),
+        // No black box here either: see [_Page].
         PhotoDismissArea(
           drag: widget.drag,
           onDismiss: widget.onDismiss,

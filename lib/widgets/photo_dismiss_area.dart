@@ -145,6 +145,21 @@ class PhotoDismissArea extends StatefulWidget {
           ?.value ??
       1;
 
+  /// The corner radius, in screen points, that the picture under
+  /// [heroContext] is showing right now: its dismiss rounding times the
+  /// caller's shrink. Zero at rest and outside any [PhotoDismissArea].
+  ///
+  /// For the flight home, which starts from the dragged picture and has to
+  /// start from its corners too, or they snap square on take-off.
+  static double cornerRadiusOf(BuildContext heroContext) {
+    final s = heroContext.findAncestorStateOfType<_PhotoDismissAreaState>();
+    if (s == null || !s.mounted || s.widget.onDragUpdate != null) return 0;
+    final drag = s.widget.drag.value;
+    final screen = MediaQuery.sizeOf(s.context);
+    final t = photoDismissProgress(drag, screen);
+    return photoDismissRadius(drag, screen) * (1 - t * kPhotoDismissShrink);
+  }
+
   @override
   State<PhotoDismissArea> createState() => _PhotoDismissAreaState();
 }
@@ -607,7 +622,10 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
       if (delta == Offset.zero) return;
       _pan = delta.dy.abs() >= delta.dx.abs() ? _Pan.dismiss : _Pan.picture;
     }
-    if (_pan == _Pan.dismiss) widget.drag.value += Offset(0, delta.dy);
+    // Both axes once it is a dismiss: the picture is lifted off the screen
+    // and goes where the finger takes it, as in Photos. Only the vertical
+    // travel decides whether it closes (see [photoDismissProgress]).
+    if (_pan == _Pan.dismiss) widget.drag.value += delta;
   }
 
   void _onInteractionEnd(ScaleEndDetails d) {
@@ -655,6 +673,30 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
     _settleCtrl
       ..value = 0
       ..forward();
+  }
+
+  /// Rounds the picture's corners as a dismiss drag lifts it, so it reads as
+  /// a card coming off the screen and lands in a rounded thumbnail without a
+  /// corner snap (the flight home picks the radius up from here, see
+  /// [PhotoDismissArea.cornerRadiusOf]).
+  ///
+  /// Only for the drag this widget owns: a story's caller-owned vertical drag
+  /// means something else. Always the same [ClipRRect], so the picture is
+  /// never remounted when the drag starts; [Clip.none] at rest costs no layer.
+  Widget _corners(Widget child) {
+    if (widget.onDragUpdate != null) return child;
+    return ValueListenableBuilder<Offset>(
+      valueListenable: widget.drag,
+      builder: (context, drag, child) {
+        final r = photoDismissRadius(drag, MediaQuery.sizeOf(context));
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(r),
+          clipBehavior: r > 0.01 ? Clip.antiAlias : Clip.none,
+          child: child,
+        );
+      },
+      child: child,
+    );
   }
 
   @override
@@ -738,7 +780,10 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
               child: Padding(
                 padding: widget.contentInset,
                 child: Center(
-                  child: KeyedSubtree(key: _pictureKey, child: widget.child),
+                  child: KeyedSubtree(
+                    key: _pictureKey,
+                    child: _corners(widget.child),
+                  ),
                 ),
               ),
             ),
@@ -865,3 +910,16 @@ double photoDismissProgress(Offset drag, Size screen) =>
 /// How far the picture shrinks at a full-screen drag. Subtle on purpose: enough
 /// to read as "peeling away", not so much that it detaches from the finger.
 const double kPhotoDismissShrink = 0.28;
+
+/// How round the picture's corners get at a dismiss drag, before the
+/// caller's shrink scales them down with it. About a chat bubble's.
+const double kPhotoDismissRadius = 24;
+
+/// The picture's corner radius at a dismiss drag of [drag]. Rounds early:
+/// a quarter of the way in it already reads as a card lifted off the
+/// screen, which is the moment a square-cornered photo looks like a
+/// screenshot being dragged around.
+double photoDismissRadius(Offset drag, Size screen) {
+  final t = (photoDismissProgress(drag, screen) / 0.25).clamp(0.0, 1.0);
+  return kPhotoDismissRadius * Curves.easeOut.transform(t);
+}
