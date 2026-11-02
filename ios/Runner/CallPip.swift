@@ -28,8 +28,9 @@ import WebRTC
 /// call screen draws the call and this costs nothing.
 ///
 /// The screen-share drawing board (`DrawPip`) is the other user of PiP.
-/// Only one window can exist, and while this device presents, the board is
-/// the one that matters, so the call's window yields to it.
+/// Only one window can exist, so while this device presents the call's
+/// window yields to the board, and the board shows the peer this class
+/// was told about ([peer]) whenever nobody is drawing.
 final class CallPip: NSObject, AVPictureInPictureControllerDelegate {
   static let shared = CallPip()
 
@@ -43,6 +44,9 @@ final class CallPip: NSObject, AVPictureInPictureControllerDelegate {
   private var trackId: String?
   private var videoOff = true
   private var title = ""
+  private var fit = false
+  /// Dart wants a call window (armed and not disarmed since).
+  private var wanted = false
 
   /// The drawing board holds PiP (see DrawPip.arm).
   private var yielded = false
@@ -74,14 +78,23 @@ final class CallPip: NSObject, AVPictureInPictureControllerDelegate {
     self.channel = channel
   }
 
+  /// Whose picture the call's window would show right now, for the drawing
+  /// board to show between drawings. Nil while the call has no window.
+  var peer: (title: String, trackId: String?)? {
+    wanted ? (title, videoOff ? nil : trackId) : nil
+  }
+
   /// DrawPip takes PiP while a share is on the air, and gives it back.
+  /// Yielded, this keeps no controller at all (one video-call PiP per app),
+  /// only what Dart last said, and arms again from that when it is back.
   func setYielded(_ value: Bool) {
     if yielded == value { return }
     yielded = value
-    guard let pip = controller else { return }
-    pip.canStartPictureInPictureAutomaticallyFromInline = !value
-    if value && pip.isPictureInPictureActive {
-      pip.stopPictureInPicture()
+    if value {
+      teardown()
+    } else if wanted && controller == nil {
+      arm()
+      applyStage()
     }
   }
 
@@ -92,15 +105,22 @@ final class CallPip: NSObject, AVPictureInPictureControllerDelegate {
     self.videoOff = videoOff || trackId == nil
     let trackChanged = trackId != self.trackId
     self.trackId = trackId
-    if controller == nil {
+    self.fit = fit
+    wanted = true
+    if controller == nil && !yielded {
       arm()
     }
-    stage?.setTitle(title)
-    stage?.setVideoOff(self.videoOff)
-    stage?.videoView.displayLayer.videoGravity = fit ? .resizeAspect : .resizeAspectFill
+    applyStage()
     if trackChanged, controller?.isPictureInPictureActive == true {
       attachSink()
     }
+    DrawPip.shared.peerChanged()
+  }
+
+  private func applyStage() {
+    stage?.setTitle(title)
+    stage?.setVideoOff(videoOff)
+    stage?.videoView.displayLayer.videoGravity = fit ? .resizeAspect : .resizeAspectFill
   }
 
   private func arm() {
@@ -138,6 +158,13 @@ final class CallPip: NSObject, AVPictureInPictureControllerDelegate {
 
   private func disarm() {
     trackId = nil
+    wanted = false
+    teardown()
+    DrawPip.shared.peerChanged()
+  }
+
+  /// Lets the controller go; what Dart said stays.
+  private func teardown() {
     guard let pip = controller else { return }
     // Off first: a controller released with auto-start still on is the
     // "PiP started by itself as the call ended" Apple warns about.
@@ -196,7 +223,7 @@ final class CallPip: NSObject, AVPictureInPictureControllerDelegate {
   /// The remote track flutter_webrtc holds under [id]. Reached through the
   /// runtime rather than the plugin's headers, which are not a module Swift
   /// can import (same as DrawPip's ScreenFrameGrabber).
-  private static func remoteTrack(_ id: String) -> RTCVideoTrack? {
+  static func remoteTrack(_ id: String) -> RTCVideoTrack? {
     let shared = NSSelectorFromString("sharedSingleton")
     let lookup = NSSelectorFromString("remoteTrackForId:")
     guard let cls = NSClassFromString("FlutterWebRTCPlugin"),

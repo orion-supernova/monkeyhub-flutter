@@ -259,16 +259,56 @@ class CallPip {
     }
     if (spec.value != next) spec.value = next;
     if (!_supported) return;
-    final sig = next?.signature;
+    // iOS, while this device presents: the drawing board holds the system
+    // window (DrawPip.swift), and shows the peer's picture in it whenever
+    // nobody is drawing, FaceTime's shape. So the native side still hears
+    // whose picture that is; CallPip.swift stays yielded and never lifts a
+    // window of its own. In the app and on Android, presenting keeps no
+    // call window (the shared screen is the app itself there).
+    final native = next ?? _presentingNativeSpec(call, group);
+    final sig = native?.signature;
     if (sig == _sentSignature) return;
     final wasArmed = _sentSignature != null;
     _sentSignature = sig;
-    if (next == null) {
+    if (native == null) {
       _invoke('disarm', null);
     } else {
-      _invoke(wasArmed ? 'update' : 'arm', next.toArgs());
+      _invoke(wasArmed ? 'update' : 'arm', native.toArgs());
     }
   }
+
+  /// The window [_sync] would want if this device were not presenting, for
+  /// the iOS drawing board to show between drawings. Null off iOS.
+  CallPipSpec? _presentingNativeSpec(CallService? call, GroupCallService? group) {
+    if (!presentingFeedsBoard) return null;
+    if (call != null && call.inCall && call.localScreenSharing) {
+      return pipSpecForCall(
+        session: call.session,
+        localCamActive: call.localCamActive,
+        localScreenSharing: false,
+        remoteStream: call.remoteStream,
+        remoteScreenStream: call.remoteScreenStream,
+      );
+    }
+    if (call?.inCall != true && group != null && group.inCall && group.localScreenSharing) {
+      return pipSpecForGroup(
+        inCall: true,
+        localCamActive: group.localCamActive,
+        localScreenSharing: false,
+        peers: group.peers.values,
+        roomName: group.roomName,
+      );
+    }
+    return null;
+  }
+
+  /// Whether the native side keeps hearing the peer's picture while this
+  /// device presents (iOS only; see [_sync]).
+  @visibleForTesting
+  bool? presentingFeedsBoardOverride;
+
+  bool get presentingFeedsBoard =>
+      presentingFeedsBoardOverride ?? (!kIsWeb && Platform.isIOS);
 
   void _invoke(String method, Object? args) {
     unawaited(_channel.invokeMethod<void>(method, args).catchError((Object e) {
@@ -283,6 +323,7 @@ class CallPip {
     _call = null;
     _group = null;
     _sentSignature = null;
+    presentingFeedsBoardOverride = null;
     spec.value = null;
     inPip.value = false;
     onRestore = null;

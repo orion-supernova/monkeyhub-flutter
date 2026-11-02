@@ -20,6 +20,12 @@ import WebRTC
 ///    the share's own video track, not a second capture — with the strokes
 ///    live over it, in each author's colour, fading on the same clock the
 ///    in-app layer keeps;
+///  * between drawings, the peer's picture (or their name card), FaceTime's
+///    shape: the board is the only window while this device presents, so
+///    it carries the call too. The ink cross-fades in over the face as a
+///    stroke begins and back out once the last one has faded. Who that is
+///    comes from `CallPip.peer`; with no call window there (a voice call
+///    with both cameras off) the board keeps its idle card instead;
 ///  * zoomed onto the ink: a whole phone screen in a window a third of its
 ///    width makes a circle round an icon a few points across, so the board
 ///    eases in on the part being drawn on (up to 2.5x) and back out once
@@ -45,6 +51,10 @@ final class DrawPip: NSObject, AVPictureInPictureControllerDelegate {
   private var callVC: AVPictureInPictureVideoCallViewController?
   private var sourceView: UIView?
   private var board: DrawBoardView?
+  /// The peer, under the board, shown while nobody draws.
+  private var peerStage: CallPipStageView?
+  private var peerSink: RemoteFrameSink?
+  private var peerTrackId: String?
   private let grabber = ScreenFrameGrabber()
   private var lastStill: CFTimeInterval = 0
 
@@ -99,9 +109,14 @@ final class DrawPip: NSObject, AVPictureInPictureControllerDelegate {
     host.addSubview(source)
 
     let vc = AVPictureInPictureVideoCallViewController()
+    let peerStage = CallPipStageView()
+    peerStage.frame = vc.view.bounds
+    peerStage.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    vc.view.addSubview(peerStage)
     let board = DrawBoardView(idleText: idleText)
     board.frame = vc.view.bounds
     board.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    board.onIdleChanged = { [weak self] _ in self?.showLayers(animated: true) }
     vc.view.addSubview(board)
     vc.view.backgroundColor = DrawBoardView.stage
 
@@ -119,9 +134,11 @@ final class DrawPip: NSObject, AVPictureInPictureControllerDelegate {
     sourceView = source
     callVC = vc
     self.board = board
+    self.peerStage = peerStage
     controller = pip
     // One window at a time: while this device presents, the board is it.
     CallPip.shared.setYielded(true)
+    peerChanged()
     return true
   }
 
@@ -134,6 +151,9 @@ final class DrawPip: NSObject, AVPictureInPictureControllerDelegate {
     }
     controller?.delegate = nil
     controller = nil
+    detachPeer()
+    peerStage = nil
+    peerTrackId = nil
     callVC = nil
     sourceView?.removeFromSuperview()
     sourceView = nil
@@ -165,13 +185,78 @@ final class DrawPip: NSObject, AVPictureInPictureControllerDelegate {
     return a < 1 ? CGSize(width: 360 * a, height: 360) : CGSize(width: 360, height: 360 / a)
   }
 
+  // MARK: - the peer
+
+  /// `CallPip` heard who the call's window shows (or that it has none).
+  func peerChanged() {
+    guard let stage = peerStage else { return }
+    let peer = CallPip.shared.peer
+    stage.setTitle(peer?.title ?? "")
+    stage.setVideoOff(peer?.trackId == nil)
+    let id = peer?.trackId
+    if id != peerTrackId {
+      peerTrackId = id
+      if controller?.isPictureInPictureActive == true { attachPeer() }
+    }
+    showLayers(animated: false)
+  }
+
+  /// The board covers the peer while there is ink on it, or while there is
+  /// no peer to show (its idle card then says what the window is for).
+  private func showLayers(animated: Bool) {
+    guard let board = board else { return }
+    let showPeer = board.isIdle && CallPip.shared.peer != nil
+    let alpha: CGFloat = showPeer ? 0 : 1
+    if board.alpha == alpha { return }
+    if animated {
+      UIView.animate(withDuration: showPeer ? 0.35 : 0.2) { board.alpha = alpha }
+    } else {
+      board.alpha = alpha
+    }
+  }
+
+  /// Frames are only taken off the track while the window is up, as in
+  /// `CallPip`.
+  private func attachPeer() {
+    detachPeer()
+    guard let stage = peerStage, let id = peerTrackId,
+          let track = CallPip.remoteTrack(id)
+    else { return }
+    // The window keeps the shared screen's shape; the face fills it.
+    let sink = RemoteFrameSink(view: stage.videoView) { _ in }
+    track.add(sink)
+    sink.track = track
+    peerSink = sink
+  }
+
+  private func detachPeer() {
+    guard let sink = peerSink else { return }
+    sink.track?.remove(sink)
+    sink.track = nil
+    peerSink = nil
+    peerStage?.videoView.flush()
+  }
+
   // MARK: - AVPictureInPictureControllerDelegate
+
+  func pictureInPictureControllerWillStartPictureInPicture(
+    _ pictureInPictureController: AVPictureInPictureController
+  ) {
+    attachPeer()
+  }
+
+  func pictureInPictureControllerDidStopPictureInPicture(
+    _ pictureInPictureController: AVPictureInPictureController
+  ) {
+    detachPeer()
+  }
 
   func pictureInPictureController(
     _ pictureInPictureController: AVPictureInPictureController,
     failedToStartPictureInPictureWithError error: Error
   ) {
     NSLog("[draw_pip] failed to start: \(error)")
+    detachPeer()
   }
 
   func pictureInPictureController(
@@ -309,6 +394,11 @@ final class DrawBoardView: UIView {
   private var focusRect = CGRect(x: 0, y: 0, width: 1, height: 1)
   private let idleStack: UIStackView
   private var strokes: [String: Stroke] = [:]
+
+  /// No ink on the board (its idle card is up).
+  var isIdle: Bool { !idleStack.isHidden }
+  /// Called as the board goes idle (true) or takes its first stroke.
+  var onIdleChanged: ((Bool) -> Void)?
 
   /// The shared frame's width over its height.
   var frameAspect: CGFloat = 9.0 / 19.5 {
@@ -529,6 +619,7 @@ final class DrawBoardView: UIView {
   private func setIdle(_ idle: Bool) {
     if idleStack.isHidden == !idle { return }
     idleStack.isHidden = !idle
+    onIdleChanged?(idle)
     CATransaction.begin()
     CATransaction.setAnimationDuration(idle ? 0.35 : 0.2)
     // The still goes with the last stroke; the next drawing takes a new one.

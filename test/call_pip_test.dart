@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:monkeyhub/calls/call_models.dart';
 import 'package:monkeyhub/calls/call_pip.dart';
+import 'package:monkeyhub/calls/call_service.dart';
 import 'package:monkeyhub/calls/group_call_service.dart';
 
 import 'fakes/fake_webrtc.dart';
@@ -24,7 +27,89 @@ CallSession _session({
 FakeMediaStream _video(String id) =>
     FakeMediaStream([FakeMediaStreamTrack(kind: 'video', id: id)]);
 
+/// Just what `CallPip._sync` reads off a 1:1 call.
+class _Call extends ChangeNotifier implements CallService {
+  _Call(this.session, this.remoteStream);
+
+  @override
+  final CallSession? session;
+  @override
+  final MediaStream? remoteStream;
+  @override
+  bool localScreenSharing = false;
+
+  @override
+  bool get inCall => true;
+  @override
+  bool get localCamActive => true;
+  @override
+  MediaStream? get remoteScreenStream => null;
+
+  void changed() => notifyListeners();
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _Group extends ChangeNotifier implements GroupCallService {
+  @override
+  bool get inCall => false;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('CallPip while presenting', () {
+    late List<MethodCall> sent;
+
+    setUp(() {
+      sent = [];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(const MethodChannel('monkeyhub/call_pip'), (c) async {
+        sent.add(c);
+        return null;
+      });
+    });
+
+    tearDown(() {
+      CallPip.instance.debugReset();
+      CallPip.instance.supportedOverride = false;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(const MethodChannel('monkeyhub/call_pip'), null);
+    });
+
+    Future<_Call> start({required bool feedsBoard}) async {
+      final pip = CallPip.instance
+        ..supportedOverride = true
+        ..presentingFeedsBoardOverride = feedsBoard;
+      final call = _Call(_session(), _video('v1'));
+      pip.attach(call: call, group: _Group());
+      call
+        ..localScreenSharing = true
+        ..changed();
+      await Future<void>.delayed(Duration.zero);
+      return call;
+    }
+
+    test("iOS: the board still hears the peer's picture", () async {
+      await start(feedsBoard: true);
+      // No in-app window over the shared screen...
+      expect(CallPip.instance.spec.value, isNull);
+      // ...but the native side keeps the peer, for the board between drawings.
+      expect(sent.map((c) => c.method), ['arm']);
+      expect((sent.single.arguments as Map)['trackId'], 'v1');
+    });
+
+    test('elsewhere: presenting disarms the call window', () async {
+      await start(feedsBoard: false);
+      expect(CallPip.instance.spec.value, isNull);
+      expect(sent.map((c) => c.method), ['arm', 'disarm']);
+    });
+  });
+
   group('pipSpecForCall', () {
     test('a live video call shows the peer', () {
       final spec = pipSpecForCall(
