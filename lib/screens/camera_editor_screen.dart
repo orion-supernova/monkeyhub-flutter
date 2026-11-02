@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
+import '../keyboard/submit_on_enter.dart';
+import '../platform.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../media/editor_geometry.dart';
@@ -1612,7 +1614,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
         !cropping && !_penArmed && _display != null && !_saving && !typing;
 
     // The gallery's preview: a system back is the ×, and keeps the work.
-    return PopScope(
+    final page = PopScope(
       canPop: !widget.closeKeeps,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && !_saving) _discard();
@@ -1744,6 +1746,51 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
       ),
       ),
     );
+    return _enterSends(page);
+  }
+
+  /// Send for the keyboard: Enter sends the photos, as it sends a message in
+  /// the chat. On a desktop the caption field has it too (Shift+Enter is a
+  /// new line there, see [SubmitOnEnter]); this is the half for everywhere
+  /// else on the page, which used to answer Enter with nothing and left the
+  /// send button as the only way out.
+  ///
+  /// Autofocused so the page has a key listener the moment it opens, before
+  /// anything has been clicked. Stands down while the caption is being typed
+  /// (the field's own handler runs first and decides), while a send is under
+  /// way, and for any modifier, which belong to somebody else.
+  Widget _enterSends(Widget page) {
+    if (!isPhysicalKeyboardPlatform) return page;
+    return Focus(
+      autofocus: true,
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent || event.synthesized) {
+          return KeyEventResult.ignored;
+        }
+        if (event.logicalKey != LogicalKeyboardKey.enter &&
+            event.logicalKey != LogicalKeyboardKey.numpadEnter) {
+          return KeyEventResult.ignored;
+        }
+        final keys = HardwareKeyboard.instance;
+        if (keys.isShiftPressed ||
+            keys.isControlPressed ||
+            keys.isAltPressed ||
+            keys.isMetaPressed) {
+          return KeyEventResult.ignored;
+        }
+        if (_captionFocus.hasFocus) return KeyEventResult.ignored;
+        return _sendFromKeyboard();
+      },
+      child: page,
+    );
+  }
+
+  KeyEventResult _sendFromKeyboard() {
+    if (_saving || _display == null) {
+      return KeyEventResult.ignored;
+    }
+    unawaited(_save());
+    return KeyEventResult.handled;
   }
 
   /// Pinch and double-tap zoom over the stage, while nothing else wants the
@@ -2426,7 +2473,10 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
         constraints: const BoxConstraints(minHeight: 40),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 9, 14, 9),
-          child: TextField(
+          child: SubmitOnEnter(
+            controller: _caption,
+            onSubmit: _sendFromKeyboard,
+            child: TextField(
             key: cameraEditorCaptionKey,
             controller: _viewOnce ? _noCaption : _caption,
             focusNode: _captionFocus,
@@ -2443,6 +2493,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
                   : l10n.cameraEditorScreenCaptionHint,
               hintStyle: style.copyWith(color: MediaGlass.inkDim),
             ),
+          ),
           ),
         ),
       ),
