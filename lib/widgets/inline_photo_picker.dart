@@ -83,7 +83,8 @@ class InlinePickerController extends ChangeNotifier {
 
   /// The send's switches (view once, spoiler, HD): the same model, and the
   /// same instance, the preview of a pick shows, so the strip sends with
-  /// whatever was flipped there. Reset once the picks are sent.
+  /// whatever was flipped there. Reset once the picks are sent, or once the
+  /// last of them is unpicked.
   final MediaSendOptions options;
 
   /// The most one send may carry: the album cap.
@@ -109,12 +110,21 @@ class InlinePickerController extends ChangeNotifier {
       if (_picks.length >= max) return false;
       _picks.add(PickedMedia(asset));
     }
+    _abandonedSend();
     notifyListeners();
     return true;
   }
 
   void remove(PickedMedia m) {
-    if (_picks.remove(m)) notifyListeners();
+    if (!_picks.remove(m)) return;
+    _abandonedSend();
+    notifyListeners();
+  }
+
+  /// The last pick unpicked: that send is abandoned, so its switches (HD
+  /// above all) do not carry over to whatever is picked next.
+  void _abandonedSend() {
+    if (_picks.isEmpty) options.reset();
   }
 
   void markEdited(PickedMedia m, CroppedImage image) {

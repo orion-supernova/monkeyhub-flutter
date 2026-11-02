@@ -62,7 +62,10 @@ class SettingsStore extends ChangeNotifier {
   // Every Data and Storage rule, as one JSON document. See [DataStoragePrefs].
   static const _kDataPrefs = 'mh.dataStorage.v1';
   static const _kShowNetworkStats = 'mh.showNetworkStats';
-  static const _kPhotoHd = 'mh.photoHd';
+  // NOTE: 'mh.photoHd' was a sticky "send photos in HD" choice, retired
+  // 2026-11-02: HD is now one send's decision (see MediaSendOptions.hd).
+  // Its value is left on disk unread; pick a new key if a default ever
+  // comes back, or an old install would inherit an HD it turned on once.
   static const _kTipsSeen = 'mh.tipsSeen';
   static const _kVideoQualityTier = 'mh.videoQualityTier';
   // NOTE: 'mh.fullScreenIntentPrompted', 'mh.batteryOptPrompted' and
@@ -104,7 +107,7 @@ class SettingsStore extends ChangeNotifier {
     _kLayout, _kNav, _kSection, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
-    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kPhotoHd, _kTipsSeen,
+    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen,
     _kVideoQualityTier, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel, _kPowerSaving,
@@ -162,7 +165,6 @@ class SettingsStore extends ChangeNotifier {
   bool _autoplayExpressions = true;
   bool _stickerSuggestions = true;
   DataStoragePrefs _dataPrefs = DataStoragePrefs.defaults;
-  bool _photoHd = false;
   bool _showNetworkStats = false;
   VideoQualityTier _videoQualityTier = VideoQualityTier.auto;
   String? _recoveryPromptDismissedFor;
@@ -353,20 +355,6 @@ class SettingsStore extends ChangeNotifier {
   /// surface; see [profile_visibility_screen] for the inbound warning.
   bool get viewReadReceipts => _viewReadReceipts;
 
-  /// When `true`, an outgoing photo is sent at its source resolution and JPEG
-  /// q90 — what the editor exported unconditionally before this switch existed.
-  ///
-  /// Default `false`, and that default is the point. A phone camera photo is
-  /// ~5 MB at full size, and a chat room multiplies it: every member fetches
-  /// the blob separately from Convex storage with no CDN in front, so one
-  /// photo into a room of four is ~25 MB moved. Capped, the same photo is
-  /// ~150 KB. See `kSendPhotoMaxEdge` in media/image_raster.dart.
-  ///
-  /// Sticky rather than per-send: someone who turns HD on is usually sending a
-  /// screenshot of text or a photo they want kept, and asking them to re-arm it
-  /// on every picture would be the wrong kind of careful. The editor still
-  /// shows the state on every send, so it is never silently on.
-  bool get photoHd => _photoHd;
 
   /// The userId that declined the "set up a recovery phrase" prompt.
   ///
@@ -683,8 +671,6 @@ class SettingsStore extends ChangeNotifier {
     _dataPrefs = _decodeDataPrefs(s[_kDataPrefs]);
     final sns = s[_kShowNetworkStats];
     _showNetworkStats = sns == 'true'; // default false
-    final phd = s[_kPhotoHd];
-    _photoHd = phd == 'true'; // default false — compressed
     _videoQualityTier = VideoQualityTierWire.parse(s[_kVideoQualityTier]);
     _recoveryPromptDismissedFor = s[_kRecoveryPromptDismissed];
     _tipsSeen = _decodeStringSet(s[_kTipsSeen]);
@@ -1111,13 +1097,6 @@ class SettingsStore extends ChangeNotifier {
     } else {
       await _storage.write(key: _kMarloweBrainId, value: id);
     }
-  }
-
-  Future<void> setPhotoHd(bool v) async {
-    if (_photoHd == v) return;
-    _photoHd = v;
-    notifyListeners();
-    await _storage.write(key: _kPhotoHd, value: v ? 'true' : 'false');
   }
 
   Future<void> setShowNetworkStats(bool v) async {

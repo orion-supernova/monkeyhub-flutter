@@ -3881,18 +3881,14 @@ class _RoomScreenState extends State<_RoomView>
   /// One photo out of a multi-item share or a mixed drop, compressed exactly
   /// as the editor compresses a photo nobody edited. Used to go up raw, HEIC
   /// and 48 megapixels included, because only a lone shared photo and an
-  /// all-photo drop went through the editor. HD is honoured up to the upload cap and gives way past it, the
-  /// same as in the editor.
+  /// all-photo drop went through the editor. Never HD: nothing on this path
+  /// offers the switch, and HD is only ever one send's choice.
   Future<void> _sendUneditedPhoto(
     Uint8List bytes,
     AppToast toast,
     AppLocalizations loc,
   ) async {
-    final hd = SettingsStore.instance.photoHd && bytes.length <= kMaxFileUploadBytes;
-    if (SettingsStore.instance.photoHd && !hd) {
-      toast.show(loc.photoHdOverCapSnack(1, formatFileSize(kMaxFileUploadBytes)));
-    }
-    final ready = await prepareUneditedForSend(bytes, hd: hd);
+    final ready = await prepareUneditedForSend(bytes, hd: false);
     if (!mounted) return;
     if (ready == null || ready.bytes.length > kMaxFileUploadBytes) {
       toast.show(loc.roomScreenFileReadFailedSnack, tone: ToastTone.danger);

@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import '../data/settings_store.dart';
-
 /// What a send of pictures decides besides the pictures themselves: one
 /// look only, hidden under spoiler dust, full resolution.
 ///
@@ -15,7 +13,7 @@ import '../data/settings_store.dart';
 /// All three are decisions about the whole send, never about one picture of
 /// it, exactly as view-once always was.
 class MediaSendOptions extends ChangeNotifier {
-  MediaSendOptions({bool? hd}) : _hd = hd ?? SettingsStore.instance.photoHd;
+  MediaSendOptions({bool hd = false}) : _hd = hd;
 
   bool _viewOnce = false;
   bool _spoiler = false;
@@ -40,22 +38,28 @@ class MediaSendOptions extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Full resolution instead of the capped default. Sticky across sends
-  /// (see `SettingsStore.photoHd`), so it writes the preference back; local
-  /// state answers at once and a slow write only costs the stickiness.
+  /// Full resolution instead of the capped default. Off at the start of
+  /// every send, on every platform, and never remembered: one HD send does
+  /// not make the next one HD.
+  ///
+  /// Off is the point. A phone camera photo is ~5 MB at full size, and a
+  /// room multiplies it: every member fetches the blob from storage with no
+  /// CDN in front, so one photo into a room of four is ~25 MB moved. Capped,
+  /// the same photo is ~150 KB (see `kSendPhotoMaxEdge`). It used to stick
+  /// once turned on, and quietly kept every later photo at full size.
   bool get hd => _hd;
   set hd(bool v) {
     if (v == _hd) return;
     _hd = v;
     notifyListeners();
-    SettingsStore.instance.setPhotoHd(v).catchError((Object _) {});
   }
 
-  /// After a send: the one-send decisions go back off, HD keeps its stick.
+  /// After a send: every decision goes back off for the next one.
   void reset() {
-    if (!_viewOnce && !_spoiler) return;
+    if (!_viewOnce && !_spoiler && !_hd) return;
     _viewOnce = false;
     _spoiler = false;
+    _hd = false;
     notifyListeners();
   }
 }

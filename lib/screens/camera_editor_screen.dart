@@ -608,9 +608,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   /// an OS sheet that has already slid away.
   bool _adding = false;
 
-  /// The send's switches: the caller's, or the draft's. HD is sticky (see
-  /// `SettingsStore.photoHd`); [_saving] keeps a send in flight from changing
-  /// under itself.
+  /// The send's switches: the caller's, or the draft's. All of them start
+  /// off, HD included; [_saving] keeps a send in flight from changing under
+  /// itself.
   late final MediaSendOptions _options = widget.options ?? _draft.options;
 
   bool get _hd => _options.hd;
