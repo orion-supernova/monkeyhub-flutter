@@ -144,6 +144,9 @@ RUN_UPLOAD=true    # iOS: upload IPA to ASC. Android: AAB to Play. Web: to the V
 # --keep-builds / the picker's last row turn it off.
 FREE_SPACE=true
 RUN_GIT=true
+# Channels whose release row this run must NOT write (--no-announce): the
+# build still ships, but installed clients are not told it exists.
+NO_ANNOUNCE=""
 DRY_RUN=false
 PLATFORM_ARGS=false
 # Standalone actions: they do their one job and exit, never mixed with a build.
@@ -239,6 +242,12 @@ Behavior flags:
   --skip-version-bump   Re-ship the same version.
   --no-upload           Build/export but skip ASC upload AND the VM upload.
   --no-git              Don't commit/push the version bump.
+  --no-announce <channels>
+                        Ship, but don't write the release row for these
+                        comma-separated channels (e.g. ios-testflight,
+                        macos-testflight), so nobody on them gets an update
+                        prompt. For when Apple is reviewing a build: its
+                        reviewers must not be told about a newer one.
   --keep-builds         Keep each platform's build output after its upload.
                         By default it is deleted once the upload succeeds
                         (build/ folders plus that workspace's Xcode
@@ -255,6 +264,9 @@ while [[ $# -gt 0 ]]; do
         --no-homeserver)     RUN_HOMESERVER=false ;;
         --no-upload)         RUN_UPLOAD=false ;;
         --no-git)            RUN_GIT=false ;;
+        --no-announce)
+            [[ $# -ge 2 ]] || { echo "--no-announce needs a channel list"; exit 1; }
+            NO_ANNOUNCE=",$2,"; shift ;;
         --keep-builds)       FREE_SPACE=false ;;
         --ios)               DEPLOY_IOS=true;  PLATFORM_ARGS=true ;;
         --ios-archive)        DEPLOY_IOS=true; PLATFORM_ARGS=true; IOS_STAGES="${IOS_STAGES:+$IOS_STAGES }archive" ;;
@@ -1932,6 +1944,11 @@ publish_release() {   # $1 = channel, $2 = updateUrl (optional), $3 = notes (opt
     local channel="$1"
     local update_url="${2:-}"
     local notes="${3:-}"
+    if [[ "$NO_ANNOUNCE" == *",$channel,"* ]]; then
+        echo "  🤫 Not announcing $DISPLAY_VERSION on $channel (--no-announce)."
+        echo "     When it should prompt: (cd backend && npx convex run releases:publish '{\"channel\":\"$channel\",\"version\":\"$DISPLAY_VERSION\"}')"
+        return 0
+    fi
     # Deliberately NOT gated on --no-convex. That flag means "don't push backend
     # code", not "don't record what shipped" — and the retry line this script
     # prints after a failed upload recommends --no-convex, which is exactly when
@@ -1996,6 +2013,11 @@ asc_upload() {   # $1 = ios|macos, $2 = file, $3 = log
 
 announce_when_processed() {   # $1 = channel, $2 = upload log
     local channel="$1" log="$2" uuid delivery out
+    # Nothing to announce, so nothing to wait for.
+    if [[ "$NO_ANNOUNCE" == *",$channel,"* ]]; then
+        publish_release "$channel"
+        return 0
+    fi
     uuid='[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
     # Any text between the label and the id ("Delivery UUID: ..." has a hex
     # D in it, so a no-hex gap never matched).
