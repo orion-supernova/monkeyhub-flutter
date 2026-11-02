@@ -9783,6 +9783,36 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatSwipeArchive => 'アーカイブ';
 
   @override
+  String get chatSwipeUnarchive => 'アーカイブ解除';
+
+  @override
+  String get archivedChatsSearchHint => 'アーカイブ済みチャットを検索';
+
+  @override
+  String archivedChatsUnreadLine(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のチャットが待っています',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivedChatsAllRead => 'すべて既読';
+
+  @override
+  String get archivedChatsSectionRead => '既読';
+
+  @override
+  String get archivedChatsNoMatch => '一致するアーカイブ済みチャットはありません';
+
+  @override
+  String archivedChatsFolderLabelUnread(int count, int unread) {
+    return 'アーカイブ済みチャット ($count)、未読$unread件';
+  }
+
+  @override
   String get appearanceMatchDeviceSubtitle => 'スマホに合わせて、昼はライト、夜はダーク';
 
   @override

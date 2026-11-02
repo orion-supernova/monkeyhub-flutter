@@ -10220,6 +10220,37 @@ class AppLocalizationsHi extends AppLocalizations {
   String get chatSwipeArchive => 'आर्काइव';
 
   @override
+  String get chatSwipeUnarchive => 'आर्काइव हटाएँ';
+
+  @override
+  String get archivedChatsSearchHint => 'आर्काइव की गई चैट खोजें';
+
+  @override
+  String archivedChatsUnreadLine(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count चैट इंतज़ार में',
+      one: '$count चैट इंतज़ार में',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivedChatsAllRead => 'सब पढ़ लिया';
+
+  @override
+  String get archivedChatsSectionRead => 'पढ़ी हुई';
+
+  @override
+  String get archivedChatsNoMatch => 'कोई आर्काइव चैट मेल नहीं खाती';
+
+  @override
+  String archivedChatsFolderLabelUnread(int count, int unread) {
+    return 'आर्काइव की गई चैट ($count), $unread अपठित';
+  }
+
+  @override
   String get appearanceMatchDeviceSubtitle =>
       'फ़ोन के साथ: दिन में लाइट, रात में डार्क';
 

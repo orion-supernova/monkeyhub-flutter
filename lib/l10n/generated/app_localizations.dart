@@ -17185,6 +17185,48 @@ abstract class AppLocalizations {
   /// **'Archive'**
   String get chatSwipeArchive;
 
+  /// Short label on the swipe-right action on the Archived chats page that puts a chat back in the main list; a full swipe triggers it.
+  ///
+  /// In en, this message translates to:
+  /// **'Unarchive'**
+  String get chatSwipeUnarchive;
+
+  /// Placeholder in the search field on the Archived chats page.
+  ///
+  /// In en, this message translates to:
+  /// **'Search archived chats'**
+  String get archivedChatsSearchHint;
+
+  /// Second line beside the archive box on the Archived chats page when archived chats have unread messages. {count} is the number of chats (rooms), not messages.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} chat waiting} other{{count} chats waiting}}'**
+  String archivedChatsUnreadLine(int count);
+
+  /// Second line beside the archive box on the Archived chats page when no archived chat has anything unread.
+  ///
+  /// In en, this message translates to:
+  /// **'All caught up'**
+  String get archivedChatsAllRead;
+
+  /// Section heading above the archived chats with nothing unread, shown under the Unread section.
+  ///
+  /// In en, this message translates to:
+  /// **'Read'**
+  String get archivedChatsSectionRead;
+
+  /// Empty state on the Archived chats page when the search or filters leave no chat.
+  ///
+  /// In en, this message translates to:
+  /// **'No archived chat matches'**
+  String get archivedChatsNoMatch;
+
+  /// Accessibility label for the Archived chats folder row when some archived chats have unread messages. {count} is how many chats are archived, {unread} how many of them have unread messages.
+  ///
+  /// In en, this message translates to:
+  /// **'archived chats ({count}), {unread} unread'**
+  String archivedChatsFolderLabelUnread(int count, int unread);
+
   /// Line under 'Match device' in the appearance picker. Sentence case.
   ///
   /// In en, this message translates to:

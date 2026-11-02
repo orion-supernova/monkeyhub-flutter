@@ -10315,6 +10315,37 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chatSwipeArchive => 'Archivar';
 
   @override
+  String get chatSwipeUnarchive => 'Desarchivar';
+
+  @override
+  String get archivedChatsSearchHint => 'Buscar en chats archivados';
+
+  @override
+  String archivedChatsUnreadLine(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count chats esperando',
+      one: '$count chat esperando',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivedChatsAllRead => 'Todo al día';
+
+  @override
+  String get archivedChatsSectionRead => 'Leídos';
+
+  @override
+  String get archivedChatsNoMatch => 'Ningún chat archivado coincide';
+
+  @override
+  String archivedChatsFolderLabelUnread(int count, int unread) {
+    return 'chats archivados ($count), $unread sin leer';
+  }
+
+  @override
   String get appearanceMatchDeviceSubtitle =>
       'Claro de día y oscuro de noche, como tu teléfono';
 

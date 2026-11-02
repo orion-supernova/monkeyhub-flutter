@@ -10365,6 +10365,38 @@ class AppLocalizationsFr extends AppLocalizations {
   String get chatSwipeArchive => 'Archiver';
 
   @override
+  String get chatSwipeUnarchive => 'Désarchiver';
+
+  @override
+  String get archivedChatsSearchHint =>
+      'Rechercher dans les discussions archivées';
+
+  @override
+  String archivedChatsUnreadLine(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count discussions en attente',
+      one: '$count discussion en attente',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivedChatsAllRead => 'Tout est lu';
+
+  @override
+  String get archivedChatsSectionRead => 'Lues';
+
+  @override
+  String get archivedChatsNoMatch => 'Aucune discussion archivée ne correspond';
+
+  @override
+  String archivedChatsFolderLabelUnread(int count, int unread) {
+    return 'discussions archivées ($count), $unread non lues';
+  }
+
+  @override
   String get appearanceMatchDeviceSubtitle =>
       'Clair le jour, sombre la nuit, comme votre téléphone';
 

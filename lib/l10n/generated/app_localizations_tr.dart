@@ -10173,6 +10173,36 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chatSwipeArchive => 'Arşivle';
 
   @override
+  String get chatSwipeUnarchive => 'Arşivden çıkar';
+
+  @override
+  String get archivedChatsSearchHint => 'Arşivlenen sohbetlerde ara';
+
+  @override
+  String archivedChatsUnreadLine(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sohbet bekliyor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivedChatsAllRead => 'Hepsi okundu';
+
+  @override
+  String get archivedChatsSectionRead => 'Okunmuş';
+
+  @override
+  String get archivedChatsNoMatch => 'Eşleşen arşivli sohbet yok';
+
+  @override
+  String archivedChatsFolderLabelUnread(int count, int unread) {
+    return 'arşivlenen sohbetler ($count), $unread okunmamış';
+  }
+
+  @override
   String get appearanceMatchDeviceSubtitle =>
       'Telefonunla birlikte: gündüz açık, gece koyu';
 

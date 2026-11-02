@@ -1,14 +1,10 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
+import 'archived_folder_row.dart';
 import 'glass_buttons.dart';
 import 'search_field.dart';
-
-import 'teardown_safe.dart';
-import '../l10n/text_case.dart';
 
 /// Lives as the first child of the chat list's [ListView]. Hidden by default;
 /// pulling down at the top of the list (overscroll) reveals it — see
@@ -194,114 +190,17 @@ class _PullRevealPanel extends StatelessWidget {
           ),
           if (archivedCount > 0) ...[
             const SizedBox(height: 6),
-            _ArchivedRow(count: archivedCount, onTap: onOpenArchived),
+            // Only ever the quiet form: when an archived room has something
+            // unread the chat list shows the folder on its own, and this row
+            // is passed 0 so the two are never on screen together.
+            ArchivedFolderRow(
+              totalCount: archivedCount,
+              unreadRooms: 0,
+              unreadTitles: const [],
+              onTap: onOpenArchived,
+            ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _ArchivedRow extends StatefulWidget {
-  const _ArchivedRow({required this.count, required this.onTap});
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  State<_ArchivedRow> createState() => _ArchivedRowState();
-}
-
-class _ArchivedRowState extends State<_ArchivedRow>
-    with TeardownSafe<_ArchivedRow> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    return FocusableTap(
-      onTap: widget.onTap,
-      // The accessible label still carries the count in words — the visible
-      // row splits it into an icon-badge instead, but a screen reader gets
-      // the same information either way.
-      semanticLabel: l10n.archivedChatsFolderLabel(widget.count),
-      shape: FocusRingShape.rounded,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTapUp: (_) => setState(() => _pressed = false),
-        behavior: HitTestBehavior.opaque,
-        // Shaped like a chat row — the Telegram folder: a grey disc where a
-        // face would be, the title, the count in grey (archived chats ask for
-        // nothing), a chevron because it opens a list rather than a chat.
-        child: AnimatedContainer(
-          duration: _pressed
-              ? Duration.zero
-              : const Duration(milliseconds: 240),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: _pressed ? theme.ink.withValues(alpha: 0.06) : null,
-            borderRadius: BorderRadius.circular(theme.radiusLg),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 54,
-                height: 54,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: theme.inkMuted.withValues(alpha: 0.55),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  CupertinoIcons.archivebox_fill,
-                  size: 24,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  sentenceCaseOf(context, l10n.archivedChatsFolderTitle),
-                  style: theme.bodyEmph.copyWith(
-                    color: theme.ink,
-                    fontStyle: FontStyle.normal,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: theme.inkMuted.withValues(alpha: 0.45),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '${widget.count}',
-                  style: theme.caption.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    height: 1,
-                    color: theme.background,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                CupertinoIcons.chevron_forward,
-                size: 14,
-                color: theme.inkMuted.withValues(alpha: 0.7),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

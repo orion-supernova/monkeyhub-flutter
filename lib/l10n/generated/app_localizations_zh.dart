@@ -9679,6 +9679,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chatSwipeArchive => '归档';
 
   @override
+  String get chatSwipeUnarchive => '取消归档';
+
+  @override
+  String get archivedChatsSearchHint => '搜索已归档聊天';
+
+  @override
+  String archivedChatsUnreadLine(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个聊天待查看',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivedChatsAllRead => '已全部读完';
+
+  @override
+  String get archivedChatsSectionRead => '已读';
+
+  @override
+  String get archivedChatsNoMatch => '没有匹配的已归档聊天';
+
+  @override
+  String archivedChatsFolderLabelUnread(int count, int unread) {
+    return '已归档聊天（$count），$unread 个未读';
+  }
+
+  @override
   String get appearanceMatchDeviceSubtitle => '跟随手机，白天浅色、夜晚深色';
 
   @override

@@ -229,8 +229,10 @@ class RoomFacetCounts {
     this._byFacet,
     this.total,
     this.unreadRooms,
-    this.unreadMessages,
-  );
+    this.unreadMessages, [
+    this.archivedRooms = 0,
+    this.archivedUnreadRooms = 0,
+  ]);
 
   /// Derived from [RoomFacet.values] rather than eight literal zeroes, which
   /// silently became a `RangeError` in [operator []] the moment a ninth facet
@@ -260,6 +262,14 @@ class RoomFacetCounts {
   /// count into a push. The two are independent computations of one number and
   /// have to apply the same rule or the icon and the list visibly disagree.
   final int unreadMessages;
+
+  /// Rooms the viewer has archived, and how many of those have something
+  /// unread. They live in [total], [unreadRooms] and [unreadMessages] like any
+  /// other room (the tab badge and the app icon count them), but the chat list
+  /// hides them — so the archived folder reads these two to say there is
+  /// something in there, in rooms rather than messages.
+  final int archivedRooms;
+  final int archivedUnreadRooms;
 
   int operator [](RoomFacet f) => _byFacet[f.index];
 
@@ -302,6 +312,8 @@ class RoomFacetCounts {
       base.total,
       base.unreadRooms,
       base.unreadMessages,
+      base.archivedRooms,
+      base.archivedUnreadRooms,
     );
   }
 
@@ -310,18 +322,27 @@ class RoomFacetCounts {
     final counts = List<int>.filled(RoomFacet.values.length, 0);
     var unreadRooms = 0;
     var unreadMessages = 0;
+    var archived = 0;
+    var archivedUnread = 0;
     for (final r in rooms) {
       for (final f in RoomFacet.values) {
         if (f.matches(r)) counts[f.index]++;
       }
-      if (r.hasUnread) unreadRooms++;
+      final unread = r.hasUnread;
+      if (unread) unreadRooms++;
       unreadMessages += r.visibleUnreadCount;
+      if (r.isArchived) {
+        archived++;
+        if (unread) archivedUnread++;
+      }
     }
     return RoomFacetCounts._(
       List.unmodifiable(counts),
       rooms.length,
       unreadRooms,
       unreadMessages,
+      archived,
+      archivedUnread,
     );
   }
 }

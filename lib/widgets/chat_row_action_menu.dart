@@ -141,7 +141,7 @@ class ChatRowLongPress extends StatelessWidget {
 /// Tapping the lifted card itself resolves the returned Future with
 /// [ChatRowAction.open] — the same as picking any other row — rather than
 /// opening the room directly. The caller opens it the same way a plain tap
-/// on the row would (see `home_screen.dart`'s and `archived_chats_sheet
+/// on the row would (see `home_screen.dart`'s and `archived_chats_screen
 /// .dart`'s `case ChatRowAction.open`), so a preview tap is just a shortcut
 /// to that, not a separate code path.
 Future<ChatRowAction?> showChatRowActionMenu({

@@ -11856,6 +11856,47 @@
   "@chatSwipeArchive": {
     "description": "Short label on the swipe-left action that archives a chat; a full swipe triggers it."
   },
+  "chatSwipeUnarchive": "Unarchive",
+  "@chatSwipeUnarchive": {
+    "description": "Short label on the swipe-right action on the Archived chats page that puts a chat back in the main list; a full swipe triggers it."
+  },
+  "archivedChatsSearchHint": "Search archived chats",
+  "@archivedChatsSearchHint": {
+    "description": "Placeholder in the search field on the Archived chats page."
+  },
+  "archivedChatsUnreadLine": "{count, plural, one{{count} chat waiting} other{{count} chats waiting}}",
+  "@archivedChatsUnreadLine": {
+    "description": "Second line beside the archive box on the Archived chats page when archived chats have unread messages. {count} is the number of chats (rooms), not messages.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archivedChatsAllRead": "All caught up",
+  "@archivedChatsAllRead": {
+    "description": "Second line beside the archive box on the Archived chats page when no archived chat has anything unread."
+  },
+  "archivedChatsSectionRead": "Read",
+  "@archivedChatsSectionRead": {
+    "description": "Section heading above the archived chats with nothing unread, shown under the Unread section."
+  },
+  "archivedChatsNoMatch": "No archived chat matches",
+  "@archivedChatsNoMatch": {
+    "description": "Empty state on the Archived chats page when the search or filters leave no chat."
+  },
+  "archivedChatsFolderLabelUnread": "archived chats ({count}), {unread} unread",
+  "@archivedChatsFolderLabelUnread": {
+    "description": "Accessibility label for the Archived chats folder row when some archived chats have unread messages. {count} is how many chats are archived, {unread} how many of them have unread messages.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "unread": {
+        "type": "int"
+      }
+    }
+  },
   "appearanceMatchDeviceSubtitle": "Light by day, dark by night, with your phone",
   "@appearanceMatchDeviceSubtitle": {
     "description": "Line under 'Match device' in the appearance picker. Sentence case."

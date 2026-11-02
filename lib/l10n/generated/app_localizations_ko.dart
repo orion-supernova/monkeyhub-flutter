@@ -9807,6 +9807,36 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatSwipeArchive => '보관';
 
   @override
+  String get chatSwipeUnarchive => '보관 해제';
+
+  @override
+  String get archivedChatsSearchHint => '보관된 채팅 검색';
+
+  @override
+  String archivedChatsUnreadLine(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '채팅 $count개 대기 중',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivedChatsAllRead => '모두 읽음';
+
+  @override
+  String get archivedChatsSectionRead => '읽음';
+
+  @override
+  String get archivedChatsNoMatch => '일치하는 보관된 채팅 없음';
+
+  @override
+  String archivedChatsFolderLabelUnread(int count, int unread) {
+    return '보관된 채팅 ($count), 읽지 않음 $unread';
+  }
+
+  @override
   String get appearanceMatchDeviceSubtitle => '휴대폰에 맞춰 낮엔 라이트, 밤엔 다크';
 
   @override

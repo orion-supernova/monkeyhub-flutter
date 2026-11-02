@@ -21,7 +21,7 @@ import 'package:monkeyhub/models/scheduled_message.dart';
 import 'package:monkeyhub/share/shared_payload.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/adaptive_sheet.dart';
-import 'package:monkeyhub/widgets/archived_chats_sheet.dart';
+import 'package:monkeyhub/screens/archived_chats_screen.dart';
 import 'package:monkeyhub/widgets/block_choice_sheet.dart';
 import 'package:monkeyhub/widgets/chat_row_action_menu.dart';
 import 'package:monkeyhub/widgets/destructive_sheet.dart';
@@ -316,7 +316,7 @@ final Map<String, _Opener> _sheets = {
       useSafeArea: true,
       builder: (_) => CreateRoomSheet(repo: _repo, api: _api)),
   'joinroom': (c) => showJoinRoomSheet(c, _rooms[1], _api),
-  'archived': (c) => showArchivedChatsSheet(c, repo: _repo, api: _api),
+  'archived': (c) => openArchivedChats(c, repo: _repo, api: _api),
   'reactpick': (c) => showReactionPicker(c),
   'reactdetails': (c) => showReactionDetailsSheet(
         c,

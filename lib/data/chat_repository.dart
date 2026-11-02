@@ -251,6 +251,11 @@ class ChatRepository extends ChangeNotifier {
   /// Number of rooms with messages newer than this user's read cursor.
   int get unreadRoomCount => facetCounts.unreadRooms;
 
+  /// Archived rooms with something unread, counted in rooms. The chat list
+  /// hides archived rooms, so without this a message landing in one reached
+  /// the viewer only as a bump on the tab badge, with nothing to follow.
+  int get archivedUnreadRoomCount => facetCounts.archivedUnreadRooms;
+
   /// Total unread *messages* across every room — drives the Chat tab badge
   /// and, via [BadgeManager], the OS app-icon badge. Counts messages rather
   /// than rooms so it matches what the push payload's absolute

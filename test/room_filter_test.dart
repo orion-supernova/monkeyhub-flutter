@@ -407,4 +407,38 @@ void main() {
       expect(parts.regular.map((r) => r.id), ['b']);
     });
   });
+
+  group('archived counts', () {
+    test('count archived rooms and, of those, the ones with unread', () {
+      final counts = RoomFacetCounts.of([
+        room(id: 'a', isArchived: true, unreadCount: 5),
+        room(id: 'b', isArchived: true, unreadCount: 2),
+        room(id: 'c', isArchived: true),
+        room(id: 'd', unreadCount: 9),
+      ]);
+      expect(counts.archivedRooms, 3);
+      // Rooms, not messages: 5 + 2 unread messages are still two chats.
+      expect(counts.archivedUnreadRooms, 2);
+      // The tab badge's own totals are unchanged and still include them.
+      expect(counts.unreadRooms, 3);
+      expect(counts.unreadMessages, 16);
+    });
+
+    test('projected keeps them', () {
+      final rooms = [
+        room(id: 'a', isArchived: true, unreadCount: 1),
+        room(id: 'b', isArchived: true),
+      ];
+      final counts = RoomFacetCounts.projected(
+        rooms,
+        RoomFilter({RoomFacet.unread}),
+      );
+      expect(counts.archivedRooms, 2);
+      expect(counts.archivedUnreadRooms, 1);
+    });
+
+    test('empty list is zero', () {
+      expect(RoomFacetCounts.of(const []).archivedUnreadRooms, 0);
+    });
+  });
 }

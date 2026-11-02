@@ -10319,6 +10319,37 @@ class AppLocalizationsPt extends AppLocalizations {
   String get chatSwipeArchive => 'Arquivar';
 
   @override
+  String get chatSwipeUnarchive => 'Desarquivar';
+
+  @override
+  String get archivedChatsSearchHint => 'Pesquisar conversas arquivadas';
+
+  @override
+  String archivedChatsUnreadLine(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conversas à espera',
+      one: '$count conversa à espera',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivedChatsAllRead => 'Tudo em dia';
+
+  @override
+  String get archivedChatsSectionRead => 'Lidas';
+
+  @override
+  String get archivedChatsNoMatch => 'Nenhuma conversa arquivada corresponde';
+
+  @override
+  String archivedChatsFolderLabelUnread(int count, int unread) {
+    return 'conversas arquivadas ($count), $unread por ler';
+  }
+
+  @override
   String get appearanceMatchDeviceSubtitle =>
       'Claro de dia e escuro à noite, como o seu telemóvel';
 
@@ -24985,6 +25016,37 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get chatSwipeArchive => 'Arquivar';
+
+  @override
+  String get chatSwipeUnarchive => 'Desarquivar';
+
+  @override
+  String get archivedChatsSearchHint => 'Buscar nas conversas arquivadas';
+
+  @override
+  String archivedChatsUnreadLine(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conversas aguardando',
+      one: '$count conversa aguardando',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivedChatsAllRead => 'Tudo em dia';
+
+  @override
+  String get archivedChatsSectionRead => 'Lidas';
+
+  @override
+  String get archivedChatsNoMatch => 'Nenhuma conversa arquivada encontrada';
+
+  @override
+  String archivedChatsFolderLabelUnread(int count, int unread) {
+    return 'chats arquivados ($count), $unread não lidas';
+  }
 
   @override
   String get appearanceMatchDeviceSubtitle =>

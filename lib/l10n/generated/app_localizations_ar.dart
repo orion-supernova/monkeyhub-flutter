@@ -10386,6 +10386,41 @@ class AppLocalizationsAr extends AppLocalizations {
   String get chatSwipeArchive => 'أرشفة';
 
   @override
+  String get chatSwipeUnarchive => 'إلغاء الأرشفة';
+
+  @override
+  String get archivedChatsSearchHint => 'البحث في المحادثات المؤرشفة';
+
+  @override
+  String archivedChatsUnreadLine(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count محادثة بانتظارك',
+      many: '$count محادثة بانتظارك',
+      few: '$count محادثات بانتظارك',
+      two: 'محادثتان بانتظارك',
+      one: 'محادثة واحدة بانتظارك',
+      zero: 'لا محادثات بانتظارك',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivedChatsAllRead => 'كل شيء مقروء';
+
+  @override
+  String get archivedChatsSectionRead => 'المقروءة';
+
+  @override
+  String get archivedChatsNoMatch => 'لا توجد محادثة مؤرشفة مطابقة';
+
+  @override
+  String archivedChatsFolderLabelUnread(int count, int unread) {
+    return 'محادثات مؤرشفة ($count)، $unread غير مقروءة';
+  }
+
+  @override
   String get appearanceMatchDeviceSubtitle =>
       'فاتح نهارًا وداكن ليلًا، مع هاتفك';
 

@@ -10247,6 +10247,37 @@ class AppLocalizationsSv extends AppLocalizations {
   String get chatSwipeArchive => 'Arkivera';
 
   @override
+  String get chatSwipeUnarchive => 'Avarkivera';
+
+  @override
+  String get archivedChatsSearchHint => 'Sök i arkiverade chattar';
+
+  @override
+  String archivedChatsUnreadLine(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count chattar väntar',
+      one: '$count chatt väntar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archivedChatsAllRead => 'Allt är läst';
+
+  @override
+  String get archivedChatsSectionRead => 'Lästa';
+
+  @override
+  String get archivedChatsNoMatch => 'Ingen arkiverad chatt matchar';
+
+  @override
+  String archivedChatsFolderLabelUnread(int count, int unread) {
+    return 'arkiverade chattar ($count), $unread olästa';
+  }
+
+  @override
   String get appearanceMatchDeviceSubtitle =>
       'Ljust på dagen, mörkt på kvällen, som din telefon';
 

@@ -34,7 +34,9 @@ import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/ios_kit.dart' show CollapsedTitleFade;
 import '../widgets/sunlit_surface.dart' show SunlitBackdrop;
-import '../widgets/archived_chats_sheet.dart';
+import '../widgets/archived_folder_row.dart';
+import '../widgets/chat_list_parts.dart' show chatListTitleOf;
+import 'archived_chats_screen.dart';
 import '../widgets/chat_list_row.dart';
 import '../widgets/chat_row_action_menu.dart';
 import '../widgets/chat_row_swipe.dart';
@@ -584,7 +586,7 @@ class _HomeScreenState extends State<HomeScreen>
     // an unmodifiable view on every call and the repository notifies on every
     // typing keystroke in any room, so the cue and the list must not each go
     // and filter it themselves. Archived rooms never enter this pipeline —
-    // they're reachable only through the Archived Chats sheet.
+    // they're reachable only through the Archived Chats page.
     final allRooms = widget.repo.activeRooms;
     final searching = _searchQuery.trim().isNotEmpty;
     final matched = searching
@@ -606,6 +608,12 @@ class _HomeScreenState extends State<HomeScreen>
         );
 
     final chipsStyle = settings.filterStyle == FilterStyle.chips;
+    final archivedUnread = widget.repo.archivedUnreadRoomCount;
+    void openArchived() => openArchivedChats(
+      context,
+      repo: widget.repo,
+      api: widget.api,
+    );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -688,13 +696,49 @@ class _HomeScreenState extends State<HomeScreen>
                           searchFocus: _searchFocus,
                           onSearchChanged: _onSearchChanged,
                           onClearSearch: _clearSearch,
-                          archivedCount: widget.repo.archivedRooms.length,
-                          onOpenArchived: () => showArchivedChatsSheet(
-                            context,
-                            repo: widget.repo,
-                            api: widget.api,
-                          ),
+                          // The panel's folder row is the quiet one; with
+                          // something unread the list carries its own just
+                          // below, and the two are never shown together.
+                          archivedCount: archivedUnread > 0
+                              ? 0
+                              : widget.repo.facetCounts.archivedRooms,
+                          onOpenArchived: openArchived,
                           onCollapse: _collapsePullPanel,
+                        ),
+                        // Archived rooms are hidden from this list, so a
+                        // message landing in one used to show up as a bump on
+                        // the tab badge and nothing else. While any has
+                        // something unread the folder stays here, counting
+                        // rooms and naming who is waiting.
+                        AnimatedSize(
+                          duration: theme.motionMed,
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.topCenter,
+                          child: archivedUnread > 0
+                              ? Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    20,
+                                    0,
+                                    16,
+                                    6,
+                                  ),
+                                  child: ArchivedFolderRow(
+                                    totalCount:
+                                        widget.repo.facetCounts.archivedRooms,
+                                    unreadRooms: archivedUnread,
+                                    unreadTitles: [
+                                      for (final r in widget.repo.archivedRooms)
+                                        if (r.hasUnread)
+                                          chatListTitleOf(
+                                            context,
+                                            r,
+                                            widget.repo.otherUserFor(r),
+                                          ),
+                                    ],
+                                    onTap: openArchived,
+                                  ),
+                                )
+                              : const SizedBox(width: double.infinity),
                         ),
                         // The filter control rides inside the scroll view rather
                         // than sitting above it: as a fixed band it ate a strip of
