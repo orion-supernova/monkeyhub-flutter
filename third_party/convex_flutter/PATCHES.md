@@ -236,9 +236,9 @@ and report the result — a health check wearing a reconnect's name.
   codegen for this — no signature changed, and the FRB content hash is a
   generated constant on both sides, not a hash of this file at load time.
 
-### Upstream convex-rs: take 0.10.3+ (recommended, not yet applied)
+### Upstream convex-rs: take 0.10.3+ (applied: the lock is on 0.10.4, commit bc10b8da)
 
-`rust/Cargo.lock` pins **convex 0.10.2**. `Cargo.toml` says `"0.10"`, so the
+Before that commit `rust/Cargo.lock` pinned **convex 0.10.2**. `Cargo.toml` says `"0.10"`, so the
 pin is the lockfile alone. 0.10.3 (2026-02-13) fixes a reconnect defect that
 matches the handover hang exactly, and 0.10.4 (2026-04-10) a subscription
 memory leak (convex-rs#15):
