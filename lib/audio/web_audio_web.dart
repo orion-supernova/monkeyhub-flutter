@@ -47,14 +47,22 @@ class WebAudio {
         // Pause only AFTER the muted play resolves — a synchronous pause aborts
         // the play promise ("AbortError") and can leave the element not fully
         // activated for later background playback.
+        //
+        // Muted AND at zero volume: Safari does not reliably honour `muted`
+        // alone on a freshly-created element, and the looping ringtone then
+        // rang out on the user's first click. Chrome never leaked, which is
+        // why it took Safari to notice. (iOS ignores `volume`, but honours
+        // `muted`; between them every browser is covered.)
         e.muted = true;
-        e.play().toDart.then((_) {
+        e.volume = 0;
+        void restore() {
           e.pause();
           e.currentTime = 0;
+          e.volume = 1;
           e.muted = false;
-        }).catchError((_) {
-          e.muted = false;
-        });
+        }
+
+        e.play().toDart.then((_) => restore()).catchError((_) => restore());
       } catch (_) {}
     }
   }
