@@ -11,6 +11,7 @@ import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/widgets/editor_glyphs.dart';
 import 'package:monkeyhub/widgets/media_filmstrip.dart';
 import 'package:monkeyhub/widgets/media_send_switches.dart';
+import 'package:monkeyhub/widgets/photo_chrome.dart' show MediaNoteCapsule;
 
 /// The editor's chrome contract.
 ///
@@ -271,6 +272,32 @@ void main() {
     await tester.tapAt(undoAt);
     await tester.pumpAndSettle();
     expect(tester.getCenter(undo), undoAt);
+  });
+
+  // The lit switch is the standing state; a note that stayed under it said
+  // the same thing twice.
+  testWidgets('a switch says what it does as it turns on, then goes quiet', (
+    tester,
+  ) async {
+    await settle(tester, host(photo));
+    expect(find.byType(MediaNoteCapsule), findsNothing);
+
+    await tester.tap(_switch(SendSwitch.viewOnce));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(MediaNoteCapsule), findsOneWidget);
+
+    // The hold runs out, then the note sinks away.
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(MediaNoteCapsule), findsNothing);
+    expect(tester.widget<SendSwitchGlyph>(_switch(SendSwitch.viewOnce)).on,
+        isTrue);
+
+    // Turning it off says nothing.
+    await tester.tap(_switch(SendSwitch.viewOnce));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(MediaNoteCapsule), findsNothing);
   });
 
   testWidgets('holding send opens the schedule sheet', (tester) async {

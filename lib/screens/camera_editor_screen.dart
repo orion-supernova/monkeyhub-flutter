@@ -624,6 +624,18 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   /// full screen than on a 260pt bubble.
   static const double _veilSigma = 28;
 
+  /// The switches armed at the last build, to tell which one just turned
+  /// on. Null until the first build, so opening the editor with HD already
+  /// on (a remembered choice) does not announce it.
+  Set<SendSwitch>? _armedNotes;
+
+  /// The note showing, as a toast: the switch just turned on, for
+  /// [_noteHold], then gone. The switch itself stays lit, so a note that
+  /// stayed was the same thing said twice.
+  SendSwitch? _toast;
+  Timer? _toastTimer;
+  static const Duration _noteHold = Duration(milliseconds: 2400);
+
   Color _color = _palette.first;
   double _width = 0.010;
 
@@ -750,6 +762,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
 
   @override
   void dispose() {
+    _toastTimer?.cancel();
     _options.removeListener(_onOptions);
     // The draft may outlive this route — the camera's "take another" — but its
     // decoded pictures should not: they are re-made in a frame when shown.
@@ -2512,19 +2525,46 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   /// once"), on the shared media capsule, wearing the armed switch's own
   /// glyph so the two read as one thing.
   ///
+  /// A toast: it says what a switch does as it turns on, holds for
+  /// [_noteHold] and sinks away. Turning one off says nothing, and neither
+  /// does a switch that was already on: the lit glyph is the standing state.
+  ///
   /// A new note drops in from the rail and the old one sinks back into it,
   /// and the glyph arms itself as it lands (the ring floods, the eye shuts,
   /// the badge traces round HD). The capsule's glass goes flat for the
   /// length of the move and frosts when it settles: a blur is never
   /// animated (see [GlassStill]).
   Widget _notes(AppTheme theme, AppLocalizations l10n) {
-    final SendSwitch? kind = _viewOnce
-        ? SendSwitch.viewOnce
-        : (widget.allowSpoiler && _options.spoiler)
-        ? SendSwitch.spoiler
-        : _hd
-        ? SendSwitch.hd
-        : null;
+    final armed = {
+      if (_viewOnce) SendSwitch.viewOnce,
+      if (widget.allowSpoiler && _options.spoiler) SendSwitch.spoiler,
+      if (_hd) SendSwitch.hd,
+    };
+    final before = _armedNotes;
+    _armedNotes = armed;
+    if (before != null) {
+      // The weightiest switch that just turned on, if any.
+      final fresh = [
+        for (final k in const [
+          SendSwitch.viewOnce,
+          SendSwitch.spoiler,
+          SendSwitch.hd,
+        ])
+          if (armed.contains(k) && !before.contains(k)) k,
+      ];
+      if (fresh.isNotEmpty) {
+        _toast = fresh.first;
+        _toastTimer?.cancel();
+        _toastTimer = Timer(_noteHold, () {
+          if (mounted) setState(() => _toast = null);
+        });
+      } else if (_toast != null && !armed.contains(_toast)) {
+        // Its switch went off before the toast did: it goes with it.
+        _toastTimer?.cancel();
+        _toast = null;
+      }
+    }
+    final SendSwitch? kind = _toast;
     Widget? note;
     if (kind != null) {
       final text = switch (kind) {
