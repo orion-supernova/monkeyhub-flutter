@@ -660,6 +660,8 @@ class _RoomScreenState extends State<_RoomView>
     _composerFocus.addListener(_onComposerFocusChanged);
     if (!isPhysicalKeyboardPlatform) {
       _lifecycle = AppLifecycleListener(onResume: _restoreComposerFocus);
+    } else {
+      _focusComposerOnOpen();
     }
     _ticker = Timer.periodic(const Duration(milliseconds: 200), (t) {
       if (!mounted) return;
@@ -2119,6 +2121,28 @@ class _RoomScreenState extends State<_RoomView>
       if (primary != null && primary.context?.widget is EditableText) return;
       if (MediaQuery.viewInsetsOf(context).bottom <= 0) return;
       _composerFocus.requestFocus();
+    });
+  }
+
+  /// Opening a chat on a desktop puts the caret in the composer, so the first
+  /// keystroke after a click on the chat list types the message instead of
+  /// needing a second click on the field.
+  ///
+  /// Retried for a few frames: the composer is not on screen on the first one
+  /// (the room is still loading, or the pane is mid cross-fade), and a focus
+  /// node with no field behind it quietly does nothing. Gives up after about
+  /// a second, which is all a room they cannot post in ever gets. Takes focus from whatever held it, the chat list's search
+  /// included: tapping a chat is the reader saying where they want to type.
+  void _focusComposerOnOpen([int framesLeft = 40]) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _composerFocus.hasFocus) return;
+      final attached = _composerFocus.context != null;
+      final current = ModalRoute.of(context)?.isCurrent ?? false;
+      if (attached && current) {
+        _composerFocus.requestFocus();
+        return;
+      }
+      if (framesLeft > 0) _focusComposerOnOpen(framesLeft - 1);
     });
   }
 
