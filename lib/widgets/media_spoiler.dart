@@ -80,6 +80,7 @@ class MediaSpoilerCover extends StatefulWidget {
     this.sigma = 20,
     this.dustDensity = kMediaSpoilerDensity,
     this.dust = true,
+    this.rub = true,
     this.resealOnDispose = false,
     this.onRevealed,
   });
@@ -104,6 +105,11 @@ class MediaSpoilerCover extends StatefulWidget {
   /// False keeps the blur and the shade and leaves the dust out: for a
   /// thumbnail too small for grains to read (a reply's 18pt quote).
   final bool dust;
+
+  /// False leaves out the rub (a sideways drag that wipes a glimpse through
+  /// the dust), so a sideways drag is the parent's: a card in a [PhotoDeck],
+  /// where a swipe deals the next card. A tap still opens it.
+  final bool rub;
 
   /// Leaving this widget (the gallery page closing) seals the picture in
   /// [SpoilerStore] again, so coming back finds the dust over it instead of
@@ -729,7 +735,7 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
                 _CoverTapRecognizer.new,
                 (r) => r.onTapUp = (d) => _reveal(d.localPosition),
               ),
-            if (sealed && !_calm)
+            if (sealed && !_calm && widget.rub)
               _RubRecognizer:
                   GestureRecognizerFactoryWithHandlers<_RubRecognizer>(
                 _RubRecognizer.new,

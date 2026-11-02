@@ -417,6 +417,7 @@ class MosaicTile extends StatelessWidget {
     this.onContextMenu,
     this.onReactionTap,
     this.onReactionLongPress,
+    this.spoilerRub = true,
   });
 
   final GlobalKey anchor;
@@ -452,6 +453,11 @@ class MosaicTile extends StatelessWidget {
   final void Function(Offset globalPosition)? onContextMenu;
   final void Function(String emoji)? onReactionTap;
   final void Function(String emoji)? onReactionLongPress;
+
+  /// Whether a spoiler's dust takes a sideways drag (see
+  /// [MediaSpoilerCover.rub]). Off on a [PhotoDeck] card: there the swipe
+  /// deals the next card, and the rub ate it.
+  final bool spoilerRub;
 
   @override
   Widget build(BuildContext context) {
@@ -562,6 +568,7 @@ class MosaicTile extends StatelessWidget {
               MediaSpoilerCover(
                 revealKey: message.id,
                 sigma: 16,
+                rub: spoilerRub,
                 child: picture,
               )
             else

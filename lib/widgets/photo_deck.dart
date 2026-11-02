@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../keyboard/focusable_tap.dart';
+import 'liquid_glass.dart' show SpecularRim;
 import 'message_stamp.dart';
 import 'photo_mosaic.dart' show MosaicTile;
 
@@ -110,7 +111,9 @@ class PhotoDeck extends StatefulWidget {
   final MessageStamp? stamp;
 
   /// How far each card behind sticks out past the one in front of it.
-  static const double peek = 8;
+  /// 12, not 8: at 8 the edges behind a dark photograph read as its shadow,
+  /// not as more cards. The lit rim on every card (see [_face]) does the rest.
+  static const double peek = 12;
 
   /// Cards drawn behind the front one at rest.
   static const int behindMax = 2;
@@ -480,31 +483,46 @@ class _PhotoDeckState extends State<PhotoDeck>
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: widget.radius,
-            child: MosaicTile(
-              anchor: _anchorFor(m.id),
-              message: m,
-              api: widget.api,
-              theme: theme,
-              side: _cardW,
-              radius: widget.radius,
-              highlightT:
-                  m.id == widget.highlightedPhotoId ? widget.highlightT : 0.0,
-              currentUserId: widget.currentUserId,
-              onOpen: (w) => widget.onOpen(m, sourceDecodeWidth: w),
-              onLongPress: widget.onTileLongPress == null
-                  ? null
-                  : () => widget.onTileLongPress!(m, _anchorFor(m.id)),
-              onContextMenu: widget.onTileContextMenu == null
-                  ? null
-                  : (at) => widget.onTileContextMenu!(m, at),
-              onReactionTap: widget.onReactionTap == null
-                  ? null
-                  : (emoji) => widget.onReactionTap!(m, emoji),
-              onReactionLongPress: widget.onReactionLongPress == null
-                  ? null
-                  : (emoji) => widget.onReactionLongPress!(m, emoji),
+          // The chrome's lit glass edge, on every card: a dark photograph
+          // behind a dark one, on a dark page, had no edge at all, and the
+          // hand read as one picture. Inside the boundary, so it is cached
+          // with the face and costs nothing per frame.
+          child: CustomPaint(
+            foregroundPainter: SpecularRim(
+              shape: RoundedRectangleBorder(borderRadius: widget.radius),
+              light: false,
+            ),
+            child: ClipRRect(
+              borderRadius: widget.radius,
+              child: MosaicTile(
+                anchor: _anchorFor(m.id),
+                message: m,
+                api: widget.api,
+                theme: theme,
+                side: _cardW,
+                radius: widget.radius,
+                highlightT: m.id == widget.highlightedPhotoId
+                    ? widget.highlightT
+                    : 0.0,
+                currentUserId: widget.currentUserId,
+                onOpen: (w) => widget.onOpen(m, sourceDecodeWidth: w),
+                onLongPress: widget.onTileLongPress == null
+                    ? null
+                    : () => widget.onTileLongPress!(m, _anchorFor(m.id)),
+                onContextMenu: widget.onTileContextMenu == null
+                    ? null
+                    : (at) => widget.onTileContextMenu!(m, at),
+                onReactionTap: widget.onReactionTap == null
+                    ? null
+                    : (emoji) => widget.onReactionTap!(m, emoji),
+                onReactionLongPress: widget.onReactionLongPress == null
+                    ? null
+                    : (emoji) => widget.onReactionLongPress!(m, emoji),
+                // A sideways drag is the hand's: on a spoiler card the rub
+                // took it, so the swipe wiped dust instead of dealing the next
+                // card. A tap still opens the dust.
+                spoilerRub: false,
+              ),
             ),
           ),
         ),

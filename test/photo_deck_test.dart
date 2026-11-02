@@ -21,7 +21,8 @@ import 'package:monkeyhub/widgets/photo_mosaic.dart' show MosaicTile;
 void main() {
   final api = ChatApi(ConvexBackend.instance);
 
-  ChatMessage photo(String id, {bool video = false}) => ChatMessage(
+  ChatMessage photo(String id, {bool video = false, bool spoiler = false}) =>
+      ChatMessage(
         id: id,
         roomId: 'r',
         senderId: 'alice',
@@ -29,13 +30,16 @@ void main() {
         content: '',
         createdAt: DateTime(2026, 3, 1),
         type: video ? MessageType.video : MessageType.image,
+        mediaSpoiler: spoiler,
       );
 
   late List<String> opened;
   final deck = GlobalKey();
 
   Future<void> pump(WidgetTester tester, int n,
-      {String? highlight, bool Function(int i)? video}) async {
+      {String? highlight,
+      bool Function(int i)? video,
+      bool Function(int i)? spoiler}) async {
     opened = [];
     await tester.pumpWidget(ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
@@ -48,7 +52,9 @@ void main() {
               key: deck,
               photos: [
                 for (var i = 0; i < n; i++)
-                  photo('m$i', video: video?.call(i) ?? false),
+                  photo('m$i',
+                      video: video?.call(i) ?? false,
+                      spoiler: spoiler?.call(i) ?? false),
               ],
               api: api,
               width: 260,
@@ -90,6 +96,35 @@ void main() {
     await swipe(tester, -200);
     await swipe(tester, -200);
     expect(await front(tester), 'm2');
+  });
+
+  // The spoiler's rub (a sideways drag that wipes a glimpse through the dust)
+  // used to win the swipe: on a hidden card the hand would not move.
+  testWidgets('a swipe on a spoiler card deals, it does not rub the dust',
+      (tester) async {
+    await pump(tester, 3, spoiler: (i) => i == 1);
+    // The dust never settles, so fixed pumps rather than pumpAndSettle.
+    Future<void> slide(double dx) async {
+      await tester.drag(find.byKey(deck), Offset(dx, 0));
+      // One frame to start the glide, one to land it.
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    Future<String> tapFront() async {
+      final box = tester.getRect(find.byKey(deck));
+      await tester.tapAt(Offset(box.right - 60, box.center.dy));
+      await tester.pump(const Duration(seconds: 1));
+      return opened.removeLast();
+    }
+
+    await slide(-200);
+    // On the hidden card now: both ways off it still move the hand.
+    await slide(-200);
+    expect(await tapFront(), 'm2');
+    await slide(200);
+    await slide(200);
+    expect(await tapFront(), 'm0');
   });
 
   testWidgets('swiping right goes back, and stops at the first',
