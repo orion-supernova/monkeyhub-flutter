@@ -616,7 +616,6 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
         onTap: onOnce,
         child: ViewOnceGlyph(
           color: theme.ink,
-          knockout: chromeDiscFill(theme),
           on: _once.value,
           size: 24,
         ),

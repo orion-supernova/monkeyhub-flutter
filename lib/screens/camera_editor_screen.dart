@@ -2535,12 +2535,8 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
             curve: Curves.easeOutBack,
             builder: (_, on, _) => RepaintBoundary(
               child: switch (kind) {
-                SendSwitch.viewOnce => ViewOnceGlyph(
-                    color: ink,
-                    knockout: const Color(0xFF2C2C30),
-                    on: on,
-                    size: 16,
-                  ),
+                SendSwitch.viewOnce =>
+                  ViewOnceGlyph(color: ink, on: on, size: 16),
                 SendSwitch.spoiler =>
                   SpoilerGlyph(color: ink, on: on, burst: on, size: 16),
                 _ => HdGlyph(color: ink, on: on, kick: on, size: 16),

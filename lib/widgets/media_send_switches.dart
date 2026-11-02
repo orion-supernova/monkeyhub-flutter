@@ -19,11 +19,14 @@ import 'liquid_glass.dart' show MediaGlass;
 /// composer and the gallery's preview cannot drift apart again: they read
 /// and write the same [MediaSendOptions] through the same glyphs.
 ///
-/// None lights up with an accent fill. Each is a drawn glyph that MORPHS
-/// between its states (the ring's dashes close and flood, the eye shuts
-/// under dust, a badge traces itself round HD, the pencil lifts and draws),
-/// kicks once as it turns on, ticks a haptic at each beat, and the first
-/// time view once or spoiler is turned on it says what that does.
+/// None lights up with an accent fill. One rule for all four: off is an
+/// outline, on is solid with its mark cut clean through (a real hole, so the
+/// photo shows through it), the SF Symbols `.fill` idiom. Each MORPHS
+/// between the two (the pencil fills and lifts to scribble, the ring's dashes
+/// twist shut like an aperture and flood, the eye shuts under dust and
+/// sparkles, a badge traces round HD and floods), kicks once as it turns on
+/// (a wiggle, a pop, a twinkle, a swell), ticks a haptic at each beat, and
+/// the first time view once or spoiler is turned on it says what that does.
 List<GlassGroupItem> mediaSendSwitchItems(
   BuildContext context, {
   required MediaSendOptions options,
@@ -101,10 +104,6 @@ List<GlassGroupItem> mediaSendSwitchItems(
 }
 
 enum SendSwitch { pen, viewOnce, spoiler, hd }
-
-/// The knocked-out "1" in a flooded view-once ring: the media glass's own
-/// dark, so it reads as a hole through the flood.
-const Color _kGlassHole = Color(0xFF2C2C30);
 
 /// One send switch's glyph, carrying its own state.
 ///
@@ -201,16 +200,11 @@ class _SendSwitchGlyphState extends State<SendSwitchGlyph>
   Widget _glyph(double t, double kick, Color ink) {
     final size = widget.size;
     return switch (widget.kind) {
-      SendSwitch.viewOnce => ViewOnceGlyph(
-          color: ink,
-          knockout: _kGlassHole,
-          on: t,
-          size: size,
-        ),
+      SendSwitch.viewOnce => ViewOnceGlyph(color: ink, on: t, size: size),
       SendSwitch.spoiler =>
         SpoilerGlyph(color: ink, on: t, burst: kick, size: size),
       SendSwitch.hd => HdGlyph(color: ink, on: t, kick: kick, size: size),
-      SendSwitch.pen => PenGlyph(color: ink, on: t, size: size),
+      SendSwitch.pen => PenGlyph(color: ink, on: t, kick: kick, size: size),
     };
   }
 

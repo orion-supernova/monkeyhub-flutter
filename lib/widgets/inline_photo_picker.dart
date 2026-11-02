@@ -1327,7 +1327,6 @@ class _StripTile extends StatelessWidget {
               child: IgnorePointer(
                 child: ViewOnceGlyph(
                   color: Colors.white,
-                  knockout: Color(0xFF1C1C1E),
                   on: 1,
                   size: 20,
                 ),

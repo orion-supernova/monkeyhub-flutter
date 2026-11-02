@@ -1123,7 +1123,6 @@ class _PhotoLine extends StatelessWidget {
           const SizedBox(width: 8),
           ViewOnceGlyph(
             color: theme.accent,
-            knockout: sheetGroupFill(theme),
             on: 1,
             size: 18,
           ),
