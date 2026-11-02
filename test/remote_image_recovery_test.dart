@@ -4,12 +4,14 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/media/file_url_cache.dart';
 import 'package:monkeyhub/media/storage/media_image_cache.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/remote_image.dart';
+import 'package:monkeyhub/widgets/still_blur.dart';
 
 /// A 1×1 PNG: the smallest thing the engine will really decode.
 final _png = Uint8List.fromList(const [
@@ -88,5 +90,40 @@ void main() {
     expect(disk.downloads, 1, reason: 'and a fresh one must come down');
     expect(api.lookups, 2, reason: 'the URL is asked for again too');
     expect(find.byIcon(Icons.broken_image_outlined), findsNothing);
+  });
+
+  // A spoiler's blur is a still taken when the picture arrives, and a fade
+  // only moves its own layer's alpha: the still caught the first, all but
+  // transparent frame of a fresh download and the spoiler stayed black.
+  group('a fresh download fades in', () {
+    Future<Duration> fadeOf(WidgetTester tester, String id,
+        {required bool underBlur}) async {
+      MediaImageCache.debugUse(_Disk());
+      final image =
+          RemoteImage(storageId: id, api: _Api(), width: 40, height: 40);
+      await tester.pumpWidget(ThemeScope(
+        controller: ThemeController(BasicTheme.midnight()),
+        child: MaterialApp(
+          home: underBlur ? StillBlur(sigma: 16, child: image) : image,
+        ),
+      ));
+      // The URL comes back off the fake clock: a cold fetch.
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)));
+      await tester.pump();
+      return tester
+          .widget<CachedNetworkImage>(find.byType(CachedNetworkImage).first)
+          .fadeInDuration;
+    }
+
+    testWidgets('in the open', (tester) async {
+      expect(await fadeOf(tester, 'open', underBlur: false),
+          isNot(Duration.zero));
+    });
+
+    testWidgets('but not under a still blur, which would keep it black',
+        (tester) async {
+      expect(await fadeOf(tester, 'sealed', underBlur: true), Duration.zero);
+    });
   });
 }

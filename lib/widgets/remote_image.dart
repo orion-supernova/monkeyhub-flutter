@@ -8,6 +8,7 @@ import '../media/file_url_cache.dart';
 import '../media/storage/media_image_cache.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'still_blur.dart';
 
 /// Renders an image stored in Convex by [storageId].
 ///
@@ -359,9 +360,14 @@ class _RemoteImageState extends State<RemoteImage> {
         memCacheWidth: decode.width,
         memCacheHeight: decode.height,
         // A warm image is already decoded; fading it in would make a cache HIT
-        // look like a load. Only a genuinely cold fetch gets the fade.
-        fadeInDuration:
-            _wasCold ? const Duration(milliseconds: 180) : Duration.zero,
+        // look like a load. Only a genuinely cold fetch gets the fade, and
+        // not under a spoiler's blur: the blur is a still taken when the
+        // picture arrives, and a fade only moves its own layer, so the still
+        // caught the first, transparent frame and the spoiler stayed black
+        // (see [StillBlur.covers]).
+        fadeInDuration: _wasCold && !StillBlur.covers(context)
+            ? const Duration(milliseconds: 180)
+            : Duration.zero,
         fadeOutDuration: Duration.zero,
         placeholder: (_, url) => widget.quiet
             ? const SizedBox.shrink()

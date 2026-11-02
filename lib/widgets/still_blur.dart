@@ -21,6 +21,10 @@ import 'package:flutter/widgets.dart';
 ///
 /// For a child that repaints through its own boundary (a video's texture),
 /// the still would not see the change; give such a child a still frame.
+/// A fade is one of those: an animated opacity moves its own layer's alpha
+/// without repainting anything above it, so a picture fading in under a
+/// still was captured on its first, all but transparent frame and stayed
+/// black. Ask [covers] and skip the fade.
 class StillBlur extends SingleChildRenderObjectWidget {
   const StillBlur({
     super.key,
@@ -29,6 +33,12 @@ class StillBlur extends SingleChildRenderObjectWidget {
     this.tileMode = TileMode.mirror,
     required Widget super.child,
   });
+
+  /// Whether [context] is painted under a [StillBlur], blurring or not. A
+  /// lookup, not a dependency: a cover that opens and seals again does not
+  /// rebuild what is under it.
+  static bool covers(BuildContext context) =>
+      context.findAncestorWidgetOfExactType<StillBlur>() != null;
 
   /// The blur's sigma, in logical pixels, as [ImageFilter.blur] takes it.
   final double sigma;
