@@ -7,7 +7,14 @@
 # The services are container names on the shared `edge` Docker network, not
 # 127.0.0.1 ports as on the old VPS. Same effect, one fewer indirection, and it
 # keeps working if the loopback port bindings are ever dropped.
+#
+# protocol: http2 (TCP), not the default QUIC (UDP). Every app's Convex
+# websocket rides one of this tunnel's four edge connections, and on QUIC
+# those kept dying ("datagram manager error: timeout: no recent network
+# activity", ~20 in the week to 2026-11-02), each one cutting every socket on
+# it: a quarter of the users online, reconnecting at once.
 tunnel: e970c8dc-30e5-4b6e-a3c7-d569b816ebd1
+protocol: http2
 credentials-file: /etc/cloudflared/e970c8dc-30e5-4b6e-a3c7-d569b816ebd1.json
 
 ingress:
