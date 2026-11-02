@@ -4170,14 +4170,14 @@ class _RoomScreenState extends State<_RoomView>
     if (room == null) return;
     if (!widget.repo.capabilitiesFor(room).canReceiveForwards) return;
     final loc = AppLocalizations.of(context);
-    unawaited(ShareTargets.instance.touch(shareTargetFor(
+    unawaited(resolvedShareTargetFor(
       repo: widget.repo,
       theme: ThemeScope.of(context),
       room: room,
       savedMessagesTitle: loc.savedMessagesTitle,
       directMessageFallbackTitle:
           loc.approvalsScreenForwardDirectMessageFallback,
-    )));
+    ).then(ShareTargets.instance.touch));
   }
 
   /// Sends what came out of the composer, in its rail's order.

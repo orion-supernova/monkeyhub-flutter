@@ -28,6 +28,7 @@ class ShareTarget {
     required this.gradientEnd,
     this.avatarUrl,
     this.isGroup = false,
+    this.isSaved = false,
   });
 
   /// Doubles as the shortcut id on Android and the conversation identifier in
@@ -51,6 +52,9 @@ class ShareTarget {
 
   final bool isGroup;
 
+  /// Saved Messages: native draws its bookmark rather than an initial.
+  final bool isSaved;
+
   Map<String, Object?> toChannel() => {
         'id': roomId,
         'title': title,
@@ -59,6 +63,7 @@ class ShareTarget {
         'gradientEnd': gradientEnd,
         'avatarUrl': avatarUrl,
         'isGroup': isGroup,
+        'isSaved': isSaved,
       };
 
   @override
@@ -70,11 +75,12 @@ class ShareTarget {
       other.gradientStart == gradientStart &&
       other.gradientEnd == gradientEnd &&
       other.avatarUrl == avatarUrl &&
-      other.isGroup == isGroup;
+      other.isGroup == isGroup &&
+      other.isSaved == isSaved;
 
   @override
-  int get hashCode => Object.hash(
-      roomId, title, initial, gradientStart, gradientEnd, avatarUrl, isGroup);
+  int get hashCode => Object.hash(roomId, title, initial, gradientStart,
+      gradientEnd, avatarUrl, isGroup, isSaved);
 }
 
 /// Most suggestions handed to the OS at once.
@@ -297,6 +303,43 @@ ShareTarget shareTargetFor({
     gradientEnd: _argb(gradient.length > 1 ? gradient[1] : gradient.first),
     avatarUrl: avatarUrl,
     isGroup: !room.isDm,
+    isSaved: room.isSavedMessages,
+  );
+}
+
+/// [shareTargetFor], once the room's avatar URL is known.
+///
+/// For [ShareTargets.touch]: on iOS a send is the only time a suggestion is
+/// refreshed, and a donation made while the URL was still unresolved went in
+/// with no picture and kept the system's grey silhouette until the next send
+/// to that chat. Waiting a moment for the URL costs nothing; the touch is
+/// fire-and-forget.
+Future<ShareTarget> resolvedShareTargetFor({
+  required ChatRepository repo,
+  required AppTheme theme,
+  required ChatRoom room,
+  required String savedMessagesTitle,
+  required String directMessageFallbackTitle,
+}) async {
+  final peer = room.isDm ? repo.otherUserFor(room) : null;
+  final storageId = peer?.avatarStorageId ?? room.avatarStorageId;
+  if (storageId != null &&
+      storageId.isNotEmpty &&
+      FileUrlCache.instance.peek(storageId) == null) {
+    try {
+      await FileUrlCache.instance
+          .resolve(storageId, () => repo.api.getFileUrl(storageId))
+          .timeout(const Duration(seconds: 8));
+    } catch (_) {
+      // Unresolved: native draws the gradient instead.
+    }
+  }
+  return shareTargetFor(
+    repo: repo,
+    theme: theme,
+    room: room,
+    savedMessagesTitle: savedMessagesTitle,
+    directMessageFallbackTitle: directMessageFallbackTitle,
   );
 }
 

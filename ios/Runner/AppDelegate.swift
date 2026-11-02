@@ -1357,8 +1357,12 @@ import WebRTC
     guard let roomId = args["id"] as? String, !roomId.isEmpty else { return }
     let title = (args["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? roomId
     let isGroup = (args["isGroup"] as? Bool) == true
-    let image = shareTargetImage(args)
+    shareTargetImage(args) { image in
+      Self.donate(roomId: roomId, title: title, isGroup: isGroup, image: image)
+    }
+  }
 
+  private static func donate(roomId: String, title: String, isGroup: Bool, image: INImage) {
     let recipient = INPerson(
       personHandle: INPersonHandle(value: roomId, type: .unknown),
       nameComponents: nil,
@@ -1384,7 +1388,7 @@ import WebRTC
     // A group has no single person to draw, so the picture hangs off the group
     // name instead. Setting it on a 1:1 intent would be ignored — there the
     // recipient's own INImage above is what gets rendered.
-    if isGroup, let image {
+    if isGroup {
       intent.setImage(image, forParameterNamed: \.speakableGroupName)
     }
 
@@ -1401,19 +1405,130 @@ import WebRTC
     }
   }
 
-  /// The avatar for a donated conversation.
+  /// The avatar for a donated conversation, as bytes, always.
   ///
-  /// `INImage(url:)` is lazy: the read happens when the system renders the
-  /// suggestion, which is where that work belongs and not on a send. A missing
-  /// or unreachable URL yields nil and iOS draws its own initial — the same
-  /// fallback the app's own avatars use.
-  private func shareTargetImage(_ args: [String: Any]) -> INImage? {
+  /// It used to be `INImage(url:)` with the avatar's remote URL. The share
+  /// sheet is drawn by a system process that does not reliably fetch a remote
+  /// URL, so a face that showed everywhere in the app came out as an empty
+  /// circle there; and a chat with no avatar (or one whose URL was not
+  /// resolved yet) donated no image at all and got iOS's grey silhouette.
+  /// Now the face is fetched here and handed over as data, upright and small,
+  /// the way NotificationService already hands banners theirs; and anything
+  /// without one gets the app's own gradient and initial, drawn
+  /// ([drawnShareAvatar]). Completes on the main queue.
+  private func shareTargetImage(_ args: [String: Any], completion: @escaping (INImage) -> Void) {
     guard
       let raw = args["avatarUrl"] as? String,
       !raw.isEmpty,
       let url = URL(string: raw)
+    else {
+      completion(Self.drawnShareAvatar(args))
+      return
+    }
+    var request = URLRequest(url: url)
+    request.timeoutInterval = 10
+    URLSession.shared.dataTask(with: request) { data, response, _ in
+      let ok = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? false
+      let face = ok ? data.flatMap(Self.uprightShareAvatar) : nil
+      DispatchQueue.main.async {
+        completion(face ?? Self.drawnShareAvatar(args))
+      }
+    }.resume()
+  }
+
+  /// Longest edge a suggestion's face is kept at: the share sheet draws it at
+  /// about 60pt.
+  private static let shareAvatarMaxEdge: CGFloat = 256
+
+  /// [data] decoded, its EXIF orientation baked in (Intents draws the stored
+  /// pixel grid, so a portrait photo would lie on its side) and shrunk to
+  /// [shareAvatarMaxEdge]. The sibling of NotificationService's
+  /// `uprightAvatar`. Nil when it does not decode.
+  private static func uprightShareAvatar(_ data: Data) -> INImage? {
+    guard let decoded = UIImage(data: data),
+          decoded.size.width > 0, decoded.size.height > 0
     else { return nil }
-    return INImage(url: url)
+    let longest = max(decoded.size.width, decoded.size.height)
+    if decoded.imageOrientation == .up && longest <= shareAvatarMaxEdge {
+      return INImage(imageData: data)
+    }
+    let k = longest > shareAvatarMaxEdge ? shareAvatarMaxEdge / longest : 1
+    let target = CGSize(
+      width: max(1, (decoded.size.width * k).rounded()),
+      height: max(1, (decoded.size.height * k).rounded())
+    )
+    let format = UIGraphicsImageRendererFormat.default()
+    format.scale = 1
+    // Circle-cropped avatars have transparent corners; keep them.
+    format.opaque = false
+    let upright = UIGraphicsImageRenderer(size: target, format: format).image { _ in
+      decoded.draw(in: CGRect(origin: .zero, size: target))
+    }
+    guard let png = upright.pngData() else { return INImage(imageData: data) }
+    return INImage(imageData: png)
+  }
+
+  /// The app's own fallback avatar, drawn: the room's two-colour gradient
+  /// (the same seed the chat list paints from) with its initial in white, a
+  /// bookmark for Saved Messages, or a person glyph when there is no initial.
+  /// The system masks it to a circle.
+  private static func drawnShareAvatar(_ args: [String: Any]) -> INImage {
+    let side: CGFloat = 192
+    let start = color(argb: args["gradientStart"] as? Int ?? 0xFF8E8E93)
+    let end = color(argb: args["gradientEnd"] as? Int ?? 0xFF636366)
+    let initial = (args["initial"] as? String) ?? ""
+    let isSaved = (args["isSaved"] as? Bool) == true
+    let isGroup = (args["isGroup"] as? Bool) == true
+    let format = UIGraphicsImageRendererFormat.default()
+    format.scale = 1
+    format.opaque = true
+    let rect = CGRect(x: 0, y: 0, width: side, height: side)
+    let image = UIGraphicsImageRenderer(size: rect.size, format: format).image { ctx in
+      let cg = ctx.cgContext
+      if let gradient = CGGradient(
+        colorsSpace: CGColorSpaceCreateDeviceRGB(),
+        colors: [start.cgColor, end.cgColor] as CFArray,
+        locations: [0, 1]
+      ) {
+        cg.drawLinearGradient(
+          gradient,
+          start: .zero,
+          end: CGPoint(x: side, y: side),
+          options: [.drawsBeforeStartLocation, .drawsAfterEndLocation]
+        )
+      }
+      let symbol: String? = isSaved
+        ? "bookmark.fill"
+        : (initial.isEmpty ? (isGroup ? "person.2.fill" : "person.fill") : nil)
+      if let symbol,
+         let glyph = UIImage(
+           systemName: symbol,
+           withConfiguration: UIImage.SymbolConfiguration(pointSize: side * 0.4, weight: .semibold)
+         )?.withTintColor(.white, renderingMode: .alwaysOriginal) {
+        let g = glyph.size
+        glyph.draw(in: CGRect(
+          x: (side - g.width) / 2, y: (side - g.height) / 2,
+          width: g.width, height: g.height
+        ))
+      } else {
+        let text = NSAttributedString(string: initial, attributes: [
+          .font: UIFont.systemFont(ofSize: side * 0.44, weight: .semibold),
+          .foregroundColor: UIColor.white,
+        ])
+        let t = text.size()
+        text.draw(at: CGPoint(x: (side - t.width) / 2, y: (side - t.height) / 2))
+      }
+    }
+    return INImage(imageData: image.pngData() ?? Data())
+  }
+
+  private static func color(argb: Int) -> UIColor {
+    UIColor(
+      red: CGFloat((argb >> 16) & 0xFF) / 255,
+      green: CGFloat((argb >> 8) & 0xFF) / 255,
+      blue: CGFloat(argb & 0xFF) / 255,
+      alpha: CGFloat((argb >> 24) & 0xFF) / 255
+    )
   }
 
   @objc private func _capturedDidChange() {

@@ -206,7 +206,8 @@ void main() {
   test('toChannel carries every field native needs', () {
     // The keys are read by ShareShortcuts.kt (`id`, `title`, `initial`,
     // `gradientStart`, `gradientEnd`, `avatarUrl`) and by
-    // AppDelegate.donateSendMessage (`id`, `title`, `avatarUrl`, `isGroup`).
+    // AppDelegate.donateSendMessage (all of them, plus `isGroup` and
+    // `isSaved`: it draws the gradient fallback itself).
     // A rename here is a silent no-op there.
     const target = ShareTarget(
       roomId: 'r1',
@@ -225,6 +226,7 @@ void main() {
       'gradientEnd': 0xFF445566,
       'avatarUrl': 'https://example.test/a.jpg',
       'isGroup': true,
+      'isSaved': false,
     });
   });
 }
