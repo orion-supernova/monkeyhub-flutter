@@ -1444,7 +1444,7 @@ import WebRTC
   /// pixel grid, so a portrait photo would lie on its side) and shrunk to
   /// [shareAvatarMaxEdge]. The sibling of NotificationService's
   /// `uprightAvatar`. Nil when it does not decode.
-  private static func uprightShareAvatar(_ data: Data) -> INImage? {
+  private static func uprightShareAvatar(_ data: Foundation.Data) -> INImage? {
     guard let decoded = UIImage(data: data),
           decoded.size.width > 0, decoded.size.height > 0
     else { return nil }
@@ -1519,7 +1519,7 @@ import WebRTC
         text.draw(at: CGPoint(x: (side - t.width) / 2, y: (side - t.height) / 2))
       }
     }
-    return INImage(imageData: image.pngData() ?? Data())
+    return INImage(imageData: image.pngData() ?? Foundation.Data())
   }
 
   private static func color(argb: Int) -> UIColor {
