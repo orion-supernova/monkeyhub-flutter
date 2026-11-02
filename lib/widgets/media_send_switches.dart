@@ -105,11 +105,32 @@ List<GlassGroupItem> mediaSendSwitchItems(
 
 enum SendSwitch { pen, viewOnce, spoiler, hd }
 
+/// How long a switch takes to turn on ([on]) and how long its kick runs
+/// ([kick]): longer the more steps its glyph has to show. HD traces a frame,
+/// floods it and cuts its letters through; the pencil only fills and lifts.
+class _SwitchPace {
+  const _SwitchPace(this.on, this.kick);
+  final Duration on;
+  final Duration kick;
+
+  static _SwitchPace of(SendSwitch kind) => switch (kind) {
+        SendSwitch.pen => const _SwitchPace(
+            Duration(milliseconds: 560), Duration(milliseconds: 800)),
+        SendSwitch.viewOnce => const _SwitchPace(
+            Duration(milliseconds: 600), Duration(milliseconds: 700)),
+        SendSwitch.spoiler => const _SwitchPace(
+            Duration(milliseconds: 640), Duration(milliseconds: 1000)),
+        SendSwitch.hd => const _SwitchPace(
+            Duration(milliseconds: 760), Duration(milliseconds: 1040)),
+      };
+}
+
 /// One send switch's glyph, carrying its own state.
 ///
-/// [on] drives a 0..1 morph (a spring with a pop for view once, an ease for
-/// the rest), a one-off [_kick] runs as it turns on, and the ink lerps from
-/// dim to full white with it. With [tip], the first time ever it turns on
+/// [on] drives a 0..1 morph (a spring with a pop for view once, a timed
+/// ease for the rest, as long as each has steps to show: see [_SwitchPace]),
+/// a one-off [_kick] runs with it, and the ink lerps from dim to full white
+/// with it. With [tip], the first time ever it turns on
 /// (per switch, remembered in [SettingsStore.tipSeen]) a [TipBubble] pops
 /// out of it. Reduce Motion snaps, no kick, a still tip.
 class SendSwitchGlyph extends StatefulWidget {
@@ -137,11 +158,12 @@ class _SendSwitchGlyphState extends State<SendSwitchGlyph>
     value: widget.on ? 1 : 0,
   );
   /// The one-off beat on a flip: a hop and the glyph's own move turning
-  /// on, a small dip turning off. Long enough to be seen at 24pt: at 420 ms
-  /// with the morph done in 220 it read as a swap, not a motion.
+  /// on, a small dip turning off. Runs as long as the morph and a little
+  /// past it, so a glyph's own beat (HD's swell, the sparkles' twinkle)
+  /// lands as its morph does rather than halfway through it.
   late final AnimationController _kick = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 640),
+    duration: _SwitchPace.of(widget.kind).kick,
   );
 
   /// Which way the last flip went, for the beat's shape.
@@ -162,32 +184,41 @@ class _SendSwitchGlyphState extends State<SendSwitchGlyph>
     super.didUpdateWidget(old);
     if (old.on == widget.on) return;
     final target = widget.on ? 1.0 : 0.0;
+    final pace = _SwitchPace.of(widget.kind);
     if (_calm) {
       _state.value = target;
     } else if (widget.on) {
-      // View once pops past full, as the recorder's ring does; the rest
-      // settle with a breath of overshoot.
-      final ratio = widget.kind == SendSwitch.viewOnce ? 0.5 : 0.72;
-      _state.animateWith(SpringSimulation(
-        SpringDescription.withDampingRatio(
-          mass: 1,
-          stiffness: math.pow(2 * math.pi / 0.46, 2).toDouble(),
-          ratio: ratio,
-        ),
-        _state.value,
-        target,
-        0,
-      ));
+      if (widget.kind == SendSwitch.viewOnce) {
+        // View once pops past full, as the recorder's ring does.
+        _state.animateWith(SpringSimulation(
+          SpringDescription.withDampingRatio(
+            mass: 1,
+            stiffness: math.pow(2 * math.pi / 0.6, 2).toDouble(),
+            ratio: 0.5,
+          ),
+          _state.value,
+          target,
+          0,
+        ));
+      } else {
+        // The rest run their steps in order on a clock: a spring rushed
+        // HD's trace, flood and cut into a quarter of a second.
+        _state.animateTo(target, duration: pace.on, curve: Curves.easeInOut);
+      }
       _kickOn = true;
-      _kick.forward(from: 0);
+      _kick
+        ..duration = pace.kick
+        ..forward(from: 0);
     } else {
       _state.animateTo(
         target,
-        duration: const Duration(milliseconds: 340),
+        duration: const Duration(milliseconds: 420),
         curve: Curves.easeInOutCubic,
       );
       _kickOn = false;
-      _kick.forward(from: 0);
+      _kick
+        ..duration = const Duration(milliseconds: 460)
+        ..forward(from: 0);
     }
     if (widget.on && widget.tip != null) _maybeTip();
   }
@@ -249,9 +280,13 @@ class _SendSwitchGlyphState extends State<SendSwitchGlyph>
             t.clamp(0.0, 1.0),
           )!;
           final k = _kick.value;
-          final beat = k <= 0 || k >= 1
+          // The hop is its own short beat at the start of the kick, however
+          // long the glyph's own move runs.
+          final ms = k * _kick.duration!.inMilliseconds;
+          final hop = (ms / 460).clamp(0.0, 1.0);
+          final beat = k <= 0 || hop >= 1
               ? 0.0
-              : math.sin(math.pi * Curves.easeOut.transform(k));
+              : math.sin(math.pi * Curves.easeOut.transform(hop));
           // Turning on, the glyph hops up and swells; turning off it ducks.
           return Transform.translate(
             offset: Offset(0, _kickOn ? -2.5 * beat : 0),

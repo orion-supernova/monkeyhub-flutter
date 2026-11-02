@@ -1052,7 +1052,9 @@ class _SpoilerPainter extends GlyphGridPainter {
     // The dust: it settles with the lid and puffs out on the kick.
     final dust = Curves.easeOutBack.transform(glyphSpan(t, 0.3, 1));
     if (dust <= 0) return;
-    final puff = _swell(burst);
+    // After the eye has shut: the back half of the kick.
+    final pop = glyphSpan(burst, 0.5, 1);
+    final puff = _swell(pop);
     const centre = Offset(12, 9);
     const specks = [
       (Offset(4.6, 8.6), 1.1),
@@ -1069,7 +1071,7 @@ class _SpoilerPainter extends GlyphGridPainter {
       );
     }
     // Two sparkles, the dust's light, twinkling a half turn on the kick.
-    final spin = math.pi * Curves.easeInOut.transform(burst.clamp(0, 1));
+    final spin = math.pi * Curves.easeInOut.transform(pop);
     _sparkle(canvas, const Offset(19.2, 6.4), 3.4 * dust * (1 + 0.45 * puff),
         spin, fill);
     _sparkle(canvas, const Offset(6.8, 2.4) + const Offset(-1.2, -0.8) * puff,
@@ -1118,10 +1120,11 @@ class _HdPainter extends GlyphGridPainter {
   void draw(Canvas canvas, Paint line, Paint fill) {
     final ink = fill.color;
     final t = on.clamp(0.0, 1.0);
-    final swell = _swell(kick);
+    // Once the flood has landed: the last stretch of the kick.
+    final swell = _swell(glyphSpan(kick, 0.62, 1));
     canvas.saveLayer(const Rect.fromLTWH(-2, -2, 28, 28), Paint());
     canvas.translate(12, 12);
-    canvas.scale(1 + 0.06 * swell);
+    canvas.scale(1 + 0.14 * swell);
     canvas.translate(-12, -12);
     const badge = Rect.fromLTRB(1.8, 4.6, 22.2, 19.4);
     final rrect = RRect.fromRectAndRadius(badge, const Radius.circular(4.6));
@@ -1214,7 +1217,7 @@ class _PenPainter extends GlyphGridPainter {
     final t = on.clamp(0.0, 1.0);
     final lift = Curves.easeOutBack.transform(t);
     // A scribble in the air: two decaying wiggles about the tip.
-    final k = kick.clamp(0.0, 1.0);
+    final k = glyphSpan(kick, 0.4, 1);
     final wiggle = k <= 0 || k >= 1
         ? 0.0
         : math.sin(k * math.pi * 4) * (1 - k) * 0.32;
