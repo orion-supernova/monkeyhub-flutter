@@ -609,3 +609,50 @@ describe("media spoilers", () => {
     expect(((await ctxFor(plain)) as any).plain).toBe(true);
   });
 });
+
+/**
+ * A retry is not a new send. On a bad link the answer to a send can be lost
+ * after the row landed; the client sends again with the same clientId and
+ * must get the original back, even when the sender is at the rate limit,
+ * which is exactly when a flaky network makes retries pile up.
+ */
+describe("a retried send", () => {
+  test("is answered with the original row, past the rate limit", async () => {
+    const t = convexTest(schema);
+    const me = await t.mutation(api.auth.signup, {
+      username: "retrier",
+      name: "retrier",
+      passwordHash: "hash-retrier",
+      recoveryKeyHash: "recovery-retrier",
+      deviceId: "device-retrier",
+    });
+    const roomId = await t.mutation(api.rooms.create, {
+      sessionToken: me.token,
+      userId: me.userId as any,
+      name: "room",
+      isPrivate: false,
+    });
+    const send = (content: string, clientId: string) =>
+      t.mutation(api.messages.send, {
+        sessionToken: me.token,
+        userId: me.userId as any,
+        roomId,
+        content,
+        clientId,
+      });
+
+    const first = await send("first", "c-0");
+    // Spend the rest of the 10s budget.
+    for (let i = 1; i < 30; i++) await send(`m${i}`, `c-${i}`);
+    await expect(send("one too many", "c-new")).rejects.toThrow();
+
+    expect(await send("first", "c-0")).toBe(first);
+    const rows = await t.run((ctx) =>
+      ctx.db
+        .query("messages")
+        .filter((q) => q.eq(q.field("clientId"), "c-0"))
+        .collect()
+    );
+    expect(rows).toHaveLength(1);
+  });
+});

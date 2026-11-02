@@ -1166,6 +1166,23 @@ export const send = mutation({
   // _postMessage`); a build older than the filter shows the bubble as sent
   // and never sees it echoed, which is the accepted cost for testers.
   handler: async (ctx, args) => {
+    // A retry of a send that already landed (the answer was lost on a bad
+    // link, the client sent again with the same clientId) is answered with
+    // the original row BEFORE the rate limit and the upload claim: it is not
+    // a new send, and charging it as one refused retries on exactly the
+    // flaky networks that make them. `sendCore` keeps its own check.
+    if (args.clientId !== undefined) {
+      const existing = await ctx.db
+        .query("messages")
+        .withIndex("by_room_user_client", (q: any) =>
+          q
+            .eq("roomId", args.roomId)
+            .eq("userId", args.userId)
+            .eq("clientId", args.clientId)
+        )
+        .first();
+      if (existing) return existing._id;
+    }
     await throttleSend(ctx, args.userId, 1);
     // Media in a room nobody else is in counts against the private budget.
     const room = await ctx.db.get(args.roomId);
