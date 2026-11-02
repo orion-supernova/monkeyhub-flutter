@@ -1,7 +1,10 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/message_hover_actions.dart';
 import 'package:monkeyhub/widgets/swipe_to_reply.dart';
 
 /// Two properties of the pull-to-reply gesture that are invisible from the
@@ -142,5 +145,149 @@ void main() {
 
     expect(replies, 0);
     expect(tester.getTopLeft(find.byKey(childKey)).dx, 0);
+  });
+
+  group('browser wheel swipe', () {
+    setUp(() {
+      SwipeToReply.wheelEnabled = true;
+      SwipeToReply.resetWheelGesture();
+    });
+    tearDown(() => SwipeToReply.wheelEnabled = false);
+
+    Widget two({required void Function(int) onReply}) => MaterialApp(
+      home: ThemeScope(
+        controller: ThemeController(BasicTheme.midnight()),
+        child: Scaffold(
+          body: ListView(
+            children: [
+              for (var i = 0; i < 2; i++)
+                SwipeToReply(
+                  onReplyTriggered: () => onReply(i),
+                  child: Container(
+                    key: Key('b$i'),
+                    height: 60,
+                    color: const Color(0xFF222222),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    testWidgets(
+      'a vertical scroll never slides a bubble, even as a new one arrives '
+      'under a pointer that has not moved',
+      (tester) async {
+        final replies = <int>[];
+        await tester.pumpWidget(two(onReply: replies.add));
+        final pointer = TestPointer(1, PointerDeviceKind.trackpad);
+        final b0 = tester.getCenter(find.byKey(const Key('b0')));
+        final b1 = tester.getCenter(find.byKey(const Key('b1')));
+
+        // A real vertical scroll: big dy, a little sideways drift.
+        await tester.sendEventToBinding(pointer.hover(b0));
+        for (var i = 0; i < 4; i++) {
+          await tester.sendEventToBinding(pointer.scroll(const Offset(3, 30)));
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+        // The list moves, a different bubble is under the pointer, and the
+        // momentum tail is tiny and mostly noise, sideways-looking.
+        await tester.sendEventToBinding(pointer.hover(b1));
+        for (var i = 0; i < 6; i++) {
+          await tester.sendEventToBinding(pointer.scroll(const Offset(5, 1)));
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+
+        for (final k in ['b0', 'b1']) {
+          expect(
+            tester.getCenter(find.byKey(Key(k))).dx,
+            b0.dx,
+            reason: '$k must stay put',
+          );
+        }
+        expect(replies, isEmpty);
+        await tester.pump(const Duration(seconds: 1));
+      },
+    );
+
+    testWidgets('a clearly sideways swipe still replies', (tester) async {
+      final replies = <int>[];
+      await tester.pumpWidget(two(onReply: replies.add));
+      final pointer = TestPointer(1, PointerDeviceKind.trackpad);
+      await tester.sendEventToBinding(
+        pointer.hover(tester.getCenter(find.byKey(const Key('b0')))),
+      );
+      for (var i = 0; i < 4; i++) {
+        // Fingers right arrive as negative deltaX.
+        await tester.sendEventToBinding(pointer.scroll(const Offset(-30, 1)));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(replies, [0]);
+      await tester.pump(const Duration(seconds: 1));
+    });
+
+    testWidgets(
+      'the hover strip never shows at a mid-swipe position, and works again '
+      'once the bubble is home',
+      (tester) async {
+        final hover = MessageHoverController();
+        addTearDown(hover.dispose);
+        // Theme above the app: the strip draws in the app's overlay.
+        await tester.pumpWidget(ThemeScope(
+          controller: ThemeController(BasicTheme.midnight()),
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: MessageHoverScope(
+              controller: hover,
+              child: Scaffold(
+                body: ListView(
+                  children: [
+                    SwipeToReply(
+                      onReplyTriggered: () {},
+                      child: MessageHoverRegion(
+                        target: MessageHoverTarget(
+                          id: 'm',
+                          isMine: false,
+                          onReply: () {},
+                        ),
+                        child: Container(
+                          key: const Key('m'),
+                          width: 200,
+                          height: 60,
+                          color: const Color(0xFF222222),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ));
+        final pointer = TestPointer(1, PointerDeviceKind.mouse);
+        final at = tester.getCenter(find.byKey(const Key('m')));
+        await tester.sendEventToBinding(pointer.hover(at));
+        await tester.pump();
+        // A swipe that starts inside the dwell and stays short of the commit.
+        await tester.sendEventToBinding(pointer.scroll(const Offset(-20, 0)));
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.sendEventToBinding(pointer.scroll(const Offset(-20, 0)));
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(hover.shownId, isNull, reason: 'measured mid-swipe');
+
+        // Wheel goes quiet, the bubble springs home, the hold lifts.
+        await tester.pump(const Duration(seconds: 1));
+        expect(hover.shownId, isNull);
+        await tester.sendEventToBinding(pointer.hover(const Offset(700, 500)));
+        await tester.pump();
+        await tester.sendEventToBinding(pointer.hover(at));
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(hover.shownId, 'm');
+        hover.dismiss();
+        await tester.pump(const Duration(seconds: 1));
+      },
+    );
   });
 }

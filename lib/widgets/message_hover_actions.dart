@@ -183,6 +183,22 @@ class MessageHoverController {
     if (_shown.value != null) _shown.value = null;
   }
 
+  int _holds = 0;
+
+  /// Something is moving a bubble under the pointer (a swipe-to-reply): hide
+  /// now, and show nothing until every hold is [release]d. The strip is
+  /// measured once, when its dwell runs out, and drawn at that rect; one
+  /// measured mid-swipe was left floating where the bubble USED to be while
+  /// the bubble sprang home without it.
+  void hold() {
+    _holds++;
+    dismiss();
+  }
+
+  void release() {
+    if (_holds > 0) _holds--;
+  }
+
   void _scheduleHide() {
     _hideTimer?.cancel();
     _hideTimer = Timer(grace, () {
@@ -200,6 +216,7 @@ class MessageHoverController {
   }
 
   void _show(MessageHoverTarget target, BuildContext context) {
+    if (_holds > 0) return;
     final box = context.findRenderObject();
     if (box is! RenderBox || !box.attached || !box.hasSize) return;
     final overlay = Overlay.maybeOf(context);

@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/theme_scope.dart';
+import 'message_hover_actions.dart';
 
 /// Wraps a chat bubble with a right-only "pull to reply" gesture.
 ///
@@ -35,6 +38,15 @@ class SwipeToReply extends StatefulWidget {
   final VoidCallback onReplyTriggered;
   final bool enabled;
 
+  /// Forgets the shared wheel-gesture state, for tests whose clock stamps every
+  /// event the same instant and so never lets it expire on its own.
+  @visibleForTesting
+  static void resetWheelGesture() => _SwipeToReplyState._resetWheel();
+
+  /// Browser wheel swipes only exist on web; a test flips this to exercise them.
+  @visibleForTesting
+  static bool wheelEnabled = kIsWeb;
+
   @override
   State<SwipeToReply> createState() => _SwipeToReplyState();
 }
@@ -56,16 +68,39 @@ class _SwipeToReplyState extends State<SwipeToReply>
     _snap = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 220),
-    )..addListener(() {
+    )
+      ..addListener(() {
         // _snap.value runs 0..1; we map it back to a fading drag.
         setState(() => _drag = _startDrag * (1 - _snap.value));
+      })
+      ..addStatusListener((status) {
+        // Home: the bubble is where a fresh hover will measure it.
+        if (status == AnimationStatus.completed) _releaseHover();
       });
+  }
+
+  /// The desktop hover strip, held off while this bubble is out of place. See
+  /// [MessageHoverController.hold].
+  MessageHoverController? _heldHover;
+
+  void _holdHover() {
+    if (_heldHover != null) return;
+    final c = MessageHoverScope.maybeOf(context);
+    if (c == null) return;
+    _heldHover = c..hold();
+  }
+
+  void _releaseHover() {
+    _heldHover?.release();
+    _heldHover = null;
   }
 
   double _startDrag = 0;
 
   @override
   void dispose() {
+    _scrollIdle?.cancel();
+    _releaseHover();
     _snap.dispose();
     super.dispose();
   }
@@ -99,13 +134,19 @@ class _SwipeToReplyState extends State<SwipeToReply>
     _crossed = false;
     _snap.stop();
     _drag = 0;
+    _holdHover();
   }
 
   void _onUpdate(DragUpdateDetails d) {
     if (!_dragging) return;
     // Measured toward the end edge, so `_drag` counts up the same way in both
     // scripts and everything downstream of it stays direction-agnostic.
-    final dx = (d.primaryDelta ?? 0) * _sign;
+    _pull((d.primaryDelta ?? 0) * _sign);
+  }
+
+  /// Moves the pull by [dx] (already measured toward the end edge), firing the
+  /// threshold haptic on the way across.
+  void _pull(double dx) {
     final next = (_drag + dx).clamp(0.0, double.infinity);
     if (next == _drag) return;
     if (!_crossed && next >= _kThreshold) {
@@ -115,6 +156,93 @@ class _SwipeToReplyState extends State<SwipeToReply>
       _crossed = false;
     }
     setState(() => _drag = next);
+  }
+
+  // ── Browser trackpad ────────────────────────────────────────────────────
+  // A two-finger swipe in a browser is a stream of wheel events, not a
+  // pointer drag, so the recognizer never sees it and the browser takes it as
+  // history navigation. Claiming the event through the resolver is what tells
+  // the engine not to hand it back to the browser.
+
+  Timer? _scrollIdle;
+  // Set once a wheel pull has committed: the momentum tail that follows the
+  // lift must not start a second pull.
+  bool _scrollSpent = false;
+  // The axis the current wheel gesture settled on, decided once from its first
+  // few pixels and kept until the stream goes quiet. A vertical scroll always
+  // carries a little sideways drift, and judging each event alone slid the
+  // bubble under the user's finger on every scroll through the transcript.
+  //
+  // STATIC, because a gesture belongs to the finger and not to a bubble: as a
+  // scroll carries the list past a stationary pointer, every bubble that
+  // arrives under it would otherwise open its own probe in the middle of the
+  // momentum tail, where the leftover deltas are tiny and mostly noise, and
+  // judge them sideways.
+  static bool? _gestureHorizontal;
+  static double _probeX = 0;
+  static double _probeY = 0;
+  static Duration _lastWheel = Duration.zero;
+  static const Duration _wheelGap = Duration(milliseconds: 150);
+
+  static void _resetWheel() {
+    _gestureHorizontal = null;
+    _probeX = 0;
+    _probeY = 0;
+    _lastWheel = Duration.zero;
+  }
+
+  void _onSignal(PointerSignalEvent e) {
+    if (e is! PointerScrollEvent) return;
+    final d = e.scrollDelta;
+    _scrollIdle?.cancel();
+    _scrollIdle = Timer(_wheelGap, _endScroll);
+    final since = e.timeStamp - _lastWheel;
+    // A negative gap is a clock that restarted: a new gesture as well.
+    if (since > _wheelGap || since.isNegative) {
+      _gestureHorizontal = null;
+      _probeX = 0;
+      _probeY = 0;
+    }
+    _lastWheel = e.timeStamp;
+    if (_gestureHorizontal == null) {
+      _probeX += d.dx.abs();
+      _probeY += d.dy.abs();
+      if (_probeX + _probeY < 8) return;
+      // Clearly sideways, not merely sideways-ish.
+      _gestureHorizontal = _probeX > _probeY * 2.5;
+    }
+    if (_gestureHorizontal != true) return;
+    GestureBinding.instance.pointerSignalResolver.register(e, (event) {
+      final ev = event as PointerScrollEvent;
+      if (_scrollSpent) return;
+      if (!_dragging) {
+        _dragging = true;
+        _crossed = false;
+        _snap.stop();
+        _drag = 0;
+        _holdHover();
+      }
+      // Fingers moving right arrive as a negative deltaX.
+      // Capped per event: a fast flick arrives as one enormous delta, and the
+      // pull would otherwise jump hundreds of pixels in a single frame before
+      // the commit below even runs.
+      _pull((-ev.scrollDelta.dx * _sign).clamp(-_kThreshold, _kThreshold * 1.25));
+      if (_crossed) {
+        // No lift event exists here, and the momentum tail would keep the pull
+        // open for another second. Reaching the threshold is the commit.
+        _scrollSpent = true;
+        _crossed = false;
+        _settle();
+        widget.onReplyTriggered();
+      }
+    });
+  }
+
+  void _endScroll() {
+    _scrollSpent = false;
+    if (!mounted) return;
+    _crossed = false;
+    _settle();
   }
 
   /// The single path back to rest. Returns whether this call was the one that
@@ -177,7 +305,10 @@ class _SwipeToReplyState extends State<SwipeToReply>
     final theme = ThemeScope.of(context);
     final direction = Directionality.of(context);
     final sign = direction == TextDirection.rtl ? -1.0 : 1.0;
-    final screenWidth = MediaQuery.sizeOf(context).width;
+    // A phone-sized width at most: on a desktop window the full width made the
+    // rubber band effectively linear and let a bubble travel most of the way
+    // across the chat.
+    final screenWidth = math.min(MediaQuery.sizeOf(context).width, 430.0);
     final displayedX = _rubberBand(_drag, screenWidth) * sign;
     final reveal = (_drag / _kThreshold).clamp(0.0, 1.0);
 
@@ -233,6 +364,7 @@ class _SwipeToReplyState extends State<SwipeToReply>
             behavior: HitTestBehavior.translucent,
             onPointerUp: _onPointerRelease,
             onPointerCancel: _onPointerRelease,
+            onPointerSignal: SwipeToReply.wheelEnabled ? _onSignal : null,
             child: RawGestureDetector(
             behavior: HitTestBehavior.translucent,
             gestures: {

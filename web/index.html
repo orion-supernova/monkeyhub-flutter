@@ -193,6 +193,10 @@
       padding: 0;
       height: 100%;
       background-color: #0d0f12;
+      /* A horizontal trackpad swipe (swipe-to-reply, swipe-to-receipts, the
+         story cube) must reach the app instead of the browser's own
+         two-finger back/forward navigation. */
+      overscroll-behavior: none;
     }
     @keyframes mhPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
     @keyframes mhSpin { to { transform: rotate(360deg); } }
