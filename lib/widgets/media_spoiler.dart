@@ -89,7 +89,10 @@ class MediaSpoilerCover extends StatefulWidget {
   final Widget child;
 
   /// False shows [child] as it is: the same tree, so flipping it neither
-  /// remounts the picture nor drops its decode.
+  /// remounts the picture nor drops its decode. Flipped by the owner (the
+  /// editor's Spoiler switch), it animates: on with the gather a bubble
+  /// covers itself with after a look, off with the tap reveal, from the
+  /// middle.
   final bool sealed;
 
   /// What [SpoilerStore] remembers the reveal under: the message id. Null
@@ -157,6 +160,10 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
   Offset? _origin;
   late bool _open = _stored;
 
+  /// [MediaSpoilerCover.sealed] has gone false while the dust was showing:
+  /// still drawn sealed until the reveal that takes it off has run.
+  bool _lifting = false;
+
   /// The rub's holes; made on the first rub, dropped once the picture is open.
   _RubMask? _rub;
 
@@ -208,12 +215,42 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
       _recoverTimer?.cancel();
       if (_open) _scheduleRecover();
     }
+    if (old.sealed != widget.sealed) _switched(widget.sealed);
+  }
+
+  /// [MediaSpoilerCover.sealed] flipped by its owner (the editor's Spoiler
+  /// switch), not by a tap. It goes on the way a bubble covers itself again
+  /// after a look, the gather: a wind front crossing the picture with the
+  /// dust arriving on it. It comes off the way a tap opens one, the
+  /// wavefront, from the middle.
+  void _switched(bool on) {
+    _recoverTimer?.cancel();
+    if (on) {
+      _lifting = false;
+      _wave.reset();
+      _origin = null;
+      // Shown open until now; the gather covers it.
+      _open = true;
+      _recover();
+      return;
+    }
+    if (_open) return;
+    if (_gathering) {
+      _gather.stop();
+      _gather.value = 0;
+      _gathering = false;
+      _field?.endHeal();
+    }
+    final box = context.findRenderObject() as RenderBox?;
+    if (_calm || box == null || !box.hasSize) return;
+    _lifting = true;
+    _reveal(box.size.center(Offset.zero), haptic: false);
   }
 
   /// After the hold, the dust comes back over the whole picture.
   void _scheduleRecover() {
     _recoverTimer?.cancel();
-    if (widget.revealKey == null) return;
+    if (widget.revealKey == null || !widget.sealed) return;
     _recoverTimer = Timer(kMediaSpoilerHold, _recover);
   }
 
@@ -350,6 +387,7 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
     if (s == AnimationStatus.completed && mounted) {
       setState(() {
         _open = true;
+        _lifting = false;
         _dropRub();
       });
       _scheduleRecover();
@@ -456,11 +494,11 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
     }
   }
 
-  void _reveal(Offset at) {
+  void _reveal(Offset at, {bool haptic = true}) {
     if (_open || _wave.isAnimating || _gathering) return;
     _healTimer?.cancel();
     if (_heal.isAnimating) _heal.stop();
-    HapticFeedback.lightImpact();
+    if (haptic) HapticFeedback.lightImpact();
     final key = widget.revealKey;
     if (key != null) {
       SpoilerStore.instance.reveal(MediaSpoilerCover.storeKey(key));
@@ -593,7 +631,7 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
   @override
   Widget build(BuildContext context) {
     _calm = MediaQuery.disableAnimationsOf(context);
-    final sealed = widget.sealed && !_open;
+    final sealed = (widget.sealed || _lifting) && !_open;
     final revealing = sealed && _origin != null;
     final gathering = sealed && _gathering;
     final rub = sealed ? _rub : null;

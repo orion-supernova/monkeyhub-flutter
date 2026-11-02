@@ -136,10 +136,16 @@ class _SendSwitchGlyphState extends State<SendSwitchGlyph>
     vsync: this,
     value: widget.on ? 1 : 0,
   );
+  /// The one-off beat on a flip: a hop and the glyph's own move turning
+  /// on, a small dip turning off. Long enough to be seen at 24pt: at 420 ms
+  /// with the morph done in 220 it read as a swap, not a motion.
   late final AnimationController _kick = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 420),
+    duration: const Duration(milliseconds: 640),
   );
+
+  /// Which way the last flip went, for the beat's shape.
+  bool _kickOn = true;
   int _tipTrigger = 0;
   bool _calm = false;
 
@@ -159,25 +165,29 @@ class _SendSwitchGlyphState extends State<SendSwitchGlyph>
     if (_calm) {
       _state.value = target;
     } else if (widget.on) {
-      // View once pops past full, as the recorder's ring does.
-      final ratio = widget.kind == SendSwitch.viewOnce ? 0.5 : 0.85;
+      // View once pops past full, as the recorder's ring does; the rest
+      // settle with a breath of overshoot.
+      final ratio = widget.kind == SendSwitch.viewOnce ? 0.5 : 0.72;
       _state.animateWith(SpringSimulation(
         SpringDescription.withDampingRatio(
           mass: 1,
-          stiffness: math.pow(2 * math.pi / 0.3, 2).toDouble(),
+          stiffness: math.pow(2 * math.pi / 0.46, 2).toDouble(),
           ratio: ratio,
         ),
         _state.value,
         target,
         0,
       ));
+      _kickOn = true;
       _kick.forward(from: 0);
     } else {
       _state.animateTo(
         target,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
+        duration: const Duration(milliseconds: 340),
+        curve: Curves.easeInOutCubic,
       );
+      _kickOn = false;
+      _kick.forward(from: 0);
     }
     if (widget.on && widget.tip != null) _maybeTip();
   }
@@ -238,7 +248,18 @@ class _SendSwitchGlyphState extends State<SendSwitchGlyph>
             MediaGlass.ink,
             t.clamp(0.0, 1.0),
           )!;
-          return _glyph(t, _kick.value, ink);
+          final k = _kick.value;
+          final beat = k <= 0 || k >= 1
+              ? 0.0
+              : math.sin(math.pi * Curves.easeOut.transform(k));
+          // Turning on, the glyph hops up and swells; turning off it ducks.
+          return Transform.translate(
+            offset: Offset(0, _kickOn ? -2.5 * beat : 0),
+            child: Transform.scale(
+              scale: 1 + (_kickOn ? 0.2 : -0.12) * beat,
+              child: _glyph(t, _kickOn ? k : 0, ink),
+            ),
+          );
         },
       ),
     );

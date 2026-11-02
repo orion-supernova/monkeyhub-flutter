@@ -12,6 +12,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/dust/spoiler_dust.dart';
 import 'package:monkeyhub/widgets/media_send_switches.dart';
+import 'package:monkeyhub/widgets/media_spoiler.dart';
 import 'package:monkeyhub/widgets/still_blur.dart';
 
 /// Spoiler is seen in the editor, not just switched: the stage goes under
@@ -115,10 +116,17 @@ void main() {
     expect(find.byType(SpoilerDust), findsNothing);
     await shoot(tester, 'editor_1_plain');
 
+    // A front crossing the cover: the chat's own moves, not a cut.
+    Finder front() => find.descendant(
+          of: find.byType(MediaSpoilerCover),
+          matching: find.byType(ShaderMask),
+        );
+
     await tester.tap(spoilerSwitch());
     await pumpFor(tester, const Duration(milliseconds: 96));
-    // In flight: the veil swelling out from the middle over the sharp one.
+    // In flight: the bubble's gather, the dust blowing in on a wind front.
     expect(find.byType(SpoilerDust), findsOneWidget);
+    expect(front(), findsWidgets);
     await shoot(tester, 'editor_2_veiling');
     await pumpFor(tester, const Duration(milliseconds: 700));
     expect(stageBlur(tester).enabled, isTrue);
@@ -127,7 +135,9 @@ void main() {
     // The pen: drawing happens on the real picture.
     await tester.tap(penSwitch());
     await pumpFor(tester, const Duration(milliseconds: 96));
+    // Lifting: the bubble's tap reveal, from the middle.
     expect(find.byType(SpoilerDust), findsOneWidget);
+    expect(front(), findsWidgets);
     await shoot(tester, 'editor_4_lifting');
     await pumpFor(tester, const Duration(milliseconds: 700));
     expect(stageBlur(tester).enabled, isFalse);

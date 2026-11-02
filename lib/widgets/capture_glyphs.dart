@@ -35,6 +35,12 @@ abstract class GlyphGridPainter extends CustomPainter {
   /// paint so a tick never rebuilds the widget.
   Color get ink => color;
 
+  /// Draws the glyph opaque and fades it as one layer, so where its strokes
+  /// and fills cross a dimmed ink does not stack into darker knots (a dim
+  /// pencil's tip read as a scribbled X). A painter that opts in draws in
+  /// `line.color` / `fill.color`, never [color], which may be translucent.
+  bool get flattenInk => false;
+
   void draw(Canvas canvas, Paint line, Paint fill);
 
   @override
@@ -42,18 +48,28 @@ abstract class GlyphGridPainter extends CustomPainter {
     final side = size.shortestSide;
     if (side <= 0) return;
     final s = side / 24;
+    final base = ink;
+    final flat = flattenInk && base.a < 1;
+    if (flat) {
+      canvas.saveLayer(
+        (Offset.zero & size).inflate(side * 0.25),
+        Paint()..color = Color.fromRGBO(0, 0, 0, base.a),
+      );
+    }
+    final solid = flat ? base.withValues(alpha: 1) : base;
     canvas.save();
     canvas.translate((size.width - side) / 2, (size.height - side) / 2);
     canvas.scale(s);
     final line = Paint()
-      ..color = ink
+      ..color = solid
       ..style = PaintingStyle.stroke
       ..strokeWidth = captureGlyphStroke(side) / s
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
-    final fill = Paint()..color = ink;
+    final fill = Paint()..color = solid;
     draw(canvas, line, fill);
     canvas.restore();
+    if (flat) canvas.restore();
   }
 }
 
@@ -770,7 +786,11 @@ class _ViewOncePainter extends GlyphGridPainter {
   final double on;
 
   @override
+  bool get flattenInk => true;
+
+  @override
   void draw(Canvas canvas, Paint line, Paint fill) {
+    final ink = fill.color;
     final closed = on.clamp(0.0, 1.0);
     final pop = (on - 1).clamp(0.0, 0.25);
     const c = Offset(12, 12);
@@ -803,7 +823,7 @@ class _ViewOncePainter extends GlyphGridPainter {
         ..lineTo(12.6, 7.2)
         ..lineTo(12.6, 16.8),
       Paint()
-        ..color = k == null ? color : Color.lerp(color, k, flood)!
+        ..color = k == null ? ink : Color.lerp(ink, k, flood)!
         ..style = PaintingStyle.stroke
         ..strokeWidth = line.strokeWidth * 1.05
         ..strokeCap = StrokeCap.round
@@ -967,7 +987,11 @@ class _SpoilerPainter extends GlyphGridPainter {
   final double burst;
 
   @override
+  bool get flattenInk => true;
+
+  @override
   void draw(Canvas canvas, Paint line, Paint fill) {
+    final ink = fill.color;
     final t = on.clamp(0.0, 1.0);
     final shut = Curves.easeInOut.transform(t);
     // The eye settles lower as it shuts, making room for the dust above.
@@ -1009,7 +1033,7 @@ class _SpoilerPainter extends GlyphGridPainter {
     final lash = Curves.easeOutBack.transform(glyphSpan(t, 0.55, 1));
     if (lash > 0) {
       final lashPaint = Paint()
-        ..color = color
+        ..color = ink
         ..style = PaintingStyle.stroke
         ..strokeWidth = line.strokeWidth * 0.85
         ..strokeCap = StrokeCap.round;
@@ -1037,19 +1061,19 @@ class _SpoilerPainter extends GlyphGridPainter {
       (Offset(16.2, 3.6), 0.75),
     ];
     for (final (p, r) in specks) {
-      final out = p + (p - centre) * (0.4 * puff);
+      final out = p + (p - centre) * (0.9 * puff);
       canvas.drawCircle(
         Offset(out.dx, out.dy - 3 * (1 - dust)),
         r * dust,
         fill,
       );
     }
-    // Two sparkles, the dust's light, twinkling round on the kick.
-    final spin = math.pi / 2 * Curves.easeInOut.transform(burst.clamp(0, 1));
-    _sparkle(canvas, const Offset(19.2, 6.4), 3.4 * dust * (1 + 0.3 * puff),
+    // Two sparkles, the dust's light, twinkling a half turn on the kick.
+    final spin = math.pi * Curves.easeInOut.transform(burst.clamp(0, 1));
+    _sparkle(canvas, const Offset(19.2, 6.4), 3.4 * dust * (1 + 0.45 * puff),
         spin, fill);
-    _sparkle(canvas, const Offset(6.8, 2.4) + const Offset(-0.6, -0.4) * puff,
-        1.8 * dust * (1 + 0.3 * puff), -spin, fill);
+    _sparkle(canvas, const Offset(6.8, 2.4) + const Offset(-1.2, -0.8) * puff,
+        1.8 * dust * (1 + 0.45 * puff), -spin, fill);
   }
 
   @override
@@ -1088,12 +1112,16 @@ class _HdPainter extends GlyphGridPainter {
   final double kick;
 
   @override
+  bool get flattenInk => true;
+
+  @override
   void draw(Canvas canvas, Paint line, Paint fill) {
+    final ink = fill.color;
     final t = on.clamp(0.0, 1.0);
     final swell = _swell(kick);
     canvas.saveLayer(const Rect.fromLTWH(-2, -2, 28, 28), Paint());
     canvas.translate(12, 12);
-    canvas.scale(1 + 0.12 * swell);
+    canvas.scale(1 + 0.06 * swell);
     canvas.translate(-12, -12);
     const badge = Rect.fromLTRB(1.8, 4.6, 22.2, 19.4);
     final rrect = RRect.fromRectAndRadius(badge, const Radius.circular(4.6));
@@ -1111,8 +1139,8 @@ class _HdPainter extends GlyphGridPainter {
     // The letters: full size alone, drawn in to sit inside the badge before
     // the frame reaches them, and XORed, so they are ink outside the flood
     // and holes inside it.
-    final scale =
-        lerpDouble(1.0, 0.8, Curves.easeInOut.transform(glyphSpan(t, 0, 0.35)))!;
+    final scale = lerpDouble(
+        0.92, 0.8, Curves.easeInOut.transform(glyphSpan(t, 0, 0.35)))!;
     canvas.save();
     canvas.translate(12, 12);
     canvas.scale(scale);
@@ -1131,9 +1159,9 @@ class _HdPainter extends GlyphGridPainter {
         ..lineTo(14.2, 17.4)
         ..close(),
       Paint()
-        ..color = color
+        ..color = ink
         ..style = PaintingStyle.stroke
-        ..strokeWidth = line.strokeWidth * lerpDouble(1.0, 1.15, t)!
+        ..strokeWidth = line.strokeWidth * lerpDouble(0.92, 1.15, t)!
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
         ..blendMode = BlendMode.xor,
@@ -1178,14 +1206,18 @@ class _PenPainter extends GlyphGridPainter {
   final double kick;
 
   @override
+  bool get flattenInk => true;
+
+  @override
   void draw(Canvas canvas, Paint line, Paint fill) {
+    final ink = fill.color;
     final t = on.clamp(0.0, 1.0);
     final lift = Curves.easeOutBack.transform(t);
     // A scribble in the air: two decaying wiggles about the tip.
     final k = kick.clamp(0.0, 1.0);
     final wiggle = k <= 0 || k >= 1
         ? 0.0
-        : math.sin(k * math.pi * 4) * (1 - k) * 0.22;
+        : math.sin(k * math.pi * 4) * (1 - k) * 0.32;
     canvas.saveLayer(const Rect.fromLTWH(-2, -2, 28, 28), Paint());
     canvas.save();
     canvas.translate(12 + 1.0 * lift, 12 - 3.0 * lift);
@@ -1203,19 +1235,21 @@ class _PenPainter extends GlyphGridPainter {
       ..arcToPoint(const Offset(7.0, w), radius: const Radius.circular(w))
       ..lineTo(-4.8, w)
       ..close();
-    final cone = Path()
-      ..moveTo(-4.8, -w)
-      ..lineTo(-10.0, 0)
-      ..lineTo(-4.8, w);
+    // One outline round the whole pencil, point included, and the line
+    // where the wood is sharpened.
+    final outline = Path()
+      ..moveTo(-10.0, 0)
+      ..lineTo(-4.8, -w)
+      ..lineTo(7.0, -w)
+      ..arcToPoint(const Offset(7.0, w), radius: const Radius.circular(w))
+      ..lineTo(-4.8, w)
+      ..close();
     final solid = Curves.easeOut.transform(glyphSpan(t, 0.1, 0.7));
     if (solid > 0) {
-      canvas.drawPath(
-        body,
-        Paint()..color = color.withValues(alpha: color.a * solid),
-      );
+      canvas.drawPath(body, Paint()..color = ink.withValues(alpha: solid));
     }
-    canvas.drawPath(body, line);
-    canvas.drawPath(cone, line);
+    canvas.drawPath(outline, line);
+    canvas.drawLine(const Offset(-4.8, -w), const Offset(-4.8, w), line);
     // The graphite point.
     canvas.drawPath(
       Path()
@@ -1225,12 +1259,14 @@ class _PenPainter extends GlyphGridPainter {
         ..close(),
       fill..strokeJoin = StrokeJoin.round,
     );
-    // The ferrule: a line in outline, a cut once the body is solid.
+    // The ferrule: a line in outline, a cut once the body is solid. Stopped
+    // at the outline's inner edge, so the XOR never cuts the outline itself.
+    final inset = line.strokeWidth / 2;
     canvas.drawLine(
-      const Offset(4.4, -w),
-      const Offset(4.4, w),
+      Offset(4.4, -w + inset),
+      Offset(4.4, w - inset),
       Paint()
-        ..color = color
+        ..color = ink
         ..strokeWidth = line.strokeWidth * 0.9
         ..strokeCap = StrokeCap.butt
         ..blendMode = BlendMode.xor,
