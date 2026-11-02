@@ -3192,6 +3192,8 @@ if [ "$DEPLOY_IOS" = true ]; then
     if [ "$IOS_STATUS" = ok ] && [ "$RUN_UPLOAD" = true ]; then
         if [[ " $TESTFLIGHT_UNANNOUNCED " == *" ios-testflight "* ]]; then
             echo "  ⚠️  iOS:            uploaded, but processing didn't confirm, so not announced (see above)"
+        elif [[ "$NO_ANNOUNCE" == *",ios-testflight,"* ]]; then
+            echo "  ✅ iOS:            uploaded, NOT announced (--no-announce); no update prompt"
         else
             echo "  ✅ iOS:            on TestFlight and announced; the App Store follows approval on its own"
         fi
@@ -3205,6 +3207,8 @@ if [ "$DEPLOY_MACOS" = true ]; then
     if [ "$MACOS_STATUS" = ok ] && [ "$RUN_UPLOAD" = true ]; then
         if [[ " $TESTFLIGHT_UNANNOUNCED " == *" macos-testflight "* ]]; then
             echo "  ⚠️  macOS:          uploaded, but processing didn't confirm, so not announced (see above)"
+        elif [[ "$NO_ANNOUNCE" == *",macos-testflight,"* ]]; then
+            echo "  ✅ macOS:          uploaded, NOT announced (--no-announce); no update prompt"
         else
             echo "  ✅ macOS:          on TestFlight and announced; the Mac App Store follows approval on its own"
         fi
