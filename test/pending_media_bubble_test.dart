@@ -12,6 +12,7 @@ import 'package:monkeyhub/models/pending_upload.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
+import 'package:monkeyhub/widgets/photo_chrome.dart' show PhotoSpinner;
 import 'package:monkeyhub/widgets/remote_image.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
@@ -301,7 +302,8 @@ void main() {
 
       await tester.pumpWidget(host(bubble(outgoingOf(MessageType.video, up))));
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      // The shared photo spinner since the design overhaul.
+      expect(find.byType(PhotoSpinner), findsOneWidget);
     });
   });
 
