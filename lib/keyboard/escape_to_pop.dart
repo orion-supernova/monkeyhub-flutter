@@ -71,8 +71,14 @@ class EscapeToPop extends StatelessWidget {
       if (field != null && field.textEditingValue.composing.isValid) {
         return KeyEventResult.ignored;
       }
+      // From the field's own context when focus is in one: an EditableText
+      // installs an always-enabled DismissIntent action of its own (it only
+      // hides the selection toolbar, and otherwise defers outward), so asking
+      // from inside it always "finds" an enabled action, runs it, and pops
+      // nothing. Asking from its context skips that one and finds the route's
+      // or dialog's, which is the answer the question is really after.
       final own = Actions.maybeFind<DismissIntent>(
-        focused,
+        field?.context ?? focused,
         intent: const DismissIntent(),
       );
       if (own != null && own.isEnabled(const DismissIntent())) {

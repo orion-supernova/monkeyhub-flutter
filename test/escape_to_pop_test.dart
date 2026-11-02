@@ -113,4 +113,26 @@ void main() {
     // Its own close ran instead of the generic pop.
     expect(find.text('pager'), findsOneWidget);
   });
+
+  testWidgets('Esc reaches a PopScope while a text field has focus',
+      (tester) async {
+    final nav = GlobalKey<NavigatorState>();
+    final field = FocusNode();
+    var asked = 0;
+    await tester.pumpWidget(app(nav));
+    nav.currentState!.push(page(PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (_, _) => asked++,
+      child: Material(child: TextField(focusNode: field)),
+    )));
+    await tester.pumpAndSettle();
+    field.requestFocus();
+    await tester.pump();
+
+    // The field's own DismissIntent action is always enabled; it must not
+    // stand in for the route's answer (a reply card closes on this).
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(asked, 1);
+  });
 }
