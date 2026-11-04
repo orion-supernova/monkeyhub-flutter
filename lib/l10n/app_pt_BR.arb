@@ -3979,7 +3979,7 @@
   "streakCelebrateTier4": "Lendário",
   "powerSavingHeader": "Economia de energia",
   "powerSavingAuto": "Automático",
-  "powerSavingAutoOffSub": "Acalma as animações quando o Modo de baixo consumo ou a Economia de bateria está ligada",
+  "powerSavingAutoOffSub": "Acalma as animações quando a bateria está fraca ou o celular está economizando energia",
   "powerSavingAutoOnSub": "Ativo agora: seu celular está economizando energia",
   "powerSavingNever": "Nunca",
   "powerSavingNeverSub": "Movimento total, mesmo no Modo de baixo consumo",
@@ -4011,5 +4011,8 @@
   "linuxKeepRunningTitle": "Continuar em segundo plano",
   "linuxKeepRunningSubtitleTray": "Fica na bandeja quando você fecha a janela, para que mensagens e chamadas continuem chegando",
   "linuxKeepRunningSubtitleNoTray": "Fica minimizado quando você fecha a janela, para que mensagens e chamadas continuem chegando",
-  "lowPowerToast": "A economia de energia está ativada, então algumas animações estão pausadas"
+  "lowPowerToast": "A economia de energia está ativada, então algumas animações estão pausadas",
+  "lowBatteryToast": "Bateria fraca, então algumas animações estão pausadas",
+  "powerSavingAutoLowBatterySub": "Ligado agora: sua bateria está fraca",
+  "longMessageSentAsFileToast": "Longa demais para uma mensagem, então foi enviada como arquivo de texto"
 }

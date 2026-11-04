@@ -24034,7 +24034,7 @@ abstract class AppLocalizations {
   /// Subtitle of the Automatic power saving option while the phone is NOT saving power: explains what Automatic does.
   ///
   /// In en, this message translates to:
-  /// **'Calms animations when Low Power Mode or Battery Saver is on'**
+  /// **'Calms animations when your battery is low or your phone is saving power'**
   String get powerSavingAutoOffSub;
 
   /// Subtitle of the Automatic power saving option while the phone IS in Low Power Mode or Battery Saver and the app is therefore calm right now.
@@ -24228,6 +24228,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Power saving is on, so some animations are paused'**
   String get lowPowerToast;
+
+  /// Toast shown once when the battery drops to 20% or less (not charging) and the app pauses decorative animations to save it. Says 'low', never a number.
+  ///
+  /// In en, this message translates to:
+  /// **'Battery low, so some animations are paused'**
+  String get lowBatteryToast;
+
+  /// Subtitle of the Automatic power saving option while the app is calm because the battery is low (20% or less), not because of the phone's own power mode.
+  ///
+  /// In en, this message translates to:
+  /// **'On right now: your battery is low'**
+  String get powerSavingAutoLowBatterySub;
+
+  /// Toast after sending a text longer than one message allows: instead of being refused, it was sent as a .txt file attachment.
+  ///
+  /// In en, this message translates to:
+  /// **'Too long for one message, so it was sent as a text file'**
+  String get longMessageSentAsFileToast;
 }
 
 class _AppLocalizationsDelegate

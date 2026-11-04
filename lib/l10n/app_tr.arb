@@ -3979,7 +3979,7 @@
   "streakCelebrateTier4": "Efsane",
   "powerSavingHeader": "Güç tasarrufu",
   "powerSavingAuto": "Otomatik",
-  "powerSavingAutoOffSub": "Düşük Güç Modu veya Pil Tasarrufu açıkken animasyonları sakinleştirir",
+  "powerSavingAutoOffSub": "Pilin azaldığında veya telefonun güç tasarrufundayken animasyonları sakinleştirir",
   "powerSavingAutoOnSub": "Şu an açık: telefonun güç tasarrufunda",
   "powerSavingNever": "Asla",
   "powerSavingNeverSub": "Düşük Güç Modunda bile tam hareket",
@@ -4011,5 +4011,8 @@
   "linuxKeepRunningTitle": "Arka planda çalışmaya devam et",
   "linuxKeepRunningSubtitleTray": "Pencereyi kapatınca tepside kalır, mesajlar ve aramalar sana ulaşmaya devam eder",
   "linuxKeepRunningSubtitleNoTray": "Pencereyi kapatınca simge durumunda kalır, mesajlar ve aramalar sana ulaşmaya devam eder",
-  "lowPowerToast": "Güç tasarrufu açık, bu yüzden bazı animasyonlar duraklatıldı"
+  "lowPowerToast": "Güç tasarrufu açık, bu yüzden bazı animasyonlar duraklatıldı",
+  "lowBatteryToast": "Pil azaldı, bu yüzden bazı animasyonlar duraklatıldı",
+  "powerSavingAutoLowBatterySub": "Şu an açık: pilin azaldı",
+  "longMessageSentAsFileToast": "Tek mesaj için çok uzundu, metin dosyası olarak gönderildi"
 }

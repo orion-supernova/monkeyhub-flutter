@@ -13809,7 +13809,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get powerSavingAuto => '自動';
 
   @override
-  String get powerSavingAutoOffSub => '低電力モードやバッテリーセーバーがオンのときにアニメーションを抑えます';
+  String get powerSavingAutoOffSub => 'バッテリー残量が少ないときや端末が省電力中のときにアニメーションを抑えます';
 
   @override
   String get powerSavingAutoOnSub => '現在オン：iPhone が省電力中です';
@@ -13912,4 +13912,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get lowPowerToast => '省電力がオンのため、一部のアニメーションを停止しています';
+
+  @override
+  String get lowBatteryToast => 'バッテリー残量が少ないため、一部のアニメーションを停止しています';
+
+  @override
+  String get powerSavingAutoLowBatterySub => '現在オン：バッテリー残量が少なくなっています';
+
+  @override
+  String get longMessageSentAsFileToast => '1件のメッセージには長すぎるため、テキストファイルとして送信しました';
 }

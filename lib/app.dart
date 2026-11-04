@@ -863,7 +863,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     }
     _toldLowPower = true;
     toast.show(
-      AppLocalizations.of(ctx).lowPowerToast,
+      LowPowerMode.instance.osPowerSave
+          ? AppLocalizations.of(ctx).lowPowerToast
+          : AppLocalizations.of(ctx).lowBatteryToast,
       icon: CupertinoIcons.battery_25,
       duration: const Duration(seconds: 4),
     );

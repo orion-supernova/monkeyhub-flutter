@@ -3979,7 +3979,7 @@
   "streakCelebrateTier4": "أسطوري",
   "powerSavingHeader": "توفير الطاقة",
   "powerSavingAuto": "تلقائي",
-  "powerSavingAutoOffSub": "يهدئ الحركات عند تشغيل وضع الطاقة المنخفضة أو توفير البطارية",
+  "powerSavingAutoOffSub": "يهدئ الحركات عندما تكون البطارية منخفضة أو عندما يوفّر الهاتف الطاقة",
   "powerSavingAutoOnSub": "قيد التشغيل الآن: هاتفك يوفر الطاقة",
   "powerSavingNever": "أبدًا",
   "powerSavingNeverSub": "حركة كاملة حتى في وضع الطاقة المنخفضة",
@@ -4011,5 +4011,8 @@
   "linuxKeepRunningTitle": "الاستمرار في العمل في الخلفية",
   "linuxKeepRunningSubtitleTray": "يبقى في شريط النظام عند إغلاق النافذة، لتصلك الرسائل والمكالمات دائمًا",
   "linuxKeepRunningSubtitleNoTray": "يبقى مصغرًا عند إغلاق النافذة، لتصلك الرسائل والمكالمات دائمًا",
-  "lowPowerToast": "توفير الطاقة قيد التشغيل، لذا تم إيقاف بعض الحركات مؤقتاً"
+  "lowPowerToast": "توفير الطاقة قيد التشغيل، لذا تم إيقاف بعض الحركات مؤقتاً",
+  "lowBatteryToast": "البطارية منخفضة، لذا أُوقفت بعض الحركات مؤقتًا",
+  "powerSavingAutoLowBatterySub": "مفعّل الآن: البطارية منخفضة",
+  "longMessageSentAsFileToast": "الرسالة طويلة جدًا، لذا أُرسلت كملف نصي"
 }

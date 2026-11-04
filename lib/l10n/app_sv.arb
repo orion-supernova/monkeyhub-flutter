@@ -3979,7 +3979,7 @@
   "streakCelebrateTier4": "Legendarisk",
   "powerSavingHeader": "Strömsparläge",
   "powerSavingAuto": "Automatiskt",
-  "powerSavingAutoOffSub": "Dämpar animationer när lågenergiläge eller batterisparläge är på",
+  "powerSavingAutoOffSub": "Dämpar animationer när batteriet är lågt eller telefonen sparar ström",
   "powerSavingAutoOnSub": "På just nu: din telefon sparar ström",
   "powerSavingNever": "Aldrig",
   "powerSavingNeverSub": "Full rörelse, även i lågenergiläge",
@@ -4011,5 +4011,8 @@
   "linuxKeepRunningTitle": "Fortsätt köra i bakgrunden",
   "linuxKeepRunningSubtitleTray": "Ligger kvar i systemfältet när du stänger fönstret, så att meddelanden och samtal fortfarande når dig",
   "linuxKeepRunningSubtitleNoTray": "Ligger kvar minimerat när du stänger fönstret, så att meddelanden och samtal fortfarande når dig",
-  "lowPowerToast": "Strömsparläge är på, så vissa animationer är pausade"
+  "lowPowerToast": "Strömsparläge är på, så vissa animationer är pausade",
+  "lowBatteryToast": "Lågt batteri, så vissa animationer är pausade",
+  "powerSavingAutoLowBatterySub": "På just nu: batteriet är lågt",
+  "longMessageSentAsFileToast": "För långt för ett meddelande, så det skickades som en textfil"
 }

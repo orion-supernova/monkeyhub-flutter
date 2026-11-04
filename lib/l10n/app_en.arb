@@ -17364,7 +17364,7 @@
   "@powerSavingAuto": {
     "description": "Option: the app calms its animations by itself whenever the phone is in Low Power Mode (iPhone) or Battery Saver (Android)."
   },
-  "powerSavingAutoOffSub": "Calms animations when Low Power Mode or Battery Saver is on",
+  "powerSavingAutoOffSub": "Calms animations when your battery is low or your phone is saving power",
   "@powerSavingAutoOffSub": {
     "description": "Subtitle of the Automatic power saving option while the phone is NOT saving power: explains what Automatic does."
   },
@@ -17445,5 +17445,17 @@
   "lowPowerToast": "Power saving is on, so some animations are paused",
   "@lowPowerToast": {
     "description": "Toast shown once when the phone's power saving (Low Power Mode / Battery Saver) switches on and the app pauses decorative animations because of it. Generic name on purpose: iOS and Android call it different things."
+  },
+  "lowBatteryToast": "Battery low, so some animations are paused",
+  "@lowBatteryToast": {
+    "description": "Toast shown once when the battery drops to 20% or less (not charging) and the app pauses decorative animations to save it. Says 'low', never a number."
+  },
+  "powerSavingAutoLowBatterySub": "On right now: your battery is low",
+  "@powerSavingAutoLowBatterySub": {
+    "description": "Subtitle of the Automatic power saving option while the app is calm because the battery is low (20% or less), not because of the phone's own power mode."
+  },
+  "longMessageSentAsFileToast": "Too long for one message, so it was sent as a text file",
+  "@longMessageSentAsFileToast": {
+    "description": "Toast after sending a text longer than one message allows: instead of being refused, it was sent as a .txt file attachment."
   }
 }

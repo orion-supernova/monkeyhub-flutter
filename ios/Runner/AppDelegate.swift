@@ -1823,6 +1823,16 @@ import WebRTC
           // Same standing suspects as the Android side: a throttled process
           // and a variable-refresh panel look identical from Dart.
           info["powerSaveMode"] = ProcessInfo.processInfo.isLowPowerModeEnabled
+          // For the app's own power saving at 20%: Low Power Mode is
+          // only offered at 20%, never switched on for the user, so the app
+          // watches the level itself. -1 is "unknown" (the simulator).
+          let device = UIDevice.current
+          device.isBatteryMonitoringEnabled = true
+          if device.batteryLevel >= 0 {
+            info["batteryLevel"] = Int((device.batteryLevel * 100).rounded())
+          }
+          info["charging"] = device.batteryState == .charging
+            || device.batteryState == .full
           info["refreshRate"] = UIScreen.main.maximumFramesPerSecond
           result(info)
         case "getDiskSpace":

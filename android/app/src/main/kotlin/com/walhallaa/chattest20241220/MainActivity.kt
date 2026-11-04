@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.BatteryManager
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
@@ -286,6 +287,18 @@ class MainActivity : FlutterActivity() {
                         info["powerSaveMode"] = try {
                             (getSystemService(POWER_SERVICE) as PowerManager).isPowerSaveMode
                         } catch (_: Throwable) { null }
+
+                        // For the app's own power saving at 20%: Battery
+                        // Saver's automatic threshold is the user's to set (and
+                        // often off), so the app watches the level itself.
+                        try {
+                            val battery = getSystemService(BATTERY_SERVICE) as BatteryManager
+                            val level = battery.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+                            if (level in 0..100) info["batteryLevel"] = level
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                info["charging"] = battery.isCharging
+                            }
+                        } catch (_: Throwable) {}
 
                         // 0.0 means "animations off", which changes how every
                         // transition in the app behaves.

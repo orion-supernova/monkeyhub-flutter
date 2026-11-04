@@ -14435,7 +14435,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get powerSavingAutoOffSub =>
-      'लो पावर मोड या बैटरी सेवर चालू होने पर एनिमेशन शांत करता है';
+      'बैटरी कम होने या फोन के पावर बचाने पर एनिमेशन शांत करता है';
 
   @override
   String get powerSavingAutoOnSub => 'अभी चालू: आपका फ़ोन पावर बचा रहा है';
@@ -14543,4 +14543,14 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get lowPowerToast =>
       'पावर सेविंग चालू है, इसलिए कुछ एनिमेशन रुके हुए हैं';
+
+  @override
+  String get lowBatteryToast => 'बैटरी कम है, इसलिए कुछ एनिमेशन रुके हुए हैं';
+
+  @override
+  String get powerSavingAutoLowBatterySub => 'अभी चालू: बैटरी कम है';
+
+  @override
+  String get longMessageSentAsFileToast =>
+      'एक मैसेज के लिए बहुत लंबा था, इसलिए टेक्स्ट फ़ाइल के रूप में भेजा गया';
 }

@@ -14646,7 +14646,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get powerSavingAutoOffSub =>
-      'يهدئ الحركات عند تشغيل وضع الطاقة المنخفضة أو توفير البطارية';
+      'يهدئ الحركات عندما تكون البطارية منخفضة أو عندما يوفّر الهاتف الطاقة';
 
   @override
   String get powerSavingAutoOnSub => 'قيد التشغيل الآن: هاتفك يوفر الطاقة';
@@ -14754,4 +14754,15 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get lowPowerToast =>
       'توفير الطاقة قيد التشغيل، لذا تم إيقاف بعض الحركات مؤقتاً';
+
+  @override
+  String get lowBatteryToast =>
+      'البطارية منخفضة، لذا أُوقفت بعض الحركات مؤقتًا';
+
+  @override
+  String get powerSavingAutoLowBatterySub => 'مفعّل الآن: البطارية منخفضة';
+
+  @override
+  String get longMessageSentAsFileToast =>
+      'الرسالة طويلة جدًا، لذا أُرسلت كملف نصي';
 }

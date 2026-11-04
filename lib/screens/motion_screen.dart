@@ -82,9 +82,11 @@ class MotionScreen extends StatelessWidget {
                   (
                     PowerSaving.auto,
                     l10n.powerSavingAuto,
-                    LowPowerMode.instance.value
-                        ? l10n.powerSavingAutoOnSub
-                        : l10n.powerSavingAutoOffSub,
+                    !LowPowerMode.instance.value
+                        ? l10n.powerSavingAutoOffSub
+                        : LowPowerMode.instance.osPowerSave
+                            ? l10n.powerSavingAutoOnSub
+                            : l10n.powerSavingAutoLowBatterySub,
                   ),
                   (
                     PowerSaving.off,

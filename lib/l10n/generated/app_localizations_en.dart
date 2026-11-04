@@ -14463,7 +14463,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get powerSavingAutoOffSub =>
-      'Calms animations when Low Power Mode or Battery Saver is on';
+      'Calms animations when your battery is low or your phone is saving power';
 
   @override
   String get powerSavingAutoOnSub => 'On right now: your phone is saving power';
@@ -14571,4 +14571,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get lowPowerToast =>
       'Power saving is on, so some animations are paused';
+
+  @override
+  String get lowBatteryToast => 'Battery low, so some animations are paused';
+
+  @override
+  String get powerSavingAutoLowBatterySub =>
+      'On right now: your battery is low';
+
+  @override
+  String get longMessageSentAsFileToast =>
+      'Too long for one message, so it was sent as a text file';
 }

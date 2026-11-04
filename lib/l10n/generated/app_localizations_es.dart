@@ -14595,7 +14595,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get powerSavingAutoOffSub =>
-      'Calma las animaciones cuando el Modo de bajo consumo o el Ahorro de batería está activo';
+      'Calma las animaciones cuando tienes poca batería o el teléfono está ahorrando energía';
 
   @override
   String get powerSavingAutoOnSub =>
@@ -14706,4 +14706,16 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get lowPowerToast =>
       'El ahorro de energía está activado, así que algunas animaciones están en pausa';
+
+  @override
+  String get lowBatteryToast =>
+      'Batería baja, así que algunas animaciones están en pausa';
+
+  @override
+  String get powerSavingAutoLowBatterySub =>
+      'Activo ahora: tienes poca batería';
+
+  @override
+  String get longMessageSentAsFileToast =>
+      'Era demasiado largo para un mensaje, así que se envió como archivo de texto';
 }

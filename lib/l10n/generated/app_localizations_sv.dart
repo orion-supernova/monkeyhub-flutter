@@ -14494,7 +14494,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get powerSavingAutoOffSub =>
-      'Dämpar animationer när lågenergiläge eller batterisparläge är på';
+      'Dämpar animationer när batteriet är lågt eller telefonen sparar ström';
 
   @override
   String get powerSavingAutoOnSub => 'På just nu: din telefon sparar ström';
@@ -14602,4 +14602,14 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get lowPowerToast =>
       'Strömsparläge är på, så vissa animationer är pausade';
+
+  @override
+  String get lowBatteryToast => 'Lågt batteri, så vissa animationer är pausade';
+
+  @override
+  String get powerSavingAutoLowBatterySub => 'På just nu: batteriet är lågt';
+
+  @override
+  String get longMessageSentAsFileToast =>
+      'För långt för ett meddelande, så det skickades som en textfil';
 }

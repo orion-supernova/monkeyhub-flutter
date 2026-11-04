@@ -14392,7 +14392,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get powerSavingAutoOffSub =>
-      'Düşük Güç Modu veya Pil Tasarrufu açıkken animasyonları sakinleştirir';
+      'Pilin azaldığında veya telefonun güç tasarrufundayken animasyonları sakinleştirir';
 
   @override
   String get powerSavingAutoOnSub => 'Şu an açık: telefonun güç tasarrufunda';
@@ -14501,4 +14501,15 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get lowPowerToast =>
       'Güç tasarrufu açık, bu yüzden bazı animasyonlar duraklatıldı';
+
+  @override
+  String get lowBatteryToast =>
+      'Pil azaldı, bu yüzden bazı animasyonlar duraklatıldı';
+
+  @override
+  String get powerSavingAutoLowBatterySub => 'Şu an açık: pilin azaldı';
+
+  @override
+  String get longMessageSentAsFileToast =>
+      'Tek mesaj için çok uzundu, metin dosyası olarak gönderildi';
 }

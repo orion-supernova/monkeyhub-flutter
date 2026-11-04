@@ -13842,7 +13842,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get powerSavingAuto => '자동';
 
   @override
-  String get powerSavingAutoOffSub => '저전력 모드나 배터리 세이버가 켜져 있으면 애니메이션을 줄입니다';
+  String get powerSavingAutoOffSub => '배터리가 부족하거나 휴대폰이 절전 중일 때 애니메이션을 줄입니다';
 
   @override
   String get powerSavingAutoOnSub => '지금 켜짐: 휴대폰이 절전 중입니다';
@@ -13945,4 +13945,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get lowPowerToast => '절전 모드가 켜져 있어 일부 애니메이션이 일시 중지되었습니다';
+
+  @override
+  String get lowBatteryToast => '배터리가 부족해 일부 애니메이션이 일시 중지되었습니다';
+
+  @override
+  String get powerSavingAutoLowBatterySub => '지금 켜짐: 배터리가 부족합니다';
+
+  @override
+  String get longMessageSentAsFileToast => '메시지 하나로 보내기엔 너무 길어서 텍스트 파일로 보냈어요';
 }

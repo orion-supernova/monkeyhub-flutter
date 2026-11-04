@@ -14599,7 +14599,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get powerSavingAutoOffSub =>
-      'Acalma as animações quando o Modo de baixo consumo ou a Poupança de bateria está ativa';
+      'Acalma as animações quando a bateria está fraca ou o telemóvel está a poupar energia';
 
   @override
   String get powerSavingAutoOnSub =>
@@ -14709,6 +14709,18 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get lowPowerToast =>
       'A poupança de energia está ativada, por isso algumas animações estão em pausa';
+
+  @override
+  String get lowBatteryToast =>
+      'Bateria fraca, por isso algumas animações estão em pausa';
+
+  @override
+  String get powerSavingAutoLowBatterySub =>
+      'Ativo agora: a bateria está fraca';
+
+  @override
+  String get longMessageSentAsFileToast =>
+      'Era demasiado longa para uma mensagem, por isso foi enviada como ficheiro de texto';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -29288,7 +29300,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get powerSavingAutoOffSub =>
-      'Acalma as animações quando o Modo de baixo consumo ou a Economia de bateria está ligada';
+      'Acalma as animações quando a bateria está fraca ou o celular está economizando energia';
 
   @override
   String get powerSavingAutoOnSub =>
@@ -29398,4 +29410,16 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get lowPowerToast =>
       'A economia de energia está ativada, então algumas animações estão pausadas';
+
+  @override
+  String get lowBatteryToast =>
+      'Bateria fraca, então algumas animações estão pausadas';
+
+  @override
+  String get powerSavingAutoLowBatterySub =>
+      'Ligado agora: sua bateria está fraca';
+
+  @override
+  String get longMessageSentAsFileToast =>
+      'Longa demais para uma mensagem, então foi enviada como arquivo de texto';
 }

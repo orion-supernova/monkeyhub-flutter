@@ -13679,7 +13679,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get powerSavingAuto => '自动';
 
   @override
-  String get powerSavingAutoOffSub => '开启低电量模式或省电模式时减少动画';
+  String get powerSavingAutoOffSub => '电量低或手机省电时减少动画';
 
   @override
   String get powerSavingAutoOnSub => '当前已开启：手机正在省电';
@@ -13781,4 +13781,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get lowPowerToast => '省电模式已开启，部分动画已暂停';
+
+  @override
+  String get lowBatteryToast => '电量低，部分动画已暂停';
+
+  @override
+  String get powerSavingAutoLowBatterySub => '当前已开启：电量低';
+
+  @override
+  String get longMessageSentAsFileToast => '内容太长，无法作为一条消息发送，已改为文本文件发送';
 }
