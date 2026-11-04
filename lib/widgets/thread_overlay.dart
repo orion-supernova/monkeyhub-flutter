@@ -847,6 +847,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
     // is now the message just sent. Nothing to restore on the refusal path
     // below: it dismisses the overlay and hands the text to the room.
     if (_target != null) setState(() => _target = null);
+    // Sent as a text file by the repository; say so, as the room does.
+    if (text.length > kMaxMessageChars) {
+      _showToast(AppLocalizations.of(context).longMessageSentAsFileToast);
+    }
     await widget.repo.sendText(
       widget.roomId,
       text,

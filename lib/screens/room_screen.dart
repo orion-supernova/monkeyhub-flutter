@@ -1728,7 +1728,7 @@ class _RoomScreenState extends State<_RoomView>
   /// listener as [_drainChildGate], for the same reason: media sends fail
   /// after the composer has moved on.
   void _drainSendLimit() {
-    final code = widget.repo.takeSendLimit();
+    final code = widget.repo.takeSendLimit(widget.roomId);
     if (code == null || !mounted) return;
     final l10n = AppLocalizations.of(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1972,6 +1972,11 @@ class _RoomScreenState extends State<_RoomView>
     );
     _keepComposerFocus();
     _scrollToBottom();
+    // Too long for one message: the repository sends it as a text file, and
+    // the sender is told why their message arrived as an attachment.
+    if (text.length > kMaxMessageChars) {
+      showAppToast(context, AppLocalizations.of(context).longMessageSentAsFileToast);
+    }
     await sent;
     // A child guard rejection drops the optimistic bubble rather than leaving
     // it in the retry queue, so say why instead of letting the message just

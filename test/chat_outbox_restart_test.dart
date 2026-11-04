@@ -48,6 +48,9 @@ class _FakeApi extends Fake implements ChatApi {
   /// While true every send fails the way a dead socket does.
   bool offline = true;
 
+  /// A server refusal every send gets, like `MESSAGE_TOO_LONG`.
+  String? refuseWith;
+
   /// `clientId` of every send that got through.
   final List<String?> delivered = [];
 
@@ -83,6 +86,8 @@ class _FakeApi extends Fake implements ChatApi {
     ExpressionItem? expression,
   }) async {
     if (offline) throw TimeoutException('MutationTimeout');
+    final refusal = refuseWith;
+    if (refusal != null) throw Exception(refusal);
     delivered.add(clientId);
     return 'server_${delivered.length}';
   }
@@ -292,5 +297,39 @@ void main() {
     expect(third.messagesFor('r1'), isEmpty);
     await after.detach();
     await third.detach();
+  });
+
+  test('a text too long for one message goes as a text file, not a refusal',
+      () async {
+    const me = 'outbox_long';
+    final api = _FakeApi()..offline = false;
+    final repo = ChatRepository(api: api, cv: _FakeCv());
+    await repo.attach(me);
+    final text = 'x' * (kMaxMessageChars + 1);
+    // Not awaited: the upload has no server behind it here. The bubble is
+    // what the sender sees, and it is there before the first await.
+    unawaited(repo.sendText('r1', text));
+    final bubble = repo.messagesFor('r1').single;
+    expect(bubble.type, MessageType.file);
+    expect(bubble.fileName, kLongMessageFileName);
+    expect(api.delivered, isEmpty);
+    repo.discardPending(bubble.id);
+    await repo.detach();
+  });
+
+  test('a refused send is reported in its own room only', () async {
+    const me = 'outbox_limit';
+    final api = _FakeApi()
+      ..offline = false
+      ..refuseWith = 'MESSAGE_TOO_LONG';
+    final repo = ChatRepository(api: api, cv: _FakeCv());
+    await repo.attach(me);
+    await repo.sendText('r1', 'refused');
+    // Opening another chat is not news about this one.
+    expect(repo.takeSendLimit('r2'), isNull);
+    expect(repo.takeSendLimit('r1'), 'MESSAGE_TOO_LONG');
+    expect(repo.takeSendLimit('r1'), isNull);
+    repo.discardPending(repo.messagesFor('r1').single.id);
+    await repo.detach();
   });
 }

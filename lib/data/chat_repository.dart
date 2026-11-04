@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert' show utf8;
 
 import 'package:flutter/foundation.dart';
 
@@ -53,6 +54,15 @@ const kSendLimitCodes = [
   'FILE_TOO_LARGE',
   'MESSAGE_TOO_LONG',
 ];
+
+/// Longest text message, in UTF-16 units: `MAX_CONTENT_CHARS` in
+/// `backend/convex/messages.ts`. Keep the two in step. Anything longer goes as
+/// a text file instead ([ChatRepository.sendText]), so the server's
+/// `MESSAGE_TOO_LONG` is only ever an old outbox row or an edit.
+const kMaxMessageChars = 8000;
+
+/// What a too-long message is called when it goes as a file.
+const kLongMessageFileName = 'message.txt';
 
 /// Source of truth for chat data (rooms + open-room messages).
 ///
@@ -3189,6 +3199,23 @@ class ChatRepository extends ChangeNotifier {
     bool mentionsEveryone = false,
     List<FormattingEntity> formatting = const [],
   }) async {
+    // Too long for one message: sent as a text file rather than refused. A
+    // refusal used to leave a failed bubble that every reconnect re-posted,
+    // and every re-post surfaced the refusal in whichever room was open.
+    // Mentions and formatting do not survive the trip; the words do.
+    if (text.length > kMaxMessageChars) {
+      final bytes = Uint8List.fromList(utf8.encode(text));
+      return sendMediaLocal(
+        roomId: roomId,
+        bytes: bytes,
+        contentType: 'text/plain; charset=utf-8',
+        type: MessageType.file,
+        fileName: kLongMessageFileName,
+        fileSize: bytes.length,
+        replyToId: replyToId,
+        replyAlbumCount: replyAlbumCount,
+      );
+    }
     return _send(
       roomId: roomId,
       content: text,
@@ -4142,7 +4169,7 @@ class ChatRepository extends ChangeNotifier {
       var limited = false;
       for (final code in kSendLimitCodes) {
         if (text.contains(code)) {
-          _lastSendLimit = code;
+          _lastSendLimit = (roomId, code, DateTime.now());
           limited = true;
           break;
         }
@@ -4349,6 +4376,15 @@ class ChatRepository extends ChangeNotifier {
       for (final m in entry.value) {
         if (m.id != messageId) continue;
         if (m.status != MessageStatus.error) return;
+        // Refused as too long before long texts went as files: retried, it
+        // would be refused again, so it goes the way a new one would.
+        if (_tooLongToPost(m)) {
+          final roomId = entry.key;
+          final text = m.content;
+          final replyToId = m.replyToId;
+          discardPending(m.id);
+          return sendText(roomId, text, replyToId: replyToId);
+        }
         // The sender has decided; from here it is an ordinary send, and a
         // failure is swept up on the next reconnect like any other.
         _heldFromLastRun.remove(m.id);
@@ -4475,12 +4511,23 @@ class ChatRepository extends ChangeNotifier {
   /// Set when the last send was refused by a child guard, so the room screen
   /// can show the "ask a grown-up" sheet instead of a silent failure.
   /// Read-and-clear: consuming it resets the flag.
-  String? _lastSendLimit;
+  (String, String, DateTime)? _lastSendLimit;
 
-  /// The server limit the last failed send ran into, read-and-clear.
-  String? takeSendLimit() {
-    final code = _lastSendLimit;
+  /// The server limit the last failed send in [roomId] ran into, read-and-clear.
+  ///
+  /// Only for that room, and only while fresh: a background retry failing
+  /// while the user is elsewhere is not news about the room they open next.
+  /// Unscoped, one refused message re-posted on every reconnect put "too long"
+  /// on top of every chat the user opened.
+  String? takeSendLimit(String roomId) {
+    final last = _lastSendLimit;
+    if (last == null) return null;
+    final (room, code, at) = last;
+    if (room != roomId) return null;
     _lastSendLimit = null;
+    if (DateTime.now().difference(at) > const Duration(seconds: 10)) {
+      return null;
+    }
     return code;
   }
 
@@ -5801,7 +5848,14 @@ class ChatRepository extends ChangeNotifier {
   /// Those are recovered by [retryPending], which re-uploads first.
   static bool _isPostable(ChatMessage m) =>
       m.status != MessageStatus.uploading &&
-      !(m.isMedia && m.mediaStorageId == null);
+      !(m.isMedia && m.mediaStorageId == null) &&
+      !_tooLongToPost(m);
+
+  /// A text the server will refuse every time, however often it is retried:
+  /// left failed for the user to discard, never re-posted on its own. Rows
+  /// from before [sendText] turned long texts into files.
+  static bool _tooLongToPost(ChatMessage m) =>
+      m.type == MessageType.text && m.content.length > kMaxMessageChars;
 
   /// Rebuild every subscription this repository owns from scratch: the
   /// top-level subs via [attach], the open room's message/read/typing subs by
