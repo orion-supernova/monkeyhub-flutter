@@ -17,6 +17,9 @@ import WebRTC
 // both delegate methods — which is why the two below are `override`s rather
 // than fresh declarations.
 @objc class AppDelegate: FlutterAppDelegate, PKPushRegistryDelegate, CXProviderDelegate {
+  /// Held here: a FlutterEventChannel keeps its handler only weakly alive
+  /// through the messenger, and the observers it owns must outlive setup.
+  private let powerStreamHandler = _PowerStreamHandler()
   // Pre-warmed Flutter engine, created and run at process launch —
   // INCLUDING cold background launches triggered by a VoIP push, where no
   // UI scene ever connects. The previous implicit-engine setup only
@@ -1769,6 +1772,15 @@ import WebRTC
         name: "monkeyhub/presence",
         binaryMessenger: registrar.messenger()
       )
+    }
+
+    // monkeyhub/power — Low Power Mode and the battery, pushed on every
+    // change so the app calms its motion the moment either says to.
+    if let powerRegistrar = engine.registrar(forPlugin: "MonkeyHubPowerPlugin") {
+      FlutterEventChannel(
+        name: "monkeyhub/power",
+        binaryMessenger: powerRegistrar.messenger()
+      ).setStreamHandler(powerStreamHandler)
     }
 
     // monkeyhub/device — exposes a human-readable name for this physical
@@ -3641,6 +3653,59 @@ final class LiveLocationBridge: NSObject, CLLocationManagerDelegate {
     // time this fires the engine has been started for at least a run loop.
     channel?.invokeMethod("stopRequested", arguments: nil)
     return true
+  }
+}
+
+/// Bridges Low Power Mode and battery changes to Flutter (monkeyhub/power).
+///
+/// Sends `{powerSaveMode, batteryLevel, charging}` on listen, then again on
+/// every change iOS announces. Only a changed snapshot is sent, so a level
+/// tick that changes nothing Dart reads costs nothing over the channel.
+private class _PowerStreamHandler: NSObject, FlutterStreamHandler {
+  private var sink: FlutterEventSink?
+  private var last: [String: AnyHashable]?
+  private var observers: [NSObjectProtocol] = []
+
+  func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+    sink = events
+    last = nil
+    UIDevice.current.isBatteryMonitoringEnabled = true
+    let center = NotificationCenter.default
+    for name in [
+      Notification.Name.NSProcessInfoPowerStateDidChange,
+      UIDevice.batteryLevelDidChangeNotification,
+      UIDevice.batteryStateDidChangeNotification,
+    ] {
+      // Low Power Mode's notification comes on an arbitrary thread; the
+      // sink must only be called on the main one.
+      observers.append(center.addObserver(forName: name, object: nil, queue: .main) {
+        [weak self] _ in self?.emit()
+      })
+    }
+    emit()
+    return nil
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    for observer in observers { NotificationCenter.default.removeObserver(observer) }
+    observers = []
+    sink = nil
+    return nil
+  }
+
+  private func emit() {
+    let device = UIDevice.current
+    var snapshot: [String: AnyHashable] = [
+      "powerSaveMode": ProcessInfo.processInfo.isLowPowerModeEnabled,
+      "charging": device.batteryState == .charging || device.batteryState == .full,
+    ]
+    // -1 is "unknown" (the simulator): left out, which Dart reads as normal.
+    if device.batteryLevel >= 0 {
+      snapshot["batteryLevel"] = Int((device.batteryLevel * 100).rounded())
+    }
+    if snapshot == last { return }
+    last = snapshot
+    sink?(snapshot)
   }
 }
 

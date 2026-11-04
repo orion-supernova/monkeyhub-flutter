@@ -1,9 +1,11 @@
 package com.walhallaa.chattest20241220
 
 import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -243,6 +245,72 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        // monkeyhub/power — Battery Saver and the battery, pushed on every
+        // change so the app calms its motion the moment either says to.
+        // Sends {powerSaveMode, batteryLevel, charging} on listen and then
+        // only when that changes: ACTION_BATTERY_CHANGED also fires for
+        // voltage and temperature, which Dart has no use for.
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, "monkeyhub/power")
+            .setStreamHandler(object : EventChannel.StreamHandler {
+                private var receiver: BroadcastReceiver? = null
+                private var last: Map<String, Any?>? = null
+
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    val app = applicationContext
+                    fun emit(battery: Intent?) {
+                        val snapshot = HashMap<String, Any?>()
+                        snapshot["powerSaveMode"] = try {
+                            (app.getSystemService(POWER_SERVICE) as PowerManager).isPowerSaveMode
+                        } catch (_: Throwable) { false }
+                        if (battery != null) {
+                            val level = battery.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                            val scale = battery.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                            if (level >= 0 && scale > 0) {
+                                snapshot["batteryLevel"] = level * 100 / scale
+                            }
+                            val status = battery.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+                            snapshot["charging"] = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                                status == BatteryManager.BATTERY_STATUS_FULL
+                        }
+                        if (snapshot == last) return
+                        last = snapshot
+                        events?.success(snapshot)
+                    }
+                    val r = object : BroadcastReceiver() {
+                        override fun onReceive(context: Context, intent: Intent) {
+                            emit(
+                                if (intent.action == Intent.ACTION_BATTERY_CHANGED) intent
+                                // The sticky battery intent: the last one sent.
+                                else ContextCompat.registerReceiver(
+                                    app, null,
+                                    IntentFilter(Intent.ACTION_BATTERY_CHANGED),
+                                    ContextCompat.RECEIVER_NOT_EXPORTED,
+                                )
+                            )
+                        }
+                    }
+                    receiver = r
+                    last = null
+                    val filter = IntentFilter().apply {
+                        addAction(Intent.ACTION_BATTERY_CHANGED)
+                        addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
+                    }
+                    // Sticky: registering returns the current battery state,
+                    // which is the snapshot sent on listen.
+                    val current = ContextCompat.registerReceiver(
+                        app, r, filter, ContextCompat.RECEIVER_NOT_EXPORTED,
+                    )
+                    emit(current)
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    receiver?.let {
+                        try { applicationContext.unregisterReceiver(it) } catch (_: Throwable) {}
+                    }
+                    receiver = null
+                }
+            })
 
         // monkeyhub/device — exposes a human-readable name for this
         // physical device. Settings.Global.DEVICE_NAME is user-editable

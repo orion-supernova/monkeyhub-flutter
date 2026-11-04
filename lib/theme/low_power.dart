@@ -16,10 +16,10 @@ import '../data/settings_store.dart';
 /// user keeps the last word: an explicit Motion choice in Settings wins over
 /// this, exactly as it wins over the OS Reduce Motion flag.
 ///
-/// Neither OS pushes this change to Flutter, so it is read at launch and again
-/// on every resume. Both toggles live in places that background the app
-/// (Control Centre, the quick settings shade), so a resume is when it can have
-/// changed.
+/// Both OSes announce every change to the power mode and the battery, and
+/// `monkeyhub/power` passes each one on, so this follows them as they happen.
+/// [refresh] still reads it directly at launch and on every resume, in case the
+/// stream is not up yet or missed something while the app was suspended.
 class LowPowerMode extends ValueNotifier<bool> {
   LowPowerMode._() : super(false);
 
@@ -55,20 +55,25 @@ class LowPowerMode extends ValueNotifier<bool> {
   bool get lowBattery => _lowBattery;
   bool _lowBattery = false;
 
-  /// The battery drains while the app is open, and nothing pushes the level
-  /// to Flutter, so it is re-read on this beat while the app is in front.
-  Timer? _poll;
+  static const EventChannel _changes = EventChannel('monkeyhub/power');
+
+  /// The native stream of changes, listened to from the first [refresh] for
+  /// the life of the app.
+  StreamSubscription<dynamic>? _watch;
 
   /// Re-reads the OS flag and the battery. Quiet on desktop and web, where
   /// there is no such channel, and on any failure: not knowing is "normal
   /// power".
   Future<void> refresh() async {
     if (kIsWeb || !(Platform.isIOS || Platform.isAndroid)) return;
-    _poll ??= Timer.periodic(const Duration(minutes: 1), (_) {
-      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
-        unawaited(refresh());
-      }
-    });
+    _watch ??= _changes.receiveBroadcastStream().listen(
+      (event) {
+        if (event is Map) apply(event.cast<String, Object?>());
+      },
+      // An older native build without the channel: launch and resume reads
+      // still cover it.
+      onError: (Object _) {},
+    );
     try {
       final info = await _device.invokeMapMethod<String, Object?>(
         'getBuildInfo',
