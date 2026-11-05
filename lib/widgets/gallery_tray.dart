@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 
+import 'device_turn.dart';
 import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
@@ -1270,7 +1271,13 @@ class _Thumb extends StatelessWidget {
                 borderRadius: BorderRadius.circular(radius),
                 boxShadow: const [MediaGlass.shadow],
               ),
-              child: SizedBox.square(dimension: size, child: tile),
+              // The strip sits over the camera, whose layout holds portrait
+              // while the phone turns: its photos turn in place with the
+              // camera's glyphs. Inert anywhere without a [DeviceTurn].
+              child: SizedBox.square(
+                dimension: size,
+                child: TurnWithDevice(child: tile),
+              ),
             ),
     );
   }

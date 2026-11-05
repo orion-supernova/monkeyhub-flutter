@@ -17,6 +17,7 @@ import '../l10n/text_case.dart';
 import '../media/preview_luminance.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/device_turn.dart';
 import '../widgets/gallery_tray.dart';
 import '../widgets/photo_chrome.dart';
 import '../widgets/spring_press.dart';
@@ -408,6 +409,16 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   /// the arena and neither would feel right.
   int _pointers = 0;
 
+  /// Whether this screen holds portrait while the phone turns (phones only;
+  /// see [holdsPortrait]). Decided once, on the first dependencies, because
+  /// that is the first moment there is a screen size to ask about.
+  bool? _holdPortrait;
+
+  /// How far the glyphs turn to stay upright, per [quarterTurnsFor]. Read off
+  /// the camera plugin, which keeps reporting the PHYSICAL orientation while
+  /// the layout is held.
+  int _turns = 0;
+
   @override
   void initState() {
     super.initState();
@@ -417,7 +428,24 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_holdPortrait != null) return;
+    final hold = holdsPortrait(context);
+    _holdPortrait = hold;
+    // WhatsApp's camera, not a reflowing page: turning the phone must not move
+    // the shutter to the middle of a wide screen. The layout holds; the glyphs
+    // turn (see [TurnWithDevice]), and the capture still comes out the way the
+    // phone was held, because the plugin orients it from the device.
+    if (hold) {
+      SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+    }
+  }
+
+  @override
   void dispose() {
+    // Back to whatever the platform allows; nothing else in the app holds one.
+    if (_holdPortrait == true) SystemChrome.setPreferredOrientations(const []);
     WidgetsBinding.instance.removeObserver(this);
     _recordTicker?.cancel();
     _controller?.removeListener(_onControllerUpdate);
@@ -714,6 +742,10 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
     if (!mounted || controller == null) return;
     if (controller.value.hasError && _fault == null) {
       setState(() => _fault = _Fault.failed);
+    }
+    if (_holdPortrait == true) {
+      final turns = quarterTurnsFor(controller.value.deviceOrientation);
+      if (turns != _turns) setState(() => _turns = turns);
     }
   }
 
@@ -1064,8 +1096,20 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
     if (!_lensControls) return;
 
     var nx = (local.dx - preview.left) / preview.width;
-    final ny = (local.dy - preview.top) / preview.height;
+    var ny = (local.dy - preview.top) / preview.height;
     if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return;
+    // iOS turns the point by the device orientation, assuming the layout
+    // turned with it. Held portrait it did not, so hand it the point as that
+    // turned layout would have seen it. Android measures against the display,
+    // which is what is on screen, and needs nothing.
+    if (_holdPortrait == true && defaultTargetPlatform == TargetPlatform.iOS) {
+      final p = unturnNormalised(
+        Offset(nx, ny),
+        quarterTurnsFor(controller.value.deviceOrientation),
+      );
+      nx = p.dx;
+      ny = p.dy;
+    }
     // The front preview is mirrored, so a tap on the left of the screen is the
     // sensor's right — and the plugin will not do this for us. Its
     // `cgPoint(for:withOrientation:)` compensates for device orientation only.
@@ -1227,7 +1271,9 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
     final scaffold = Scaffold(
       backgroundColor: Colors.black,
       body: BackdropGroup(
-        child: Stack(
+        child: DeviceTurn(
+          quarterTurns: _turns,
+          child: Stack(
           fit: StackFit.expand,
           children: [
             if (_inReview || _galleryForReview)
@@ -1294,6 +1340,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
             if (_screenFlash)
               const IgnorePointer(child: ColoredBox(color: Color(0xFFFFF1DE))),
           ],
+          ),
         ),
       ),
     );
@@ -1369,7 +1416,9 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                         // No Transform. Every platform already mirrors the front
                         // preview itself — flipping again here is what made the
                         // selfie view come out backwards.
-                        child: CameraPreview(controller),
+                        child: _holdPortrait == true
+                            ? _HeldPreview(controller: controller)
+                            : CameraPreview(controller),
                       ),
                     ],
                   ),
@@ -1471,13 +1520,15 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
           top: 8,
           child: Row(
             children: [
-              GlassCloseButton(
-                tone: GlassTone.media,
-                semanticLabel: AppLocalizations.of(
-                  context,
-                ).cameraScreenCloseButtonLabel,
-                enabled: !_capturing && !_recording,
-                onTap: _close,
+              TurnWithDevice(
+                child: GlassCloseButton(
+                  tone: GlassTone.media,
+                  semanticLabel: AppLocalizations.of(
+                    context,
+                  ).cameraScreenCloseButtonLabel,
+                  enabled: !_capturing && !_recording,
+                  onTap: _close,
+                ),
               ),
               const Spacer(),
               if (_recording) ...[
@@ -1492,7 +1543,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
               // Apple's Night Mode — no plugin exposes that — so it is labelled
               // for what it does rather than for what it resembles.
               if (_ready && _boostAvailable && !_recording) ...[
-                GlassIconButton(
+                TurnWithDevice(child: GlassIconButton(
                   tone: GlassTone.media,
                   icon: _boost ? CupertinoIcons.moon_fill : CupertinoIcons.moon,
                   semanticLabel: _boost
@@ -1505,14 +1556,14 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                   onTap: _capturing ? null : _toggleBoost,
                   tint: _boost ? _boostTint : null,
                   color: _boost ? Colors.black : null,
-                ),
+                )),
                 const SizedBox(width: 8),
               ],
               // Offered on the selfie lens too. It has no flash unit, but it
               // has a screen pointed straight at the subject, which is what
               // fires instead — see [_usesScreenFlash].
               if (_ready && _lensControls && _flashAvailable && !_recording)
-                GlassIconButton(
+                TurnWithDevice(child: GlassIconButton(
                   tone: GlassTone.media,
                   icon: switch (_flash) {
                     FlashMode.auto => CupertinoIcons.bolt_badge_a_fill,
@@ -1525,7 +1576,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                   onTap: _capturing ? null : _cycleFlash,
                   tint: _flash == FlashMode.off ? null : _flashTint,
                   color: _flash == FlashMode.off ? null : Colors.black,
-                ),
+                )),
             ],
           ),
         ),
@@ -1534,7 +1585,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
             left: 0,
             right: 0,
             bottom: 108,
-            child: Center(child: _zoomPill()),
+            child: Center(child: TurnWithDevice(child: _zoomPill())),
           ),
           // Above the shutter, the way every phone camera puts it. Hidden while
           // recording: switching mid-clip is not a thing that can be honoured,
@@ -1578,7 +1629,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                             ? null
                             : Align(
                                 alignment: Alignment.centerLeft,
-                                child: _LibraryButton(
+                                child: TurnWithDevice(child: _LibraryButton(
                                   latest: _trayShown ? _tray.latest : null,
                                   onTap: _capturing
                                       ? null
@@ -1590,7 +1641,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                                             _pop(CameraPickLibrary<T>());
                                           }
                                         },
-                                ),
+                                )),
                               ),
                       ),
                       Expanded(
@@ -1612,14 +1663,14 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                             ? null
                             : Align(
                                 alignment: Alignment.centerRight,
-                                child: GlassIconButton(
+                                child: TurnWithDevice(child: GlassIconButton(
                                   tone: GlassTone.media,
                                   icon: CupertinoIcons.camera_rotate,
                                   semanticLabel: AppLocalizations.of(
                                     context,
                                   ).cameraScreenSwitchCameraLabel,
                                   onTap: _capturing ? null : _flip,
-                                ),
+                                )),
                               ),
                       ),
                     ],
@@ -1661,6 +1712,44 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The live preview for a layout held portrait while the phone turns.
+///
+/// Not the plugin's `CameraPreview`, which assumes the layout turns with the
+/// phone and reshapes itself to a landscape ratio when it does. Here the box
+/// stays portrait and only the picture is turned to match it, by the same
+/// rotation `CameraPreview` applies on Android ([quarterTurnsFor]):
+///
+///  * iOS turns its frames with the device, so a landscape phone sends
+///    landscape frames; turning them back sits them upright in the portrait
+///    box. That is also what makes a landscape capture come out landscape.
+///  * Android's camerax preview already corrects itself against the display
+///    and subtracts this same rotation, expecting `CameraPreview` to add it
+///    back; adding it here keeps the sum at the display's, which is portrait.
+///
+/// While recording, the turn freezes at the orientation the clip started in,
+/// as the plugin freezes the frames; after a pause, at the paused one.
+class _HeldPreview extends StatelessWidget {
+  const _HeldPreview({required this.controller});
+
+  final CameraController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<CameraValue>(
+      valueListenable: controller,
+      builder: (context, value, child) {
+        final o = value.isRecordingVideo
+            ? (value.recordingOrientation ?? value.deviceOrientation)
+            : (value.previewPauseOrientation ??
+                value.lockedCaptureOrientation ??
+                value.deviceOrientation);
+        return RotatedBox(quarterTurns: quarterTurnsFor(o), child: child);
+      },
+      child: controller.buildPreview(),
     );
   }
 }
