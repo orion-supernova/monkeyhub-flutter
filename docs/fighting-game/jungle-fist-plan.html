@@ -1,0 +1,1309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jungle Fist Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0a12; --bg2:#13111d; --card:#1a1726; --card2:#221e31; --line:#2e2942;
+  --ink:#f4f1ff; --mute:#a59fbd; --dim:#6f6888;
+  --p1:#ff8a3d; --p1b:#ffcf6e; --p2:#3fd2c7; --p2b:#a7fff4;
+  --hot:#ff3d6e; --ok:#58e08a; --warn:#ffd24a; --vio:#9b7bff;
+  --r:18px;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f6f3ec; --bg2:#efe9dd; --card:#ffffff; --card2:#f7f2e8; --line:#e2d9c8;
+    --ink:#1d1830; --mute:#5d5672; --dim:#8c859f;
+  }
+}
+:root[data-theme="dark"]{ --bg:#0b0a12; --bg2:#13111d; --card:#1a1726; --card2:#221e31; --line:#2e2942; --ink:#f4f1ff; --mute:#a59fbd; --dim:#6f6888; }
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--p2)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
+h1,h2,.disp{font-family:Bungee,Inter,sans-serif;font-weight:400;letter-spacing:.5px;line-height:1.05}
+h2{font-size:clamp(28px,4.4vw,46px);margin:0 0 10px}
+h3{font-size:19px;margin:0 0 6px}
+p{margin:0 0 12px}
+.lead{font-size:clamp(17px,2vw,20px);color:var(--mute);max-width:760px}
+.kicker{font:600 12px/1 "JetBrains Mono",monospace;letter-spacing:2px;text-transform:uppercase;color:var(--p1);margin-bottom:14px;display:flex;gap:10px;align-items:center}
+.kicker b{background:var(--p1);color:#160b02;padding:4px 7px;border-radius:6px}
+section.slide{min-height:100vh;padding:96px 0 72px;border-bottom:1px solid var(--line);display:flex;align-items:center}
+section.slide>.wrap{width:100%}
+.mono{font-family:"JetBrains Mono",monospace}
+code{font-family:"JetBrains Mono",monospace;font-size:.88em;background:var(--card2);border:1px solid var(--line);padding:1px 6px;border-radius:6px}
+
+/* top bar */
+.top{position:fixed;inset:0 0 auto 0;z-index:50;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:14px;height:56px}
+.brand{font-family:Bungee;font-size:17px;white-space:nowrap}
+.brand span{color:var(--p1)}
+.nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1}
+.nav::-webkit-scrollbar{display:none}
+.nav a{color:var(--mute);text-decoration:none;font-size:13px;font-weight:600;padding:6px 10px;border-radius:999px;white-space:nowrap}
+.nav a.on{background:var(--card2);color:var(--ink)}
+.prog{position:absolute;left:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--p1),var(--hot),var(--p2));width:0}
+
+/* hero */
+.hero{position:relative;overflow:hidden}
+.hero h1{font-size:clamp(54px,11vw,132px);margin:0 0 18px;background:linear-gradient(100deg,var(--p1b),var(--p1) 35%,var(--hot) 60%,var(--vio));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 30px rgba(255,61,110,.25))}
+.verdict{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:30px}
+.v{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.v .tag{display:inline-block;font:700 11px/1 "JetBrains Mono";letter-spacing:1.5px;padding:6px 8px;border-radius:7px;margin-bottom:12px}
+.yes{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.later{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.no{background:color-mix(in srgb,var(--hot) 18%,transparent);color:var(--hot)}
+.scroll-hint{margin-top:34px;color:var(--dim);font-size:13px}
+
+/* cards & grids */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.card p:last-child{margin:0}
+.card .n{font:600 12px "JetBrains Mono";color:var(--dim)}
+.pill{display:inline-block;font:600 11px "JetBrains Mono";padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--mute);margin:0 4px 4px 0}
+ul.tight{margin:6px 0 0;padding-left:18px}
+ul.tight li{margin:3px 0;color:var(--mute)}
+ul.tight li b{color:var(--ink)}
+
+/* compare table */
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 12px "JetBrains Mono";letter-spacing:1px;color:var(--dim);text-transform:uppercase}
+td:first-child{color:var(--mute);width:28%}
+.tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
+
+/* demo */
+.demo{background:#07060c;border:1px solid var(--line);border-radius:22px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.stagebox{position:relative;width:100%;aspect-ratio:960/420;background:#000}
+canvas#game{position:relative;z-index:1;width:100%;height:100%;display:block;outline:none;touch-action:none}
+.stagebox canvas.three{position:absolute;inset:0;width:100%!important;height:100%!important;z-index:0;display:none}
+.viewbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #231f33;color:#e9e5fb}
+.viewbar .seg button{font-size:14px;padding:8px 12px}
+.viewbar .vcap{font-size:13px;color:#a59fbd;flex:1;min-width:240px}
+.viewbar .vcap b{color:#fff}
+.tb.side3d{display:none}
+.is3d .tb.side3d{display:flex}
+.overlay{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(7,6,12,.72);backdrop-filter:blur(3px);text-align:center;padding:16px;color:#f4f1ff}
+.overlay .disp{font-size:clamp(26px,5vw,48px)}
+.btn{appearance:none;border:0;cursor:pointer;font:700 15px Inter;padding:12px 20px;border-radius:14px;background:linear-gradient(180deg,var(--p1b),var(--p1));color:#1b0d02;box-shadow:0 6px 0 #a4481a}
+.btn:active{transform:translateY(3px);box-shadow:0 3px 0 #a4481a}
+.btn.ghost{background:transparent;color:#f4f1ff;box-shadow:none;border:1px solid #3a3452}
+.panel{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:0;border-top:1px solid #231f33;color:#e9e5fb}
+.panel>div{padding:14px 16px;border-right:1px solid #231f33}
+.panel>div:last-child{border:0}
+.panel label{font:600 11px "JetBrains Mono";letter-spacing:1px;color:#8d86a8;text-transform:uppercase;display:block;margin-bottom:8px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{appearance:none;border:1px solid #3a3452;background:#15121f;color:#cfc9e6;font:600 13px Inter;padding:7px 10px;border-radius:10px;cursor:pointer}
+.seg button.on{background:#f4f1ff;color:#0b0a12;border-color:#f4f1ff}
+input[type=range]{width:100%;accent-color:var(--p1)}
+.stats{font:500 12.5px/1.7 "JetBrains Mono";color:#cfc9e6}
+.stats b{color:#fff}
+.stats .bad{color:var(--hot)} .stats .good{color:var(--ok)}
+.keys{font-size:13px;color:#a59fbd;line-height:1.8}
+kbd{font:600 11px "JetBrains Mono";background:#221e31;border:1px solid #3a3452;border-bottom-width:3px;border-radius:6px;padding:1px 6px;color:#f4f1ff}
+.touchpad{position:absolute;z-index:3;inset:auto 0 0 0;display:none;justify-content:space-between;padding:10px;pointer-events:none}
+.touchpad .cluster{display:grid;gap:6px;pointer-events:auto}
+.touchpad .dpad{grid-template-columns:repeat(3,44px);grid-template-rows:repeat(2,44px)}
+.touchpad .abtn{grid-template-columns:repeat(3,52px)}
+.tb{border-radius:12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;font:700 13px Inter;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;touch-action:none}
+.tb.on{background:rgba(255,138,61,.55)}
+.abtn .tb{height:52px;border-radius:50%}
+@media (pointer:coarse){.touchpad{display:flex}}
+@media (max-width:760px){.panel{grid-template-columns:1fr}.panel>div{border-right:0;border-bottom:1px solid #231f33}}
+
+/* phones storyboard */
+.story{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:16px}
+.phone{background:var(--card);border:1px solid var(--line);border-radius:30px;padding:12px;}
+.screen{background:#0f0d18;border-radius:22px;aspect-ratio:9/16;overflow:hidden;position:relative;display:flex;flex-direction:column;color:#f4f1ff;font-size:12px}
+.step{font:700 11px "JetBrains Mono";color:var(--p1);margin:12px 4px 2px;letter-spacing:1px}
+.cap{font-size:13.5px;color:var(--mute);margin:0 4px}
+.chatbar{padding:10px 12px;border-bottom:1px solid #221e31;font-weight:700;display:flex;gap:8px;align-items:center}
+.av{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--p2),#1a6c66);flex:none}
+.av.me{background:linear-gradient(135deg,var(--p1b),var(--p1))}
+.bub{margin:6px 10px;padding:8px 10px;border-radius:14px;background:#221e31;max-width:78%}
+.bub.me{align-self:flex-end;background:#3b2a7a}
+.fightcard{margin:8px 10px;border-radius:16px;padding:12px;background:linear-gradient(140deg,#2a1240,#4a1530 60%,#5a2a10);border:1px solid #5a3a6a}
+.fightcard .disp{font-size:16px}
+.mini-btn{margin-top:8px;background:#fff;color:#111;border-radius:10px;padding:6px;text-align:center;font-weight:800}
+.vs{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Bungee;font-size:26px}
+.sig{display:flex;gap:2px;align-items:flex-end}
+.sig i{display:block;width:4px;background:var(--ok);border-radius:2px}
+.minihud{display:flex;justify-content:space-between;padding:10px;gap:6px}
+.hb{height:8px;flex:1;border-radius:4px;background:#2b2540;overflow:hidden}
+.hb i{display:block;height:100%}
+.ground{position:absolute;left:0;right:0;bottom:22%;height:2px;background:#3a3452}
+
+/* diagrams */
+.diagram{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;overflow-x:auto}
+.diagram svg{display:block;width:100%;min-width:680px;height:auto}
+.svgt{font:600 13px Inter;fill:var(--ink)}
+.svgs{font:500 11px "JetBrains Mono";fill:var(--mute)}
+.box{fill:var(--card2);stroke:var(--line);stroke-width:1.5}
+.arrow{stroke:var(--mute);stroke-width:1.6;fill:none;marker-end:url(#ah)}
+
+/* roster */
+.fighter{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.fighter canvas{width:100%;aspect-ratio:4/3;display:block;background:radial-gradient(120% 90% at 50% 100%,var(--glow,#3a1d10),#0d0b14 70%)}
+.fighter .body{padding:16px 18px 18px}
+.fighter .arch{font:600 11px "JetBrains Mono";letter-spacing:1.4px;text-transform:uppercase;color:var(--dim)}
+.fighter h3{font-family:Bungee;font-weight:400;font-size:22px;margin:4px 0 6px}
+.moves{font-size:13.5px;color:var(--mute);margin:8px 0 0;padding:0;list-style:none}
+.moves li{padding:4px 0;border-top:1px dashed var(--line)}
+.moves b{color:var(--ink)}
+
+/* roadmap */
+.road{display:grid;gap:12px}
+.phase{display:grid;grid-template-columns:120px 1fr;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.phase .ph{font-family:Bungee;font-size:26px;color:var(--p1)}
+.phase .wk{font:600 12px "JetBrains Mono";color:var(--dim)}
+.exit{margin-top:8px;font-size:13.5px;color:var(--ok)}
+@media (max-width:600px){.phase{grid-template-columns:1fr}}
+
+/* numbers */
+.big{font-family:Bungee;font-size:clamp(30px,4vw,44px);line-height:1;color:var(--p2)}
+.big.o{color:var(--p1)} .big.r{color:var(--hot)}
+.cap2{color:var(--mute);font-size:14px;margin-top:6px}
+
+.decide{counter-reset:d}
+.decide .card{position:relative;padding-left:62px}
+.decide .card:before{counter-increment:d;content:counter(d);position:absolute;left:18px;top:18px;width:30px;height:30px;border-radius:50%;background:var(--p1);color:#1b0d02;font:800 15px Inter;display:flex;align-items:center;justify-content:center}
+.rec{font-size:13.5px;color:var(--ok);margin-top:6px}
+footer{padding:40px 0 80px;color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">JUNGLE<span>FIST</span></div>
+    <nav class="nav" id="nav">
+      <a href="#s-hero">Answer</a>
+      <a href="#s-play">Play it</a>
+      <a href="#s-looks">2D·2.5D·3D</a>
+      <a href="#s-flow">In a chat</a>
+      <a href="#s-roster">Roster</a>
+      <a href="style-lab.html">Style lab ↗</a>
+      <a href="#s-controls">Controls</a>
+      <a href="#s-net">Netcode</a>
+      <a href="#s-arch">Architecture</a>
+      <a href="#s-det">Determinism</a>
+      <a href="#s-feel">Feel</a>
+      <a href="#s-scale">Scale</a>
+      <a href="#s-road">Roadmap</a>
+      <a href="#s-risk">Risks</a>
+      <a href="#s-decide">Decisions</a>
+    </nav>
+  </div>
+  <div class="prog" id="prog"></div>
+</header>
+
+<!-- ============ 1. HERO ============ -->
+<section class="slide hero" id="s-hero">
+  <div class="wrap">
+    <div class="kicker"><b>PLAN</b> MonkeyHub chat games · real-time fighter · 2026-11-05</div>
+    <h1>JUNGLE<br>FIST</h1>
+    <p class="lead">A real-time 1v1 fighting game you start from any chat. Challenge a friend, and seconds later you're trading hits at 60 fps with <b>rollback netcode</b>, the same tech that makes modern Street Fighter feel local over the internet. Working title; the fighters are our own monkeys, not anyone else's characters.</p>
+    <div class="verdict">
+      <div class="v"><span class="tag yes">YES · BUILD FIRST</span><h3>2D, Street Fighter-style</h3><p style="color:var(--mute)">Side view, one plane, frame data, specials, combos. Fits Flutter's Canvas perfectly, works on every platform we ship, and can feel genuinely tight online.</p></div>
+      <div class="v"><span class="tag later">STRONG OPTION</span><h3>2.5D look</h3><p style="color:var(--mute)">Same 2D rules and netcode, drawn with 3D models, lights and a cinematic camera. Modern Street Fighter is built this way. You can try it in the demo on the next slide.</p></div>
+      <div class="v"><span class="tag no">NOT V1</span><h3>Full 3D, Tekken-style</h3><p style="color:var(--mute)">Sidestep around the arena, 3D models, a 3D engine inside Flutter. The demo has a playable version: the rules change less than you'd think, but the art and engine cost a lot more.</p></div>
+    </div>
+    <p class="scroll-hint">Scroll or use <kbd>PgDn</kbd> / <kbd>PgUp</kbd>. The next slide is playable.</p>
+  </div>
+</section>
+
+<!-- ============ 2. PLAY ============ -->
+<section class="slide" id="s-play">
+  <div class="wrap">
+    <div class="kicker"><b>02</b> Prototype · runs right here</div>
+    <h2>Play it. Then add lag.</h2>
+    <p class="lead">This is a tiny version of the real design: deterministic integer simulation, frame data, hitstop, a buffered special cancel, and a real rollback loop. The CPU plays as a <i>remote</i> player whose inputs arrive late. Drag the ping up, then flip to <b>Delay-based</b> and feel the difference.</p>
+
+    <div class="demo" id="demo">
+      <div class="viewbar">
+        <div class="seg" id="viewSeg">
+          <button data-v="2d" class="on">2D</button>
+          <button data-v="25d">2.5D</button>
+          <button data-v="3d">3D · sidestep</button>
+        </div>
+        <div class="vcap" id="vcap"></div>
+      </div>
+      <div class="stagebox" id="stagebox">
+        <canvas id="game" width="960" height="420" tabindex="0" aria-label="Jungle Fist prototype"></canvas>
+        <div class="overlay" id="ov">
+          <div class="disp">JUNGLE FIST</div>
+          <div style="max-width:520px;color:#cfc9e6;font-size:14px">Mango (you) vs Bruno. Best of 3. Light into Special is a combo.</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+            <button class="btn" id="startBtn">Fight</button>
+          </div>
+        </div>
+        <div class="touchpad" id="touchpad">
+          <div class="cluster dpad">
+            <div></div><div class="tb" data-b="4">▲</div><div></div>
+            <div class="tb" data-b="1">◀</div><div class="tb" data-b="8">▼</div><div class="tb" data-b="2">▶</div>
+          </div>
+          <div class="cluster abtn">
+            <div class="tb" data-b="16">L</div><div class="tb" data-b="32">H</div><div class="tb" data-b="64">SP</div><div class="tb side3d" data-b="128">⤒</div><div class="tb side3d" data-b="256">⤓</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div>
+          <label>Mode</label>
+          <div class="seg" id="modeSeg">
+            <button data-m="rollback" class="on">Online · rollback</button>
+            <button data-m="delay">Online · delay-based</button>
+            <button data-m="local">2 players, 1 keyboard</button>
+          </div>
+          <div class="keys" style="margin-top:12px">
+            <b style="color:#fff">P1</b> <kbd>A</kbd><kbd>D</kbd> walk <kbd>W</kbd> jump <kbd>S</kbd> crouch · <kbd>F</kbd> light <kbd>G</kbd> heavy <kbd>H</kbd> special (<kbd>W</kbd>+<kbd>H</kbd> uppercut)<br>
+            <b style="color:#fff">P2</b> arrows · <kbd>K</kbd> <kbd>L</kbd> <kbd>;</kbd> &nbsp;·&nbsp; hold back to block, crouch-block lows, stand-block jump-ins · gamepad works too<br>
+            <b style="color:#fff">3D only</b> <kbd>Q</kbd> / <kbd>E</kbd> sidestep (P2 <kbd>I</kbd> / <kbd>O</kbd>). Sidestep dodges everything except Heavy, which homes in.
+          </div>
+        </div>
+        <div>
+          <label>Simulated ping (round trip): <span id="pingV" class="mono">100 ms</span></label>
+          <input type="range" id="ping" min="0" max="240" step="10" value="100">
+          <label style="margin-top:12px"><input type="checkbox" id="jit" checked style="vertical-align:-2px"> Jitter (±1 frame, like real Wi-Fi)</label>
+          <div style="margin-top:12px;display:flex;gap:8px"><button class="btn ghost" id="restartBtn" style="padding:8px 12px;font-size:13px">Restart match</button><button class="btn ghost" id="muteBtn" style="padding:8px 12px;font-size:13px">Sound: on</button></div>
+        </div>
+        <div>
+          <label>Netcode, live</label>
+          <div class="stats" id="stats">waiting for the bell…</div>
+        </div>
+      </div>
+    </div>
+    <p style="color:var(--dim);font-size:13px;margin-top:12px">What you're seeing: in rollback mode your inputs act on the very next frame. The game guesses Bruno keeps doing what he was doing; when his real input arrives and the guess was wrong, it rewinds to that frame and replays forward, invisibly, before drawing. In delay-based mode everyone waits for the slower packet, so your own punches land late. That sluggishness is exactly what kills online fighters.</p>
+  </div>
+</section>
+
+<!-- ============ 2b. LOOKS ============ -->
+<section class="slide" id="s-looks">
+  <div class="wrap">
+    <div class="kicker"><b>02b</b> 2D vs 2.5D vs 3D</div>
+    <h2>Three looks, one engine</h2>
+    <p class="lead">The demo's three views run the <b>same</b> fight engine and the same rollback loop. 2D and 2.5D are only different renderers. 3D adds one rule, the sidestep, which rotates the fight axis around the arena. That's how a 3D fighter can still be a mostly 1D simulation, and why its netcode is hardly harder. The real cost of 3D is art and the engine, not the network.</p>
+    <div class="tablewrap"><table>
+      <tr><th></th><th>2D</th><th>2.5D</th><th>3D, Tekken-style</th></tr>
+      <tr><td>Game rules</td><td>One plane</td><td>Identical to 2D</td><td>2D rules + sidestep + axis rotation. Homing attacks so sidestep isn't a free escape.</td></tr>
+      <tr><td>Netcode</td><td>Rollback, 1 byte of input per frame</td><td>Identical</td><td>Identical, 2 more input bits. The world rotation is integer math (a 16-step angle table), so it stays deterministic.</td></tr>
+      <tr><td>Renderer in Flutter</td><td>Canvas painters the app already uses everywhere. Works on every platform, including web.</td><td>Either <b>pre-rendered 3D</b> (model in Blender, render to sprite sheets, play as 2D: zero engine risk) or real-time 3D via Flutter GPU / <code>flutter_scene</code> (still experimental, Impeller only, no web).</td><td>Real-time 3D only: Flutter GPU / <code>flutter_scene</code>, or a native engine embedded as a texture. The largest technical risk in the whole plan.</td></tr>
+      <tr><td>Art per fighter</td><td>Vector rig drawn in code: days</td><td>One rigged, animated 3D model: weeks (or a 3D artist)</td><td>Same model, plus animations that read from every angle: more weeks</td></tr>
+      <tr><td>Camera</td><td>Fixed, light shake</td><td>Zooms, punch-ins on big hits, the "Super" cinematic for free</td><td>Orbits as the axis turns. Needs care on a small phone screen.</td></tr>
+      <tr><td>Controls</td><td>Simple / Classic</td><td>Same</td><td>Plus sidestep: a swipe up/down on the stick, or two extra buttons. Harder on touch.</td></tr>
+      <tr><td>Phone performance</td><td>Trivial</td><td>Fine with baked lighting and low-poly models</td><td>Same as 2.5D, but with more of the arena on screen</td></tr>
+    </table></div>
+    <div class="grid g3" style="margin-top:14px">
+      <div class="card"><div class="n">RECOMMENDATION</div><h3>Ship 2D, design for 2.5D</h3><p style="color:var(--mute)">Build the core and netcode once. Launch in 2D to learn if people fight. Since the renderer is swappable, the 2.5D upgrade later is an art project, not a rewrite.</p></div>
+      <div class="card"><div class="n">CHEAPEST "WOW"</div><h3>Pre-rendered 3D sprites</h3><p style="color:var(--mute)">3D-looking fighters, lit and shaded, running through the same 2D painter. No 3D engine in the app at all, works on web, and phones run it trivially.</p></div>
+      <div class="card"><div class="n">KEEP THE DOOR OPEN</div><h3>3D stays possible</h3><p style="color:var(--mute)">Because sidestep is just "rotate the axis", a 3D mode could be added later without touching the netcode. Revisit when Flutter's 3D support is out of preview.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. FLOW ============ -->
+<section class="slide" id="s-flow">
+  <div class="wrap">
+    <div class="kicker"><b>03</b> The experience</div>
+    <h2>From "1v1 me" to a fight in 10 seconds</h2>
+    <p class="lead">It lives where every other MonkeyHub game lives: it's a match row in a chat, it opens from the game start sheet, and it ends with a result card everyone in the room can see.</p>
+    <div class="story">
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="chatbar"><div class="av"></div>Deniz</div>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:10px">
+            <div class="bub">u got lucky in chess</div>
+            <div class="bub me">prove it</div>
+            <div class="fightcard"><div class="disp">⚡ JUNGLE FIST</div><div style="opacity:.8;margin-top:4px">You challenged Deniz · best of 3</div><div class="mini-btn">Waiting… 0:24</div></div>
+          </div>
+        </div></div>
+        <div class="step">1 · CHALLENGE</div><p class="cap">Picked from the game start sheet like any chat game. Posts a live card. Push to the other person: "Murat wants to fight".</p>
+      </div>
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="chatbar"><div class="av"></div>Connecting</div>
+          <div class="vs"><div class="av me" style="width:46px;height:46px"></div>VS<div class="av" style="width:46px;height:46px"></div></div>
+          <div style="text-align:center;padding:0 12px 18px">
+            <div class="sig" style="justify-content:center;margin-bottom:6px"><i style="height:6px"></i><i style="height:10px"></i><i style="height:14px"></i><i style="height:18px;opacity:.35"></i></div>
+            <div style="font-weight:700">38 ms · great</div><div style="opacity:.6">direct connection</div>
+          </div>
+        </div></div>
+        <div class="step">2 · HANDSHAKE</div><p class="cap">Accept opens a direct peer link using the call signaling we already have. We measure ping before the fight and say honestly if it will be rough.</p>
+      </div>
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="chatbar">Pick your fighter <span style="margin-left:auto;font-family:'JetBrains Mono'">0:07</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;flex:1">
+            <div style="border-radius:12px;background:#3a1d10;border:2px solid var(--p1);display:flex;align-items:flex-end;padding:8px;font-family:Bungee">MANGO</div>
+            <div style="border-radius:12px;background:#10302d;display:flex;align-items:flex-end;padding:8px;font-family:Bungee">BRUNO</div>
+            <div style="border-radius:12px;background:#2a2050;display:flex;align-items:flex-end;padding:8px;font-family:Bungee">PIP</div>
+            <div style="border-radius:12px;background:#3d1630;display:flex;align-items:flex-end;padding:8px;font-family:Bungee">SAGE</div>
+          </div>
+        </div></div>
+        <div class="step">3 · PICK</div><p class="cap">Ten-second select, both picks revealed together. Your fighter wears your profile colors.</p>
+      </div>
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="minihud"><div class="hb"><i style="width:64%;background:var(--p1)"></i></div><b class="mono">41</b><div class="hb" style="transform:scaleX(-1)"><i style="width:38%;background:var(--p2)"></i></div></div>
+          <div style="flex:1;position:relative"><div class="ground"></div>
+            <div style="position:absolute;left:24%;bottom:22%;width:34px;height:60px;border-radius:16px 16px 6px 6px;background:var(--p1)"></div>
+            <div style="position:absolute;left:52%;bottom:22%;width:38px;height:64px;border-radius:16px 16px 6px 6px;background:var(--p2);transform:rotate(8deg)"></div>
+            <div style="position:absolute;left:46%;bottom:44%;font-family:Bungee;font-size:20px;color:var(--warn);transform:rotate(-8deg)">3 HIT!</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:10px;opacity:.7"><div style="width:62px;height:62px;border-radius:50%;border:1px solid #555"></div><div style="display:flex;gap:6px;align-items:flex-end"><div style="width:34px;height:34px;border-radius:50%;background:#333"></div><div style="width:34px;height:34px;border-radius:50%;background:#333"></div><div style="width:40px;height:40px;border-radius:50%;background:#553"></div></div></div>
+        </div></div>
+        <div class="step">4 · FIGHT</div><p class="cap">Full screen, landscape optional. 3 rounds × 60 s. Haptics on every hit. Leaving the app for over 5 s forfeits the round.</p>
+      </div>
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="chatbar"><div class="av"></div>Deniz</div>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:10px">
+            <div class="fightcard"><div class="disp">🏆 MURAT WINS 2–1</div><div style="opacity:.8;margin-top:4px">Mango vs Bruno · perfect round 2</div><div class="mini-btn">▶ Watch replay</div></div>
+            <div class="bub">rematch. now.</div>
+          </div>
+        </div></div>
+        <div class="step">5 · BRAGGING RIGHTS</div><p class="cap">Result card lands in the chat with a replay anyone can watch (replays are just inputs, a few KB). Rematch is one tap.</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--vio) 50%,var(--line))">
+      <h3>⭐ The feature nobody else has: <span style="color:var(--vio)">fight on a call</span></h3>
+      <p style="color:var(--mute)">If the two of you are already on a MonkeyHub call, we don't make a new connection at all. The fight opens a <code>fight</code> data channel on the existing peer connection, exactly the way the call drawing board's <code>draw</code> channel works today (<code>lib/calls/draw/draw_channel.dart</code>). You see each other's faces in a corner while you fight. In a group call, two people fight and the rest of the mesh watches live, since everyone already has a link to both players.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. ROSTER ============ -->
+<section class="slide" id="s-roster">
+  <div class="wrap">
+    <div class="kicker"><b>04</b> Roster &amp; moves</div>
+    <h2>Monkeys, animals, humans, legends</h2>
+    <p class="lead">A mixed cast: one starter from each family to begin with, then one new fighter every few weeks. Everyone shares the same basic attacks and movement, so you can pick up anyone. What makes each fighter different is their <b>special moves and Super</b>. See KAI drawn in three art styles in the <a href="style-lab.html">style lab</a>.</p>
+
+    <div class="card" style="margin-bottom:14px">
+      <h3>Everyone has</h3>
+      <div class="grid g3" style="margin-top:8px">
+        <ul class="tight"><li><b>Light / Heavy</b> standing, crouching (low) and in the air</li><li><b>Overhead</b>: forward + Heavy, must be blocked standing</li><li><b>Sweep</b>: crouching Heavy, knocks down</li><li><b>Auto-combo</b>: Light, Light, Heavy chains, then cancels into a special</li></ul>
+        <ul class="tight"><li><b>Walk, dash, backdash</b> (double-tap)</li><li><b>Jump</b>: neutral, forward, back</li><li><b>Roll</b>: forward roll goes through the opponent, back roll escapes</li><li><b>Throw</b>: Light + Heavy up close, breakable</li></ul>
+        <ul class="tight"><li><b>Block</b> high/low, <b>perfect block</b> for a reward</li><li><b>Counter hits</b>, juggles, wall bounces</li><li><b>Meter</b>: 3 bars. EX special costs 1, <b>Super</b> costs 2</li><li><b>Quick rise</b> after a knockdown</li></ul>
+      </div>
+    </div>
+
+    <div class="grid g4">
+      <div class="card"><span class="pill" style="color:var(--ok);border-color:var(--ok)">STARTER · HUMAN</span><h3 style="font-family:Bungee;font-weight:400;font-size:22px">KAI</h3><p style="color:var(--mute);font-size:14px">Rooftop kickboxer. All-rounder, the one new players start with.</p><ul class="moves"><li><b>Surge Palm</b> · S · energy projectile</li><li><b>Comet Knee</b> · →S · flying knee, wall bounce</li><li><b>Rising Heel</b> · ↑S · invincible anti-air</li><li><b>Slide Step</b> · ↓S · low slide under projectiles</li><li><b>Hundred Storm</b> · Super · dash-in rush</li></ul></div>
+      <div class="card"><span class="pill" style="color:var(--ok);border-color:var(--ok)">STARTER · MONKEY</span><h3 style="font-family:Bungee;font-weight:400;font-size:22px">MOJO</h3><p style="color:var(--mute);font-size:14px">Capuchin trickster with a bo staff. Mix-ups and traps.</p><ul class="moves"><li><b>Staff Vault</b> · S · vault over into a cross-up kick</li><li><b>Spin Sweep</b> · →S · multi-hit spinning staff</li><li><b>Banana Peel</b> · ↓S · trap that trips them</li><li><b>Canopy Dive</b> · ↑S · leap high, dive down at an angle</li><li><b>Jungle Fury</b> · Super · staff extends, many hits</li></ul></div>
+      <div class="card"><span class="pill" style="color:var(--ok);border-color:var(--ok)">STARTER · ANIMAL</span><h3 style="font-family:Bungee;font-weight:400;font-size:22px">TANK</h3><p style="color:var(--mute);font-size:14px">Rhino grappler. Slow, huge health, one grab hurts a lot.</p><ul class="moves"><li><b>Stampede</b> · S · armored charge, absorbs a hit</li><li><b>Horn Toss</b> · →S · command grab, unblockable</li><li><b>Earthquake</b> · ↓S · stomp shockwave, jump it</li><li><b>Rhino Uppercut</b> · ↑S · armored anti-air</li><li><b>Avalanche Slam</b> · Super · grab super</li></ul></div>
+      <div class="card"><span class="pill" style="color:var(--ok);border-color:var(--ok)">STARTER · LEGEND</span><h3 style="font-family:Bungee;font-weight:400;font-size:22px">NYX</h3><p style="color:var(--mute);font-size:14px">Shadow spirit. Keeps you away, teleports, punishes greed.</p><ul class="moves"><li><b>Moon Shard</b> · S · slow projectile (EX: two)</li><li><b>Phase Step</b> · →S · teleport behind</li><li><b>Shadow Pool</b> · ↓S · trap that slows them</li><li><b>Eclipse</b> · ↑S · counter stance</li><li><b>Total Eclipse</b> · Super · screen goes dark, full-screen hit</li></ul></div>
+    </div>
+
+    <h3 style="margin:26px 0 10px">Coming soon</h3>
+    <div class="grid g4">
+      <div class="card"><div class="n">MONKEYS</div><ul class="tight"><li><b>BRUNO</b> · gorilla brawler, chest-drum counter</li><li><b>SAGE</b> · orangutan monk, fruit zoning</li><li><b>RAZZ</b> · mandrill showman, flashy rushdown</li><li><b>PIP</b> · tiny capuchin, double jump</li></ul></div>
+      <div class="card"><div class="n">ANIMALS</div><ul class="tight"><li><b>RYOKO</b> · tiger, claw rushdown</li><li><b>BAO</b> · panda, drunken-style dodges</li><li><b>VEX</b> · fox, illusions and fakes</li><li><b>GALE</b> · eagle, air fighter</li></ul></div>
+      <div class="card"><div class="n">HUMANS</div><ul class="tight"><li><b>LUZ</b> · luchadora, aerial grappler</li><li><b>DEX</b> · capoeira dancer, spin kicks</li><li><b>HANA</b> · fencer, long reach</li><li><b>BOOM</b> · sumo, push-out pressure</li></ul></div>
+      <div class="card"><div class="n">LEGENDS</div><ul class="tight"><li><b>UNIT-7</b> · robot, rockets and lasers</li><li><b>KAGE</b> · ghost samurai, iaido counters</li><li><b>EMBER</b> · dragon kid, fire breath</li><li><b>GOLEM</b> · stone giant, super armor</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. CONTROLS ============ -->
+<section class="slide" id="s-controls">
+  <div class="wrap">
+    <div class="kicker"><b>05</b> Controls · the make-or-break</div>
+    <h2>Fighting games on glass are usually awful. Ours won't be.</h2>
+    <p class="lead">Most phone players have never done a quarter-circle and never will. So the default has <b>no motion inputs at all</b>: direction + button, like a platform fighter. Experts get the classic scheme. Both ship, one toggle, same characters, same damage.</p>
+    <div class="grid g2">
+      <div class="card">
+        <span class="pill" style="color:var(--ok);border-color:var(--ok)">DEFAULT</span>
+        <h3>Simple</h3>
+        <ul class="tight">
+          <li><b>Left half of the screen is a floating stick</b>: put your thumb anywhere, drag to walk, flick up to jump, hold down to crouch. Hold away to block.</li>
+          <li><b>Three big buttons</b>: Light, Heavy, Special. Special + a direction = the four specials.</li>
+          <li><b>Auto-combo</b> on Light: mash it and you get a real 3-hit chain into a special. Damage is scaled down, so it's a crutch, not a cheat.</li>
+          <li>Generous 6-frame input buffer so taps during an animation still come out.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="pill">TOGGLE IN SETTINGS</span>
+        <h3>Classic</h3>
+        <ul class="tight">
+          <li>Six buttons, motion inputs (↓↘→ + P) with the same buffer leniency modern games use.</li>
+          <li>Specials done the classic way deal 10% more, the standard reward for execution.</li>
+          <li><b>Gamepads</b> (MFi, Xbox, PlayStation) and <b>keyboard</b> on macOS, Windows, Linux and web work in both schemes, remappable.</li>
+          <li>Haptic "tick" on every confirmed input on iOS, so you can feel your timing.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>Rules that keep touch fair</h3>
+      <p style="color:var(--mute)">The other player never knows which scheme you use, and matchmaking doesn't care. Buttons are placed from the thumb's resting point, not fixed coordinates, so big and small hands both work. Nothing important lives under the thumbs: health bars and timer are at the top, and the fighters stand in the upper two thirds of the screen.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6. NETCODE ============ -->
+<section class="slide" id="s-net">
+  <div class="wrap">
+    <div class="kicker"><b>06</b> Netcode</div>
+    <h2>Send inputs, not positions. Rewind when wrong.</h2>
+    <p class="lead">A fighting game is decided in single frames (1/60 s). Two things follow: the frames can't travel through our Convex backend, and we can't wait for the other player's input before drawing. Rollback solves the second; a direct peer link solves the first.</p>
+    <div class="grid g3" style="margin-bottom:16px">
+      <div class="card"><div class="big r">10,800</div><div class="cap2">Convex writes a single 90-second match would cost if frames went through the server. Plus 50–150 ms added per hop. A non-starter at millions of DAU.</div></div>
+      <div class="card"><div class="big o">~15</div><div class="cap2">Convex writes per match with the plan below: the match row, the handshake, the result and the replay. Same shape as a chess game.</div></div>
+      <div class="card"><div class="big">~5 KB/s</div><div class="cap2">Per player over the peer link: 60 tiny packets a second, each repeating the last 8 inputs so a lost packet costs nothing.</div></div>
+    </div>
+    <div class="diagram">
+      <svg viewBox="0 0 980 300" role="img" aria-label="Rollback timeline">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--mute)"/></marker>
+          <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="color-mix(in srgb,var(--warn) 18%,transparent)"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--warn)" stroke-width="2"/></pattern></defs>
+        <text x="10" y="26" class="svgt">Your device, frame by frame</text>
+        <g id="tl"></g>
+        <text x="10" y="166" class="svgt">Bruno's input for frame 104 left his phone at frame 104…</text>
+        <path class="arrow" d="M 367 180 C 440 236, 610 236, 679 142"/>
+        <text x="420" y="246" class="svgs">…and arrives 4 frames later (≈ 65 ms one way)</text>
+        <rect x="20" y="268" width="14" height="14" rx="3" fill="var(--p2)" opacity=".85"/><text x="42" y="280" class="svgs">confirmed: both inputs known</text>
+        <rect x="270" y="268" width="14" height="14" rx="3" fill="url(#hatch)" stroke="var(--warn)"/><text x="292" y="280" class="svgs">predicted: Bruno assumed to repeat his last input</text>
+        <rect x="640" y="268" width="14" height="14" rx="3" fill="var(--hot)"/><text x="662" y="280" class="svgs">resimulated in &lt;1 ms, before this frame is drawn</text>
+      </svg>
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card"><h3>The numbers we'll tune to</h3><ul class="tight">
+        <li><b>60 Hz fixed simulation</b>, rendering at the display's rate (120 Hz ProMotion interpolates between sim frames).</li>
+        <li><b>2 frames of input delay</b> by default, adaptive 1–3 based on measured ping. Hides most small rollbacks entirely.</li>
+        <li><b>Rollback window: 8 frames.</b> Beyond that the leading side briefly slows (time sync) instead of teleporting.</li>
+        <li>Plays great under <b>~120 ms</b> round trip, fine to ~200 ms. Above that we warn before the fight, not after.</li>
+      </ul></div>
+      <div class="card"><h3>Prediction is usually right</h3><p style="color:var(--mute)">Most frames, a player is still holding what they held a frame ago. Repeating the last input is correct the vast majority of the time, and when it's wrong the correction is a couple of frames, which hitstop and the 2-frame delay hide. The prototype's stats panel shows this live: at 100 ms, watch how few frames ever get resimulated.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7. ARCHITECTURE ============ -->
+<section class="slide" id="s-arch">
+  <div class="wrap">
+    <div class="kicker"><b>07</b> Architecture</div>
+    <h2>What we build, what we already have</h2>
+    <p class="lead">Five layers. The bottom two mostly exist already in calls and chat games; the fighter adds a pure game core and a netcode session on top.</p>
+    <div class="diagram">
+      <svg viewBox="0 0 980 430" role="img" aria-label="Architecture">
+        <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--mute)"/></marker></defs>
+        <g>
+          <rect class="box" x="20" y="20" width="300" height="78" rx="14" style="stroke:var(--p1)"/><text x="38" y="48" class="svgt">FightScreen (Flutter)</text><text x="38" y="70" class="svgs">Ticker loop · CustomPainter · drawAtlas</text><text x="38" y="86" class="svgs">touch / gamepad / keyboard → 8-bit input</text>
+          <rect class="box" x="340" y="20" width="300" height="78" rx="14" style="stroke:var(--p1)"/><text x="358" y="48" class="svgt">fight_core (pure Dart, no Flutter)</text><text x="358" y="70" class="svgs">step(state, p1Input, p2Input) → state</text><text x="358" y="86" class="svgs">fixed-point ints · frame data · hitboxes</text>
+          <rect class="box" x="660" y="20" width="300" height="78" rx="14" style="stroke:var(--p1)"/><text x="678" y="48" class="svgt">Bot (same core)</text><text x="678" y="70" class="svgs">offline practice + Monkey boss</text><text x="678" y="86" class="svgs">plugs into bot_hub like other games</text>
+
+          <rect class="box" x="20" y="140" width="620" height="78" rx="14" style="stroke:var(--p1)"/><text x="38" y="168" class="svgt">RollbackSession</text><text x="38" y="190" class="svgs">input queues · snapshot ring (16 frames) · predict / rewind / resim · time sync</text><text x="38" y="206" class="svgs">checksum every 30 frames · desync detection · disconnect &amp; forfeit timers</text>
+          <rect class="box" x="660" y="140" width="300" height="78" rx="14" style="stroke:var(--p1)"/><text x="678" y="168" class="svgt">Replay</text><text x="678" y="190" class="svgs">seed + picks + input log ≈ 10 KB</text><text x="678" y="206" class="svgs">re-run fight_core to watch</text>
+
+          <rect class="box" x="20" y="260" width="460" height="78" rx="14" style="stroke:var(--p2)"/><text x="38" y="288" class="svgt">Transport: WebRTC data channel "fight"</text><text x="38" y="310" class="svgs">unordered, maxRetransmits 0 · flutter_webrtc (vendored)</text><text x="38" y="326" class="svgs">reuse the live call's peer connection when one exists</text>
+          <rect class="box" x="500" y="260" width="460" height="78" rx="14" style="stroke:var(--p2)"/><text x="518" y="288" class="svgt">TURN relay (coturn on the VPS) · NEW</text><text x="518" y="310" class="svgs">for pairs that can't connect directly (CGNAT, strict NAT)</text><text x="518" y="326" class="svgs">also fixes the "no TURN in prod" gap calls have today</text>
+
+          <rect class="box" x="20" y="370" width="940" height="50" rx="14" style="stroke:var(--vio)"/><text x="38" y="400" class="svgt">Convex: match row (lobby, picks, result) · per-device signaling (callSignals path) · replay blob · push "X wants to fight"</text>
+        </g>
+        <path d="M320 59 H340" stroke="var(--mute)" stroke-width="1.6" marker-end="url(#ah2)"/>
+        <path d="M660 59 H640" stroke="var(--mute)" stroke-width="1.6" marker-end="url(#ah2)"/>
+        <path d="M490 98 V140" stroke="var(--mute)" stroke-width="1.6" marker-end="url(#ah2)" marker-start="url(#ah2)"/>
+        <path d="M640 179 H660" stroke="var(--mute)" stroke-width="1.6" marker-end="url(#ah2)"/>
+        <path d="M250 218 V260" stroke="var(--mute)" stroke-width="1.6" marker-end="url(#ah2)" marker-start="url(#ah2)"/>
+        <path d="M480 299 H500" stroke="var(--mute)" stroke-width="1.6" marker-end="url(#ah2)" marker-start="url(#ah2)"/>
+        <path d="M250 338 V370" stroke="var(--mute)" stroke-width="1.6" stroke-dasharray="4 4"/>
+        <text x="262" y="360" class="svgs">signaling only, never frames</text>
+      </svg>
+    </div>
+    <div class="grid g3" style="margin-top:14px">
+      <div class="card"><div class="n">REUSE</div><h3>Already in the app</h3><ul class="tight"><li>Peer connections, ICE, per-device signaling (<code>call_service.dart</code>)</li><li>Data channel pattern (<code>draw_channel.dart</code>)</li><li>Match rows, start sheet, active games banner, push</li><li>Bot hub, how-to-play kit, haptics via AppBinding</li></ul></div>
+      <div class="card"><div class="n">NEW</div><h3>Built for this</h3><ul class="tight"><li><code>lib/fight/core/</code>: sim, frame data, hitboxes</li><li><code>lib/fight/net/</code>: rollback session + wire format</li><li><code>lib/fight/view/</code>: renderer, HUD, controls</li><li><code>backend/convex/fights.ts</code>: lobby, result, replay</li></ul></div>
+      <div class="card"><div class="n">WHY NO FLAME</div><h3>No game engine dependency</h3><p style="color:var(--mute)">The app already paints every board game with custom painters. A 2D fighter is two characters, a stage and particles: one <code>drawRawAtlas</code> call per frame. An engine would add weight, its own loop and its own input system, and give us nothing rollback needs.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8. DETERMINISM ============ -->
+<section class="slide" id="s-det">
+  <div class="wrap">
+    <div class="kicker"><b>08</b> Determinism</div>
+    <h2>Same inputs, same fight. On every device. Always.</h2>
+    <p class="lead">Rollback only works if an iPhone, a Windows PC and a browser compute the exact same frame from the same inputs. One float rounding differently and the two players silently watch different fights. So the core follows hard rules, enforced by tests.</p>
+    <div class="grid g2">
+      <div class="card"><h3>Rules for <code>fight_core</code></h3><ul class="tight">
+        <li><b>No doubles.</b> Positions are integers in 1/100 px. Velocities, gravity, knockback: all ints.</li>
+        <li><b>No time.</b> The core never reads a clock; the frame number is the only time.</li>
+        <li><b>No randomness</b> except a seeded PRNG stored in the state (we already have one in <code>backend/convex/games/rng.ts</code>; port it).</li>
+        <li><b>No map iteration order, no async, no Flutter imports.</b> A lint rule on the folder.</li>
+        <li><b>Web-safe ints:</b> Dart on the web is JS numbers, so every value stays inside ±2<sup>31</sup> and we never use 64-bit bit tricks.</li>
+      </ul></div>
+      <div class="card"><h3>How we catch mistakes</h3><ul class="tight">
+        <li><b>Golden replay tests:</b> 200 recorded fights, final state hash pinned. Runs on VM and on <code>dart compile js</code> in CI. Any mismatch fails the build.</li>
+        <li><b>Live checksums:</b> players exchange a state hash every 30 frames. A mismatch is reported to MH Logs with both input logs, so we can replay the exact bug.</li>
+        <li><b>Fuzz test:</b> random inputs for 100k frames, rollback at random points, assert the result equals a straight run.</li>
+        <li><b>Fast:</b> one <code>step()</code> is microseconds, so 8-frame rewinds cost nothing and the whole test file runs in a few seconds.</li>
+      </ul></div>
+    </div>
+    <div class="card" style="margin-top:14px"><h3>Cheating comes almost free</h3><p style="color:var(--mute)">Only inputs cross the wire, and both devices run the full fight, so nobody can claim a position or a hit that didn't happen. Each side reports the result plus the final hash to Convex; if they disagree, the match is a no-contest and logged. Rankings, if we ever add them, re-run disputed replays server-side by compiling the same Dart core to JS for a Convex action.</p></div>
+  </div>
+</section>
+
+<!-- ============ 9. FEEL ============ -->
+<section class="slide" id="s-feel">
+  <div class="wrap">
+    <div class="kicker"><b>09</b> Game feel</div>
+    <h2>It has to feel like a hit, not a hitbox</h2>
+    <p class="lead">The bar is the same as the rest of the app: judged against the best, on a real device, in profile mode. Most of "feel" is a short list of tricks applied without exception.</p>
+    <div class="grid g4">
+      <div class="card"><h3>Hitstop</h3><p style="color:var(--mute)">Both fighters freeze 7–12 frames on contact, longer for heavier hits. The single biggest "oomph" in the genre. The prototype has it.</p></div>
+      <div class="card"><h3>Shake &amp; sparks</h3><p style="color:var(--mute)">Screen shake scaled to damage, directional hit sparks, block sparks in a different color, dust on landing. All in sim state so rollback corrects them too.</p></div>
+      <div class="card"><h3>Haptics</h3><p style="color:var(--mute)">Light tap on block, sharp hit on damage, a long rumble on KO. Gamepad rumble on desktop. Reuses the existing haptics layer.</p></div>
+      <div class="card"><h3>Sound</h3><p style="color:var(--mute)">Short, punchy, pre-decoded, zero latency, mixed with ducking. A low-latency audio player, not the media one used for voice notes.</p></div>
+      <div class="card"><h3>Readable motion</h3><p style="color:var(--mute)">Every attack has a clear windup pose, so you can react. Line-glyph monkeys in the app's playful style, squash and stretch on landings.</p></div>
+      <div class="card"><h3>Health that drains</h3><p style="color:var(--mute)">The bar drops instantly, a red trail catches up after the combo ends, so you can read how much a combo did.</p></div>
+      <div class="card"><h3>Comeback, not handicap</h3><p style="color:var(--mute)">Meter builds faster when you're losing. No damage buffs: wins must feel earned.</p></div>
+      <div class="card"><h3>Never dropped frames</h3><p style="color:var(--mute)">Pre-rasterized sprite atlases, no blur effects, no layout during a fight. A dropped frame is felt in the hands immediately.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10. SCALE ============ -->
+<section class="slide" id="s-scale">
+  <div class="wrap">
+    <div class="kicker"><b>10</b> Cost at scale</div>
+    <h2>Built for millions of fights a day</h2>
+    <p class="lead">The heavy part of a fight happens between the two phones. The backend sees about as much as it does for one chess game.</p>
+    <div class="tablewrap"><table>
+      <tr><th>Per match</th><th>What</th><th>Cost</th></tr>
+      <tr><td>Convex writes</td><td>create, accept, picks, ~8 signaling rows, result, replay</td><td><b>~15 writes</b>, one subscription per player on the match row</td></tr>
+      <tr><td>Storage</td><td>replay = seed + picks + inputs (1 byte × 2 players × 60 fps)</td><td><b>~11 KB</b> raw for 90 s, ~3 KB compressed. Expire after 30 days unless saved.</td></tr>
+      <tr><td>Peer traffic</td><td>60 packets/s each way, inputs + acks + checksums</td><td><b>~0.5 MB</b> per match per player</td></tr>
+      <tr><td>TURN relay (worst case)</td><td>only pairs that can't go direct, roughly 1 in 5 to 1 in 10, more on cellular</td><td>~1 MB per relayed match. 1M relayed matches/day ≈ 1 TB/day, which one VPS-class box handles; scale out with more coturn nodes behind DNS.</td></tr>
+      <tr><td>Spectating (phase 4)</td><td>watchers outside a call get inputs batched every second, only while someone is watching</td><td>~1 write/s per <i>watched</i> match, zero for unwatched</td></tr>
+    </table></div>
+    <p style="color:var(--dim);font-size:13px;margin-top:12px">Defaults: challenges only between friends or in rooms you're in, spectating limited to room members, replays visible to the room. No public matchmaking in v1, which also means no stranger-moderation problem.</p>
+  </div>
+</section>
+
+<!-- ============ 11. ROADMAP ============ -->
+<section class="slide" id="s-road">
+  <div class="wrap">
+    <div class="kicker"><b>11</b> Roadmap</div>
+    <h2>Prove the fun first, then the network, then the content</h2>
+    <p class="lead">Each phase ends in something you can hold in your hand and judge. If phase 1 isn't fun against a bot, we stop before spending a cent on netcode.</p>
+    <div class="road">
+      <div class="phase"><div><div class="ph">P0</div><div class="wk">spike · ~1 week</div></div><div><h3>Two risky things, in isolation</h3><p style="color:var(--mute)">A data channel between two real phones over the existing signaling, measuring round trip and loss on Wi-Fi and cellular. And a deterministic core with two boxes hitting each other, golden-tested on VM and JS.</p><div class="exit">Exit: ping graph from real devices; same hash on iOS, Android, web.</div></div></div>
+      <div class="phase"><div><div class="ph">P1</div><div class="wk">offline · ~3 weeks</div></div><div><h3>Mango vs Bruno, against the bot</h3><p style="color:var(--mute)">Full frame data for two fighters, Simple controls, HUD, rounds, hitstop, sparks, haptics, sound. Placeholder art in the final style. Lives in the bot hub.</p><div class="exit">Exit: you and two testers play 20 bot fights and want a 21st.</div></div></div>
+      <div class="phase"><div><div class="ph">P2</div><div class="wk">online · ~3 weeks</div></div><div><h3>Real fights in chats</h3><p style="color:var(--mute)">Rollback session, challenge card, handshake with ping check, picks, result card, rematch, disconnect and background handling, TURN on the VPS. Then "fight on a call".</p><div class="exit">Exit: Istanbul ↔ another city on cellular feels local; zero desyncs in 100 matches.</div></div></div>
+      <div class="phase"><div><div class="ph">P3</div><div class="wk">polish · ~3 weeks</div></div><div><h3>Art, sound, Classic controls</h3><p style="color:var(--mute)">Final sprites and stage, Supers with camera zoom, Classic scheme, gamepad and keyboard remap, how-to-play tutorial, replays in chat, 12-language copy.</p><div class="exit">Exit: ship to testers as a chat game.</div></div></div>
+      <div class="phase"><div><div class="ph">P4</div><div class="wk">ongoing</div></div><div><h3>Reasons to come back</h3><p style="color:var(--mute)">Pip and Sage, spectating outside calls, a weekly room tournament bracket, per-friend win records, optional ranked with server-side replay checks.</p><div class="exit">Exit: measured by rematch rate, not installs.</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 12. RISKS ============ -->
+<section class="slide" id="s-risk">
+  <div class="wrap">
+    <div class="kicker"><b>12</b> Risks</div>
+    <h2>What could sink it, and the plan for each</h2>
+    <div class="tablewrap"><table>
+      <tr><th>Risk</th><th>Mitigation</th></tr>
+      <tr><td><b>Touch controls feel bad</b></td><td>Simple scheme by default, tested in P1 before any netcode. If it fails there, the project stops cheap.</td></tr>
+      <tr><td><b>No TURN server in prod</b></td><td>Already a known gap for calls. coturn on the VPS fixes both; needs your OK. Without it, some pairs simply can't fight.</td></tr>
+      <tr><td><b>Desyncs</b></td><td>Strict core rules, golden + fuzz tests on VM and JS, live checksums reported to MH Logs with input logs for exact repro.</td></tr>
+      <tr><td><b>iOS suspends the app mid-fight</b></td><td>5 s grace then the round is forfeit, said up front. A notification banner or call never pauses the sim.</td></tr>
+      <tr><td><b>Art takes forever</b></td><td>Vector line-glyph style drawn in code, poses as keyframes; rasterize to atlases at load. No hand-painted frames.</td></tr>
+      <tr><td><b>Balance complaints</b></td><td>Frame data lives in one Dart file, so a patch is a release. Two fighters at launch keeps balance tractable.</td></tr>
+      <tr><td><b>Looks like a copy</b></td><td>Original characters, names, moves and art. Genre mechanics (specials, blocking, rounds) are shared by the whole genre; nothing borrowed from any specific game's look or cast.</td></tr>
+    </table></div>
+  </div>
+</section>
+
+<!-- ============ 13. DECISIONS ============ -->
+<section class="slide" id="s-decide">
+  <div class="wrap">
+    <div class="kicker"><b>13</b> Your call</div>
+    <h2>Five decisions before P0</h2>
+    <div class="grid decide" style="max-width:860px">
+      <div class="card"><h3>Which look?</h3><p style="color:var(--mute)">2D at launch with an engine ready for 2.5D, or go straight to 2.5D with pre-rendered 3D sprites. Full 3D is shelved either way.</p><div class="rec">Recommend: 2D launch, 2.5D as the first big upgrade.</div></div>
+      <div class="card"><h3>Set up a TURN server on the VPS?</h3><p style="color:var(--mute)">coturn, a few hours of setup, helps calls too.</p><div class="rec">Recommend: yes, during P0.</div></div>
+      <div class="card"><h3>Name</h3><p style="color:var(--mute)">"Jungle Fist" is a placeholder. Other options: Banana Brawl, Primal Smack, Knuckle Jungle.</p><div class="rec">Recommend: decide in P3, after it's fun.</div></div>
+      <div class="card"><h3>Launch roster</h3><p style="color:var(--mute)">Two fighters (Mango + Bruno) and the Monkey bot, more in waves.</p><div class="rec">Recommend: two.</div></div>
+      <div class="card"><h3>Ranked at launch?</h3><p style="color:var(--mute)">Casual friend fights first; ranked needs server replay checks and matchmaking.</p><div class="rec">Recommend: no, friends only.</div></div>
+    </div>
+  </div>
+</section>
+
+<footer><div class="wrap">Jungle Fist plan · docs/fighting-game/jungle-fist-plan.html · prototype is a design sketch in JS; the real core is Dart.</div></footer>
+
+<script>
+/* ---------------- deck chrome ---------------- */
+(function(){
+  const links=[...document.querySelectorAll('#nav a')];
+  const secs=links.map(a=>document.querySelector(a.getAttribute('href')));
+  const prog=document.getElementById('prog');
+  function onScroll(){
+    const h=document.documentElement; prog.style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+    let idx=0; secs.forEach((s,i)=>{ if(s.getBoundingClientRect().top<innerHeight*0.4) idx=i; });
+    links.forEach((a,i)=>a.classList.toggle('on',i===idx));
+  }
+  addEventListener('scroll',onScroll,{passive:true}); onScroll();
+  addEventListener('keydown',e=>{
+    if(e.key!=='PageDown'&&e.key!=='PageUp') return;
+    e.preventDefault();
+    const tops=secs.map(s=>s.offsetTop); const y=scrollY+60;
+    let i=tops.findIndex(t=>t>y+10); if(i<0) i=tops.length;
+    const target=e.key==='PageDown'? tops[i] : tops[Math.max(0,tops.filter(t=>t<y-10).length-1)];
+    if(target!==undefined) scrollTo({top:target-56,behavior:'smooth'});
+  });
+})();
+
+/* ---------------- rollback diagram ---------------- */
+(function(){
+  const g=document.getElementById('tl'); const NS='http://www.w3.org/2000/svg';
+  for(let i=0;i<12;i++){
+    const f=100+i, x=20+i*78, y=44;
+    const r=document.createElementNS(NS,'rect');
+    r.setAttribute('x',x); r.setAttribute('y',y); r.setAttribute('width',70); r.setAttribute('height',56); r.setAttribute('rx',8);
+    let fill='var(--p2)', op='.85', stroke='none';
+    if(f>=104&&f<=107){ fill='url(#hatch)'; op='1'; stroke='var(--warn)'; }
+    if(f===108){ fill='var(--card2)'; stroke='var(--mute)'; op='1'; }
+    if(f>108){ fill='var(--card2)'; stroke='var(--line)'; op='.6'; }
+    r.setAttribute('fill',fill); r.setAttribute('opacity',op); r.setAttribute('stroke',stroke);
+    g.appendChild(r);
+    const t=document.createElementNS(NS,'text'); t.setAttribute('x',x+35); t.setAttribute('y',y+33); t.setAttribute('text-anchor','middle'); t.setAttribute('class','svgt'); t.textContent=f; g.appendChild(t);
+    if(f>=104&&f<=107){
+      const rr=document.createElementNS(NS,'rect'); rr.setAttribute('x',x); rr.setAttribute('y',112); rr.setAttribute('width',70); rr.setAttribute('height',22); rr.setAttribute('rx',6); rr.setAttribute('fill','var(--hot)'); g.appendChild(rr);
+      const tt=document.createElementNS(NS,'text'); tt.setAttribute('x',x+35); tt.setAttribute('y',127); tt.setAttribute('text-anchor','middle'); tt.setAttribute('class','svgs'); tt.setAttribute('style','fill:#fff'); tt.textContent='resim '+f; g.appendChild(tt);
+    }
+  }
+  const t=document.createElementNS(NS,'text'); t.setAttribute('x',20+8*78+6); t.setAttribute('y',127); t.setAttribute('text-anchor','start'); t.setAttribute('class','svgs'); t.textContent='now: drawing 108'; g.appendChild(t);
+})();
+
+/* ================= FIGHT CORE (deterministic, integers only) ================= */
+const L=1,R=2,UP=4,DN=8,A=16,B=32,S=64, ATK=A|B|S, SSU=128, SSD=256, SIDE_FR=16;
+// 16-step angle table, integers (x1000): the 3D axis rotates in whole steps so every device agrees.
+const YC=[],YS=[]; for(let k=0;k<16;k++){YC.push(Math.round(Math.cos(k*Math.PI/8)*1000));YS.push(Math.round(Math.sin(k*Math.PI/8)*1000));}
+const W=960,H=420,GROUND=356,U=100,STAGE=W*U,HALF=2600,MAXHP=100,ROUND_FRAMES=60*60;
+const MOVES={
+  light :{st:4, ac:3, rc:8,  dmg:5,  reach:5600,hs:15,bs:10,push:500, kind:'mid', stop:7},
+  heavy :{st:9, ac:4, rc:18, dmg:12, reach:7200,hs:22,bs:14,push:1100,kind:'mid', stop:11,aa:1,homing:1},
+  low   :{st:6, ac:3, rc:13, dmg:7,  reach:7000,hs:17,bs:10,push:700, kind:'low', stop:8},
+  air   :{st:5, ac:10,rc:0,  dmg:9,  reach:5600,hs:18,bs:10,push:500, kind:'high',stop:9, air:1},
+  rocket:{st:11,ac:10,rc:20, dmg:14, reach:5800,hs:0, bs:16,push:1400,kind:'mid', stop:12,kd:1,chip:2,dash:950},
+  upper :{st:3, ac:7, rc:22, dmg:12, reach:5400,hs:0, bs:12,push:400, kind:'mid', stop:12,kd:1,inv:6,rise:1650,aa:1},
+};
+function newPlayer(x,face){return {x,y:0,vx:0,vy:0,hp:MAXHP,face,act:'idle',af:0,stun:0,hit:0,combo:0,prev:0,inp:0,buf:0,bufT:0,wins:0,sdir:0,sp:0};}
+function newGame(side){return {side:!!side,yaw:0,cx:0,cz:0,f:0,hs:0,phase:'intro',pt:90,timer:ROUND_FRAMES,round:1,p:[newPlayer(STAGE*3/10|0,1),newPlayer(STAGE*7/10|0,-1)],fx:[],winner:-1,trail:[MAXHP,MAXHP]};}
+function cloneP(p){return {x:p.x,y:p.y,vx:p.vx,vy:p.vy,hp:p.hp,face:p.face,act:p.act,af:p.af,stun:p.stun,hit:p.hit,combo:p.combo,prev:p.prev,inp:p.inp,buf:p.buf,bufT:p.bufT,wins:p.wins,sdir:p.sdir,sp:p.sp};}
+function clone(s){return {side:s.side,yaw:s.yaw,cx:s.cx,cz:s.cz,f:s.f,hs:s.hs,phase:s.phase,pt:s.pt,timer:s.timer,round:s.round,p:[cloneP(s.p[0]),cloneP(s.p[1])],fx:s.fx.map(e=>({...e})),winner:s.winner,trail:s.trail.slice(),koBy:s.koBy};}
+function hash(s){let h=2166136261>>>0;const m=v=>{h^=(v|0)&0xffff;h=Math.imul(h,16777619)>>>0;h^=(v>>16)&0xffff;h=Math.imul(h,16777619)>>>0;};m(s.f);m(s.hs);m(s.yaw);m(s.cx);m(s.cz);for(const p of s.p){m(p.x);m(p.y);m(p.vx);m(p.vy);m(p.hp);m(p.af);m(p.stun);m(p.act.length*31+p.act.charCodeAt(0));}return h;}
+
+function resetRound(s){const w=[s.p[0].wins,s.p[1].wins];s.p=[newPlayer(STAGE*3/10|0,1),newPlayer(STAGE*7/10|0,-1)];s.p[0].wins=w[0];s.p[1].wins=w[1];s.timer=ROUND_FRAMES;s.phase='intro';s.pt=80;s.hs=0;s.fx=[];s.trail=[MAXHP,MAXHP];s.yaw=0;s.cx=0;s.cz=0;s.round++;}
+function grounded(p){return p.y===0&&p.vy===0;}
+function start(p,name){p.act=name;p.af=0;p.hit=0;p.buf=0;p.bufT=0;}
+function backHeld(p){return p.face===1?(p.inp&L):(p.inp&R);}
+function fwdHeld(p){return p.face===1?(p.inp&R):(p.inp&L);}
+
+function endSide(s,p,o){
+  // rotate the fight axis one step around the opponent, who stays exactly where they are
+  const d=o.x-(STAGE>>1), y0=s.yaw, y1=(s.yaw+p.sdir+16)%16;
+  const wx=s.cx+Math.trunc(d*YC[y0]/1000), wz=s.cz+Math.trunc(d*YS[y0]/1000);
+  s.cx=wx-Math.trunc(d*YC[y1]/1000); s.cz=wz-Math.trunc(d*YS[y1]/1000); s.yaw=y1;
+}
+function control(s,p,o){
+  const inp=p.inp;
+  if(p.act==='hitstun'||p.act==='blockstun'||p.act==='recover'){
+    p.stun--; if(p.stun<=0){p.act='idle';p.af=0;if(p.act!=='blockstun')p.combo=0;} return;
+  }
+  if(p.act==='kd'){ if(grounded(p)){p.stun--; if(p.stun<=0){p.act='recover';p.stun=8;p.combo=0;}} return; }
+  if(p.act==='ko') return;
+  if(p.act==='side'){ p.af++; if(p.af>=SIDE_FR){ endSide(s,p,o); p.act='idle'; p.af=0; } return; }
+  const m=MOVES[p.act];
+  if(m){
+    p.af++;
+    // special cancel: a light/low that connected can cancel into a special
+    if((p.act==='light'||p.act==='low')&&p.hit&&p.af>m.st&&(p.buf&S)){ start(p,(inp&UP)?'upper':'rocket'); return; }
+    if(m.dash){ if(p.af>=m.st&&p.af<m.st+m.ac) p.vx=p.face*m.dash; else if(grounded(p)) p.vx=0; }
+    if(m.rise&&p.af===m.st){ p.vy=m.rise; p.vx=p.face*260; }
+    if(!m.air&&!m.rise&&p.af>=m.st+m.ac+m.rc){ p.act='idle'; p.af=0; }
+    return;
+  }
+  if(p.act==='jump'){ if(p.buf&(A|B)){ start(p,'air'); } return; }
+  // grounded neutral
+  p.face = o.x>=p.x?1:-1;
+  if(p.sp){ p.act='side'; p.af=0; p.sdir=(p.sp&SSU)?1:-1; p.vx=0; p.buf=0; return; }
+  if(p.buf){
+    const b=p.buf;
+    if(b&S){ start(p,(inp&UP)?'upper':'rocket'); p.vx=0; return; }
+    if(b&(A|B)){ if(inp&DN) start(p,'low'); else start(p,(b&B)?'heavy':'light'); p.vx=0; return; }
+  }
+  if(inp&UP){ p.act='jump'; p.af=0; p.vy=1750; p.vx=(inp&R)?430:(inp&L)?-430:0; return; }
+  if(inp&DN){ p.act='crouch'; p.vx=0; return; }
+  if(inp&(L|R)&&!((inp&L)&&(inp&R))){ const dir=(inp&R)?1:-1; p.act='walk'; p.vx=dir*(dir===p.face?380:280); return; }
+  p.act='idle'; p.vx=0; p.af++;
+}
+function physics(p){
+  if(p.y>0||p.vy>0){
+    p.vy-=95; p.y+=p.vy; p.x+=p.vx;
+    if(p.y<=0){ p.y=0; p.vy=0;
+      if(p.act==='jump'||p.act==='air'){p.act='idle';p.af=0;p.vx=0;}
+      else if(p.act==='upper'){p.act='recover';p.stun=12;p.vx=0;}
+      else if(p.act==='kd'){p.vx=0;}
+    }
+  } else {
+    p.x+=p.vx;
+    if(p.act==='hitstun'||p.act==='blockstun'||p.act==='kd'||p.act==='ko'||p.act==='recover') p.vx=Math.trunc(p.vx*82/100);
+  }
+  if(p.x<HALF+300){p.x=HALF+300;} if(p.x>STAGE-HALF-300){p.x=STAGE-HALF-300;}
+}
+function checkHit(a,d){
+  const m=MOVES[a.act]; if(!m||a.hit) return null;
+  if(a.af<m.st||a.af>=m.st+m.ac) return null;
+  if(d.act==='ko'||d.act==='kd') return null;
+  if(d.act==='upper'&&d.af<MOVES.upper.inv) return null;
+  if(d.act==='side'&&d.af>=2&&d.af<=13&&!m.homing) return null; // sidestepped
+  const dx=(d.x-a.x)*a.face; if(dx<-1000||dx>m.reach+HALF) return null;
+  if(m.air){ if(a.y-d.y>11500) return null; }
+  else if(m.rise){ if(d.y-a.y>9000) return null; }
+  else { if(d.y>(m.aa?12000:4000)) return null; }
+  return m;
+}
+function applyHit(s,a,d,m){
+  a.hit=1;
+  const crouching=(d.inp&DN)!==0;
+  const canBlock=grounded(d)&&(d.act==='idle'||d.act==='walk'||d.act==='crouch'||d.act==='blockstun')&&backHeld(d);
+  const ok=canBlock&&(m.kind==='mid'||(m.kind==='low'&&crouching)||(m.kind==='high'&&!crouching));
+  const fx={x:(a.x+d.x)>>1,y:Math.max(a.y,d.y)+(m.kind==='low'?2000:7000),t:s.f,k:ok?'block':'hit',big:m.stop>=11?1:0,id:s.f*2+(a===s.p[0]?0:1)};
+  s.fx.push(fx); if(s.fx.length>8) s.fx.shift();
+  if(ok){ d.act='blockstun'; d.stun=m.bs; d.hp-= (m.chip||0); d.vx=a.face*m.push; s.hs=Math.max(s.hs,5); return; }
+  d.combo = (d.act==='hitstun'||d.y>0)? d.combo+1 : 1;
+  const dmg=Math.max(1,Math.trunc(m.dmg*Math.max(4,11-d.combo)/10));
+  d.hp-=dmg;
+  if(m.kd||d.y>0){ d.act='kd'; d.stun=40; d.vy=900; d.vx=a.face*650; if(d.y===0)d.y=1; }
+  else { d.act='hitstun'; d.stun=m.hs; d.vx=a.face*m.push; }
+  d.af=0; s.hs=Math.max(s.hs,m.stop);
+}
+function step(s,i0,i1){
+  s.f++;
+  const ins=[i0,i1];
+  for(let i=0;i<2;i++){ const p=s.p[i]; const press=ins[i]&~p.prev&ATK; p.sp=s.side?(ins[i]&~p.prev&(SSU|SSD)):0;
+    if(press){p.buf=press|(p.buf&ATK);p.bufT=6;} else if(p.bufT>0){p.bufT--; if(p.bufT===0)p.buf=0;}
+    p.prev=ins[i]; p.inp=ins[i]; }
+  for(let i=0;i<2;i++){ const p=s.p[i]; if(s.trail[i]>p.hp && s.hs===0 && p.act!=='hitstun' && p.act!=='kd') s.trail[i]=Math.max(p.hp,s.trail[i]-1); }
+  if(s.phase==='intro'){ s.pt--; for(const p of s.p){p.buf=0;p.bufT=0;} if(s.pt<=0) s.phase='fight'; return; }
+  if(s.phase==='over'){ s.pt--; for(const p of s.p) physics(p); return; }
+  if(s.phase==='ko'){ s.pt--; for(const p of s.p){ if(p.act!=='ko'){p.buf=0; control(s,p,s.p[p===s.p[0]?1:0]);} physics(p);} if(s.pt<=0){ if(s.p[0].wins>=2||s.p[1].wins>=2){s.phase='over';s.pt=9999;s.winner=s.p[0].wins>=2?0:1;} else resetRound(s);} return; }
+  if(s.hs>0){ s.hs--; return; }
+  s.timer--;
+  control(s,s.p[0],s.p[1]); control(s,s.p[1],s.p[0]);
+  physics(s.p[0]); physics(s.p[1]);
+  // push boxes
+  const a=s.p[0], b=s.p[1];
+  if(Math.abs(a.y-b.y)<9000 && a.act!=='kd' && b.act!=='kd'){
+    const dx=b.x-a.x, ov=2*HALF-Math.abs(dx);
+    if(ov>0){ const dir=dx===0?(a.face):(dx>0?1:-1); a.x-=dir*(ov>>1); b.x+=dir*(ov-(ov>>1));
+      for(const p of s.p){ if(p.x<HALF+300)p.x=HALF+300; if(p.x>STAGE-HALF-300)p.x=STAGE-HALF-300; } }
+  }
+  const h0=checkHit(a,b), h1=checkHit(b,a);
+  if(h0) applyHit(s,a,b,h0);
+  if(h1) applyHit(s,b,a,h1);
+  const dead0=a.hp<=0, dead1=b.hp<=0;
+  if(dead0||dead1||s.timer<=0){
+    let loser;
+    if(dead0&&dead1) loser=-1; else if(dead0) loser=0; else if(dead1) loser=1; else loser=a.hp===b.hp?-1:(a.hp<b.hp?0:1);
+    if(loser===-1){a.wins++;b.wins++;} else { s.p[1-loser].wins++; const lp=s.p[loser]; lp.hp=Math.max(0,lp.hp); lp.act='ko'; lp.vy=1100; lp.vx=-lp.face*500; if(lp.y===0)lp.y=1; }
+    s.phase='ko'; s.pt=140; s.hs=loser>=0?24:0; s.koBy=s.timer<=0?'time':'ko';
+  }
+}
+
+/* ================= CPU (the "remote" player) ================= */
+const cpu={hold:0,inp:0};
+function cpuDecide(s,me){
+  const p=s.p[me], o=s.p[1-me];
+  if(s.phase!=='fight'){cpu.hold=0; return 0;}
+  if(cpu.hold>0){cpu.hold--; return cpu.inp;}
+  const dist=Math.abs(o.x-p.x)/U, back=p.face===1?L:R, fwd=p.face===1?R:L;
+  const oAtk=!!MOVES[o.act]; let inp=0, hold=6+((Math.random()*8)|0);
+  const r=Math.random();
+  if(o.y>4000 && dist<120 && r<0.35){ inp=UP|S; hold=3; }
+  else if(oAtk && dist<130 && r<0.55){ inp=back|(o.act==='low'?DN:0); hold=12; }
+  else if(dist>170){ inp = r<0.12? (UP|fwd) : r<0.2? S : fwd; }
+  else if(dist<=95){ inp = r<0.3?A : r<0.45?(A|DN) : r<0.58?B : r<0.66?S : r<0.8?back : fwd; hold= (inp&ATK)?2:8; }
+  else { inp = r<0.4?fwd : r<0.55?(UP|fwd) : r<0.7?B : back; }
+  if(p.act==='jump' && dist<120 && Math.random()<0.5) inp=B;
+  if(s.side && oAtk && o.act!=='heavy' && dist<150 && Math.random()<0.3){ inp=Math.random()<0.5?SSU:SSD; hold=3; }
+  cpu.inp=inp; cpu.hold=hold; return inp;
+}
+
+/* ================= INPUT ================= */
+const keys=new Set(); const touch={bits:0};
+function readKeys(map){let b=0;for(const [k,bit] of map) if(keys.has(k)) b|=bit; return b;}
+const P1MAP=[['KeyA',L],['KeyD',R],['KeyW',UP],['KeyS',DN],['KeyF',A],['KeyG',B],['KeyH',S],['KeyQ',SSU],['KeyE',SSD]];
+const P2MAP=[['ArrowLeft',L],['ArrowRight',R],['ArrowUp',UP],['ArrowDown',DN],['KeyK',A],['KeyL',B],['Semicolon',S],['KeyI',SSU],['KeyO',SSD]];
+function readPad(){let b=0;const pads=navigator.getGamepads?navigator.getGamepads():[];const g=pads&&pads[0];if(!g)return 0;
+  const ax=g.axes[0]||0, ay=g.axes[1]||0, bt=i=>g.buttons[i]&&g.buttons[i].pressed;
+  if(ax<-0.4||bt(14))b|=L; if(ax>0.4||bt(15))b|=R; if(ay<-0.5||bt(12))b|=UP; if(ay>0.5||bt(13))b|=DN;
+  if(bt(2))b|=A; if(bt(3))b|=B; if(bt(0)||bt(1))b|=S; if(bt(4))b|=SSU; if(bt(5))b|=SSD; return b;}
+
+/* ================= NET SESSION (rollback / delay / local) ================= */
+const net={mode:'rollback',rtt:100,jitter:true};
+let S0, snaps, localIn, remoteIn, used, queue, lastConf, stats, running=false, delayQ;
+function resetSession(){
+  S0=newGame(view==='3d'); snaps=new Map(); localIn=new Map(); remoteIn=new Map(); used=new Map(); queue=[]; delayQ=[]; lastConf={f:-1,inp:0};
+  stats={rollbacks:0,resim:0,maxRb:0,stalls:0,winR:[],winF:[],lastSec:0};
+  cpu.hold=0; cpu.inp=0; shownFx.clear();
+}
+function oneWayFrames(){ return Math.round(net.rtt/2/16.667); }
+function remoteFor(f){ if(remoteIn.has(f)) return remoteIn.get(f); return lastConf.inp; }
+function netTick(){
+  const f=S0.f; // frame about to be simulated
+  const me=readKeys(P1MAP)|readPad()|touch.bits;
+  if(net.mode==='local'){ step(S0,me,readKeys(P2MAP)); return; }
+  if(net.mode==='delay'){
+    const d=oneWayFrames()+ (net.jitter?1:0);
+    delayQ.push({me, cpu:cpuDecide(S0,1)});
+    if(delayQ.length<=d){ return; } // waiting for the pipe to fill: nothing moves
+    const x=delayQ.shift(); step(S0,x.me,x.cpu); return;
+  }
+  // rollback
+  const stalled = f - lastConf.f > 9; // too far ahead of the remote: wait a frame (time sync)
+  if(!stalled){
+    localIn.set(f,me);
+    const ci=cpuDecide(S0,1);
+    let at=f+oneWayFrames()+(net.jitter?((Math.random()*3)|0)-1:0);
+    if(queue.length) at=Math.max(at,queue[queue.length-1].at);
+    queue.push({f,inp:ci,at:Math.max(at,f)});
+  }
+  let rb=deliver(f);
+  if(rb<f){
+    const n=f-rb; stats.rollbacks++; stats.resim+=n; stats.maxRb=Math.max(stats.maxRb,n); stats.winR.push(S0.f); stats.winF.push(n);
+    let st=clone(snaps.get(rb));
+    for(let k=rb;k<f;k++){ const ri=remoteFor(k); used.set(k,ri); step(st,localIn.get(k),ri); snaps.set(k+1,clone(st)); }
+    S0=st;
+  }
+  if(stalled){ stats.stalls++; return; }
+  snaps.set(f,clone(S0));
+  const ri=remoteFor(f); used.set(f,ri);
+  step(S0,me,ri);
+  snaps.delete(f-20); localIn.delete(f-20); remoteIn.delete(f-20); used.delete(f-20);
+}
+function deliver(now){
+  let rb=Infinity;
+  while(queue.length && queue[0].at<=now){
+    const pk=queue.shift(); remoteIn.set(pk.f,pk.inp); lastConf={f:pk.f,inp:pk.inp};
+    if(pk.f<now && used.has(pk.f) && used.get(pk.f)!==pk.inp) rb=Math.min(rb,pk.f);
+  }
+  return rb;
+}
+
+/* ================= RENDER ================= */
+const cv=document.getElementById('game'), ctx=cv.getContext('2d');
+const PAL=[{fur:'#c8642a',dark:'#7a3511',face:'#ffd9a8',acc:'#ffcf6e',name:'MANGO'},{fur:'#3c5d63',dark:'#1d3236',face:'#b9d6d2',acc:'#3fd2c7',name:'BRUNO'}];
+let bg=null;
+function makeBg(){
+  bg=document.createElement('canvas'); bg.width=W; bg.height=H; const g=bg.getContext('2d');
+  const sky=g.createLinearGradient(0,0,0,H); sky.addColorStop(0,'#1b0f2e'); sky.addColorStop(.55,'#4a1d3a'); sky.addColorStop(.8,'#a8452c'); sky.addColorStop(1,'#2a1208'); g.fillStyle=sky; g.fillRect(0,0,W,H);
+  g.fillStyle='rgba(255,210,120,.85)'; g.beginPath(); g.arc(W*0.62,GROUND-70,58,0,7); g.fill();
+  const hill=(col,base,amp,seed)=>{g.fillStyle=col;g.beginPath();g.moveTo(0,H);for(let x=0;x<=W;x+=8){g.lineTo(x,base-amp*(Math.sin(x*0.011+seed)*0.6+Math.sin(x*0.027+seed*2)*0.4));}g.lineTo(W,H);g.fill();};
+  hill('#2a1230',GROUND-40,40,1); hill('#1a0b1f',GROUND-10,26,3);
+  // palms
+  const palm=(x,h,s)=>{g.strokeStyle='#0d0610';g.lineWidth=7*s;g.lineCap='round';g.beginPath();g.moveTo(x,GROUND);g.quadraticCurveTo(x+18*s,GROUND-h*0.5,x+8*s,GROUND-h);g.stroke();g.fillStyle='#0d0610';
+    for(let i=0;i<6;i++){const a=-Math.PI/2+(i-2.5)*0.55;g.beginPath();g.ellipse(x+8*s+Math.cos(a)*30*s,GROUND-h+Math.sin(a)*14*s+8*s,34*s,7*s,a,0,7);g.fill();}};
+  palm(70,200,1.1); palm(170,150,.8); palm(820,210,1.15); palm(905,140,.75);
+  g.fillStyle='#120814'; g.fillRect(0,GROUND,W,H-GROUND);
+  g.fillStyle='rgba(255,170,90,.14)'; g.fillRect(0,GROUND,W,2);
+  for(let i=0;i<40;i++){g.fillStyle='rgba(255,220,160,'+(Math.random()*0.5)+')';g.fillRect(Math.random()*W,Math.random()*GROUND*0.5,1.5,1.5);}
+}
+function pose(p,f){
+  // returns rig params: lean, crouch, armF, armB, legF, kd
+  const m=MOVES[p.act]; let k={lean:0,cr:0,arm:0,armUp:0,kick:0,flat:0,guard:0,hurt:0,walk:0,airKick:0,dash:0};
+  if(m){ const a=p.af; let t; if(a<m.st) t=-(a/m.st)*0.35; else if(a<m.st+m.ac) t=1; else t=Math.max(0,1-(a-m.st-m.ac)/Math.max(1,m.rc));
+    if(p.act==='light'){k.arm=t;}
+    else if(p.act==='heavy'){k.arm=t*1.25;k.lean=t*0.18;}
+    else if(p.act==='low'){k.cr=1;k.kick=Math.max(0,t);}
+    else if(p.act==='air'){k.airKick=Math.max(0,t);}
+    else if(p.act==='rocket'){k.arm=Math.max(0,t)*1.3;k.lean=Math.max(0,t)*0.55;k.dash=t>0.9?1:0;}
+    else if(p.act==='upper'){k.armUp=Math.max(0.2,t);k.lean=-0.1;}
+  }
+  if(p.act==='crouch') k.cr=1;
+  if(p.act==='blockstun'||(p.act!=='jump'&&!m&&backHeld(p)&&p.act!=='hitstun'&&p.act!=='kd'&&p.act!=='ko')) k.guard=1;
+  if(p.act==='blockstun'&&(p.inp&DN)) k.cr=1;
+  if(p.act==='hitstun'){k.hurt=1;k.lean=-0.25;}
+  if(p.act==='kd'||p.act==='ko'){k.flat=p.y>0?0.6:1;k.hurt=1;}
+  if(p.act==='recover'){k.cr=0.5;}
+  if(p.act==='side'){k.cr=0.35;k.lean=0.1;k.walk=Math.sin(p.af/SIDE_FR*Math.PI*2)*0.8;}
+  if(p.act==='walk') k.walk=Math.sin(f*0.35);
+  return k;
+}
+function drawMonkey(g,p,pal,f,scale=1,flash=0){
+  const k=pose(p,f); const sx=p.x/U, sy=GROUND-p.y/U;
+  g.save(); g.translate(sx,sy); g.scale(p.face*scale,scale);
+  // shadow
+  g.save(); g.scale(1,0.25); g.fillStyle='rgba(0,0,0,.45)'; g.beginPath(); g.arc(0,(p.y/U)*4,34-Math.min(20,p.y/U/6),0,7); g.fill(); g.restore();
+  if(k.flat){ g.rotate(-k.flat*Math.PI/2*0.95); g.translate(0,-6*k.flat); }
+  const hip=44-k.cr*20; g.lineCap='round'; g.lineJoin='round';
+  const outline=flash?'#fff':pal.dark;
+  // tail
+  g.strokeStyle=outline; g.lineWidth=6; g.beginPath(); g.moveTo(-16,-hip+6); g.bezierCurveTo(-46,-hip+10,-50,-hip-34,-30,-hip-30+Math.sin(f*0.12)*4); g.stroke();
+  // legs
+  g.strokeStyle=outline; g.lineWidth=11;
+  const lw=k.walk*10;
+  g.beginPath(); g.moveTo(-8,-hip); g.lineTo(-12-lw-(k.cr*6),-(k.cr*8)); g.stroke();
+  if(k.kick>0){ g.beginPath(); g.moveTo(8,-hip); g.lineTo(18+46*k.kick,-6-4*k.kick); g.stroke(); }
+  else if(k.airKick>0){ g.beginPath(); g.moveTo(8,-hip); g.lineTo(30+16*k.airKick,-hip+30); g.stroke(); }
+  else { g.beginPath(); g.moveTo(8,-hip); g.lineTo(12+lw+(k.cr*8),-(k.cr*8)); g.stroke(); }
+  // body
+  g.save(); g.translate(0,-hip); g.rotate(k.lean);
+  const bw=27, bh=44-k.cr*6;
+  g.fillStyle=flash?'#fff':pal.fur; g.strokeStyle=outline; g.lineWidth=3;
+  g.beginPath(); g.ellipse(0,-bh*0.5,bw,bh*0.62,0,0,7); g.fill(); g.stroke();
+  g.fillStyle=pal.face; g.beginPath(); g.ellipse(4,-bh*0.42,14,bh*0.38,0,0,7); g.fill();
+  // back arm
+  g.strokeStyle=outline; g.lineWidth=10;
+  g.beginPath(); g.moveTo(-10,-bh*0.75); g.lineTo(k.guard? 18:-20,-bh*(k.guard?0.85:0.35)); g.stroke();
+  // head
+  const hx=6+k.lean*10, hy=-bh-16;
+  g.fillStyle=flash?'#fff':pal.fur; g.lineWidth=3; g.strokeStyle=outline;
+  g.beginPath(); g.arc(hx-20,hy-2,8,0,7); g.fill(); g.stroke(); // ear
+  g.beginPath(); g.arc(hx,hy,21,0,7); g.fill(); g.stroke();
+  g.fillStyle=pal.face; g.beginPath(); g.ellipse(hx+7,hy+4,13,12,0,0,7); g.fill();
+  // eyes
+  g.fillStyle='#160b10'; g.strokeStyle='#160b10'; g.lineWidth=2.2;
+  if(k.hurt){ for(const ex of [hx+3,hx+13]){g.beginPath();g.moveTo(ex-3,hy-5);g.lineTo(ex+3,hy+1);g.moveTo(ex+3,hy-5);g.lineTo(ex-3,hy+1);g.stroke();} }
+  else { g.beginPath(); g.arc(hx+4,hy-2,2.6,0,7); g.arc(hx+14,hy-2,2.6,0,7); g.fill();
+    g.beginPath(); g.moveTo(hx,hy-9); g.lineTo(hx+8,hy-6); g.moveTo(hx+18,hy-9); g.lineTo(hx+11,hy-6); g.stroke(); }
+  g.beginPath(); g.moveTo(hx+5,hy+10); g.quadraticCurveTo(hx+10,hy+(k.hurt?6:13),hx+16,hy+9); g.stroke();
+  // headband
+  g.strokeStyle=pal.acc; g.lineWidth=5; g.beginPath(); g.arc(hx,hy,20,-2.6,-0.7); g.stroke();
+  g.lineWidth=3; g.beginPath(); g.moveTo(hx-17,hy-10); g.lineTo(hx-30,hy-4+Math.sin(f*0.25)*3); g.moveTo(hx-17,hy-10); g.lineTo(hx-28,hy-14+Math.sin(f*0.25+1)*3); g.stroke();
+  // front arm
+  g.strokeStyle=outline; g.lineWidth=11;
+  let ax=14, ay=-bh*0.72, fx2, fy2;
+  if(k.armUp>0){ fx2=ax+14; fy2=ay-30-34*k.armUp; }
+  else if(k.guard){ fx2=ax+16; fy2=ay-22; }
+  else { const e=Math.max(-0.35,k.arm); fx2=ax+12+e*44; fy2=ay+16-e*16; }
+  g.beginPath(); g.moveTo(ax,ay); g.lineTo(fx2,fy2); g.stroke();
+  g.fillStyle=pal.acc; g.strokeStyle=outline; g.lineWidth=3; g.beginPath(); g.arc(fx2,fy2,8.5+(k.arm>0.9?2:0),0,7); g.fill(); g.stroke();
+  if(k.dash){ g.strokeStyle='rgba(255,207,110,.6)'; g.lineWidth=3; for(let i=0;i<3;i++){g.beginPath();g.moveTo(-40-i*14,-bh*0.6+i*10);g.lineTo(-70-i*18,-bh*0.6+i*10);g.stroke();} }
+  g.restore();
+  g.restore();
+}
+const disp={hp:[MAXHP,MAXHP]};
+const shownFx=new Set();
+let audio=null, muted=false;
+function sfx(kind,big){
+  if(muted) return; try{ audio=audio||new (window.AudioContext||window.webkitAudioContext)(); }catch(e){return;}
+  const a=audio, t=a.currentTime, len=kind==='block'?0.06:(big?0.18:0.1);
+  const buf=a.createBuffer(1,a.sampleRate*len,a.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++){ d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,kind==='block'?6:2.5); }
+  const src=a.createBufferSource(); src.buffer=buf;
+  const fl=a.createBiquadFilter(); fl.type=kind==='block'?'highpass':'lowpass'; fl.frequency.value=kind==='block'?2500:(big?900:1600);
+  const gn=a.createGain(); gn.gain.value=big?0.9:0.6; src.connect(fl).connect(gn).connect(a.destination); src.start(t);
+  if(kind!=='block'){ const o=a.createOscillator(), og=a.createGain(); o.frequency.setValueAtTime(big?120:180,t); o.frequency.exponentialRampToValueAtTime(40,t+0.15); og.gain.setValueAtTime(0.7,t); og.gain.exponentialRampToValueAtTime(0.001,t+0.18); o.connect(og).connect(a.destination); o.start(t); o.stop(t+0.2); }
+}
+function playSounds(s){
+  for(const e of s.fx){ const age=s.f-e.t; if(age>14||age<0) continue;
+    if(!shownFx.has(e.id)){ shownFx.add(e.id); sfx(e.k,e.big); if(shownFx.size>64) shownFx.delete(shownFx.values().next().value); } }
+}
+function render(){
+  const s=S0, f=s.f; playSounds(s);
+  if(view!=='2d'){
+    ctx.clearRect(0,0,W,H);
+    if(T){ render3D(s); }
+    else { ctx.fillStyle='#0b0a12'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#cfc9e6'; ctx.font='16px Inter, sans-serif'; ctx.textAlign='center'; ctx.fillText(T===false?'Could not load the 3D renderer (offline?)':'loading the 3D renderer…',W/2,H/2); }
+  } else render2DWorld(s,f);
+  renderHUD(s,f);
+}
+function render2DWorld(s,f){
+  if(!bg) makeBg();
+  ctx.save();
+  let shx=0, shy=0; if(s.hs>0 && s.phase!=='intro'){ const m=Math.min(7,s.hs*0.7); shx=(Math.random()*2-1)*m; shy=(Math.random()*2-1)*m*0.6; }
+  ctx.translate(shx,shy); ctx.drawImage(bg,-8,-6,W+16,H+12);
+  // draw back-to-front: attacker on top
+  const order=MOVES[s.p[0].act]?[1,0]:[0,1];
+  for(const i of order) drawMonkey(ctx,s.p[i],PAL[i],f,1,0);
+  // fx
+  for(const e of s.fx){ const age=f-e.t; if(age>14||age<0) continue;
+    const x=e.x/U, y=GROUND-e.y/U, r=(e.big?26:18)+age*3.2, al=1-age/14;
+    ctx.save(); ctx.globalAlpha=al; ctx.translate(x,y);
+    ctx.strokeStyle=e.k==='block'?'#9fe9ff':'#ffe07a'; ctx.lineWidth=e.big?5:3.5; ctx.lineCap='round';
+    const rays=e.big?10:7; for(let i=0;i<rays;i++){const a=i/rays*Math.PI*2+e.t; ctx.beginPath(); ctx.moveTo(Math.cos(a)*r*0.35,Math.sin(a)*r*0.35); ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r); ctx.stroke();}
+    ctx.fillStyle=e.k==='block'?'rgba(160,230,255,.85)':'rgba(255,255,255,.9)'; ctx.beginPath(); ctx.arc(0,0,Math.max(0,10-age),0,7); ctx.fill();
+    ctx.restore(); }
+  ctx.restore();
+}
+function renderHUD(s,f){
+  const bw=360, by=22;
+  for(let i=0;i<2;i++){ const p=s.p[i]; disp.hp[i]+=(Math.max(0,p.hp)-disp.hp[i])*0.5;
+    const x=i===0?24:W-24-bw;
+    ctx.fillStyle='rgba(0,0,0,.55)'; roundRect(ctx,x-3,by-3,bw+6,20,8); ctx.fill();
+    const trail=Math.max(0,s.trail[i])/MAXHP, hp=Math.max(0,disp.hp[i])/MAXHP;
+    ctx.fillStyle='#ff3d6e'; if(i===0) ctx.fillRect(x+bw*(1-trail),by,bw*trail,14); else ctx.fillRect(x,by,bw*trail,14);
+    const gr=ctx.createLinearGradient(0,by,0,by+14); gr.addColorStop(0,i===0?'#ffcf6e':'#a7fff4'); gr.addColorStop(1,i===0?'#ff8a3d':'#2fb3a9'); ctx.fillStyle=gr;
+    if(i===0) ctx.fillRect(x+bw*(1-hp),by,bw*hp,14); else ctx.fillRect(x,by,bw*hp,14);
+    ctx.fillStyle='#fff'; ctx.font='14px Bungee, sans-serif'; ctx.textAlign=i===0?'left':'right';
+    ctx.fillText(PAL[i].name+(i===0&&net.mode!=='local'?'  (YOU)':'')+(i===1&&net.mode!=='local'?'  (REMOTE)':''), i===0?x:x+bw, by+36);
+    for(let w=0;w<2;w++){ ctx.fillStyle=w<p.wins?'#ffd24a':'rgba(255,255,255,.18)'; const px=i===0?x+bw-12-w*18:x+12+w*18; ctx.beginPath(); ctx.arc(px,by+31,6,0,7); ctx.fill(); }
+    if(p.combo>=2 && (p.act==='hitstun'||p.act==='kd')){ ctx.save(); ctx.font='26px Bungee, sans-serif'; ctx.fillStyle='#ffd24a'; ctx.textAlign=i===0?'left':'right'; ctx.fillText(p.combo+' HIT', i===0?W-160:160, 110); ctx.restore(); }
+  }
+  ctx.fillStyle='rgba(0,0,0,.6)'; roundRect(ctx,W/2-30,14,60,38,10); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font='24px Bungee, sans-serif'; ctx.textAlign='center'; ctx.fillText(Math.max(0,Math.ceil(s.timer/60)),W/2,43);
+  ctx.font='42px Bungee, sans-serif';
+  if(s.phase==='intro'){ ctx.fillStyle='#fff'; ctx.fillText(s.pt>35?'ROUND '+s.round:'FIGHT!',W/2,H/2-20); }
+  if(s.phase==='ko'){ ctx.fillStyle='#ff3d6e'; ctx.fillText(s.koBy==='time'?'TIME':'K.O.',W/2,H/2-20); }
+  if(s.phase==='over'){ ctx.fillStyle='#ffd24a'; ctx.fillText(PAL[s.winner].name+' WINS',W/2,H/2-30); ctx.font='16px Inter, sans-serif'; ctx.fillStyle='#fff'; ctx.fillText('Restart match below to go again',W/2,H/2);}
+  if(net.mode==='delay' && delayQ && delayQ.length && S0.f===0){ ctx.font='14px Inter'; ctx.fillStyle='#ccc'; ctx.fillText('filling the delay buffer…',W/2,H-30);}
+}
+function roundRect(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
+
+/* ================= 2.5D / 3D RENDERER (three.js, same sim) ================= */
+let view='2d', T=null;
+const WS=1/8000; // sim units -> metres (a fighter is ~1.6 m)
+const VCAP={
+  '2d':'<b>2D:</b> vector fighters on a flat stage. Cheapest to build, runs everywhere.',
+  '25d':'<b>2.5D:</b> the exact same fight, drawn with 3D models, real lights and a cinematic camera. Watch the punch-in on big hits.',
+  '3d':'<b>3D:</b> same engine plus a sidestep (<kbd>Q</kbd>/<kbd>E</kbd>) that turns the fight around the arena. Heavy attacks home in on sidesteps.'
+};
+function loadThree(){
+  if(window.THREE) return Promise.resolve();
+  return new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});
+}
+function ease(t){t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);}
+function axisToWorld(s,x){const d=x-(STAGE>>1);return [(s.cx+d*YC[s.yaw]/1000)*WS,(s.cz+d*YS[s.yaw]/1000)*WS];}
+function worldPositions(s){
+  const pos=[axisToWorld(s,s.p[0].x),axisToWorld(s,s.p[1].x)];
+  for(const i of [0,1]){ const p=s.p[i], o=s.p[1-i];
+    if(p.act==='side'&&o.act!=='side'){ const ang=(s.yaw+p.sdir*ease(p.af/SIDE_FR))*Math.PI/8, d=(p.x-o.x)*WS;
+      pos[i]=[pos[1-i][0]+d*Math.cos(ang),pos[1-i][1]+d*Math.sin(ang)]; } }
+  return pos;
+}
+function initThree(){
+  const box=document.getElementById('stagebox');
+  const renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.outputEncoding=THREE.sRGBEncoding; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
+  renderer.domElement.className='three'; box.insertBefore(renderer.domElement,box.firstChild);
+  const scene=new THREE.Scene(); scene.fog=new THREE.Fog(0x4a1d3a,16,55);
+  const camera=new THREE.PerspectiveCamera(34,W/H,0.1,200);
+  // sky
+  const sky=new THREE.Mesh(new THREE.SphereGeometry(90,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+    vertexShader:'varying vec3 vP;void main(){vP=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'varying vec3 vP;void main(){float h=vP.y;vec3 top=vec3(0.07,0.04,0.15);vec3 mid=vec3(0.36,0.11,0.25);vec3 low=vec3(0.85,0.36,0.2);vec3 c=h>0.12?mix(mid,top,smoothstep(0.12,0.6,h)):mix(low,mid,smoothstep(-0.05,0.12,h));gl_FragColor=vec4(c,1.0);}'}));
+  scene.add(sky);
+  const sun=new THREE.Mesh(new THREE.CircleGeometry(7,40),new THREE.MeshBasicMaterial({color:0xffcf7a,fog:false}));
+  sun.position.set(-18,7,-70); sun.lookAt(0,2,0); scene.add(sun);
+  // lights
+  scene.add(new THREE.HemisphereLight(0xffb48a,0x22101e,0.55));
+  const key=new THREE.DirectionalLight(0xffd2a0,1.35); key.position.set(-6,10,8); key.castShadow=true;
+  key.shadow.mapSize.set(1024,1024); Object.assign(key.shadow.camera,{left:-8,right:8,top:8,bottom:-8,near:1,far:40}); key.shadow.bias=-0.0008;
+  scene.add(key); scene.add(key.target);
+  const rim=new THREE.DirectionalLight(0x7fe3ff,0.75); rim.position.set(5,4,-9); scene.add(rim);
+  // floor with a tile texture
+  const tc=document.createElement('canvas'); tc.width=tc.height=128; const tg=tc.getContext('2d');
+  tg.fillStyle='#3a1c2a'; tg.fillRect(0,0,128,128); tg.strokeStyle='rgba(255,170,110,.18)'; tg.lineWidth=2; tg.strokeRect(1,1,126,126);
+  for(let i=0;i<220;i++){tg.fillStyle='rgba(0,0,0,'+(Math.random()*0.25)+')';tg.fillRect(Math.random()*128,Math.random()*128,2,2);}
+  const tex=new THREE.CanvasTexture(tc); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(70,70); tex.encoding=THREE.sRGBEncoding;
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(140,140),new THREE.MeshStandardMaterial({map:tex,roughness:0.95}));
+  floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(8.2,8.4,96),new THREE.MeshBasicMaterial({color:0xff8a3d,transparent:true,opacity:0.55}));
+  ring.rotation.x=-Math.PI/2; ring.position.y=0.01; scene.add(ring);
+  // palms + rocks around the arena
+  const dark=new THREE.MeshStandardMaterial({color:lin(0x2a1424),roughness:1}), leaf=new THREE.MeshStandardMaterial({color:lin(0x1d3b2a),roughness:0.9});
+  let rs=11; const rnd=()=>{rs=(rs*16807)%2147483647;return rs/2147483647;};
+  for(let i=0;i<18;i++){
+    const a=i/18*Math.PI*2+rnd()*0.2, r=12+rnd()*9, h=4+rnd()*3, g=new THREE.Group();
+    g.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+    let y=0, lean=(rnd()-0.5)*0.5;
+    for(let k=0;k<5;k++){ const seg=new THREE.Mesh(new THREE.CylinderGeometry(0.16-k*0.015,0.2-k*0.015,h/5,8),dark); seg.position.set(lean*k*k*0.12,y+h/10,0); seg.castShadow=true; g.add(seg); y+=h/5; }
+    for(let k=0;k<7;k++){ const lf=new THREE.Mesh(new THREE.SphereGeometry(1,12,6),leaf); lf.scale.set(1.6,0.07,0.35);
+      const la=k/7*Math.PI*2; lf.position.set(lean*2.4+Math.cos(la)*1.3,y-0.25,Math.sin(la)*1.3); lf.rotation.y=-la; lf.rotation.z=-0.35; lf.castShadow=true; g.add(lf); }
+    scene.add(g);
+    if(i%2===0){ const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(0.5+rnd()*0.7,0),dark); rock.position.set(Math.cos(a+0.17)*(r-3),0.2,Math.sin(a+0.17)*(r-3)); rock.castShadow=true; scene.add(rock); }
+  }
+  // spark sprites
+  const sc=document.createElement('canvas'); sc.width=sc.height=64; const sg=sc.getContext('2d');
+  const grd=sg.createRadialGradient(32,32,0,32,32,32); grd.addColorStop(0,'rgba(255,255,255,1)'); grd.addColorStop(0.25,'rgba(255,255,255,.8)'); grd.addColorStop(1,'rgba(255,255,255,0)');
+  sg.fillStyle=grd; sg.fillRect(0,0,64,64); sg.strokeStyle='#fff'; sg.lineWidth=3; for(let i=0;i<8;i++){const a=i/8*Math.PI*2;sg.beginPath();sg.moveTo(32,32);sg.lineTo(32+Math.cos(a)*31,32+Math.sin(a)*31);sg.stroke();}
+  const stex=new THREE.CanvasTexture(sc), sparks=[];
+  for(let i=0;i<8;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:stex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false})); sp.visible=false; scene.add(sp); sparks.push(sp); }
+  T={renderer,scene,camera,key,sparks,fighters:[buildMonkey(PAL[0]),buildMonkey(PAL[1])],cam:{pos:new THREE.Vector3(0,1.6,9),look:new THREE.Vector3(0,1,0),perp:new THREE.Vector3(0,0,1),init:false}};
+  T.fighters.forEach(m=>scene.add(m.root));
+  const resize=()=>{const r=box.getBoundingClientRect(); renderer.setSize(r.width,r.height,false);};
+  resize(); addEventListener('resize',resize);
+}
+function lin(c){return new THREE.Color(c).convertSRGBToLinear();}
+function buildMonkey(pal){
+  const mat=(c,o={})=>new THREE.MeshStandardMaterial({color:lin(c),roughness:0.78,...o});
+  const fur=mat(pal.fur), face=mat(pal.face), acc=mat(pal.acc,{roughness:0.45}), black=mat(0x160b10,{roughness:0.3});
+  const mesh=(geo,m)=>{const x=new THREE.Mesh(geo,m);x.castShadow=true;return x;};
+  const root=new THREE.Group(), rig=new THREE.Group(); root.add(rig);
+  const hips=new THREE.Group(); hips.position.y=0.55; rig.add(hips);
+  const torso=new THREE.Group(); hips.add(torso);
+  const body=mesh(new THREE.SphereGeometry(1,24,16),fur); body.scale.set(0.33,0.46,0.3); body.position.y=0.36; torso.add(body);
+  const belly=mesh(new THREE.SphereGeometry(1,20,14),face); belly.scale.set(0.2,0.33,0.22); belly.position.set(0.15,0.32,0); torso.add(belly);
+  const head=new THREE.Group(); head.position.y=0.95; torso.add(head);
+  head.add(mesh(new THREE.SphereGeometry(0.27,24,16),fur));
+  const muzzle=mesh(new THREE.SphereGeometry(1,20,14),face); muzzle.scale.set(0.16,0.13,0.18); muzzle.position.set(0.19,-0.06,0); head.add(muzzle);
+  const eyes=[];
+  for(const z of [1,-1]){
+    const ear=mesh(new THREE.SphereGeometry(0.1,12,10),fur); ear.position.set(-0.02,0.04,0.28*z); head.add(ear);
+    const inner=mesh(new THREE.SphereGeometry(0.06,10,8),face); inner.position.set(0.01,0.04,0.33*z); head.add(inner);
+    const eye=mesh(new THREE.SphereGeometry(0.038,10,8),black); eye.position.set(0.24,0.06,0.085*z); head.add(eye); eyes.push(eye);
+    const brow=mesh(new THREE.BoxGeometry(0.09,0.02,0.04),black); brow.position.set(0.24,0.13,0.09*z); brow.rotation.x=0.35*z; brow.rotation.z=-0.25; head.add(brow);
+    const tail=mesh(new THREE.BoxGeometry(0.26,0.035,0.07),acc); tail.position.set(-0.36,0.1,0.05*z); tail.rotation.y=0.35*z; tail.rotation.z=0.2; head.add(tail);
+  }
+  const band=mesh(new THREE.TorusGeometry(0.265,0.035,8,32),acc); band.rotation.x=Math.PI/2; band.position.y=0.1; head.add(band);
+  const arms=[];
+  for(const z of [1,-1]){
+    const piv=new THREE.Group(); piv.position.set(0.03,0.62,0.3*z); torso.add(piv);
+    const up=mesh(new THREE.CylinderGeometry(0.07,0.06,0.48,10),fur); up.position.y=-0.24; piv.add(up);
+    const fist=mesh(new THREE.SphereGeometry(0.11,14,10),acc); fist.position.y=-0.52; piv.add(fist);
+    arms.push(piv);
+  }
+  const legs=[];
+  for(const z of [1,-1]){
+    const piv=new THREE.Group(); piv.position.set(0,0,0.15*z); hips.add(piv);
+    const lg=mesh(new THREE.CylinderGeometry(0.085,0.075,0.52,10),mat(pal.dark)); lg.position.y=-0.26; piv.add(lg);
+    const foot=mesh(new THREE.SphereGeometry(1,12,8),mat(pal.dark)); foot.scale.set(0.15,0.07,0.1); foot.position.set(0.06,-0.53,0); piv.add(foot);
+    legs.push(piv);
+  }
+  const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(-0.22,0.12,0),new THREE.Vector3(-0.55,0.1,0),new THREE.Vector3(-0.66,0.5,0),new THREE.Vector3(-0.48,0.72,0)]);
+  const tailM=mesh(new THREE.TubeGeometry(curve,24,0.04,8),fur); hips.add(tailM);
+  return {root,rig,hips,torso,head,arms,legs,eyes,tail:tailM,flashMats:[fur]};
+}
+function poseMonkey(M,p,f,flash){
+  const k=pose(p,f);
+  M.hips.position.y=0.55-0.24*k.cr;
+  M.torso.rotation.z=-k.lean*1.3;
+  let a; if(k.armUp>0) a=Math.PI-0.2-(1-k.armUp)*0.9; else if(k.guard) a=2.05; else a=0.3+Math.max(-0.35,k.arm)*1.2;
+  M.arms[0].rotation.z=a; M.arms[1].rotation.z=k.guard?1.75:0.25-k.walk*0.4;
+  let fl=k.walk*0.45, bl=-k.walk*0.45;
+  if(k.cr){fl+=0.7*k.cr; bl-=0.5*k.cr;}
+  if(k.kick>0) fl=1.4*k.kick;
+  if(k.airKick>0) fl=0.5+0.8*k.airKick;
+  if(p.y>0&&!k.flat){fl+=0.35; bl-=0.3;}
+  M.legs[0].rotation.z=fl; M.legs[1].rotation.z=bl;
+  M.rig.rotation.z=k.flat*Math.PI/2*0.95; M.rig.position.y=k.flat*0.3;
+  M.tail.rotation.y=Math.sin(f*0.1)*0.25;
+  for(const e of M.eyes) e.scale.y=k.hurt?0.25:1;
+  for(const m of M.flashMats) m.emissive.setHex(flash?0x661111:0x000000);
+  M.root.scale.setScalar(1+(k.dash?0.04:0));
+}
+function render3D(s){
+  const r=T.renderer.domElement; r.style.display='block';
+  const pos=worldPositions(s), f=s.f;
+  for(const i of [0,1]){
+    const M=T.fighters[i], p=s.p[i], o=pos[1-i], me=pos[i];
+    M.root.position.set(me[0],p.y*WS,me[1]);
+    let dx=o[0]-me[0], dz=o[1]-me[1];
+    // the model faces its sim facing along the (possibly rotated) axis
+    const ang=Math.atan2(dz,dx); const toward=(p.face===1)===((p.x<=s.p[1-i].x))?0:Math.PI;
+    M.root.rotation.y=-(ang+toward);
+    poseMonkey(M,p,f,(p.act==='hitstun'||p.act==='kd')&&s.hs>0);
+  }
+  // camera: perpendicular to the line between the fighters, smoothed
+  const C=T.cam, a=pos[0], b=pos[1], mx=(a[0]+b[0])/2, mz=(a[1]+b[1])/2;
+  let ax=b[0]-a[0], az=b[1]-a[1]; const sep=Math.hypot(ax,az)||1; ax/=sep; az/=sep;
+  let px=-az, pz=ax; if(px*C.perp.x+pz*C.perp.z<0){px=-px;pz=-pz;}
+  if(!C.init){C.perp.set(px,0,pz);}
+  C.perp.x+=(px-C.perp.x)*0.1; C.perp.z+=(pz-C.perp.z)*0.1; C.perp.normalize();
+  const is3d=view==='3d';
+  let ox=C.perp.x, oz=C.perp.z; if(is3d){ ox-=ax*0.42; oz-=az*0.42; const n=Math.hypot(ox,oz); ox/=n; oz/=n; }
+  let dist=Math.min(11,Math.max(5.6,4.4+sep*0.75)); const big=s.hs>8&&(s.phase==='fight'||s.phase==='ko');
+  if(big) dist*=0.78; if(s.phase==='ko'&&s.hs===0) dist*=0.9;
+  const h=is3d?2.3:1.35, ty=new THREE.Vector3(mx+ox*dist,h,mz+oz*dist), tl=new THREE.Vector3(mx,big?1.1:0.95,mz);
+  if(!C.init){C.pos.copy(ty);C.look.copy(tl);C.init=true;}
+  C.pos.lerp(ty,big?0.3:0.12); C.look.lerp(tl,0.2);
+  T.camera.position.copy(C.pos);
+  if(s.hs>0&&s.phase!=='intro'){ const m=Math.min(0.06,s.hs*0.006); T.camera.position.x+=(Math.random()*2-1)*m; T.camera.position.y+=(Math.random()*2-1)*m; }
+  T.camera.lookAt(C.look); if(big) T.camera.rotateZ(0.025);
+  T.key.position.set(mx-6,10,mz+8); T.key.target.position.set(mx,0,mz);
+  // sparks
+  let n=0; for(const sp of T.sparks) sp.visible=false;
+  for(const e of s.fx){ const age=f-e.t; if(age>14||age<0||n>=T.sparks.length) continue;
+    const sp=T.sparks[n++], w=axisToWorld(s,e.x); sp.visible=true;
+    sp.position.set(w[0]+C.perp.x*0.4,e.y*WS,w[1]+C.perp.z*0.4);
+    const sz=(e.big?1.5:0.9)*(0.6+age*0.09); sp.scale.set(sz,sz,1);
+    sp.material.opacity=1-age/14; sp.material.color.setHex(e.k==='block'?0x9fe9ff:0xffd27a); sp.material.rotation=e.t; }
+  T.renderer.render(T.scene,T.camera);
+}
+function setView(v){
+  view=v; document.querySelectorAll('#viewSeg button').forEach(x=>x.classList.toggle('on',x.dataset.v===v));
+  document.getElementById('vcap').innerHTML=VCAP[v];
+  document.getElementById('demo').classList.toggle('is3d',v==='3d');
+  if(v==='2d'){ if(T) T.renderer.domElement.style.display='none'; }
+  else if(!T){ loadThree().then(()=>{ if(!T) initThree(); render(); }).catch(()=>{ T=false; render(); }); }
+  if(T) T.cam.init=false;
+  // 3D changes the rules (sidestep), so a new match starts; 2D <-> 2.5D keeps fighting
+  const needSide=v==='3d'; if(S0.side!==needSide){ if(running) startGame(); else resetSession(); }
+  render();
+}
+
+/* ================= LOOP ================= */
+let acc=0,last=0;
+function loop(t){
+  if(!running){ return; }
+  if(!last) last=t; acc+=Math.min(100,t-last); last=t;
+  while(acc>=1000/60){ netTick(); acc-=1000/60; }
+  render(); updStats(t);
+  requestAnimationFrame(loop);
+}
+const statsEl=document.getElementById('stats');
+let statsT=0;
+function updStats(t){
+  if(t-statsT<250) return; statsT=t;
+  const f=S0.f; while(stats.winR.length && stats.winR[0]<f-60){stats.winR.shift();stats.winF.shift();}
+  const rbs=stats.winR.length, rf=stats.winF.reduce((a,b)=>a+b,0);
+  const ow=oneWayFrames();
+  if(net.mode==='local'){ statsEl.innerHTML='No network: both players on this keyboard.<br>frame <b>'+f+'</b> · state hash <b>'+hash(S0).toString(16).padStart(8,'0')+'</b>'; return; }
+  if(net.mode==='delay'){ const d=ow+(net.jitter?1:0); statsEl.innerHTML='Your input delay: <b class="'+(d>4?'bad':'good')+'">'+d+' frames ('+Math.round(d*16.7)+' ms)</b><br>Rollbacks: <b>none, it waits instead</b><br>frame <b>'+f+'</b><br><span style="color:#8d86a8">Every punch you throw lands '+Math.round(d*16.7)+' ms late.</span>'; return; }
+  statsEl.innerHTML='Your input delay: <b class="good">0 frames</b><br>Remote input arrives: <b>'+ow+' frames late</b><br>Rollbacks (last 1 s): <b>'+rbs+'</b> · frames resimulated: <b>'+rf+'</b><br>Largest rewind: <b>'+stats.maxRb+'</b> · stalls: <b>'+stats.stalls+'</b><br>frame <b>'+f+'</b> · hash <b>'+hash(S0).toString(16).padStart(8,'0')+'</b>';
+}
+
+/* ================= WIRING ================= */
+const ov=document.getElementById('ov');
+function startGame(){ resetSession(); ov.style.display='none'; running=true; last=0; acc=0; cv.focus(); requestAnimationFrame(loop); try{audio=audio||new (window.AudioContext||window.webkitAudioContext)(); audio.resume();}catch(e){} }
+document.getElementById('startBtn').onclick=startGame;
+document.getElementById('restartBtn').onclick=startGame;
+document.getElementById('muteBtn').onclick=e=>{muted=!muted;e.target.textContent='Sound: '+(muted?'off':'on');};
+document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#modeSeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');net.mode=b.dataset.m;if(running)startGame();});
+const ping=document.getElementById('ping'), pingV=document.getElementById('pingV');
+ping.oninput=()=>{net.rtt=+ping.value; pingV.textContent=ping.value+' ms'; if(net.mode==='delay'&&running) startGame();};
+document.getElementById('jit').onchange=e=>{net.jitter=e.target.checked;};
+const GAMEKEYS=new Set([...P1MAP,...P2MAP].map(x=>x[0]));
+addEventListener('keydown',e=>{ if(!running) return; const r=cv.getBoundingClientRect(); const vis=r.top<innerHeight&&r.bottom>0; if(!vis) return; if(GAMEKEYS.has(e.code)){keys.add(e.code); e.preventDefault();} });
+addEventListener('keyup',e=>keys.delete(e.code));
+addEventListener('blur',()=>keys.clear());
+document.querySelectorAll('#touchpad .tb').forEach(el=>{
+  const bit=+el.dataset.b;
+  const on=e=>{e.preventDefault(); touch.bits|=bit; el.classList.add('on');};
+  const off=e=>{e.preventDefault(); touch.bits&=~bit; el.classList.remove('on');};
+  el.addEventListener('pointerdown',on); el.addEventListener('pointerup',off); el.addEventListener('pointercancel',off); el.addEventListener('pointerleave',off);
+});
+document.querySelectorAll('#viewSeg button').forEach(x=>x.onclick=()=>setView(x.dataset.v));
+document.getElementById('vcap').innerHTML=VCAP['2d'];
+// idle attract frame
+resetSession(); document.fonts && document.fonts.ready.then(()=>render()); render();
+
+/* ================= ROSTER PORTRAITS ================= */
+(function(){
+  const defs={mango:{fur:'#c8642a',dark:'#7a3511',face:'#ffd9a8',acc:'#ffcf6e',s:1.5},bruno:{fur:'#3c5d63',dark:'#1d3236',face:'#b9d6d2',acc:'#3fd2c7',s:1.62},pip:{fur:'#6b5ad6',dark:'#2c2170',face:'#e9e2ff',acc:'#ff8ad8',s:1.25},sage:{fur:'#b2482f',dark:'#5a1d10',face:'#ffd0b0',acc:'#9b7bff',s:1.55}};
+  const acts={mango:{act:'rocket',af:13},bruno:{act:'heavy',af:10},pip:{act:'air',af:7,y:3000},sage:{act:'light',af:5}};
+  document.querySelectorAll('canvas[data-f]').forEach(c=>{
+    const id=c.dataset.f, d=defs[id], g=c.getContext('2d');
+    const p=newPlayer(0,1); Object.assign(p,acts[id]); p.x=150*U;
+    const saveG=GROUND; // drawMonkey uses GROUND; translate instead
+    g.save(); g.translate(40, 300-GROUND-24+(p.y?0:0)); g.translate(0,0);
+    g.scale(1,1);
+    g.save(); g.translate(150,GROUND); g.scale(d.s,d.s); g.translate(-150,-GROUND);
+    drawMonkey(g,p,d,40,1,0);
+    g.restore(); g.restore();
+  });
+})();
+</script>
+</body>
+</html>

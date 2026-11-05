@@ -487,6 +487,12 @@ flutter_native_splash:
 # The following section is specific to Flutter packages.
 flutter:
 
+  # Fragment shaders, compiled at build time. fight_pixel.frag turns Jungle
+  # Fist's low-res render into pixel art (palette snap + 1px outline); see
+  # lib/fight/view/fight_renderer.dart.
+  shaders:
+    - shaders/fight_pixel.frag
+
   # Generates lib/l10n/generated/app_localizations.dart from lib/l10n/*.arb
   # on every `flutter pub get` / `flutter run` (config in l10n.yaml).
   generate: true

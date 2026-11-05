@@ -14743,6 +14743,97 @@ class AppLocalizationsPt extends AppLocalizations {
   String callQualityOfferAction(String quality) {
     return 'Baixar para $quality';
   }
+
+  @override
+  String get fightTitle => 'Jungle Fist';
+
+  @override
+  String get fightHubSubtitle =>
+      'Combates 1 contra 1 em tempo real. Treina contra o bot.';
+
+  @override
+  String get fightLobbyIntro =>
+      'Escolhe um visual e o nível do bot, e luta. Quem vencer duas rondas primeiro ganha a partida.';
+
+  @override
+  String get fightLookTitle => 'Visual';
+
+  @override
+  String get fightLookCartoon => 'Cartoon';
+
+  @override
+  String get fightLookPainted => 'Pintado';
+
+  @override
+  String get fightLookPixel => 'Pixel art';
+
+  @override
+  String get fightLookFootnote =>
+      'Muda apenas o aspeto dos combates no teu ecrã. Podes trocar quando quiseres, até a meio de um combate no menu de pausa.';
+
+  @override
+  String get fightFighterTitle => 'Lutador';
+
+  @override
+  String get fightComingSoon => 'Em breve';
+
+  @override
+  String get fightStart => 'Lutar';
+
+  @override
+  String get fightPaused => 'Em pausa';
+
+  @override
+  String get fightResume => 'Continuar';
+
+  @override
+  String get fightRestart => 'Recomeçar';
+
+  @override
+  String get fightQuit => 'Sair';
+
+  @override
+  String get fightYouWin => 'Ganhaste';
+
+  @override
+  String get fightYouLose => 'Perdeste';
+
+  @override
+  String get fightDrawResult => 'Empate';
+
+  @override
+  String get fightRematch => 'Desforra';
+
+  @override
+  String get fightKeyboardHint =>
+      'Move-te com WASD ou as setas. J leve, K forte, L especial, Space rolar, I super. Esc pausa.';
+
+  @override
+  String fightHudRound(int n) {
+    return 'RONDA $n';
+  }
+
+  @override
+  String get fightHudFight => 'LUTEM!';
+
+  @override
+  String get fightHudKo => 'K.O.';
+
+  @override
+  String get fightHudTime => 'TEMPO';
+
+  @override
+  String fightHudWins(String name) {
+    return '$name VENCE';
+  }
+
+  @override
+  String get fightHudDraw => 'EMPATE';
+
+  @override
+  String fightHudHits(int count) {
+    return '$count GOLPES';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -29465,5 +29556,96 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String callQualityOfferAction(String quality) {
     return 'Reduzir para $quality';
+  }
+
+  @override
+  String get fightTitle => 'Jungle Fist';
+
+  @override
+  String get fightHubSubtitle =>
+      'Lutas 1 contra 1 em tempo real. Treine contra o bot.';
+
+  @override
+  String get fightLobbyIntro =>
+      'Escolha um visual e o nível do bot, e lute. Quem vencer dois rounds primeiro leva a partida.';
+
+  @override
+  String get fightLookTitle => 'Visual';
+
+  @override
+  String get fightLookCartoon => 'Cartoon';
+
+  @override
+  String get fightLookPainted => 'Pintado';
+
+  @override
+  String get fightLookPixel => 'Pixel art';
+
+  @override
+  String get fightLookFootnote =>
+      'Muda só a aparência das lutas na sua tela. Dá para trocar a qualquer momento, até no meio da luta pelo menu de pausa.';
+
+  @override
+  String get fightFighterTitle => 'Lutador';
+
+  @override
+  String get fightComingSoon => 'Em breve';
+
+  @override
+  String get fightStart => 'Lutar';
+
+  @override
+  String get fightPaused => 'Pausado';
+
+  @override
+  String get fightResume => 'Continuar';
+
+  @override
+  String get fightRestart => 'Reiniciar';
+
+  @override
+  String get fightQuit => 'Sair';
+
+  @override
+  String get fightYouWin => 'Você venceu';
+
+  @override
+  String get fightYouLose => 'Você perdeu';
+
+  @override
+  String get fightDrawResult => 'Empate';
+
+  @override
+  String get fightRematch => 'Revanche';
+
+  @override
+  String get fightKeyboardHint =>
+      'Mova com WASD ou as setas. J leve, K forte, L especial, Space rolar, I super. Esc pausa.';
+
+  @override
+  String fightHudRound(int n) {
+    return 'ROUND $n';
+  }
+
+  @override
+  String get fightHudFight => 'LUTEM!';
+
+  @override
+  String get fightHudKo => 'NOCAUTE';
+
+  @override
+  String get fightHudTime => 'TEMPO';
+
+  @override
+  String fightHudWins(String name) {
+    return '$name VENCE';
+  }
+
+  @override
+  String get fightHudDraw => 'EMPATE';
+
+  @override
+  String fightHudHits(int count) {
+    return '$count GOLPES';
   }
 }

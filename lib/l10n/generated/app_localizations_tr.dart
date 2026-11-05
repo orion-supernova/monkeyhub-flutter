@@ -14534,4 +14534,95 @@ class AppLocalizationsTr extends AppLocalizations {
   String callQualityOfferAction(String quality) {
     return '$quality\'ye düşür';
   }
+
+  @override
+  String get fightTitle => 'Jungle Fist';
+
+  @override
+  String get fightHubSubtitle =>
+      'Gerçek zamanlı 1\'e 1 dövüş. Bota karşı antrenman yap.';
+
+  @override
+  String get fightLobbyIntro =>
+      'Bir görünüm ve botun seviyesini seç, sonra dövüş. İki raundu ilk kazanan maçı alır.';
+
+  @override
+  String get fightLookTitle => 'Görünüm';
+
+  @override
+  String get fightLookCartoon => 'Çizgi film';
+
+  @override
+  String get fightLookPainted => 'Boyalı';
+
+  @override
+  String get fightLookPixel => 'Piksel';
+
+  @override
+  String get fightLookFootnote =>
+      'Sadece dövüşlerin senin ekranında nasıl göründüğünü değiştirir. İstediğin zaman, dövüş sırasında bile duraklatma menüsünden değiştirebilirsin.';
+
+  @override
+  String get fightFighterTitle => 'Dövüşçü';
+
+  @override
+  String get fightComingSoon => 'Yakında';
+
+  @override
+  String get fightStart => 'Dövüş';
+
+  @override
+  String get fightPaused => 'Duraklatıldı';
+
+  @override
+  String get fightResume => 'Devam et';
+
+  @override
+  String get fightRestart => 'Baştan başla';
+
+  @override
+  String get fightQuit => 'Çık';
+
+  @override
+  String get fightYouWin => 'Kazandın';
+
+  @override
+  String get fightYouLose => 'Kaybettin';
+
+  @override
+  String get fightDrawResult => 'Berabere';
+
+  @override
+  String get fightRematch => 'Rövanş';
+
+  @override
+  String get fightKeyboardHint =>
+      'WASD veya ok tuşlarıyla hareket et. J hafif, K ağır, L özel, Space yuvarlan, I süper. Esc duraklatır.';
+
+  @override
+  String fightHudRound(int n) {
+    return '$n. RAUNT';
+  }
+
+  @override
+  String get fightHudFight => 'DÖVÜŞ!';
+
+  @override
+  String get fightHudKo => 'NAKAVT';
+
+  @override
+  String get fightHudTime => 'SÜRE BİTTİ';
+
+  @override
+  String fightHudWins(String name) {
+    return '$name KAZANDI';
+  }
+
+  @override
+  String get fightHudDraw => 'BERABERE';
+
+  @override
+  String fightHudHits(int count) {
+    return '$count VURUŞ';
+  }
 }

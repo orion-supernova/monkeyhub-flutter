@@ -14604,4 +14604,95 @@ class AppLocalizationsEn extends AppLocalizations {
   String callQualityOfferAction(String quality) {
     return 'Lower to $quality';
   }
+
+  @override
+  String get fightTitle => 'Jungle Fist';
+
+  @override
+  String get fightHubSubtitle =>
+      'Real-time 1v1 fighting. Train against the bot.';
+
+  @override
+  String get fightLobbyIntro =>
+      'Pick a look and the bot\'s level, then fight. First to win two rounds takes the match.';
+
+  @override
+  String get fightLookTitle => 'Look';
+
+  @override
+  String get fightLookCartoon => 'Cartoon';
+
+  @override
+  String get fightLookPainted => 'Painted';
+
+  @override
+  String get fightLookPixel => 'Pixel art';
+
+  @override
+  String get fightLookFootnote =>
+      'Only changes how fights look on your screen. You can switch it any time, even mid-fight from the pause menu.';
+
+  @override
+  String get fightFighterTitle => 'Fighter';
+
+  @override
+  String get fightComingSoon => 'Coming soon';
+
+  @override
+  String get fightStart => 'Fight';
+
+  @override
+  String get fightPaused => 'Paused';
+
+  @override
+  String get fightResume => 'Resume';
+
+  @override
+  String get fightRestart => 'Restart';
+
+  @override
+  String get fightQuit => 'Quit';
+
+  @override
+  String get fightYouWin => 'You win';
+
+  @override
+  String get fightYouLose => 'You lose';
+
+  @override
+  String get fightDrawResult => 'Draw';
+
+  @override
+  String get fightRematch => 'Rematch';
+
+  @override
+  String get fightKeyboardHint =>
+      'Move with WASD or the arrows. J light, K heavy, L special, Space roll, I super. Esc pauses.';
+
+  @override
+  String fightHudRound(int n) {
+    return 'ROUND $n';
+  }
+
+  @override
+  String get fightHudFight => 'FIGHT!';
+
+  @override
+  String get fightHudKo => 'K.O.';
+
+  @override
+  String get fightHudTime => 'TIME';
+
+  @override
+  String fightHudWins(String name) {
+    return '$name WINS';
+  }
+
+  @override
+  String get fightHudDraw => 'DRAW';
+
+  @override
+  String fightHudHits(int count) {
+    return '$count HITS';
+  }
 }

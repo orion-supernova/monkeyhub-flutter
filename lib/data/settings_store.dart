@@ -62,6 +62,10 @@ class SettingsStore extends ChangeNotifier {
   // Every Data and Storage rule, as one JSON document. See [DataStoragePrefs].
   static const _kDataPrefs = 'mh.dataStorage.v1';
   static const _kShowNetworkStats = 'mh.showNetworkStats';
+  // Jungle Fist: how fights are drawn ('cartoon' | 'painted' | 'pixel'),
+  // stored as a wire string so this file does not depend on lib/fight/.
+  // Purely local: an online opponent never sees which look you picked.
+  static const _kFightLook = 'mh.fight.look';
   // NOTE: 'mh.photoHd' was a sticky "send photos in HD" choice, retired
   // 2026-11-02: HD is now one send's decision (see MediaSendOptions.hd).
   // Its value is left on disk unread; pick a new key if a default ever
@@ -108,7 +112,7 @@ class SettingsStore extends ChangeNotifier {
     _kLayout, _kNav, _kSection, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
-    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen,
+    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen, _kFightLook,
     _kVideoQualityTier, _kAutoLowerVideoQuality, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel, _kPowerSaving,
@@ -167,6 +171,7 @@ class SettingsStore extends ChangeNotifier {
   bool _stickerSuggestions = true;
   DataStoragePrefs _dataPrefs = DataStoragePrefs.defaults;
   bool _showNetworkStats = false;
+  String _fightLook = 'cartoon';
   VideoQualityTier _videoQualityTier = VideoQualityTier.auto;
   bool _autoLowerVideoQuality = true;
   String? _recoveryPromptDismissedFor;
@@ -344,6 +349,9 @@ class SettingsStore extends ChangeNotifier {
   /// toggleable from an icon inside the call view itself — same setting,
   /// reachable from both places.
   bool get showNetworkStats => _showNetworkStats;
+
+  /// Jungle Fist look: 'cartoon' (default), 'painted' or 'pixel'.
+  String get fightLook => _fightLook;
 
   /// Resolution ceiling for outgoing video on both the 1:1 and group call
   /// paths. Default `auto` — today's long-standing 720p/adaptive behavior,
@@ -678,6 +686,8 @@ class SettingsStore extends ChangeNotifier {
     _dataPrefs = _decodeDataPrefs(s[_kDataPrefs]);
     final sns = s[_kShowNetworkStats];
     _showNetworkStats = sns == 'true'; // default false
+    final fl = s[_kFightLook];
+    _fightLook = (fl == 'painted' || fl == 'pixel') ? fl! : 'cartoon';
     _videoQualityTier = VideoQualityTierWire.parse(s[_kVideoQualityTier]);
     _autoLowerVideoQuality = s[_kAutoLowerVideoQuality] != 'false'; // default true
     _recoveryPromptDismissedFor = s[_kRecoveryPromptDismissed];
@@ -1105,6 +1115,13 @@ class SettingsStore extends ChangeNotifier {
     } else {
       await _storage.write(key: _kMarloweBrainId, value: id);
     }
+  }
+
+  Future<void> setFightLook(String v) async {
+    if (_fightLook == v) return;
+    _fightLook = v;
+    notifyListeners();
+    await _storage.write(key: _kFightLook, value: v);
   }
 
   Future<void> setShowNetworkStats(bool v) async {

@@ -24276,6 +24276,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Lower to {quality}'**
   String callQualityOfferAction(String quality);
+
+  /// Name of the real-time fighting game (working title, not translated).
+  ///
+  /// In en, this message translates to:
+  /// **'Jungle Fist'**
+  String get fightTitle;
+
+  /// Banner in Play the bot: what the fighting game is.
+  ///
+  /// In en, this message translates to:
+  /// **'Real-time 1v1 fighting. Train against the bot.'**
+  String get fightHubSubtitle;
+
+  /// Intro text on the fighting game's setup screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a look and the bot\'s level, then fight. First to win two rounds takes the match.'**
+  String get fightLobbyIntro;
+
+  /// Section header: the visual style fights are drawn in.
+  ///
+  /// In en, this message translates to:
+  /// **'Look'**
+  String get fightLookTitle;
+
+  /// Visual style option: bold cartoon with ink outlines.
+  ///
+  /// In en, this message translates to:
+  /// **'Cartoon'**
+  String get fightLookCartoon;
+
+  /// Visual style option: soft painted look with lighting and glow.
+  ///
+  /// In en, this message translates to:
+  /// **'Painted'**
+  String get fightLookPainted;
+
+  /// Visual style option: retro pixel art.
+  ///
+  /// In en, this message translates to:
+  /// **'Pixel art'**
+  String get fightLookPixel;
+
+  /// Footnote under the look picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Only changes how fights look on your screen. You can switch it any time, even mid-fight from the pause menu.'**
+  String get fightLookFootnote;
+
+  /// Section header: choose your fighter.
+  ///
+  /// In en, this message translates to:
+  /// **'Fighter'**
+  String get fightFighterTitle;
+
+  /// Badge on fighters that cannot be picked yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get fightComingSoon;
+
+  /// Button that starts a fight.
+  ///
+  /// In en, this message translates to:
+  /// **'Fight'**
+  String get fightStart;
+
+  /// Title of the pause menu during a fight.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get fightPaused;
+
+  /// Pause menu button: continue the fight.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get fightResume;
+
+  /// Pause menu button: start the match over.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get fightRestart;
+
+  /// Pause menu button: leave the fight.
+  ///
+  /// In en, this message translates to:
+  /// **'Quit'**
+  String get fightQuit;
+
+  /// Result title when the player wins the match.
+  ///
+  /// In en, this message translates to:
+  /// **'You win'**
+  String get fightYouWin;
+
+  /// Result title when the player loses the match.
+  ///
+  /// In en, this message translates to:
+  /// **'You lose'**
+  String get fightYouLose;
+
+  /// Result title when the match is a draw.
+  ///
+  /// In en, this message translates to:
+  /// **'Draw'**
+  String get fightDrawResult;
+
+  /// Result screen button: play again with the same setup.
+  ///
+  /// In en, this message translates to:
+  /// **'Rematch'**
+  String get fightRematch;
+
+  /// Keyboard controls shown on desktop. Key names (WASD, J, K, L, I, Space) stay as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'Move with WASD or the arrows. J light, K heavy, L special, Space roll, I super. Esc pauses.'**
+  String get fightKeyboardHint;
+
+  /// Big callout before a round, uppercase. {n} is the round number.
+  ///
+  /// In en, this message translates to:
+  /// **'ROUND {n}'**
+  String fightHudRound(int n);
+
+  /// Big callout when a round starts, uppercase.
+  ///
+  /// In en, this message translates to:
+  /// **'FIGHT!'**
+  String get fightHudFight;
+
+  /// Big callout when a fighter is knocked out (fighting-game K.O.).
+  ///
+  /// In en, this message translates to:
+  /// **'K.O.'**
+  String get fightHudKo;
+
+  /// Big callout when the round timer runs out.
+  ///
+  /// In en, this message translates to:
+  /// **'TIME'**
+  String get fightHudTime;
+
+  /// Big callout naming the match winner. {name} is the fighter's name, like KAI.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} WINS'**
+  String fightHudWins(String name);
+
+  /// Big callout when a round or match is a draw.
+  ///
+  /// In en, this message translates to:
+  /// **'DRAW'**
+  String get fightHudDraw;
+
+  /// Combo counter, uppercase. {count} is the number of hits in the combo, always 2 or more.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} HITS'**
+  String fightHudHits(int count);
 }
 
 class _AppLocalizationsDelegate

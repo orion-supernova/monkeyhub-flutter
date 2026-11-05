@@ -14809,4 +14809,95 @@ class AppLocalizationsFr extends AppLocalizations {
   String callQualityOfferAction(String quality) {
     return 'Passer en $quality';
   }
+
+  @override
+  String get fightTitle => 'Jungle Fist';
+
+  @override
+  String get fightHubSubtitle =>
+      'Combats en 1 contre 1 en temps réel. Entraîne-toi contre le bot.';
+
+  @override
+  String get fightLobbyIntro =>
+      'Choisis un style et le niveau du bot, puis bats-toi. Le premier à gagner deux manches remporte le match.';
+
+  @override
+  String get fightLookTitle => 'Style';
+
+  @override
+  String get fightLookCartoon => 'Cartoon';
+
+  @override
+  String get fightLookPainted => 'Peint';
+
+  @override
+  String get fightLookPixel => 'Pixel art';
+
+  @override
+  String get fightLookFootnote =>
+      'Change seulement l\'apparence des combats sur ton écran. Tu peux le modifier à tout moment, même en plein combat depuis le menu pause.';
+
+  @override
+  String get fightFighterTitle => 'Combattant';
+
+  @override
+  String get fightComingSoon => 'Bientôt';
+
+  @override
+  String get fightStart => 'Combattre';
+
+  @override
+  String get fightPaused => 'Pause';
+
+  @override
+  String get fightResume => 'Reprendre';
+
+  @override
+  String get fightRestart => 'Recommencer';
+
+  @override
+  String get fightQuit => 'Quitter';
+
+  @override
+  String get fightYouWin => 'Victoire';
+
+  @override
+  String get fightYouLose => 'Défaite';
+
+  @override
+  String get fightDrawResult => 'Égalité';
+
+  @override
+  String get fightRematch => 'Revanche';
+
+  @override
+  String get fightKeyboardHint =>
+      'Déplace-toi avec WASD ou les flèches. J léger, K lourd, L spécial, Space roulade, I super. Échap met en pause.';
+
+  @override
+  String fightHudRound(int n) {
+    return 'MANCHE $n';
+  }
+
+  @override
+  String get fightHudFight => 'COMBAT !';
+
+  @override
+  String get fightHudKo => 'K.O.';
+
+  @override
+  String get fightHudTime => 'TEMPS';
+
+  @override
+  String fightHudWins(String name) {
+    return '$name GAGNE';
+  }
+
+  @override
+  String get fightHudDraw => 'ÉGALITÉ';
+
+  @override
+  String fightHudHits(int count) {
+    return '$count COUPS';
+  }
 }

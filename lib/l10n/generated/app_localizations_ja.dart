@@ -13943,4 +13943,93 @@ class AppLocalizationsJa extends AppLocalizations {
   String callQualityOfferAction(String quality) {
     return '$qualityに下げる';
   }
+
+  @override
+  String get fightTitle => 'Jungle Fist';
+
+  @override
+  String get fightHubSubtitle => 'リアルタイムの1対1バトル。ボット相手に練習しよう。';
+
+  @override
+  String get fightLobbyIntro => '見た目とボットの強さを選んで戦おう。先に2ラウンド取った方の勝ち。';
+
+  @override
+  String get fightLookTitle => '見た目';
+
+  @override
+  String get fightLookCartoon => 'カートゥーン';
+
+  @override
+  String get fightLookPainted => 'ペイント';
+
+  @override
+  String get fightLookPixel => 'ドット絵';
+
+  @override
+  String get fightLookFootnote =>
+      '自分の画面での見た目だけが変わります。いつでも、戦闘中でも一時停止メニューから切り替えられます。';
+
+  @override
+  String get fightFighterTitle => 'ファイター';
+
+  @override
+  String get fightComingSoon => '近日登場';
+
+  @override
+  String get fightStart => 'バトル開始';
+
+  @override
+  String get fightPaused => '一時停止中';
+
+  @override
+  String get fightResume => '再開';
+
+  @override
+  String get fightRestart => 'やり直す';
+
+  @override
+  String get fightQuit => 'やめる';
+
+  @override
+  String get fightYouWin => 'あなたの勝ち';
+
+  @override
+  String get fightYouLose => 'あなたの負け';
+
+  @override
+  String get fightDrawResult => '引き分け';
+
+  @override
+  String get fightRematch => '再戦';
+
+  @override
+  String get fightKeyboardHint =>
+      'WASDか矢印キーで移動。J弱、K強、L必殺技、Spaceローリング、I超必殺技。Escで一時停止。';
+
+  @override
+  String fightHudRound(int n) {
+    return 'ラウンド$n';
+  }
+
+  @override
+  String get fightHudFight => 'ファイト！';
+
+  @override
+  String get fightHudKo => 'K.O.';
+
+  @override
+  String get fightHudTime => 'タイムアップ';
+
+  @override
+  String fightHudWins(String name) {
+    return '$nameの勝利';
+  }
+
+  @override
+  String get fightHudDraw => '引き分け';
+
+  @override
+  String fightHudHits(int count) {
+    return '$countヒット';
+  }
 }

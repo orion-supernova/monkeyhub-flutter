@@ -14634,4 +14634,95 @@ class AppLocalizationsSv extends AppLocalizations {
   String callQualityOfferAction(String quality) {
     return 'Sänk till $quality';
   }
+
+  @override
+  String get fightTitle => 'Jungle Fist';
+
+  @override
+  String get fightHubSubtitle =>
+      'Fighting en mot en i realtid. Träna mot boten.';
+
+  @override
+  String get fightLobbyIntro =>
+      'Välj ett utseende och botens nivå, och slåss sedan. Den som först vinner två ronder vinner matchen.';
+
+  @override
+  String get fightLookTitle => 'Utseende';
+
+  @override
+  String get fightLookCartoon => 'Tecknat';
+
+  @override
+  String get fightLookPainted => 'Målat';
+
+  @override
+  String get fightLookPixel => 'Pixelgrafik';
+
+  @override
+  String get fightLookFootnote =>
+      'Ändrar bara hur striderna ser ut på din skärm. Du kan byta när som helst, även mitt i en strid från pausmenyn.';
+
+  @override
+  String get fightFighterTitle => 'Fighter';
+
+  @override
+  String get fightComingSoon => 'Kommer snart';
+
+  @override
+  String get fightStart => 'Slåss';
+
+  @override
+  String get fightPaused => 'Pausad';
+
+  @override
+  String get fightResume => 'Fortsätt';
+
+  @override
+  String get fightRestart => 'Börja om';
+
+  @override
+  String get fightQuit => 'Avsluta';
+
+  @override
+  String get fightYouWin => 'Du vann';
+
+  @override
+  String get fightYouLose => 'Du förlorade';
+
+  @override
+  String get fightDrawResult => 'Oavgjort';
+
+  @override
+  String get fightRematch => 'Returmatch';
+
+  @override
+  String get fightKeyboardHint =>
+      'Rör dig med WASD eller pilarna. J lätt, K tung, L special, Space rulla, I super. Esc pausar.';
+
+  @override
+  String fightHudRound(int n) {
+    return 'ROND $n';
+  }
+
+  @override
+  String get fightHudFight => 'KÖR!';
+
+  @override
+  String get fightHudKo => 'K.O.';
+
+  @override
+  String get fightHudTime => 'TIDEN UTE';
+
+  @override
+  String fightHudWins(String name) {
+    return '$name VINNER';
+  }
+
+  @override
+  String get fightHudDraw => 'OAVGJORT';
+
+  @override
+  String fightHudHits(int count) {
+    return '$count TRÄFFAR';
+  }
 }

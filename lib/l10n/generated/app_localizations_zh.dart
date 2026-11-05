@@ -13812,4 +13812,92 @@ class AppLocalizationsZh extends AppLocalizations {
   String callQualityOfferAction(String quality) {
     return '降至 $quality';
   }
+
+  @override
+  String get fightTitle => 'Jungle Fist';
+
+  @override
+  String get fightHubSubtitle => '实时一对一格斗。和机器人练习。';
+
+  @override
+  String get fightLobbyIntro => '选择画风和机器人难度，然后开打。先赢两回合者获胜。';
+
+  @override
+  String get fightLookTitle => '画风';
+
+  @override
+  String get fightLookCartoon => '卡通';
+
+  @override
+  String get fightLookPainted => '手绘';
+
+  @override
+  String get fightLookPixel => '像素';
+
+  @override
+  String get fightLookFootnote => '只改变你屏幕上的战斗画面。随时可以切换，战斗中也能在暂停菜单里换。';
+
+  @override
+  String get fightFighterTitle => '角色';
+
+  @override
+  String get fightComingSoon => '即将推出';
+
+  @override
+  String get fightStart => '开战';
+
+  @override
+  String get fightPaused => '已暂停';
+
+  @override
+  String get fightResume => '继续';
+
+  @override
+  String get fightRestart => '重新开始';
+
+  @override
+  String get fightQuit => '退出';
+
+  @override
+  String get fightYouWin => '你赢了';
+
+  @override
+  String get fightYouLose => '你输了';
+
+  @override
+  String get fightDrawResult => '平局';
+
+  @override
+  String get fightRematch => '再来一局';
+
+  @override
+  String get fightKeyboardHint =>
+      '用 WASD 或方向键移动。J 轻攻击，K 重攻击，L 必杀技，Space 翻滚，I 超必杀。Esc 暂停。';
+
+  @override
+  String fightHudRound(int n) {
+    return '第$n回合';
+  }
+
+  @override
+  String get fightHudFight => '开打！';
+
+  @override
+  String get fightHudKo => 'K.O.';
+
+  @override
+  String get fightHudTime => '时间到';
+
+  @override
+  String fightHudWins(String name) {
+    return '$name获胜';
+  }
+
+  @override
+  String get fightHudDraw => '平局';
+
+  @override
+  String fightHudHits(int count) {
+    return '$count连击';
+  }
 }

@@ -14575,4 +14575,95 @@ class AppLocalizationsHi extends AppLocalizations {
   String callQualityOfferAction(String quality) {
     return '$quality पर घटाएँ';
   }
+
+  @override
+  String get fightTitle => 'Jungle Fist';
+
+  @override
+  String get fightHubSubtitle =>
+      'रियल-टाइम 1 बनाम 1 लड़ाई। बॉट के ख़िलाफ़ अभ्यास करें।';
+
+  @override
+  String get fightLobbyIntro =>
+      'एक लुक और बॉट का लेवल चुनें, फिर लड़ें। जो पहले दो राउंड जीते, मैच उसका।';
+
+  @override
+  String get fightLookTitle => 'लुक';
+
+  @override
+  String get fightLookCartoon => 'कार्टून';
+
+  @override
+  String get fightLookPainted => 'पेंटेड';
+
+  @override
+  String get fightLookPixel => 'पिक्सेल आर्ट';
+
+  @override
+  String get fightLookFootnote =>
+      'सिर्फ़ आपकी स्क्रीन पर लड़ाई का लुक बदलता है। आप इसे कभी भी बदल सकते हैं, लड़ाई के बीच में भी, पॉज़ मेनू से।';
+
+  @override
+  String get fightFighterTitle => 'फ़ाइटर';
+
+  @override
+  String get fightComingSoon => 'जल्द आ रहा है';
+
+  @override
+  String get fightStart => 'लड़ो';
+
+  @override
+  String get fightPaused => 'रुका हुआ';
+
+  @override
+  String get fightResume => 'जारी रखें';
+
+  @override
+  String get fightRestart => 'फिर से शुरू करें';
+
+  @override
+  String get fightQuit => 'छोड़ें';
+
+  @override
+  String get fightYouWin => 'आप जीत गए';
+
+  @override
+  String get fightYouLose => 'आप हार गए';
+
+  @override
+  String get fightDrawResult => 'बराबरी';
+
+  @override
+  String get fightRematch => 'फिर से मुक़ाबला';
+
+  @override
+  String get fightKeyboardHint =>
+      'WASD या ऐरो से चलें। J हल्का, K भारी, L स्पेशल, Space रोल, I सुपर। Esc से पॉज़।';
+
+  @override
+  String fightHudRound(int n) {
+    return 'राउंड $n';
+  }
+
+  @override
+  String get fightHudFight => 'लड़ो!';
+
+  @override
+  String get fightHudKo => 'नॉकआउट';
+
+  @override
+  String get fightHudTime => 'समय ख़त्म';
+
+  @override
+  String fightHudWins(String name) {
+    return '$name जीता';
+  }
+
+  @override
+  String get fightHudDraw => 'बराबरी';
+
+  @override
+  String fightHudHits(int count) {
+    return '$count हिट';
+  }
 }

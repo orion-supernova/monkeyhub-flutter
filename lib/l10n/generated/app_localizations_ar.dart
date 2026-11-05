@@ -14787,4 +14787,95 @@ class AppLocalizationsAr extends AppLocalizations {
   String callQualityOfferAction(String quality) {
     return 'خفض إلى $quality';
   }
+
+  @override
+  String get fightTitle => 'Jungle Fist';
+
+  @override
+  String get fightHubSubtitle =>
+      'قتال فردي في الوقت الحقيقي. تدرّب ضد الروبوت.';
+
+  @override
+  String get fightLobbyIntro =>
+      'اختر المظهر ومستوى الروبوت، ثم قاتل. أول من يفوز بجولتين يفوز بالمباراة.';
+
+  @override
+  String get fightLookTitle => 'المظهر';
+
+  @override
+  String get fightLookCartoon => 'كرتون';
+
+  @override
+  String get fightLookPainted => 'مرسوم';
+
+  @override
+  String get fightLookPixel => 'بكسل';
+
+  @override
+  String get fightLookFootnote =>
+      'يغيّر فقط شكل القتال على شاشتك. يمكنك تغييره في أي وقت، حتى أثناء القتال من قائمة الإيقاف المؤقت.';
+
+  @override
+  String get fightFighterTitle => 'المقاتل';
+
+  @override
+  String get fightComingSoon => 'قريبًا';
+
+  @override
+  String get fightStart => 'قاتل';
+
+  @override
+  String get fightPaused => 'متوقف مؤقتًا';
+
+  @override
+  String get fightResume => 'استئناف';
+
+  @override
+  String get fightRestart => 'إعادة البدء';
+
+  @override
+  String get fightQuit => 'خروج';
+
+  @override
+  String get fightYouWin => 'لقد فزت';
+
+  @override
+  String get fightYouLose => 'لقد خسرت';
+
+  @override
+  String get fightDrawResult => 'تعادل';
+
+  @override
+  String get fightRematch => 'مباراة ثأرية';
+
+  @override
+  String get fightKeyboardHint =>
+      'تحرّك باستخدام WASD أو الأسهم. J خفيفة، K قوية، L خاصة، Space تدحرج، I الضربة الخارقة. Esc للإيقاف المؤقت.';
+
+  @override
+  String fightHudRound(int n) {
+    return 'الجولة $n';
+  }
+
+  @override
+  String get fightHudFight => 'قاتل!';
+
+  @override
+  String get fightHudKo => 'ضربة قاضية';
+
+  @override
+  String get fightHudTime => 'انتهى الوقت';
+
+  @override
+  String fightHudWins(String name) {
+    return '$name يفوز';
+  }
+
+  @override
+  String get fightHudDraw => 'تعادل';
+
+  @override
+  String fightHudHits(int count) {
+    return '$count ضربات';
+  }
 }

@@ -13976,4 +13976,93 @@ class AppLocalizationsKo extends AppLocalizations {
   String callQualityOfferAction(String quality) {
     return '$quality 화질로 낮추기';
   }
+
+  @override
+  String get fightTitle => 'Jungle Fist';
+
+  @override
+  String get fightHubSubtitle => '실시간 1대1 격투. 봇을 상대로 연습하세요.';
+
+  @override
+  String get fightLobbyIntro => '스타일과 봇 난이도를 고르고 싸우세요. 먼저 두 라운드를 이기면 승리합니다.';
+
+  @override
+  String get fightLookTitle => '스타일';
+
+  @override
+  String get fightLookCartoon => '카툰';
+
+  @override
+  String get fightLookPainted => '페인팅';
+
+  @override
+  String get fightLookPixel => '픽셀 아트';
+
+  @override
+  String get fightLookFootnote =>
+      '내 화면에서 보이는 모습만 바뀝니다. 언제든, 싸우는 도중에도 일시정지 메뉴에서 바꿀 수 있어요.';
+
+  @override
+  String get fightFighterTitle => '파이터';
+
+  @override
+  String get fightComingSoon => '곧 출시';
+
+  @override
+  String get fightStart => '싸우기';
+
+  @override
+  String get fightPaused => '일시정지';
+
+  @override
+  String get fightResume => '계속하기';
+
+  @override
+  String get fightRestart => '다시 시작';
+
+  @override
+  String get fightQuit => '나가기';
+
+  @override
+  String get fightYouWin => '승리';
+
+  @override
+  String get fightYouLose => '패배';
+
+  @override
+  String get fightDrawResult => '무승부';
+
+  @override
+  String get fightRematch => '재대결';
+
+  @override
+  String get fightKeyboardHint =>
+      'WASD나 방향키로 이동. J 약공격, K 강공격, L 필살기, Space 구르기, I 슈퍼. Esc로 일시정지.';
+
+  @override
+  String fightHudRound(int n) {
+    return '라운드 $n';
+  }
+
+  @override
+  String get fightHudFight => '파이트!';
+
+  @override
+  String get fightHudKo => 'K.O.';
+
+  @override
+  String get fightHudTime => '타임 오버';
+
+  @override
+  String fightHudWins(String name) {
+    return '$name 승리';
+  }
+
+  @override
+  String get fightHudDraw => '무승부';
+
+  @override
+  String fightHudHits(int count) {
+    return '$count 히트';
+  }
 }

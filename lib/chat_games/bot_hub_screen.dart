@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../fight/core/bot.dart' as fb;
+import '../fight/view/fight_lobby_screen.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../models/chat_match.dart';
@@ -40,6 +42,20 @@ class _BotHubScreenState extends State<BotHubScreen> {
     if (l == _level) return;
     HapticFeedback.selectionClick();
     setState(() => _level = _remembered = l);
+  }
+
+  void _playFight() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => FightLobbyScreen(
+          level: switch (_level) {
+            BotLevel.easy => fb.BotLevel.easy,
+            BotLevel.medium => fb.BotLevel.normal,
+            BotLevel.hard => fb.BotLevel.hard,
+          },
+        ),
+      ),
+    );
   }
 
   void _play(String game) {
@@ -95,6 +111,13 @@ class _BotHubScreenState extends State<BotHubScreen> {
               style: groupedFooterStyle(theme),
             ),
           ),
+        ),
+        const SizedBox(height: 26),
+        _FightBanner(
+          key: const ValueKey('bot_fight_banner'),
+          title: l10n.fightTitle,
+          subtitle: l10n.fightHubSubtitle,
+          onTap: _playFight,
         ),
         const SizedBox(height: 26),
         GroupedHeader(sentenceCaseOf(context, l10n.botHubPickGame)),
@@ -384,6 +407,56 @@ class _BotGameTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: groupedMetaStyle(theme).copyWith(color: theme.inkMuted),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Jungle Fist's door in Play the bot. It is not a turn game, so it is not a
+/// tile in the grid but a banner above it: the real-time game gets its own
+/// entrance and its own setup page.
+class _FightBanner extends StatelessWidget {
+  const _FightBanner({super.key, required this.title, required this.subtitle, required this.onTap});
+
+  final String title, subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return SpringPress(
+      onTap: onTap,
+      scale: 0.97,
+      semanticLabel: title,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xff2a1240), Color(0xff6a1d3a), Color(0xffa8452c)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(groupedRadius(theme) + 4),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title.toUpperCase(),
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xffffcf6e), letterSpacing: 1),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: theme.body.copyWith(color: const Color(0xe6ffffff), height: 1.3)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Icon(CupertinoIcons.chevron_right, color: Color(0xccffffff), size: 20),
           ],
         ),
       ),

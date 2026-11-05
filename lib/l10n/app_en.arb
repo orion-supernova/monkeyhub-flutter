@@ -17495,5 +17495,128 @@
         "example": "1080p"
       }
     }
+  },
+  "fightTitle": "Jungle Fist",
+  "@fightTitle": {
+    "description": "Name of the real-time fighting game (working title, not translated)."
+  },
+  "fightHubSubtitle": "Real-time 1v1 fighting. Train against the bot.",
+  "@fightHubSubtitle": {
+    "description": "Banner in Play the bot: what the fighting game is."
+  },
+  "fightLobbyIntro": "Pick a look and the bot's level, then fight. First to win two rounds takes the match.",
+  "@fightLobbyIntro": {
+    "description": "Intro text on the fighting game's setup screen."
+  },
+  "fightLookTitle": "Look",
+  "@fightLookTitle": {
+    "description": "Section header: the visual style fights are drawn in."
+  },
+  "fightLookCartoon": "Cartoon",
+  "@fightLookCartoon": {
+    "description": "Visual style option: bold cartoon with ink outlines."
+  },
+  "fightLookPainted": "Painted",
+  "@fightLookPainted": {
+    "description": "Visual style option: soft painted look with lighting and glow."
+  },
+  "fightLookPixel": "Pixel art",
+  "@fightLookPixel": {
+    "description": "Visual style option: retro pixel art."
+  },
+  "fightLookFootnote": "Only changes how fights look on your screen. You can switch it any time, even mid-fight from the pause menu.",
+  "@fightLookFootnote": {
+    "description": "Footnote under the look picker."
+  },
+  "fightFighterTitle": "Fighter",
+  "@fightFighterTitle": {
+    "description": "Section header: choose your fighter."
+  },
+  "fightComingSoon": "Coming soon",
+  "@fightComingSoon": {
+    "description": "Badge on fighters that cannot be picked yet."
+  },
+  "fightStart": "Fight",
+  "@fightStart": {
+    "description": "Button that starts a fight."
+  },
+  "fightPaused": "Paused",
+  "@fightPaused": {
+    "description": "Title of the pause menu during a fight."
+  },
+  "fightResume": "Resume",
+  "@fightResume": {
+    "description": "Pause menu button: continue the fight."
+  },
+  "fightRestart": "Restart",
+  "@fightRestart": {
+    "description": "Pause menu button: start the match over."
+  },
+  "fightQuit": "Quit",
+  "@fightQuit": {
+    "description": "Pause menu button: leave the fight."
+  },
+  "fightYouWin": "You win",
+  "@fightYouWin": {
+    "description": "Result title when the player wins the match."
+  },
+  "fightYouLose": "You lose",
+  "@fightYouLose": {
+    "description": "Result title when the player loses the match."
+  },
+  "fightDrawResult": "Draw",
+  "@fightDrawResult": {
+    "description": "Result title when the match is a draw."
+  },
+  "fightRematch": "Rematch",
+  "@fightRematch": {
+    "description": "Result screen button: play again with the same setup."
+  },
+  "fightKeyboardHint": "Move with WASD or the arrows. J light, K heavy, L special, Space roll, I super. Esc pauses.",
+  "@fightKeyboardHint": {
+    "description": "Keyboard controls shown on desktop. Key names (WASD, J, K, L, I, Space) stay as they are."
+  },
+  "fightHudRound": "ROUND {n}",
+  "@fightHudRound": {
+    "description": "Big callout before a round, uppercase. {n} is the round number.",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "fightHudFight": "FIGHT!",
+  "@fightHudFight": {
+    "description": "Big callout when a round starts, uppercase."
+  },
+  "fightHudKo": "K.O.",
+  "@fightHudKo": {
+    "description": "Big callout when a fighter is knocked out (fighting-game K.O.)."
+  },
+  "fightHudTime": "TIME",
+  "@fightHudTime": {
+    "description": "Big callout when the round timer runs out."
+  },
+  "fightHudWins": "{name} WINS",
+  "@fightHudWins": {
+    "description": "Big callout naming the match winner. {name} is the fighter's name, like KAI.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "fightHudDraw": "DRAW",
+  "@fightHudDraw": {
+    "description": "Big callout when a round or match is a draw."
+  },
+  "fightHudHits": "{count} HITS",
+  "@fightHudHits": {
+    "description": "Combo counter, uppercase. {count} is the number of hits in the combo, always 2 or more.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }
