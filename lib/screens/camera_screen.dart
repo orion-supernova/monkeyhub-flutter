@@ -419,6 +419,20 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   /// the layout is held.
   int _turns = 0;
 
+  /// A black blink over the preview while the capture is re-pointed. See
+  /// [_orientForCapture].
+  bool _blink = false;
+
+  /// Whether the preview's FRAMES would turn with the phone: iOS, held
+  /// portrait. AVFoundation re-orients the frames on its own queue a beat
+  /// before Dart hears the phone turned, and in between a sideways frame was
+  /// drawn squeezed into the portrait box: the flash on every turn. So on iOS
+  /// the frames are pinned portrait while framing ([_orientForFraming]) and
+  /// pointed the way the phone is held only for the shot itself, behind a
+  /// blink. Android's preview is display-relative already and never turned.
+  bool get _pinsFrames =>
+      _holdPortrait == true && defaultTargetPlatform == TargetPlatform.iOS;
+
   @override
   void initState() {
     super.initState();
@@ -553,6 +567,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
 
     try {
       await controller.initialize();
+      await _orientForFraming(controller);
       if (_lensControls) {
         // None of this survives a controller swap, so it is all re-asserted
         // whenever a lens is bound — including on the flip, where the user
@@ -761,6 +776,41 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
     });
   }
 
+  /// Points the capture the way the phone is held, for a photo or a clip,
+  /// behind a quick black blink: the system camera's own shutter blink, and
+  /// exactly as long as the frames need to come back the new way up. Upright
+  /// already, there is nothing to re-point and no blink.
+  Future<void> _orientForCapture(CameraController controller) async {
+    if (!_pinsFrames) return;
+    final held = controller.value.deviceOrientation;
+    if (held == controller.value.lockedCaptureOrientation) return;
+    setState(() => _blink = true);
+    await Future<void>.delayed(const Duration(milliseconds: 70));
+    try {
+      await controller.lockCaptureOrientation(held);
+    } catch (_) {
+      // Captured upright instead; still a photo.
+    }
+  }
+
+  /// Back to portrait frames for framing, and the blink lifted once they
+  /// have had a frame or two to arrive that way. See [_pinsFrames].
+  Future<void> _orientForFraming(CameraController controller) async {
+    if (_pinsFrames &&
+        controller.value.lockedCaptureOrientation != DeviceOrientation.portraitUp) {
+      try {
+        await controller.lockCaptureOrientation(DeviceOrientation.portraitUp);
+      } catch (_) {}
+    }
+    await _liftBlink();
+  }
+
+  Future<void> _liftBlink() async {
+    if (!_blink) return;
+    await Future<void>.delayed(const Duration(milliseconds: 90));
+    if (mounted) setState(() => _blink = false);
+  }
+
   bool get _isFront => _lens == CameraLensDirection.front;
   bool get _ready => _controller?.value.isInitialized ?? false;
 
@@ -795,16 +845,23 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
       } catch (_) {}
       _metering = false;
     }
+    // The clip is written the way the phone is held when it starts, and stays
+    // that way, as every camera does.
+    await _orientForCapture(controller);
     try {
       await controller.startVideoRecording();
     } on CameraException catch (e) {
+      unawaited(_orientForFraming(controller));
       _fail(e);
       return;
     } catch (e) {
       debugPrint('startVideoRecording: $e');
+      unawaited(_orientForFraming(controller));
       if (mounted) setState(() => _fault = _Fault.failed);
       return;
     }
+    // Kept pointed this way for the whole clip; only the blink goes.
+    unawaited(_liftBlink());
     HapticFeedback.mediumImpact();
     if (!mounted) {
       // Stopped rather than left running: this route is going away and nothing
@@ -853,6 +910,8 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
     } catch (e) {
       debugPrint('stopVideoRecording: $e');
     }
+    // Framing again, if this screen stays (a discard, a failed stop).
+    unawaited(_orientForFraming(controller));
     if (file == null) {
       if (mounted) setState(() => _capturing = false);
       return;
@@ -1167,15 +1226,19 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
       if (!mounted) return;
     }
 
+    await _orientForCapture(controller);
     final Uint8List bytes;
     try {
       final shot = await controller.takePicture();
+      // The still is taken; framing needs portrait frames back.
+      unawaited(_orientForFraming(controller));
       // XFile.readAsBytes, not File(shot.path): on web `takePicture` hands back
       // a `blob:` URL, and cross_file fetches it. On mobile it reads the temp
       // file the plugin just wrote.
       bytes = await shot.readAsBytes();
     } catch (_) {
       if (!mounted) return;
+      unawaited(_liftBlink());
       await _recover();
       return;
     }
@@ -1429,6 +1492,16 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                     top: _focusPoint!.dy - 36,
                     child: const IgnorePointer(child: _FocusReticle()),
                   ),
+                // The blink behind which the capture is re-pointed: in fast
+                // like a shutter, out a touch slower. See [_orientForCapture].
+                IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: _blink ? 1 : 0,
+                    duration: Duration(milliseconds: _blink ? 70 : 200),
+                    curve: Curves.easeOut,
+                    child: const ColoredBox(color: Colors.black),
+                  ),
+                ),
                 // A brief white wash on the shutter, so the capture is felt as
                 // well as heard.
                 IgnorePointer(
@@ -1723,9 +1796,10 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
 /// stays portrait and only the picture is turned to match it, by the same
 /// rotation `CameraPreview` applies on Android ([quarterTurnsFor]):
 ///
-///  * iOS turns its frames with the device, so a landscape phone sends
-///    landscape frames; turning them back sits them upright in the portrait
-///    box. That is also what makes a landscape capture come out landscape.
+///  * iOS turns its frames with the capture orientation. While framing that
+///    is pinned portrait (no turn at all, so nothing to flash); for a shot or
+///    a clip it is pointed the way the phone is held, and the frames that then
+///    arrive landscape are turned back upright here, behind the blink.
 ///  * Android's camerax preview already corrects itself against the display
 ///    and subtracts this same rotation, expecting `CameraPreview` to add it
 ///    back; adding it here keeps the sum at the display's, which is portrait.
