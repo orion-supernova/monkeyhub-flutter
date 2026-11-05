@@ -36,6 +36,11 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
   final fb.FightBot _b1 = fb.FightBot(seed: 11, level: fb.BotLevel.hard);
   final fb.FightBot _b2 = fb.FightBot(seed: 23, level: fb.BotLevel.hard);
   final ValueNotifier<int> _frame = ValueNotifier(0);
+
+  /// The look cards are STILL frames of the demo, taken mid-fight and
+  /// refreshed each bout: one live renderer (the hero) instead of four.
+  FightState? _still;
+  final ValueNotifier<int> _stillTick = ValueNotifier(0);
   final FightRenderer _hero = FightRenderer();
   final Map<FightLook, FightRenderer> _previews = {for (final l in FightLook.values) l: FightRenderer()};
   late final Ticker _ticker;
@@ -53,6 +58,7 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
 
   void _resetDemo() {
     _seed = (_seed * 48271) % 2147483647;
+    _still = null;
     // The demo shows your pick against a different fighter each bout.
     final me = fightCharOf(SettingsStore.instance.fightChar);
     var other = _seed % roster.length;
@@ -86,6 +92,15 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
     _overFrames = _demo.phase == Phase.over ? _overFrames + 1 : 0;
     if (_overFrames > 180) _resetDemo();
     _frame.value = _demo.frame;
+    // A moment with both fighters busy makes the best card.
+    if (_still == null && _demo.phase == Phase.fight && _demo.frame >= 200) {
+      _still = _demo.copy();
+      _stillTick.value++;
+      // Once more after the pixel palette (built asynchronously) is ready.
+      Future<void>.delayed(const Duration(milliseconds: 700), () {
+        if (mounted) _stillTick.value++;
+      });
+    }
   }
 
   @override
@@ -97,6 +112,7 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
       r.dispose();
     }
     _frame.dispose();
+    _stillTick.dispose();
     super.dispose();
   }
 
@@ -122,8 +138,15 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
     final text = fightHudText(l10n);
     final names = [_demo.chars[0].name, _demo.chars[1].name];
 
-    Widget view(FightRenderer r, FightLook l) => CustomPaint(
-      painter: FightPainter(renderer: r, state: () => _demo, look: l, names: names, text: text, repaint: _frame),
+    Widget view(FightRenderer r, FightLook l, {bool still = false}) => CustomPaint(
+      painter: FightPainter(
+        renderer: r,
+        state: still ? () => _still ?? _demo : () => _demo,
+        look: l,
+        names: names,
+        text: text,
+        repaint: still ? _stillTick : _frame,
+      ),
       child: const SizedBox.expand(),
     );
 
@@ -163,7 +186,7 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
                     FightLook.pixel => l10n.fightLookPixel,
                   },
                   selected: l == look,
-                  preview: RepaintBoundary(child: view(_previews[l]!, l)),
+                  preview: RepaintBoundary(child: view(_previews[l]!, l, still: true)),
                   onTap: () {
                     HapticFeedback.selectionClick();
                     SettingsStore.instance.setFightLook(fightLookWire(l));

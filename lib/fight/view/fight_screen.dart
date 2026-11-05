@@ -17,6 +17,7 @@ import 'art/fight_art.dart';
 import 'fight_audio.dart';
 import 'fight_audio_toggles.dart';
 import 'fight_controls.dart';
+import 'fight_quality.dart';
 import 'fight_renderer.dart';
 
 FightLook fightLookOf(String wire) => switch (wire) {
@@ -156,6 +157,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
   final ValueNotifier<int> _frame = ValueNotifier(0);
   final ValueNotifier<bool> _superReady = ValueNotifier(false);
   final FocusNode _focus = FocusNode(debugLabel: 'fight');
+  final FightQualityGovernor _governor = FightQualityGovernor();
   late final Ticker _ticker;
   Duration _last = Duration.zero, _acc = Duration.zero;
   bool _paused = false, _over = false;
@@ -170,6 +172,10 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
     FightRenderer.warmUp();
     _newMatch();
     _ticker = createTicker(_tick)..start();
+    _governor.start();
+    final displays = WidgetsBinding.instance.platformDispatcher.displays;
+    final hz = displays.isEmpty ? 60.0 : displays.first.refreshRate;
+    if (hz > 0) _governor.setRefreshInterval(Duration(microseconds: (1e6 / hz).round()));
     SettingsStore.instance.addListener(_onSettings);
     _input.startGamepad(onActivity: _onPadActivity, onStart: () => _setPaused(!_paused));
     unawaited(FightAudio.instance.open().then((_) => FightAudio.instance.startMusic()));
@@ -189,6 +195,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
   void _tick(Duration now) {
     var dt = now - _last;
     _last = now;
+    _governor.onTick(dt);
     if (_paused && _d.offline) return;
     if (dt > const Duration(milliseconds: 100)) dt = const Duration(milliseconds: 100); // after a stall, don't fast-forward
     _acc += dt;
@@ -273,6 +280,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
     _input.gamepadConnected.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _ticker.dispose();
+    _governor.stop();
     unawaited(FightAudio.instance.close());
     _renderer.dispose();
     _frame.dispose();

@@ -46,6 +46,9 @@ class FightRenderer {
   Size _pixSize = Size.zero;
   ui.Image? _pixStage, _pixActors, _pixHud;
   _Palette? _actorPal, _stagePal;
+  double _stageCamX = double.nan, _stageCamScale = 0;
+  int _stageFrame = -1;
+  bool _stagePalDirty = false;
   bool _buildingPalette = false;
 
   void dispose() {
@@ -86,12 +89,23 @@ class FightRenderer {
       _pixFrame = s.frame;
       final w = low.width.toInt(), h = low.height.toInt();
 
-      final stageRaw = _record(low, (c) => art.paintStage(c, low, lowCam, FightLook.pixel, s.frame));
+      // The stage is the costliest layer (dithered, full screen): redraw it
+      // only when the camera moved by a low-res pixel, or every half second
+      // for the neon and the string lights.
+      final camMoved = (lowCam.originX - _stageCamX).abs() >= .5 || (lowCam.scale - _stageCamScale).abs() > .002;
+      final stageDue = _pixStage == null || camMoved || s.frame - _stageFrame >= 30 || s.frame < _stageFrame || _stagePalDirty;
+      final stageRaw = stageDue || _actorPal == null ? _record(low, (c) => art.paintStage(c, low, lowCam, FightLook.pixel, s.frame)) : null;
       final actorsRaw = _record(low, (c) => art.paintActors(c, low, lowCam, s, FightLook.pixel));
-      _replace(() => _pixStage, (v) => _pixStage = v, _process(stageRaw, w, h, _stagePal, dither: 0.09, outline: false));
+      if (stageDue && stageRaw != null) {
+        _stageCamX = lowCam.originX;
+        _stageCamScale = lowCam.scale;
+        _stageFrame = s.frame;
+        _stagePalDirty = false;
+        _replace(() => _pixStage, (v) => _pixStage = v, _process(stageRaw, w, h, _stagePal, dither: 0.09, outline: false));
+      }
       _replace(() => _pixActors, (v) => _pixActors = v, _process(actorsRaw, w, h, _actorPal, dither: 0, outline: true));
       _replace(() => _pixHud, (v) => _pixHud = v, _record(low, (c) => art.paintHud(c, low, s, FightLook.pixel, names, text: text)).toImageSync(w, h));
-      if (_actorPal == null && !_buildingPalette) _buildPalettes(stageRaw, actorsRaw, w, h);
+      if (_actorPal == null && !_buildingPalette && stageRaw != null) _buildPalettes(stageRaw, actorsRaw, w, h);
     }
     final dst = Offset.zero & size;
     final paint = Paint()..filterQuality = FilterQuality.none;
@@ -155,6 +169,7 @@ class FightRenderer {
       _stagePal = await _Palette.build(stageColors);
       _actorPal = await _Palette.build(actorColors);
       _pixFrame = -_pixelStride; // re-render with the palettes now
+      _stagePalDirty = true;
     } finally {
       _buildingPalette = false;
     }

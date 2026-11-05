@@ -35,14 +35,23 @@ String fightFamilyName(AppLocalizations l10n, FightFamily f) => switch (f) {
 /// Clamps a stored pick to the roster.
 int fightCharOf(int id) => id >= 0 && id < roster.length ? id : 0;
 
-/// Every fighter as a grid of cards, the picked one alive (only it animates,
-/// so twenty portraits cost one ticker).
+/// The cast by family, in the order the picker shows them: each family
+/// starts with its starter (KAI, MOJO, TANK, NYX), then the rest by id.
+const List<(FightFamily, List<int>)> kFightFamilies = [
+  (FightFamily.human, [0, 12, 13, 14, 15]),
+  (FightFamily.monkey, [1, 4, 5, 6, 7]),
+  (FightFamily.animal, [2, 8, 9, 10, 11]),
+  (FightFamily.legend, [3, 16, 17, 18, 19]),
+];
+
+/// Every fighter, grouped by family: a header and a row of five cards per
+/// family. The picked one is alive (only it animates, so twenty portraits
+/// cost one ticker); rows scroll sideways when the screen is too narrow.
 class FightCharacterGrid extends StatelessWidget {
-  const FightCharacterGrid({super.key, required this.selected, required this.onPick, this.columns = 4, this.look = FightLook.cartoon});
+  const FightCharacterGrid({super.key, required this.selected, required this.onPick, this.look = FightLook.cartoon});
 
   final int selected;
   final ValueChanged<int> onPick;
-  final int columns;
   final FightLook look;
 
   @override
@@ -51,27 +60,54 @@ class FightCharacterGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, box) {
         const gap = 8.0;
-        final w = (box.maxWidth - gap * (columns - 1)) / columns;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
+        // Five across when they fit at a readable size, else a sideways row.
+        final fit = (box.maxWidth - gap * 4) / 5;
+        final w = fit >= 76 ? fit : 84.0;
+        final h = w * 1.3;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final c in roster)
+            for (final (fam, ids) in kFightFamilies) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(2, 10, 0, 6),
+                child: Row(
+                  children: [
+                    Container(width: 10, height: 10, decoration: BoxDecoration(color: fightFamilyTones(fam).$3, shape: BoxShape.circle)),
+                    const SizedBox(width: 7),
+                    Text(
+                      fightFamilyName(l10n, fam).toUpperCase(),
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: Color(0xb3ffffff)),
+                    ),
+                  ],
+                ),
+              ),
               SizedBox(
-                width: w,
-                height: w * 1.32,
-                child: _Card(
-                  key: ValueKey('fight_char_${c.id}'),
-                  char: c,
-                  family: fightFamilyName(l10n, fightFamilyOf(c.id)),
-                  selected: c.id == selected,
-                  look: look,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    onPick(c.id);
+                height: h,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: fit >= 76 ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+                  itemCount: ids.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: gap),
+                  itemBuilder: (context, i) {
+                    final c = roster[ids[i]];
+                    return SizedBox(
+                      width: w,
+                      child: _Card(
+                        key: ValueKey('fight_char_${c.id}'),
+                        char: c,
+                        family: fightFamilyName(l10n, fam),
+                        selected: c.id == selected,
+                        look: look,
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          onPick(c.id);
+                        },
+                      ),
+                    );
                   },
                 ),
               ),
+            ],
           ],
         );
       },
