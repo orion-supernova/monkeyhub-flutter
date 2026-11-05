@@ -345,8 +345,12 @@ Future<void> configureVideoSenders(
         // `high` makes the camera give way first, so a bad network costs
         // picture before it costs words. `networkPriority` marks the
         // packets for the voice queue (DSCP EF) where a network honours it,
-        // which home Wi-Fi routers (WMM) commonly do; see `enableDscp` in
-        // [kCallPeerConnectionTuning].
+        // which home Wi-Fi routers (WMM) commonly do, once DSCP is enabled.
+        // It is NOT enabled: `enableDscp` (with
+        // `iceBackupCandidatePairPingInterval`) in the connection config made
+        // libwebrtc refuse to create the peer connection on iPhone in
+        // 1.3.140, and every call hung before its offer. Keep both out of the
+        // config unless tested on a device.
         final params = sender.parameters;
         var encodings = params.encodings;
         if (encodings == null || encodings.isEmpty) {
@@ -499,19 +503,6 @@ Future<void> preferOpusRed(RTCPeerConnection pc) async {
     debugPrint('preferOpusRed skipped: $e');
   }
 }
-
-/// Peer connection settings every call path adds to its config.
-///
-/// `enableDscp` lets [configureVideoSenders]' `networkPriority` reach the
-/// wire as a DSCP mark (Darwin reads it; Android's plugin ignores the key,
-/// harmlessly). `iceBackupCandidatePairPingInterval` keeps a second
-/// candidate pair warm, so when the path carrying media dies (Wi-Fi fading
-/// as you walk out the door) ICE can switch to a pair it has already proven
-/// instead of starting from cold.
-const Map<String, dynamic> kCallPeerConnectionTuning = {
-  'enableDscp': true,
-  'iceBackupCandidatePairPingInterval': 2000,
-};
 
 /// Classify the AVAudioSession for calling BEFORE the callkit plugin's
 /// generic playAndRecord/.default config wins: voiceChat/videoChat modes

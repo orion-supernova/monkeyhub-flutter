@@ -3263,7 +3263,6 @@ class CallService extends ChangeNotifier
       // See [kIceGatheringPolicy]: keep gathering when the phone changes
       // networks, so a Wi-Fi → cellular move can heal without a restart.
       'continualGatheringPolicy': kIceGatheringPolicy,
-      ...kCallPeerConnectionTuning,
       // Full ICE — host > srflx > relay by priority, so TURN carries media
       // only when no direct path exists. Host (LAN) probing triggers iOS's
       // Local Network prompt; kAllowLanCandidates=false filters those out

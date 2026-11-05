@@ -1031,7 +1031,6 @@ class GroupCallService extends ChangeNotifier
       'rtcpMuxPolicy': 'require',
       'iceCandidatePoolSize': 2,
       'continualGatheringPolicy': kIceGatheringPolicy,
-      ...kCallPeerConnectionTuning,
     }, {});
 
     pc.onIceCandidate = (cand) {

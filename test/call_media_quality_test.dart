@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/calls/call_media.dart';
 import 'package:monkeyhub/calls/call_models.dart';
 
 void main() {
+  _noRejectedConfigKeys();
   group('videoConstraintsFor', () {
     test('native platforms get bare numbers the plugins can read', () {
       // A `{ideal: n}` map reached iPhone and Mac as a 0x0 target, so the
@@ -61,5 +64,24 @@ void main() {
       expect(orderOpusRedFirst(['audio/opus', 'audio/PCMU'], id), isNull);
       expect(orderOpusRedFirst(['audio/red', 'audio/PCMU'], id), isNull);
     });
+  });
+}
+
+/// 1.3.140: `enableDscp` + `iceBackupCandidatePairPingInterval` in the call
+/// connection config made libwebrtc refuse the peer connection on iPhone,
+/// and every call hung before its offer. Keep them out until a real device
+/// says otherwise.
+void _noRejectedConfigKeys() {
+  test('call configs carry no keys libwebrtc rejected on device', () {
+    for (final path in [
+      'lib/calls/call_service.dart',
+      'lib/calls/group_call_service.dart',
+      'lib/calls/call_media.dart',
+    ]) {
+      final src = File(path).readAsStringSync();
+      for (final key in ["'enableDscp'", "'iceBackupCandidatePairPingInterval'"]) {
+        expect(src.contains(key), isFalse, reason: '$key in $path');
+      }
+    }
   });
 }

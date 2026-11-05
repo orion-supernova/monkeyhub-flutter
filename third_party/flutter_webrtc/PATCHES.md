@@ -99,6 +99,14 @@ to Dart") ships. A bump must re-apply every patch below.
   dark picture; on iPhone it also turns on low-light boost, continuous
   AE/AF/AWB and automatic video HDR where supported.
 
+- **W9, a rejected peer connection fails loudly** (Darwin,
+  `FlutterWebRTCPlugin.m` `createPeerConnection`). libwebrtc returns nil
+  for a configuration it refuses; the plugin carried on and answered with
+  an id nothing native backed, so Dart's event-channel listen threw
+  MissingPluginException and every call hung before its offer (1.3.140,
+  caused by `enableDscp` + `iceBackupCandidatePairPingInterval` in the
+  app's config, since removed). Now it returns a FlutterError.
+
 Checked against 1.6.3 (2026-10-26): #1996, #2095, #2111 and PR #2197 are
 all still open, so the pin stands.
 

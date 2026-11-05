@@ -389,6 +389,18 @@ static FlutterWebRTCPlugin *sharedSingleton;
                             constraints:[self parseMediaConstraints:constraints]
                                delegate:self];
 
+    // MONKEYHUB PATCH W9: libwebrtc returns nil for a configuration it
+    // rejects. This used to carry on with a nil connection and answer with
+    // an id nothing native backs: the Dart side then failed to listen on
+    // its event channel and every later call on it hung, so a call stalled
+    // silently before its offer (1.3.140). Fail the call instead.
+    if (peerConnection == nil) {
+      result([FlutterError errorWithCode:@"createPeerConnectionFailed"
+                                 message:@"libwebrtc rejected the peer connection configuration"
+                                 details:nil]);
+      return;
+    }
+
     peerConnection.remoteStreams = [NSMutableDictionary new];
     peerConnection.remoteTracks = [NSMutableDictionary new];
     peerConnection.dataChannels = [NSMutableDictionary new];
