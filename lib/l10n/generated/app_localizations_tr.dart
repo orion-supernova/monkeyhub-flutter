@@ -14730,4 +14730,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String fightOnlineResultLeft(String name) {
     return '$name dövüşten ayrıldı.';
   }
+
+  @override
+  String get fightOnlineUpdateHint =>
+      'İkinizin de MonkeyHub\'ın en son sürümüne sahip olması gerekiyor.';
 }

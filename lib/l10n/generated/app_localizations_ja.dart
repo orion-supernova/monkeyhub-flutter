@@ -14128,4 +14128,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String fightOnlineResultLeft(String name) {
     return '$nameがバトルから抜けました。';
   }
+
+  @override
+  String get fightOnlineUpdateHint => '二人とも最新版のMonkeyHubが必要です。';
 }

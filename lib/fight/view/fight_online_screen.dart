@@ -9,11 +9,13 @@ import '../../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/chat_match.dart';
 import '../../push/device_identity.dart';
+import '../../data/settings_store.dart';
 import '../../widgets/spring_press.dart';
 import '../core/core.dart';
 import '../net/fight_link.dart';
 import '../net/rollback_session.dart';
 import 'fight_screen.dart';
+import 'fighter_portrait.dart';
 
 /// Opens the online fight for a `fight` chat match (lobby, connect, fight,
 /// result). The one door every chat entry point uses: the start sheet after
@@ -471,7 +473,14 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
           ],
         );
       case _Phase.failed:
-        status = Text(l10n.fightOnlineCouldNotConnect(opp?.name ?? ''), textAlign: TextAlign.center);
+        status = Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.fightOnlineCouldNotConnect(opp?.name ?? ''), textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text(l10n.fightOnlineUpdateHint, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xb3ffffff))),
+          ],
+        );
         action = _BigButton(label: l10n.fightOnlineTryAgain, onTap: _retry);
       case _Phase.over:
         final won = mine >= 0 && m.winner == mine, lost = mine >= 0 && m.winner == 1 - mine;
@@ -512,12 +521,12 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
         const Spacer(),
         Row(
           children: [
-            Expanded(child: _SeatCard(name: left?.name, ready: left?.ready ?? false, tone: 0, height: cardH)),
+            Expanded(child: FightSeatCard(name: left?.name, ready: left?.ready ?? false, tone: 0, height: cardH)),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 10),
               child: Text('VS', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, color: Colors.white)),
             ),
-            Expanded(child: _SeatCard(name: right?.name, ready: right?.ready ?? false, tone: 1, height: cardH)),
+            Expanded(child: FightSeatCard(name: right?.name, ready: right?.ready ?? false, tone: 1, height: cardH)),
           ],
         ),
         SizedBox(height: box.maxHeight < 360 ? 12 : 28),
@@ -530,8 +539,8 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
   }
 }
 
-class _SeatCard extends StatelessWidget {
-  const _SeatCard({required this.name, required this.ready, required this.tone, required this.height});
+class FightSeatCard extends StatelessWidget {
+  const FightSeatCard({required this.name, required this.ready, required this.tone, required this.height});
   final String? name;
   final bool ready;
   final int tone;
@@ -540,30 +549,63 @@ class _SeatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = tone == 0 ? const [Color(0xff1fb5a8), Color(0xff0c3d3a)] : const [Color(0xffc8313b), Color(0xff3d0c14)];
+    final look = fightLookOf(SettingsStore.instance.fightLook);
     return SizedBox(
       height: height,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(12),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: ready ? const Color(0xffffd23a) : const Color(0x33ffffff), width: 2.5),
           boxShadow: const [BoxShadow(color: Color(0x66000000), blurRadius: 24, offset: Offset(0, 12))],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            if (ready) const Icon(CupertinoIcons.checkmark_seal_fill, color: Color(0xffffd23a), size: 22),
-            const Spacer(),
-            Text(
-              roster[0].name,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xb3ffffff), letterSpacing: 1),
+            // The fighter, alive: an empty seat shows a dim silhouette-free card.
+            if (name != null)
+              Positioned.fill(
+                bottom: 44,
+                child: FighterPortrait(
+                  alt: tone == 1,
+                  facingLeft: tone == 1,
+                  ready: ready,
+                  look: look,
+                  glow: tone == 0 ? const Color(0xff3fd2c7) : const Color(0xffff6a5c),
+                ),
+              ),
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 90,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x00000000), Color(0x99000000)]),
+                ),
+              ),
             ),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(name ?? '?', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
+            if (ready)
+              const Positioned(top: 10, right: 10, child: Icon(CupertinoIcons.checkmark_seal_fill, color: Color(0xffffd23a), size: 24)),
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 10,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    roster[0].name,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xb3ffffff), letterSpacing: 1),
+                  ),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(name ?? '?', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

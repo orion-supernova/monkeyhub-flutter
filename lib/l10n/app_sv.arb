@@ -4074,5 +4074,6 @@
   "fightOnlineLost": "Anslutningen bröts",
   "fightOnlinePing": "Ping {ms} ms",
   "fightOnlineResultDisputed": "Era telefoner var oense om resultatet, så det räknas som oavgjort.",
-  "fightOnlineResultLeft": "{name} lämnade striden."
+  "fightOnlineResultLeft": "{name} lämnade striden.",
+  "fightOnlineUpdateHint": "Ni behöver båda den senaste versionen av MonkeyHub."
 }

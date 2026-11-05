@@ -17755,5 +17755,9 @@
         "type": "String"
       }
     }
+  },
+  "fightOnlineUpdateHint": "You both need the latest version of MonkeyHub.",
+  "@fightOnlineUpdateHint": {
+    "description": "Under the could-not-connect message: the most common cause is that the opponent's app is too old to have online fights."
   }
 }

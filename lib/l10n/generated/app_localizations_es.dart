@@ -14936,4 +14936,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String fightOnlineResultLeft(String name) {
     return '$name abandonó la pelea.';
   }
+
+  @override
+  String get fightOnlineUpdateHint =>
+      'Los dos necesitan la última versión de MonkeyHub.';
 }

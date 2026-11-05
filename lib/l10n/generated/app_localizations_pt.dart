@@ -14939,6 +14939,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String fightOnlineResultLeft(String name) {
     return '$name saiu do combate.';
   }
+
+  @override
+  String get fightOnlineUpdateHint =>
+      'Precisam ambos da versão mais recente do MonkeyHub.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -29858,4 +29862,8 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String fightOnlineResultLeft(String name) {
     return '$name saiu da luta.';
   }
+
+  @override
+  String get fightOnlineUpdateHint =>
+      'Vocês dois precisam da versão mais recente do MonkeyHub.';
 }

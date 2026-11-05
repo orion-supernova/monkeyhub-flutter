@@ -4074,5 +4074,6 @@
   "fightOnlineLost": "연결이 끊겼어요",
   "fightOnlinePing": "핑 {ms}ms",
   "fightOnlineResultDisputed": "두 휴대폰의 결과가 달라서 무승부로 처리됐어요.",
-  "fightOnlineResultLeft": "{name} 님이 싸움에서 나갔어요."
+  "fightOnlineResultLeft": "{name} 님이 싸움에서 나갔어요.",
+  "fightOnlineUpdateHint": "두 사람 모두 MonkeyHub 최신 버전이 필요해요."
 }

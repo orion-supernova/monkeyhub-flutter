@@ -12,6 +12,7 @@ import '../core/core.dart';
 import 'art/fight_art.dart';
 import 'fight_renderer.dart';
 import 'fight_screen.dart';
+import 'fighter_portrait.dart';
 
 /// Jungle Fist's setup page, opened from Play the bot: a live bot-vs-bot
 /// demo up top, the fighter, and the three looks, each previewed live.
@@ -263,28 +264,38 @@ class _FighterRow extends StatelessWidget {
             child: Opacity(
               opacity: i == 0 ? 1 : 0.55,
               child: Container(
-                height: 92,
-                padding: const EdgeInsets.fromLTRB(10, 8, 8, 10),
+                height: 132,
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: _tones[i], begin: Alignment.topLeft, end: Alignment.bottomRight),
                   borderRadius: BorderRadius.circular(groupedRadius(theme)),
                   border: Border.all(color: i == 0 ? const Color(0xffff8a3d) : Colors.transparent, width: 2),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Stack(
                   children: [
-                    if (i != 0)
-                      Text(
-                        comingSoon,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xccffffff)),
+                    Positioned.fill(bottom: 18, child: FighterPortrait(charId: c.id, glow: _tones[i][0])),
+                    Positioned(
+                      left: 8,
+                      right: 6,
+                      top: 6,
+                      child: i == 0
+                          ? const SizedBox.shrink()
+                          : Text(
+                              comingSoon,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xe6ffffff)),
+                            ),
+                    ),
+                    Positioned(
+                      left: 8,
+                      right: 6,
+                      bottom: 6,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(c.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
                       ),
-                    const Spacer(),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(c.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
                     ),
                   ],
                 ),

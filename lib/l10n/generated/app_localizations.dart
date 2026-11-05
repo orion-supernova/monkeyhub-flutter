@@ -24606,6 +24606,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name} left the fight.'**
   String fightOnlineResultLeft(String name);
+
+  /// Under the could-not-connect message: the most common cause is that the opponent's app is too old to have online fights.
+  ///
+  /// In en, this message translates to:
+  /// **'You both need the latest version of MonkeyHub.'**
+  String get fightOnlineUpdateHint;
 }
 
 class _AppLocalizationsDelegate

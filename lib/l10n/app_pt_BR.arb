@@ -4074,5 +4074,6 @@
   "fightOnlineLost": "Conexão perdida",
   "fightOnlinePing": "Ping {ms} ms",
   "fightOnlineResultDisputed": "Os celulares de vocês discordaram do resultado, então conta como empate.",
-  "fightOnlineResultLeft": "{name} saiu da luta."
+  "fightOnlineResultLeft": "{name} saiu da luta.",
+  "fightOnlineUpdateHint": "Vocês dois precisam da versão mais recente do MonkeyHub."
 }

@@ -4074,5 +4074,6 @@
   "fightOnlineLost": "कनेक्शन टूट गया",
   "fightOnlinePing": "पिंग {ms} ms",
   "fightOnlineResultDisputed": "आपके फ़ोन नतीजे पर सहमत नहीं हुए, इसलिए इसे बराबरी माना गया।",
-  "fightOnlineResultLeft": "{name} ने लड़ाई छोड़ दी।"
+  "fightOnlineResultLeft": "{name} ने लड़ाई छोड़ दी।",
+  "fightOnlineUpdateHint": "आप दोनों को MonkeyHub का नया संस्करण चाहिए।"
 }

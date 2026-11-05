@@ -13995,4 +13995,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String fightOnlineResultLeft(String name) {
     return '$name离开了战斗。';
   }
+
+  @override
+  String get fightOnlineUpdateHint => '你们都需要最新版本的 MonkeyHub。';
 }

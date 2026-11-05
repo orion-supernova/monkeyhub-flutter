@@ -4074,5 +4074,6 @@
   "fightOnlineLost": "接続が切れました",
   "fightOnlinePing": "Ping {ms} ms",
   "fightOnlineResultDisputed": "二人の端末で結果が一致しなかったため、引き分けになりました。",
-  "fightOnlineResultLeft": "{name}がバトルから抜けました。"
+  "fightOnlineResultLeft": "{name}がバトルから抜けました。",
+  "fightOnlineUpdateHint": "二人とも最新版のMonkeyHubが必要です。"
 }

@@ -14161,4 +14161,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String fightOnlineResultLeft(String name) {
     return '$name 님이 싸움에서 나갔어요.';
   }
+
+  @override
+  String get fightOnlineUpdateHint => '두 사람 모두 MonkeyHub 최신 버전이 필요해요.';
 }

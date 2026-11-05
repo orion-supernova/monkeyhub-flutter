@@ -4074,5 +4074,6 @@
   "fightOnlineLost": "连接已断开",
   "fightOnlinePing": "延迟 {ms} 毫秒",
   "fightOnlineResultDisputed": "你们的手机结果不一致，因此算作平局。",
-  "fightOnlineResultLeft": "{name}离开了战斗。"
+  "fightOnlineResultLeft": "{name}离开了战斗。",
+  "fightOnlineUpdateHint": "你们都需要最新版本的 MonkeyHub。"
 }
