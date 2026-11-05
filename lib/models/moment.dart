@@ -212,6 +212,17 @@ class Moment {
   String? get thumbStorageId =>
       mediaKind == MomentMedia.video ? posterStorageId : mediaStorageId;
 
+  /// Whether this moment opens full screen: anything with a picture, and any
+  /// video, poster or not.
+  ///
+  /// Not the same as [thumbStorageId] != null. A video posted before the web
+  /// grew a poster of its own (or from a desktop, which still has none) has no
+  /// picture, and gating the full-screen viewer on one opened it as a words-
+  /// only card with no way to play it at all.
+  bool get opensFullScreen =>
+      thumbStorageId != null ||
+      (mediaKind == MomentMedia.video && mediaStorageId != null);
+
   /// Whether this still counts toward friends' boards at [now].
   ///
   /// Takes the instant rather than reading the clock so the expiry sweep and

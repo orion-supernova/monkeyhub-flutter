@@ -14,6 +14,16 @@ void main() {
     expect(quarterTurnsFor(DeviceOrientation.landscapeLeft), 3);
   });
 
+  test('glyphs turn against the phone, the opposite of the preview', () {
+    // Phone top on the left (turned counter-clockwise): the glyph turns a
+    // quarter clockwise to stay level. Sharing the preview's map spun every
+    // camera button the wrong way.
+    expect(glyphTurnsFor(DeviceOrientation.portraitUp), 0);
+    expect(glyphTurnsFor(DeviceOrientation.landscapeLeft), 1);
+    expect(glyphTurnsFor(DeviceOrientation.portraitDown), 2);
+    expect(glyphTurnsFor(DeviceOrientation.landscapeRight), 3);
+  });
+
   test('unturning undoes a clockwise turn of the picture', () {
     // A clockwise quarter turn sends (x, y) to (1 - y, x).
     Offset turn(Offset p) => Offset(1 - p.dy, p.dx);
