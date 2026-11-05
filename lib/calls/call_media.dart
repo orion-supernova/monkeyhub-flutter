@@ -386,6 +386,35 @@ Future<void> configureVideoSenders(
   }
 }
 
+/// Shrinks what the camera [sender] sends without touching the camera: the
+/// encoder scales every frame down by [scale] (1 = full size) and caps at
+/// [maxBitrate] (the data saver's cap still wins). See `SendQualityLadder`.
+Future<void> scaleCameraSender(
+  RTCRtpSender sender, {
+  required double scale,
+  required int maxBitrate,
+}) async {
+  try {
+    final params = sender.parameters;
+    var encodings = params.encodings;
+    if (encodings == null || encodings.isEmpty) {
+      encodings = [RTCRtpEncoding()];
+    }
+    final cap = callsSaveData
+        ? math.min(maxBitrate, kDataSaverVideoBitrate)
+        : maxBitrate;
+    for (final e in encodings) {
+      e.scaleResolutionDownBy = scale < 1 ? 1.0 : scale;
+      e.maxBitrate = cap;
+    }
+    params.encodings = encodings;
+    final ok = await sender.setParameters(params);
+    if (!ok) debugPrint('scaleCameraSender: setParameters rejected');
+  } catch (e) {
+    debugPrint('scaleCameraSender skipped: $e');
+  }
+}
+
 /// Video ceiling while the calls data saver applies: enough for a clear face
 /// at 360p, roughly a fifth of what the default tier spends.
 const int kDataSaverVideoBitrate = 280000;

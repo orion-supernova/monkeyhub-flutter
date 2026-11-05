@@ -18,12 +18,14 @@ import 'call_media.dart';
 import 'call_models.dart';
 import 'call_permissions.dart';
 import 'call_recovery.dart';
+import 'call_stats_monitor.dart';
 import 'draw/draw_channel.dart';
 import 'draw/draw_mirror.dart';
 import 'draw/draw_model.dart';
 import 'native_call_handler.dart';
 import 'renegotiation.dart';
 import 'screen_share.dart';
+import 'video_quality_governor.dart';
 
 /// Per-peer video bitrate cap for a mesh call: every phone runs one encoder
 /// per remote peer, so the budget shrinks as the call grows. [baseline] is
@@ -113,6 +115,12 @@ class GroupPeer {
   RTCRtpSender? camSender;
   RTCRtpSender? screenSender;
 
+  /// This link's stats, polled while it is connected: what the weak-link
+  /// video policy reads, and the call's data usage.
+  CallStatsMonitor? stats;
+  final ValueNotifier<CallQualitySnapshot?> quality = ValueNotifier(null);
+  bool qualityListening = false;
+
   /// Offer/answer bookkeeping for this link.
   final LinkNegotiation negotiation = LinkNegotiation();
 
@@ -131,7 +139,7 @@ class GroupPeer {
 /// Backend is roster + signaling only; media stays P2P with the same
 /// STUN/TURN fallback as 1:1 calls. Capacity is capped server-side at 6.
 class GroupCallService extends ChangeNotifier
-    implements CallOptionsController {
+    implements CallOptionsController, VideoQualityNoticeSource {
   GroupCallService({required this.api, SignalingStatus? signaling})
       : _signaling = signaling ?? SignalingStatus.instance {
     _routeSub = callAudioRouteChanges.listen(handleCallAudioRoute);
@@ -620,7 +628,7 @@ class GroupCallService extends ChangeNotifier
       );
       _videoTier = SettingsStore.instance.videoQualityTier;
       final epoch = ++_mediaEpoch;
-      final stream = await getUserMediaFn(kind, tier: _videoTier);
+      final stream = await getUserMediaFn(kind, tier: _quality.captureTier);
       if (epoch != _mediaEpoch || _groupCallId != groupCallId) {
         // [leaveCall] ran while getUserMedia was still in flight. The call
         // is over; nothing else will ever see this stream — stop it here or
@@ -722,6 +730,7 @@ class GroupCallService extends ChangeNotifier
     _rosterSub?.cancel();
     _rosterSub = null;
     _resetCamera();
+    _quality.reset();
     for (final peer in _peers.values) {
       _disposePeerLink(peer);
     }
@@ -943,13 +952,14 @@ class GroupCallService extends ChangeNotifier
     // Re-cap encoders for the new mesh size.
     final bitrate = meshVideoBitrate(
       _peers.length,
-      baseline: videoQualityPresets[_videoTier]!.maxBitrate,
+      baseline: videoQualityPresets[_quality.captureTier]!.maxBitrate,
     );
     for (final peer in _peers.values) {
       final pc = peer.pc;
       if (pc != null) {
         unawaited(configureVideoSenders(pc, maxBitrate: bitrate)
-            .then((_) => _retuneScreenSender(peer)));
+            .then((_) => _retuneScreenSender(peer))
+            .then((_) => _quality.reapply(peer.userId)));
       }
     }
     notifyListeners();
@@ -1085,6 +1095,7 @@ class GroupCallService extends ChangeNotifier
         final fresh = !peer.connected;
         peer.connected = true;
         _notePeerRestored(peer);
+        _startPeerStats(peer, pc);
         notifyListeners();
         // A link that comes up re-asserts the route, as the 1:1 call does
         // on connect: a rebuilt link may have followed a moment with no peer
@@ -1642,9 +1653,11 @@ class GroupCallService extends ChangeNotifier
       pc,
       maxBitrate: meshVideoBitrate(
         _peers.length,
-        baseline: videoQualityPresets[_videoTier]!.maxBitrate,
+        baseline: videoQualityPresets[_quality.captureTier]!.maxBitrate,
       ),
     );
+    // A lowered send tier outlives the re-tune.
+    await _quality.reapply(peer.userId);
     await _retuneScreenSender(peer);
     await preferCodecFn(pc);
   }
@@ -1787,6 +1800,9 @@ class GroupCallService extends ChangeNotifier
     peer.screenStreamIds.clear();
     peer.camSender = null;
     peer.screenSender = null;
+    peer.stats?.dispose();
+    peer.stats = null;
+    _quality.forget(peer.userId);
     peer.negotiation.reset();
     final ch = peer.drawChannel;
     peer.drawChannel = null;
@@ -1942,7 +1958,7 @@ class GroupCallService extends ChangeNotifier
     final id = _groupCallId;
     final MediaStreamTrack track;
     try {
-      track = await getVideoTrackFn(_videoTier);
+      track = await getVideoTrackFn(_quality.captureTier);
     } catch (e) {
       debugPrint('GroupCallService._cameraOn: $e');
       return false;
@@ -2127,7 +2143,7 @@ class GroupCallService extends ChangeNotifier
     unawaited(_camSerial(() async {
       if (!localCamActive) return;
       debugPrint('[CamWatch] group restarting the camera ($_camRestarts)');
-      await _swapCameraTrack(_videoTier);
+      await _swapCameraTrack(_quality.captureTier);
     }));
   }
 
@@ -2204,13 +2220,77 @@ class GroupCallService extends ChangeNotifier
   /// ([meshVideoBitrate]). A voice call, or a camera that is off, only saves
   /// the choice: the next camera comes up at it because [_cameraOn] and the
   /// join both read [_videoTier].
+  /// The weak-link video policy (see [CallQualityAdapter]): one ladder per
+  /// peer link, so one peer on a bad network costs only that peer's
+  /// picture. The camera is shared, so it re-captures lower only when every
+  /// link sends lower.
+  late final CallQualityAdapter _quality = CallQualityAdapter(
+    savedTier: () => _videoTier,
+    autoLower: () => SettingsStore.instance.autoLowerVideoQuality,
+    linkOf: (id) {
+      final peer = _peers[id];
+      if (peer == null || peer.pc == null) return null;
+      return (
+        sender: peer.camSender,
+        capKbpsOf: (t) =>
+            meshVideoBitrate(
+              _peers.length,
+              baseline: videoQualityPresets[t]!.maxBitrate,
+            ) /
+            1000,
+      );
+    },
+    captureTrack: () => _camTrack,
+    recaptureCamera: (tier) => _camSerial(() async {
+      if (!inCall || !localCamActive) return;
+      await _swapCameraTrack(tier);
+    }),
+  );
+
+  /// The best tier any peer receives right now.
   @override
-  VideoQualityTier get liveVideoTier => _videoTier;
+  VideoQualityTier get liveVideoTier => _quality.liveTier;
+
+  @override
+  ValueListenable<VideoQualityNotice?> get qualityNotice =>
+      _quality.qualityNotice;
+
+  @override
+  void dismissQualityNotice() => _quality.dismissQualityNotice();
+
+  @override
+  Future<void> lowerVideoQualityForCall(VideoQualityTier tier) async {
+    await _quality.lowerVideoQualityForCall(tier);
+    notifyListeners();
+  }
+
+  /// Polls [peer]'s link from its connect to its dispose.
+  void _startPeerStats(GroupPeer peer, RTCPeerConnection pc) {
+    peer.stats?.dispose();
+    _quality.connected(peer.userId, DateTime.now());
+    if (!peer.qualityListening) {
+      peer.qualityListening = true;
+      peer.quality.addListener(() => _onPeerQuality(peer));
+    }
+    peer.stats = CallStatsMonitor(pc: pc, target: peer.quality)..start();
+  }
+
+  void _onPeerQuality(GroupPeer peer) {
+    final q = peer.quality.value;
+    if (q == null || !inCall || !localCamActive || peer.reconnecting) return;
+    if (_peers[peer.userId] != peer) return;
+    final before = _quality.liveTier;
+    _quality.onPoll(peer.userId, q, DateTime.now());
+    if (_quality.liveTier != before) notifyListeners();
+  }
 
   @override
   Future<void> switchVideoQuality(VideoQualityTier tier) async {
+    // The user's own pick beats every drop a weak link forced.
+    _quality.reset();
     await SettingsStore.instance.setVideoQualityTier(tier);
     _videoTier = tier;
+    notifyListeners();
     if (!inCall || !localCamActive) return;
     await _camSerial(() async {
       if (!inCall || !localCamActive) return;
@@ -2224,6 +2304,11 @@ class GroupCallService extends ChangeNotifier
         if (pc == null) continue;
         try {
           await configureVideoSenders(pc, maxBitrate: bitrate);
+          // Undo any shrink a weak link left on this encoder.
+          final sender = peer.camSender;
+          if (sender != null) {
+            await scaleCameraSender(sender, scale: 1.0, maxBitrate: bitrate);
+          }
           await _retuneScreenSender(peer);
         } catch (e) {
           debugPrint('GroupCallService.switchVideoQuality tune: $e');
@@ -2553,6 +2638,7 @@ class GroupCallService extends ChangeNotifier
   @override
   void dispose() {
     _disposed = true;
+    _quality.reset();
     _routeSub?.cancel();
     _signaling.removeListener(_onSignalingStatus);
     _camWatch?.stop();

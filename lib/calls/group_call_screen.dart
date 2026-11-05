@@ -36,6 +36,7 @@ import 'widgets/call_chrome.dart';
 import 'widgets/call_pip_stage.dart';
 import 'widgets/call_tile_layout.dart';
 import 'widgets/call_video_fit.dart';
+import 'widgets/video_quality_notice_layer.dart';
 import '../widgets/desktop_scroll.dart';
 
 /// Full-screen UI for an active mesh group call.
@@ -100,16 +101,10 @@ class _GroupCallScreenState extends State<GroupCallScreen>
 
   final AudioLevelMonitor _levels = AudioLevelMonitor();
 
-  /// Live link stats, one monitor per peer connection, keyed by userId —
-  /// only while [SettingsStore.showNetworkStats] is on. A mesh call is one
-  /// link per person, so unlike the 1:1 call's single readout each tile
-  /// gets its own, and nothing polls `getStats` when nobody asked to see it.
-  final Map<String, CallStatsMonitor> _stats = {};
-  final Map<String, ValueNotifier<CallQualitySnapshot?>> _statsOf = {};
-
-  /// Which connection each monitor is reading, so a link rebuilt after a
-  /// drop gets a fresh monitor instead of polling the dead one.
-  final Map<String, RTCPeerConnection> _statsPc = {};
+  /// Live link stats come from the service: it polls every peer link
+  /// itself (`GroupPeer.quality`), for the weak-link video policy and data
+  /// usage, so the readouts here only listen. A second set of monitors here
+  /// used to poll the same links again.
 
   GroupCallService get svc => widget.service;
 
@@ -203,42 +198,25 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     setState(() {});
   }
 
-  /// Starts a monitor for every connected peer and stops the ones whose
-  /// peer (or connection) has gone — or all of them when the toggle is off.
   void _syncStats() {
     _statsOn = SettingsStore.instance.showNetworkStats;
-    final wanted = <String, RTCPeerConnection>{
-      if (_statsOn)
-        for (final p in svc.peers.values)
-          if (p.pc != null) p.userId: p.pc!,
-    };
-    for (final id in _stats.keys.toList(growable: false)) {
-      if (!identical(wanted[id], _statsPc[id])) {
-        _stats.remove(id)?.dispose();
-        _statsPc.remove(id);
-      }
-    }
-    for (final e in wanted.entries) {
-      if (_stats.containsKey(e.key)) continue;
-      final target = _statsOf.putIfAbsent(e.key, () => ValueNotifier(null));
-      _statsPc[e.key] = e.value;
-      _stats[e.key] = CallStatsMonitor(pc: e.value, target: target)..start();
-    }
   }
 
   /// The readout for a peer's tile, or null when stats are off.
   ValueListenable<CallQualitySnapshot?>? _statsFor(String userId) =>
-      _statsOn ? _statsOf.putIfAbsent(userId, () => ValueNotifier(null)) : null;
+      _statsOn ? svc.peers[userId]?.quality : null;
 
   /// What this phone is sending, summed over every link — the local tile's
   /// "↑". Null when stats are off.
   Listenable? get _uploadStats =>
-      _statsOn ? Listenable.merge(_statsOf.values.toList()) : null;
+      _statsOn
+          ? Listenable.merge([for (final p in svc.peers.values) p.quality])
+          : null;
 
   double? _uploadKbps() {
     double? sum;
-    for (final n in _statsOf.values) {
-      final out = n.value?.outKbps;
+    for (final p in svc.peers.values) {
+      final out = p.quality.value?.outKbps;
       if (out != null) sum = (sum ?? 0) + out;
     }
     return sum;
@@ -456,12 +434,6 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     CallAudioDevices.instance
       ..removeListener(_onChanged)
       ..detach();
-    for (final m in _stats.values) {
-      m.dispose();
-    }
-    for (final n in _statsOf.values) {
-      n.dispose();
-    }
     _levels
       ..stop()
       ..dispose();
@@ -642,6 +614,19 @@ class _GroupCallScreenState extends State<GroupCallScreen>
                   ),
                   child: stage,
                 ),
+
+                // The weak-link video notice, as on the 1:1 call: over the
+                // tray, outside the chrome's fade.
+                if (layout != _Layout.voice)
+                  Positioned(
+                    key: const ValueKey('quality-notice'),
+                    left: 16,
+                    right: 16,
+                    bottom: (controlsVisible ? trayInset : 16) +
+                        MediaQuery.paddingOf(context).bottom +
+                        12,
+                    child: VideoQualityNoticeLayer(source: svc),
+                  ),
 
                 // Header: the room, the timer, how many are here.
                 Positioned(
