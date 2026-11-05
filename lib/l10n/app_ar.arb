@@ -4019,5 +4019,5 @@
   "videoQualityAutoLowerFootnote": "عندما لا يواكب اتصالك دقة 1080p أو 4K، تنتقل المكالمة إلى جودة يستطيع تحملها وتخبرك بذلك. عند إيقافه، تنبهك المكالمة وتختار أنت.",
   "callQualityLoweredBanner": "الاتصال ضعيف. تم خفض الفيديو إلى {quality}.",
   "callQualityOfferBanner": "اتصالك لا يواكب دقة {quality}.",
-  "callQualityOfferAction": "الخفض إلى {quality}"
+  "callQualityOfferAction": "خفض إلى {quality}"
 }

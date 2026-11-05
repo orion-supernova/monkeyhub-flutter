@@ -13923,15 +13923,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get longMessageSentAsFileToast => '1件のメッセージには長すぎるため、テキストファイルとして送信しました';
 
   @override
-  String get videoQualityAutoLowerTitle => '接続が弱いときは画質を下げる';
+  String get videoQualityAutoLowerTitle => '接続が不安定なときは画質を下げる';
 
   @override
   String get videoQualityAutoLowerFootnote =>
-      '接続が1080pや4Kに追いつかないとき、通話は保てる画質に切り替えてお知らせします。オフのときは通話が警告し、あなたが選びます。';
+      '接続が1080pや4Kに追いつかないとき、通話は保てる画質に切り替えてお知らせします。オフのときは警告が表示され、画質はあなたが選びます。';
 
   @override
   String callQualityLoweredBanner(String quality) {
-    return '接続が弱いため、映像を$qualityに下げました。';
+    return '接続が不安定です。映像を$qualityに下げました。';
   }
 
   @override

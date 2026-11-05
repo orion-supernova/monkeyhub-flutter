@@ -14785,6 +14785,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String callQualityOfferAction(String quality) {
-    return 'الخفض إلى $quality';
+    return 'خفض إلى $quality';
   }
 }

@@ -14573,6 +14573,6 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String callQualityOfferAction(String quality) {
-    return '$quality पर करें';
+    return '$quality पर घटाएँ';
   }
 }

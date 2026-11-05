@@ -13960,20 +13960,20 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get videoQualityAutoLowerFootnote =>
-      '연결이 1080p나 4K를 감당하지 못하면 통화가 감당할 수 있는 화질로 바꾸고 알려 드려요. 끄면 통화가 경고하고 직접 선택해요.';
+      '연결이 1080p나 4K를 감당하지 못하면 통화가 감당할 수 있는 화질로 바꾸고 알려 드려요. 끄면 경고가 뜨고 직접 선택해요.';
 
   @override
   String callQualityLoweredBanner(String quality) {
-    return '연결이 약해 영상을 $quality(으)로 낮췄어요.';
+    return '연결이 약해 $quality 화질로 낮췄어요.';
   }
 
   @override
   String callQualityOfferBanner(String quality) {
-    return '연결이 $quality을(를) 감당하지 못해요.';
+    return '연결이 $quality 화질을 감당하지 못해요.';
   }
 
   @override
   String callQualityOfferAction(String quality) {
-    return '$quality(으)로 낮추기';
+    return '$quality 화질로 낮추기';
   }
 }

@@ -345,9 +345,11 @@ spot.
 
 ### 6.4 Translations
 
-- [ ] Banner strings in all 12 languages were machine-written by Claude.
-      Turkish was reviewed in a rendered preview; the other 10 need a quick look
-      from a native speaker. Keys: `videoQualityAutoLowerTitle`,
+- [x] Banner strings in all 12 languages were reviewed by a separate
+      native-speaker-level pass (2026-11-05): fixes applied for ar, hi, ja, ko
+      (Korean particles now work for every resolution label); es, fr, pt,
+      pt_BR, sv, zh were already fine. A real native speaker's glance is still
+      welcome. Keys: `videoQualityAutoLowerTitle`,
       `videoQualityAutoLowerFootnote`, `callQualityLoweredBanner`,
       `callQualityOfferBanner`, `callQualityOfferAction`.
 

@@ -4016,8 +4016,8 @@
   "powerSavingAutoLowBatterySub": "지금 켜짐: 배터리가 부족합니다",
   "longMessageSentAsFileToast": "메시지 하나로 보내기엔 너무 길어서 텍스트 파일로 보냈어요",
   "videoQualityAutoLowerTitle": "연결이 약하면 화질 낮추기",
-  "videoQualityAutoLowerFootnote": "연결이 1080p나 4K를 감당하지 못하면 통화가 감당할 수 있는 화질로 바꾸고 알려 드려요. 끄면 통화가 경고하고 직접 선택해요.",
-  "callQualityLoweredBanner": "연결이 약해 영상을 {quality}(으)로 낮췄어요.",
-  "callQualityOfferBanner": "연결이 {quality}을(를) 감당하지 못해요.",
-  "callQualityOfferAction": "{quality}(으)로 낮추기"
+  "videoQualityAutoLowerFootnote": "연결이 1080p나 4K를 감당하지 못하면 통화가 감당할 수 있는 화질로 바꾸고 알려 드려요. 끄면 경고가 뜨고 직접 선택해요.",
+  "callQualityLoweredBanner": "연결이 약해 {quality} 화질로 낮췄어요.",
+  "callQualityOfferBanner": "연결이 {quality} 화질을 감당하지 못해요.",
+  "callQualityOfferAction": "{quality} 화질로 낮추기"
 }
