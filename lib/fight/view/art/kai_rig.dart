@@ -5,11 +5,14 @@ import 'dart:typed_data';
 import 'dart:ui';
 
 import 'art_common.dart';
+import 'roster_rig.dart';
 
 // ------------------------------------------------------------------ pose
 
-/// 19 numbers describing one frame of the rig (see the lab's NUM list).
+/// 22 numbers describing one frame of the rig (see the lab's NUM list).
 /// Angles: 0 = hanging straight down, +pi/2 = pointing forward.
+/// The last three are roster channels: `sa` staff angle (radians, unrotated
+/// pelvis frame, MOJO only), `al` alpha (1 = solid), `sx` extra staff length.
 class KPose {
   final Float64List v;
   KPose._(this.v);
@@ -19,18 +22,18 @@ class KPose {
     double fu = .45, double ff = 2.65, double bu = .3, double bf = 2.8,
     double ft = .5, double fs = .02, double bt = -.18, double bs = -.5,
     double ffa = 0, double bfa = 0, double spin = 0, double tuck = 0,
-    double baf = 0, double blf = 0, double open = 0,
+    double baf = 0, double blf = 0, double open = 0, double sa = 0, double al = 1, double sx = 0,
   }) =>
-      KPose._(Float64List.fromList([rx, ry, lean, head, fu, ff, bu, bf, ft, fs, bt, bs, ffa, bfa, spin, tuck, baf, blf, open]));
+      KPose._(Float64List.fromList([rx, ry, lean, head, fu, ff, bu, bf, ft, fs, bt, bs, ffa, bfa, spin, tuck, baf, blf, open, sa, al, sx]));
 
   /// Copy of [b] with some fields replaced.
   factory KPose.from(KPose b, {
     double? rx, double? ry, double? lean, double? head, double? fu, double? ff, double? bu, double? bf,
     double? ft, double? fs, double? bt, double? bs, double? ffa, double? bfa, double? spin, double? tuck,
-    double? baf, double? blf, double? open,
+    double? baf, double? blf, double? open, double? sa, double? al, double? sx,
   }) {
     final n = Float64List.fromList(b.v);
-    final l = [rx, ry, lean, head, fu, ff, bu, bf, ft, fs, bt, bs, ffa, bfa, spin, tuck, baf, blf, open];
+    final l = [rx, ry, lean, head, fu, ff, bu, bf, ft, fs, bt, bs, ffa, bfa, spin, tuck, baf, blf, open, sa, al, sx];
     for (var i = 0; i < l.length; i++) {
       final x = l[i];
       if (x != null) n[i] = x;
@@ -57,10 +60,13 @@ class KPose {
   double get baf => v[16];
   double get blf => v[17];
   double get open => v[18];
+  double get sa => v[19];
+  double get al => v[20];
+  double get sx => v[21];
 
   static KPose lerp(KPose a, KPose b, double t) {
-    final n = Float64List(19);
-    for (var i = 0; i < 19; i++) {
+    final n = Float64List(22);
+    for (var i = 0; i < 22; i++) {
       n[i] = a.v[i] + (b.v[i] - a.v[i]) * t;
     }
     // Discrete switches (layering / open hand) flip at the midpoint.
@@ -77,13 +83,40 @@ const double spLen = 60, uaLen = 33, faLen = 29, thLen = 43, shLen = 41;
 /// The lab draws the rig at 1.18x; kept as the rig's own scale.
 const double csScale = 1.18;
 
-enum Jt { pel, neck, fSh, bSh, fEl, fWr, fHa, bEl, bWr, bHa, fHip, bHip, fKn, fAn, bKn, bAn, head, c }
+/// One character's skeleton: bone lengths, shoulder / hip half-widths, head
+/// offsets and the lab scale. KAI's are the constants above; the roster's come
+/// from the roster lab's `dims`.
+class RigDims {
+  final double sp, ua, fa, th, sh, cs, shw, hw, headd, hx;
+  /// 0 KAI, 1 MOJO, 2 TANK, 3 NYX: which extra joints fk() derives.
+  final int kind;
+  const RigDims(this.kind, this.sp, this.ua, this.fa, this.th, this.sh, this.cs, this.shw, this.hw, this.headd, this.hx);
+}
+
+const RigDims kaiDims = RigDims(0, spLen, uaLen, faLen, thLen, shLen, csScale, 9, 6, 21, 3);
+const RigDims mojoDims = RigDims(1, 44, 31, 30, 28, 28, 1.08, 7, 5, 19, 5);
+const RigDims tankDims = RigDims(2, 64, 33, 30, 32, 30, 1.3, 14, 9, 22, 12);
+const RigDims nyxDims = RigDims(3, 62, 33, 32, 42, 40, 1.18, 8, 5, 22, 3);
+
+RigDims dimsFor(int charId) {
+  switch (charId) {
+    case 1: return mojoDims;
+    case 2: return tankDims;
+    case 3: return nyxDims;
+    default: return kaiDims;
+  }
+}
+
+enum Jt { pel, neck, fSh, bSh, fEl, fWr, fHa, bEl, bWr, bHa, fHip, bHip, fKn, fAn, bKn, bAn, head, c, sTip, sEnd, horn, mid }
 
 class Joints {
   final Offset pel, neck, fSh, bSh, fEl, fWr, fHa, bEl, bWr, bHa, fHip, bHip, fKn, fAn, bKn, bAn, head, c;
   final double headA, maxAn;
+  /// Roster extras: MOJO's staff tip / butt, TANK's horn tip, NYX's hands midpoint.
+  final Offset sTip, sEnd, horn, mid;
   const Joints(this.pel, this.neck, this.fSh, this.bSh, this.fEl, this.fWr, this.fHa, this.bEl, this.bWr, this.bHa,
-      this.fHip, this.bHip, this.fKn, this.fAn, this.bKn, this.bAn, this.head, this.c, this.headA, this.maxAn);
+      this.fHip, this.bHip, this.fKn, this.fAn, this.bKn, this.bAn, this.head, this.c, this.headA, this.maxAn,
+      {this.sTip = Offset.zero, this.sEnd = Offset.zero, this.horn = Offset.zero, this.mid = Offset.zero});
 
   Offset at(Jt j) {
     switch (j) {
@@ -105,26 +138,47 @@ class Joints {
       case Jt.bAn: return bAn;
       case Jt.head: return head;
       case Jt.c: return c;
+      case Jt.sTip: return sTip;
+      case Jt.sEnd: return sEnd;
+      case Jt.horn: return horn;
+      case Jt.mid: return mid;
     }
   }
 }
 
-Joints fk(KPose p) {
+Joints fk(KPose p, [RigDims d = kaiDims]) {
   final ux = math.sin(p.lean), uy = -math.cos(p.lean);
   final fx = math.cos(p.lean), fy = math.sin(p.lean);
   Offset at(Offset o, double u, double f) => Offset(o.dx + ux * u + fx * f, o.dy + uy * u + fy * f);
   Offset l(Offset o, double a, double len) => Offset(o.dx + math.sin(a) * len, o.dy + math.cos(a) * len);
   const pel = Offset.zero;
-  final neck = at(pel, spLen, 2), fSh = at(pel, spLen - 8, 9), bSh = at(pel, spLen - 8, -11);
-  final fEl = l(fSh, p.fu, uaLen), fWr = l(fEl, p.ff, faLen), fHa = l(fWr, p.ff, 6);
-  final bEl = l(bSh, p.bu, uaLen), bWr = l(bEl, p.bf, faLen), bHa = l(bWr, p.bf, 6);
-  const fHip = Offset(6, 6), bHip = Offset(-6, 5);
-  final fKn = l(fHip, p.ft, thLen), fAn = l(fKn, p.fs, shLen), bKn = l(bHip, p.bt, thLen), bAn = l(bKn, p.bs, shLen);
+  final neck = at(pel, d.sp, 2), fSh = at(pel, d.sp - 8, d.shw), bSh = at(pel, d.sp - 8, -d.shw - 2);
+  final fEl = l(fSh, p.fu, d.ua), fWr = l(fEl, p.ff, d.fa), fHa = l(fWr, p.ff, 6);
+  final bEl = l(bSh, p.bu, d.ua), bWr = l(bEl, p.bf, d.fa), bHa = l(bWr, p.bf, 6);
+  final fHip = Offset(d.hw, 6), bHip = Offset(-d.hw, 5);
+  final fKn = l(fHip, p.ft, d.th), fAn = l(fKn, p.fs, d.sh), bKn = l(bHip, p.bt, d.th), bAn = l(bKn, p.bs, d.sh);
   final headA = p.lean * .55 + p.head;
-  final head = Offset(neck.dx + math.sin(headA) * 21 + 3, neck.dy - math.cos(headA) * 21);
+  final head = Offset(neck.dx + math.sin(headA) * d.headd + d.hx, neck.dy - math.cos(headA) * d.headd);
   final c = at(pel, 24, 0);
+  var sTip = Offset.zero, sEnd = Offset.zero, horn = Offset.zero, mid = Offset.zero;
+  switch (d.kind) {
+    case 1:
+      final ca = math.cos(p.sa), sa = math.sin(p.sa), len = 86 + p.sx;
+      sTip = Offset(fHa.dx + ca * len, fHa.dy + sa * len);
+      sEnd = Offset(fHa.dx - ca * 44, fHa.dy - sa * 44);
+      break;
+    case 2:
+      const s = 1.45;
+      final ca = math.cos(headA), sa = math.sin(headA);
+      const tx = 37 * s, ty = -31 * s;
+      horn = Offset(head.dx + tx * ca - ty * sa, head.dy + tx * sa + ty * ca);
+      break;
+    case 3:
+      mid = Offset((fHa.dx + bHa.dx) / 2, (fHa.dy + bHa.dy) / 2);
+      break;
+  }
   return Joints(pel, neck, fSh, bSh, fEl, fWr, fHa, bEl, bWr, bHa, fHip, bHip, fKn, fAn, bKn, bAn, head, c, headA,
-      math.max(fAn.dy, bAn.dy));
+      math.max(fAn.dy, bAn.dy), sTip: sTip, sEnd: sEnd, horn: horn, mid: mid);
 }
 
 /// Pelvis y in rig space relative to the ground contact (negative = above).
@@ -428,13 +482,16 @@ class RigPainter {
   }
 
   Path limb(Offset a, Offset b, double r1, double r2, Color col,
-      {double bulge = 0, bool noHT = false, double lw = 2.5}) {
+      {double bulge = 0, bool noHT = false, double lw = 2.5, Color? shade}) {
     final p = limbPath(a, b, r1, r2, bulge);
     final m = math.max(r1, r2) + bulge;
     fill(p, col, Rect.fromLTRB(math.min(a.dx, b.dx) - m, math.min(a.dy, b.dy) - m, math.max(a.dx, b.dx) + m,
-        math.max(a.dy, b.dy) + m), noHT: noHT, lw: lw);
+        math.max(a.dy, b.dy) + m), noHT: noHT, lw: lw, shade: shade);
     return p;
   }
+
+  /// The roster painters (MOJO / TANK / NYX), created on first use.
+  RosterPainter? _roster;
 
   // -------- parts
 
@@ -472,6 +529,9 @@ class RigPainter {
     }
     c.restore();
   }
+
+  /// An open hand at [wr] pointing along el->wr, in the current palette.
+  void openHand(Offset wr, Offset el, bool back) => _hand(wr, el, true, back);
 
   void _arm(Joints j, bool back, KPose p) {
     final sh = back ? j.bSh : j.fSh, el = back ? j.bEl : j.fEl, wr = back ? j.bWr : j.fWr;
@@ -596,11 +656,21 @@ class RigPainter {
 
   /// Draws a whole fighter. The canvas origin must be the ground contact point,
   /// +x forward, unit = one rig unit (the caller applies the world scale).
-  void fighter(Canvas canvas, KPose p, KPalette palette, FightLook lk, {Color? silhouette}) {
+  ///
+  /// [charId] picks the character (0 KAI; 1 MOJO, 2 TANK, 3 NYX are drawn by
+  /// [RosterPainter]); [alt] is the player-2 outfit of the roster characters
+  /// (KAI's comes in [palette]); [frame] drives the idle loops (tails, capes,
+  /// hair, the moon orbiting NYX).
+  void fighter(Canvas canvas, KPose p, KPalette palette, FightLook lk,
+      {Color? silhouette, int charId = 0, bool alt = false, int frame = 0}) {
     c = canvas;
     look = lk;
     pal = palette;
     sil = silhouette;
+    if (charId >= 1 && charId <= 3) {
+      (_roster ??= RosterPainter(this)).fighter(p, charId, alt, frame);
+      return;
+    }
     final j = fk(p);
     c.save();
     c.translate(p.rx, pelvisY(p, j));

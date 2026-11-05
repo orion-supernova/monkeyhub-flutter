@@ -4075,5 +4075,6 @@
   "fightOnlinePing": "Ping {ms} ms",
   "fightOnlineResultDisputed": "二人の端末で結果が一致しなかったため、引き分けになりました。",
   "fightOnlineResultLeft": "{name}がバトルから抜けました。",
-  "fightOnlineUpdateHint": "二人とも最新版のMonkeyHubが必要です。"
+  "fightOnlineUpdateHint": "二人とも最新版のMonkeyHubが必要です。",
+  "fightGamepadHint": "コントローラー: スティックか十字キーで移動。A 弱、X 強、B 必殺技、Y スーパー、RB ロール、Start で一時停止。"
 }

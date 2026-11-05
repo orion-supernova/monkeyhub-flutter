@@ -85,6 +85,9 @@ class Fighter {
   int grabTimer = 0, grabBy = -1;
   int landLag = 0, jumpDir = 0;
   int wins = 0;
+  // Air mobility: extra jumps used, air dash frames left (+ direction, relative to facing), air dash spent.
+  int airJumpsUsed = 0, airDashT = 0, airDashDir = 1;
+  bool airDashUsed = false;
 
   Fighter(this.health);
 
@@ -101,6 +104,7 @@ class Fighter {
     f.juggleLeft = juggleLeft; f.juggleLocked = juggleLocked; f.kdWall = kdWall; f.kdGround = kdGround; f.bounced = bounced;
     f.slow = slow; f.quickRise = quickRise; f.airUsed = airUsed;
     f.grabTimer = grabTimer; f.grabBy = grabBy; f.landLag = landLag; f.jumpDir = jumpDir; f.wins = wins;
+    f.airJumpsUsed = airJumpsUsed; f.airDashT = airDashT; f.airDashDir = airDashDir; f.airDashUsed = airDashUsed;
     return f;
   }
 
@@ -207,6 +211,7 @@ class FightState {
       h.b(f.juggleLocked); h.b(f.kdWall); h.b(f.kdGround); h.b(f.bounced);
       h.i(f.slow); h.b(f.quickRise); h.b(f.airUsed); h.i(f.grabTimer); h.i(f.grabBy);
       h.i(f.landLag); h.i(f.jumpDir); h.i(f.wins);
+      h.i(f.airJumpsUsed); h.i(f.airDashT); h.i(f.airDashDir); h.b(f.airDashUsed);
     }
     h.i(projectiles.length);
     for (final e in projectiles) {

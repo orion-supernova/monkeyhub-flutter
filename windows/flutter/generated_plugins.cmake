@@ -12,6 +12,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_secure_storage_windows
   flutter_webrtc
   gal
+  gamepads_windows
   geolocator_windows
   record_windows
   share_plus

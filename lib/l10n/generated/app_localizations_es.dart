@@ -14940,4 +14940,8 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get fightOnlineUpdateHint =>
       'Los dos necesitan la última versión de MonkeyHub.';
+
+  @override
+  String get fightGamepadHint =>
+      'Mando: stick o cruceta para moverte. A ligero, X fuerte, B especial, Y súper, RB esquiva, Start pausa.';
 }

@@ -8,6 +8,10 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
 import android.content.pm.PackageManager
+import android.hardware.input.InputManager
+import android.os.Handler
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
@@ -23,8 +27,38 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.FlutterEngineCache
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
+import org.flame_engine.gamepads_android.GamepadsCompatibleActivity
 
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterActivity(), GamepadsCompatibleActivity {
+
+    // The gamepads plugin (Jungle Fist controller support) needs the Activity
+    // to hand it raw key/motion events and input-device changes; it returns
+    // true only for events from a gamepad, so normal input is untouched.
+    private var gamepadKeyListener: ((KeyEvent) -> Boolean)? = null
+    private var gamepadMotionListener: ((MotionEvent) -> Boolean)? = null
+
+    override fun dispatchGenericMotionEvent(motionEvent: MotionEvent): Boolean {
+        if (gamepadMotionListener?.invoke(motionEvent) == true) return true
+        return super.dispatchGenericMotionEvent(motionEvent)
+    }
+
+    override fun dispatchKeyEvent(keyEvent: KeyEvent): Boolean {
+        if (gamepadKeyListener?.invoke(keyEvent) == true) return true
+        return super.dispatchKeyEvent(keyEvent)
+    }
+
+    override fun registerInputDeviceListener(listener: InputManager.InputDeviceListener, handler: Handler?) {
+        val inputManager = getSystemService(INPUT_SERVICE) as InputManager
+        inputManager.registerInputDeviceListener(listener, null)
+    }
+
+    override fun registerKeyEventHandler(handler: (KeyEvent) -> Boolean) {
+        gamepadKeyListener = handler
+    }
+
+    override fun registerMotionEventHandler(handler: (MotionEvent) -> Boolean) {
+        gamepadMotionListener = handler
+    }
 
     companion object {
         /// Arbitrary but must not collide with a plugin's own request codes.

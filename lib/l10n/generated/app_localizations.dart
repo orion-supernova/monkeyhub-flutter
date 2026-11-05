@@ -24612,6 +24612,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You both need the latest version of MonkeyHub.'**
   String get fightOnlineUpdateHint;
+
+  /// Controller controls shown on desktop under the keyboard hint, only while a game controller is connected. A, X, B, Y, RB are button names and stay as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'Controller: stick or D-pad to move. A light, X heavy, B special, Y super, RB roll, Start pauses.'**
+  String get fightGamepadHint;
 }
 
 class _AppLocalizationsDelegate

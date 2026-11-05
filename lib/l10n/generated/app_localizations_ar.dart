@@ -14986,4 +14986,8 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get fightOnlineUpdateHint =>
       'تحتاجان كلاكما إلى أحدث إصدار من MonkeyHub.';
+
+  @override
+  String get fightGamepadHint =>
+      'وحدة التحكم: العصا أو أزرار الاتجاه للحركة. A خفيفة، X قوية، B خاصة، Y سوبر، RB تدحرج، Start للإيقاف المؤقت.';
 }

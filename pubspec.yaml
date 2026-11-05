@@ -79,6 +79,10 @@ dependencies:
   # tens to hundreds of ms. Only initialised while a fight screen is open.
   # Held at 3.x: 5.x needs code_assets ^2, which flutter_gemma_litertlm rejects.
   flutter_soloud: ^3.5.4
+  # Game-controller input for Jungle Fist (lib/fight/view/fight_controls.dart):
+  # GCController on iOS/macOS, InputDevice on Android, XInput/evdev on
+  # Windows/Linux. Only listened to while a fight screen is open.
+  gamepads: ^0.1.14
   video_player: ^2.9.2
   http: ^1.2.2
   # Saves images to the system Photos/Gallery (avatar "download", and saving

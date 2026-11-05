@@ -4075,5 +4075,6 @@
   "fightOnlinePing": "Ping {ms} ms",
   "fightOnlineResultDisputed": "Telefonlarınız sonuçta anlaşamadı, bu yüzden berabere sayılıyor.",
   "fightOnlineResultLeft": "{name} dövüşten ayrıldı.",
-  "fightOnlineUpdateHint": "İkinizin de MonkeyHub'ın en son sürümüne sahip olması gerekiyor."
+  "fightOnlineUpdateHint": "İkinizin de MonkeyHub'ın en son sürümüne sahip olması gerekiyor.",
+  "fightGamepadHint": "Kumanda: hareket için analog veya yön tuşları. A hafif, X ağır, B özel, Y süper, RB yuvarlanma, Start duraklatır."
 }

@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'art/art_common.dart' show FightLook;
 import 'art/kai_poses.dart';
 import 'art/kai_rig.dart';
+import 'art/roster_poses.dart';
 
 /// One fighter, alive, for cards and lobbies: breathing in its stance, and
 /// throwing a heavy punch the moment [ready] turns on, then holding a tighter
@@ -83,17 +84,25 @@ class _FighterPortraitState extends State<FighterPortrait> with SingleTickerProv
 /// The pose at time [t]: breathing idle, or the ready flourish
 /// (wind-up, heavy straight, hold, settle into guard).
 @visibleForTesting
-KPose portraitPose(double t, {double? readyAt}) {
+KPose portraitPose(double t, {double? readyAt, int charId = 0}) {
   final b = math.sin(t * 2.6);
-  final idle = KPose.from(pIdle, lean: .14 + b * .025, fu: .45 + b * .05, bu: .3 + b * .04, ff: 2.65 - b * .04);
+  final isKai = charId < 1 || charId > 3;
+  final base = idleFor(charId);
+  final idle = isKai
+      ? KPose.from(pIdle, lean: .14 + b * .025, fu: .45 + b * .05, bu: .3 + b * .04, ff: 2.65 - b * .04)
+      : KPose.from(base,
+          lean: base.lean + b * .025, fu: base.fu + b * .05, bu: base.bu + b * .04, ff: base.ff - b * .04,
+          ry: charId == 3 ? base.ry + b * 3 : base.ry);
   if (readyAt == null) return idle;
   final r = t - readyAt;
-  final guard = KPose.from(pGuard, lean: pGuard.lean + b * .015);
+  final (hvyW, hvyX, guard) = isKai
+      ? (pHvyW, pHvyX, KPose.from(pGuard, lean: pGuard.lean + b * .015))
+      : readyPoses(charId);
   double e(double x) => x * x * (3 - 2 * x);
-  if (r < .12) return KPose.lerp(idle, pHvyW, e(r / .12));
-  if (r < .2) return KPose.lerp(pHvyW, pHvyX, 1 - math.pow(1 - (r - .12) / .08, 3).toDouble());
-  if (r < .55) return pHvyX;
-  if (r < .9) return KPose.lerp(pHvyX, guard, e((r - .55) / .35));
+  if (r < .12) return KPose.lerp(idle, hvyW, e(r / .12));
+  if (r < .2) return KPose.lerp(hvyW, hvyX, 1 - math.pow(1 - (r - .12) / .08, 3).toDouble());
+  if (r < .55) return hvyX;
+  if (r < .9) return KPose.lerp(hvyX, guard, e((r - .55) / .35));
   return guard;
 }
 
@@ -129,11 +138,13 @@ class _PortraitPainter extends CustomPainter {
         ..shader = RadialGradient(colors: [glow.withValues(alpha: ready ? .55 : .3), glow.withValues(alpha: 0)]).createShader(pool),
     );
     // The rig stands ~190 units tall; fit it to the card, feet on the floor.
-    final scale = math.min(size.height * .72 / 190, size.width * .85 / 120);
+    final ratio = dimsFor(charId).cs / csScale;
+    final scale = math.min(size.height * .72 / 190 * ratio, size.width * .85 / (charId == 2 ? 170 : 120));
     canvas.save();
     canvas.translate(size.width / 2 + (facingLeft ? 10 : -10) * scale, ground);
     canvas.scale(facingLeft ? -scale : scale, scale);
-    _rig.fighter(canvas, portraitPose(t.value, readyAt: readyAt()), KPalette.forChar(charId, alt), look);
+    _rig.fighter(canvas, portraitPose(t.value, readyAt: readyAt(), charId: charId), KPalette.forChar(charId, alt), look,
+        charId: charId, alt: alt, frame: (t.value * 60).round());
     canvas.restore();
   }
 

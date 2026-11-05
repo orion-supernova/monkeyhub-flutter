@@ -699,6 +699,62 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.3"
+  gamepads:
+    dependency: "direct main"
+    description:
+      name: gamepads
+      sha256: "05a616db284ea0c9b657472c23acdb6dd06befef1eec62d361d124d803a35300"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.14"
+  gamepads_android:
+    dependency: transitive
+    description:
+      name: gamepads_android
+      sha256: "0f5821b81f79258f3652d15fb55b2f8fbcd9799a6b8916b8474f60ce0ef60431"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.11"
+  gamepads_darwin:
+    dependency: transitive
+    description:
+      name: gamepads_darwin
+      sha256: ab7d2c8ee84ffc989a8c942204c1bc2d6c6585dfa640a30c5e72ef5e4cdf8c91
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.4"
+  gamepads_linux:
+    dependency: transitive
+    description:
+      name: gamepads_linux
+      sha256: "7177a3a24aeb41f7bcb273621a0cc8f46b97e198d1d624c04d43af74faca84a0"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.4"
+  gamepads_platform_interface:
+    dependency: transitive
+    description:
+      name: gamepads_platform_interface
+      sha256: "51b243f64c3d02900ac37eef0ed0177710ef5b0a1265dbf46bb93ca0f4200f17"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.4"
+  gamepads_web:
+    dependency: transitive
+    description:
+      name: gamepads_web
+      sha256: "5ceaa635cdba536f1ee2b650227c39f5e4a8b1ec6588b00ea0ea6e7291d8e62e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.3"
+  gamepads_windows:
+    dependency: transitive
+    description:
+      name: gamepads_windows
+      sha256: e4e2b40a26d07983e2142069dc78c24f90afc1546c57408111a2a20ebf8c923a
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.3"
   genai_primitives:
     dependency: transitive
     description:

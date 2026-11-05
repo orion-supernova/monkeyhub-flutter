@@ -4075,5 +4075,6 @@
   "fightOnlinePing": "Ping {ms} ms",
   "fightOnlineResultDisputed": "Sus teléfonos no coincidieron en el resultado, así que cuenta como empate.",
   "fightOnlineResultLeft": "{name} abandonó la pelea.",
-  "fightOnlineUpdateHint": "Los dos necesitan la última versión de MonkeyHub."
+  "fightOnlineUpdateHint": "Los dos necesitan la última versión de MonkeyHub.",
+  "fightGamepadHint": "Mando: stick o cruceta para moverte. A ligero, X fuerte, B especial, Y súper, RB esquiva, Start pausa."
 }

@@ -129,6 +129,9 @@ void _updateFighter(FightState s, int i) {
         p.state = St.jump;
         p.sf = 0;
         p.airUsed = false;
+        p.airJumpsUsed = 0;
+        p.airDashT = 0;
+        p.airDashUsed = false;
         p.vy = def.jumpVy;
         p.vx = p.jumpDir * def.jumpVx;
       }
@@ -137,7 +140,10 @@ void _updateFighter(FightState s, int i) {
       p.sf++;
       if (!p.airUsed && (p.bufHeavy > 0 || p.bufLight > 0)) {
         p.airUsed = true;
+        p.airDashT = 0;
         _startMove(s, i, p.bufHeavy > 0 ? N.jumpHeavy : N.jumpLight);
+      } else {
+        _airMobility(s, i);
       }
       break;
     case St.move:
@@ -221,6 +227,42 @@ void _updateFighter(FightState s, int i) {
       break; // airstun, ko: physics only
   }
   _physics(s, i);
+}
+
+/// Double jump (fresh up press) and air dash (double-tap fwd/back). Both are
+/// off unless the character defines them, so older fighters are untouched.
+void _airMobility(FightState s, int i) {
+  final p = s.p[i];
+  final def = s.chars[i];
+  if (p.airDashT > 0) {
+    p.airDashT--;
+    if (p.airDashT > 0) {
+      p.vx = p.face * p.airDashDir * def.airDashSpeed;
+      p.vy = def.gravity; // gravity is applied right after: net vertical speed 0
+    } else {
+      p.vx = p.face * p.airDashDir * def.jumpVx;
+      p.vy = 0;
+    }
+    return;
+  }
+  if (def.airJumps > 0 && p.airJumpsUsed < def.airJumps && p.y > 0 && isPressed(p.inp, p.prev, Inp.up)) {
+    p.airJumpsUsed++;
+    p.airDashT = 0;
+    p.vy = def.jumpVy * 85 ~/ 100;
+    p.vx = ((p.inp & Inp.right) != 0 ? 1 : ((p.inp & Inp.left) != 0 ? -1 : 0)) * def.jumpVx;
+    s.addEvent(Ev.dash, p.x, p.y, i, 2);
+    return;
+  }
+  if (def.airDashFrames > 0 && !p.airDashUsed && p.y > 0 && (p.dashFwdBuf > 0 || p.dashBackBuf > 0)) {
+    p.airDashDir = p.dashFwdBuf > 0 ? 1 : -1;
+    p.airDashUsed = true;
+    p.airDashT = def.airDashFrames;
+    p.dashFwdBuf = 0;
+    p.dashBackBuf = 0;
+    p.vx = p.face * p.airDashDir * def.airDashSpeed;
+    p.vy = def.gravity;
+    s.addEvent(Ev.dash, p.x, p.y, i, 3 * p.airDashDir);
+  }
 }
 
 void _endCombo(Fighter p) {
@@ -491,6 +533,9 @@ void _physics(FightState s, int i) {
 
 void _land(FightState s, int i) {
   final p = s.p[i];
+  p.airJumpsUsed = 0;
+  p.airDashT = 0;
+  p.airDashUsed = false;
   switch (p.state) {
     case St.jump:
       p.state = St.idle;

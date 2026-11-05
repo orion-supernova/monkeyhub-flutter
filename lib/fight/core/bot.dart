@@ -71,7 +71,15 @@ class FightBot {
         _q.clear();
         return 0;
       case St.jump:
+        if (c.airDashFrames > 0 && _q.isNotEmpty) return _q.removeAt(0);
         if (!p.airUsed && dist < 16000 && o.y < 20000 && _r(100) < 30) return _r(2) == 0 ? Inp.heavy : Inp.light;
+        // Air mobility (characters without it never reach these branches).
+        if (c.airJumps > p.airJumpsUsed && p.y > 6000 && p.vy < 400 && _r(100) < 7) return Inp.up;
+        if (c.airDashFrames > 0 && !p.airDashUsed && p.airDashT == 0 && p.y > 4000 && dist > 14000 && _r(100) < 6) {
+          _q.addAll([0, fwd, 0, fwd]);
+          _interruptible = true;
+          return fwd;
+        }
         return 0;
       case St.move:
         return _inMove(s, me, c);
@@ -114,6 +122,8 @@ class FightBot {
         return dist < 8500;
       case 'nyx':
         return dist < 70000;
+      case 'sage':
+        return dist < 60000;
       default:
         return dist < 22000;
     }
@@ -151,7 +161,7 @@ class FightBot {
 
   int _antiAir(Fighter p, CharacterDef c) {
     final stand = (p.inp & Inp.down) == 0;
-    if (stand && (c.key == 'kai' || c.key == 'tank')) {
+    if (stand && (c.key == 'kai' || c.key == 'tank' || _antiAirKeys.contains(c.key))) {
       _queueSpecial(Inp.up, p, false);
       return _q.removeAt(0);
     }
@@ -180,6 +190,7 @@ class FightBot {
   // Direction of the special each character uses as a combo ender.
   int _comboSpecialDir(CharacterDef c) {
     // Inp.right is a "forward" marker, resolved against facing in _queueSpecial.
+    if (_comboFwdKeys.contains(c.key)) return Inp.right;
     return (c.key == 'kai' || c.key == 'mojo') ? Inp.right : 0;
   }
 
@@ -194,6 +205,47 @@ class FightBot {
     for (var i = 0; i < 5; i++) {
       _q.add(d);
     }
+  }
+
+  // Special slots (Slot.*) the newer characters prefer, by range. Zoners keep
+  // their projectiles for range, rushdown characters for the close game.
+  static const Map<String, List<int>> _closeSlots = {
+    'bruno': [0, 1, 2, 1],
+    'sage': [3, 2, 0],
+    'razz': [0, 1, 3, 2, 1],
+    'pip': [1, 2, 3],
+    'ryoko': [0, 2, 3, 1],
+    'bao': [0, 2, 3, 0],
+    'vex': [1, 0, 3, 2],
+    'gale': [2, 0, 3],
+  };
+  static const Map<String, List<int>> _midSlots = {
+    'bruno': [1, 3, 2],
+    'sage': [0, 1, 0],
+    'razz': [1, 2, 1],
+    'pip': [0, 1, 3],
+    'ryoko': [1, 2, 1],
+    'bao': [1, 0, 2],
+    'vex': [0, 1, 3, 2],
+    'gale': [1, 3, 0],
+  };
+  static const Map<String, List<int>> _farSlots = {
+    'sage': [0, 1, 0],
+    'pip': [0, 0, 3],
+    'vex': [0, 2, 0],
+    'gale': [0, 0, 3],
+    'ryoko': [1],
+    'razz': [1],
+    'bruno': [],
+  };
+  static const Set<String> _antiAirKeys = {'bruno', 'ryoko', 'bao', 'razz', 'sage'};
+  static const Set<String> _comboFwdKeys = {'bruno', 'ryoko', 'razz', 'pip'};
+
+  void _slotSpecial(Map<String, List<int>> table, CharacterDef c, Fighter p) {
+    final slots = table[c.key] ?? const [0, 1, 2, 3];
+    final slot = slots.isEmpty ? 0 : slots[_r(slots.length)];
+    final dir = slot == Slot.forward ? Inp.right : (slot == Slot.down ? Inp.down : (slot == Slot.up ? Inp.up : 0));
+    _queueSpecial(dir, p, p.meter >= exCost && _r(100) < _exRate);
   }
 
   void _walk(int dir, int frames) {
@@ -233,8 +285,11 @@ class FightBot {
         case 'tank':
           _queueSpecial(Inp.right, p, p.meter >= exCost && _r(100) < _exRate);
           break;
-        default:
+        case 'nyx':
           _queueSpecial(Inp.up, p, false); // Eclipse counter stance
+          break;
+        default:
+          _slotSpecial(_closeSlots, c, p);
       }
       return _q.removeAt(0);
     }
@@ -261,8 +316,11 @@ class FightBot {
         case 'tank':
           _queueSpecial(0, p, p.meter >= exCost && _r(100) < _exRate);
           break;
-        default:
+        case 'nyx':
           _queueSpecial(r < 65 ? Inp.right : 0, p, p.meter >= exCost && _r(100) < _exRate);
+          break;
+        default:
+          _slotSpecial(_midSlots, c, p);
       }
       return _q.removeAt(0);
     }
@@ -302,8 +360,16 @@ class FightBot {
           return _q.removeAt(0);
         }
         break;
-      default:
+      case 'tank':
         if (r < 20) return _tap(fwd, p);
+        break;
+      default:
+        final slots = _farSlots[c.key];
+        if (slots != null && slots.isNotEmpty && r < 40) {
+          _slotSpecial(_farSlots, c, p);
+          return _q.removeAt(0);
+        }
+        if (r < 60) return _tap(fwd, p);
     }
     _walk(fwd, 14);
     return _q.removeAt(0);

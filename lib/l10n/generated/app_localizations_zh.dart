@@ -13998,4 +13998,8 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get fightOnlineUpdateHint => '你们都需要最新版本的 MonkeyHub。';
+
+  @override
+  String get fightGamepadHint =>
+      '手柄：用摇杆或方向键移动。A 轻击，X 重击，B 特殊技，Y 超必杀，RB 翻滚，Start 暂停。';
 }

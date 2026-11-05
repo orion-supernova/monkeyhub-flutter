@@ -159,6 +159,8 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
   late final Ticker _ticker;
   Duration _last = Duration.zero, _acc = Duration.zero;
   bool _paused = false, _over = false;
+  // A controller is in use: the touch deck fades out until a finger returns.
+  bool _padActive = false;
   int _seenEventFrame = -1;
 
   @override
@@ -169,6 +171,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
     _newMatch();
     _ticker = createTicker(_tick)..start();
     SettingsStore.instance.addListener(_onSettings);
+    _input.startGamepad(onActivity: _onPadActivity, onStart: () => _setPaused(!_paused));
     unawaited(FightAudio.instance.open().then((_) => FightAudio.instance.startMusic()));
   }
 
@@ -227,6 +230,11 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
     _seenEventFrame = newest;
   }
 
+  void _onPadActivity() {
+    if (_padActive || !mounted) return;
+    setState(() => _padActive = true);
+  }
+
   void _setPaused(bool p) {
     if (_paused == p || _over) return;
     // Online the fight runs on regardless: the menu is a menu, not a pause.
@@ -261,6 +269,8 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
   @override
   void dispose() {
     SettingsStore.instance.removeListener(_onSettings);
+    _input.stopGamepad();
+    _input.gamepadConnected.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _ticker.dispose();
     unawaited(FightAudio.instance.close());
@@ -269,6 +279,22 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
     _superReady.dispose();
     _focus.dispose();
     super.dispose();
+  }
+
+  /// The touch deck, hidden (but still live) while a controller is in use: any
+  /// touch on it brings it back, since the finger is the player's new choice.
+  Widget _deck({required bool overlay}) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) {
+        if (_padActive) setState(() => _padActive = false);
+      },
+      child: AnimatedOpacity(
+        opacity: _padActive ? 0 : 1,
+        duration: const Duration(milliseconds: 160),
+        child: FightTouchControls(input: _input, superReady: _superReady, overlay: overlay, onPress: HapticFeedback.selectionClick),
+      ),
+    );
   }
 
   bool get _touchFirst => switch (defaultTargetPlatform) {
@@ -291,9 +317,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
       ),
       child: const SizedBox.expand(),
     );
-    final controls = _touchFirst
-        ? FightTouchControls(input: _input, superReady: _superReady, onPress: HapticFeedback.selectionClick)
-        : null;
+    final controls = _touchFirst ? _deck(overlay: false) : null;
 
     return Focus(
       focusNode: _focus,
@@ -331,7 +355,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
                       SizedBox(height: stageH, child: view),
                       Expanded(
                         child: controls == null
-                            ? _KeyboardHint(text: l10n.fightKeyboardHint)
+                            ? _KeyboardHint(input: _input, text: l10n.fightKeyboardHint, padText: l10n.fightGamepadHint)
                             : Padding(padding: EdgeInsets.only(bottom: pad.bottom), child: controls),
                       ),
                     ],
@@ -346,10 +370,10 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
                           right: pad.right,
                           bottom: pad.bottom,
                           height: box.maxHeight * 0.48,
-                          child: FightTouchControls(input: _input, superReady: _superReady, overlay: true, onPress: HapticFeedback.selectionClick),
+                          child: _deck(overlay: true),
                         )
                       else
-                        Positioned(left: 0, right: 0, bottom: 14 + pad.bottom, child: _KeyboardHint(text: l10n.fightKeyboardHint, faded: true)),
+                        Positioned(left: 0, right: 0, bottom: 14 + pad.bottom, child: _KeyboardHint(input: _input, text: l10n.fightKeyboardHint, padText: l10n.fightGamepadHint, faded: true)),
                     ],
                   );
                 }
@@ -587,8 +611,9 @@ class _RoundIconButton extends StatelessWidget {
 }
 
 class _KeyboardHint extends StatelessWidget {
-  const _KeyboardHint({required this.text, this.faded = false});
-  final String text;
+  const _KeyboardHint({required this.input, required this.text, required this.padText, this.faded = false});
+  final FightInput input;
+  final String text, padText;
   final bool faded;
 
   @override
@@ -596,10 +621,13 @@ class _KeyboardHint extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white.withValues(alpha: faded ? 0.55 : 0.75), fontSize: 13.5, height: 1.4),
+        child: ValueListenableBuilder<bool>(
+          valueListenable: input.gamepadConnected,
+          builder: (context, connected, _) => Text(
+            connected ? '$text\n$padText' : text,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white.withValues(alpha: faded ? 0.55 : 0.75), fontSize: 13.5, height: 1.4),
+          ),
         ),
       ),
     );

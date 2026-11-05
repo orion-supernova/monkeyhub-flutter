@@ -14943,6 +14943,10 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get fightOnlineUpdateHint =>
       'Precisam ambos da versão mais recente do MonkeyHub.';
+
+  @override
+  String get fightGamepadHint =>
+      'Comando: manípulo ou direcional para mover. A fraco, X forte, B especial, Y super, RB rolamento, Start pausa.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -29866,4 +29870,8 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get fightOnlineUpdateHint =>
       'Vocês dois precisam da versão mais recente do MonkeyHub.';
+
+  @override
+  String get fightGamepadHint =>
+      'Controle: analógico ou direcional para mover. A fraco, X forte, B especial, Y super, RB rolagem, Start pausa.';
 }

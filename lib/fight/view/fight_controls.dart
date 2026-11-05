@@ -1,18 +1,77 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
-import 'package:flutter/foundation.dart' show ValueListenable;
+import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier, debugPrint;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:gamepads/gamepads.dart';
 
 import '../core/input.dart';
+import 'fight_gamepad.dart';
 
 /// Live input from every source, merged into one engine bitmask ([Inp]).
 class FightInput {
   int touch = 0;
   final Set<LogicalKeyboardKey> _keys = {};
 
-  int get mask => touch | _keyMask();
+  final GamepadMapper _pad = GamepadMapper();
+  final List<StreamSubscription<Object?>> _padSubs = [];
+  final Set<String> _padIds = {};
+
+  /// Whether at least one controller is plugged in / paired.
+  final ValueNotifier<bool> gamepadConnected = ValueNotifier(false);
+
+  int get mask => touch | _keyMask() | _pad.mask;
+
+  /// Listens to controllers until [stopGamepad]. [onActivity] fires for a
+  /// deliberate controller input (not stick drift); [onStart] for Start/Options.
+  void startGamepad({VoidCallback? onActivity, VoidCallback? onStart}) {
+    if (_padSubs.isNotEmpty) return;
+    try {
+      _padSubs.add(Gamepads.normalizedEvents.listen((e) {
+        final b = e.button, a = e.axis;
+        if (b == GamepadButton.start) {
+          if (_pad.button(e.gamepadId, b!, e.value)) {
+            onActivity?.call();
+            onStart?.call();
+          }
+          return;
+        }
+        final active = b != null ? _pad.button(e.gamepadId, b, e.value) : _pad.axis(e.gamepadId, a!, e.value);
+        if (active) onActivity?.call();
+      }, onError: (Object e) => debugPrint('gamepad: $e')));
+      _padSubs.add(Gamepads.connectionEvents.listen((e) {
+        if (e.type == GamepadConnectionEventType.connected) {
+          _padIds.add(e.gamepadId);
+        } else {
+          _padIds.remove(e.gamepadId);
+          _pad.disconnect(e.gamepadId);
+        }
+        gamepadConnected.value = _padIds.isNotEmpty;
+      }));
+      unawaited(Gamepads.list().then((pads) {
+        _padIds.addAll(pads.map((p) => p.id));
+        for (final p in pads) {
+          unawaited(p.dispose());
+        }
+        gamepadConnected.value = _padIds.isNotEmpty;
+      }).catchError((Object e) => debugPrint('gamepad list: $e')));
+    } catch (e) {
+      // No plugin on this platform: touch and keyboard carry on.
+      debugPrint('gamepad unavailable: $e');
+    }
+  }
+
+  void stopGamepad() {
+    for (final s in _padSubs) {
+      unawaited(s.cancel());
+    }
+    _padSubs.clear();
+    _padIds.clear();
+    _pad.clear();
+    gamepadConnected.value = false;
+  }
 
   void clear() {
     touch = 0;

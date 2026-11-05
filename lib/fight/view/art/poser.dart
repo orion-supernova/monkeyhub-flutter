@@ -9,6 +9,9 @@ import '../../core/core.dart';
 import 'art_common.dart';
 import 'kai_poses.dart';
 import 'kai_rig.dart';
+import 'roster_poses.dart';
+
+part 'roster_anim.dart';
 
 const double _tau = math.pi * 2;
 
@@ -33,8 +36,8 @@ KPose evalKeys(List<Key> ks, double t) {
 }
 
 /// Rig-space position (ground contact = origin, y up negative) of a joint.
-Offset jointRig(KPose p, Jt jt) {
-  final j = fk(p);
+Offset jointRig(KPose p, Jt jt, [RigDims dims = kaiDims]) {
+  final j = fk(p, dims);
   final o = spinPoint(p, j, j.at(jt));
   return Offset(p.rx + o.dx, pelvisY(p, j) + o.dy);
 }
@@ -64,24 +67,28 @@ KPose _lunge(MoveDef m, KPose x, Jt eff, {double max = 46}) {
   final front = _boxFront(m);
   if (front <= 0) return x;
   final base = KPose.from(x, rx: 0);
-  final reach = jointRig(base, eff).dx * kRig;
+  final reach = jointRig(base, eff, dimsFor(_curId)).dx * rigScale(_curId);
   final need = (front - 6 - reach).clamp(0.0, max);
-  return KPose.from(x, rx: need / kRig);
+  return KPose.from(x, rx: need / rigScale(_curId));
 }
+
+/// Character whose move is being built (read by [_lunge]; builds are synchronous).
+int _curId = 0;
 
 int _mx(int a, int b) => a > b ? a : b;
 int _r(num v) => v.round();
 
-List<Key> _strike(MoveDef m, KPose wind, KPose ext, {KPose? hold, KPose? rec, KPose? end, double windAt = .5, double recAt = .35, KPose? w2}) {
+List<Key> _strike(MoveDef m, KPose wind, KPose ext,
+    {KPose? hold, KPose? rec, KPose? end, double windAt = .5, double recAt = .35, KPose? w2, KPose? idle}) {
   final s = m.startup, a = m.active, r = m.recovery, t = m.total;
   final fw = _mx(1, _r(s * windAt)).clamp(1, s > 1 ? s - 1 : 1);
-  final keys = <Key>[Key(0, pIdle), Key(fw, wind)];
+  final keys = <Key>[Key(0, idle ?? pIdle), Key(fw, wind)];
   if (w2 != null && s > 3) keys.add(Key(_mx(fw + 1, s - 1), w2));
   keys.add(Key(s, ext, 1));
   keys.add(Key(s + (a > 0 ? a : 1), hold ?? ext));
   final fr = s + a + _mx(1, _r(r * recAt));
   if (rec != null && fr < t) keys.add(Key(fr, rec));
-  keys.add(Key(_mx(t, keys.last.f + 1), end ?? pIdle));
+  keys.add(Key(_mx(t, keys.last.f + 1), end ?? idle ?? pIdle));
   return keys;
 }
 
@@ -212,7 +219,8 @@ MoveAnim _generic(MoveDef m) {
   return MoveAnim(_strike(m, pJabW, x), smear: Jt.fHa, smearA: s - 2, smearB: s + a + 1);
 }
 
-MoveAnim animFor(MoveDef m, CharacterDef def) => _cache.putIfAbsent(m, () => _build(m, def));
+MoveAnim animFor(MoveDef m, CharacterDef def) =>
+    _cache.putIfAbsent(m, () => def.id >= 1 && def.id <= 3 ? _buildRoster(m, def) : _build(m, def));
 
 /// Rapid-fire alternating punches with a heavy final blow.
 KPose _stormPose(MoveDef m, int sf) {
@@ -253,6 +261,12 @@ KPose _lungedHvy(MoveDef m) => KPose.from(pHvyX, rx: 18);
 KPose poseFor(FightState s, int player) => poseAtSf(s, player, s.p[player].sf);
 
 KPose poseAtSf(FightState s, int player, int sf) {
+  final id = s.chars[player].id;
+  if (id >= 1 && id <= 3) return _rosterPose(s, player, sf);
+  return _kaiPose(s, player, sf);
+}
+
+KPose _kaiPose(FightState s, int player, int sf, {double centre = standCentreHeight}) {
   final f = s.p[player];
   final def = s.chars[player];
   final breathe = math.sin(s.frame * .07);
@@ -305,7 +319,7 @@ KPose poseAtSf(FightState s, int player, int sf) {
     case St.techd:
       return KPose.lerp(pIdle, pStagger, smooth(clamp01(f.stun / 8)));
     case St.airstun:
-      return _airPose(s, f);
+      return _airPose(s, f, centre);
     case St.down:
       return pLie;
     case St.ko:
@@ -347,11 +361,11 @@ KPose _rollPose(Fighter f, int sf) {
   ], sf.toDouble());
 }
 
-KPose _airPose(FightState s, Fighter f) {
+KPose _airPose(FightState s, Fighter f, [double centre = standCentreHeight]) {
   final vy = f.vy.toDouble();
   final a = (.5 - vy / 2400).clamp(.12, 1.0);
   final spin = -a * math.pi / 2;
-  final cH = 13 + (standCentreHeight - 13) * math.pow(math.cos(spin), 2);
+  final cH = 13 + (centre - 13) * math.pow(math.cos(spin), 2);
   final fl = s.frame * .35;
   return KPose.from(pAirHit,
       spin: spin, ry: cH - 42,

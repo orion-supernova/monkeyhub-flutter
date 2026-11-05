@@ -4075,5 +4075,6 @@
   "fightOnlinePing": "Ping {ms} ms",
   "fightOnlineResultDisputed": "Os vossos telemóveis não concordaram no resultado, por isso conta como empate.",
   "fightOnlineResultLeft": "{name} saiu do combate.",
-  "fightOnlineUpdateHint": "Precisam ambos da versão mais recente do MonkeyHub."
+  "fightOnlineUpdateHint": "Precisam ambos da versão mais recente do MonkeyHub.",
+  "fightGamepadHint": "Comando: manípulo ou direcional para mover. A fraco, X forte, B especial, Y super, RB rolamento, Start pausa."
 }

@@ -14131,4 +14131,8 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get fightOnlineUpdateHint => '二人とも最新版のMonkeyHubが必要です。';
+
+  @override
+  String get fightGamepadHint =>
+      'コントローラー: スティックか十字キーで移動。A 弱、X 強、B 必殺技、Y スーパー、RB ロール、Start で一時停止。';
 }

@@ -14833,4 +14833,8 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get fightOnlineUpdateHint =>
       'Ni behöver båda den senaste versionen av MonkeyHub.';
+
+  @override
+  String get fightGamepadHint =>
+      'Handkontroll: styrspak eller riktningsknappar för att röra dig. A lätt, X tung, B special, Y super, RB rulle, Start pausar.';
 }

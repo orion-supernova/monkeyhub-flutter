@@ -15009,4 +15009,8 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get fightOnlineUpdateHint =>
       'Vous avez besoin tous les deux de la dernière version de MonkeyHub.';
+
+  @override
+  String get fightGamepadHint =>
+      'Manette : stick ou croix directionnelle pour bouger. A léger, X lourd, B spécial, Y super, RB roulade, Start met en pause.';
 }

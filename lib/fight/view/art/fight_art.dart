@@ -13,6 +13,8 @@ import 'hud_text.dart';
 import 'kai_poses.dart';
 import 'kai_rig.dart';
 import 'poser.dart';
+import 'roster_fx.dart';
+import 'roster_poses.dart';
 import 'stage_art.dart';
 
 export 'art_common.dart' show FightLook;
@@ -26,6 +28,7 @@ class FightArt {
   final HudPainter _hud = HudPainter();
   final RigPainter _rig = RigPainter();
   final FxPainter _fx = FxPainter();
+  final RosterFx _rfx = RosterFx();
   final Paint _p = Paint()..isAntiAlias = true;
   Shader? _vig;
   Size _vigSize = Size.zero;
@@ -59,6 +62,7 @@ class FightArt {
     if (s.superFlash > 0 && s.superBy >= 0) _superDarken(c, size, cam, s, look);
     for (var i = 0; i < 2; i++) {
       _ghosts(c, cam, s, i, look);
+      _rosterBack(c, cam, s, i, look);
     }
     // Fighter that is attacking draws in front.
     int rank(int i) => s.p[i].state == St.move ? 2 : (s.p[i].state == St.grabbed ? 0 : 1);
@@ -71,6 +75,7 @@ class FightArt {
     }
     for (var i = 0; i < 2; i++) {
       _charge(c, cam, s, i, look);
+      _rosterFront(c, cam, s, i, look);
     }
     for (final p in s.projectiles) {
       _projectile(c, cam, s, p, look);
@@ -95,18 +100,24 @@ class FightArt {
     return KPalette.forChar(id, alt);
   }
 
-  void _enter(Canvas c, FightCamera cam, double wx, double wy, int face) {
+  bool _alt(FightState s, int i) {
+    final id = s.chars[i].id;
+    return i == 1 && (id == 0 || s.chars[0].id == s.chars[1].id);
+  }
+
+  void _enter(Canvas c, FightCamera cam, double wx, double wy, int face, [double rig = kRig]) {
     final o = cam.toScreen(wx, wy);
     c.translate(o.dx, o.dy);
-    c.scale(cam.scale * kRig * face, cam.scale * kRig);
+    c.scale(cam.scale * rig * face, cam.scale * rig);
   }
 
   void _fighter(Canvas c, FightCamera cam, FightState s, int i, FightLook look) {
     final f = s.p[i];
     final pose = poseFor(s, i);
     c.save();
-    _enter(c, cam, f.x / unitsPerPx, f.y / unitsPerPx, f.face);
-    _rig.fighter(c, pose, _palette(s, i), look);
+    final id = s.chars[i].id;
+    _enter(c, cam, f.x / unitsPerPx, f.y / unitsPerPx, f.face, rigScale(id));
+    _rig.fighter(c, pose, _palette(s, i), look, charId: id, alt: _alt(s, i), frame: s.frame);
     c.restore();
   }
 
@@ -129,6 +140,21 @@ class FightArt {
     final o = cam.toScreen(t.x / unitsPerPx, 0);
     final armed = t.arm <= 0;
     final w = def.w / unitsPerPx * cam.scale;
+    final ownerId = s.chars[t.owner].id;
+    if (ownerId == 1 || ownerId == 3) {
+      final age = def.life - t.life;
+      c.save();
+      c.translate(o.dx, o.dy);
+      if (ownerId == 1) {
+        c.scale(cam.scale * kFx * 1.6);
+        _rfx.peel(c, look, age, armed: armed);
+      } else {
+        c.scale(def.w / unitsPerPx / 2 / 72 * cam.scale);
+        _rfx.pool(c, look, age, def.life, s.frame, t.x ~/ 100 + t.owner);
+      }
+      c.restore();
+      return;
+    }
     c.save();
     c.translate(o.dx, o.dy);
     final col = armed ? const Color(0xFFffd23a) : const Color(0x99FFD23A);
@@ -184,7 +210,7 @@ class FightArt {
       case St.move:
         if (f.moveId < 0) return;
         final n = s.chars[i].moves[f.moveId].name;
-        if (n != 'cometKnee' && n != 'slideStep' && n != 'hundredStorm') return;
+        if (n != 'cometKnee' && n != 'slideStep' && n != 'hundredStorm' && n != 'stampede') return;
         lo = 3;
         hi = 99;
         break;
@@ -200,8 +226,10 @@ class FightArt {
       final col = look == FightLook.painted ? Color.fromRGBO(110, 220, 255, .35 * a) : const Color(0xFF53d6f0);
       final pose = poseAtSf(s, i, sf2);
       c.save();
-      _enter(c, cam, f.x / unitsPerPx - f.vx / unitsPerPx * 3 * k, f.y / unitsPerPx - f.vy / unitsPerPx * 3 * k * .5, f.face);
-      _rig.fighter(c, pose, _palette(s, i), look, silhouette: col);
+      final id = s.chars[i].id;
+      _enter(c, cam, f.x / unitsPerPx - f.vx / unitsPerPx * 3 * k, f.y / unitsPerPx - f.vy / unitsPerPx * 3 * k * .5, f.face,
+          rigScale(id));
+      _rig.fighter(c, pose, _palette(s, i), look, silhouette: col, charId: id, alt: _alt(s, i), frame: s.frame);
       c.restore();
     }
   }
@@ -217,15 +245,16 @@ class FightArt {
     final sf = f.sf.toDouble();
     final lo = math.max(anim.smearA.toDouble(), sf - 3.5), hi = math.min(sf, anim.smearB.toDouble());
     if (hi - lo < .5) return;
-    final fwdVx = f.vx / unitsPerPx * f.face / kRig;
+    final dims = dimsFor(def.id);
+    final fwdVx = f.vx / unitsPerPx * f.face / rigScale(def.id);
     final pts = <Offset>[];
     for (var t = lo; t <= hi + .001; t += .25) {
-      final o = jointRig(evalKeys(anim.keys, t), jt);
+      final o = jointRig(evalKeys(anim.keys, t), jt, dims);
       pts.add(Offset(o.dx - fwdVx * (sf - t), o.dy));
     }
     c.save();
-    _enter(c, cam, f.x / unitsPerPx, f.y / unitsPerPx, f.face);
-    _fx.smear(c, look, pts, 1 / csScale);
+    _enter(c, cam, f.x / unitsPerPx, f.y / unitsPerPx, f.face, rigScale(def.id));
+    _fx.smear(c, look, pts, 1 / dims.cs);
     c.restore();
   }
 
@@ -233,24 +262,31 @@ class FightArt {
     final f = s.p[i];
     if (f.state != St.move || f.moveId < 0) return;
     final m = s.chars[i].moves[f.moveId];
-    if (m.name != 'surgePalm' || m.projectiles.isEmpty) return;
+    final id = s.chars[i].id;
+    if ((m.name != 'surgePalm' && m.name != 'moonShard') || m.projectiles.isEmpty) return;
     final sp = m.projectiles.first.frame;
-    final lo = (sp * .3).round();
+    final lo = (sp * (id == 3 ? .4 : .3)).round();
     if (f.sf < lo || f.sf >= sp) return;
-    final hand = jointRig(poseFor(s, i), Jt.fHa);
-    final wx = f.x / unitsPerPx + f.face * hand.dx * kRig, wy = f.y / unitsPerPx - hand.dy * kRig;
+    final j = jointRig(poseFor(s, i), id == 3 ? Jt.mid : Jt.fHa, dimsFor(id));
+    final rs = rigScale(id);
+    final wx = f.x / unitsPerPx + f.face * j.dx * rs, wy = f.y / unitsPerPx - j.dy * rs;
     final o = cam.toScreen(wx, wy);
     c.save();
     c.translate(o.dx, o.dy);
     c.scale(cam.scale * kFx);
-    _fx.charge(c, look, (f.sf - lo) / math.max(1, sp - lo), s.frame);
+    if (id == 3) {
+      _rfx.moonCharge(c, look, (f.sf - lo) / math.max(1, sp - lo), s.frame);
+    } else {
+      _fx.charge(c, look, (f.sf - lo) / math.max(1, sp - lo), s.frame);
+    }
     c.restore();
   }
 
   void _projectile(Canvas c, FightCamera cam, FightState s, Projectile p, FightLook look) {
     final def = s.chars[p.owner].projectiles[p.proj];
     final o = cam.toScreen(p.x / unitsPerPx, p.y / unitsPerPx);
-    final sc = cam.scale * (def.w / unitsPerPx) / 31.0;
+    final nyx = s.chars[p.owner].id == 3;
+    final sc = cam.scale * (def.w / unitsPerPx) / (nyx ? 42.0 : 31.0);
     final dir = p.vx < 0 ? -1.0 : 1.0;
     c.save();
     c.translate(o.dx, o.dy);
@@ -260,11 +296,15 @@ class FightArt {
       c.save();
       c.translate(g.dx - o.dx, g.dy - o.dy + 4);
       c.scale(1, .17);
-      drawGlow(c, Offset.zero, 60 * cam.scale * kFx * 1.4, const Color(0x5950BEFF));
+      drawGlow(c, Offset.zero, 60 * cam.scale * kFx * 1.4, nyx ? const Color(0x59B07CFF) : const Color(0x5950BEFF));
       c.restore();
     }
     c.scale(sc * dir, sc);
-    _fx.projectile(c, look, def.life - p.life);
+    if (nyx) {
+      _rfx.moonShard(c, look, def.life - p.life);
+    } else {
+      _fx.projectile(c, look, def.life - p.life);
+    }
     c.restore();
   }
 
@@ -314,7 +354,11 @@ class FightArt {
         });
         break;
       case Ev.projectileSpawn:
-        at(o, k * 1.2, () => _fx.flash(c, look, age, seed));
+        if (s.chars[e.player].id == 3) {
+          at(o, k * .9, () => _rfx.moonBurst(c, look, age, seed, size: .7));
+        } else {
+          at(o, k * 1.2, () => _fx.flash(c, look, age, seed));
+        }
         break;
       case Ev.clash:
         at(o, k, () {
@@ -344,6 +388,95 @@ class FightArt {
         break;
     }
     // Burst where a projectile died: the engine records it as a hit event at the contact point.
+  }
+
+  /// Roster effects that sit behind the fighters: NYX's dark sun.
+  void _rosterBack(Canvas c, FightCamera cam, FightState s, int i, FightLook look) {
+    final f = s.p[i];
+    final def = s.chars[i];
+    if (def.id != 3 || f.state != St.move || f.moveId < 0) return;
+    final m = def.moves[f.moveId];
+    if (m.name != 'totalEclipse') return;
+    final sf = f.sf;
+    final grow = clamp01(sf / math.max(1, m.startup + 4));
+    final fade = sf > m.startup + m.active ? clamp01(1 - (sf - m.startup - m.active) / math.max(1, m.recovery * .6)) : 1.0;
+    if (fade <= 0) return;
+    final o = cam.toScreen(f.x / unitsPerPx + f.face * 40, f.y / unitsPerPx + 250);
+    c.save();
+    c.translate(o.dx, o.dy);
+    c.scale(cam.scale * kFx * 1.5);
+    _rfx.darkSun(c, look, grow * fade, math.sin(s.frame * .5) * .5 + .5, s.frame);
+    c.restore();
+    // One moon-blade per hit window, crossing the foe.
+    final foe = s.p[1 - i];
+    final ws = m.windows;
+    for (var k = 0; k < ws.length; k++) {
+      final age = sf - ws[k].start;
+      if (age < 0 || age > 9) continue;
+      final r = SRand(k * 7 + 5);
+      final fo = cam.toScreen(foe.x / unitsPerPx + (r.next() - .5) * 40, foe.y / unitsPerPx + 70 + (r.next() - .5) * 50);
+      c.save();
+      c.translate(fo.dx, fo.dy);
+      c.scale(cam.scale * kFx * 1.5);
+      _rfx.slash(c, look, age, (k.isEven ? -.7 : .7) + (r.next() - .5) * .5, 62);
+      c.restore();
+    }
+  }
+
+  /// Roster effects in front of the fighters: TANK's quake, NYX's puff / halo.
+  void _rosterFront(Canvas c, FightCamera cam, FightState s, int i, FightLook look) {
+    final f = s.p[i];
+    final def = s.chars[i];
+    if (def.id < 2 || f.state != St.move || f.moveId < 0) return;
+    final m = def.moves[f.moveId];
+    final sf = f.sf;
+    final seed = f.x ~/ 100 + s.frame ~/ 40;
+    if (def.id == 2) {
+      final qf = tankQuakeFrame(m);
+      if (qf < 0 || sf < qf) return;
+      final big = m.name == 'avalancheSlam';
+      double reach = 0;
+      for (final w in m.windows) {
+        reach = math.max(reach, (w.box.x + w.box.w) / unitsPerPx);
+      }
+      if (reach <= 0) reach = 260;
+      final o = cam.toScreen(f.x / unitsPerPx + f.face * (big ? 70 : 0), 0);
+      c.save();
+      c.translate(o.dx, o.dy);
+      c.scale(cam.scale * f.face * 1.15, cam.scale * 1.15);
+      _rfx.quake(c, look, sf - qf, seed, fwd: big ? 170 : math.max(120, reach / 1.15 - 20), back: big ? 150 : 60);
+      c.restore();
+      return;
+    }
+    if (def.id != 3) return;
+    switch (m.name) {
+      case 'phaseStep':
+      case 'eclipseStrike':
+        final tp = m.steps.where((e) => e.teleport != 0).map((e) => e.frame).fold<int>(m.name == 'phaseStep' ? m.startup : 0, (p, e) => e);
+        // Smoke gathers as she fades, then bursts where she lands.
+        final age = sf < tp ? sf - (tp - 6) : sf - tp + 6;
+        if (age < 0 || age > 22) return;
+        final o = cam.toScreen(f.x / unitsPerPx, f.y / unitsPerPx + 70);
+        c.save();
+        c.translate(o.dx, o.dy);
+        c.scale(cam.scale * kFx * 1.3);
+        _rfx.puff(c, look, age, seed + (sf < tp ? 0 : 5));
+        c.restore();
+        break;
+      case 'eclipse':
+        final lo = m.counterStart, hi = m.counterEnd;
+        if (sf < lo || sf > hi + 4) return;
+        final j = jointRig(poseFor(s, i), Jt.mid, nyxDims);
+        final rs = rigScale(3);
+        final o = cam.toScreen(f.x / unitsPerPx + f.face * (j.dx * rs + 20 * kFx), f.y / unitsPerPx - (j.dy * rs) + 4 * kFx * -1);
+        final k = clamp01((sf - lo) / 5), out = sf > hi ? 1 - (sf - hi) / 4 : 1.0;
+        c.save();
+        c.translate(o.dx, o.dy);
+        c.scale(cam.scale * kFx * 1.15);
+        _rfx.eclipseHalo(c, look, k, out, s.frame);
+        c.restore();
+        break;
+    }
   }
 
   void _vignette(Canvas c, Size size) {

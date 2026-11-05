@@ -4075,5 +4075,6 @@
   "fightOnlinePing": "पिंग {ms} ms",
   "fightOnlineResultDisputed": "आपके फ़ोन नतीजे पर सहमत नहीं हुए, इसलिए इसे बराबरी माना गया।",
   "fightOnlineResultLeft": "{name} ने लड़ाई छोड़ दी।",
-  "fightOnlineUpdateHint": "आप दोनों को MonkeyHub का नया संस्करण चाहिए।"
+  "fightOnlineUpdateHint": "आप दोनों को MonkeyHub का नया संस्करण चाहिए।",
+  "fightGamepadHint": "कंट्रोलर: चलने के लिए स्टिक या D-pad। A हल्का, X भारी, B स्पेशल, Y सुपर, RB रोल, Start से पॉज़।"
 }

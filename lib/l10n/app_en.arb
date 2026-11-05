@@ -17759,5 +17759,9 @@
   "fightOnlineUpdateHint": "You both need the latest version of MonkeyHub.",
   "@fightOnlineUpdateHint": {
     "description": "Under the could-not-connect message: the most common cause is that the opponent's app is too old to have online fights."
+  },
+  "fightGamepadHint": "Controller: stick or D-pad to move. A light, X heavy, B special, Y super, RB roll, Start pauses.",
+  "@fightGamepadHint": {
+    "description": "Controller controls shown on desktop under the keyboard hint, only while a game controller is connected. A, X, B, Y, RB are button names and stay as they are."
   }
 }

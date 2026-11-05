@@ -14734,4 +14734,8 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get fightOnlineUpdateHint =>
       'İkinizin de MonkeyHub\'ın en son sürümüne sahip olması gerekiyor.';
+
+  @override
+  String get fightGamepadHint =>
+      'Kumanda: hareket için analog veya yön tuşları. A hafif, X ağır, B özel, Y süper, RB yuvarlanma, Start duraklatır.';
 }

@@ -33,6 +33,10 @@ class CharacterDef {
   final int dashSpeed, dashFrames, backdashSpeed, backdashFrames;
   final int jumpVy, jumpVx, gravity, prejump;
   final int rollSpeed, rollBackSpeed;
+  /// Air mobility (0 = none, the default for every older character): extra
+  /// jumps (fresh up press in the air) and an air dash (double-tap fwd/back).
+  final int airJumps;
+  final int airDashSpeed, airDashFrames;
   final int pushHalf; // pushbox half width
   final List<Box> standHurt, crouchHurt, airHurt;
   final List<MoveDef> moves; // shared normals first, then specials, EX, super, follow-ups
@@ -60,6 +64,9 @@ class CharacterDef {
     this.prejump = 4,
     this.rollSpeed = 1250,
     this.rollBackSpeed = 950,
+    this.airJumps = 0,
+    this.airDashSpeed = 0,
+    this.airDashFrames = 0,
     required this.pushHalf,
     required this.standHurt,
     required this.crouchHurt,
