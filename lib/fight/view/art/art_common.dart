@@ -60,3 +60,22 @@ Path starPath(double x, double y, double r1, double r2, int n, double rot) {
 
 Path rrPath(double x, double y, double w, double h, double r) =>
     Path()..addRRect(RRect.fromLTRBR(x, y, x + w, y + h, Radius.circular(r)));
+
+/// Straight lines of width [w] as one filled path (butt caps), so they can be
+/// intersected with a shape instead of drawn under a clip.
+Path hatchPath(List<(Offset, Offset)> lines, double w) {
+  final p = Path();
+  for (final (a, b) in lines) {
+    final dx = b.dx - a.dx, dy = b.dy - a.dy;
+    final l = math.sqrt(dx * dx + dy * dy);
+    if (l == 0) continue;
+    final nx = -dy / l * w / 2, ny = dx / l * w / 2;
+    p
+      ..moveTo(a.dx + nx, a.dy + ny)
+      ..lineTo(b.dx + nx, b.dy + ny)
+      ..lineTo(b.dx - nx, b.dy - ny)
+      ..lineTo(a.dx - nx, a.dy - ny)
+      ..close();
+  }
+  return p;
+}

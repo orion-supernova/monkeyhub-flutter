@@ -83,6 +83,8 @@ final Path _ruff = pathOf((p) => p
   ..lineTo(-19, 15)
   ..lineTo(-9, 15.5)
   ..lineTo(-2, 13));
+final Path _irisCut = Path.combine(PathOperation.intersect, _eyeP, Path()..addOval(Rect.fromCircle(center: const Offset(9, -4.2), radius: 2.9)));
+final Path _pupilCut = Path.combine(PathOperation.intersect, _eyeP, ellP(9.3, -4.2, .9, 2.8));
 final Path _eyeP = pathOf((p) => p
   ..moveTo(3, -3)
   ..quadraticBezierTo(8, -8.2, 13.4, -4.2)
@@ -165,8 +167,10 @@ class RyokoArt extends CastArt {
     final tail = bez(const Offset(-8, -5), Offset(-34, 6 + sw * .3), Offset(-54, -14 + sw), Offset(-42, -46 + sw * 1.3), 14);
     final tailP = tubeFn(tail, (t) => lerpD(5.4, 3.6, t));
     r.fill(tailP, m.fur, bbOf(tail, 8), shade: m.furD, lw: 2.2);
-    pen.clipped(tailP, crossBars(tail, const [.16, .3, .44, .58, .72], 7, 2.8), m.stripe);
-    pen.clipped(tailP, crossBars(tail, const [.9], 7, 8), m.stripe);
+    pen.clipped(
+        tailP,
+        crossBars(tail, const [.16, .3, .44, .58, .72], 7, 2.8)..addPath(crossBars(tail, const [.9], 7, 8), Offset.zero),
+        m.stripe);
 
     if (p.baf < .5) _arm(pen, j, true, p, m);
     if (p.blf < .5) _leg(pen, j, true, p, m);
@@ -221,15 +225,39 @@ class RyokoArt extends CastArt {
     return p;
   }();
 
+  /// Stripes on a limb, cut to the limb once per (site, length) in the limb's
+  /// own frame (like [RigPainter.limb]) and drawn with a transform: no clip,
+  /// no per-frame boolean op.
+  static final Map<(int, int), Path> _stripeCuts = {};
+
+  void _stripes(Pen pen, int site, Offset a, Offset b, double r1, double r2, double bulge, double sr1, double sr2,
+      List<double> ts, double len, double base, Color col) {
+    if (pen.sil) return;
+    final d = b - a;
+    final l = (d.distance * 2).round() / 2;
+    if (l < .5) return;
+    final cut = _stripeCuts.putIfAbsent((site, (l * 2).round()), () {
+      final end = Offset(l, 0);
+      return Path.combine(PathOperation.intersect, limbPath(Offset.zero, end, r1, r2, bulge),
+          limbStripes(Offset.zero, end, sr1, sr2, ts, len: len, base: base));
+    });
+    final c = pen.c;
+    c.save();
+    c.translate(a.dx, a.dy);
+    c.rotate(math.atan2(d.dy, d.dx));
+    pen.flat(cut, col);
+    c.restore();
+  }
+
   void _arm(Pen pen, Joints j, bool b, KPose pose, RyokoPal m) {
     final r = pen.r, c = pen.c;
     final sh = b ? j.bSh : j.fSh, el = b ? j.bEl : j.fEl, wr = b ? j.bWr : j.fWr;
     final fur = b ? dk(m.fur, .3) : m.fur;
     final st = b ? dk(m.stripe, .1) : m.stripe;
-    final up = r.limb(sh, el, 6.6, 5.4, fur, bulge: 1.8, shade: m.furD);
-    pen.clipped(up, limbStripes(sh, el, 6, 5, const [.3, .62, .9], len: .7, base: 2.8), st);
-    final fo = r.limb(el, wr, 5.6, 4.9, fur, bulge: 1.2, shade: m.furD);
-    pen.clipped(fo, limbStripes(el, wr, 5.4, 4.8, const [.22, .5], len: .6, base: 2.6), st);
+    r.limb(sh, el, 6.6, 5.4, fur, bulge: 1.8, shade: m.furD);
+    _stripes(pen, 0, sh, el, 6.6, 5.4, 1.8, 6, 5, const [.3, .62, .9], .7, 2.8, st);
+    r.limb(el, wr, 5.6, 4.9, fur, bulge: 1.2, shade: m.furD);
+    _stripes(pen, 1, el, wr, 5.6, 4.9, 1.2, 5.4, 4.8, const [.22, .5], .6, 2.6, st);
     // Gauntlet: a black bracer with a red band, then the claws.
     final g0 = lerpO(el, wr, .3);
     r.limb(g0, wr, 6.5, 6.1, b ? dk(m.gi, .1) : m.gi, noHT: true, lw: 2, shade: m.giD);
@@ -257,11 +285,11 @@ class RyokoArt extends CastArt {
     final r = pen.r, c = pen.c;
     final hip = b ? j.bHip : j.fHip, kn = b ? j.bKn : j.fKn, an = b ? j.bAn : j.fAn;
     final fur = b ? dk(m.fur, .3) : m.fur;
-    final th = r.limb(hip, kn, 9.4, 7.4, fur, bulge: 2.4, shade: m.furD);
-    pen.clipped(th, limbStripes(hip, kn, 9, 7.4, const [.5, .78], len: .6, base: 3), b ? dk(m.stripe, .1) : m.stripe);
+    r.limb(hip, kn, 9.4, 7.4, fur, bulge: 2.4, shade: m.furD);
+    _stripes(pen, 2, hip, kn, 9.4, 7.4, 2.4, 9, 7.4, const [.5, .78], .6, 3, b ? dk(m.stripe, .1) : m.stripe);
     r.limb(hip, lerpO(hip, kn, .52), 10.4, 9.2, b ? dk(m.gi, .1) : m.gi, noHT: true, lw: 2, shade: m.giD);
-    final sh = r.limb(kn, an, 6.8, 5.3, fur, bulge: 1.6, shade: m.furD);
-    pen.clipped(sh, limbStripes(kn, an, 6.4, 5.2, const [.25, .5], len: .6, base: 2.8), b ? dk(m.stripe, .1) : m.stripe);
+    r.limb(kn, an, 6.8, 5.3, fur, bulge: 1.6, shade: m.furD);
+    _stripes(pen, 3, kn, an, 6.8, 5.3, 1.6, 6.4, 5.2, const [.25, .5], .6, 2.8, b ? dk(m.stripe, .1) : m.stripe);
     r.limb(lerpO(kn, an, .66), an, 5.9, 5.7, b ? dk(m.gi, .1) : m.gi, noHT: true, lw: 1.8, shade: m.giD);
     final shin = b ? pose.bs : pose.fs, off = b ? pose.bfa : pose.ffa;
     final planted = an.dy >= j.maxAn - 2.5 && pose.tuck < .3 && pose.ry < 1;
@@ -303,11 +331,8 @@ class RyokoArt extends CastArt {
       pen.ink(_nose, 1.2);
       // Eye: amber with a slit pupil under a hard black brow.
       r.fill(_eyeP, m.eye, const Rect.fromLTRB(3, -9, 14, -1), noHT: true, lw: 1.2);
-      pen.c.save();
-      pen.c.clipPath(_eyeP);
-      pen.circ(9, -4.2, 2.9, m.iris);
-      pen.flat(ellP(9.3, -4.2, .9, 2.8), kInk);
-      pen.c.restore();
+      pen.flat(_irisCut, m.iris);
+      pen.flat(_pupilCut, kInk);
       pen.circ(10.4, -5.2, .7, const Color(0xFFFFFFFF));
       r.detail((pa) => pa
         ..moveTo(1.5, -9.6)

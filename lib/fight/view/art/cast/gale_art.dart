@@ -40,6 +40,11 @@ class GalePal {
     wind: hex(0xffe9c4));
 }
 
+final Path _breastMarks = pathOf((q) => q
+  ..moveTo(4, -50)
+  ..cubicTo(14, -46, 15, -30, 11, -4)
+  ..lineTo(2, -4)
+  ..cubicTo(6, -22, 5, -38, 4, -50));
 final Path _torso = pathOf((p) => p
   ..moveTo(-9, 0)
   ..cubicTo(-14, -12, -15, -28, -12, -42)
@@ -143,11 +148,7 @@ class GaleArt extends CastArt {
     rp.fill(_torso, m.body, const Rect.fromLTRB(-16, -54, 16, 0), shade: m.bodyD);
     // Pale breast feathers peeking through the open jacket.
     if (!pen.sil) {
-      pen.clipped(_torso, pathOf((q) => q
-        ..moveTo(4, -50)
-        ..cubicTo(14, -46, 15, -30, 11, -4)
-        ..lineTo(2, -4)
-        ..cubicTo(6, -22, 5, -38, 4, -50)), m.bodyL);
+      pen.clipped(_torso, _breastMarks, m.bodyL);
     }
     rp.fill(_jacket, m.jacket, const Rect.fromLTRB(-17, -50, 17, 0), shade: m.jacketD, lw: 2.3);
     if (!pen.sil) {

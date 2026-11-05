@@ -33,6 +33,20 @@ class PipPal {
 final KPose pipIdle =
     KPose.from(pIdle, lean: .22, head: -.04, fu: .85, ff: 2.2, bu: .55, bf: 2.5, ft: .8, fs: -.2, bt: -.5, bs: -.62);
 
+final Path _acornCap = pathOf((p) => p
+  ..moveTo(-15, 1)
+  ..cubicTo(-16, -10, -4, -14, 4, -13)
+  ..cubicTo(13, -12, 18, -6, 17.5, 2)
+  ..close());
+final Path _capHatch = Path.combine(
+    PathOperation.intersect,
+    _acornCap,
+    hatchPath([
+      for (var i = -3; i < 5; i++) ...[
+        (Offset(i * 5.0 - 6, -14), Offset(i * 5.0 + 6, 4)),
+        (Offset(i * 5.0 + 6, -14), Offset(i * 5.0 - 6, 4)),
+      ]
+    ], 1));
 final Path _ppTorso = pathOf((p) => p
   ..moveTo(-9, 0)
   ..cubicTo(-13, -10, -13, -28, -8, -37)
@@ -262,24 +276,9 @@ class PipArt extends CastArt {
     }
     c.drawPath(body, f);
     f.shader = null;
-    final cap = pathOf((p) => p
-      ..moveTo(-15, 1)
-      ..cubicTo(-16, -10, -4, -14, 4, -13)
-      ..cubicTo(13, -12, 18, -6, 17.5, 2)
-      ..close());
+    final cap = _acornCap;
     c.drawPath(cap, f..color = pal.cap);
-    final g = Paint()
-      ..isAntiAlias = true
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = withA(const Color(0xFF1F1008), .5);
-    c.save();
-    c.clipPath(cap);
-    for (var i = -3; i < 5; i++) {
-      c.drawLine(Offset(i * 5.0 - 6, -14), Offset(i * 5.0 + 6, 4), g);
-      c.drawLine(Offset(i * 5.0 + 6, -14), Offset(i * 5.0 - 6, 4), g);
-    }
-    c.restore();
+    c.drawPath(_capHatch, f..color = withA(const Color(0xFF1F1008), .5));
     c.drawLine(const Offset(2, -13), const Offset(3, -18), Paint()..strokeWidth = 2.6..strokeCap = StrokeCap.round..color = pal.acornD);
     c.drawOval(const Rect.fromLTWH(-6, 3, 7, 4), f..color = const Color(0x55FFFFFF));
     if (look == FightLook.cartoon) {

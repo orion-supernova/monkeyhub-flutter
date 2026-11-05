@@ -53,15 +53,10 @@ void _drawBoulder(Canvas c, FightLook look, double r, _GL g, double rot, {double
   c.rotate(rot);
   final p = boulderPath(r);
   fillC(c, p, g.stoneD);
-  clipped(c, p, () {
-    c.save();
-    c.translate(-r * .13, -r * .15);
-    fillC(c, p, g.stone);
-    c.restore();
-    fillC(c, ovalP(-r * .35, -r * .5, r * .55, r * .3, -.4), g.moss);
-    fillC(c, ovalP(-r * .1, -r * .6, r * .25, r * .14, -.3), g.mossL);
-    fillC(c, ovalP(r * .35, r * .2, r * .3, r * .22, .4), g.stoneL);
-  });
+  fillIn(c, p, p.shift(Offset(-r * .13, -r * .15)), g.stone);
+  fillIn(c, p, ovalP(-r * .35, -r * .5, r * .55, r * .3, -.4), g.moss);
+  fillIn(c, p, ovalP(-r * .1, -r * .6, r * .25, r * .14, -.3), g.mossL);
+  fillIn(c, p, ovalP(r * .35, r * .2, r * .3, r * .22, .4), g.stoneL);
   lineC(c, Offset(r * .1, -r * .1), Offset(r * .45, r * .3), r * .07, withA(g.stoneD, .8));
   lineC(c, Offset(-r * .4, r * .25), Offset(-r * .1, r * .45), r * .06, withA(g.stoneD, .8));
   dotC(c, Offset(-r * .45, -r * .6), r * .1, g.petal);
@@ -164,13 +159,20 @@ class GolemArt extends CastArt {
     }
   }
 
+  static final Expando<(Path, Path)> _mossMarks = Expando('golemMoss');
+
   void _moss(Canvas c, Path clip, List<(double, double, double, double, double)> blobs, _GL g, {bool flowers = true}) {
-    clipped(c, clip, () {
-      for (final b in blobs) {
-        fillC(c, ovalP(b.$1, b.$2, b.$3, b.$4, b.$5), g.moss);
-        fillC(c, ovalP(b.$1 + b.$3 * .1, b.$2 - b.$4 * .3, b.$3 * .6, b.$4 * .45, b.$5), g.mossL);
+    var m = _mossMarks[blobs];
+    if (m == null) {
+      final a = Path(), b = Path();
+      for (final bl in blobs) {
+        a.addPath(ovalP(bl.$1, bl.$2, bl.$3, bl.$4, bl.$5), Offset.zero);
+        b.addPath(ovalP(bl.$1 + bl.$3 * .1, bl.$2 - bl.$4 * .3, bl.$3 * .6, bl.$4 * .45, bl.$5), Offset.zero);
       }
-    });
+      _mossMarks[blobs] = m = (a, b);
+    }
+    fillIn(c, clip, m.$1, g.moss);
+    fillIn(c, clip, m.$2, g.mossL);
     if (flowers) {
       for (final b in blobs.take(1)) {
         for (var i = 0; i < 3; i++) {

@@ -115,6 +115,33 @@ class HudPainter {
 
   // ---------------------------------------------------------------- bars
 
+  /// [poly] (convex) cut to x <= [xMax] and [yMin] <= y <= [yMax].
+  static Path _polyClip(List<Offset> poly, double xMax, double yMin, double yMax) {
+    var pts = poly;
+    List<Offset> cut(List<Offset> src, bool Function(Offset) inside, Offset Function(Offset, Offset) cross) {
+      final out = <Offset>[];
+      for (var i = 0; i < src.length; i++) {
+        final a = src[i], b = src[(i + 1) % src.length];
+        final ia = inside(a), ib = inside(b);
+        if (ia) out.add(a);
+        if (ia != ib) out.add(cross(a, b));
+      }
+      return out;
+    }
+    Offset atX(Offset a, Offset b, double x) => Offset(x, a.dy + (b.dy - a.dy) * (x - a.dx) / (b.dx - a.dx));
+    Offset atY(Offset a, Offset b, double y) => Offset(a.dx + (b.dx - a.dx) * (y - a.dy) / (b.dy - a.dy), y);
+    pts = cut(pts, (o) => o.dx <= xMax, (a, b) => atX(a, b, xMax));
+    if (pts.isNotEmpty) pts = cut(pts, (o) => o.dy >= yMin, (a, b) => atY(a, b, yMin));
+    if (pts.isNotEmpty) pts = cut(pts, (o) => o.dy <= yMax, (a, b) => atY(a, b, yMax));
+    final p = Path();
+    if (pts.length < 3) return p;
+    p.moveTo(pts[0].dx, pts[0].dy);
+    for (var i = 1; i < pts.length; i++) {
+      p.lineTo(pts[i].dx, pts[i].dy);
+    }
+    return p..close();
+  }
+
   void _bar(Canvas c, FightLook look, double side, double barW, double inner, double val, double tr, Fighter f, String name, int frame) {
     final outerX = side * (inner + barW);
     // Bar geometry in "bar space": x = 0 at the centre end, growing outward.
@@ -130,12 +157,12 @@ class HudPainter {
           ..lineTo(12, 22)
           ..close();
         c.drawPath(shape, _f..shader = null..color = const Color(0xFF2a1838));
-        c.save();
-        c.clipPath(shape);
-        c.drawRect(Rect.fromLTWH(-2, 0, barW * tr + 12, 22), _f..color = const Color(0xFFff4f6e));
-        c.drawRect(Rect.fromLTWH(-2, 0, barW * val + 12, 22), _f..color = val < .25 ? const Color(0xFFff7a3a) : const Color(0xFFffd23a));
-        c.drawRect(const Rect.fromLTWH(-2, 3, 1000, 4), _f..color = const Color(0x80FFFFFF));
-        c.restore();
+        // The fills are the parallelogram cut by a rect: computed as polygons
+        // (no GPU clip).
+        final quad = <Offset>[Offset.zero, Offset(barW, 0), Offset(barW + 10, 22), const Offset(12, 22)];
+        c.drawPath(_polyClip(quad, barW * tr + 12, 0, 22), _f..color = const Color(0xFFff4f6e));
+        c.drawPath(_polyClip(quad, barW * val + 12, 0, 22), _f..color = val < .25 ? const Color(0xFFff7a3a) : const Color(0xFFffd23a));
+        c.drawPath(_polyClip(quad, 1000, 3, 7), _f..color = const Color(0x80FFFFFF));
         c.drawPath(shape, _s..strokeWidth = 3..color = kInk);
         break;
       case FightLook.painted:

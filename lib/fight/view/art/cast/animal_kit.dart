@@ -37,13 +37,11 @@ class Pen {
   void ink(Path p, double w, [Color col = kInk]) => c.drawPath(p, _s..shader = null..strokeWidth = w..color = col);
   void line(Offset a, Offset b, double w, Color col) => c.drawLine(a, b, _s..shader = null..strokeWidth = w..color = col);
 
-  /// Fills [marks] clipped to [clip] (stripes, patches). Skipped in silhouettes.
+  /// Fills [marks] only where they overlap [clip] (stripes, patches), as a
+  /// path intersection rather than a GPU clip. Skipped in silhouettes.
   void clipped(Path clip, Path marks, Color col) {
     if (sil) return;
-    c.save();
-    c.clipPath(clip);
-    flat(marks, col);
-    c.restore();
+    r.inside(clip, marks, col);
   }
 
   /// Ink-line colour for fine detail that must read on both light and dark fur.

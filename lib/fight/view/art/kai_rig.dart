@@ -413,39 +413,40 @@ class RigPainter {
   bool get paint => look == FightLook.painted;
   bool get pix => look == FightLook.pixel;
 
-  /// Per-part fill: the lab's `fillPart`.
-  void fill(Path path, Color base, Rect bb, {Color? shade, bool noHT = false, double lw = 2.5}) {
+  /// Per-part fill: the lab's `fillPart`, rebuilt to be cheap on every GPU.
+  ///
+  /// The lab shaded a part by clipping to it and drawing a shifted copy: a
+  /// `clipPath` per part, ~90 per frame, the single most expensive thing a
+  /// frame can ask of the web (CanvasKit) or a low-end Android GPU. Now the
+  /// shading is a precomputed shape: for a path that is drawn again (every
+  /// part path is cached, see [limb]), the crescent `path - path.shifted` is
+  /// computed ONCE per light direction and kept with the path, as are the
+  /// painted look's gradient (per colour), rim light and occlusion. A path
+  /// seen only once (a per-frame shape) gets the flat look, which costs one
+  /// draw. No clips, no layers, no per-frame shader allocations.
+  ///
+  /// [frameAngle] is how far the canvas is rotated from world space (limbs
+  /// are drawn in their own frame), so the light stays where the world says.
+  void fill(Path path, Color base, Rect bb,
+      {Color? shade, bool noHT = false, double lw = 2.5, double frameAngle = 0}) {
     if (sil != null) {
       c.drawPath(path, _fp..shader = null..color = sil!);
       return;
     }
     final sh = shade ?? dk(base, .4);
+    final q = _part(path);
+    final k = frameAngle == 0 ? 0 : ((frameAngle / (math.pi / 8)).round() % 16 + 16) % 16;
     if (paint) {
-      final small = bb.width * bb.height < 260;
-      if (small) {
-        c.drawPath(path, _fp..shader = null..color = base);
+      if (q != null && bb.width * bb.height >= 260) {
+        final g = q.grad.putIfAbsent(base.toARGB32() * 31 + sh.toARGB32(),
+            () => Gradient.linear(bb.topLeft, bb.bottomRight, [lt(base, .2), base, sh], const [0, .5, 1]));
+        c.drawPath(path, _fp..color = const Color(0xFFFFFFFF)..shader = g);
+        _fp.shader = null;
+        c.drawPath(q.cut(1, k, const Offset(-2.6, 0)), _fp..color = const Color(0x99FFC496)); // rim light
+        c.drawPath(q.cut(2, k, const Offset(0, -4)), _fp..color = const Color(0x30140828)); // occlusion
       } else {
-        _fp
-          ..color = const Color(0xFFFFFFFF)
-          ..shader = Gradient.linear(bb.topLeft, bb.bottomRight, [lt(base, .2), base, sh], const [0, .5, 1]);
-        c.drawPath(path, _fp);
-        _fp.shader = null;
-        c.save();
-        c.clipPath(path);
-        _sp
-          ..strokeWidth = 5
-          ..shader = Gradient.linear(Offset(bb.left, 0), Offset(bb.right, 0),
-              const [Color(0x00FFA078), Color(0x00FFA078), Color(0xE6FFC496)], const [0, .6, 1])
-          ..color = const Color(0xFFFFFFFF);
-        c.drawPath(path, _sp);
-        _sp.shader = null;
-        _fp
-          ..color = const Color(0xFFFFFFFF)
-          ..shader = Gradient.linear(Offset(0, bb.top), Offset(0, bb.bottom),
-              const [Color(0x00140828), Color(0x47140828)], const [.55, 1]);
-        c.drawPath(path, _fp);
-        _fp.shader = null;
-        c.restore();
+        c.drawPath(path, _fp..shader = null..color = base);
+        if (q != null) c.drawPath(q.cut(0, k, _light), _fp..color = Color.lerp(base, sh, .55)!);
       }
       _sp
         ..shader = null
@@ -454,21 +455,20 @@ class RigPainter {
       c.drawPath(path, _sp);
       return;
     }
-    c.drawPath(path, _fp..shader = null..color = sh);
-    c.save();
-    c.clipPath(path);
-    if (cel && !noHT) {
-      final s = _halftone();
-      if (s != null) {
-        _ht
-          ..shader = s
-          ..color = const Color(0x52000000);
-        c.drawPath(path, _ht);
+    c.drawPath(path, _fp..shader = null..color = base);
+    if (q != null) {
+      final cres = q.cut(0, k, _light);
+      c.drawPath(cres, _fp..color = sh);
+      if (cel && !noHT) {
+        final s = _halftone();
+        if (s != null) {
+          _ht
+            ..shader = s
+            ..color = const Color(0x52000000);
+          c.drawPath(cres, _ht);
+        }
       }
     }
-    c.translate(-3.2, -3.6);
-    c.drawPath(path, _fp..color = base);
-    c.restore();
     if (cel) {
       _sp
         ..shader = null
@@ -477,6 +477,49 @@ class RigPainter {
       c.drawPath(path, _sp);
     }
   }
+
+  /// Paints [marks] (stripes, patches, shading) only where they overlap
+  /// [clip], WITHOUT a GPU clip: the intersection is a path, computed once
+  /// and kept when both paths are reused, or per call (on the CPU, cheap
+  /// next to a clip on the GPU) when [marks] is built per frame.
+  void inside(Path clip, Path marks, Color col, {Shader? shader}) {
+    if (sil != null) return;
+    final byMarks = _insides[clip] ??= Map.identity();
+    final cut = byMarks[marks] ?? (() {
+      final x = Path.combine(PathOperation.intersect, clip, marks);
+      if (_seen[marks] == true) byMarks[marks] = x;
+      _seen[marks] = true;
+      return x;
+    })();
+    c.drawPath(cut, _fp..shader = shader..color = col);
+    _fp.shader = null;
+  }
+
+  static final Map<int, Shader> _tipGrad = {};
+  static final Path _tipRectP = Path()..addRect(const Rect.fromLTWH(-30, -40, 60, 22));
+  static final Path _tipRectF = Path()..addRect(const Rect.fromLTWH(-30, -40, 60, 18.5));
+
+  static final Expando<Map<Path, Path>> _insides = Expando('fightInside');
+
+  /// The lab's inner-shadow offset (light from the upper left).
+  static const Offset _light = Offset(-3.2, -3.6);
+
+  static final Expando<_Part> _parts = Expando('fightPart');
+  static final Expando<bool> _seen = Expando('fightPartSeen');
+
+  /// The cache for a path drawn more than once; null the first time (a
+  /// per-frame path is never seen twice, so it never costs a boolean op).
+  static _Part? _part(Path p) {
+    final have = _parts[p];
+    if (have != null) return have;
+    if (_seen[p] == true) return _parts[p] = _Part(p);
+    _seen[p] = true;
+    return null;
+  }
+
+  /// Limb shapes in their own frame (+x along the bone), by size: a limb's
+  /// length is fixed per character, so there are a few dozen of these.
+  static final Map<int, (Path, Rect)> _limbs = {};
 
   /// The lab's `detail`: a few ink lines (skipped in silhouettes).
   void detail(void Function(Path p) draw, {double w = 1.4, Color? col}) {
@@ -490,13 +533,28 @@ class RigPainter {
     c.drawPath(p, _sp);
   }
 
-  Path limb(Offset a, Offset b, double r1, double r2, Color col,
+  /// A tapered limb from [a] to [b]. Drawn from a cached shape in the
+  /// limb's own frame (see [fill]), so moving it costs a transform, not a
+  /// new path. Lengths snap to half a rig unit.
+  void limb(Offset a, Offset b, double r1, double r2, Color col,
       {double bulge = 0, bool noHT = false, double lw = 2.5, Color? shade}) {
-    final p = limbPath(a, b, r1, r2, bulge);
-    final m = math.max(r1, r2) + bulge;
-    fill(p, col, Rect.fromLTRB(math.min(a.dx, b.dx) - m, math.min(a.dy, b.dy) - m, math.max(a.dx, b.dx) + m,
-        math.max(a.dy, b.dy) + m), noHT: noHT, lw: lw, shade: shade);
-    return p;
+    final d = b - a;
+    final len = (d.distance * 2).round() / 2;
+    if (len < .5) return;
+    final key = ((r1 * 8).round() & 0xff) |
+        ((r2 * 8).round() & 0xff) << 8 |
+        ((bulge * 8).round() & 0x7f) << 16 |
+        ((len * 2).round() & 0x7ff) << 23;
+    final (path, bb) = _limbs.putIfAbsent(key, () {
+      final m = math.max(r1, r2) + bulge;
+      return (limbPath(Offset.zero, Offset(len, 0), r1, r2, bulge), Rect.fromLTRB(-m, -m, len + m, m));
+    });
+    final ang = math.atan2(d.dy, d.dx);
+    c.save();
+    c.translate(a.dx, a.dy);
+    c.rotate(ang);
+    fill(path, col, bb, noHT: noHT, lw: lw, shade: shade, frameAngle: ang);
+    c.restore();
   }
 
   final Paint _castLayer = Paint();
@@ -640,26 +698,18 @@ class RigPainter {
     c.scale(1.2, 1.2);
     fill(pHead, pal.skin, const Rect.fromLTRB(-17, -20, 16, 18));
     if (sil == null) {
-      c.save();
-      c.clipPath(pHead);
-      c.drawPath(pHeadShade, _fp..shader = null..color = paint ? const Color(0x59281C28) : mixC(pal.skin, pal.hair, .45));
-      c.restore();
+      inside(pHead, pHeadShade, paint ? const Color(0x59281C28) : mixC(pal.skin, pal.hair, .45));
       fill(pEar, dk(pal.skin, .08), const Rect.fromLTRB(-7, -4, 1, 7), lw: 1.6, noHT: true);
     }
     fill(pHair, pal.hair, const Rect.fromLTRB(-23, -31, 16, -5), shade: pal.hairShade, noHT: true);
     if (sil == null) {
-      c.save();
-      c.clipPath(pHair);
       if (paint) {
-        _fp
-          ..color = const Color(0xFFFFFFFF)
-          ..shader = Gradient.linear(const Offset(0, -31), const Offset(0, -18), [pal.tip, withA(pal.tip, 0)]);
-        c.drawRect(const Rect.fromLTWH(-30, -40, 60, 22), _fp);
-        _fp.shader = null;
+        final g = _tipGrad.putIfAbsent(pal.tip.toARGB32(),
+            () => Gradient.linear(const Offset(0, -31), const Offset(0, -18), [pal.tip, withA(pal.tip, 0)]));
+        inside(pHair, _tipRectP, const Color(0xFFFFFFFF), shader: g);
       } else {
-        c.drawRect(const Rect.fromLTWH(-30, -40, 60, 18.5), _fp..shader = null..color = pal.tip);
+        inside(pHair, _tipRectF, pal.tip);
       }
-      c.restore();
       if (cel) {
         _sp
           ..shader = null
@@ -723,4 +773,22 @@ class RigPainter {
     _arm(j, false, p);
     c.restore();
   }
+}
+
+/// What [RigPainter.fill] keeps per reused path: shading crescents per kind
+/// and light direction, and the painted gradient per colour.
+class _Part {
+  _Part(this.path);
+  final Path path;
+  final Map<int, Path> _cuts = {};
+  final Map<int, Shader> grad = {};
+
+  /// `path - path.shift(o)` with [o] turned into the path's own frame
+  /// (rotated back by [k] sixteenths of a turn); [kind] keeps rim, shade
+  /// and occlusion apart.
+  Path cut(int kind, int k, Offset o) => _cuts.putIfAbsent(kind * 16 + k, () {
+        final a = -k * math.pi / 8;
+        final r = Offset(o.dx * math.cos(a) - o.dy * math.sin(a), o.dx * math.sin(a) + o.dy * math.cos(a));
+        return Path.combine(PathOperation.difference, path, path.shift(r));
+      });
 }

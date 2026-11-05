@@ -61,13 +61,22 @@ void gradStroke(Canvas c, Path p, double w, Offset a, Offset b, List<Color> cols
   _sp.shader = null;
 }
 
-/// Clips to [clip] around [f] (draws nothing when the path is empty).
-void clipped(Canvas c, Path clip, void Function() f) {
-  c.save();
-  c.clipPath(clip);
-  f();
-  c.restore();
+/// Fills [marks] only where they overlap [clip], WITHOUT a GPU clip: the
+/// intersection is a path, kept when both paths are reused objects and
+/// computed per call (on the CPU) when either is built per frame.
+void fillIn(Canvas c, Path clip, Path marks, Color col) {
+  final byMarks = _fillIns[clip] ??= Map.identity();
+  final cut = byMarks[marks] ?? (() {
+    final x = Path.combine(PathOperation.intersect, clip, marks);
+    if (_fillSeen[marks] == true) byMarks[marks] = x;
+    _fillSeen[marks] = true;
+    return x;
+  })();
+  c.drawPath(cut, _fp..shader = null..color = col);
 }
+
+final Expando<Map<Path, Path>> _fillIns = Expando('legendFillIn');
+final Expando<bool> _fillSeen = Expando('legendFillSeen');
 
 // ------------------------------------------------------------------ geometry
 

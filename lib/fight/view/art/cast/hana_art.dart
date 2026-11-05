@@ -224,10 +224,7 @@ class HanaArt extends CastArt {
     }
     rp.fill(pHead, skin, const Rect.fromLTRB(-17, -20, 16, 18));
     if (rp.sil == null) {
-      c.save();
-      c.clipPath(pHead);
-      c.drawPath(pHeadShade, Paint()..color = rp.paint ? const Color(0x59281C28) : mixC(skin, k.hair, .3));
-      c.restore();
+      rp.inside(pHead, pHeadShade, rp.paint ? const Color(0x59281C28) : mixC(skin, k.hair, .3));
       rp.fill(pEar, dk(skin, .08), const Rect.fromLTRB(-7, -4, 1, 7), lw: 1.6, noHT: true);
     }
     rp.fill(_hairCap, k.hair, const Rect.fromLTRB(-19, -28, 16, -2), shade: dk(k.hair, .3), noHT: true);

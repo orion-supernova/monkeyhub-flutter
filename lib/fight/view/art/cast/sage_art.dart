@@ -440,24 +440,23 @@ class SageArt extends CastArt {
     c.restore();
   }
 
+  static final Path _pineBody = ellP(0, 4, 12, 15);
+  static final Path _pineHatch = Path.combine(
+      PathOperation.intersect,
+      _pineBody,
+      hatchPath([
+        for (var i = -3; i <= 3; i++) ...[
+          (Offset(i * 6.0 - 12, -12), Offset(i * 6.0 + 12, 20)),
+          (Offset(i * 6.0 + 12, -12), Offset(i * 6.0 - 12, 20)),
+        ]
+      ], 1.2));
+
   static void _pineapple(Canvas c, FightLook look, double spin) {
     final f = Paint()..isAntiAlias = true;
     c.save();
     c.rotate(spin);
-    final body = ellP(0, 4, 12, 15);
-    c.drawPath(body, f..color = hex(0xf2b92a));
-    final g = Paint()
-      ..isAntiAlias = true
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..color = hex(0xa8741a);
-    c.save();
-    c.clipPath(body);
-    for (var i = -3; i <= 3; i++) {
-      c.drawLine(Offset(i * 6.0 - 12, -12), Offset(i * 6.0 + 12, 20), g);
-      c.drawLine(Offset(i * 6.0 + 12, -12), Offset(i * 6.0 - 12, 20), g);
-    }
-    c.restore();
+    c.drawPath(_pineBody, f..color = hex(0xf2b92a));
+    c.drawPath(_pineHatch, f..color = hex(0xa8741a));
     for (var i = -2; i <= 2; i++) {
       final leaf = Path()
         ..moveTo(i * 2.0, -9)
@@ -465,7 +464,7 @@ class SageArt extends CastArt {
         ..quadraticBezierTo(i * 2.0, -18, i * 2.0 + 3, -9);
       c.drawPath(leaf, f..color = hex(0x3f9a4a));
     }
-    if (look == FightLook.cartoon) c.drawPath(body, Paint()..style = PaintingStyle.stroke..strokeWidth = 2..color = kInk);
+    if (look == FightLook.cartoon) c.drawPath(_pineBody, Paint()..style = PaintingStyle.stroke..strokeWidth = 2..color = kInk);
     c.restore();
   }
 

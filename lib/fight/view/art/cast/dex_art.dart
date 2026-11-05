@@ -56,6 +56,7 @@ class DexArt extends CastArt {
     ..cubicTo(14, -19, 15, -14, 14, -11)
     ..cubicTo(8, -14, 0, -11, -6, -9)
     ..cubicTo(-12, -8, -16, -5, -17, -2));
+  late final Path _necklineIn = Path.combine(PathOperation.intersect, pTorso, _neckline);
   final Path _neckline = Path()
     ..moveTo(-26, -70)
     ..lineTo(26, -70)
@@ -106,10 +107,7 @@ class DexArt extends CastArt {
     c.rotate(p.lean);
     c.scale(1.12, 1.0);
     rp.fill(pTorso, k.tank, const Rect.fromLTRB(-20, -64, 20, 0), shade: k.tankD);
-    c.save();
-    c.clipPath(pTorso);
-    rp.fill(_neckline, skin, const Rect.fromLTRB(-26, -70, 26, -34), noHT: true, lw: 1.8);
-    c.restore();
+    rp.fill(_necklineIn, skin, const Rect.fromLTRB(-26, -70, 26, -34), noHT: true, lw: 1.8);
     rp.detail((q) => q
       ..moveTo(-19, -49)
       ..quadraticBezierTo(-12, -58, 0, -46)
@@ -189,10 +187,7 @@ class DexArt extends CastArt {
     }
     rp.fill(pHead, skin, const Rect.fromLTRB(-17, -20, 16, 18));
     if (rp.sil == null) {
-      c.save();
-      c.clipPath(pHead);
-      c.drawPath(pHeadShade, Paint()..color = rp.paint ? const Color(0x59281C28) : k.skinD);
-      c.restore();
+      rp.inside(pHead, pHeadShade, rp.paint ? const Color(0x59281C28) : k.skinD);
       rp.fill(pEar, dk(skin, .08), const Rect.fromLTRB(-7, -4, 1, 7), lw: 1.6, noHT: true);
     }
     rp.fill(_cap, hair, const Rect.fromLTRB(-18, -29, 15, -5), shade: dk(hair, .3), noHT: true);

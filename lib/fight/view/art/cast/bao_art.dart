@@ -31,6 +31,7 @@ class BaoPal {
     cord: hex(0xf6f0e0), cheek: hex(0xff8a8a), eye: hex(0xfffaf0));
 }
 
+final Path _baoPupil = Path.combine(PathOperation.intersect, ellP(7.6, -3, 2.3, 2.1), Path()..addOval(Rect.fromCircle(center: const Offset(8.4, -2.7), radius: 1.3)));
 final Path _torso = pathOf((p) => p
   ..moveTo(-17, 0)
   ..cubicTo(-25, -12, -26, -32, -20, -43)
@@ -288,10 +289,7 @@ class BaoArt extends CastArt {
       r.fill(ellP(7, -3, 5.4, 7, .55), m.blk, const Rect.fromLTRB(1, -11, 13, 5), noHT: true, lw: 1.6);
       r.fill(ellP(16.4, -4, 2.8, 4.4, .5), m.blk, const Rect.fromLTRB(13, -9, 20, 1), noHT: true, lw: 1.3);
       pen.flat(ellP(7.6, -3, 2.3, 2.1), m.eye);
-      pen.c.save();
-      pen.c.clipPath(ellP(7.6, -3, 2.3, 2.1));
-      pen.circ(8.4, -2.7, 1.3, kInk);
-      pen.c.restore();
+      pen.flat(_baoPupil, kInk);
       pen.circ(16.6, -3.6, 1.1, m.eye);
       // Heavy lid across the top of the near eye.
       r.detail((pa) => pa

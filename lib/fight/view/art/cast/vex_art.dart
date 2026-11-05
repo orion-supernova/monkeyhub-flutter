@@ -75,6 +75,9 @@ final Path _ruff = pathOf((p) => p
   ..lineTo(-18, 16)
   ..lineTo(-7, 16)
   ..lineTo(-1, 13));
+final Path _earTip = Path.combine(PathOperation.intersect, _ear, Path()..addRect(const Rect.fromLTRB(-20, -40, 5, -26)));
+final Path _irisP = Path.combine(PathOperation.intersect, _eyeP, Path()..addOval(Rect.fromCircle(center: const Offset(9, -3.4), radius: 2.9)));
+final Path _pupilP = Path.combine(PathOperation.intersect, _eyeP, ellP(9.4, -3.4, .9, 2.7));
 final Path _ear = pathOf((p) => p
   ..moveTo(-13, -8)
   ..quadraticBezierTo(-15, -25, -6, -37)
@@ -301,19 +304,13 @@ class VexArt extends CastArt {
     r.fill(_ear, m.fur, const Rect.fromLTRB(-16, -38, 2, -8), lw: 1.9, shade: m.furD);
     if (!pen.sil) {
       // Black ear tips, pink-brown inner ear.
-      c.save();
-      c.clipPath(_ear);
-      pen.flat(Path()..addRect(const Rect.fromLTRB(-20, -40, 5, -26)), m.blk);
-      c.restore();
+      pen.flat(_earTip, m.blk);
       pen.flat(_earIn, m.ear);
       pen.circ(24.8, .4, 2.3, m.blk);
       pen.circ(24, -.2, .7, const Color(0xCCFFFFFF));
       r.fill(_eyeP, m.eye, const Rect.fromLTRB(2, -9, 14, 1), noHT: true, lw: 1.1);
-      c.save();
-      c.clipPath(_eyeP);
-      pen.circ(9, -3.4, 2.9, m.iris);
-      pen.flat(ellP(9.4, -3.4, .9, 2.7), kInk);
-      c.restore();
+      pen.flat(_irisP, m.iris);
+      pen.flat(_pupilP, kInk);
       pen.circ(10.4, -4.5, .7, const Color(0xFFFFFFFF));
       r.detail((pa) => pa
         ..moveTo(13.6, -4.8)

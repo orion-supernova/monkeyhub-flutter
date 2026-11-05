@@ -475,6 +475,9 @@ class Unit7Art extends CastArt {
   }
 
   static final Path _rBody = roundPoly(const [Offset(-12, -4.6), Offset(5, -5), Offset(9, -3), Offset(9, 3), Offset(5, 5), Offset(-12, 4.6)], 1.6);
+  static final Path _rShade = Path.combine(PathOperation.intersect, _rBody, rrPath(-12, 0, 24, 6, 0));
+  static final Path _rBand1 = Path.combine(PathOperation.intersect, _rBody, rrPath(-7, -6, 3.4, 12, 0));
+  static final Path _rBand2 = Path.combine(PathOperation.intersect, _rBody, rrPath(2, -6, 1.6, 12, 0));
   static final Path _rNose = Path()
     ..moveTo(8, -4.3)
     ..quadraticBezierTo(15, -3, 16, 0)
@@ -502,12 +505,9 @@ class Unit7Art extends CastArt {
     fillC(c, _rFinT, const Color(0xFF2FB3AD));
     fillC(c, _rFinB, const Color(0xFF1A7580));
     fillC(c, _rBody, const Color(0xFFF1E6CC));
-    c.save();
-    c.clipPath(_rBody);
-    fillC(c, rrPath(-12, 0, 24, 6, 0), const Color(0x22000000));
-    fillC(c, rrPath(-7, -6, 3.4, 12, 0), const Color(0xFF2FB3AD));
-    fillC(c, rrPath(2, -6, 1.6, 12, 0), const Color(0xFFBFA97C));
-    c.restore();
+    fillC(c, _rShade, const Color(0x22000000));
+    fillC(c, _rBand1, const Color(0xFF2FB3AD));
+    fillC(c, _rBand2, const Color(0xFFBFA97C));
     fillC(c, _rNose, const Color(0xFFFF5A3A));
     dotC(c, const Offset(-1.5, 0), 1.7, const Color(0xFF7FF7FF));
     dotC(c, const Offset(-12, 0), 1.5, const Color(0xFF232D3A));

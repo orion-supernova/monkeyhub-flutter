@@ -61,6 +61,9 @@ class LuzArt extends CastArt {
   });
   final Path _eyePatch = ellP(8.2, -4.4, 7.4, 5.2, -.08);
   final Path _mouthPatch = ellP(10.4, 10.4, 4.6, 3.6, .1);
+  late final Path _necklineIn = Path.combine(PathOperation.intersect, pTorso, _neckline);
+  late final Path _eyePatchIn = Path.combine(PathOperation.intersect, pHead, _eyePatch);
+  late final Path _mouthPatchIn = Path.combine(PathOperation.intersect, pHead, _mouthPatch);
   final Path _neckline = Path()
     ..moveTo(-24, -70)
     ..lineTo(24, -70)
@@ -120,10 +123,7 @@ class LuzArt extends CastArt {
     rp.fill(pTorso, k.suit, const Rect.fromLTRB(-20, -64, 20, 0), shade: k.suitD);
     rp.fill(_stripe, k.trim, const Rect.fromLTRB(-16, -56, -5, 0), lw: 1.5, noHT: true);
     // Scooped neckline over the shoulders.
-    c.save();
-    c.clipPath(pTorso);
-    rp.fill(_neckline, skin, const Rect.fromLTRB(-24, -70, 24, -40), noHT: true, lw: 1.8);
-    c.restore();
+    rp.fill(_necklineIn, skin, const Rect.fromLTRB(-24, -70, 24, -40), noHT: true, lw: 1.8);
     rp.detail((q) => q
       ..moveTo(-18, -52)
       ..quadraticBezierTo(-14, -57, -2, -49)
@@ -188,11 +188,8 @@ class LuzArt extends CastArt {
     rp.fill(_flames, k.trim, const Rect.fromLTRB(-20, -31, 12, -15), lw: 1.5, noHT: true);
     rp.fill(pHead, k.mask, const Rect.fromLTRB(-17, -20, 16, 18));
     if (rp.sil == null) {
-      c.save();
-      c.clipPath(pHead);
-      rp.fill(_eyePatch, skin, const Rect.fromLTRB(1, -10, 16, 2), noHT: true, lw: 1.7);
-      rp.fill(_mouthPatch, dk(skin, .06), const Rect.fromLTRB(5, 6, 15, 14), noHT: true, lw: 1.5);
-      c.restore();
+      rp.fill(_eyePatchIn, skin, const Rect.fromLTRB(1, -10, 16, 2), noHT: true, lw: 1.7);
+      rp.fill(_mouthPatchIn, dk(skin, .06), const Rect.fromLTRB(5, 6, 15, 14), noHT: true, lw: 1.5);
       // Gold trim around the eye and a flame streak sweeping back from it.
       rp.detail((q) => q.addPath(_eyePatch, Offset.zero), w: 1.5, col: k.trim);
       rp.detail((q) => q

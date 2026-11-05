@@ -462,10 +462,7 @@ class RosterPainter {
     r.fill(_mjTuft, m.cap, const Rect.fromLTRB(-10, -36, 7, -14), noHT: true, lw: 2);
     r.fill(_mjHead, m.fur, const Rect.fromLTRB(-18, -18, 17, 18), shade: m.furD);
     if (!sil) {
-      c.save();
-      c.clipPath(_mjHead);
-      _fillC(_mjCap, paint ? const Color(0xE11E120C) : m.cap);
-      c.restore();
+      r.inside(_mjHead, _mjCap, paint ? const Color(0xE11E120C) : m.cap);
       r.fill(_mjFace, m.face, const Rect.fromLTRB(-5, -13, 19, 17), lw: 1.8);
       r.fill(rrPath(-5, -20.5, 10, 4.5, 2), m.band, const Rect.fromLTRB(-5, -21, 5, -16), noHT: true, lw: 1.6);
       // Two eyes in 3/4 view: big near one, small far one. Lashes flick up.

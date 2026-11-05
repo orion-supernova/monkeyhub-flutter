@@ -140,10 +140,7 @@ class BoomArt extends CastArt {
       rp.detail((q) => q
         ..moveTo(-18, -52)
         ..quadraticBezierTo(0, -44, 20, -50), w: 1.4);
-      c.save();
-      c.clipPath(_torso);
-      c.drawPath(_belly, Paint()..color = rp.paint ? const Color(0x22FFFFFF) : lt(skin, .14));
-      c.restore();
+      rp.inside(_torso, _belly, rp.paint ? const Color(0x22FFFFFF) : lt(skin, .14));
       rp.detail((q) => q.addPath(_belly, Offset.zero), w: 1.1, col: rp.paint ? const Color(0x44301810) : dk(skin, .35));
       rp.detail((q) => q
         ..moveTo(26, -26)
@@ -199,10 +196,7 @@ class BoomArt extends CastArt {
     c.scale(1.34, 1.3);
     rp.fill(pHead, skin, const Rect.fromLTRB(-17, -20, 16, 18));
     if (rp.sil == null) {
-      c.save();
-      c.clipPath(pHead);
-      c.drawPath(pHeadShade, Paint()..color = rp.paint ? const Color(0x59281C28) : k.skinD);
-      c.restore();
+      rp.inside(pHead, pHeadShade, rp.paint ? const Color(0x59281C28) : k.skinD);
       rp.fill(pEar, dk(skin, .08), const Rect.fromLTRB(-7, -4, 1, 7), lw: 1.6, noHT: true);
       // Cheeks.
       c.drawPath(ellP(7, 6, 5, 3.4), Paint()..color = withA(const Color(0xFFE0605A), .28));
