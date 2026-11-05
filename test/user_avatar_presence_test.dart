@@ -86,6 +86,11 @@ void main() {
   avatarTest('the Settings toggle reaches a const avatar without a rebuild',
       (tester) async {
     await tester.pumpWidget(_host(UserAvatar(user: online)));
+    await tester.pump(const Duration(milliseconds: 300));
+    feeds.last([
+      {'id': 'bea', 's': 'online'},
+    ]);
+    await tester.pump();
     expect(_dot(), findsOneWidget);
 
     await SettingsStore.instance.setShowPresenceDots(false);
@@ -146,18 +151,19 @@ void main() {
       expect(tester.element(find.text('B')), same(face));
     });
 
-    avatarTest('a store value beats user.status; unknown falls back to it',
+    avatarTest('unknown shows nothing, never the user object\'s stale copy',
         (tester) async {
+      // `online` on the user object is the old mirror, often from disk: the
+      // "online for a moment, then last seen 5 hours ago" flip people saw.
       await tester.pumpWidget(_host(UserAvatar(user: online)));
-      final fallback = dotColor(tester);
-      expect(fallback, isNotNull);
+      expect(dotColor(tester), isNull);
 
       await tester.pump(const Duration(milliseconds: 300));
       feeds.last([
         {'id': 'bea', 's': 'offline', 'ls': 1},
       ]);
       await tester.pump();
-      expect(dotColor(tester), isNot(fallback));
+      expect(dotColor(tester), isNotNull);
     });
 
     avatarTest('legacy mode reads user.status and takes no lease',

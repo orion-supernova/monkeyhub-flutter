@@ -96,6 +96,13 @@ async function mirrorLive(ctx: any, user: any, now: number, status: PresenceStat
   // The old sweep may have flipped users.status to offline between refreshes;
   // restore it whenever it disagrees with presence.
   const statusDiffers = user.status !== status;
+  // Only an ONLINE user's lastSeen is refreshed: old builds read it as "still
+  // here". Refreshing it for an away user (a hidden Mac beating all night)
+  // told every old build they had been seen a minute ago.
+  if (status !== "online") {
+    if (statusDiffers) await ctx.db.patch(user._id, { status });
+    return;
+  }
   const stale = user.lastSeen == null || now - user.lastSeen >= COMPAT_MIRROR_MS;
   if (!statusDiffers && !stale) return;
   await ctx.db.patch(user._id, {
@@ -156,6 +163,12 @@ export async function noteBeat(
  * Writes the presence row for a transition to [status]. `lastSeen` absent for
  * online, [lastSeen] (default now) otherwise. Levels are copied from the
  * users row on insert.
+ *
+ * "Last seen" is the last time the person was IN FRONT of the app, so it is
+ * stamped only on the way out of `online`. A move between away and offline
+ * keeps the time already there: a Mac kept alive with its window hidden, or a
+ * phone the OS woke in the background, is a process, not a person, and used
+ * to show "last seen 1 minute ago" for someone asleep.
  */
 async function writePresence(
   ctx: any,
@@ -166,7 +179,13 @@ async function writePresence(
   mirror: boolean,
   lastSeen: number = now,
 ) {
-  const ls = status === "online" ? undefined : lastSeen;
+  const leftForeground = !existing || existing.status === "online";
+  const ls =
+    status === "online"
+      ? undefined
+      : leftForeground
+        ? lastSeen
+        : (existing.lastSeen ?? lastSeen);
   if (existing) {
     await ctx.db.patch(existing._id, { status, lastSeen: ls });
   } else {
@@ -182,7 +201,7 @@ async function writePresence(
         : {}),
     });
   }
-  if (mirror) await mirrorTransition(ctx, user, status, lastSeen);
+  if (mirror) await mirrorTransition(ctx, user, status, ls ?? lastSeen);
 }
 
 /**
@@ -244,8 +263,13 @@ export async function demoteStale(
   if (beat?.live) await writeBeat(ctx, userId, beat, beat.beatAt, false);
   if (!pres || pres.status === "offline") return { changed: false };
   const user = await ctx.db.get(userId);
-  await ctx.db.patch(pres._id, { status: "offline", lastSeen: beatAt });
-  if (mirror) await mirrorTransition(ctx, user, "offline", beatAt);
+  // Online until the beats stopped: last seen at the last beat. Away already:
+  // they left the foreground earlier, and the background beats since say
+  // nothing about the person — keep the time they left. See [writePresence].
+  const lastSeen =
+    pres.status === "away" && pres.lastSeen != null ? pres.lastSeen : beatAt;
+  await ctx.db.patch(pres._id, { status: "offline", lastSeen });
+  if (mirror) await mirrorTransition(ctx, user, "offline", lastSeen);
   return { changed: true };
 }
 

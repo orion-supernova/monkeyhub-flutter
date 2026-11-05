@@ -150,7 +150,9 @@ describe("noteBeat", () => {
     expect((await rows()).presence[0].status).toBe("offline");
     await t.run((ctx) => noteBeat(ctx, userId, { now: T0 + 300_000, resurrect: "away" }));
     const s = await rows();
-    expect(s.presence[0]).toMatchObject({ status: "away", lastSeen: T0 + 300_000 });
+    // A background process beating is not the person coming back: last seen
+    // stays when they actually left the foreground, not the beat.
+    expect(s.presence[0]).toMatchObject({ status: "away", lastSeen: T0 + 1 });
     expect(s.beat[0]).toMatchObject({ live: true, beatAt: T0 + 300_000 });
   });
 
@@ -172,6 +174,48 @@ describe("demoteStale / clearPresence / syncLevels", () => {
     expect(s.beat[0].live).toBe(false);
     expect(s.user).toMatchObject({ status: "offline", lastSeen: T0 });
     expect((await t.run((ctx) => demoteStale(ctx, userId, T0, { now: T0 + 1 }))).changed).toBe(false);
+  });
+
+  test("an away user demoted by the sweep keeps the time they left", async () => {
+    // The reported case: a Mac kept alive with its window hidden beats all
+    // night as `away`; when it finally stops, "last seen" must not become the
+    // last beat (a minute before the sweep), which read as "last seen 1 minute
+    // ago" for someone asleep.
+    const { t, userId, rows } = await setup();
+    await t.run((ctx) => markOnline(ctx, userId, { now: T0 }));
+    await t.run((ctx) => setStatus(ctx, userId, "away", { now: T0 + 1000 }));
+    for (let i = 1; i <= 5; i++) {
+      await t.run((ctx) => noteBeat(ctx, userId, { now: T0 + i * 600_000 }));
+    }
+    await t.run((ctx) =>
+      demoteStale(ctx, userId, T0 + 3_000_000, { now: T0 + 3_200_000 }),
+    );
+    const s = await rows();
+    expect(s.presence[0]).toMatchObject({ status: "offline", lastSeen: T0 + 1000 });
+    expect(s.user).toMatchObject({ status: "offline", lastSeen: T0 + 1000 });
+  });
+
+  test("away beats do not refresh the old builds' lastSeen", async () => {
+    const { t, userId, rows } = await setup();
+    await t.run((ctx) => markOnline(ctx, userId, { now: T0 }));
+    await t.run((ctx) => setStatus(ctx, userId, "away", { now: T0 + 1000 }));
+    for (let i = 1; i <= 4; i++) {
+      await t.run((ctx) => noteBeat(ctx, userId, { now: T0 + i * 600_000 }));
+    }
+    const s = await rows();
+    expect(s.user).toMatchObject({ status: "away", lastSeen: T0 + 1000 });
+    expect(s.presence[0].lastSeen).toBe(T0 + 1000);
+  });
+
+  test("leaving the foreground still stamps the moment", async () => {
+    const { t, userId, rows } = await setup();
+    await t.run((ctx) => markOnline(ctx, userId, { now: T0 }));
+    await t.run((ctx) => setStatus(ctx, userId, "away", { now: T0 + 5000 }));
+    expect((await rows()).presence[0].lastSeen).toBe(T0 + 5000);
+    // Back in front, and out again: the new departure counts.
+    await t.run((ctx) => setStatus(ctx, userId, "online", { now: T0 + 9000 }));
+    await t.run((ctx) => markOffline(ctx, userId, { now: T0 + 12_000 }));
+    expect((await rows()).presence[0].lastSeen).toBe(T0 + 12_000);
   });
 
   test("clearPresence deletes both rows", async () => {

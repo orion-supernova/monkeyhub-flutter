@@ -163,9 +163,9 @@ class PresenceView {
 ///
 /// The one door every text display of presence goes through: it holds the
 /// lease (so the store's single subscription covers this person), listens to
-/// both their value and the store's legacy flag, and falls back to
-/// `user.status` / `user.lastSeen` when the store has nothing, so an old
-/// server and the first frame both read as they always did.
+/// both their value and the store's legacy flag. Until the store answers it
+/// shows nothing; it falls back to `user.status` / `user.lastSeen` only for an
+/// old server with no live presence (or no store at all, as in tests).
 class PresenceBuilder extends StatefulWidget {
   const PresenceBuilder({super.key, required this.user, required this.builder});
 
@@ -223,6 +223,14 @@ class _PresenceBuilderState extends State<PresenceBuilder> {
         live: true,
       );
     }
+    // Live store, no answer yet (or hidden from this viewer): nothing. The
+    // user object's `status`/`lastSeen` are the old mirror on `users`, often
+    // painted from disk, and showing them first is how a person read
+    // "online" for a moment on opening the app and then flipped to "last seen
+    // 5 hours ago". Nothing, then the truth, is honest; a lie, then the
+    // truth, is what people noticed. Only an old server, with no live
+    // presence at all, still gets the mirror.
+    if (store != null && !store.legacy) return const PresenceView();
     return PresenceView(
       status: widget.user.status,
       lastSeen: widget.user.lastSeen,
