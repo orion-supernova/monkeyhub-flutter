@@ -540,7 +540,7 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
 }
 
 class FightSeatCard extends StatelessWidget {
-  const FightSeatCard({required this.name, required this.ready, required this.tone, required this.height});
+  const FightSeatCard({super.key, required this.name, required this.ready, required this.tone, required this.height});
   final String? name;
   final bool ready;
   final int tone;
