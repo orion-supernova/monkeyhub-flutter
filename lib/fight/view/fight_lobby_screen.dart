@@ -13,6 +13,7 @@ import 'art/fight_art.dart';
 import 'fight_renderer.dart';
 import 'fight_character_grid.dart';
 import 'fight_screen.dart';
+import 'fight_training_screen.dart';
 
 /// Jungle Fist's setup page, opened from Play the bot: a live bot-vs-bot
 /// demo up top, the fighter, and the three looks, each previewed live.
@@ -221,6 +222,22 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
               l10n.fightStart,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xff1b0d02), letterSpacing: 0.5),
             ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Every move of every fighter on a sandbag: the training room.
+        SpringPress(
+          key: const ValueKey('fight_training'),
+          onTap: () => openFightTraining(context, charId: fightCharOf(SettingsStore.instance.fightChar)),
+          semanticLabel: l10n.fightTrainingTitle,
+          child: Container(
+            height: 50,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: groupedFill(theme),
+              borderRadius: BorderRadius.circular(groupedRadius(theme) + 4),
+            ),
+            child: Text(l10n.fightTrainingTitle, style: theme.bodyEmph.copyWith(fontSize: 17)),
           ),
         ),
       ],

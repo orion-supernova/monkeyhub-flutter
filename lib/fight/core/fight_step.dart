@@ -280,7 +280,22 @@ void _endCombo(Fighter p) {
 bool _wantsSuper(Fighter p) =>
     p.bufSuper > 0 || (p.bufSpecial > 0 && (p.inp & Inp.heavy) != 0 && (p.inp & Inp.light) != 0);
 
-bool _inThrowRange(Fighter p, Fighter o) => (o.x - p.x).abs() <= throwRange && o.y < 3000;
+/// Reach added to throws and command grabs for wide bodies. Ranges were
+/// tuned on KAI (push half-width 3500); without this two heavyweights
+/// standing as close as their bodies allow are already out of grab range
+/// (TANK, BOOM and GOLEM could never grab each other). Narrow fighters keep
+/// the base range: being small is not a grab nerf.
+int _bodyReach(CharacterDef a, CharacterDef d) {
+  final extra = (a.pushHalf - kBaseHalf) + (d.pushHalf - kBaseHalf);
+  return extra > 0 ? extra : 0;
+}
+
+const int kBaseHalf = 3500;
+
+bool _inThrowRange(FightState s, int i) {
+  final p = s.p[i], o = s.p[1 - i];
+  return (o.x - p.x).abs() <= throwRange + _bodyReach(s.chars[i], s.chars[1 - i]) && o.y < 3000;
+}
 
 void _neutral(FightState s, int i) {
   final p = s.p[i];
@@ -292,7 +307,7 @@ void _neutral(FightState s, int i) {
     _startSuper(s, i);
     return;
   }
-  if (p.bufLight >= throwBufferMin && p.bufHeavy >= throwBufferMin && _inThrowRange(p, o)) {
+  if (p.bufLight >= throwBufferMin && p.bufHeavy >= throwBufferMin && _inThrowRange(s, i)) {
     _startMove(s, i, N.throwMove);
     return;
   }
@@ -728,6 +743,8 @@ bool _juggleOk(Fighter d, _Strike k) {
   return true;
 }
 
+Box _grabBox(Box b, int extra) => extra == 0 ? b : Box(b.x, b.y, b.w + extra, b.h);
+
 _Pending? _detectMove(FightState s, int ai) {
   final a = s.p[ai];
   if (a.state != St.move) return null;
@@ -745,11 +762,12 @@ _Pending? _detectMove(FightState s, int ai) {
       if ((inv & Inv.strike) != 0) continue;
       if (m.groundedOnly && !d.grounded) continue;
     }
-    final hit = _hitsHurt(d, dc, _rectOf(a, w.box));
+    final box = m.grab ? _grabBox(w.box, _bodyReach(s.chars[ai], dc)) : w.box;
+    final hit = _hitsHurt(d, dc, _rectOf(a, box));
     if (hit == null) continue;
     final st = _strikeFromMove(m, w, a, d, a.serial);
     if (!m.grab && !_juggleOk(d, st)) continue;
-    final ar = _rectOf(a, w.box);
+    final ar = _rectOf(a, box);
     st.hx = (_max(ar.l, hit.l) + _min(ar.r, hit.r)) ~/ 2;
     st.hy = (_max(ar.b, hit.b) + _min(ar.t, hit.t)) ~/ 2;
     int kind;

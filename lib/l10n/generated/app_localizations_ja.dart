@@ -14156,4 +14156,154 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get fightOpponentHidden => '開始時に公開';
+
+  @override
+  String get fightTrainingTitle => 'トレーニング';
+
+  @override
+  String get fightTrainingReset => 'リセット';
+
+  @override
+  String get fightTrainingLoop => 'ループ';
+
+  @override
+  String get fightTrainingHitboxes => '当たり判定';
+
+  @override
+  String get fightTrainingFrameData => 'フレームデータ';
+
+  @override
+  String get fightTrainingStartup => '発生';
+
+  @override
+  String get fightTrainingActive => '持続';
+
+  @override
+  String get fightTrainingRecovery => '硬直';
+
+  @override
+  String get fightTrainingDamage => 'ダメージ';
+
+  @override
+  String get fightTrainingHits => 'ヒット数';
+
+  @override
+  String get fightTrainingBlock => 'ガード';
+
+  @override
+  String get fightTrainingHeightHigh => '上段';
+
+  @override
+  String get fightTrainingHeightMid => '中段';
+
+  @override
+  String get fightTrainingHeightLow => '下段';
+
+  @override
+  String get fightTrainingHeightUnblockable => 'ガード不能';
+
+  @override
+  String get fightTrainingNormals => '通常技';
+
+  @override
+  String get fightTrainingSpecials => '必殺技';
+
+  @override
+  String get fightTrainingSuper => 'スーパー';
+
+  @override
+  String get fightTrainingCounters => 'カウンターの追撃';
+
+  @override
+  String get fightTrainingCounterHint => '構えてから攻撃を受ける';
+
+  @override
+  String get fightTrainingFlagKnockdown => 'ダウン';
+
+  @override
+  String get fightTrainingFlagLaunch => '打ち上げ';
+
+  @override
+  String get fightTrainingFlagWallBounce => '壁バウンド';
+
+  @override
+  String get fightTrainingFlagGroundBounce => '床バウンド';
+
+  @override
+  String get fightTrainingFlagProjectile => '飛び道具';
+
+  @override
+  String get fightTrainingFlagGrab => '投げ';
+
+  @override
+  String get fightTrainingFlagArmor => 'アーマー';
+
+  @override
+  String get fightTrainingFlagInvulnerable => '無敵';
+
+  @override
+  String get fightTrainingFlagInvStrike => '打撃無敵';
+
+  @override
+  String get fightTrainingFlagInvThrow => '投げ無敵';
+
+  @override
+  String get fightTrainingFlagInvProjectile => '飛び道具無敵';
+
+  @override
+  String get fightTrainingFlagCounter => 'カウンター構え';
+
+  @override
+  String get fightTrainingFlagTrap => '罠';
+
+  @override
+  String get fightTrainingPause => '一時停止';
+
+  @override
+  String get fightTrainingPlay => '再生';
+
+  @override
+  String get fightTrainingStep => '1フレーム進める';
+
+  @override
+  String get fightTrainingChangeFighter => 'ファイターを変更';
+
+  @override
+  String get fightTrainingFreePlay => 'フリープレイ';
+
+  @override
+  String get fightTrainingMoves => '技';
+
+  @override
+  String get fightTrainingLegend => 'L 弱, H 強, S 必殺, → 相手の方向';
+
+  @override
+  String get fightTrainingMoveStandLight => '立ち弱';
+
+  @override
+  String get fightTrainingMoveStandLight2 => '弱2';
+
+  @override
+  String get fightTrainingMoveFinisher => 'フィニッシャー';
+
+  @override
+  String get fightTrainingMoveStandHeavy => '立ち強';
+
+  @override
+  String get fightTrainingMoveCrouchLight => 'しゃがみ弱';
+
+  @override
+  String get fightTrainingMoveSweep => '足払い';
+
+  @override
+  String get fightTrainingMoveJumpLight => 'ジャンプ弱';
+
+  @override
+  String get fightTrainingMoveJumpHeavy => 'ジャンプ強';
+
+  @override
+  String get fightTrainingMoveFwdHeavy => '前強';
+
+  @override
+  String get fightTrainingMoveThrow => '投げ';
 }

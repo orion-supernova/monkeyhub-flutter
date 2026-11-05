@@ -14189,4 +14189,154 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get fightOpponentHidden => '시작할 때 공개';
+
+  @override
+  String get fightTrainingTitle => '트레이닝';
+
+  @override
+  String get fightTrainingReset => '초기화';
+
+  @override
+  String get fightTrainingLoop => '반복';
+
+  @override
+  String get fightTrainingHitboxes => '히트박스';
+
+  @override
+  String get fightTrainingFrameData => '프레임 데이터';
+
+  @override
+  String get fightTrainingStartup => '시동';
+
+  @override
+  String get fightTrainingActive => '지속';
+
+  @override
+  String get fightTrainingRecovery => '회복';
+
+  @override
+  String get fightTrainingDamage => '대미지';
+
+  @override
+  String get fightTrainingHits => '히트 수';
+
+  @override
+  String get fightTrainingBlock => '가드';
+
+  @override
+  String get fightTrainingHeightHigh => '상단';
+
+  @override
+  String get fightTrainingHeightMid => '중단';
+
+  @override
+  String get fightTrainingHeightLow => '하단';
+
+  @override
+  String get fightTrainingHeightUnblockable => '가드 불가';
+
+  @override
+  String get fightTrainingNormals => '일반기';
+
+  @override
+  String get fightTrainingSpecials => '필살기';
+
+  @override
+  String get fightTrainingSuper => '슈퍼';
+
+  @override
+  String get fightTrainingCounters => '카운터 후속기';
+
+  @override
+  String get fightTrainingCounterHint => '자세를 취한 뒤 공격을 맞아 보세요';
+
+  @override
+  String get fightTrainingFlagKnockdown => '다운';
+
+  @override
+  String get fightTrainingFlagLaunch => '띄우기';
+
+  @override
+  String get fightTrainingFlagWallBounce => '벽 바운스';
+
+  @override
+  String get fightTrainingFlagGroundBounce => '바닥 바운스';
+
+  @override
+  String get fightTrainingFlagProjectile => '발사체';
+
+  @override
+  String get fightTrainingFlagGrab => '잡기';
+
+  @override
+  String get fightTrainingFlagArmor => '아머';
+
+  @override
+  String get fightTrainingFlagInvulnerable => '무적';
+
+  @override
+  String get fightTrainingFlagInvStrike => '타격 무적';
+
+  @override
+  String get fightTrainingFlagInvThrow => '잡기 무적';
+
+  @override
+  String get fightTrainingFlagInvProjectile => '발사체 무적';
+
+  @override
+  String get fightTrainingFlagCounter => '카운터 자세';
+
+  @override
+  String get fightTrainingFlagTrap => '함정';
+
+  @override
+  String get fightTrainingPause => '일시정지';
+
+  @override
+  String get fightTrainingPlay => '재생';
+
+  @override
+  String get fightTrainingStep => '한 프레임 진행';
+
+  @override
+  String get fightTrainingChangeFighter => '파이터 변경';
+
+  @override
+  String get fightTrainingFreePlay => '자유 플레이';
+
+  @override
+  String get fightTrainingMoves => '기술';
+
+  @override
+  String get fightTrainingLegend => 'L 약, H 강, S 필살, → 상대 방향';
+
+  @override
+  String get fightTrainingMoveStandLight => '서서 약';
+
+  @override
+  String get fightTrainingMoveStandLight2 => '약 2';
+
+  @override
+  String get fightTrainingMoveFinisher => '마무리';
+
+  @override
+  String get fightTrainingMoveStandHeavy => '서서 강';
+
+  @override
+  String get fightTrainingMoveCrouchLight => '앉아 약';
+
+  @override
+  String get fightTrainingMoveSweep => '다리 걸기';
+
+  @override
+  String get fightTrainingMoveJumpLight => '점프 약';
+
+  @override
+  String get fightTrainingMoveJumpHeavy => '점프 강';
+
+  @override
+  String get fightTrainingMoveFwdHeavy => '앞 강';
+
+  @override
+  String get fightTrainingMoveThrow => '던지기';
 }

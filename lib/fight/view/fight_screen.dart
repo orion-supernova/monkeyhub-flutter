@@ -441,7 +441,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
         // Online the fight keeps running behind the menu: it says so.
         title: _d.offline ? l10n.fightPaused : l10n.fightOnlineMenuTitle,
         children: [
-          _LookPicker(look: look),
+          FightLookPicker(look: look),
           const SizedBox(height: 10),
           const FightAudioToggles(),
           const SizedBox(height: 16),
@@ -478,8 +478,8 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
 }
 
 /// The three looks as chips; changing one restyles the fight live.
-class _LookPicker extends StatelessWidget {
-  const _LookPicker({required this.look});
+class FightLookPicker extends StatelessWidget {
+  const FightLookPicker({super.key, required this.look});
   final FightLook look;
 
   @override

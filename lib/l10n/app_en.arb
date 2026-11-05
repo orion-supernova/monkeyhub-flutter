@@ -17791,5 +17791,205 @@
   "fightOpponentHidden": "Revealed at the start",
   "@fightOpponentHidden": {
     "description": "On the opponent's card in the online lobby: their fighter is revealed when the fight starts."
+  },
+  "fightTrainingTitle": "Training",
+  "@fightTrainingTitle": {
+    "description": "Training room title"
+  },
+  "fightTrainingReset": "Reset",
+  "@fightTrainingReset": {
+    "description": "Training: put both fighters back at the start"
+  },
+  "fightTrainingLoop": "Loop",
+  "@fightTrainingLoop": {
+    "description": "Training: repeat the selected move on its own"
+  },
+  "fightTrainingHitboxes": "Hitboxes",
+  "@fightTrainingHitboxes": {
+    "description": "Training: toggle that draws the hit, hurt and push boxes"
+  },
+  "fightTrainingFrameData": "Frame data",
+  "@fightTrainingFrameData": {
+    "description": "Training: heading of the frame data panel"
+  },
+  "fightTrainingStartup": "Startup",
+  "@fightTrainingStartup": {
+    "description": "Training frame data: frames before the move can hit"
+  },
+  "fightTrainingActive": "Active",
+  "@fightTrainingActive": {
+    "description": "Training frame data: frames the move can hit"
+  },
+  "fightTrainingRecovery": "Recovery",
+  "@fightTrainingRecovery": {
+    "description": "Training frame data: frames after the move before acting again"
+  },
+  "fightTrainingDamage": "Damage",
+  "@fightTrainingDamage": {
+    "description": "Training frame data: damage dealt"
+  },
+  "fightTrainingHits": "Hits",
+  "@fightTrainingHits": {
+    "description": "Training frame data: number of hits"
+  },
+  "fightTrainingBlock": "Block",
+  "@fightTrainingBlock": {
+    "description": "Training frame data: where the move has to be blocked"
+  },
+  "fightTrainingHeightHigh": "High",
+  "@fightTrainingHeightHigh": {
+    "description": "Block height: must be blocked standing"
+  },
+  "fightTrainingHeightMid": "Mid",
+  "@fightTrainingHeightMid": {
+    "description": "Block height: blocked standing or crouching"
+  },
+  "fightTrainingHeightLow": "Low",
+  "@fightTrainingHeightLow": {
+    "description": "Block height: must be blocked crouching"
+  },
+  "fightTrainingHeightUnblockable": "Unblockable",
+  "@fightTrainingHeightUnblockable": {
+    "description": "Block height: cannot be blocked"
+  },
+  "fightTrainingNormals": "Normals",
+  "@fightTrainingNormals": {
+    "description": "Training move list group: basic attacks"
+  },
+  "fightTrainingSpecials": "Specials",
+  "@fightTrainingSpecials": {
+    "description": "Training move list group: special moves"
+  },
+  "fightTrainingSuper": "Super",
+  "@fightTrainingSuper": {
+    "description": "Training move list group: the super move"
+  },
+  "fightTrainingCounters": "Counter follow-ups",
+  "@fightTrainingCounters": {
+    "description": "Training move list group: moves that answer a counter stance"
+  },
+  "fightTrainingCounterHint": "Do the stance, then take a hit",
+  "@fightTrainingCounterHint": {
+    "description": "Training: how to see a counter follow-up"
+  },
+  "fightTrainingFlagKnockdown": "Knockdown",
+  "@fightTrainingFlagKnockdown": {
+    "description": "Move property: knocks the opponent down"
+  },
+  "fightTrainingFlagLaunch": "Launch",
+  "@fightTrainingFlagLaunch": {
+    "description": "Move property: throws the opponent into the air"
+  },
+  "fightTrainingFlagWallBounce": "Wall bounce",
+  "@fightTrainingFlagWallBounce": {
+    "description": "Move property: bounces the opponent off the wall"
+  },
+  "fightTrainingFlagGroundBounce": "Ground bounce",
+  "@fightTrainingFlagGroundBounce": {
+    "description": "Move property: bounces the opponent off the floor"
+  },
+  "fightTrainingFlagProjectile": "Projectile",
+  "@fightTrainingFlagProjectile": {
+    "description": "Move property: fires a projectile"
+  },
+  "fightTrainingFlagGrab": "Grab",
+  "@fightTrainingFlagGrab": {
+    "description": "Move property: a grab that ignores blocking"
+  },
+  "fightTrainingFlagArmor": "Armor",
+  "@fightTrainingFlagArmor": {
+    "description": "Move property: absorbs a hit while it plays (frames follow)"
+  },
+  "fightTrainingFlagInvulnerable": "Invulnerable",
+  "@fightTrainingFlagInvulnerable": {
+    "description": "Move property: cannot be hit at all (frames follow)"
+  },
+  "fightTrainingFlagInvStrike": "Strike invulnerable",
+  "@fightTrainingFlagInvStrike": {
+    "description": "Move property: cannot be hit by strikes (frames follow)"
+  },
+  "fightTrainingFlagInvThrow": "Throw invulnerable",
+  "@fightTrainingFlagInvThrow": {
+    "description": "Move property: cannot be grabbed (frames follow)"
+  },
+  "fightTrainingFlagInvProjectile": "Projectile invulnerable",
+  "@fightTrainingFlagInvProjectile": {
+    "description": "Move property: cannot be hit by projectiles (frames follow)"
+  },
+  "fightTrainingFlagCounter": "Counter stance",
+  "@fightTrainingFlagCounter": {
+    "description": "Move property: answers a hit with a counter attack (frames follow)"
+  },
+  "fightTrainingFlagTrap": "Trap",
+  "@fightTrainingFlagTrap": {
+    "description": "Move property: leaves a trap on the ground"
+  },
+  "fightTrainingPause": "Pause",
+  "@fightTrainingPause": {
+    "description": "Training: pause the simulation"
+  },
+  "fightTrainingPlay": "Play",
+  "@fightTrainingPlay": {
+    "description": "Training: resume the simulation"
+  },
+  "fightTrainingStep": "Step one frame",
+  "@fightTrainingStep": {
+    "description": "Training: advance the paused simulation by one frame"
+  },
+  "fightTrainingChangeFighter": "Change fighter",
+  "@fightTrainingChangeFighter": {
+    "description": "Training: opens the fighter picker"
+  },
+  "fightTrainingFreePlay": "Free play",
+  "@fightTrainingFreePlay": {
+    "description": "Training: switch to the touch controls to try combos on the dummy"
+  },
+  "fightTrainingMoves": "Moves",
+  "@fightTrainingMoves": {
+    "description": "Training: switch back to the move list"
+  },
+  "fightTrainingLegend": "L Light, H Heavy, S Special, → toward your opponent",
+  "@fightTrainingLegend": {
+    "description": "Training: key to the input letters in the move list"
+  },
+  "fightTrainingMoveStandLight": "Stand light",
+  "@fightTrainingMoveStandLight": {
+    "description": "Training move name"
+  },
+  "fightTrainingMoveStandLight2": "Light 2",
+  "@fightTrainingMoveStandLight2": {
+    "description": "Training move name: second hit of the light chain"
+  },
+  "fightTrainingMoveFinisher": "Finisher",
+  "@fightTrainingMoveFinisher": {
+    "description": "Training move name: light, light, heavy target combo"
+  },
+  "fightTrainingMoveStandHeavy": "Stand heavy",
+  "@fightTrainingMoveStandHeavy": {
+    "description": "Training move name"
+  },
+  "fightTrainingMoveCrouchLight": "Crouch light",
+  "@fightTrainingMoveCrouchLight": {
+    "description": "Training move name"
+  },
+  "fightTrainingMoveSweep": "Sweep",
+  "@fightTrainingMoveSweep": {
+    "description": "Training move name: low sweep that knocks down"
+  },
+  "fightTrainingMoveJumpLight": "Jump light",
+  "@fightTrainingMoveJumpLight": {
+    "description": "Training move name"
+  },
+  "fightTrainingMoveJumpHeavy": "Jump heavy",
+  "@fightTrainingMoveJumpHeavy": {
+    "description": "Training move name: the jumping overhead"
+  },
+  "fightTrainingMoveFwdHeavy": "Forward heavy",
+  "@fightTrainingMoveFwdHeavy": {
+    "description": "Training move name: slow overhead"
+  },
+  "fightTrainingMoveThrow": "Throw",
+  "@fightTrainingMoveThrow": {
+    "description": "Training move name: the basic throw"
   }
 }

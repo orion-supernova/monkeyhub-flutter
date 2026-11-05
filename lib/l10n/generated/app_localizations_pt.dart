@@ -14968,6 +14968,158 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get fightOpponentHidden => 'Revelado no início';
+
+  @override
+  String get fightTrainingTitle => 'Treino';
+
+  @override
+  String get fightTrainingReset => 'Repor';
+
+  @override
+  String get fightTrainingLoop => 'Repetir';
+
+  @override
+  String get fightTrainingHitboxes => 'Hitboxes';
+
+  @override
+  String get fightTrainingFrameData => 'Dados de frames';
+
+  @override
+  String get fightTrainingStartup => 'Início';
+
+  @override
+  String get fightTrainingActive => 'Ativo';
+
+  @override
+  String get fightTrainingRecovery => 'Recuperação';
+
+  @override
+  String get fightTrainingDamage => 'Dano';
+
+  @override
+  String get fightTrainingHits => 'Golpes';
+
+  @override
+  String get fightTrainingBlock => 'Bloqueio';
+
+  @override
+  String get fightTrainingHeightHigh => 'Alto';
+
+  @override
+  String get fightTrainingHeightMid => 'Médio';
+
+  @override
+  String get fightTrainingHeightLow => 'Baixo';
+
+  @override
+  String get fightTrainingHeightUnblockable => 'Inbloqueável';
+
+  @override
+  String get fightTrainingNormals => 'Normais';
+
+  @override
+  String get fightTrainingSpecials => 'Especiais';
+
+  @override
+  String get fightTrainingSuper => 'Super';
+
+  @override
+  String get fightTrainingCounters => 'Seguimentos do contra-ataque';
+
+  @override
+  String get fightTrainingCounterHint =>
+      'Faça a postura e depois leve um golpe';
+
+  @override
+  String get fightTrainingFlagKnockdown => 'Derrube';
+
+  @override
+  String get fightTrainingFlagLaunch => 'Lançamento';
+
+  @override
+  String get fightTrainingFlagWallBounce => 'Ressalto na parede';
+
+  @override
+  String get fightTrainingFlagGroundBounce => 'Ressalto no chão';
+
+  @override
+  String get fightTrainingFlagProjectile => 'Projétil';
+
+  @override
+  String get fightTrainingFlagGrab => 'Agarre';
+
+  @override
+  String get fightTrainingFlagArmor => 'Armadura';
+
+  @override
+  String get fightTrainingFlagInvulnerable => 'Invulnerável';
+
+  @override
+  String get fightTrainingFlagInvStrike => 'Invulnerável a golpes';
+
+  @override
+  String get fightTrainingFlagInvThrow => 'Invulnerável a agarres';
+
+  @override
+  String get fightTrainingFlagInvProjectile => 'Invulnerável a projéteis';
+
+  @override
+  String get fightTrainingFlagCounter => 'Postura de contra-ataque';
+
+  @override
+  String get fightTrainingFlagTrap => 'Armadilha';
+
+  @override
+  String get fightTrainingPause => 'Pausa';
+
+  @override
+  String get fightTrainingPlay => 'Retomar';
+
+  @override
+  String get fightTrainingStep => 'Avançar um frame';
+
+  @override
+  String get fightTrainingChangeFighter => 'Mudar lutador';
+
+  @override
+  String get fightTrainingFreePlay => 'Jogo livre';
+
+  @override
+  String get fightTrainingMoves => 'Golpes';
+
+  @override
+  String get fightTrainingLegend =>
+      'L Leve, H Pesado, S Especial, → em direção ao oponente';
+
+  @override
+  String get fightTrainingMoveStandLight => 'Leve em pé';
+
+  @override
+  String get fightTrainingMoveStandLight2 => 'Leve 2';
+
+  @override
+  String get fightTrainingMoveFinisher => 'Finalizador';
+
+  @override
+  String get fightTrainingMoveStandHeavy => 'Pesado em pé';
+
+  @override
+  String get fightTrainingMoveCrouchLight => 'Leve agachado';
+
+  @override
+  String get fightTrainingMoveSweep => 'Rasteira';
+
+  @override
+  String get fightTrainingMoveJumpLight => 'Leve no salto';
+
+  @override
+  String get fightTrainingMoveJumpHeavy => 'Pesado no salto';
+
+  @override
+  String get fightTrainingMoveFwdHeavy => 'Pesado em frente';
+
+  @override
+  String get fightTrainingMoveThrow => 'Arremesso';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -29916,4 +30068,156 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get fightOpponentHidden => 'Revelado no início';
+
+  @override
+  String get fightTrainingTitle => 'Treino';
+
+  @override
+  String get fightTrainingReset => 'Reiniciar';
+
+  @override
+  String get fightTrainingLoop => 'Repetir';
+
+  @override
+  String get fightTrainingHitboxes => 'Hitboxes';
+
+  @override
+  String get fightTrainingFrameData => 'Dados de frames';
+
+  @override
+  String get fightTrainingStartup => 'Início';
+
+  @override
+  String get fightTrainingActive => 'Ativo';
+
+  @override
+  String get fightTrainingRecovery => 'Recuperação';
+
+  @override
+  String get fightTrainingDamage => 'Dano';
+
+  @override
+  String get fightTrainingHits => 'Golpes';
+
+  @override
+  String get fightTrainingBlock => 'Bloqueio';
+
+  @override
+  String get fightTrainingHeightHigh => 'Alto';
+
+  @override
+  String get fightTrainingHeightMid => 'Médio';
+
+  @override
+  String get fightTrainingHeightLow => 'Baixo';
+
+  @override
+  String get fightTrainingHeightUnblockable => 'Inbloqueável';
+
+  @override
+  String get fightTrainingNormals => 'Normais';
+
+  @override
+  String get fightTrainingSpecials => 'Especiais';
+
+  @override
+  String get fightTrainingSuper => 'Super';
+
+  @override
+  String get fightTrainingCounters => 'Continuações do contra-ataque';
+
+  @override
+  String get fightTrainingCounterHint =>
+      'Faça a postura e depois leve um golpe';
+
+  @override
+  String get fightTrainingFlagKnockdown => 'Derrubada';
+
+  @override
+  String get fightTrainingFlagLaunch => 'Lançamento';
+
+  @override
+  String get fightTrainingFlagWallBounce => 'Rebote na parede';
+
+  @override
+  String get fightTrainingFlagGroundBounce => 'Quique no chão';
+
+  @override
+  String get fightTrainingFlagProjectile => 'Projétil';
+
+  @override
+  String get fightTrainingFlagGrab => 'Agarrão';
+
+  @override
+  String get fightTrainingFlagArmor => 'Armadura';
+
+  @override
+  String get fightTrainingFlagInvulnerable => 'Invulnerável';
+
+  @override
+  String get fightTrainingFlagInvStrike => 'Invulnerável a golpes';
+
+  @override
+  String get fightTrainingFlagInvThrow => 'Invulnerável a agarrões';
+
+  @override
+  String get fightTrainingFlagInvProjectile => 'Invulnerável a projéteis';
+
+  @override
+  String get fightTrainingFlagCounter => 'Postura de contra-ataque';
+
+  @override
+  String get fightTrainingFlagTrap => 'Armadilha';
+
+  @override
+  String get fightTrainingPause => 'Pausar';
+
+  @override
+  String get fightTrainingPlay => 'Reproduzir';
+
+  @override
+  String get fightTrainingStep => 'Avançar um frame';
+
+  @override
+  String get fightTrainingChangeFighter => 'Trocar lutador';
+
+  @override
+  String get fightTrainingFreePlay => 'Jogo livre';
+
+  @override
+  String get fightTrainingMoves => 'Golpes';
+
+  @override
+  String get fightTrainingLegend =>
+      'L Leve, H Pesado, S Especial, → em direção ao oponente';
+
+  @override
+  String get fightTrainingMoveStandLight => 'Leve em pé';
+
+  @override
+  String get fightTrainingMoveStandLight2 => 'Leve 2';
+
+  @override
+  String get fightTrainingMoveFinisher => 'Finalizador';
+
+  @override
+  String get fightTrainingMoveStandHeavy => 'Pesado em pé';
+
+  @override
+  String get fightTrainingMoveCrouchLight => 'Leve agachado';
+
+  @override
+  String get fightTrainingMoveSweep => 'Rasteira';
+
+  @override
+  String get fightTrainingMoveJumpLight => 'Leve no pulo';
+
+  @override
+  String get fightTrainingMoveJumpHeavy => 'Pesado no pulo';
+
+  @override
+  String get fightTrainingMoveFwdHeavy => 'Pesado para frente';
+
+  @override
+  String get fightTrainingMoveThrow => 'Arremesso';
 }

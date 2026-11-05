@@ -14023,4 +14023,154 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get fightOpponentHidden => '开局时揭晓';
+
+  @override
+  String get fightTrainingTitle => '训练';
+
+  @override
+  String get fightTrainingReset => '重置';
+
+  @override
+  String get fightTrainingLoop => '循环';
+
+  @override
+  String get fightTrainingHitboxes => '判定框';
+
+  @override
+  String get fightTrainingFrameData => '帧数据';
+
+  @override
+  String get fightTrainingStartup => '起手';
+
+  @override
+  String get fightTrainingActive => '持续';
+
+  @override
+  String get fightTrainingRecovery => '收招';
+
+  @override
+  String get fightTrainingDamage => '伤害';
+
+  @override
+  String get fightTrainingHits => '命中数';
+
+  @override
+  String get fightTrainingBlock => '防御';
+
+  @override
+  String get fightTrainingHeightHigh => '上段';
+
+  @override
+  String get fightTrainingHeightMid => '中段';
+
+  @override
+  String get fightTrainingHeightLow => '下段';
+
+  @override
+  String get fightTrainingHeightUnblockable => '不可防御';
+
+  @override
+  String get fightTrainingNormals => '普通技';
+
+  @override
+  String get fightTrainingSpecials => '必杀技';
+
+  @override
+  String get fightTrainingSuper => '超必杀';
+
+  @override
+  String get fightTrainingCounters => '反击后续';
+
+  @override
+  String get fightTrainingCounterHint => '摆好架势，再挨一下';
+
+  @override
+  String get fightTrainingFlagKnockdown => '击倒';
+
+  @override
+  String get fightTrainingFlagLaunch => '击飞';
+
+  @override
+  String get fightTrainingFlagWallBounce => '撞墙反弹';
+
+  @override
+  String get fightTrainingFlagGroundBounce => '落地反弹';
+
+  @override
+  String get fightTrainingFlagProjectile => '飞行道具';
+
+  @override
+  String get fightTrainingFlagGrab => '抓取';
+
+  @override
+  String get fightTrainingFlagArmor => '霸体';
+
+  @override
+  String get fightTrainingFlagInvulnerable => '无敌';
+
+  @override
+  String get fightTrainingFlagInvStrike => '打击无敌';
+
+  @override
+  String get fightTrainingFlagInvThrow => '投技无敌';
+
+  @override
+  String get fightTrainingFlagInvProjectile => '飞行道具无敌';
+
+  @override
+  String get fightTrainingFlagCounter => '反击架势';
+
+  @override
+  String get fightTrainingFlagTrap => '陷阱';
+
+  @override
+  String get fightTrainingPause => '暂停';
+
+  @override
+  String get fightTrainingPlay => '播放';
+
+  @override
+  String get fightTrainingStep => '前进一帧';
+
+  @override
+  String get fightTrainingChangeFighter => '更换角色';
+
+  @override
+  String get fightTrainingFreePlay => '自由练习';
+
+  @override
+  String get fightTrainingMoves => '招式';
+
+  @override
+  String get fightTrainingLegend => 'L 轻, H 重, S 特殊, → 朝向对手';
+
+  @override
+  String get fightTrainingMoveStandLight => '站立轻';
+
+  @override
+  String get fightTrainingMoveStandLight2 => '轻 2';
+
+  @override
+  String get fightTrainingMoveFinisher => '终结技';
+
+  @override
+  String get fightTrainingMoveStandHeavy => '站立重';
+
+  @override
+  String get fightTrainingMoveCrouchLight => '蹲轻';
+
+  @override
+  String get fightTrainingMoveSweep => '扫腿';
+
+  @override
+  String get fightTrainingMoveJumpLight => '跳跃轻';
+
+  @override
+  String get fightTrainingMoveJumpHeavy => '跳跃重';
+
+  @override
+  String get fightTrainingMoveFwdHeavy => '前进重';
+
+  @override
+  String get fightTrainingMoveThrow => '投掷';
 }

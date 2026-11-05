@@ -14759,4 +14759,154 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get fightOpponentHidden => 'Başlangıçta açıklanır';
+
+  @override
+  String get fightTrainingTitle => 'Antrenman';
+
+  @override
+  String get fightTrainingReset => 'Sıfırla';
+
+  @override
+  String get fightTrainingLoop => 'Döngü';
+
+  @override
+  String get fightTrainingHitboxes => 'Çarpışma kutuları';
+
+  @override
+  String get fightTrainingFrameData => 'Kare verileri';
+
+  @override
+  String get fightTrainingStartup => 'Başlangıç';
+
+  @override
+  String get fightTrainingActive => 'Aktif';
+
+  @override
+  String get fightTrainingRecovery => 'Toparlanma';
+
+  @override
+  String get fightTrainingDamage => 'Hasar';
+
+  @override
+  String get fightTrainingHits => 'Vuruş';
+
+  @override
+  String get fightTrainingBlock => 'Savunma';
+
+  @override
+  String get fightTrainingHeightHigh => 'Üst';
+
+  @override
+  String get fightTrainingHeightMid => 'Orta';
+
+  @override
+  String get fightTrainingHeightLow => 'Alt';
+
+  @override
+  String get fightTrainingHeightUnblockable => 'Savunulamaz';
+
+  @override
+  String get fightTrainingNormals => 'Normaller';
+
+  @override
+  String get fightTrainingSpecials => 'Özeller';
+
+  @override
+  String get fightTrainingSuper => 'Süper';
+
+  @override
+  String get fightTrainingCounters => 'Karşı hamle devamları';
+
+  @override
+  String get fightTrainingCounterHint => 'Duruşu yap, sonra vuruş ye';
+
+  @override
+  String get fightTrainingFlagKnockdown => 'Yere serer';
+
+  @override
+  String get fightTrainingFlagLaunch => 'Havaya fırlatır';
+
+  @override
+  String get fightTrainingFlagWallBounce => 'Duvardan seker';
+
+  @override
+  String get fightTrainingFlagGroundBounce => 'Yerden seker';
+
+  @override
+  String get fightTrainingFlagProjectile => 'Mermi';
+
+  @override
+  String get fightTrainingFlagGrab => 'Yakalama';
+
+  @override
+  String get fightTrainingFlagArmor => 'Zırh';
+
+  @override
+  String get fightTrainingFlagInvulnerable => 'Dokunulmaz';
+
+  @override
+  String get fightTrainingFlagInvStrike => 'Vuruşa dokunulmaz';
+
+  @override
+  String get fightTrainingFlagInvThrow => 'Fırlatmaya dokunulmaz';
+
+  @override
+  String get fightTrainingFlagInvProjectile => 'Mermiye dokunulmaz';
+
+  @override
+  String get fightTrainingFlagCounter => 'Karşı duruş';
+
+  @override
+  String get fightTrainingFlagTrap => 'Tuzak';
+
+  @override
+  String get fightTrainingPause => 'Duraklat';
+
+  @override
+  String get fightTrainingPlay => 'Oynat';
+
+  @override
+  String get fightTrainingStep => 'Bir kare ilerle';
+
+  @override
+  String get fightTrainingChangeFighter => 'Dövüşçü değiştir';
+
+  @override
+  String get fightTrainingFreePlay => 'Serbest oyun';
+
+  @override
+  String get fightTrainingMoves => 'Hamleler';
+
+  @override
+  String get fightTrainingLegend => 'L Hafif, H Ağır, S Özel, → rakibe doğru';
+
+  @override
+  String get fightTrainingMoveStandLight => 'Ayakta hafif';
+
+  @override
+  String get fightTrainingMoveStandLight2 => 'Hafif 2';
+
+  @override
+  String get fightTrainingMoveFinisher => 'Bitirici';
+
+  @override
+  String get fightTrainingMoveStandHeavy => 'Ayakta ağır';
+
+  @override
+  String get fightTrainingMoveCrouchLight => 'Çömelik hafif';
+
+  @override
+  String get fightTrainingMoveSweep => 'Süpürme';
+
+  @override
+  String get fightTrainingMoveJumpLight => 'Havada hafif';
+
+  @override
+  String get fightTrainingMoveJumpHeavy => 'Havada ağır';
+
+  @override
+  String get fightTrainingMoveFwdHeavy => 'İleri ağır';
+
+  @override
+  String get fightTrainingMoveThrow => 'Fırlatma';
 }

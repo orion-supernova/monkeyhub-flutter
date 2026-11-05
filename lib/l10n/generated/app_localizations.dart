@@ -24660,6 +24660,306 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Revealed at the start'**
   String get fightOpponentHidden;
+
+  /// Training room title
+  ///
+  /// In en, this message translates to:
+  /// **'Training'**
+  String get fightTrainingTitle;
+
+  /// Training: put both fighters back at the start
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get fightTrainingReset;
+
+  /// Training: repeat the selected move on its own
+  ///
+  /// In en, this message translates to:
+  /// **'Loop'**
+  String get fightTrainingLoop;
+
+  /// Training: toggle that draws the hit, hurt and push boxes
+  ///
+  /// In en, this message translates to:
+  /// **'Hitboxes'**
+  String get fightTrainingHitboxes;
+
+  /// Training: heading of the frame data panel
+  ///
+  /// In en, this message translates to:
+  /// **'Frame data'**
+  String get fightTrainingFrameData;
+
+  /// Training frame data: frames before the move can hit
+  ///
+  /// In en, this message translates to:
+  /// **'Startup'**
+  String get fightTrainingStartup;
+
+  /// Training frame data: frames the move can hit
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get fightTrainingActive;
+
+  /// Training frame data: frames after the move before acting again
+  ///
+  /// In en, this message translates to:
+  /// **'Recovery'**
+  String get fightTrainingRecovery;
+
+  /// Training frame data: damage dealt
+  ///
+  /// In en, this message translates to:
+  /// **'Damage'**
+  String get fightTrainingDamage;
+
+  /// Training frame data: number of hits
+  ///
+  /// In en, this message translates to:
+  /// **'Hits'**
+  String get fightTrainingHits;
+
+  /// Training frame data: where the move has to be blocked
+  ///
+  /// In en, this message translates to:
+  /// **'Block'**
+  String get fightTrainingBlock;
+
+  /// Block height: must be blocked standing
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get fightTrainingHeightHigh;
+
+  /// Block height: blocked standing or crouching
+  ///
+  /// In en, this message translates to:
+  /// **'Mid'**
+  String get fightTrainingHeightMid;
+
+  /// Block height: must be blocked crouching
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get fightTrainingHeightLow;
+
+  /// Block height: cannot be blocked
+  ///
+  /// In en, this message translates to:
+  /// **'Unblockable'**
+  String get fightTrainingHeightUnblockable;
+
+  /// Training move list group: basic attacks
+  ///
+  /// In en, this message translates to:
+  /// **'Normals'**
+  String get fightTrainingNormals;
+
+  /// Training move list group: special moves
+  ///
+  /// In en, this message translates to:
+  /// **'Specials'**
+  String get fightTrainingSpecials;
+
+  /// Training move list group: the super move
+  ///
+  /// In en, this message translates to:
+  /// **'Super'**
+  String get fightTrainingSuper;
+
+  /// Training move list group: moves that answer a counter stance
+  ///
+  /// In en, this message translates to:
+  /// **'Counter follow-ups'**
+  String get fightTrainingCounters;
+
+  /// Training: how to see a counter follow-up
+  ///
+  /// In en, this message translates to:
+  /// **'Do the stance, then take a hit'**
+  String get fightTrainingCounterHint;
+
+  /// Move property: knocks the opponent down
+  ///
+  /// In en, this message translates to:
+  /// **'Knockdown'**
+  String get fightTrainingFlagKnockdown;
+
+  /// Move property: throws the opponent into the air
+  ///
+  /// In en, this message translates to:
+  /// **'Launch'**
+  String get fightTrainingFlagLaunch;
+
+  /// Move property: bounces the opponent off the wall
+  ///
+  /// In en, this message translates to:
+  /// **'Wall bounce'**
+  String get fightTrainingFlagWallBounce;
+
+  /// Move property: bounces the opponent off the floor
+  ///
+  /// In en, this message translates to:
+  /// **'Ground bounce'**
+  String get fightTrainingFlagGroundBounce;
+
+  /// Move property: fires a projectile
+  ///
+  /// In en, this message translates to:
+  /// **'Projectile'**
+  String get fightTrainingFlagProjectile;
+
+  /// Move property: a grab that ignores blocking
+  ///
+  /// In en, this message translates to:
+  /// **'Grab'**
+  String get fightTrainingFlagGrab;
+
+  /// Move property: absorbs a hit while it plays (frames follow)
+  ///
+  /// In en, this message translates to:
+  /// **'Armor'**
+  String get fightTrainingFlagArmor;
+
+  /// Move property: cannot be hit at all (frames follow)
+  ///
+  /// In en, this message translates to:
+  /// **'Invulnerable'**
+  String get fightTrainingFlagInvulnerable;
+
+  /// Move property: cannot be hit by strikes (frames follow)
+  ///
+  /// In en, this message translates to:
+  /// **'Strike invulnerable'**
+  String get fightTrainingFlagInvStrike;
+
+  /// Move property: cannot be grabbed (frames follow)
+  ///
+  /// In en, this message translates to:
+  /// **'Throw invulnerable'**
+  String get fightTrainingFlagInvThrow;
+
+  /// Move property: cannot be hit by projectiles (frames follow)
+  ///
+  /// In en, this message translates to:
+  /// **'Projectile invulnerable'**
+  String get fightTrainingFlagInvProjectile;
+
+  /// Move property: answers a hit with a counter attack (frames follow)
+  ///
+  /// In en, this message translates to:
+  /// **'Counter stance'**
+  String get fightTrainingFlagCounter;
+
+  /// Move property: leaves a trap on the ground
+  ///
+  /// In en, this message translates to:
+  /// **'Trap'**
+  String get fightTrainingFlagTrap;
+
+  /// Training: pause the simulation
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get fightTrainingPause;
+
+  /// Training: resume the simulation
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get fightTrainingPlay;
+
+  /// Training: advance the paused simulation by one frame
+  ///
+  /// In en, this message translates to:
+  /// **'Step one frame'**
+  String get fightTrainingStep;
+
+  /// Training: opens the fighter picker
+  ///
+  /// In en, this message translates to:
+  /// **'Change fighter'**
+  String get fightTrainingChangeFighter;
+
+  /// Training: switch to the touch controls to try combos on the dummy
+  ///
+  /// In en, this message translates to:
+  /// **'Free play'**
+  String get fightTrainingFreePlay;
+
+  /// Training: switch back to the move list
+  ///
+  /// In en, this message translates to:
+  /// **'Moves'**
+  String get fightTrainingMoves;
+
+  /// Training: key to the input letters in the move list
+  ///
+  /// In en, this message translates to:
+  /// **'L Light, H Heavy, S Special, → toward your opponent'**
+  String get fightTrainingLegend;
+
+  /// Training move name
+  ///
+  /// In en, this message translates to:
+  /// **'Stand light'**
+  String get fightTrainingMoveStandLight;
+
+  /// Training move name: second hit of the light chain
+  ///
+  /// In en, this message translates to:
+  /// **'Light 2'**
+  String get fightTrainingMoveStandLight2;
+
+  /// Training move name: light, light, heavy target combo
+  ///
+  /// In en, this message translates to:
+  /// **'Finisher'**
+  String get fightTrainingMoveFinisher;
+
+  /// Training move name
+  ///
+  /// In en, this message translates to:
+  /// **'Stand heavy'**
+  String get fightTrainingMoveStandHeavy;
+
+  /// Training move name
+  ///
+  /// In en, this message translates to:
+  /// **'Crouch light'**
+  String get fightTrainingMoveCrouchLight;
+
+  /// Training move name: low sweep that knocks down
+  ///
+  /// In en, this message translates to:
+  /// **'Sweep'**
+  String get fightTrainingMoveSweep;
+
+  /// Training move name
+  ///
+  /// In en, this message translates to:
+  /// **'Jump light'**
+  String get fightTrainingMoveJumpLight;
+
+  /// Training move name: the jumping overhead
+  ///
+  /// In en, this message translates to:
+  /// **'Jump heavy'**
+  String get fightTrainingMoveJumpHeavy;
+
+  /// Training move name: slow overhead
+  ///
+  /// In en, this message translates to:
+  /// **'Forward heavy'**
+  String get fightTrainingMoveFwdHeavy;
+
+  /// Training move name: the basic throw
+  ///
+  /// In en, this message translates to:
+  /// **'Throw'**
+  String get fightTrainingMoveThrow;
 }
 
 class _AppLocalizationsDelegate

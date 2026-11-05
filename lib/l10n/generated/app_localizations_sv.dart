@@ -14858,4 +14858,155 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get fightOpponentHidden => 'Avslöjas vid start';
+
+  @override
+  String get fightTrainingTitle => 'Träning';
+
+  @override
+  String get fightTrainingReset => 'Återställ';
+
+  @override
+  String get fightTrainingLoop => 'Upprepa';
+
+  @override
+  String get fightTrainingHitboxes => 'Träffytor';
+
+  @override
+  String get fightTrainingFrameData => 'Frame-data';
+
+  @override
+  String get fightTrainingStartup => 'Startfaser';
+
+  @override
+  String get fightTrainingActive => 'Aktiv';
+
+  @override
+  String get fightTrainingRecovery => 'Återhämtning';
+
+  @override
+  String get fightTrainingDamage => 'Skada';
+
+  @override
+  String get fightTrainingHits => 'Träffar';
+
+  @override
+  String get fightTrainingBlock => 'Block';
+
+  @override
+  String get fightTrainingHeightHigh => 'Hög';
+
+  @override
+  String get fightTrainingHeightMid => 'Mellan';
+
+  @override
+  String get fightTrainingHeightLow => 'Låg';
+
+  @override
+  String get fightTrainingHeightUnblockable => 'Går ej att blockera';
+
+  @override
+  String get fightTrainingNormals => 'Normala';
+
+  @override
+  String get fightTrainingSpecials => 'Specialer';
+
+  @override
+  String get fightTrainingSuper => 'Super';
+
+  @override
+  String get fightTrainingCounters => 'Motattackens följdslag';
+
+  @override
+  String get fightTrainingCounterHint => 'Ta ställning och ta sedan en träff';
+
+  @override
+  String get fightTrainingFlagKnockdown => 'Nedslagning';
+
+  @override
+  String get fightTrainingFlagLaunch => 'Uppskjut';
+
+  @override
+  String get fightTrainingFlagWallBounce => 'Väggstuds';
+
+  @override
+  String get fightTrainingFlagGroundBounce => 'Marksstuds';
+
+  @override
+  String get fightTrainingFlagProjectile => 'Projektil';
+
+  @override
+  String get fightTrainingFlagGrab => 'Grepp';
+
+  @override
+  String get fightTrainingFlagArmor => 'Rustning';
+
+  @override
+  String get fightTrainingFlagInvulnerable => 'Osårbar';
+
+  @override
+  String get fightTrainingFlagInvStrike => 'Osårbar mot slag';
+
+  @override
+  String get fightTrainingFlagInvThrow => 'Osårbar mot grepp';
+
+  @override
+  String get fightTrainingFlagInvProjectile => 'Osårbar mot projektiler';
+
+  @override
+  String get fightTrainingFlagCounter => 'Motställning';
+
+  @override
+  String get fightTrainingFlagTrap => 'Fälla';
+
+  @override
+  String get fightTrainingPause => 'Pausa';
+
+  @override
+  String get fightTrainingPlay => 'Spela';
+
+  @override
+  String get fightTrainingStep => 'Ett steg framåt';
+
+  @override
+  String get fightTrainingChangeFighter => 'Byt fighter';
+
+  @override
+  String get fightTrainingFreePlay => 'Fritt spel';
+
+  @override
+  String get fightTrainingMoves => 'Drag';
+
+  @override
+  String get fightTrainingLegend =>
+      'L Lätt, H Tung, S Special, → mot motståndaren';
+
+  @override
+  String get fightTrainingMoveStandLight => 'Stående lätt';
+
+  @override
+  String get fightTrainingMoveStandLight2 => 'Lätt 2';
+
+  @override
+  String get fightTrainingMoveFinisher => 'Avslutare';
+
+  @override
+  String get fightTrainingMoveStandHeavy => 'Stående tung';
+
+  @override
+  String get fightTrainingMoveCrouchLight => 'Lätt i hukande';
+
+  @override
+  String get fightTrainingMoveSweep => 'Fejning';
+
+  @override
+  String get fightTrainingMoveJumpLight => 'Hopp lätt';
+
+  @override
+  String get fightTrainingMoveJumpHeavy => 'Hopp tung';
+
+  @override
+  String get fightTrainingMoveFwdHeavy => 'Framåt tung';
+
+  @override
+  String get fightTrainingMoveThrow => 'Kast';
 }

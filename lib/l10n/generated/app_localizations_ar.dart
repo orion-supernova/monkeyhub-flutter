@@ -15011,4 +15011,154 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get fightOpponentHidden => 'يُكشف عند البداية';
+
+  @override
+  String get fightTrainingTitle => 'تدريب';
+
+  @override
+  String get fightTrainingReset => 'إعادة ضبط';
+
+  @override
+  String get fightTrainingLoop => 'تكرار';
+
+  @override
+  String get fightTrainingHitboxes => 'مربعات الإصابة';
+
+  @override
+  String get fightTrainingFrameData => 'بيانات الإطارات';
+
+  @override
+  String get fightTrainingStartup => 'البداية';
+
+  @override
+  String get fightTrainingActive => 'النشاط';
+
+  @override
+  String get fightTrainingRecovery => 'التعافي';
+
+  @override
+  String get fightTrainingDamage => 'الضرر';
+
+  @override
+  String get fightTrainingHits => 'الضربات';
+
+  @override
+  String get fightTrainingBlock => 'الصد';
+
+  @override
+  String get fightTrainingHeightHigh => 'عالٍ';
+
+  @override
+  String get fightTrainingHeightMid => 'متوسط';
+
+  @override
+  String get fightTrainingHeightLow => 'منخفض';
+
+  @override
+  String get fightTrainingHeightUnblockable => 'لا يُصَد';
+
+  @override
+  String get fightTrainingNormals => 'الضربات العادية';
+
+  @override
+  String get fightTrainingSpecials => 'الضربات الخاصة';
+
+  @override
+  String get fightTrainingSuper => 'سوبر';
+
+  @override
+  String get fightTrainingCounters => 'متابعات الرد المضاد';
+
+  @override
+  String get fightTrainingCounterHint => 'اتخذ الوضعية ثم تلقَّ ضربة';
+
+  @override
+  String get fightTrainingFlagKnockdown => 'إسقاط';
+
+  @override
+  String get fightTrainingFlagLaunch => 'إطلاق للهواء';
+
+  @override
+  String get fightTrainingFlagWallBounce => 'ارتداد من الجدار';
+
+  @override
+  String get fightTrainingFlagGroundBounce => 'ارتداد من الأرض';
+
+  @override
+  String get fightTrainingFlagProjectile => 'مقذوف';
+
+  @override
+  String get fightTrainingFlagGrab => 'إمساك';
+
+  @override
+  String get fightTrainingFlagArmor => 'درع';
+
+  @override
+  String get fightTrainingFlagInvulnerable => 'منيع';
+
+  @override
+  String get fightTrainingFlagInvStrike => 'منيع ضد الضربات';
+
+  @override
+  String get fightTrainingFlagInvThrow => 'منيع ضد الرمي';
+
+  @override
+  String get fightTrainingFlagInvProjectile => 'منيع ضد المقذوفات';
+
+  @override
+  String get fightTrainingFlagCounter => 'وضعية الرد المضاد';
+
+  @override
+  String get fightTrainingFlagTrap => 'فخ';
+
+  @override
+  String get fightTrainingPause => 'إيقاف مؤقت';
+
+  @override
+  String get fightTrainingPlay => 'تشغيل';
+
+  @override
+  String get fightTrainingStep => 'تقدّم إطارًا واحدًا';
+
+  @override
+  String get fightTrainingChangeFighter => 'تغيير المقاتل';
+
+  @override
+  String get fightTrainingFreePlay => 'لعب حر';
+
+  @override
+  String get fightTrainingMoves => 'الحركات';
+
+  @override
+  String get fightTrainingLegend => 'L خفيفة، H ثقيلة، S خاصة، → نحو الخصم';
+
+  @override
+  String get fightTrainingMoveStandLight => 'خفيفة واقفة';
+
+  @override
+  String get fightTrainingMoveStandLight2 => 'خفيفة 2';
+
+  @override
+  String get fightTrainingMoveFinisher => 'الضربة الختامية';
+
+  @override
+  String get fightTrainingMoveStandHeavy => 'ثقيلة واقفة';
+
+  @override
+  String get fightTrainingMoveCrouchLight => 'خفيفة منحنية';
+
+  @override
+  String get fightTrainingMoveSweep => 'مسحة أرضية';
+
+  @override
+  String get fightTrainingMoveJumpLight => 'خفيفة قفز';
+
+  @override
+  String get fightTrainingMoveJumpHeavy => 'ثقيلة قفز';
+
+  @override
+  String get fightTrainingMoveFwdHeavy => 'ثقيلة أمامية';
+
+  @override
+  String get fightTrainingMoveThrow => 'رمي';
 }

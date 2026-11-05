@@ -14800,4 +14800,154 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get fightOpponentHidden => 'शुरुआत में पता चलेगा';
+
+  @override
+  String get fightTrainingTitle => 'अभ्यास';
+
+  @override
+  String get fightTrainingReset => 'रीसेट';
+
+  @override
+  String get fightTrainingLoop => 'दोहराएँ';
+
+  @override
+  String get fightTrainingHitboxes => 'हिटबॉक्स';
+
+  @override
+  String get fightTrainingFrameData => 'फ़्रेम डेटा';
+
+  @override
+  String get fightTrainingStartup => 'शुरुआत';
+
+  @override
+  String get fightTrainingActive => 'सक्रिय';
+
+  @override
+  String get fightTrainingRecovery => 'रिकवरी';
+
+  @override
+  String get fightTrainingDamage => 'नुकसान';
+
+  @override
+  String get fightTrainingHits => 'हिट';
+
+  @override
+  String get fightTrainingBlock => 'ब्लॉक';
+
+  @override
+  String get fightTrainingHeightHigh => 'ऊँचा';
+
+  @override
+  String get fightTrainingHeightMid => 'मध्य';
+
+  @override
+  String get fightTrainingHeightLow => 'नीचा';
+
+  @override
+  String get fightTrainingHeightUnblockable => 'ब्लॉक नहीं होता';
+
+  @override
+  String get fightTrainingNormals => 'सामान्य';
+
+  @override
+  String get fightTrainingSpecials => 'विशेष';
+
+  @override
+  String get fightTrainingSuper => 'सुपर';
+
+  @override
+  String get fightTrainingCounters => 'काउंटर फ़ॉलो-अप';
+
+  @override
+  String get fightTrainingCounterHint => 'मुद्रा लें, फिर वार झेलें';
+
+  @override
+  String get fightTrainingFlagKnockdown => 'गिराता है';
+
+  @override
+  String get fightTrainingFlagLaunch => 'हवा में उछालता है';
+
+  @override
+  String get fightTrainingFlagWallBounce => 'दीवार से टकराव';
+
+  @override
+  String get fightTrainingFlagGroundBounce => 'ज़मीन से उछाल';
+
+  @override
+  String get fightTrainingFlagProjectile => 'प्रक्षेप्य';
+
+  @override
+  String get fightTrainingFlagGrab => 'पकड़';
+
+  @override
+  String get fightTrainingFlagArmor => 'कवच';
+
+  @override
+  String get fightTrainingFlagInvulnerable => 'अजेय';
+
+  @override
+  String get fightTrainingFlagInvStrike => 'वारों से अजेय';
+
+  @override
+  String get fightTrainingFlagInvThrow => 'पकड़ से अजेय';
+
+  @override
+  String get fightTrainingFlagInvProjectile => 'प्रक्षेप्यों से अजेय';
+
+  @override
+  String get fightTrainingFlagCounter => 'काउंटर मुद्रा';
+
+  @override
+  String get fightTrainingFlagTrap => 'जाल';
+
+  @override
+  String get fightTrainingPause => 'रोकें';
+
+  @override
+  String get fightTrainingPlay => 'चलाएँ';
+
+  @override
+  String get fightTrainingStep => 'एक फ़्रेम आगे';
+
+  @override
+  String get fightTrainingChangeFighter => 'फ़ाइटर बदलें';
+
+  @override
+  String get fightTrainingFreePlay => 'फ़्री प्ले';
+
+  @override
+  String get fightTrainingMoves => 'चालें';
+
+  @override
+  String get fightTrainingLegend => 'L हल्का, H भारी, S विशेष, → विरोधी की ओर';
+
+  @override
+  String get fightTrainingMoveStandLight => 'खड़े हुए हल्का';
+
+  @override
+  String get fightTrainingMoveStandLight2 => 'हल्का 2';
+
+  @override
+  String get fightTrainingMoveFinisher => 'फ़िनिशर';
+
+  @override
+  String get fightTrainingMoveStandHeavy => 'खड़े हुए भारी';
+
+  @override
+  String get fightTrainingMoveCrouchLight => 'बैठे हुए हल्का';
+
+  @override
+  String get fightTrainingMoveSweep => 'स्वीप';
+
+  @override
+  String get fightTrainingMoveJumpLight => 'कूद हल्का';
+
+  @override
+  String get fightTrainingMoveJumpHeavy => 'कूद भारी';
+
+  @override
+  String get fightTrainingMoveFwdHeavy => 'आगे भारी';
+
+  @override
+  String get fightTrainingMoveThrow => 'फेंक';
 }
