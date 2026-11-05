@@ -23,6 +23,7 @@ class CallQualitySnapshot {
     this.fps,
     this.limitationReason,
     this.candidateType,
+    this.availableOutKbps,
   });
 
   final CallQuality quality;
@@ -49,6 +50,12 @@ class CallQualitySnapshot {
   /// Local candidate type of the nominated pair — host/srflx/relay. Tells
   /// whether the TURN server is in the media path.
   final String? candidateType;
+
+  /// libwebrtc's estimate of what the link can carry outbound right now
+  /// (`candidate-pair.availableOutgoingBitrate`), all media together. The
+  /// signal `VideoQualityGovernor` reads to tell a link too thin for the
+  /// camera's tier.
+  final double? availableOutKbps;
 }
 
 /// Polls [RTCPeerConnection.getStats] every 2s while a call is active and
@@ -112,6 +119,7 @@ class CallStatsMonitor {
     _lastPollAt = now;
 
     double? rttMs;
+    double? availableOutKbps;
     String? candidateType;
     double? outKbps;
     double? inKbps;
@@ -133,6 +141,8 @@ class CallStatsMonitor {
       if (!succeeded || !nominated) continue;
       final rtt = _num(v['currentRoundTripTime']);
       if (rtt != null) rttMs = rtt * 1000;
+      final avail = _num(v['availableOutgoingBitrate']);
+      if (avail != null && avail > 0) availableOutKbps = avail / 1000;
       final localId = v['localCandidateId']?.toString();
       if (localId != null) {
         for (final c in reports) {
@@ -241,6 +251,7 @@ class CallStatsMonitor {
       fps: videoFps,
       limitationReason: limitationReason,
       candidateType: candidateType,
+      availableOutKbps: availableOutKbps,
     );
   }
 }

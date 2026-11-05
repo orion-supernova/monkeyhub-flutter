@@ -4014,5 +4014,10 @@
   "lowPowerToast": "省电模式已开启，部分动画已暂停",
   "lowBatteryToast": "电量低，部分动画已暂停",
   "powerSavingAutoLowBatterySub": "当前已开启：电量低",
-  "longMessageSentAsFileToast": "内容太长，无法作为一条消息发送，已改为文本文件发送"
+  "longMessageSentAsFileToast": "内容太长，无法作为一条消息发送，已改为文本文件发送",
+  "videoQualityAutoLowerTitle": "网络差时自动降低画质",
+  "videoQualityAutoLowerFootnote": "当你的网络跟不上 1080p 或 4K 时，通话会切换到网络能承载的画质并告诉你。关闭后，通话会提醒你，由你决定。",
+  "callQualityLoweredBanner": "网络较差，视频已降至 {quality}。",
+  "callQualityOfferBanner": "你的网络跟不上 {quality}。",
+  "callQualityOfferAction": "降至 {quality}"
 }

@@ -2205,6 +2205,9 @@ class GroupCallService extends ChangeNotifier
   /// the choice: the next camera comes up at it because [_cameraOn] and the
   /// join both read [_videoTier].
   @override
+  VideoQualityTier get liveVideoTier => _videoTier;
+
+  @override
   Future<void> switchVideoQuality(VideoQualityTier tier) async {
     await SettingsStore.instance.setVideoQualityTier(tier);
     _videoTier = tier;

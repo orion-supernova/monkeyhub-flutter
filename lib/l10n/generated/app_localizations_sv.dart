@@ -14612,4 +14612,26 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get longMessageSentAsFileToast =>
       'För långt för ett meddelande, så det skickades som en textfil';
+
+  @override
+  String get videoQualityAutoLowerTitle => 'Sänk vid svag anslutning';
+
+  @override
+  String get videoQualityAutoLowerFootnote =>
+      'När din anslutning inte klarar 1080p eller 4K byter samtalet till en kvalitet den klarar och säger till. När det är av varnar samtalet och du väljer själv.';
+
+  @override
+  String callQualityLoweredBanner(String quality) {
+    return 'Svag anslutning. Videon sänktes till $quality.';
+  }
+
+  @override
+  String callQualityOfferBanner(String quality) {
+    return 'Din anslutning klarar inte $quality.';
+  }
+
+  @override
+  String callQualityOfferAction(String quality) {
+    return 'Sänk till $quality';
+  }
 }

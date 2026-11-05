@@ -13790,4 +13790,26 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get longMessageSentAsFileToast => '内容太长，无法作为一条消息发送，已改为文本文件发送';
+
+  @override
+  String get videoQualityAutoLowerTitle => '网络差时自动降低画质';
+
+  @override
+  String get videoQualityAutoLowerFootnote =>
+      '当你的网络跟不上 1080p 或 4K 时，通话会切换到网络能承载的画质并告诉你。关闭后，通话会提醒你，由你决定。';
+
+  @override
+  String callQualityLoweredBanner(String quality) {
+    return '网络较差，视频已降至 $quality。';
+  }
+
+  @override
+  String callQualityOfferBanner(String quality) {
+    return '你的网络跟不上 $quality。';
+  }
+
+  @override
+  String callQualityOfferAction(String quality) {
+    return '降至 $quality';
+  }
 }

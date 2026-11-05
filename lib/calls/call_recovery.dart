@@ -5,7 +5,11 @@ library;
 /// How long a call may sit in the reconnecting state, counting only time
 /// during which a restart could actually have been delivered — i.e. with the
 /// signaling transport up. See [shouldAbandonRestart].
-const Duration kMaxCallOutage = Duration(seconds: 30);
+///
+/// A minute: a lift, a tunnel, a train between stations. 30 s used to end
+/// calls that WhatsApp holds through, and a call that comes back is worth
+/// far more than the half minute of "reconnecting" it costs when it doesn't.
+const Duration kMaxCallOutage = Duration(seconds: 60);
 
 /// Absolute ceiling on one outage, whatever the signaling transport was
 /// doing. A phone that has had no usable network for two minutes is not

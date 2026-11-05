@@ -17457,5 +17457,43 @@
   "longMessageSentAsFileToast": "Too long for one message, so it was sent as a text file",
   "@longMessageSentAsFileToast": {
     "description": "Toast after sending a text longer than one message allows: instead of being refused, it was sent as a .txt file attachment."
+  },
+  "videoQualityAutoLowerTitle": "Lower on weak connections",
+  "@videoQualityAutoLowerTitle": {
+    "description": "Switch row on the Video quality screen: when on, a call drops its camera to a lower tier for that call when the network can't carry 1080p or 4K."
+  },
+  "videoQualityAutoLowerFootnote": "When your connection can't keep up with 1080p or 4K, the call switches to a quality it can carry and tells you. When this is off, the call warns you and you choose.",
+  "@videoQualityAutoLowerFootnote": {
+    "description": "Footnote under the auto-lower switch explaining what it does on and off."
+  },
+  "callQualityLoweredBanner": "Weak connection. Video lowered to {quality}.",
+  "@callQualityLoweredBanner": {
+    "description": "In-call banner after the call lowered the video tier on a weak connection. {quality} is a resolution label like 720p or 1080p.",
+    "placeholders": {
+      "quality": {
+        "type": "String",
+        "example": "1080p"
+      }
+    }
+  },
+  "callQualityOfferBanner": "Your connection can't keep up with {quality}.",
+  "@callQualityOfferBanner": {
+    "description": "In-call banner when auto-lowering is off and the connection can't carry the chosen tier. {quality} is the chosen tier, like 4K.",
+    "placeholders": {
+      "quality": {
+        "type": "String",
+        "example": "1080p"
+      }
+    }
+  },
+  "callQualityOfferAction": "Lower to {quality}",
+  "@callQualityOfferAction": {
+    "description": "Button on that banner. {quality} is the lower tier, like 1080p.",
+    "placeholders": {
+      "quality": {
+        "type": "String",
+        "example": "1080p"
+      }
+    }
   }
 }

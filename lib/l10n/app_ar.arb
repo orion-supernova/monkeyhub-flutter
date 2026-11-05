@@ -4014,5 +4014,10 @@
   "lowPowerToast": "توفير الطاقة قيد التشغيل، لذا تم إيقاف بعض الحركات مؤقتاً",
   "lowBatteryToast": "البطارية منخفضة، لذا أُوقفت بعض الحركات مؤقتًا",
   "powerSavingAutoLowBatterySub": "مفعّل الآن: البطارية منخفضة",
-  "longMessageSentAsFileToast": "الرسالة طويلة جدًا، لذا أُرسلت كملف نصي"
+  "longMessageSentAsFileToast": "الرسالة طويلة جدًا، لذا أُرسلت كملف نصي",
+  "videoQualityAutoLowerTitle": "خفض الجودة عند ضعف الاتصال",
+  "videoQualityAutoLowerFootnote": "عندما لا يواكب اتصالك دقة 1080p أو 4K، تنتقل المكالمة إلى جودة يستطيع تحملها وتخبرك بذلك. عند إيقافه، تنبهك المكالمة وتختار أنت.",
+  "callQualityLoweredBanner": "الاتصال ضعيف. تم خفض الفيديو إلى {quality}.",
+  "callQualityOfferBanner": "اتصالك لا يواكب دقة {quality}.",
+  "callQualityOfferAction": "الخفض إلى {quality}"
 }

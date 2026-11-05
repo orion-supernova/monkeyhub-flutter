@@ -68,6 +68,7 @@ class SettingsStore extends ChangeNotifier {
   // comes back, or an old install would inherit an HD it turned on once.
   static const _kTipsSeen = 'mh.tipsSeen';
   static const _kVideoQualityTier = 'mh.videoQualityTier';
+  static const _kAutoLowerVideoQuality = 'mh.autoLowerVideoQuality';
   // NOTE: 'mh.fullScreenIntentPrompted', 'mh.batteryOptPrompted' and
   // 'mh.micPermissionPrompted' were retired with the Android onboarding
   // prompts they gated. Their values are left on disk rather than migrated
@@ -108,7 +109,7 @@ class SettingsStore extends ChangeNotifier {
     _kFriendActivity, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
     _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen,
-    _kVideoQualityTier, _kRecoveryPromptDismissed,
+    _kVideoQualityTier, _kAutoLowerVideoQuality, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel, _kPowerSaving,
     _kScheduledIndicator, _kSebastianEnabled, _kTranslationTarget,
@@ -167,6 +168,7 @@ class SettingsStore extends ChangeNotifier {
   DataStoragePrefs _dataPrefs = DataStoragePrefs.defaults;
   bool _showNetworkStats = false;
   VideoQualityTier _videoQualityTier = VideoQualityTier.auto;
+  bool _autoLowerVideoQuality = true;
   String? _recoveryPromptDismissedFor;
   Set<String> _composerModeHintSeenRoomIds = {};
   Set<String> _tipsSeen = {};
@@ -348,6 +350,11 @@ class SettingsStore extends ChangeNotifier {
   /// unchanged unless the user opts into a higher tier. Also switchable from
   /// inside the call view; both write here.
   VideoQualityTier get videoQualityTier => _videoQualityTier;
+
+  /// A call whose connection can't carry the chosen 1080p or 4K drops to a
+  /// tier it can, for that call only, and says so. Off: the call keeps the
+  /// tier and offers the drop instead. Default on.
+  bool get autoLowerVideoQuality => _autoLowerVideoQuality;
 
   /// When false (default), the "SEEN" indicator on the user's own messages is
   /// suppressed even if read-state data flows in. Off by default — opt-in.
@@ -672,6 +679,7 @@ class SettingsStore extends ChangeNotifier {
     final sns = s[_kShowNetworkStats];
     _showNetworkStats = sns == 'true'; // default false
     _videoQualityTier = VideoQualityTierWire.parse(s[_kVideoQualityTier]);
+    _autoLowerVideoQuality = s[_kAutoLowerVideoQuality] != 'false'; // default true
     _recoveryPromptDismissedFor = s[_kRecoveryPromptDismissed];
     _tipsSeen = _decodeStringSet(s[_kTipsSeen]);
     _composerModeHintSeenRoomIds = _decodeStringSet(
@@ -1111,6 +1119,16 @@ class SettingsStore extends ChangeNotifier {
     _videoQualityTier = v;
     notifyListeners();
     await _storage.write(key: _kVideoQualityTier, value: v.wire);
+  }
+
+  Future<void> setAutoLowerVideoQuality(bool v) async {
+    if (_autoLowerVideoQuality == v) return;
+    _autoLowerVideoQuality = v;
+    notifyListeners();
+    await _storage.write(
+      key: _kAutoLowerVideoQuality,
+      value: v ? 'true' : 'false',
+    );
   }
 
   /// Records that [userId] declined the recovery-phrase prompt once. The

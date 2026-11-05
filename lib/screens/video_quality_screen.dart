@@ -56,6 +56,16 @@ class VideoQualityScreen extends StatelessWidget {
                 ),
               ],
             ),
+            GroupedSection(
+              footer: l10n.videoQualityAutoLowerFootnote,
+              children: [
+                GroupedRow.toggle(
+                  title: l10n.videoQualityAutoLowerTitle,
+                  value: SettingsStore.instance.autoLowerVideoQuality,
+                  onChanged: SettingsStore.instance.setAutoLowerVideoQuality,
+                ),
+              ],
+            ),
           ],
         );
       },

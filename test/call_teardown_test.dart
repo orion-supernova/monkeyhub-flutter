@@ -771,10 +771,10 @@ void main() {
         }
 
         // Each recovery cycle: restart attempts at 0s, 4s, 10s, then every
-        // 8s until the 30s outage budget is spent (~34s), then abandon →
-        // rebuild. Fail the fresh link immediately.
+        // 8s until the outage budget (kMaxCallOutage, a minute) is spent,
+        // then abandon → rebuild. Fail the fresh link immediately.
         var lastCount = 0;
-        for (var cycle = 0; cycle < 6; cycle++) {
+        for (var cycle = 0; cycle < 12; cycle++) {
           if (pcs.length != lastCount) {
             lastCount = pcs.length;
             failCurrentLink();

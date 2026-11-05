@@ -14718,4 +14718,26 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get longMessageSentAsFileToast =>
       'Era demasiado largo para un mensaje, así que se envió como archivo de texto';
+
+  @override
+  String get videoQualityAutoLowerTitle => 'Bajar con conexión débil';
+
+  @override
+  String get videoQualityAutoLowerFootnote =>
+      'Cuando tu conexión no puede con 1080p o 4K, la llamada cambia a una calidad que sí pueda mantener y te avisa. Si está desactivado, la llamada te avisa y tú eliges.';
+
+  @override
+  String callQualityLoweredBanner(String quality) {
+    return 'Conexión débil. Video bajado a $quality.';
+  }
+
+  @override
+  String callQualityOfferBanner(String quality) {
+    return 'Tu conexión no puede mantener $quality.';
+  }
+
+  @override
+  String callQualityOfferAction(String quality) {
+    return 'Bajar a $quality';
+  }
 }

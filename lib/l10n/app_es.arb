@@ -4014,5 +4014,10 @@
   "lowPowerToast": "El ahorro de energía está activado, así que algunas animaciones están en pausa",
   "lowBatteryToast": "Batería baja, así que algunas animaciones están en pausa",
   "powerSavingAutoLowBatterySub": "Activo ahora: tienes poca batería",
-  "longMessageSentAsFileToast": "Era demasiado largo para un mensaje, así que se envió como archivo de texto"
+  "longMessageSentAsFileToast": "Era demasiado largo para un mensaje, así que se envió como archivo de texto",
+  "videoQualityAutoLowerTitle": "Bajar con conexión débil",
+  "videoQualityAutoLowerFootnote": "Cuando tu conexión no puede con 1080p o 4K, la llamada cambia a una calidad que sí pueda mantener y te avisa. Si está desactivado, la llamada te avisa y tú eliges.",
+  "callQualityLoweredBanner": "Conexión débil. Video bajado a {quality}.",
+  "callQualityOfferBanner": "Tu conexión no puede mantener {quality}.",
+  "callQualityOfferAction": "Bajar a {quality}"
 }

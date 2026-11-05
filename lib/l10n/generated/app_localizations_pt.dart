@@ -14721,6 +14721,28 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get longMessageSentAsFileToast =>
       'Era demasiado longa para uma mensagem, por isso foi enviada como ficheiro de texto';
+
+  @override
+  String get videoQualityAutoLowerTitle => 'Baixar com ligação fraca';
+
+  @override
+  String get videoQualityAutoLowerFootnote =>
+      'Quando a tua ligação não aguenta 1080p ou 4K, a chamada muda para uma qualidade que consiga manter e avisa-te. Desativado, a chamada avisa-te e tu escolhes.';
+
+  @override
+  String callQualityLoweredBanner(String quality) {
+    return 'Ligação fraca. Vídeo baixado para $quality.';
+  }
+
+  @override
+  String callQualityOfferBanner(String quality) {
+    return 'A tua ligação não aguenta $quality.';
+  }
+
+  @override
+  String callQualityOfferAction(String quality) {
+    return 'Baixar para $quality';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -29422,4 +29444,26 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get longMessageSentAsFileToast =>
       'Longa demais para uma mensagem, então foi enviada como arquivo de texto';
+
+  @override
+  String get videoQualityAutoLowerTitle => 'Baixar com conexão fraca';
+
+  @override
+  String get videoQualityAutoLowerFootnote =>
+      'Quando sua conexão não aguenta 1080p ou 4K, a chamada muda para uma qualidade que ela consegue manter e avisa você. Desativado, a chamada avisa e você escolhe.';
+
+  @override
+  String callQualityLoweredBanner(String quality) {
+    return 'Conexão fraca. Vídeo reduzido para $quality.';
+  }
+
+  @override
+  String callQualityOfferBanner(String quality) {
+    return 'Sua conexão não aguenta $quality.';
+  }
+
+  @override
+  String callQualityOfferAction(String quality) {
+    return 'Reduzir para $quality';
+  }
 }

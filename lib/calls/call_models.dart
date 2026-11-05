@@ -27,6 +27,10 @@ extension VideoQualityTierWire on VideoQualityTier {
 abstract interface class CallOptionsController {
   /// Persists [tier] and, when a camera is being sent, applies it now.
   Future<void> switchVideoQuality(VideoQualityTier tier);
+
+  /// The tier the camera runs at right now: the saved one, unless a weak
+  /// link lowered it for this call.
+  VideoQualityTier get liveVideoTier;
 }
 
 extension CallMediaKindWire on CallMediaKind {

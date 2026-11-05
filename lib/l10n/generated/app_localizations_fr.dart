@@ -14787,4 +14787,26 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get longMessageSentAsFileToast =>
       'Trop long pour un seul message, il a donc été envoyé en fichier texte';
+
+  @override
+  String get videoQualityAutoLowerTitle => 'Baisser si la connexion est faible';
+
+  @override
+  String get videoQualityAutoLowerFootnote =>
+      'Quand ta connexion ne suit pas en 1080p ou 4K, l\'appel passe à une qualité qu\'elle peut tenir et te prévient. Si c\'est désactivé, l\'appel te prévient et tu choisis.';
+
+  @override
+  String callQualityLoweredBanner(String quality) {
+    return 'Connexion faible. Vidéo passée en $quality.';
+  }
+
+  @override
+  String callQualityOfferBanner(String quality) {
+    return 'Ta connexion ne suit pas en $quality.';
+  }
+
+  @override
+  String callQualityOfferAction(String quality) {
+    return 'Passer en $quality';
+  }
 }

@@ -25,6 +25,7 @@ import 'draw/draw_model.dart';
 import 'native_call_handler.dart';
 import 'renegotiation.dart';
 import 'screen_share.dart';
+import 'video_quality_governor.dart';
 
 /// Single-call peer-to-peer WebRTC manager.
 ///
@@ -43,6 +44,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     _seenUpEdges = _signaling.upEdges;
     _seenNetworkEpoch = _signaling.networkEpoch;
     _signaling.addListener(_onSignalingStatus);
+    callQuality.addListener(_onQualitySnapshot);
   }
 
   /// Transport health published by `ConnectionHealth`. See [SignalingStatus].
@@ -475,6 +477,28 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   /// ValueListenableBuilder so quality updates don't rebuild the screen.
   final ValueNotifier<CallQualitySnapshot?> callQuality = ValueNotifier(null);
   CallStatsMonitor? _stats;
+
+  /// The tier this call's camera dropped to because the link couldn't carry
+  /// the saved one, null while the call runs at the saved tier. This call
+  /// only: the saved preference is untouched, so the next call on a good
+  /// network starts at it again.
+  VideoQualityTier? _tierOverride;
+
+  /// The tier the camera actually runs at in this call.
+  @override
+  VideoQualityTier get liveVideoTier =>
+      _tierOverride ?? SettingsStore.instance.videoQualityTier;
+
+  /// Watches [callQuality] for a tier the link can't carry.
+  final VideoQualityGovernor _governor = VideoQualityGovernor();
+
+  /// Tiers this call already offered to drop, so an offer the user passed
+  /// on is not repeated every ten seconds.
+  final Set<VideoQualityTier> _qualityOffered = {};
+
+  /// The in-call banner: the call lowered its video tier on a weak link, or
+  /// (with auto-lowering off) offers to. Null when there is nothing to say.
+  final ValueNotifier<VideoQualityNotice?> qualityNotice = ValueNotifier(null);
 
   MediaStream? _localStream;
   MediaStream? _remoteStream;
@@ -1363,7 +1387,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     if (!await ensurePermissionsFn(CallMediaKind.video)) return false;
     final MediaStreamTrack track;
     try {
-      track = await getVideoTrackFn(SettingsStore.instance.videoQualityTier);
+      track = await getVideoTrackFn(liveVideoTier);
     } catch (e) {
       debugPrint('CallService._cameraOn: $e');
       return false;
@@ -1563,7 +1587,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     unawaited(_camSerial(() async {
       if (!localCamActive) return;
       debugPrint('[CamWatch] 1:1 restarting the camera ($_camRestarts)');
-      await _swapCameraTrack(SettingsStore.instance.videoQualityTier);
+      await _swapCameraTrack(liveVideoTier);
     }));
   }
 
@@ -1914,8 +1938,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   Future<void> _tuneSenders(RTCPeerConnection pc) async {
     await configureVideoSenders(
       pc,
-      maxBitrate: videoQualityPresets[SettingsStore.instance.videoQualityTier]!
-          .maxBitrate,
+      maxBitrate: videoQualityPresets[liveVideoTier]!.maxBitrate,
     );
     await _retuneScreenSender();
     await preferCodecFn(pc);
@@ -2036,7 +2059,13 @@ class CallService extends ChangeNotifier implements CallOptionsController {
   /// both reading the same old track.
   @override
   Future<void> switchVideoQuality(VideoQualityTier tier) async {
+    // The user's own pick beats a drop the link forced: it is what they
+    // asked for, for this call and the next.
+    _tierOverride = null;
+    qualityNotice.value = null;
+    _governor.reset(DateTime.now());
     await SettingsStore.instance.setVideoQualityTier(tier);
+    notifyListeners();
     if (_pc == null || !localCamActive) return;
     await _camSerial(() async {
       final pc = _pc;
@@ -2051,6 +2080,60 @@ class CallService extends ChangeNotifier implements CallOptionsController {
         debugPrint('switchVideoQuality($tier) failed: $e');
       }
     });
+  }
+
+  /// Runs this call's camera at [tier] without touching the saved
+  /// preference: the banner's "Lower" and the automatic drop.
+  Future<void> lowerVideoQualityForCall(VideoQualityTier tier) async {
+    qualityNotice.value = null;
+    if (tier == liveVideoTier) return;
+    _tierOverride =
+        tier == SettingsStore.instance.videoQualityTier ? null : tier;
+    _governor.reset(DateTime.now());
+    notifyListeners();
+    if (_pc == null || !localCamActive) return;
+    await _camSerial(() async {
+      final pc = _pc;
+      if (pc == null || !localCamActive) return;
+      if (!await _swapCameraTrack(tier)) return;
+      try {
+        await configureVideoSenders(
+          pc,
+          maxBitrate: videoQualityPresets[tier]!.maxBitrate,
+        );
+      } catch (e) {
+        debugPrint('lowerVideoQualityForCall($tier) failed: $e');
+      }
+    });
+  }
+
+  /// The banner's close button.
+  void dismissQualityNotice() => qualityNotice.value = null;
+
+  /// Each stats poll: is the link too thin for the camera's tier?
+  void _onQualitySnapshot() {
+    final q = callQuality.value;
+    final s = _session;
+    if (q == null || s == null || s.status != CallStatus.active) return;
+    if (s.reconnecting || !localCamActive) return;
+    final advice = _governor.observe(q, liveVideoTier, DateTime.now());
+    if (advice == null) return;
+    debugPrint('CallService: link too thin for the camera: $advice');
+    if (SettingsStore.instance.autoLowerVideoQuality) {
+      unawaited(lowerVideoQualityForCall(advice.to).then((_) {
+        qualityNotice.value = VideoQualityNotice(
+          from: advice.from,
+          to: advice.to,
+          applied: true,
+        );
+      }));
+    } else if (_qualityOffered.add(advice.from)) {
+      qualityNotice.value = VideoQualityNotice(
+        from: advice.from,
+        to: advice.to,
+        applied: false,
+      );
+    }
   }
 
   Future<void> toggleSpeaker() async {
@@ -3277,6 +3360,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
         _scheduleAudioRouteReasserts();
         // Start (or restart, post-handoff) stats polling against this PC.
         _stats?.dispose();
+        _governor.reset(DateTime.now());
         _stats = CallStatsMonitor(pc: pc, target: callQuality)..start();
         _startHeartbeat(cur.callId);
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
@@ -3569,7 +3653,7 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     // A redial or a handoff starts its own wait. An activation that already
     // came for THIS call (CallKit can activate before media is up) stands.
     final audioAlreadyLive = _callAudioLive;
-    final tier = SettingsStore.instance.videoQualityTier;
+    final tier = liveVideoTier;
     final epoch = ++_mediaEpoch;
     final stream = await getUserMediaFn(kind, tier: tier);
     if (epoch != _mediaEpoch || _pc == null) {
@@ -3879,6 +3963,9 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     _heartbeatTimer = null;
     _stats?.dispose();
     _stats = null;
+    _tierOverride = null;
+    _qualityOffered.clear();
+    qualityNotice.value = null;
     _camWatch?.stop();
     _camSuspended = false;
     _camRestarts = 0;
@@ -3966,7 +4053,9 @@ class CallService extends ChangeNotifier implements CallOptionsController {
     _activeCallSub = null;
     incomingTick.dispose();
     _disposePc();
+    callQuality.removeListener(_onQualitySnapshot);
     callQuality.dispose();
+    qualityNotice.dispose();
     reopenTick.dispose();
     drawMirror.dispose();
     _draw.dispose();

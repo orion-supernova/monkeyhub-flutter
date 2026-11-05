@@ -4014,5 +4014,10 @@
   "lowPowerToast": "省電力がオンのため、一部のアニメーションを停止しています",
   "lowBatteryToast": "バッテリー残量が少ないため、一部のアニメーションを停止しています",
   "powerSavingAutoLowBatterySub": "現在オン：バッテリー残量が少なくなっています",
-  "longMessageSentAsFileToast": "1件のメッセージには長すぎるため、テキストファイルとして送信しました"
+  "longMessageSentAsFileToast": "1件のメッセージには長すぎるため、テキストファイルとして送信しました",
+  "videoQualityAutoLowerTitle": "接続が弱いときは画質を下げる",
+  "videoQualityAutoLowerFootnote": "接続が1080pや4Kに追いつかないとき、通話は保てる画質に切り替えてお知らせします。オフのときは通話が警告し、あなたが選びます。",
+  "callQualityLoweredBanner": "接続が弱いため、映像を{quality}に下げました。",
+  "callQualityOfferBanner": "接続が{quality}に追いついていません。",
+  "callQualityOfferAction": "{quality}に下げる"
 }

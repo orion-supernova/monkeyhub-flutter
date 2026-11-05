@@ -4014,5 +4014,10 @@
   "lowPowerToast": "Strömsparläge är på, så vissa animationer är pausade",
   "lowBatteryToast": "Lågt batteri, så vissa animationer är pausade",
   "powerSavingAutoLowBatterySub": "På just nu: batteriet är lågt",
-  "longMessageSentAsFileToast": "För långt för ett meddelande, så det skickades som en textfil"
+  "longMessageSentAsFileToast": "För långt för ett meddelande, så det skickades som en textfil",
+  "videoQualityAutoLowerTitle": "Sänk vid svag anslutning",
+  "videoQualityAutoLowerFootnote": "När din anslutning inte klarar 1080p eller 4K byter samtalet till en kvalitet den klarar och säger till. När det är av varnar samtalet och du väljer själv.",
+  "callQualityLoweredBanner": "Svag anslutning. Videon sänktes till {quality}.",
+  "callQualityOfferBanner": "Din anslutning klarar inte {quality}.",
+  "callQualityOfferAction": "Sänk till {quality}"
 }

@@ -37,14 +37,19 @@ class CallOptionsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final live = service;
     return AnimatedBuilder(
-      animation: SettingsStore.instance,
+      // The call too: a weak link can lower the live tier mid-call.
+      animation: Listenable.merge([
+        SettingsStore.instance,
+        if (live is Listenable) live as Listenable,
+      ]),
       builder: (context, _) {
         final store = SettingsStore.instance;
         // The decoration reaches the bottom edge; the home-indicator inset
         // is padding INSIDE it. A SafeArea outside the decorated box left a
         // transparent band under the sheet.
-        final quality = store.videoQualityTier;
+        final quality = service.liveVideoTier;
         return SheetFrame(
           title: l10n.callOptionsSheetTitle,
           child: Column(

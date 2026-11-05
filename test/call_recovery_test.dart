@@ -70,11 +70,19 @@ void main() {
       );
     });
 
-    test('gives up past 30s outage', () {
+    test('holds a 50s outage, gives up past a minute', () {
       expect(
         shouldAbandonRestart(
           outageStart: t0,
-          now: t0.add(const Duration(seconds: 31)),
+          now: t0.add(const Duration(seconds: 50)),
+          attemptsSoFar: 1,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldAbandonRestart(
+          outageStart: t0,
+          now: t0.add(const Duration(seconds: 61)),
           attemptsSoFar: 1,
         ),
         isTrue,
@@ -96,30 +104,30 @@ void main() {
     });
 
     test('time with the signaling transport down does not count', () {
-      // 50s outage, 25s of it with our own socket down: only 25s of it was
+      // 90s outage, 40s of it with our own socket down: only 50s of it was
       // time a restart could have been delivered in.
       expect(
         shouldAbandonRestart(
           outageStart: t0,
-          now: t0.add(const Duration(seconds: 50)),
+          now: t0.add(const Duration(seconds: 90)),
           attemptsSoFar: 6,
-          signalingDown: const Duration(seconds: 25),
+          signalingDown: const Duration(seconds: 40),
         ),
         isFalse,
       );
       expect(
         shouldAbandonRestart(
           outageStart: t0,
-          now: t0.add(const Duration(seconds: 50)),
+          now: t0.add(const Duration(seconds: 90)),
           attemptsSoFar: 6,
-          signalingDown: const Duration(seconds: 15),
+          signalingDown: const Duration(seconds: 20),
         ),
         isTrue,
       );
     });
 
     test('a peer heard from recently holds the call open', () {
-      final now = t0.add(const Duration(seconds: 40));
+      final now = t0.add(const Duration(seconds: 70));
       expect(
         shouldAbandonRestart(
           outageStart: t0,

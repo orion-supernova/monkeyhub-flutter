@@ -14765,4 +14765,26 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get longMessageSentAsFileToast =>
       'الرسالة طويلة جدًا، لذا أُرسلت كملف نصي';
+
+  @override
+  String get videoQualityAutoLowerTitle => 'خفض الجودة عند ضعف الاتصال';
+
+  @override
+  String get videoQualityAutoLowerFootnote =>
+      'عندما لا يواكب اتصالك دقة 1080p أو 4K، تنتقل المكالمة إلى جودة يستطيع تحملها وتخبرك بذلك. عند إيقافه، تنبهك المكالمة وتختار أنت.';
+
+  @override
+  String callQualityLoweredBanner(String quality) {
+    return 'الاتصال ضعيف. تم خفض الفيديو إلى $quality.';
+  }
+
+  @override
+  String callQualityOfferBanner(String quality) {
+    return 'اتصالك لا يواكب دقة $quality.';
+  }
+
+  @override
+  String callQualityOfferAction(String quality) {
+    return 'الخفض إلى $quality';
+  }
 }

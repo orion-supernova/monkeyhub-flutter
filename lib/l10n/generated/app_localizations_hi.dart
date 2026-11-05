@@ -14553,4 +14553,26 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get longMessageSentAsFileToast =>
       'एक मैसेज के लिए बहुत लंबा था, इसलिए टेक्स्ट फ़ाइल के रूप में भेजा गया';
+
+  @override
+  String get videoQualityAutoLowerTitle => 'कमज़ोर कनेक्शन पर क्वालिटी घटाएँ';
+
+  @override
+  String get videoQualityAutoLowerFootnote =>
+      'जब आपका कनेक्शन 1080p या 4K नहीं संभाल पाता, कॉल ऐसी क्वालिटी पर चली जाती है जिसे वह संभाल सके और आपको बताती है। बंद होने पर कॉल आपको चेतावनी देती है और आप चुनते हैं।';
+
+  @override
+  String callQualityLoweredBanner(String quality) {
+    return 'कनेक्शन कमज़ोर है। वीडियो $quality पर कर दिया गया।';
+  }
+
+  @override
+  String callQualityOfferBanner(String quality) {
+    return 'आपका कनेक्शन $quality नहीं संभाल पा रहा।';
+  }
+
+  @override
+  String callQualityOfferAction(String quality) {
+    return '$quality पर करें';
+  }
 }

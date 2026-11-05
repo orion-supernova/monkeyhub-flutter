@@ -29,6 +29,7 @@ import 'draw/draw_model.dart';
 import 'draw/overlay_permission_hint.dart';
 import 'screen_share.dart';
 import 'share_picker_sheet.dart';
+import 'video_quality_governor.dart';
 import 'widgets/call_auto_hide.dart';
 import 'widgets/call_chrome.dart';
 import 'widgets/call_pip_stage.dart';
@@ -981,6 +982,18 @@ class _CallScreenState extends State<CallScreen>
                   ),
                 ),
 
+                // The weak-link video tier notice: lowered, or offered. Over
+                // the tray, and not inside the chrome's fade, since it is
+                // news the user should see even with the controls hidden.
+                if (isVideo)
+                  Positioned(
+                    key: const ValueKey('quality-notice'),
+                    left: 16,
+                    right: 16,
+                    bottom: (controlsVisible ? trayInset : 16) + pad.bottom + 12,
+                    child: VideoQualityNoticeLayer(service: svc),
+                  ),
+
                 // Status chip row: device-switching renegotiation, ICE-restart
                 // recovery, or (via its own listenable, so no screen rebuild)
                 // a degraded-connection warning.
@@ -1239,6 +1252,105 @@ class _ShareStage extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// The display name of a camera tier in a sentence: Auto runs at 720p, and
+/// "lowered to Auto" would say nothing.
+String videoTierLabel(AppLocalizations l10n, VideoQualityTier t) =>
+    switch (t) {
+      VideoQualityTier.auto => '720p',
+      VideoQualityTier.hd1080 => l10n.settingsScreenValueVideoQuality1080p,
+      VideoQualityTier.uhd4k => l10n.settingsScreenValueVideoQuality4k,
+    };
+
+/// [CallService.qualityNotice] as a [CallNoticeChip]. A drop the call
+/// already made is news and leaves by itself after a few seconds; an offer
+/// (auto-lowering off) stays until it is taken or closed.
+class VideoQualityNoticeLayer extends StatefulWidget {
+  const VideoQualityNoticeLayer({super.key, required this.service});
+  final CallService service;
+
+  /// How long a "video lowered" notice stays.
+  static const Duration appliedHold = Duration(seconds: 6);
+
+  @override
+  State<VideoQualityNoticeLayer> createState() =>
+      _VideoQualityNoticeLayerState();
+}
+
+class _VideoQualityNoticeLayerState extends State<VideoQualityNoticeLayer> {
+  Timer? _hide;
+
+  ValueNotifier<VideoQualityNotice?> get _notice =>
+      widget.service.qualityNotice;
+
+  @override
+  void initState() {
+    super.initState();
+    _notice.addListener(_changed);
+  }
+
+  @override
+  void didUpdateWidget(VideoQualityNoticeLayer old) {
+    super.didUpdateWidget(old);
+    if (old.service != widget.service) {
+      old.service.qualityNotice.removeListener(_changed);
+      _notice.addListener(_changed);
+    }
+  }
+
+  @override
+  void dispose() {
+    _hide?.cancel();
+    _notice.removeListener(_changed);
+    super.dispose();
+  }
+
+  void _changed() {
+    _hide?.cancel();
+    final n = _notice.value;
+    if (n != null && n.applied) {
+      _hide = Timer(VideoQualityNoticeLayer.appliedHold, () {
+        if (identical(_notice.value, n)) widget.service.dismissQualityNotice();
+      });
+    }
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final n = _notice.value;
+    return Material(
+      type: MaterialType.transparency,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 220),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        child: n == null
+            ? const SizedBox.shrink(key: ValueKey('none'))
+            : Center(
+                key: ValueKey(n),
+                child: CallNoticeChip(
+                  label: n.applied
+                      ? l10n.callQualityLoweredBanner(videoTierLabel(l10n, n.to))
+                      : l10n.callQualityOfferBanner(videoTierLabel(l10n, n.from)),
+                  closeSemanticLabel: l10n.interactionClose,
+                  onClose: widget.service.dismissQualityNotice,
+                  actionLabel: n.applied
+                      ? null
+                      : l10n.callQualityOfferAction(videoTierLabel(l10n, n.to)),
+                  onAction: n.applied
+                      ? null
+                      : () {
+                          HapticFeedback.lightImpact();
+                          widget.service.lowerVideoQualityForCall(n.to);
+                        },
+                ),
+              ),
+      ),
     );
   }
 }

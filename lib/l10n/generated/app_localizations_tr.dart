@@ -14512,4 +14512,26 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get longMessageSentAsFileToast =>
       'Tek mesaj için çok uzundu, metin dosyası olarak gönderildi';
+
+  @override
+  String get videoQualityAutoLowerTitle => 'Zayıf bağlantıda düşür';
+
+  @override
+  String get videoQualityAutoLowerFootnote =>
+      'Bağlantın 1080p veya 4K\'ya yetişemediğinde arama taşıyabileceği bir kaliteye geçer ve sana haber verir. Bu kapalıyken arama seni uyarır, sen seçersin.';
+
+  @override
+  String callQualityLoweredBanner(String quality) {
+    return 'Bağlantı zayıf. Görüntü $quality\'ye düşürüldü.';
+  }
+
+  @override
+  String callQualityOfferBanner(String quality) {
+    return 'Bağlantın $quality kalitesine yetişemiyor.';
+  }
+
+  @override
+  String callQualityOfferAction(String quality) {
+    return '$quality\'ye düşür';
+  }
 }

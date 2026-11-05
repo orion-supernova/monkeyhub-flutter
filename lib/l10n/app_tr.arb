@@ -4014,5 +4014,10 @@
   "lowPowerToast": "Güç tasarrufu açık, bu yüzden bazı animasyonlar duraklatıldı",
   "lowBatteryToast": "Pil azaldı, bu yüzden bazı animasyonlar duraklatıldı",
   "powerSavingAutoLowBatterySub": "Şu an açık: pilin azaldı",
-  "longMessageSentAsFileToast": "Tek mesaj için çok uzundu, metin dosyası olarak gönderildi"
+  "longMessageSentAsFileToast": "Tek mesaj için çok uzundu, metin dosyası olarak gönderildi",
+  "videoQualityAutoLowerTitle": "Zayıf bağlantıda düşür",
+  "videoQualityAutoLowerFootnote": "Bağlantın 1080p veya 4K'ya yetişemediğinde arama taşıyabileceği bir kaliteye geçer ve sana haber verir. Bu kapalıyken arama seni uyarır, sen seçersin.",
+  "callQualityLoweredBanner": "Bağlantı zayıf. Görüntü {quality}'ye düşürüldü.",
+  "callQualityOfferBanner": "Bağlantın {quality} kalitesine yetişemiyor.",
+  "callQualityOfferAction": "{quality}'ye düşür"
 }

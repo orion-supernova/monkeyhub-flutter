@@ -2205,6 +2205,106 @@ class OverlayChip extends StatelessWidget {
   }
 }
 
+/// A notice over the call's video that the user can act on or dismiss:
+/// [OverlayChip]'s dark capsule, with the close button first (every X sits
+/// top-left) and an optional action pill after the text. The weak-link
+/// video tier banner uses it.
+class CallNoticeChip extends StatelessWidget {
+  const CallNoticeChip({
+    super.key,
+    required this.label,
+    required this.onClose,
+    required this.closeSemanticLabel,
+    this.actionLabel,
+    this.onAction,
+    this.tint = const Color(0xFFFFB74D),
+  });
+
+  final String label;
+  final VoidCallback onClose;
+  final String closeSemanticLabel;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final style = callCaptionStyle(theme).copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w600,
+    );
+    final action = actionLabel;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: tint.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FocusableTap(
+            onTap: onClose,
+            semanticLabel: closeSemanticLabel,
+            shape: FocusRingShape.circle,
+            child: GestureDetector(
+              onTap: onClose,
+              behavior: HitTestBehavior.opaque,
+              child: SpringPress.passive(
+                scale: 0.9,
+                child: SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: Icon(
+                    CupertinoIcons.xmark,
+                    size: 15,
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          CallSignalGlyph(kind: CallSignalKind.weak, ink: tint, size: 17),
+          const SizedBox(width: 8),
+          Flexible(child: Text(label, style: style)),
+          if (action != null && onAction != null) ...[
+            const SizedBox(width: 10),
+            FocusableTap(
+              onTap: onAction!,
+              semanticLabel: action,
+              child: GestureDetector(
+                onTap: onAction,
+                behavior: HitTestBehavior.opaque,
+                child: SpringPress.passive(
+                  scale: 0.94,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      action,
+                      style: style.copyWith(color: Colors.black),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ] else
+            const SizedBox(width: 10),
+        ],
+      ),
+    );
+  }
+}
+
 /// Detailed live numeric readout — opt-in replacement for [OverlayChip]'s
 /// plain "poor/weak connection" label, driven by the same
 /// [CallQualitySnapshot] the chip already reads. Shown whenever

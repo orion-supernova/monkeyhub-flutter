@@ -4014,5 +4014,10 @@
   "lowPowerToast": "A poupança de energia está ativada, por isso algumas animações estão em pausa",
   "lowBatteryToast": "Bateria fraca, por isso algumas animações estão em pausa",
   "powerSavingAutoLowBatterySub": "Ativo agora: a bateria está fraca",
-  "longMessageSentAsFileToast": "Era demasiado longa para uma mensagem, por isso foi enviada como ficheiro de texto"
+  "longMessageSentAsFileToast": "Era demasiado longa para uma mensagem, por isso foi enviada como ficheiro de texto",
+  "videoQualityAutoLowerTitle": "Baixar com ligação fraca",
+  "videoQualityAutoLowerFootnote": "Quando a tua ligação não aguenta 1080p ou 4K, a chamada muda para uma qualidade que consiga manter e avisa-te. Desativado, a chamada avisa-te e tu escolhes.",
+  "callQualityLoweredBanner": "Ligação fraca. Vídeo baixado para {quality}.",
+  "callQualityOfferBanner": "A tua ligação não aguenta {quality}.",
+  "callQualityOfferAction": "Baixar para {quality}"
 }

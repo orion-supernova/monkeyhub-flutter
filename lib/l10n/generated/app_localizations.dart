@@ -24246,6 +24246,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Too long for one message, so it was sent as a text file'**
   String get longMessageSentAsFileToast;
+
+  /// Switch row on the Video quality screen: when on, a call drops its camera to a lower tier for that call when the network can't carry 1080p or 4K.
+  ///
+  /// In en, this message translates to:
+  /// **'Lower on weak connections'**
+  String get videoQualityAutoLowerTitle;
+
+  /// Footnote under the auto-lower switch explaining what it does on and off.
+  ///
+  /// In en, this message translates to:
+  /// **'When your connection can\'t keep up with 1080p or 4K, the call switches to a quality it can carry and tells you. When this is off, the call warns you and you choose.'**
+  String get videoQualityAutoLowerFootnote;
+
+  /// In-call banner after the call lowered the video tier on a weak connection. {quality} is a resolution label like 720p or 1080p.
+  ///
+  /// In en, this message translates to:
+  /// **'Weak connection. Video lowered to {quality}.'**
+  String callQualityLoweredBanner(String quality);
+
+  /// In-call banner when auto-lowering is off and the connection can't carry the chosen tier. {quality} is the chosen tier, like 4K.
+  ///
+  /// In en, this message translates to:
+  /// **'Your connection can\'t keep up with {quality}.'**
+  String callQualityOfferBanner(String quality);
+
+  /// Button on that banner. {quality} is the lower tier, like 1080p.
+  ///
+  /// In en, this message translates to:
+  /// **'Lower to {quality}'**
+  String callQualityOfferAction(String quality);
 }
 
 class _AppLocalizationsDelegate
