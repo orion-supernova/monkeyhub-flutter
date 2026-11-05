@@ -127,13 +127,13 @@ Future<void> showMomentViewer(
     viewerAvatar: viewerAvatarStorageId,
     resolve: resolveUser,
   );
-  if (moment.thumbStorageId != null) {
+  if (moment.opensFullScreen) {
     // Only the ones with something to look at. A caption-only highlight sitting
     // in the middle of the rail is a legitimate page of *nothing* full-screen,
     // and swiping onto it reads as the gallery having broken.
     final pages = [
       for (final m in siblings)
-        if (m.thumbStorageId != null) m,
+        if (m.opensFullScreen) m,
     ];
     final index = pages.indexWhere((m) => m.id == moment.id);
     return _openStage(
@@ -2069,10 +2069,38 @@ class _StagePageState extends State<_StagePage>
   @override
   Widget build(BuildContext context) {
     final id = widget.moment.thumbStorageId;
-    if (id == null) return const SizedBox.shrink();
-
     final video = widget.moment.mediaKind == MomentMedia.video;
     final playable = video && widget.moment.mediaStorageId != null;
+    // A video with no poster (posted from a desktop, or from the web before it
+    // made posters) still gets the whole page: the play disc on the dark
+    // stage, and the same tap in the middle plays it. Without this the page
+    // had nothing to tap and the clip could not be opened at all.
+    if (id == null) {
+      if (!playable) return const SizedBox.shrink();
+      return LayoutBuilder(
+        builder: (context, box) => PhotoDismissArea(
+          drag: widget.drag,
+          onDismiss: widget.onDismiss,
+          onTapUp: (details) =>
+              widget.onTap(details.localPosition.dx, box.maxWidth),
+          onHold: widget.onHold,
+          holdDuration: _kStoryHold,
+          onZoomChanged: widget.onZoomChanged,
+          maxScale: 1,
+          doubleTapZoom: false,
+          resetZoomOnInteractionEnd: true,
+          contentInset: widget.inset,
+          onDragStart: _onDragStart,
+          onDragUpdate: _onDragUpdate,
+          onDragEnd: _onDragEnd,
+          onDragCancel: _onDragCancel,
+          child: const SizedBox.expand(
+            child: Center(child: MediaPlayDisc(size: 72)),
+          ),
+        ),
+      );
+    }
+
     final fills =
         widget.fill && photoFillsScreen(_aspect, MediaQuery.sizeOf(context));
 

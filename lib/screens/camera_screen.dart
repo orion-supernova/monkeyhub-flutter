@@ -414,7 +414,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   /// that is the first moment there is a screen size to ask about.
   bool? _holdPortrait;
 
-  /// How far the glyphs turn to stay upright, per [quarterTurnsFor]. Read off
+  /// How far the glyphs turn to stay upright, per [glyphTurnsFor]. Read off
   /// the camera plugin, which keeps reporting the PHYSICAL orientation while
   /// the layout is held.
   int _turns = 0;
@@ -759,7 +759,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
       setState(() => _fault = _Fault.failed);
     }
     if (_holdPortrait == true) {
-      final turns = quarterTurnsFor(controller.value.deviceOrientation);
+      final turns = glyphTurnsFor(controller.value.deviceOrientation);
       if (turns != _turns) setState(() => _turns = turns);
     }
   }

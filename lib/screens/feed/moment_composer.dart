@@ -1,3 +1,4 @@
+import 'dart:io' show File;
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart' show CameraLensDirection;
@@ -15,6 +16,8 @@ import '../../media/image_raster.dart';
 import '../../media/photo_picking.dart';
 import '../../media/upload_service.dart';
 import '../../media/video_poster.dart';
+import '../../media/video_shrink.dart';
+import '../../media/web_video_poster.dart';
 import '../../models/moment.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_sheet.dart';
@@ -79,7 +82,8 @@ class _MomentComposerState extends State<_MomentComposer> {
 
   /// A picked video, held as bytes with its poster frame. Mutually exclusive
   /// with [_image] — a moment carries one piece of media, not a gallery.
-  ({Uint8List bytes, Uint8List? poster, String name})? _video;
+  ({Uint8List bytes, Uint8List? poster, String name, String contentType})?
+  _video;
   bool _busy = false;
   String? _errorCode;
 
@@ -134,6 +138,10 @@ class _MomentComposerState extends State<_MomentComposer> {
       final result = await CameraScreen.open<EditorSend>(
         context,
         initialLens: CameraLensDirection.back,
+        // One camera for both: a highlight is a photo or a clip, and the
+        // PHOTO/VIDEO switch plus the recents strip (which follows the mode)
+        // is where that choice belongs, not three tiles on this sheet.
+        allowVideo: true,
         review: (context, photo) async {
           rawFrame = photo.bytes;
           rawMirrored = photo.mirrored;
@@ -173,13 +181,29 @@ class _MomentComposerState extends State<_MomentComposer> {
               _video = null;
             });
           }
-        case CameraRecorded():
-        // Unreachable: this call site opens the camera with `allowVideo` left
-        // off, so the VIDEO position never appears and nothing can record.
-        // Named rather than defaulted so that turning video on here becomes a
-        // compile error to answer rather than a clip silently dropped.
-        break;
-      case CameraPickLibrary():
+        case CameraRecorded(:final video):
+          // A clip just recorded, or one picked from the recents strip in
+          // VIDEO mode. No review in between, as in chat: the sender has just
+          // watched it.
+          final path = video.path;
+          final bytes = video.bytes;
+          if (path != null) {
+            await _takeVideoFile(
+              path,
+              poster: video.posterBytes,
+              owned: video.recorded,
+            );
+          } else if (bytes != null) {
+            await _takeVideoBytes(
+              bytes,
+              contentType: 'video/mp4',
+              name: 'video.mp4',
+              poster: video.posterBytes,
+            );
+          }
+        case CameraPickLibrary():
+          // The strip's "all photos": one picker that shows both, whichever
+          // mode asked for it.
           await _pickFromLibrary();
         case CameraUnavailable():
           // No in-app camera (web, or a denied permission). The system camera
@@ -201,11 +225,13 @@ class _MomentComposerState extends State<_MomentComposer> {
     }
   }
 
+  /// One picker for photos and videos alike. A photo goes on to the cropper;
+  /// a video is taken as it is (shrunk first when it is over the cap).
   Future<void> _pickFromLibrary() async {
-    // The `pickerImageQuality` [pickPhoto] passes also normalizes EXIF
+    // The `pickerImageQuality` [pickPhotoOrVideo] passes also normalizes EXIF
     // orientation on Android, which the crop screen relies on — it does not
     // read the orientation tag itself.
-    final pick = await pickPhoto(source: ImageSource.gallery);
+    final pick = await pickPhotoOrVideo();
     // Down the composer's own error line rather than a snackbar: that is where
     // every other failure on this screen already goes, and a refusal that said
     // nothing would look like a picture the composer had rejected.
@@ -213,49 +239,30 @@ class _MomentComposerState extends State<_MomentComposer> {
       if (mounted) setState(() => _errorCode = 'PICK_FAILED');
       return;
     }
-    await _cropInto(await pick.file?.readAsBytes());
-  }
-
-  /// Picks a video from the library.
-  ///
-  /// Gallery only — there is no in-app video recording yet (`CameraScreen` is
-  /// stills, `enableAudio: false`). This is the same path chat already uses, so
-  /// it inherits the poster extraction, the size cap and the web caveats
-  /// wholesale rather than growing a second video pipeline.
-  Future<void> _pickVideo() async {
+    final picked = pick.file;
+    if (picked == null || !mounted) return;
+    if (!isVideoFile(picked)) {
+      await _cropInto(await picked.readAsBytes());
+      return;
+    }
     setState(() => _busy = true);
     try {
-      final pick = await pickVideo();
-      if (pick.unreadable) {
-        if (mounted) setState(() => _errorCode = 'PICK_FAILED');
-        return;
+      if (kIsWeb) {
+        // `XFile.path` is a `blob:` URL on web, with no file behind it.
+        final bytes = await picked.readAsBytes().timeout(
+          const Duration(seconds: 60),
+        );
+        final declared = picked.mimeType;
+        await _takeVideoBytes(
+          bytes,
+          contentType: declared != null && declared.startsWith('video/')
+              ? declared
+              : videoContentTypeFor(picked.name),
+          name: picked.name,
+        );
+      } else {
+        await _takeVideoFile(picked.path);
       }
-      final picked = pick.file;
-      if (picked == null) return;
-
-      // Before readAsBytes, and only off web: `XFile.path` is a real
-      // filesystem path on mobile, which is what the extractor needs. On web
-      // it is a `blob:` URL with nothing behind it, and video_thumbnail has no
-      // web implementation to receive it — so a video composed there keeps the
-      // play glyph permanently. That is a designed state, not a placeholder.
-      final poster = kIsWeb ? null : await VideoPoster.extract(picked.path);
-      final bytes = await picked.readAsBytes().timeout(
-        const Duration(seconds: 60),
-      );
-
-      if (!mounted) return;
-      if (bytes.length > kMaxFileUploadBytes) {
-        // Refused at PICK time rather than at upload time on purpose: past the
-        // repository's retained-bytes cap a failed send has no bytes left to
-        // retry from, which is a dead end.
-        setState(() => _errorCode = 'TOO_BIG');
-        return;
-      }
-      setState(() {
-        _video = (bytes: bytes, poster: poster, name: picked.name);
-        _image = null;
-        _errorCode = null;
-      });
     } catch (_) {
       // A read that timed out or a sandbox refusal: say so instead of
       // surfacing an unhandled error behind a cleared spinner.
@@ -263,6 +270,88 @@ class _MomentComposerState extends State<_MomentComposer> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Takes the video at [path] (a real file: never call this on web).
+  ///
+  /// Over the upload cap it is re-encoded to fit, without asking: a highlight
+  /// has nothing else its author could post instead, and refusing a clip the
+  /// phone itself just recorded would be a dead end. Only when it cannot be
+  /// made to fit (too long, or no encoder here) is it refused. [owned] files
+  /// (a recording) are deleted once read.
+  Future<void> _takeVideoFile(
+    String path, {
+    Uint8List? poster,
+    bool owned = false,
+  }) async {
+    String? shrunk;
+    try {
+      final size = await File(path).length();
+      var source = path;
+      if (size > kMaxFileUploadBytes) {
+        shrunk = await VideoShrink.shrink(path);
+        if (shrunk == null) {
+          if (mounted) setState(() => _errorCode = 'TOO_BIG');
+          return;
+        }
+        source = shrunk;
+      }
+      // From the original: same picture, and the extractor has the original.
+      final still =
+          poster ?? (kIsWeb ? null : await VideoPoster.extract(path));
+      final bytes = await File(source).readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _video = (
+          bytes: bytes,
+          poster: still,
+          name: source.split('/').last,
+          contentType: videoContentTypeFor(source),
+        );
+        _image = null;
+        _imageSource = null;
+        _errorCode = null;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _errorCode = 'PICK_FAILED');
+    } finally {
+      for (final p in [?shrunk, if (owned) path]) {
+        try {
+          await File(p).delete();
+        } catch (_) {}
+      }
+    }
+  }
+
+  /// Takes a video that only exists as bytes: anything picked or recorded in
+  /// a browser. The browser draws its own poster when none came with it, so
+  /// a web highlight has a picture to open, like everyone else's.
+  Future<void> _takeVideoBytes(
+    Uint8List bytes, {
+    required String contentType,
+    required String name,
+    Uint8List? poster,
+  }) async {
+    if (bytes.length > kMaxFileUploadBytes) {
+      // Refused at PICK time rather than at upload time on purpose: past the
+      // repository's retained-bytes cap a failed send has no bytes left to
+      // retry from, which is a dead end. No encoder in a browser to shrink it.
+      if (mounted) setState(() => _errorCode = 'TOO_BIG');
+      return;
+    }
+    final still = poster ?? await WebVideoPoster.fromBytes(bytes, contentType);
+    if (!mounted) return;
+    setState(() {
+      _video = (
+        bytes: bytes,
+        poster: still,
+        name: name,
+        contentType: contentType,
+      );
+      _image = null;
+      _imageSource = null;
+      _errorCode = null;
+    });
   }
 
   /// Opens the same editor chat uses — a crop rect you drag by its edges and
@@ -345,7 +434,7 @@ class _MomentComposerState extends State<_MomentComposer> {
         }
         storageId = await uploader.uploadFile(
           bytes: video.bytes,
-          contentType: mimeTypeForFileName(video.name),
+          contentType: video.contentType,
           onProgress: (_, _) {},
         );
         kind = MomentMedia.video;
@@ -430,7 +519,6 @@ class _MomentComposerState extends State<_MomentComposer> {
               busy: _busy,
               onCapture: _capture,
               onLibrary: _pickFromLibrary,
-              onVideo: _pickVideo,
               onEdit: _imageSource == null ? null : _editImage,
               onClear: () => setState(() {
                 _image = null;
@@ -475,7 +563,12 @@ class _MomentComposerState extends State<_MomentComposer> {
   }
 }
 
-/// The picture slot: two buttons when empty, the framed shot when full.
+/// The picture slot: two doors when empty, the framed shot when full.
+///
+/// Two, not three. There used to be a separate Video tile that only opened
+/// the library, so a clip could never be shot here at all. Now both doors
+/// take either: the camera has its PHOTO/VIDEO switch and a recents strip
+/// that follows it, and the library shows photos and videos in one picker.
 class _MediaSlot extends StatelessWidget {
   const _MediaSlot({
     required this.image,
@@ -483,17 +576,16 @@ class _MediaSlot extends StatelessWidget {
     required this.busy,
     required this.onCapture,
     required this.onLibrary,
-    required this.onVideo,
     required this.onEdit,
     required this.onClear,
   });
 
   final CroppedImage? image;
-  final ({Uint8List bytes, Uint8List? poster, String name})? video;
+  final ({Uint8List bytes, Uint8List? poster, String name, String contentType})?
+  video;
   final bool busy;
   final VoidCallback onCapture;
   final VoidCallback onLibrary;
-  final VoidCallback onVideo;
 
   /// Re-opens the cropper on the original bytes. Null when there is nothing to
   /// re-edit — a video, or a camera capture whose raw frame was not kept.
@@ -597,14 +689,6 @@ class _MediaSlot extends StatelessWidget {
             onTap: busy ? null : onLibrary,
           ),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _SlotButton(
-            icon: CupertinoIcons.videocam_fill,
-            label: l10n.momentComposerVideo,
-            onTap: busy ? null : onVideo,
-          ),
-        ),
       ],
     );
   }
@@ -632,7 +716,7 @@ class _SlotButton extends StatelessWidget {
         onTap: onTap,
         semanticLabel: label,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+          padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 6),
           decoration: BoxDecoration(
             color: quietFill(theme),
             borderRadius: BorderRadius.circular(theme.radiusMd),
@@ -640,16 +724,16 @@ class _SlotButton extends StatelessWidget {
           child: Column(
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 52,
+                height: 52,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: theme.accent.withValues(alpha: 0.14),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 20, color: theme.accent),
+                child: Icon(icon, size: 24, color: theme.accent),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               // Wraps, then shrinks — never an ellipsis on a tile label.
               FitLabel(
                 sentenceCaseOf(context, label),

@@ -12,7 +12,8 @@ import 'package:flutter/widgets.dart';
 ///    in a portrait-locked layout while the device is held [o]. The same map
 ///    the camera plugin's own `CameraPreview` applies on Android, so the live
 ///    preview and the glyphs over it can never disagree about which way is up.
-///  * [DeviceTurn]: the current answer, handed down the tree.
+///  * [glyphTurnsFor]: the turn a glyph needs, which is the opposite one.
+///  * [DeviceTurn]: the glyphs' answer, handed down the tree.
 ///  * [TurnWithDevice]: turns its child by it, animated the short way round.
 
 /// Clockwise quarter turns that keep content upright in a portrait-locked
@@ -23,6 +24,20 @@ int quarterTurnsFor(DeviceOrientation o) => switch (o) {
   DeviceOrientation.portraitDown => 2,
   DeviceOrientation.landscapeLeft => 3,
 };
+
+/// Clockwise quarter turns that keep a GLYPH upright in a portrait-locked
+/// layout while the device is physically held [o]: the opposite of
+/// [quarterTurnsFor].
+///
+/// The two are not the same question. [quarterTurnsFor] is the plugin's
+/// preview convention, a correction for how the sensor's frames arrive, and
+/// it is right for the picture. A glyph has no frames, only the screen under
+/// it: the phone turned a quarter one way, so the glyph turns a quarter the
+/// other way to stay level with the world. `DeviceOrientation.landscapeLeft`
+/// is the phone's top on the left (turned counter-clockwise), so the glyph
+/// turns one quarter clockwise. Sharing the preview's map is what made every
+/// button on the camera spin the wrong way, ending up upside down.
+int glyphTurnsFor(DeviceOrientation o) => (4 - quarterTurnsFor(o)) % 4;
 
 /// [p], a point normalised to a portrait-locked layout, in the frame of a
 /// layout that had turned with the device: what an API that assumes the UI

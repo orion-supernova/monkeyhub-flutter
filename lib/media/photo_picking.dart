@@ -92,6 +92,27 @@ Future<MediaPick> pickVideo() => _guarded(() async {
   return picked == null ? const <XFile>[] : <XFile>[picked];
 });
 
+/// One photograph OR one video from the library, in a single picker showing
+/// both. For surfaces that take either (a highlight), where making the user
+/// decide "photo or video" before they have even seen their library is a
+/// question the library itself answers. Check [isVideoFile] on the result.
+Future<MediaPick> pickPhotoOrVideo() => _guarded(() async {
+  final picked = await ImagePicker().pickMedia(
+    imageQuality: pickerImageQuality,
+  );
+  return picked == null ? const <XFile>[] : <XFile>[picked];
+});
+
+/// Whether a picked file is a video: by its declared MIME type where the
+/// platform gives one (web does), else by its extension.
+bool isVideoFile(XFile file) {
+  final mime = file.mimeType;
+  if (mime != null && mime.isNotEmpty) return mime.startsWith('video/');
+  final name = (file.name.isNotEmpty ? file.name : file.path).toLowerCase();
+  const exts = ['.mp4', '.mov', '.m4v', '.qt', '.webm', '.3gp', '.mkv', '.avi'];
+  return exts.any(name.endsWith);
+}
+
 /// Runs [pick] and turns the platform's exceptions into an outcome.
 ///
 /// `PlatformException` only: an error out of the plugin's own channel is the

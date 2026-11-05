@@ -82,6 +82,30 @@ void main() {
     expect(g.start.id, 'a2');
   });
 
+  test('a video with no poster still opens full screen, and can start', () {
+    // Posted from the web before it made posters: no picture at all. Gating
+    // the viewer on a picture opened it as a words-only card with no play.
+    final clip = Moment(
+      id: 'v1',
+      userId: 'ada',
+      dayKey: '2026-10-09',
+      createdAt: DateTime(2026, 10, 9, 9),
+      expiresAt: DateTime(2026, 10, 10, 9),
+      authorName: 'ada',
+      authorUsername: 'ada',
+      mine: false,
+      seen: false,
+      mediaStorageId: 'blob_v1',
+      mediaKind: MomentMedia.video,
+    );
+    expect(clip.thumbStorageId, isNull);
+    expect(clip.opensFullScreen, isTrue);
+    expect(_m('w', 'ada', 8, picture: false).opensFullScreen, isFalse);
+
+    final g = MomentGroup.of([clip, _m('w', 'ada', 8, picture: false)]).single;
+    expect(g.start.id, 'v1');
+  });
+
   test('flatten plays person by person in rail order', () {
     final groups = MomentGroup.of([
       _m('b2', 'bo', 12),

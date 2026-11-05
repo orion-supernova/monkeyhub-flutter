@@ -28,7 +28,7 @@ class MomentGroup {
   Moment get start {
     final pictures = [
       for (final m in items)
-        if (m.thumbStorageId != null) m,
+        if (m.opensFullScreen) m,
     ];
     final pool = pictures.isEmpty ? items : pictures;
     for (final m in pool) {
