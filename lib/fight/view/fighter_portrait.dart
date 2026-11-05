@@ -7,6 +7,7 @@ import 'art/art_common.dart' show FightLook;
 import 'art/kai_poses.dart';
 import 'art/kai_rig.dart';
 import 'art/roster_poses.dart';
+import 'art/cast/registry.dart';
 
 /// One fighter, alive, for cards and lobbies: breathing in its stance, and
 /// throwing a heavy punch the moment [ready] turns on, then holding a tighter
@@ -86,13 +87,13 @@ class _FighterPortraitState extends State<FighterPortrait> with SingleTickerProv
 @visibleForTesting
 KPose portraitPose(double t, {double? readyAt, int charId = 0}) {
   final b = math.sin(t * 2.6);
-  final isKai = charId < 1 || charId > 3;
+  final isKai = charId == 0;
   final base = idleFor(charId);
   final idle = isKai
       ? KPose.from(pIdle, lean: .14 + b * .025, fu: .45 + b * .05, bu: .3 + b * .04, ff: 2.65 - b * .04)
       : KPose.from(base,
           lean: base.lean + b * .025, fu: base.fu + b * .05, bu: base.bu + b * .04, ff: base.ff - b * .04,
-          ry: charId == 3 ? base.ry + b * 3 : base.ry);
+          ry: (charId == 3 || (castArt[charId]?.floats ?? false)) ? base.ry + b * 3 : base.ry);
   if (readyAt == null) return idle;
   final r = t - readyAt;
   final (hvyW, hvyX, guard) = isKai
@@ -139,7 +140,7 @@ class _PortraitPainter extends CustomPainter {
     );
     // The rig stands ~190 units tall; fit it to the card, feet on the floor.
     final ratio = dimsFor(charId).cs / csScale;
-    final scale = math.min(size.height * .72 / 190 * ratio, size.width * .85 / (charId == 2 ? 170 : 120));
+    final scale = math.min(size.height * .72 / 190 * ratio, size.width * .85 / (charId == 2 ? 170 : (castArt[charId]?.portraitWidth ?? 120)));
     canvas.save();
     canvas.translate(size.width / 2 + (facingLeft ? 10 : -10) * scale, ground);
     canvas.scale(facingLeft ? -scale : scale, scale);

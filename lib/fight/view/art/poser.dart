@@ -10,6 +10,7 @@ import 'art_common.dart';
 import 'kai_poses.dart';
 import 'kai_rig.dart';
 import 'roster_poses.dart';
+import 'cast/registry.dart';
 
 part 'roster_anim.dart';
 
@@ -220,7 +221,7 @@ MoveAnim _generic(MoveDef m) {
 }
 
 MoveAnim animFor(MoveDef m, CharacterDef def) =>
-    _cache.putIfAbsent(m, () => def.id >= 1 && def.id <= 3 ? _buildRoster(m, def) : _build(m, def));
+    _cache.putIfAbsent(m, () => def.id >= 1 ? _buildRoster(m, def) : _build(m, def));
 
 /// Rapid-fire alternating punches with a heavy final blow.
 KPose _stormPose(MoveDef m, int sf) {
@@ -262,7 +263,7 @@ KPose poseFor(FightState s, int player) => poseAtSf(s, player, s.p[player].sf);
 
 KPose poseAtSf(FightState s, int player, int sf) {
   final id = s.chars[player].id;
-  if (id >= 1 && id <= 3) return _rosterPose(s, player, sf);
+  if (id >= 1) return _rosterPose(s, player, sf);
   return _kaiPose(s, player, sf);
 }
 

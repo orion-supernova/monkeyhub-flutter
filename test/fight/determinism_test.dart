@@ -152,8 +152,9 @@ void main() {
   });
 
   group('rollback equivalence fuzz', () {
-    for (var i = 0; i < roster.length; i++) {
-      for (var j = 0; j < roster.length; j++) {
+    // All pairs of the starters (ids 0..3); wave2a/wave2b tests pair the rest.
+    for (var i = 0; i < starters.length; i++) {
+      for (var j = 0; j < starters.length; j++) {
         test('${roster[i].name} vs ${roster[j].name}: two lossy peers match the straight run', () {
           const frames = 420;
           const delay = 2;

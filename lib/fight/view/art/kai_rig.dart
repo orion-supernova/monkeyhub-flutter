@@ -6,6 +6,7 @@ import 'dart:ui';
 
 import 'art_common.dart';
 import 'roster_rig.dart';
+import 'cast/registry.dart';
 
 // ------------------------------------------------------------------ pose
 
@@ -103,7 +104,7 @@ RigDims dimsFor(int charId) {
     case 1: return mojoDims;
     case 2: return tankDims;
     case 3: return nyxDims;
-    default: return kaiDims;
+    default: return castArt[charId]?.dims ?? kaiDims;
   }
 }
 
@@ -177,8 +178,13 @@ Joints fk(KPose p, [RigDims d = kaiDims]) {
       mid = Offset((fHa.dx + bHa.dx) / 2, (fHa.dy + bHa.dy) / 2);
       break;
   }
-  return Joints(pel, neck, fSh, bSh, fEl, fWr, fHa, bEl, bWr, bHa, fHip, bHip, fKn, fAn, bKn, bAn, head, c, headA,
+  final j = Joints(pel, neck, fSh, bSh, fEl, fWr, fHa, bEl, bWr, bHa, fHip, bHip, fKn, fAn, bKn, bAn, head, c, headA,
       math.max(fAn.dy, bAn.dy), sTip: sTip, sEnd: sEnd, horn: horn, mid: mid);
+  if (d.kind <= 3) return j;
+  final x = castArt[d.kind]?.joints(j, p);
+  if (x == null) return j;
+  return Joints(pel, neck, fSh, bSh, fEl, fWr, fHa, bEl, bWr, bHa, fHip, bHip, fKn, fAn, bKn, bAn, head, c, headA,
+      math.max(fAn.dy, bAn.dy), sTip: x.sTip, sEnd: x.sEnd, horn: horn, mid: x.mid);
 }
 
 /// Pelvis y in rig space relative to the ground contact (negative = above).
@@ -253,7 +259,10 @@ class KPalette {
       case 1: return alt ? mojoAlt : mojo;
       case 2: return alt ? tankAlt : tankP;
       case 3: return alt ? nyxAlt : nyx;
-      default: return alt ? kaiAlt : kai;
+      default:
+        final cast = castArt[charId];
+        if (cast != null) return alt ? cast.altPalette : cast.palette;
+        return alt ? kaiAlt : kai;
     }
   }
 }
@@ -490,6 +499,26 @@ class RigPainter {
     return p;
   }
 
+  final Paint _castLayer = Paint();
+
+  /// A [CastArt] fighter: the same placement, spin and fade as the roster's.
+  void _cast(CastArt cast, KPose p, bool alt, int frame) {
+    if (p.al <= .02) return;
+    final j = fk(p, cast.dims);
+    final layer = p.al < 1;
+    if (layer) c.saveLayer(null, _castLayer..color = Color.fromRGBO(0, 0, 0, p.al.clamp(0.0, 1.0)));
+    c.save();
+    c.translate(p.rx, pelvisY(p, j));
+    if (p.spin != 0) {
+      c.translate(j.c.dx, j.c.dy);
+      c.rotate(p.spin);
+      c.translate(-j.c.dx, -j.c.dy);
+    }
+    cast.paint(this, j, p, alt, frame.toDouble());
+    c.restore();
+    if (layer) c.restore();
+  }
+
   /// The roster painters (MOJO / TANK / NYX), created on first use.
   RosterPainter? _roster;
 
@@ -669,6 +698,11 @@ class RigPainter {
     sil = silhouette;
     if (charId >= 1 && charId <= 3) {
       (_roster ??= RosterPainter(this)).fighter(p, charId, alt, frame);
+      return;
+    }
+    final cast = castArt[charId];
+    if (cast != null) {
+      _cast(cast, p, alt, frame);
       return;
     }
     final j = fk(p);

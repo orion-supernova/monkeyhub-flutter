@@ -36,8 +36,8 @@ String _u(int v) => (v % 4294967296).toString();
 void main() {
   const frames = 1800;
   var combined = 2166136261;
-  for (final a in roster) {
-    for (final b in roster) {
+  for (final a in starters) {
+    for (final b in starters) {
       final seed = 1000 + a.id * 10 + b.id;
       // 1. scripted logs, with a meter boost so supers and EX moves fire.
       final l0 = scriptedLog(seed * 2, frames), l1 = scriptedLog(seed * 2 + 1, frames);

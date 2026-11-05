@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'art_common.dart';
 import 'kai_poses.dart';
 import 'kai_rig.dart';
+import 'cast/registry.dart';
 
 final KPose mojoIdle = KPose.from(pIdle,
     lean: .32, head: -.2, fu: .55, ff: 2.2, bu: .25, bf: 2.55, ft: .8, fs: -.15, bt: -.05, bs: -.8, sa: -1.8);
@@ -19,7 +20,10 @@ KPose idleFor(int id) {
     case 1: return mojoIdle;
     case 2: return tankIdle;
     case 3: return nyxIdle;
-    default: return pIdle;
+    default:
+      final cast = castArt[id];
+      if (cast == null) return pIdle;
+      return cast.floats ? KPose.from(cast.idle, ry: cast.idle.ry + cast.floatHeight) : cast.idle;
   }
 }
 
@@ -52,7 +56,10 @@ KPose rebase(int id, KPose k, {double? sa}) {
     case 3:
       return k.tuck < .5 && k.spin == 0 ? KPose.from(k, ry: k.ry + 16) : k;
     default:
-      return k;
+      final cast = castArt[id];
+      if (cast == null) return k;
+      final r = cast.rebase(k);
+      return cast.floats && r.tuck < .5 && r.spin == 0 ? KPose.from(r, ry: r.ry + cast.floatHeight) : r;
   }
 }
 
@@ -81,11 +88,19 @@ double standCentre(int id) {
         KPose.from(I, fu: 1.3, ff: 1.0, bu: 1.2, bf: .95, lean: .6, rx: 12),
         KPose.from(I, fu: 1.25, ff: 2.3, bu: 1.15, bf: 2.4, baf: 1, lean: .2),
       );
-    default:
+    case 3:
       return (
         KPose.from(I, fu: -.2, ff: .6, lean: -.12, rx: -4, bu: 1.0, bf: 1.6),
         KPose.from(I, fu: 1.6, ff: 1.5, bu: 1.2, bf: 1.0, lean: .32, rx: 16),
         KPose.from(I, fu: 1.2, ff: 2.95, bu: 1.1, bf: 2.55, baf: 1, lean: -.06, open: 0),
+      );
+    default:
+      final custom = castArt[id]?.readyPoses();
+      if (custom != null) return custom;
+      return (
+        KPose.from(I, bu: .05, bf: 2.95, lean: 0, rx: -3, fu: .6, ff: 2.4, baf: 1),
+        KPose.from(I, bu: 1.55, bf: 1.6, lean: .42, rx: 12, fu: .22, ff: 2.95, baf: 1),
+        KPose.from(I, fu: 1.15, ff: 2.95, bu: .95, bf: 3.05, baf: 1, lean: .08),
       );
   }
 }

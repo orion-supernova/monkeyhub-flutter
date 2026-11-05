@@ -258,7 +258,7 @@ class _FighterRow extends StatelessWidget {
     final theme = ThemeScope.of(context);
     return Row(
       children: [
-        for (final (i, c) in roster.indexed) ...[
+        for (final (i, c) in starters.indexed) ...[
           if (i > 0) const SizedBox(width: 8),
           Expanded(
             child: Opacity(

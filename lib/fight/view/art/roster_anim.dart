@@ -43,6 +43,8 @@ MoveAnim _buildRoster(MoveDef m, CharacterDef def) {
       case 3:
         a = _nyxAnim(m);
         break;
+      default:
+        a = castArt[def.id]?.anim(m, def);
     }
     return a ?? _converted(m, def);
   } finally {

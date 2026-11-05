@@ -22,8 +22,9 @@ void main() {
     [BotLevel.hard, BotLevel.easy],
     [BotLevel.hard, BotLevel.hard],
   ];
-  for (final a in roster) {
-    for (final b in roster) {
+  // All pairs of the starters; the rest of the cast has its own wave tests.
+  for (final a in starters) {
+    for (final b in starters) {
       test('${a.name} vs ${b.name}: 3 bot matches finish without exceptions', () {
         for (var k = 0; k < 3; k++) {
           playMatch(a, b, 40 + k + a.id * 7 + b.id * 3, levels[k][0], levels[k][1]);
@@ -50,7 +51,7 @@ void main() {
 
   test('bots actually fight: damage is dealt, specials and supers get used', () {
     var specials = 0, supers = 0, damage = 0;
-    for (final c in roster) {
+    for (final c in starters) {
       final s = FightState.initial(seed: 3, p1: c, p2: kai);
       final b0 = FightBot(seed: 1, level: BotLevel.hard);
       final b1 = FightBot(seed: 2, level: BotLevel.normal);

@@ -16,6 +16,7 @@ import 'poser.dart';
 import 'roster_fx.dart';
 import 'roster_poses.dart';
 import 'stage_art.dart';
+import 'cast/registry.dart';
 
 export 'art_common.dart' show FightLook;
 export 'camera.dart' show FightCamera;
@@ -76,6 +77,9 @@ class FightArt {
     for (var i = 0; i < 2; i++) {
       _charge(c, cam, s, i, look);
       _rosterFront(c, cam, s, i, look);
+    }
+    for (var i = 0; i < 2; i++) {
+      castArt[s.chars[i].id]?.paintMoveFx(c, size, cam, s, i, look);
     }
     for (final p in s.projectiles) {
       _projectile(c, cam, s, p, look);
@@ -141,6 +145,15 @@ class FightArt {
     final armed = t.arm <= 0;
     final w = def.w / unitsPerPx * cam.scale;
     final ownerId = s.chars[t.owner].id;
+    final cast = castArt[ownerId];
+    if (cast != null) {
+      c.save();
+      c.translate(o.dx, o.dy);
+      c.scale(cam.scale * (def.w / unitsPerPx) / 31.0);
+      final drawn = cast.paintTrap(c, look, def, def.life - t.life, armed);
+      c.restore();
+      if (drawn) return;
+    }
     if (ownerId == 1 || ownerId == 3) {
       final age = def.life - t.life;
       c.save();
@@ -285,6 +298,16 @@ class FightArt {
   void _projectile(Canvas c, FightCamera cam, FightState s, Projectile p, FightLook look) {
     final def = s.chars[p.owner].projectiles[p.proj];
     final o = cam.toScreen(p.x / unitsPerPx, p.y / unitsPerPx);
+    final cast = castArt[s.chars[p.owner].id];
+    if (cast != null) {
+      c.save();
+      c.translate(o.dx, o.dy);
+      final k = cam.scale * (def.w / unitsPerPx) / 31.0;
+      c.scale(p.vx < 0 ? -k : k, k);
+      final drawn = cast.paintProjectile(c, look, def, def.life - p.life);
+      c.restore();
+      if (drawn) return;
+    }
     final nyx = s.chars[p.owner].id == 3;
     final sc = cam.scale * (def.w / unitsPerPx) / (nyx ? 42.0 : 31.0);
     final dir = p.vx < 0 ? -1.0 : 1.0;

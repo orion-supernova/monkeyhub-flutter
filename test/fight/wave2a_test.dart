@@ -347,7 +347,7 @@ void main() {
     });
 
     test('older characters are unaffected: no air jump, no air dash', () {
-      for (final c in roster) {
+      for (final c in starters) {
         expect(c.airJumps, 0);
         expect(c.airDashFrames, 0);
       }
