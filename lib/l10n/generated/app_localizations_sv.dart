@@ -14725,4 +14725,108 @@ class AppLocalizationsSv extends AppLocalizations {
   String fightHudHits(int count) {
     return '$count TRÄFFAR';
   }
+
+  @override
+  String get fightSoundLabel => 'Ljud';
+
+  @override
+  String get fightMusicLabel => 'Musik';
+
+  @override
+  String get chatGameDescFight =>
+      'Fighting 1 mot 1 i realtid. Bäst av tre ronder.';
+
+  @override
+  String get chatGameFightDisputed =>
+      'Telefonerna var oense. Räknas som oavgjort.';
+
+  @override
+  String get howToFight1 =>
+      'Dra i spaken till vänster för att röra dig. Lätt, Tung, Special och Rulla finns till höger. På tangentbord: WASD eller piltangenter, J, K, L och mellanslag.';
+
+  @override
+  String get howToFight2 =>
+      'Super tänds när du har 2 staplar i mätaren. På tangentbord trycker du på I.';
+
+  @override
+  String get howToFight3 =>
+      'Håll bakåt för att blockera. Huka dig för att blockera låga slag. Överhandsslag måste blockeras stående.';
+
+  @override
+  String get howToFight4 =>
+      'Lätt och Tung tillsammans på nära håll är ett kast. Det går igenom ett block.';
+
+  @override
+  String get howToFight5 =>
+      'Lätt, Lätt, Tung kopplas ihop med en special. Träffa kedjan och avbryt den för en stor kombo.';
+
+  @override
+  String get howToFight6 =>
+      'Att slåss fyller din mätare. En EX-special kostar 1 stapel och en Super kostar 2.';
+
+  @override
+  String get howToFight7 =>
+      'Bäst av 3 ronder, 60 sekunder var. Vinn två ronder för att ta matchen.';
+
+  @override
+  String get fightOnlineMenuTitle => 'Striden fortsätter';
+
+  @override
+  String get fightOnlineBackToFight => 'Tillbaka till striden';
+
+  @override
+  String get fightOnlineForfeit => 'Ge upp';
+
+  @override
+  String get fightOnlineBackToChat => 'Tillbaka till chatten';
+
+  @override
+  String get fightOnlineWaitingOpponent => 'Väntar på att någon ska gå med';
+
+  @override
+  String get fightOnlineJoin => 'Gå med i striden';
+
+  @override
+  String get fightOnlineReady => 'Jag är redo';
+
+  @override
+  String get fightOnlineReadyDone => 'Redo';
+
+  @override
+  String fightOnlineWaitingReady(String name) {
+    return 'Väntar på $name';
+  }
+
+  @override
+  String get fightOnlineReadyHint => 'Striden börjar så fort ni båda är redo.';
+
+  @override
+  String fightOnlineConnecting(String name) {
+    return 'Ansluter till $name…';
+  }
+
+  @override
+  String fightOnlineCouldNotConnect(String name) {
+    return 'Kunde inte ansluta till $name. Kontrollera din anslutning och försök igen.';
+  }
+
+  @override
+  String get fightOnlineTryAgain => 'Försök igen';
+
+  @override
+  String get fightOnlineLost => 'Anslutningen bröts';
+
+  @override
+  String fightOnlinePing(int ms) {
+    return 'Ping $ms ms';
+  }
+
+  @override
+  String get fightOnlineResultDisputed =>
+      'Era telefoner var oense om resultatet, så det räknas som oavgjort.';
+
+  @override
+  String fightOnlineResultLeft(String name) {
+    return '$name lämnade striden.';
+  }
 }

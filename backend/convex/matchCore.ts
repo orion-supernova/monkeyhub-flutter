@@ -461,9 +461,18 @@ export async function eraseMatch(
     cap,
   );
 
+  const signals = await deleteCapped(
+    ctx,
+    ctx.db
+      .query("fightSignals")
+      .withIndex("by_match_to", (q: any) => q.eq("matchId", matchId)),
+    cap,
+  );
+
   await ctx.db.delete(matchId);
 
-  const overflow = hidden.overflow || moves.length > cap || presence.overflow;
+  const overflow =
+    hidden.overflow || moves.length > cap || presence.overflow || signals.overflow;
   if (overflow) {
     await enqueueDeletion(ctx, {
       kind: "match",

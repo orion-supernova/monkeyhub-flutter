@@ -158,6 +158,7 @@ const GAME_TITLES: Record<string, string> = {
   liarsdice: "Liar's Dice",
   imposter: "Imposter",
   race: "Puzzle Race",
+  fight: "Jungle Fist",
 };
 
 /** Seat limits for a game of either kind, or null for an unknown game. */

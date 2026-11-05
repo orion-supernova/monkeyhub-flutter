@@ -14666,4 +14666,109 @@ class AppLocalizationsHi extends AppLocalizations {
   String fightHudHits(int count) {
     return '$count हिट';
   }
+
+  @override
+  String get fightSoundLabel => 'आवाज़';
+
+  @override
+  String get fightMusicLabel => 'संगीत';
+
+  @override
+  String get chatGameDescFight =>
+      'रीयल-टाइम 1 बनाम 1 लड़ाई। तीन राउंड में सर्वश्रेष्ठ।';
+
+  @override
+  String get chatGameFightDisputed =>
+      'दोनों फ़ोन के नतीजे अलग थे। इसे ड्रॉ गिना जाएगा।';
+
+  @override
+  String get howToFight1 =>
+      'चलने के लिए बाईं ओर के स्टिक को खींचो। हल्का, भारी, स्पेशल और रोल दाईं ओर हैं। कीबोर्ड पर: WASD या तीर, J, K, L और स्पेस।';
+
+  @override
+  String get howToFight2 =>
+      'जब तुम्हारे पास मीटर की 2 बार हो जाएँ तो सुपर जल उठता है। कीबोर्ड पर I दबाओ।';
+
+  @override
+  String get howToFight3 =>
+      'बचाव के लिए पीछे की ओर दबाए रखो। नीचे के वार रोकने के लिए झुको। ऊपर से आने वाले वार खड़े होकर ही रुकते हैं।';
+
+  @override
+  String get howToFight4 =>
+      'पास में हल्का और भारी एक साथ दबाने पर थ्रो होता है। यह बचाव को भेद देता है।';
+
+  @override
+  String get howToFight5 =>
+      'हल्का, हल्का, भारी का क्रम स्पेशल में जुड़ जाता है। क्रम लगाओ और उसे कैंसल करके बड़ा कॉम्बो बनाओ।';
+
+  @override
+  String get howToFight6 =>
+      'लड़ने से तुम्हारा मीटर भरता है। EX स्पेशल में 1 बार और सुपर में 2 बार लगती हैं।';
+
+  @override
+  String get howToFight7 =>
+      '3 राउंड में सर्वश्रेष्ठ, हर राउंड 60 सेकंड का। मैच जीतने के लिए दो राउंड जीतो।';
+
+  @override
+  String get fightOnlineMenuTitle => 'लड़ाई जारी है';
+
+  @override
+  String get fightOnlineBackToFight => 'लड़ाई पर लौटें';
+
+  @override
+  String get fightOnlineForfeit => 'हार मानें';
+
+  @override
+  String get fightOnlineBackToChat => 'चैट पर लौटें';
+
+  @override
+  String get fightOnlineWaitingOpponent => 'किसी के जुड़ने का इंतज़ार';
+
+  @override
+  String get fightOnlineJoin => 'लड़ाई में शामिल हों';
+
+  @override
+  String get fightOnlineReady => 'मैं तैयार हूँ';
+
+  @override
+  String get fightOnlineReadyDone => 'तैयार';
+
+  @override
+  String fightOnlineWaitingReady(String name) {
+    return '$name का इंतज़ार';
+  }
+
+  @override
+  String get fightOnlineReadyHint =>
+      'आप दोनों के तैयार होते ही लड़ाई शुरू होगी।';
+
+  @override
+  String fightOnlineConnecting(String name) {
+    return '$name से जुड़ रहे हैं…';
+  }
+
+  @override
+  String fightOnlineCouldNotConnect(String name) {
+    return '$name से कनेक्ट नहीं हो सका। अपना कनेक्शन जाँचें और फिर कोशिश करें।';
+  }
+
+  @override
+  String get fightOnlineTryAgain => 'फिर से कोशिश करें';
+
+  @override
+  String get fightOnlineLost => 'कनेक्शन टूट गया';
+
+  @override
+  String fightOnlinePing(int ms) {
+    return 'पिंग $ms ms';
+  }
+
+  @override
+  String get fightOnlineResultDisputed =>
+      'आपके फ़ोन नतीजे पर सहमत नहीं हुए, इसलिए इसे बराबरी माना गया।';
+
+  @override
+  String fightOnlineResultLeft(String name) {
+    return '$name ने लड़ाई छोड़ दी।';
+  }
 }

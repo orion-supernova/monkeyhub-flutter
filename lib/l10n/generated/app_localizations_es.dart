@@ -14831,4 +14831,109 @@ class AppLocalizationsEs extends AppLocalizations {
   String fightHudHits(int count) {
     return '$count GOLPES';
   }
+
+  @override
+  String get fightSoundLabel => 'Sonido';
+
+  @override
+  String get fightMusicLabel => 'Música';
+
+  @override
+  String get chatGameDescFight =>
+      'Lucha 1 contra 1 en tiempo real. Al mejor de tres rondas.';
+
+  @override
+  String get chatGameFightDisputed =>
+      'Los móviles no coincidieron. Cuenta como empate.';
+
+  @override
+  String get howToFight1 =>
+      'Arrastra el stick de la izquierda para moverte. Ligero, Pesado, Especial y Rodar están a la derecha. Con teclado: WASD o flechas, J, K, L y Espacio.';
+
+  @override
+  String get howToFight2 =>
+      'Super se ilumina cuando tienes 2 barras de medidor. Con teclado, pulsa I.';
+
+  @override
+  String get howToFight3 =>
+      'Mantén hacia atrás para bloquear. Agáchate para bloquear golpes bajos. Los golpes altos hay que bloquearlos de pie.';
+
+  @override
+  String get howToFight4 =>
+      'Ligero y Pesado a la vez de cerca es un agarre. Atraviesa el bloqueo.';
+
+  @override
+  String get howToFight5 =>
+      'Ligero, Ligero, Pesado enlaza con un especial. Conecta la cadena y cancélala para un gran combo.';
+
+  @override
+  String get howToFight6 =>
+      'Pelear llena tu medidor. Un especial EX cuesta 1 barra y un Super cuesta 2.';
+
+  @override
+  String get howToFight7 =>
+      'Al mejor de 3 rondas, de 60 segundos cada una. Gana dos rondas para llevarte el combate.';
+
+  @override
+  String get fightOnlineMenuTitle => 'La pelea sigue';
+
+  @override
+  String get fightOnlineBackToFight => 'Volver a la pelea';
+
+  @override
+  String get fightOnlineForfeit => 'Rendirse';
+
+  @override
+  String get fightOnlineBackToChat => 'Volver al chat';
+
+  @override
+  String get fightOnlineWaitingOpponent => 'Esperando a que alguien se una';
+
+  @override
+  String get fightOnlineJoin => 'Unirse a la pelea';
+
+  @override
+  String get fightOnlineReady => 'Estoy listo';
+
+  @override
+  String get fightOnlineReadyDone => 'Listo';
+
+  @override
+  String fightOnlineWaitingReady(String name) {
+    return 'Esperando a $name';
+  }
+
+  @override
+  String get fightOnlineReadyHint =>
+      'La pelea empieza en cuanto los dos estén listos.';
+
+  @override
+  String fightOnlineConnecting(String name) {
+    return 'Conectando con $name…';
+  }
+
+  @override
+  String fightOnlineCouldNotConnect(String name) {
+    return 'No se pudo conectar con $name. Revisa tu conexión e inténtalo de nuevo.';
+  }
+
+  @override
+  String get fightOnlineTryAgain => 'Reintentar';
+
+  @override
+  String get fightOnlineLost => 'Conexión perdida';
+
+  @override
+  String fightOnlinePing(int ms) {
+    return 'Ping $ms ms';
+  }
+
+  @override
+  String get fightOnlineResultDisputed =>
+      'Sus teléfonos no coincidieron en el resultado, así que cuenta como empate.';
+
+  @override
+  String fightOnlineResultLeft(String name) {
+    return '$name abandonó la pelea.';
+  }
 }

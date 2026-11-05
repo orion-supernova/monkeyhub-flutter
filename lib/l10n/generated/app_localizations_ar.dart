@@ -14878,4 +14878,108 @@ class AppLocalizationsAr extends AppLocalizations {
   String fightHudHits(int count) {
     return '$count ضربات';
   }
+
+  @override
+  String get fightSoundLabel => 'الصوت';
+
+  @override
+  String get fightMusicLabel => 'الموسيقى';
+
+  @override
+  String get chatGameDescFight =>
+      'قتال مباشر واحد ضد واحد. الأفضل من ثلاث جولات.';
+
+  @override
+  String get chatGameFightDisputed =>
+      'لم يتفق الهاتفان على النتيجة. تُحتسب تعادلاً.';
+
+  @override
+  String get howToFight1 =>
+      'اسحب العصا على اليسار للتحرك. أزرار الخفيفة والثقيلة والخاصة والدحرجة على اليمين. على لوحة المفاتيح: WASD أو الأسهم، وJ وK وL والمسافة.';
+
+  @override
+  String get howToFight2 =>
+      'يضيء زر السوبر عندما يصبح لديك شريطان من العداد. اضغط I على لوحة المفاتيح.';
+
+  @override
+  String get howToFight3 =>
+      'اضغط للخلف للدفاع. انحنِ لصدّ الضربات المنخفضة. أما الضربات العلوية فيجب صدّها وأنت واقف.';
+
+  @override
+  String get howToFight4 =>
+      'الضغط على الخفيفة والثقيلة معاً عن قرب هو رمية. وهي تخترق الدفاع.';
+
+  @override
+  String get howToFight5 =>
+      'خفيفة ثم خفيفة ثم ثقيلة تتصل بحركة خاصة. نفّذ السلسلة وألغِها لتحصل على كومبو كبير.';
+
+  @override
+  String get howToFight6 =>
+      'القتال يملأ العداد. حركة EX الخاصة تكلّف شريطاً واحداً والسوبر شريطين.';
+
+  @override
+  String get howToFight7 =>
+      'الأفضل من 3 جولات، ومدة كل جولة 60 ثانية. اربح جولتين لتفوز بالمباراة.';
+
+  @override
+  String get fightOnlineMenuTitle => 'القتال مستمر';
+
+  @override
+  String get fightOnlineBackToFight => 'العودة إلى القتال';
+
+  @override
+  String get fightOnlineForfeit => 'الانسحاب';
+
+  @override
+  String get fightOnlineBackToChat => 'العودة إلى الدردشة';
+
+  @override
+  String get fightOnlineWaitingOpponent => 'في انتظار انضمام أحد';
+
+  @override
+  String get fightOnlineJoin => 'انضم إلى القتال';
+
+  @override
+  String get fightOnlineReady => 'أنا جاهز';
+
+  @override
+  String get fightOnlineReadyDone => 'جاهز';
+
+  @override
+  String fightOnlineWaitingReady(String name) {
+    return 'في انتظار $name';
+  }
+
+  @override
+  String get fightOnlineReadyHint => 'يبدأ القتال فور أن تكونا جاهزين.';
+
+  @override
+  String fightOnlineConnecting(String name) {
+    return 'جارٍ الاتصال بـ$name…';
+  }
+
+  @override
+  String fightOnlineCouldNotConnect(String name) {
+    return 'تعذّر الاتصال بـ$name. تحقق من اتصالك وحاول مرة أخرى.';
+  }
+
+  @override
+  String get fightOnlineTryAgain => 'حاول مرة أخرى';
+
+  @override
+  String get fightOnlineLost => 'انقطع الاتصال';
+
+  @override
+  String fightOnlinePing(int ms) {
+    return 'زمن الاستجابة $ms مللي ثانية';
+  }
+
+  @override
+  String get fightOnlineResultDisputed =>
+      'لم يتفق هاتفاكما على النتيجة، لذا تُحتسب تعادلًا.';
+
+  @override
+  String fightOnlineResultLeft(String name) {
+    return 'غادر $name القتال.';
+  }
 }

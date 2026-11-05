@@ -13900,4 +13900,99 @@ class AppLocalizationsZh extends AppLocalizations {
   String fightHudHits(int count) {
     return '$count连击';
   }
+
+  @override
+  String get fightSoundLabel => '音效';
+
+  @override
+  String get fightMusicLabel => '音乐';
+
+  @override
+  String get chatGameDescFight => '实时 1 对 1 格斗。三局两胜。';
+
+  @override
+  String get chatGameFightDisputed => '两部手机的结果不一致，按平局计算。';
+
+  @override
+  String get howToFight1 =>
+      '拖动左侧摇杆移动。右侧是轻击、重击、特殊技和翻滚按钮。键盘操作：WASD 或方向键，J、K、L 和空格。';
+
+  @override
+  String get howToFight2 => '能量条攒到 2 格时，超必杀会亮起。键盘上按 I 键。';
+
+  @override
+  String get howToFight3 => '按住后方向即可防御。蹲下防御下段攻击。上段攻击必须站着防御。';
+
+  @override
+  String get howToFight4 => '近身同时按轻击和重击就是投技，可以破防。';
+
+  @override
+  String get howToFight5 => '轻击、轻击、重击可以取消成特殊技。打中连招后取消，就是一套大连击。';
+
+  @override
+  String get howToFight6 => '战斗会填充能量条。EX 特殊技消耗 1 格，超必杀消耗 2 格。';
+
+  @override
+  String get howToFight7 => '三局两胜，每局 60 秒。先赢下两局的人获胜。';
+
+  @override
+  String get fightOnlineMenuTitle => '战斗仍在进行';
+
+  @override
+  String get fightOnlineBackToFight => '返回战斗';
+
+  @override
+  String get fightOnlineForfeit => '认输';
+
+  @override
+  String get fightOnlineBackToChat => '返回聊天';
+
+  @override
+  String get fightOnlineWaitingOpponent => '等待有人加入';
+
+  @override
+  String get fightOnlineJoin => '加入战斗';
+
+  @override
+  String get fightOnlineReady => '我准备好了';
+
+  @override
+  String get fightOnlineReadyDone => '已准备';
+
+  @override
+  String fightOnlineWaitingReady(String name) {
+    return '等待$name';
+  }
+
+  @override
+  String get fightOnlineReadyHint => '你们都准备好后战斗立即开始。';
+
+  @override
+  String fightOnlineConnecting(String name) {
+    return '正在连接$name…';
+  }
+
+  @override
+  String fightOnlineCouldNotConnect(String name) {
+    return '无法连接$name。请检查网络后重试。';
+  }
+
+  @override
+  String get fightOnlineTryAgain => '重试';
+
+  @override
+  String get fightOnlineLost => '连接已断开';
+
+  @override
+  String fightOnlinePing(int ms) {
+    return '延迟 $ms 毫秒';
+  }
+
+  @override
+  String get fightOnlineResultDisputed => '你们的手机结果不一致，因此算作平局。';
+
+  @override
+  String fightOnlineResultLeft(String name) {
+    return '$name离开了战斗。';
+  }
 }

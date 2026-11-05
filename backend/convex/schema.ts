@@ -3280,6 +3280,26 @@ export default defineSchema({
     // Account teardown and leaving a room: delete this user's heartbeats.
     .index("by_user", ["userId"]),
 
+  // Jungle Fist WebRTC signalling (offer, answer, ICE) between the two seats
+  // of a live `fight` match. The fight's inputs never come here: they go phone
+  // to phone over the data channel this sets up. A row is deleted when its
+  // recipient consumes it, so the table holds only the few in flight; what a
+  // dead connection leaves goes with the match (eraseMatch / the match job).
+  fightSignals: defineTable({
+    matchId: v.id("matches"),
+    fromUserId: v.id("users"),
+    toUserId: v.id("users"),
+    // The sending device, so a peer locks onto ONE device of the other user.
+    fromDeviceId: v.optional(v.string()),
+    kind: v.string(), // "offer" | "answer" | "ice" | "bye"
+    payload: v.string(), // JSON, capped in fightSignals.send
+    createdAt: v.number(),
+  })
+    // The recipient's subscription: this match's rows addressed to me.
+    .index("by_match_to", ["matchId", "toUserId"])
+    // Account deletion: rows addressed to the user.
+    .index("by_to", ["toUserId"]),
+
   // A party game's FULL state, secrets included (every player's dice, the
   // Imposter's word and who the imposter is). One row per party match,
   // written alongside every change to `matches.state`.

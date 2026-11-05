@@ -9,6 +9,7 @@
  */
 
 import type { PartyRules } from "./types";
+import { rules as fight } from "./fight";
 import { rules as imposter } from "./imposter";
 import { rules as liarsDice } from "./liarsDice";
 import { rules as race } from "./race";
@@ -22,6 +23,7 @@ export const partyGames: Readonly<Record<string, AnyPartyRules>> = {
   [liarsDice.id]: liarsDice,
   [imposter.id]: imposter,
   [race.id]: race,
+  [fight.id]: fight,
 };
 
 /** The rules for [id], or null when [id] is not a party game. */

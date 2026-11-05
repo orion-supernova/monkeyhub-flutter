@@ -46,6 +46,8 @@ PODS:
   - flutter_secure_storage_darwin (10.0.0):
     - Flutter
     - FlutterMacOS
+  - flutter_soloud (0.0.1):
+    - Flutter
   - flutter_webrtc (1.4.0):
     - Flutter
     - WebRTC-SDK (= 144.7559.01)
@@ -162,6 +164,7 @@ DEPENDENCIES:
   - flutter_gemma (from `.symlinks/plugins/flutter_gemma/ios`)
   - flutter_native_splash (from `.symlinks/plugins/flutter_native_splash/ios`)
   - flutter_secure_storage_darwin (from `.symlinks/plugins/flutter_secure_storage_darwin/darwin`)
+  - flutter_soloud (from `.symlinks/plugins/flutter_soloud/ios`)
   - flutter_webrtc (from `.symlinks/plugins/flutter_webrtc/ios`)
   - gal (from `.symlinks/plugins/gal/darwin`)
   - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
@@ -233,6 +236,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_native_splash/ios"
   flutter_secure_storage_darwin:
     :path: ".symlinks/plugins/flutter_secure_storage_darwin/darwin"
+  flutter_soloud:
+    :path: ".symlinks/plugins/flutter_soloud/ios"
   flutter_webrtc:
     :path: ".symlinks/plugins/flutter_webrtc/ios"
   gal:
@@ -298,6 +303,7 @@ SPEC CHECKSUMS:
   flutter_gemma: 3105aa8da62674f33f6206a8cfe89360392bdaa6
   flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
   flutter_secure_storage_darwin: acdb3f316ed05a3e68f856e0353b133eec373a23
+  flutter_soloud: 272cc604453b6ca135f274045fb259e7c6426122
   flutter_webrtc: ec91d94b484ad49cf191ef93413f64a40ffd3b4c
   gal: baecd024ebfd13c441269ca7404792a7152fde89
   geolocator_apple: ab36aa0e8b7d7a2d7639b3b4e48308394e8cef5e

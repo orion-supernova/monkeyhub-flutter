@@ -20,6 +20,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
   convex_flutter
+  flutter_soloud
   jni
   whisper_ggml
 )

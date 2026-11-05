@@ -253,6 +253,13 @@
     })();
   </script>
 
+  <!--
+    flutter_soloud (Jungle Fist's sound, lib/fight/view/fight_audio.dart): its
+    web build loads a wasm engine through this module. Harmless when the fight
+    is never opened; the engine itself only starts when a fight screen asks.
+  -->
+  <script src="assets/packages/flutter_soloud/web/init_module.dart.js" defer></script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

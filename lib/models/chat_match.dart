@@ -502,7 +502,7 @@ const kChatGames = [
 
 /// The party games, in the order the start sheet's Party section offers
 /// them. Mirrors `backend/convex/partyGames/registry.ts`. Live only.
-const kPartyGames = ['liarsdice', 'imposter', 'race'];
+const kPartyGames = ['liarsdice', 'imposter', 'race', 'fight'];
 
 bool isPartyGame(String game) => kPartyGames.contains(game);
 

@@ -66,6 +66,8 @@ class SettingsStore extends ChangeNotifier {
   // stored as a wire string so this file does not depend on lib/fight/.
   // Purely local: an online opponent never sees which look you picked.
   static const _kFightLook = 'mh.fight.look';
+  static const _kFightSound = 'mh.fight.sound';
+  static const _kFightMusic = 'mh.fight.music';
   // NOTE: 'mh.photoHd' was a sticky "send photos in HD" choice, retired
   // 2026-11-02: HD is now one send's decision (see MediaSendOptions.hd).
   // Its value is left on disk unread; pick a new key if a default ever
@@ -112,7 +114,7 @@ class SettingsStore extends ChangeNotifier {
     _kLayout, _kNav, _kSection, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
-    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen, _kFightLook,
+    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen, _kFightLook, _kFightSound, _kFightMusic,
     _kVideoQualityTier, _kAutoLowerVideoQuality, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel, _kPowerSaving,
@@ -172,6 +174,8 @@ class SettingsStore extends ChangeNotifier {
   DataStoragePrefs _dataPrefs = DataStoragePrefs.defaults;
   bool _showNetworkStats = false;
   String _fightLook = 'cartoon';
+  bool _fightSound = true;
+  bool _fightMusic = true;
   VideoQualityTier _videoQualityTier = VideoQualityTier.auto;
   bool _autoLowerVideoQuality = true;
   String? _recoveryPromptDismissedFor;
@@ -352,6 +356,11 @@ class SettingsStore extends ChangeNotifier {
 
   /// Jungle Fist look: 'cartoon' (default), 'painted' or 'pixel'.
   String get fightLook => _fightLook;
+
+  /// Jungle Fist sound effects / music. Both default on; the fight pause menu
+  /// toggles them (lib/fight/view/fight_audio_toggles.dart).
+  bool get fightSound => _fightSound;
+  bool get fightMusic => _fightMusic;
 
   /// Resolution ceiling for outgoing video on both the 1:1 and group call
   /// paths. Default `auto` — today's long-standing 720p/adaptive behavior,
@@ -688,6 +697,8 @@ class SettingsStore extends ChangeNotifier {
     _showNetworkStats = sns == 'true'; // default false
     final fl = s[_kFightLook];
     _fightLook = (fl == 'painted' || fl == 'pixel') ? fl! : 'cartoon';
+    _fightSound = s[_kFightSound] != 'false'; // default true
+    _fightMusic = s[_kFightMusic] != 'false'; // default true
     _videoQualityTier = VideoQualityTierWire.parse(s[_kVideoQualityTier]);
     _autoLowerVideoQuality = s[_kAutoLowerVideoQuality] != 'false'; // default true
     _recoveryPromptDismissedFor = s[_kRecoveryPromptDismissed];
@@ -1122,6 +1133,20 @@ class SettingsStore extends ChangeNotifier {
     _fightLook = v;
     notifyListeners();
     await _storage.write(key: _kFightLook, value: v);
+  }
+
+  Future<void> setFightSound(bool v) async {
+    if (_fightSound == v) return;
+    _fightSound = v;
+    notifyListeners();
+    await _storage.write(key: _kFightSound, value: '$v');
+  }
+
+  Future<void> setFightMusic(bool v) async {
+    if (_fightMusic == v) return;
+    _fightMusic = v;
+    notifyListeners();
+    await _storage.write(key: _kFightMusic, value: '$v');
   }
 
   Future<void> setShowNetworkStats(bool v) async {

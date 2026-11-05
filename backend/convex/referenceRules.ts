@@ -144,6 +144,9 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "matchMoves.matchId": { rule: "cascade", index: "by_match_seq", why: "Move history dies with the match (eraseMatch, or the `match` job)." },
   "matchMoves.messageId": { rule: "setNull", index: "by_message", why: "A move's bubble can be deleted while the match lives; takeback already clears it." },
   "matchMoves.userId": { rule: "history", why: "Who played the move; moves are deleted with their match." },
+  "fightSignals.matchId": { rule: "cascade", index: "by_match_to", why: "WebRTC signalling for one fight; deleted on consume, the rest with the match (eraseMatch / the match job)." },
+  "fightSignals.fromUserId": { rule: "ephemeral", why: "Pair signalling, deleted when the recipient consumes it and with the match; no index by design." },
+  "fightSignals.toUserId": { rule: "cascade", index: "by_to", why: "Short-lived signalling addressed to the user; the user plan's generic step sweeps leftovers." },
   "matchPresence.matchId": { rule: "cascade", index: "by_match_user", why: "Heartbeats die with the match (eraseMatch, or the `match` job)." },
   "matchPresence.userId": { rule: "cascade", index: "by_user", why: "A leaving or deleted player's heartbeat row has no use; leaveMatchesInRoom (leave, kick, account deletion) removes their row on the room's OPEN games (bounded by the room's open matches and by_match_user); rows on finished games go with the match (retention / eraseMatch) or with the account deletion cascade over by_user." },
 

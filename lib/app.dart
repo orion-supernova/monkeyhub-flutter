@@ -53,6 +53,7 @@ import 'expressions/expression_store.dart';
 import 'data/games_store.dart';
 import 'data/challenges_store.dart';
 import 'data/matches_store.dart';
+import 'fight/view/fight_online_screen.dart';
 import 'data/records_store.dart';
 import 'data/settings_store.dart';
 import 'diagnostics/device_report.dart';
@@ -1019,6 +1020,14 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     final me = _repo.userId;
     void openGame() {
       if (matchId == null || matchId.isEmpty || me == null) return;
+      // A fight has its own screen; the store knows the game when the row
+      // has loaded, and a cold start falls back to the match table.
+      final known = MatchesStore.instance.forMatch(matchId);
+      final ctx = nav.context;
+      if (known != null && known.game == 'fight') {
+        openFightMatch(ctx, match: known, userId: me);
+        return;
+      }
       nav.push(
         MaterialPageRoute<void>(
           builder: (_) => MatchScreen(matchId: matchId, userId: me),

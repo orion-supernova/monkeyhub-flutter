@@ -24438,6 +24438,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} HITS'**
   String fightHudHits(int count);
+
+  /// Label of the Sound on/off pill in the Jungle Fist pause menu (sound effects).
+  ///
+  /// In en, this message translates to:
+  /// **'Sound'**
+  String get fightSoundLabel;
+
+  /// Label of the Music on/off pill in the Jungle Fist pause menu (background music).
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get fightMusicLabel;
+
+  /// One-line rules of Jungle Fist in the game picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Real-time 1v1 fighting. Best of three rounds.'**
+  String get chatGameDescFight;
+
+  /// Result line of a Jungle Fist match whose two phones reported different outcomes, so it counts as a draw.
+  ///
+  /// In en, this message translates to:
+  /// **'The phones disagreed. Counts as a draw.'**
+  String get chatGameFightDisputed;
+
+  /// Jungle Fist guide step: the controls.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag the stick on the left to move. Light, Heavy, Special and Roll are on the right. On a keyboard: WASD or arrows, J, K, L and Space.'**
+  String get howToFight1;
+
+  /// Jungle Fist guide step: the Super button.
+  ///
+  /// In en, this message translates to:
+  /// **'Super lights up when you have 2 bars of meter. Press I on a keyboard.'**
+  String get howToFight2;
+
+  /// Jungle Fist guide step: blocking, low hits and overheads.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold back to block. Crouch to block low hits. Overheads must be blocked standing.'**
+  String get howToFight3;
+
+  /// Jungle Fist guide step: the throw.
+  ///
+  /// In en, this message translates to:
+  /// **'Light and Heavy together up close is a throw. It gets past a block.'**
+  String get howToFight4;
+
+  /// Jungle Fist guide step: the chain into a special.
+  ///
+  /// In en, this message translates to:
+  /// **'Light, Light, Heavy chains into a special. Land the chain and cancel it for a big combo.'**
+  String get howToFight5;
+
+  /// Jungle Fist guide step: the meter, EX special and Super.
+  ///
+  /// In en, this message translates to:
+  /// **'Fighting fills your meter. An EX special costs 1 bar and a Super costs 2.'**
+  String get howToFight6;
+
+  /// Jungle Fist guide step: rounds and timer.
+  ///
+  /// In en, this message translates to:
+  /// **'Best of 3 rounds, 60 seconds each. Win two rounds to take the match.'**
+  String get howToFight7;
+
+  /// Title of the in-fight menu online, where the fight keeps running behind it.
+  ///
+  /// In en, this message translates to:
+  /// **'The fight goes on'**
+  String get fightOnlineMenuTitle;
+
+  /// In-fight menu button online: close the menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to the fight'**
+  String get fightOnlineBackToFight;
+
+  /// In-fight menu button online: give up and leave (the opponent wins).
+  ///
+  /// In en, this message translates to:
+  /// **'Forfeit'**
+  String get fightOnlineForfeit;
+
+  /// Button after an online fight: return to the chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to chat'**
+  String get fightOnlineBackToChat;
+
+  /// Fight lobby: nobody has taken the second seat yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for someone to join'**
+  String get fightOnlineWaitingOpponent;
+
+  /// Fight lobby button: take the empty seat.
+  ///
+  /// In en, this message translates to:
+  /// **'Join the fight'**
+  String get fightOnlineJoin;
+
+  /// Fight lobby button: say you're ready to start.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m ready'**
+  String get fightOnlineReady;
+
+  /// Fight lobby button once you're ready; tapping it again un-readies.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get fightOnlineReadyDone;
+
+  /// Fight lobby: you're ready, the opponent isn't yet. {name} is their name.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for {name}'**
+  String fightOnlineWaitingReady(String name);
+
+  /// Fight lobby explanation.
+  ///
+  /// In en, this message translates to:
+  /// **'The fight starts as soon as you\'re both ready.'**
+  String get fightOnlineReadyHint;
+
+  /// While the two phones connect directly. {name} is the opponent.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting to {name}…'**
+  String fightOnlineConnecting(String name);
+
+  /// The phones could not connect. {name} is the opponent.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t connect to {name}. Check your connection and try again.'**
+  String fightOnlineCouldNotConnect(String name);
+
+  /// Button: retry connecting to the opponent.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get fightOnlineTryAgain;
+
+  /// Banner over the fight when no data arrives from the opponent.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection lost'**
+  String get fightOnlineLost;
+
+  /// Short banner at the start of an online fight: the round-trip time to the opponent in milliseconds.
+  ///
+  /// In en, this message translates to:
+  /// **'Ping {ms} ms'**
+  String fightOnlinePing(int ms);
+
+  /// After an online fight, under the result: the two phones reported different results.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phones disagreed on the result, so it counts as a draw.'**
+  String get fightOnlineResultDisputed;
+
+  /// After an online fight you won because the opponent left. {name} is the opponent.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} left the fight.'**
+  String fightOnlineResultLeft(String name);
 }
 
 class _AppLocalizationsDelegate

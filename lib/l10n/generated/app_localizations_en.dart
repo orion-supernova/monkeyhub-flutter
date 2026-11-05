@@ -14695,4 +14695,108 @@ class AppLocalizationsEn extends AppLocalizations {
   String fightHudHits(int count) {
     return '$count HITS';
   }
+
+  @override
+  String get fightSoundLabel => 'Sound';
+
+  @override
+  String get fightMusicLabel => 'Music';
+
+  @override
+  String get chatGameDescFight =>
+      'Real-time 1v1 fighting. Best of three rounds.';
+
+  @override
+  String get chatGameFightDisputed => 'The phones disagreed. Counts as a draw.';
+
+  @override
+  String get howToFight1 =>
+      'Drag the stick on the left to move. Light, Heavy, Special and Roll are on the right. On a keyboard: WASD or arrows, J, K, L and Space.';
+
+  @override
+  String get howToFight2 =>
+      'Super lights up when you have 2 bars of meter. Press I on a keyboard.';
+
+  @override
+  String get howToFight3 =>
+      'Hold back to block. Crouch to block low hits. Overheads must be blocked standing.';
+
+  @override
+  String get howToFight4 =>
+      'Light and Heavy together up close is a throw. It gets past a block.';
+
+  @override
+  String get howToFight5 =>
+      'Light, Light, Heavy chains into a special. Land the chain and cancel it for a big combo.';
+
+  @override
+  String get howToFight6 =>
+      'Fighting fills your meter. An EX special costs 1 bar and a Super costs 2.';
+
+  @override
+  String get howToFight7 =>
+      'Best of 3 rounds, 60 seconds each. Win two rounds to take the match.';
+
+  @override
+  String get fightOnlineMenuTitle => 'The fight goes on';
+
+  @override
+  String get fightOnlineBackToFight => 'Back to the fight';
+
+  @override
+  String get fightOnlineForfeit => 'Forfeit';
+
+  @override
+  String get fightOnlineBackToChat => 'Back to chat';
+
+  @override
+  String get fightOnlineWaitingOpponent => 'Waiting for someone to join';
+
+  @override
+  String get fightOnlineJoin => 'Join the fight';
+
+  @override
+  String get fightOnlineReady => 'I\'m ready';
+
+  @override
+  String get fightOnlineReadyDone => 'Ready';
+
+  @override
+  String fightOnlineWaitingReady(String name) {
+    return 'Waiting for $name';
+  }
+
+  @override
+  String get fightOnlineReadyHint =>
+      'The fight starts as soon as you\'re both ready.';
+
+  @override
+  String fightOnlineConnecting(String name) {
+    return 'Connecting to $name…';
+  }
+
+  @override
+  String fightOnlineCouldNotConnect(String name) {
+    return 'Couldn\'t connect to $name. Check your connection and try again.';
+  }
+
+  @override
+  String get fightOnlineTryAgain => 'Try again';
+
+  @override
+  String get fightOnlineLost => 'Connection lost';
+
+  @override
+  String fightOnlinePing(int ms) {
+    return 'Ping $ms ms';
+  }
+
+  @override
+  String get fightOnlineResultDisputed =>
+      'Your phones disagreed on the result, so it counts as a draw.';
+
+  @override
+  String fightOnlineResultLeft(String name) {
+    return '$name left the fight.';
+  }
 }

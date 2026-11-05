@@ -30,6 +30,7 @@ class PartyGameArt extends StatelessWidget {
       'liarsdice' => (palette.wash(0), _dice),
       'imposter' => (palette.wash(4), _cards),
       'race' => (palette.wash(1), _race),
+      'fight' => (const Color(0x33FF8A1F), _fight),
       _ => (theme.ink.withValues(alpha: 0.05), _blank),
     };
     return ColoredBox(
@@ -109,6 +110,9 @@ class PartyGameArt extends StatelessWidget {
     );
   }
 
+  static Widget _fight(AppTheme theme, SeatPalette palette, double side) =>
+      CustomPaint(size: Size.square(side), painter: const _FistPainter());
+
   static Widget _race(AppTheme theme, SeatPalette palette, double side) =>
       CustomPaint(
         size: Size.square(side),
@@ -171,4 +175,74 @@ class _RacePainter extends CustomPainter {
       old.fills[0] != fills[0] ||
       old.fills[1] != fills[1] ||
       old.fills[2] != fills[2];
+}
+
+/// A fist punching in from the left, a starburst where it lands.
+class _FistPainter extends CustomPainter {
+  const _FistPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = math.min(size.width, size.height);
+    final c = Offset(size.width / 2 + s * 0.12, size.height / 2);
+    final p = Paint();
+    // The burst: alternating long and short spikes.
+    final burst = Path();
+    const spikes = 12;
+    for (var i = 0; i < spikes * 2; i++) {
+      final a = -math.pi / 2 + i * math.pi / spikes;
+      final r = s * (i.isEven ? 0.40 : 0.24);
+      final pt = c + Offset(math.cos(a), math.sin(a)) * r;
+      i == 0 ? burst.moveTo(pt.dx, pt.dy) : burst.lineTo(pt.dx, pt.dy);
+    }
+    burst.close();
+    p.color = const Color(0xFFFFC53D);
+    canvas.drawPath(burst, p);
+    p
+      ..color = const Color(0xFFFF5A1F)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = s * 0.02
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(burst, p);
+    p.style = PaintingStyle.fill;
+    // Speed lines behind the fist.
+    p.color = const Color(0xFFFF5A1F).withValues(alpha: 0.55);
+    for (var i = 0; i < 3; i++) {
+      final y = c.dy + (i - 1) * s * 0.12;
+      canvas.drawRRect(
+        RRect.fromLTRBR(s * 0.06, y - s * 0.012, s * (0.20 + i % 2 * 0.06), y + s * 0.012, Radius.circular(s)),
+        p,
+      );
+    }
+    // The fist: a rounded block and four knuckles.
+    final w = s * 0.30;
+    final fist = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: c + Offset(-s * 0.04, 0), width: w, height: w * 0.86),
+      Radius.circular(w * 0.28),
+    );
+    p.color = const Color(0xFFE0502A);
+    canvas.drawRRect(fist.shift(Offset(0, s * 0.012)), p);
+    p.color = const Color(0xFFFF8A4C);
+    canvas.drawRRect(fist, p);
+    p.color = Colors.black.withValues(alpha: 0.22);
+    for (var i = 1; i < 4; i++) {
+      final y = fist.top + fist.height * i / 4;
+      canvas.drawRRect(
+        RRect.fromLTRBR(fist.right - w * 0.34, y - s * 0.006, fist.right - w * 0.04, y + s * 0.006, Radius.circular(s)),
+        p,
+      );
+    }
+    // A wrist cuff.
+    p.color = const Color(0xFF3B2A5C);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(fist.left - s * 0.07, fist.top + fist.height * 0.12, s * 0.09, fist.height * 0.76),
+        Radius.circular(s * 0.03),
+      ),
+      p,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_FistPainter old) => false;
 }

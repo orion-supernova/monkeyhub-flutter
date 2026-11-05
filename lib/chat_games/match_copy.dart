@@ -15,6 +15,7 @@ String chatGameName(AppLocalizations l10n, String game) => switch (game) {
   'liarsdice' => l10n.chatGameNameLiarsDice,
   'imposter' => l10n.chatGameNameImposter,
   'race' => l10n.chatGameNameRace,
+  'fight' => l10n.fightTitle,
   _ => game,
 };
 
@@ -29,6 +30,7 @@ String chatGameDescription(AppLocalizations l10n, String game) =>
       'liarsdice' => l10n.chatGameDescLiarsDice,
       'imposter' => l10n.chatGameDescImposter,
       'race' => l10n.chatGameDescRace,
+      'fight' => l10n.chatGameDescFight,
       _ => '',
     };
 
@@ -113,6 +115,8 @@ String partyPhaseLine(AppLocalizations l10n, ChatMatch m, String viewerId) {
             : l10n.chatGameImpGuessing,
         _ => '',
       };
+    case FightView():
+      return l10n.chatGameStatusPlaying;
     case RaceView():
       final total = view.players.where((p) => !p.left).length;
       return l10n.chatGameRaceFinishedCount(view.finished, total);
@@ -153,6 +157,16 @@ String matchResultLine(AppLocalizations l10n, ChatMatch m, String viewerId) {
 String? _partyResultLine(AppLocalizations l10n, ChatMatch m, String viewerId) {
   final me = m.seatOf(viewerId);
   if (m.game == 'race' && m.draw) return l10n.chatGameRaceTimeUp;
+  if (m.game == 'fight') {
+    // Two phones report the outcome: when they disagree it is a draw, and
+    // when nobody reported in time nobody won. Wins (confirmed, or only the
+    // winner's phone) and a leaver fall through to the plain "X won".
+    if (m.reason == 'disputed') return l10n.chatGameFightDisputed;
+    if (m.draw) {
+      return m.reason == 'abandoned' ? l10n.chatGameNobodyWon : l10n.chatGameDraw;
+    }
+    return null;
+  }
   if (m.game != 'imposter') return null;
   final why = imposterReason(l10n, m.reason);
   final String head;

@@ -14900,4 +14900,109 @@ class AppLocalizationsFr extends AppLocalizations {
   String fightHudHits(int count) {
     return '$count COUPS';
   }
+
+  @override
+  String get fightSoundLabel => 'Son';
+
+  @override
+  String get fightMusicLabel => 'Musique';
+
+  @override
+  String get chatGameDescFight =>
+      'Combat 1 contre 1 en temps réel. Au meilleur des trois rounds.';
+
+  @override
+  String get chatGameFightDisputed =>
+      'Les téléphones n’étaient pas d’accord. Compte comme match nul.';
+
+  @override
+  String get howToFight1 =>
+      'Fais glisser le stick à gauche pour bouger. Léger, Lourd, Spécial et Roulade sont à droite. Au clavier : WASD ou flèches, J, K, L et Espace.';
+
+  @override
+  String get howToFight2 =>
+      'Super s’allume quand tu as 2 barres de jauge. Au clavier, appuie sur I.';
+
+  @override
+  String get howToFight3 =>
+      'Maintiens vers l’arrière pour parer. Accroupis-toi pour parer les coups bas. Les coups sautés se parent debout.';
+
+  @override
+  String get howToFight4 =>
+      'Léger et Lourd ensemble au corps à corps, c’est une projection. Elle passe la parade.';
+
+  @override
+  String get howToFight5 =>
+      'Léger, Léger, Lourd s’enchaîne sur un spécial. Place la chaîne et annule-la pour un gros combo.';
+
+  @override
+  String get howToFight6 =>
+      'Se battre remplit ta jauge. Un spécial EX coûte 1 barre et un Super en coûte 2.';
+
+  @override
+  String get howToFight7 =>
+      'Au meilleur des 3 rounds, 60 secondes chacun. Gagne deux rounds pour remporter le match.';
+
+  @override
+  String get fightOnlineMenuTitle => 'Le combat continue';
+
+  @override
+  String get fightOnlineBackToFight => 'Retour au combat';
+
+  @override
+  String get fightOnlineForfeit => 'Abandonner';
+
+  @override
+  String get fightOnlineBackToChat => 'Retour au chat';
+
+  @override
+  String get fightOnlineWaitingOpponent => 'En attente d\'un adversaire';
+
+  @override
+  String get fightOnlineJoin => 'Rejoindre le combat';
+
+  @override
+  String get fightOnlineReady => 'Je suis prêt';
+
+  @override
+  String get fightOnlineReadyDone => 'Prêt';
+
+  @override
+  String fightOnlineWaitingReady(String name) {
+    return 'En attente de $name';
+  }
+
+  @override
+  String get fightOnlineReadyHint =>
+      'Le combat commence dès que vous êtes prêts tous les deux.';
+
+  @override
+  String fightOnlineConnecting(String name) {
+    return 'Connexion à $name…';
+  }
+
+  @override
+  String fightOnlineCouldNotConnect(String name) {
+    return 'Impossible de se connecter à $name. Vérifie ta connexion et réessaie.';
+  }
+
+  @override
+  String get fightOnlineTryAgain => 'Réessayer';
+
+  @override
+  String get fightOnlineLost => 'Connexion perdue';
+
+  @override
+  String fightOnlinePing(int ms) {
+    return 'Ping $ms ms';
+  }
+
+  @override
+  String get fightOnlineResultDisputed =>
+      'Vos téléphones n\'étaient pas d\'accord sur le résultat, c\'est donc une égalité.';
+
+  @override
+  String fightOnlineResultLeft(String name) {
+    return '$name a quitté le combat.';
+  }
 }

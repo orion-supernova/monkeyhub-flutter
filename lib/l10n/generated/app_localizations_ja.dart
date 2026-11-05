@@ -14032,4 +14032,100 @@ class AppLocalizationsJa extends AppLocalizations {
   String fightHudHits(int count) {
     return '$countヒット';
   }
+
+  @override
+  String get fightSoundLabel => '効果音';
+
+  @override
+  String get fightMusicLabel => '音楽';
+
+  @override
+  String get chatGameDescFight => 'リアルタイムの1対1バトル。3ラウンド制。';
+
+  @override
+  String get chatGameFightDisputed => '2台の結果が食い違いました。引き分け扱いです。';
+
+  @override
+  String get howToFight1 =>
+      '左のスティックをドラッグして移動します。右に弱攻撃、強攻撃、必殺技、ローリングのボタンがあります。キーボードはWASDか矢印、J、K、L、スペース。';
+
+  @override
+  String get howToFight2 => 'ゲージが2本たまるとスーパーが光ります。キーボードではIキーです。';
+
+  @override
+  String get howToFight3 =>
+      '後ろに入れ続けるとガードできます。下段攻撃はしゃがんでガード。中段攻撃は立ってガードしないと防げません。';
+
+  @override
+  String get howToFight4 => '近づいて弱と強を同時に押すと投げになります。ガードを崩せます。';
+
+  @override
+  String get howToFight5 => '弱、弱、強とつなぐと必殺技にキャンセルできます。連携を当てて必殺技につなげば大コンボです。';
+
+  @override
+  String get howToFight6 => '戦うほどゲージがたまります。EX必殺技はゲージ1本、スーパーは2本を使います。';
+
+  @override
+  String get howToFight7 => '3ラウンド制で、1ラウンドは60秒です。2ラウンド取れば勝ちです。';
+
+  @override
+  String get fightOnlineMenuTitle => 'バトル続行中';
+
+  @override
+  String get fightOnlineBackToFight => 'バトルに戻る';
+
+  @override
+  String get fightOnlineForfeit => '降参する';
+
+  @override
+  String get fightOnlineBackToChat => 'チャットに戻る';
+
+  @override
+  String get fightOnlineWaitingOpponent => '相手の参加を待っています';
+
+  @override
+  String get fightOnlineJoin => 'バトルに参加';
+
+  @override
+  String get fightOnlineReady => '準備OK';
+
+  @override
+  String get fightOnlineReadyDone => '準備完了';
+
+  @override
+  String fightOnlineWaitingReady(String name) {
+    return '$nameを待っています';
+  }
+
+  @override
+  String get fightOnlineReadyHint => '二人とも準備ができたらバトル開始。';
+
+  @override
+  String fightOnlineConnecting(String name) {
+    return '$nameに接続中…';
+  }
+
+  @override
+  String fightOnlineCouldNotConnect(String name) {
+    return '$nameに接続できませんでした。接続を確認してもう一度お試しください。';
+  }
+
+  @override
+  String get fightOnlineTryAgain => 'もう一度試す';
+
+  @override
+  String get fightOnlineLost => '接続が切れました';
+
+  @override
+  String fightOnlinePing(int ms) {
+    return 'Ping $ms ms';
+  }
+
+  @override
+  String get fightOnlineResultDisputed => '二人の端末で結果が一致しなかったため、引き分けになりました。';
+
+  @override
+  String fightOnlineResultLeft(String name) {
+    return '$nameがバトルから抜けました。';
+  }
 }

@@ -73,7 +73,7 @@ void main() {
     addTearDown(tester.view.reset);
     for (final game in const [
       'tictactoe', 'connectfour', 'checkers', 'reversi', 'dots', 'chess',
-      'liarsdice', 'imposter', 'race',
+      'liarsdice', 'imposter', 'race', 'fight',
     ]) {
       await playThrough(
         tester,

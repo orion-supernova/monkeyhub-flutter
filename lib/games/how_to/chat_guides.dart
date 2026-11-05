@@ -6,6 +6,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../models/chat_match.dart';
 import '../../widgets/ios_kit.dart';
 import 'chat_demos.dart';
+import 'fight_demos.dart';
 import 'how_to_play.dart';
 
 /// The how-to-play guide for chat game [game] ('tictactoe', 'liarsdice', ...).
@@ -83,6 +84,15 @@ HowToPlayGuide chatGuide(
       s(l10n.howToRace2, const RaceProgressDemo()),
       s(l10n.howToRace3, const RaceFinishDemo()),
       s(l10n.partyRaceGrace, const RaceProgressDemo()),
+    ],
+    'fight' => [
+      s(l10n.howToFight1, const FightDemo(FightDemoKind.controls)),
+      s(l10n.howToFight2, const FightDemo(FightDemoKind.meter)),
+      s(l10n.howToFight3, const FightDemo(FightDemoKind.block)),
+      s(l10n.howToFight4, const FightDemo(FightDemoKind.grab)),
+      s(l10n.howToFight5, const FightDemo(FightDemoKind.chain)),
+      s(l10n.howToFight6, const FightDemo(FightDemoKind.meter)),
+      s(l10n.howToFight7, const FightDemo(FightDemoKind.rounds)),
     ],
     _ => <HowToStep>[],
   };

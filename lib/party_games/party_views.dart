@@ -52,6 +52,7 @@ PartyView? _parse(String game, String raw) {
     'liarsdice' => LiarsDiceView.fromJson(map),
     'imposter' => ImposterView.fromJson(map),
     'race' => RaceView.fromJson(map),
+    'fight' => FightView.fromJson(map),
     _ => null,
   };
 }
@@ -472,6 +473,43 @@ class RaceView extends PartyView {
       reason: j['reason']?.toString(),
     );
   }
+}
+
+// ── Jungle Fist ─────────────────────────────────────────────────────────────
+
+/// A real-time fight's public view: it runs on the phones, the server only
+/// keeps the clock and collects the two reports.
+class FightView extends PartyView {
+  const FightView({
+    required super.phase,
+    super.deadline,
+    required this.startedAt,
+    required this.reported,
+    required this.left,
+    this.winner,
+    this.reason,
+  });
+
+  /// Server time the fight started, ms since epoch.
+  final int startedAt;
+
+  /// Per seat: whether that phone has reported the outcome.
+  final List<bool> reported;
+  final List<bool> left;
+  final int? winner;
+
+  /// `win` | `draw` | `disputed` | `unconfirmed` | `left` | `abandoned`.
+  final String? reason;
+
+  static FightView fromJson(Map<String, dynamic> j) => FightView(
+    phase: j['phase']?.toString() ?? 'fighting',
+    deadline: _intOrNull(j['deadline']),
+    startedAt: _int(j['startedAt']),
+    reported: _bools(j['reported']),
+    left: _bools(j['left']),
+    winner: _intOrNull(j['winner']),
+    reason: j['reason']?.toString(),
+  );
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

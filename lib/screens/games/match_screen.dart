@@ -17,6 +17,7 @@ import '../../chat_games/turn_panel.dart';
 import '../../chat_games/watcher_faces.dart';
 import '../../data/matches_store.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../fight/view/fight_online_screen.dart';
 import '../../l10n/text_case.dart';
 import '../../models/chat_match.dart';
 import '../../party_games/party_table.dart';
@@ -36,12 +37,15 @@ Future<void> openMatchScreen(
   BuildContext context, {
   required ChatMatch match,
   required String userId,
-}) => Navigator.of(context).push(
-  MaterialPageRoute<void>(
-    builder: (_) =>
-        MatchScreen(matchId: match.id, userId: userId, initial: match),
-  ),
-);
+}) => match.game == 'fight'
+    // Jungle Fist runs in its own full-screen fight, not on the match table.
+    ? openFightMatch(context, match: match, userId: userId)
+    : Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              MatchScreen(matchId: match.id, userId: userId, initial: match),
+        ),
+      );
 
 /// Opens a turn by turn game that does not exist yet ([TurnDraft]): the
 /// opening board, the viewer to move. Sending the first move creates it;
@@ -121,6 +125,9 @@ class _MatchScreenState extends State<MatchScreen> {
 
   bool _busy = false;
 
+  /// A fight reached this screen and was passed on to its own.
+  bool _handedOff = false;
+
   /// The staged move is on its way, and then landed: the Send button's two
   /// last faces before the screen closes back to the chat.
   bool _sendingMove = false;
@@ -174,6 +181,24 @@ class _MatchScreenState extends State<MatchScreen> {
   void _onChange() {
     if (!mounted) return;
     final m = _c.serverMatch;
+    if (m != null && m.game == 'fight') {
+      if (_handedOff) return;
+      _handedOff = true;
+      // A fight reached the match table by id alone (a push on a cold start,
+      // an old link): hand it to the fight's own screen, in this one's place.
+      final nav = Navigator.of(context);
+      final me = widget.userId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        nav.pushReplacement(
+          MaterialPageRoute<void>(
+            fullscreenDialog: true,
+            builder: (_) => FightOnlineScreen(matchId: m.id, userId: me, initial: m),
+          ),
+        );
+      });
+      return;
+    }
     if (m != null) {
       _maybeIntro(m);
       if (_lastStatus == MatchStatus.lobby && m.status == MatchStatus.active) {

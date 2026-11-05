@@ -14625,4 +14625,109 @@ class AppLocalizationsTr extends AppLocalizations {
   String fightHudHits(int count) {
     return '$count VURUŞ';
   }
+
+  @override
+  String get fightSoundLabel => 'Ses';
+
+  @override
+  String get fightMusicLabel => 'Müzik';
+
+  @override
+  String get chatGameDescFight =>
+      'Gerçek zamanlı bire bir dövüş. Üç turun en iyisi.';
+
+  @override
+  String get chatGameFightDisputed =>
+      'Telefonlar aynı fikirde değildi. Beraberlik sayılır.';
+
+  @override
+  String get howToFight1 =>
+      'Hareket etmek için soldaki çubuğu sürükle. Hafif, Ağır, Özel ve Takla sağda. Klavyede: WASD veya oklar, J, K, L ve Boşluk.';
+
+  @override
+  String get howToFight2 =>
+      '2 çubuk gücün olunca Süper yanar. Klavyede I tuşuna bas.';
+
+  @override
+  String get howToFight3 =>
+      'Savunmak için geri tut. Alt vuruşları savuşturmak için çömel. Üstten vuruşlar ayakta savuşturulmalı.';
+
+  @override
+  String get howToFight4 =>
+      'Yakındayken Hafif ve Ağır birlikte basılırsa fırlatma olur. Savunmayı aşar.';
+
+  @override
+  String get howToFight5 =>
+      'Hafif, Hafif, Ağır bir özel hamleye bağlanır. Zinciri vur ve iptal ederek büyük bir kombo yap.';
+
+  @override
+  String get howToFight6 =>
+      'Dövüştükçe gücün dolar. EX özel hamle 1 çubuk, Süper 2 çubuk harcar.';
+
+  @override
+  String get howToFight7 =>
+      'Üç turun en iyisi, her tur 60 saniye. Maçı almak için iki tur kazan.';
+
+  @override
+  String get fightOnlineMenuTitle => 'Dövüş devam ediyor';
+
+  @override
+  String get fightOnlineBackToFight => 'Dövüşe dön';
+
+  @override
+  String get fightOnlineForfeit => 'Pes et';
+
+  @override
+  String get fightOnlineBackToChat => 'Sohbete dön';
+
+  @override
+  String get fightOnlineWaitingOpponent => 'Birinin katılması bekleniyor';
+
+  @override
+  String get fightOnlineJoin => 'Dövüşe katıl';
+
+  @override
+  String get fightOnlineReady => 'Hazırım';
+
+  @override
+  String get fightOnlineReadyDone => 'Hazır';
+
+  @override
+  String fightOnlineWaitingReady(String name) {
+    return '$name bekleniyor';
+  }
+
+  @override
+  String get fightOnlineReadyHint =>
+      'İkiniz de hazır olduğunuzda dövüş başlar.';
+
+  @override
+  String fightOnlineConnecting(String name) {
+    return '$name ile bağlanılıyor…';
+  }
+
+  @override
+  String fightOnlineCouldNotConnect(String name) {
+    return '$name ile bağlantı kurulamadı. Bağlantını kontrol edip tekrar dene.';
+  }
+
+  @override
+  String get fightOnlineTryAgain => 'Tekrar dene';
+
+  @override
+  String get fightOnlineLost => 'Bağlantı koptu';
+
+  @override
+  String fightOnlinePing(int ms) {
+    return 'Ping $ms ms';
+  }
+
+  @override
+  String get fightOnlineResultDisputed =>
+      'Telefonlarınız sonuçta anlaşamadı, bu yüzden berabere sayılıyor.';
+
+  @override
+  String fightOnlineResultLeft(String name) {
+    return '$name dövüşten ayrıldı.';
+  }
 }

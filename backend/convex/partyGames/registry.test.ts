@@ -12,5 +12,5 @@ test("party and turn games never share an id", () => {
     expect(partyRulesFor(id)?.id).toBe(id);
   }
   expect(partyRulesFor("toString")).toBeNull();
-  expect(Object.keys(partyGames).sort()).toEqual(["imposter", "liarsdice", "race"]);
+  expect(Object.keys(partyGames).sort()).toEqual(["fight", "imposter", "liarsdice", "race"]);
 });

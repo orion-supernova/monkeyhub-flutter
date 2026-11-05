@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +12,10 @@ import '../../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../../widgets/spring_press.dart';
 import '../core/bot.dart' as fb;
 import '../core/core.dart';
+import '../core/fight_step.dart' as fight;
 import 'art/fight_art.dart';
+import 'fight_audio.dart';
+import 'fight_audio_toggles.dart';
 import 'fight_controls.dart';
 import 'fight_renderer.dart';
 
@@ -62,11 +67,80 @@ class FightPainter extends CustomPainter {
 /// accumulated and the engine stepped once per 1/60 s, so the fight plays at
 /// the same speed on a 60, 90 or 120 Hz screen (the painter simply redraws
 /// the latest sim frame on every vsync).
-class FightScreen extends StatefulWidget {
-  const FightScreen({super.key, required this.player, required this.opponent, required this.level});
+/// What moves the fight forward one fixed step: the bot locally, or the
+/// rollback session online. The screen owns the clock, input, drawing and
+/// overlays; the driver owns the simulation.
+abstract class FightDriver {
+  FightState get state;
+
+  /// Which fighter this screen controls.
+  int get localIndex;
+
+  /// Bot fights pause and restart; online fights cannot.
+  bool get offline;
+
+  /// One 1/60 s step with the local player's input.
+  void step(int localInput);
+
+  /// A fresh match (offline only).
+  void restart();
+
+  /// True once the match is over for good (online: every input up to the
+  /// end confirmed, the result reported). Drives the result overlay.
+  bool get finished;
+
+  /// Shown over the fight when set (e.g. a lost connection).
+  ValueListenable<String?> get notice;
+}
+
+/// The bot opponent: plain [step] on a local state.
+class BotFightDriver implements FightDriver {
+  BotFightDriver({required this.player, required this.opponent, required this.level}) {
+    restart();
+  }
 
   final CharacterDef player, opponent;
   final fb.BotLevel level;
+  late FightState _s;
+  late fb.FightBot _bot;
+  int _seed = DateTime.now().microsecondsSinceEpoch & 0x3fffffff;
+
+  @override
+  FightState get state => _s;
+  @override
+  int get localIndex => 0;
+  @override
+  bool get offline => true;
+  @override
+  final ValueNotifier<String?> notice = ValueNotifier(null);
+
+  @override
+  void step(int localInput) => fight.step(_s, localInput, _bot.decide(_s, 1));
+
+  @override
+  void restart() {
+    _seed = (_seed * 1103515245 + 12345) & 0x3fffffff;
+    _s = FightState.initial(seed: _seed, p1: player, p2: opponent);
+    _bot = fb.FightBot(seed: _seed ^ 0x5bd1e995, level: level);
+  }
+
+  @override
+  bool get finished => _s.phase == Phase.over;
+}
+
+class FightScreen extends StatefulWidget {
+  FightScreen({super.key, required CharacterDef player, required CharacterDef opponent, required fb.BotLevel level, this.onExit})
+    : driver = BotFightDriver(player: player, opponent: opponent, level: level),
+      names = [player.name, opponent.name];
+
+  /// An externally driven fight (online). [names] by fighter index.
+  const FightScreen.driven({super.key, required this.driver, required this.names, this.onExit});
+
+  final FightDriver driver;
+  final List<String> names;
+
+  /// Leaving the fight (quit, back to chat). Defaults to popping the route.
+  final VoidCallback? onExit;
 
   @override
   State<FightScreen> createState() => _FightScreenState();
@@ -75,8 +149,8 @@ class FightScreen extends StatefulWidget {
 class _FightScreenState extends State<FightScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   static const Duration _step = Duration(microseconds: 16667);
 
-  late FightState _s;
-  late fb.FightBot _bot;
+  FightDriver get _d => widget.driver;
+  FightState get _s => _d.state;
   final FightInput _input = FightInput();
   final FightRenderer _renderer = FightRenderer();
   final ValueNotifier<int> _frame = ValueNotifier(0);
@@ -86,7 +160,6 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
   Duration _last = Duration.zero, _acc = Duration.zero;
   bool _paused = false, _over = false;
   int _seenEventFrame = -1;
-  int _seed = DateTime.now().microsecondsSinceEpoch & 0x3fffffff;
 
   @override
   void initState() {
@@ -96,12 +169,10 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
     _newMatch();
     _ticker = createTicker(_tick)..start();
     SettingsStore.instance.addListener(_onSettings);
+    unawaited(FightAudio.instance.open().then((_) => FightAudio.instance.startMusic()));
   }
 
   void _newMatch() {
-    _seed = (_seed * 1103515245 + 12345) & 0x3fffffff;
-    _s = FightState.initial(seed: _seed, p1: widget.player, p2: widget.opponent);
-    _bot = fb.FightBot(seed: _seed ^ 0x5bd1e995, level: widget.level);
     _renderer.resetCamera();
     _seenEventFrame = -1;
     _over = false;
@@ -115,20 +186,21 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
   void _tick(Duration now) {
     var dt = now - _last;
     _last = now;
-    if (_paused) return;
+    if (_paused && _d.offline) return;
     if (dt > const Duration(milliseconds: 100)) dt = const Duration(milliseconds: 100); // after a stall, don't fast-forward
     _acc += dt;
     var stepped = false;
     while (_acc >= _step) {
       _acc -= _step;
-      step(_s, _input.mask, _bot.decide(_s, 1));
+      _d.step(_paused ? 0 : _input.mask);
       stepped = true;
     }
     if (!stepped) return;
     _feedback();
-    _superReady.value = _s.p[0].meter >= superCost;
+    FightAudio.instance.onFrame(_s, localPlayer: _d.localIndex);
+    _superReady.value = _s.p[_d.localIndex].meter >= superCost;
     _frame.value = _s.frame;
-    if (_s.phase == Phase.over && !_over) {
+    if (_d.finished && !_over) {
       _over = true;
       _input.clear();
       setState(() {});
@@ -157,21 +229,33 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
 
   void _setPaused(bool p) {
     if (_paused == p || _over) return;
+    // Online the fight runs on regardless: the menu is a menu, not a pause.
     _input.clear();
+    FightAudio.instance.ui(FightUiSound.tick);
+    FightAudio.instance.duck(p);
     setState(() => _paused = p);
     if (!p) _focus.requestFocus();
   }
 
+  void _exit() {
+    final exit = widget.onExit;
+    if (exit != null) {
+      exit();
+    } else {
+      Navigator.of(context).maybePop();
+    }
+  }
+
   void _restart() {
+    _d.restart();
     _newMatch();
-    _bot.reset();
     setState(() => _paused = false);
     _focus.requestFocus();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) _setPaused(true);
+    if (state != AppLifecycleState.resumed && _d.offline) _setPaused(true);
   }
 
   @override
@@ -179,6 +263,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
     SettingsStore.instance.removeListener(_onSettings);
     WidgetsBinding.instance.removeObserver(this);
     _ticker.dispose();
+    unawaited(FightAudio.instance.close());
     _renderer.dispose();
     _frame.dispose();
     _superReady.dispose();
@@ -200,7 +285,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
         renderer: _renderer,
         state: () => _s,
         look: look,
-        names: [widget.player.name, widget.opponent.name],
+        names: widget.names,
         text: fightHudText(l10n),
         repaint: _frame,
       ),
@@ -287,6 +372,25 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
                         right: 0,
                         child: Center(child: _RoundIconButton(icon: CupertinoIcons.pause_fill, onTap: () => _setPaused(true))),
                       ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: pad.top + box.maxHeight * 0.32,
+                      child: IgnorePointer(
+                        child: ValueListenableBuilder<String?>(
+                          valueListenable: _d.notice,
+                          builder: (context, n, _) => n == null
+                              ? const SizedBox.shrink()
+                              : Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    decoration: BoxDecoration(color: const Color(0xcc000000), borderRadius: BorderRadius.circular(14)),
+                                    child: Text(n, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
                     if (_paused) Positioned.fill(child: _pauseMenu(l10n, look)),
                     if (_over) Positioned.fill(child: _resultCard(l10n)),
                   ],
@@ -302,31 +406,39 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
   Widget _pauseMenu(AppLocalizations l10n, FightLook look) {
     return _Scrim(
       child: _Panel(
-        title: l10n.fightPaused,
+        // Online the fight keeps running behind the menu: it says so.
+        title: _d.offline ? l10n.fightPaused : l10n.fightOnlineMenuTitle,
         children: [
           _LookPicker(look: look),
+          const SizedBox(height: 10),
+          const FightAudioToggles(),
           const SizedBox(height: 16),
-          _MenuButton(label: l10n.fightResume, primary: true, onTap: () => _setPaused(false)),
+          _MenuButton(label: _d.offline ? l10n.fightResume : l10n.fightOnlineBackToFight, primary: true, onTap: () => _setPaused(false)),
+          if (_d.offline) ...[
+            const SizedBox(height: 10),
+            _MenuButton(label: l10n.fightRestart, onTap: _restart),
+          ],
           const SizedBox(height: 10),
-          _MenuButton(label: l10n.fightRestart, onTap: _restart),
-          const SizedBox(height: 10),
-          _MenuButton(label: l10n.fightQuit, onTap: () => Navigator.of(context).maybePop()),
+          _MenuButton(label: _d.offline ? l10n.fightQuit : l10n.fightOnlineForfeit, onTap: _exit),
         ],
       ),
     );
   }
 
   Widget _resultCard(AppLocalizations l10n) {
-    final w = _s.matchWinner;
-    final title = w == 0 ? l10n.fightYouWin : (w == 1 ? l10n.fightYouLose : l10n.fightDrawResult);
+    final w = _s.matchWinner, me = _d.localIndex;
+    final won = w == me, lost = w == 1 - me;
+    final title = won ? l10n.fightYouWin : (lost ? l10n.fightYouLose : l10n.fightDrawResult);
     return _Scrim(
       child: _Panel(
         title: title,
-        accent: w == 0 ? const Color(0xffffd23a) : (w == 1 ? const Color(0xffff4f6e) : Colors.white),
+        accent: won ? const Color(0xffffd23a) : (lost ? const Color(0xffff4f6e) : Colors.white),
         children: [
-          _MenuButton(label: l10n.fightRematch, primary: true, onTap: _restart),
-          const SizedBox(height: 10),
-          _MenuButton(label: l10n.fightQuit, onTap: () => Navigator.of(context).maybePop()),
+          if (_d.offline) ...[
+            _MenuButton(label: l10n.fightRematch, primary: true, onTap: _restart),
+            const SizedBox(height: 10),
+          ],
+          _MenuButton(label: _d.offline ? l10n.fightQuit : l10n.fightOnlineBackToChat, primary: !_d.offline, onTap: _exit),
         ],
       ),
     );
@@ -387,7 +499,8 @@ class _Scrim extends StatelessWidget {
     // a full-screen blur every frame.
     return ColoredBox(
       color: const Color(0xb3070510),
-      child: Center(child: Padding(padding: const EdgeInsets.all(24), child: child)),
+      // Scrolls rather than overflows: a landscape phone is under 400 pt tall.
+      child: Center(child: SingleChildScrollView(padding: const EdgeInsets.all(24), child: child)),
     );
   }
 }

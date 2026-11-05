@@ -39,6 +39,7 @@ Duration partyPhaseLength(String game, String phase) => switch ((game, phase)) {
   ('imposter', 'guess') => const Duration(seconds: 30),
   ('imposter', _) => const Duration(seconds: 40),
   ('race', _) => const Duration(minutes: 10),
+  ('fight', _) => const Duration(seconds: 60),
   _ => const Duration(seconds: 45),
 };
 

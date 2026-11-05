@@ -14065,4 +14065,100 @@ class AppLocalizationsKo extends AppLocalizations {
   String fightHudHits(int count) {
     return '$count 히트';
   }
+
+  @override
+  String get fightSoundLabel => '효과음';
+
+  @override
+  String get fightMusicLabel => '음악';
+
+  @override
+  String get chatGameDescFight => '실시간 1대1 격투. 3라운드 승부.';
+
+  @override
+  String get chatGameFightDisputed => '두 휴대폰의 결과가 달랐어요. 무승부로 처리돼요.';
+
+  @override
+  String get howToFight1 =>
+      '왼쪽 스틱을 끌어 움직여요. 오른쪽에 약공격, 강공격, 특수기, 구르기 버튼이 있어요. 키보드는 WASD 또는 방향키, J, K, L, 스페이스바.';
+
+  @override
+  String get howToFight2 => '게이지가 2칸 차면 슈퍼가 켜져요. 키보드에서는 I 키예요.';
+
+  @override
+  String get howToFight3 => '뒤로 누르고 있으면 막아요. 하단 공격은 앉아서 막고, 상단 공격은 서서 막아야 해요.';
+
+  @override
+  String get howToFight4 => '가까이에서 약공격과 강공격을 동시에 누르면 잡기예요. 방어를 뚫을 수 있어요.';
+
+  @override
+  String get howToFight5 =>
+      '약, 약, 강으로 이어서 특수기로 캔슬할 수 있어요. 연결 공격을 맞히고 캔슬하면 큰 콤보가 돼요.';
+
+  @override
+  String get howToFight6 => '싸울수록 게이지가 차요. EX 특수기는 1칸, 슈퍼는 2칸이 필요해요.';
+
+  @override
+  String get howToFight7 => '3라운드 승부, 라운드당 60초예요. 두 라운드를 이기면 승리해요.';
+
+  @override
+  String get fightOnlineMenuTitle => '싸움은 계속돼요';
+
+  @override
+  String get fightOnlineBackToFight => '싸움으로 돌아가기';
+
+  @override
+  String get fightOnlineForfeit => '기권';
+
+  @override
+  String get fightOnlineBackToChat => '채팅으로 돌아가기';
+
+  @override
+  String get fightOnlineWaitingOpponent => '상대가 들어오길 기다리는 중';
+
+  @override
+  String get fightOnlineJoin => '싸움 참가';
+
+  @override
+  String get fightOnlineReady => '준비 완료';
+
+  @override
+  String get fightOnlineReadyDone => '준비됨';
+
+  @override
+  String fightOnlineWaitingReady(String name) {
+    return '$name 님을 기다리는 중';
+  }
+
+  @override
+  String get fightOnlineReadyHint => '둘 다 준비되면 바로 시작해요.';
+
+  @override
+  String fightOnlineConnecting(String name) {
+    return '$name 님과 연결 중…';
+  }
+
+  @override
+  String fightOnlineCouldNotConnect(String name) {
+    return '$name 님과 연결하지 못했어요. 연결 상태를 확인하고 다시 시도하세요.';
+  }
+
+  @override
+  String get fightOnlineTryAgain => '다시 시도';
+
+  @override
+  String get fightOnlineLost => '연결이 끊겼어요';
+
+  @override
+  String fightOnlinePing(int ms) {
+    return '핑 ${ms}ms';
+  }
+
+  @override
+  String get fightOnlineResultDisputed => '두 휴대폰의 결과가 달라서 무승부로 처리됐어요.';
+
+  @override
+  String fightOnlineResultLeft(String name) {
+    return '$name 님이 싸움에서 나갔어요.';
+  }
 }

@@ -21,6 +21,7 @@ import '../calls/call_button.dart';
 import '../chat_games/active_games_banner.dart';
 import '../chat_games/game_start_sheet.dart';
 import '../data/matches_store.dart';
+import '../fight/view/fight_online_screen.dart';
 import '../backend/matches_api.dart';
 import 'games/match_screen.dart';
 import '../calls/call_models.dart';
@@ -3229,6 +3230,10 @@ class _RoomScreenState extends State<_RoomView>
       if (!mounted) return;
       // Straight to the table: a live lobby to fill, or an async board where
       // the creator moves first.
+      if (draft.game == 'fight') {
+        await openFightMatchById(context, matchId: created.matchId, userId: me);
+        return;
+      }
       await nav.push(
         MaterialPageRoute<void>(
           builder: (_) =>
