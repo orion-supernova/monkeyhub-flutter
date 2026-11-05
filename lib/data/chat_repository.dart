@@ -425,13 +425,53 @@ class ChatRepository extends ChangeNotifier {
   String? _openTypingRoomId;
   List<ChatUser> _openTypingUsers = const [];
 
-  List<ChatUser> typingIn(String roomId) => List.unmodifiable(
-        // The room's own subscription is authoritative for the room it covers,
-        // including when it says nobody is typing.
-        roomId == _openTypingRoomId
-            ? _openTypingUsers
-            : (_typingByRoom[roomId] ?? const []),
+  /// When each indicator stops being true, in server epoch millis: per
+  /// typist for the open room, per room for the list. Sent by the server
+  /// (`typingUntil` / `withUntil`), because the queries behind both are cached
+  /// until the table changes, NOT until time passes. Without these, a typist
+  /// whose phone died mid-word kept "typing", and a room opened minutes later
+  /// was served that cached answer and flashed it before anything corrected
+  /// it. Absent (an older server) means "trust the list".
+  Map<String, int> _openTypingUntil = const {};
+  final Map<String, int> _typingUntilByRoom = {};
+
+  /// Repaints the moment the soonest indicator lapses, so it goes away on
+  /// time with nothing else happening in the room.
+  Timer? _typingExpiry;
+
+  bool _typingLive(int? until) =>
+      until == null || until > serverNow.millisecondsSinceEpoch;
+
+  List<ChatUser> typingIn(String roomId) {
+    // The room's own subscription is authoritative for the room it covers,
+    // including when it says nobody is typing.
+    if (roomId == _openTypingRoomId) {
+      return List.unmodifiable(
+        _openTypingUsers.where((u) => _typingLive(_openTypingUntil[u.id])),
       );
+    }
+    if (!_typingLive(_typingUntilByRoom[roomId])) return const [];
+    return List.unmodifiable(_typingByRoom[roomId] ?? const []);
+  }
+
+  void _armTypingExpiry() {
+    _typingExpiry?.cancel();
+    _typingExpiry = null;
+    final now = serverNow.millisecondsSinceEpoch;
+    int? soonest;
+    for (final t in [..._openTypingUntil.values, ..._typingUntilByRoom.values]) {
+      if (t > now && (soonest == null || t < soonest)) soonest = t;
+    }
+    if (soonest == null) return;
+    _typingExpiry = Timer(
+      Duration(milliseconds: soonest - now + 50),
+      () {
+        _typingExpiry = null;
+        notifyListeners();
+        _armTypingExpiry();
+      },
+    );
+  }
 
   Subscription? _roomsSub;
   Subscription? _friendsSub;
@@ -1164,11 +1204,24 @@ class ChatRepository extends ChangeNotifier {
     // Global typing — used to surface a thin indicator on room cards.
     _globalTypingSub = await cv.subscribe(
       'typing:getTypingForUser',
-      {'userId': userId},
+      {'userId': userId, 'withUntil': true},
       onData: (data) {
         _typingByRoom.clear();
-        if (data is Map) {
-          data.forEach((roomId, names) {
+        _typingUntilByRoom.clear();
+        // `{rooms, until}` from a server that knows `withUntil`; the bare
+        // room map from one that does not.
+        var rooms = data;
+        if (data is Map && data['rooms'] is Map) {
+          rooms = data['rooms'];
+          final until = data['until'];
+          if (until is Map) {
+            until.forEach((roomId, t) {
+              if (t is num) _typingUntilByRoom[roomId.toString()] = t.toInt();
+            });
+          }
+        }
+        if (rooms is Map) {
+          rooms.forEach((roomId, names) {
             if (names is List) {
               // This stream carries names only — the room list renders a
               // label, not avatars. Wrapped in a name-only [ChatUser] so the
@@ -1183,6 +1236,7 @@ class ChatRepository extends ChangeNotifier {
             }
           });
         }
+        _armTypingExpiry();
         notifyListeners();
       },
       onError: (err) => debugPrint('typing(global) sub error: $err'),
@@ -1485,6 +1539,10 @@ class ChatRepository extends ChangeNotifier {
     _globalTypingSub?.cancel();
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
+    _typingExpiry?.cancel();
+    _typingExpiry = null;
+    _typingUntilByRoom.clear();
+    _openTypingUntil = const {};
     // Signing out has to take this one with it too: left live, it keeps
     // writing the previous account's read receipts into `_activeReadState`
     // for whoever signs in next.
@@ -2706,10 +2764,15 @@ class ChatRepository extends ChangeNotifier {
         {'roomId': roomId, 'currentUserId': id},
         onData: (data) {
           final list = (data as List?) ?? const [];
-          _openTypingUsers = list
-              .whereType<Map>()
-              .map((e) => ChatUser.fromJson(e.cast<String, dynamic>()))
-              .toList();
+          final rows = list.whereType<Map>().map((e) => e.cast<String, dynamic>());
+          _openTypingUsers = rows.map(ChatUser.fromJson).toList();
+          _openTypingUntil = {
+            for (final r in rows)
+              if (r['typingUntil'] is num)
+                (r['_id'] ?? r['id']).toString():
+                    (r['typingUntil'] as num).toInt(),
+          };
+          _armTypingExpiry();
           notifyListeners();
         },
         onError: (err) => debugPrint('typing(room) sub error: $err'),

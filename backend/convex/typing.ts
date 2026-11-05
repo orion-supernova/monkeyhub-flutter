@@ -51,6 +51,13 @@ function typistOf(lens: any, row: any, name: string, face: any) {
     _id: row.userId,
     username: "",
     name,
+    // When this indicator stops being true, by the server's clock. A query
+    // that compares against `Date.now()` is cached until the table changes,
+    // not until time passes, so a typist whose phone died mid-word kept
+    // "typing" in every subscription, and a client opening the room minutes
+    // later was served that cached answer. The client hides the typist once
+    // this passes (see `ChatRepository.typingIn`). Old builds ignore it.
+    typingUntil: row.updatedAt + TYPING_TTL_MS,
     avatarStorageId: lens.canSee(subject, "avatar")
       ? face.avatarStorageId
       : undefined,
@@ -159,8 +166,18 @@ export const clearTyping = mutation({
 /// typing text on every app build already in users' hands. The in-room
 /// indicator, which does need avatars, uses `getTypingUsers` below.
 export const getTypingForUser = query({
-  args: { userId: v.id("users"), roomId: v.optional(v.id("rooms")) },
-  handler: async (ctx, { userId, roomId }) => {
+  args: {
+    userId: v.id("users"),
+    roomId: v.optional(v.id("rooms")),
+    /**
+     * Answer `{ rooms, until }` instead of the bare map: `until[roomId]` is
+     * when that room's newest indicator expires, for the same reason as
+     * `typingUntil` in `getTypingUsers`. Opt-in, because builds already in
+     * people's hands read every key of the bare map as a room.
+     */
+    withUntil: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { userId, roomId, withUntil }) => {
     const now = Date.now();
     const memberships = roomId
       ? await ctx.db
@@ -173,6 +190,7 @@ export const getTypingForUser = query({
           .collect();
 
     const result: Record<string, string[]> = {};
+    const until: Record<string, number> = {};
     // One profile lookup per distinct typist across every room.
     const nameFor = nameResolver(ctx);
     for (const m of memberships) {
@@ -194,10 +212,14 @@ export const getTypingForUser = query({
         const names = (
           await Promise.all(active.map((t) => nameFor(t.userId, t.userName)))
         ).filter((n): n is string => Boolean(n));
-        if (names.length > 0) result[m.roomId.toString()] = names;
+        if (names.length > 0) {
+          result[m.roomId.toString()] = names;
+          until[m.roomId.toString()] =
+            Math.max(...active.map((t) => t.updatedAt)) + TYPING_TTL_MS;
+        }
       }
     }
-    return result;
+    return withUntil ? { rooms: result, until } : result;
   },
 });
 
