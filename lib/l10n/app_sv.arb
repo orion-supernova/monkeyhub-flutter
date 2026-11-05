@@ -4076,5 +4076,12 @@
   "fightOnlineResultDisputed": "Era telefoner var oense om resultatet, så det räknas som oavgjort.",
   "fightOnlineResultLeft": "{name} lämnade striden.",
   "fightOnlineUpdateHint": "Ni behöver båda den senaste versionen av MonkeyHub.",
-  "fightGamepadHint": "Handkontroll: styrspak eller riktningsknappar för att röra dig. A lätt, X tung, B special, Y super, RB rulle, Start pausar."
+  "fightGamepadHint": "Handkontroll: styrspak eller riktningsknappar för att röra dig. A lätt, X tung, B special, Y super, RB rulle, Start pausar.",
+  "fightFamilyHuman": "Människa",
+  "fightFamilyMonkey": "Apa",
+  "fightFamilyAnimal": "Djur",
+  "fightFamilyLegend": "Legend",
+  "fightPickFighter": "Välj din fighter",
+  "fightTapToChange": "Tryck för att byta",
+  "fightOpponentHidden": "Avslöjas vid start"
 }

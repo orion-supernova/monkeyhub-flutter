@@ -14002,4 +14002,25 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get fightGamepadHint =>
       '手柄：用摇杆或方向键移动。A 轻击，X 重击，B 特殊技，Y 超必杀，RB 翻滚，Start 暂停。';
+
+  @override
+  String get fightFamilyHuman => '人类';
+
+  @override
+  String get fightFamilyMonkey => '猴子';
+
+  @override
+  String get fightFamilyAnimal => '动物';
+
+  @override
+  String get fightFamilyLegend => '传说';
+
+  @override
+  String get fightPickFighter => '选择你的角色';
+
+  @override
+  String get fightTapToChange => '轻点更换';
+
+  @override
+  String get fightOpponentHidden => '开局时揭晓';
 }

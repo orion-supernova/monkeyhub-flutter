@@ -14779,4 +14779,25 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get fightGamepadHint =>
       'कंट्रोलर: चलने के लिए स्टिक या D-pad। A हल्का, X भारी, B स्पेशल, Y सुपर, RB रोल, Start से पॉज़।';
+
+  @override
+  String get fightFamilyHuman => 'इंसान';
+
+  @override
+  String get fightFamilyMonkey => 'बंदर';
+
+  @override
+  String get fightFamilyAnimal => 'जानवर';
+
+  @override
+  String get fightFamilyLegend => 'किंवदंती';
+
+  @override
+  String get fightPickFighter => 'अपना फ़ाइटर चुनें';
+
+  @override
+  String get fightTapToChange => 'बदलने के लिए टैप करें';
+
+  @override
+  String get fightOpponentHidden => 'शुरुआत में पता चलेगा';
 }

@@ -14837,4 +14837,25 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get fightGamepadHint =>
       'Handkontroll: styrspak eller riktningsknappar för att röra dig. A lätt, X tung, B special, Y super, RB rulle, Start pausar.';
+
+  @override
+  String get fightFamilyHuman => 'Människa';
+
+  @override
+  String get fightFamilyMonkey => 'Apa';
+
+  @override
+  String get fightFamilyAnimal => 'Djur';
+
+  @override
+  String get fightFamilyLegend => 'Legend';
+
+  @override
+  String get fightPickFighter => 'Välj din fighter';
+
+  @override
+  String get fightTapToChange => 'Tryck för att byta';
+
+  @override
+  String get fightOpponentHidden => 'Avslöjas vid start';
 }

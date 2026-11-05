@@ -14,6 +14,7 @@ import '../../widgets/spring_press.dart';
 import '../core/core.dart';
 import '../net/fight_link.dart';
 import '../net/rollback_session.dart';
+import 'fight_character_grid.dart';
 import 'fight_screen.dart';
 import 'fighter_portrait.dart';
 
@@ -93,10 +94,13 @@ class OnlineFightDriver implements FightDriver {
     required this.report,
     required this.lostText,
     required this.pingText,
+    List<CharacterDef>? chars,
+    Duration startDelay = Duration.zero,
   }) {
+    final c = chars ?? [roster[0], roster[0]];
     session = RollbackSession(
       localIndex: localIndex,
-      initial: FightState.initial(seed: seed, p1: roster[0], p2: roster[0]),
+      initial: FightState.initial(seed: seed, p1: c[0], p2: c[1]),
       send: link.sendInput,
       onDesync: (frame, mine, theirs) {
         debugPrint('OnlineFightDriver: desync at $frame ($mine vs $theirs)');
@@ -105,7 +109,8 @@ class OnlineFightDriver implements FightDriver {
     );
     link.onInput = session.receive;
     link.onControl = _control;
-    if (localIndex == 0) unawaited(_pingThenGo());
+    // Seat 0 starts the handshake once the VS reveal has played on both.
+    if (localIndex == 0) unawaited(Future<void>.delayed(startDelay, _pingThenGo));
   }
 
   final FightPipe link;
@@ -246,6 +251,16 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
   OnlineFightDriver? _driver;
   bool _busy = false, _connectFailed = false;
 
+  /// This player's fighter (from settings, changeable on their card in the
+  /// lobby) and the opponent's, learned over the link when it opens. Picks
+  /// are swapped phone to phone, never through the server, and both are
+  /// revealed together on the VS screen.
+  int _myPick = fightCharOf(SettingsStore.instance.fightChar);
+  int? _peerPick;
+  Timer? _peerPickTimeout;
+  DateTime? _revealUntil;
+  static const Duration _reveal = Duration(milliseconds: 2400);
+
   @override
   void initState() {
     super.initState();
@@ -289,16 +304,21 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
     if (link == null || !mounted) return;
     final l10n = AppLocalizations.of(context);
     switch (link.state.value) {
-      case FightLinkState.open when _driver == null:
+      case FightLinkState.open when _driver == null && _peerPickTimeout == null:
         HapticFeedback.mediumImpact();
-        _driver = OnlineFightDriver(
-          link: link,
-          localIndex: _mySeat,
-          seed: fightSeedFor(widget.matchId),
-          report: _mc.act,
-          lostText: l10n.fightOnlineLost,
-          pingText: l10n.fightOnlinePing,
-        );
+        link.onControl = (m) {
+          if (m['t'] == 'pick' && _peerPick == null) {
+            _peerPick = fightCharOf((m['c'] as num?)?.toInt() ?? 0);
+            _beginFight(l10n);
+          }
+        };
+        link.sendControl({'t': 'pick', 'c': _myPick});
+        // A build from before fighter picks never sends one: it plays KAI.
+        _peerPickTimeout = Timer(const Duration(seconds: 3), () {
+          if (_peerPick != null) return;
+          _peerPick = 0;
+          _beginFight(l10n);
+        });
       case FightLinkState.failed when _driver == null:
         _connectFailed = true;
       default:
@@ -307,10 +327,46 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
     setState(() {});
   }
 
+  void _beginFight(AppLocalizations l10n) {
+    final link = _link, peer = _peerPick;
+    if (link == null || peer == null || _driver != null || !mounted) return;
+    _peerPickTimeout?.cancel();
+    final seat = _mySeat;
+    final picks = seat == 0 ? [_myPick, peer] : [peer, _myPick];
+    _revealUntil = DateTime.now().add(_reveal);
+    _driver = OnlineFightDriver(
+      link: link,
+      localIndex: seat,
+      seed: fightSeedFor(widget.matchId),
+      report: _mc.act,
+      lostText: l10n.fightOnlineLost,
+      pingText: l10n.fightOnlinePing,
+      chars: [roster[picks[0]], roster[picks[1]]],
+      startDelay: _reveal,
+    );
+    HapticFeedback.heavyImpact();
+    Timer(_reveal, () {
+      if (mounted) setState(() {});
+    });
+    setState(() {});
+  }
+
+  Future<void> _pickFighter() async {
+    final look = fightLookOf(SettingsStore.instance.fightLook);
+    final id = await showFightCharacterPicker(context, current: _myPick, look: look);
+    if (id == null || !mounted) return;
+    setState(() => _myPick = id);
+    unawaited(SettingsStore.instance.setFightChar(id));
+  }
+
   Future<void> _retry() async {
     final old = _link;
     _link = null;
     _driver = null;
+    _peerPick = null;
+    _peerPickTimeout?.cancel();
+    _peerPickTimeout = null;
+    _revealUntil = null;
     old?.state.removeListener(_onLink);
     await old?.close();
     if (!mounted) return;
@@ -320,7 +376,7 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
 
   _Phase get _phase {
     final m = _m;
-    if (_driver != null) return _Phase.fighting;
+    if (_driver != null) return _Phase.fighting; // the VS reveal
     if (m == null || m.status == MatchStatus.lobby) return _Phase.lobby;
     if (!m.status.isOpen) return _Phase.over;
     if (_connectFailed) return _Phase.failed;
@@ -366,6 +422,7 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
   void dispose() {
     _mc.removeListener(_onMatch);
     _link?.state.removeListener(_onLink);
+    _peerPickTimeout?.cancel();
     unawaited(_link?.close());
     _mc.dispose();
     super.dispose();
@@ -381,7 +438,8 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
   @override
   Widget build(BuildContext context) {
     final d = _driver;
-    if (d != null) {
+    final revealing = d != null && (_revealUntil?.isAfter(DateTime.now()) ?? false);
+    if (d != null && !revealing) {
       return FightScreen.driven(driver: d, names: _names, onExit: _leave);
     }
     final l10n = AppLocalizations.of(context);
@@ -521,12 +579,33 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
         const Spacer(),
         Row(
           children: [
-            Expanded(child: FightSeatCard(name: left?.name, ready: left?.ready ?? false, tone: 0, height: cardH)),
+            Expanded(
+              child: FightSeatCard(
+                name: left?.name,
+                ready: left?.ready ?? false,
+                tone: 0,
+                height: cardH,
+                charId: mine >= 0 ? _myPick : null,
+                hint: mine >= 0 && _phase == _Phase.lobby ? l10n.fightTapToChange : null,
+                onTap: mine >= 0 && _phase == _Phase.lobby ? _pickFighter : null,
+              ),
+            ),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 10),
               child: Text('VS', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, color: Colors.white)),
             ),
-            Expanded(child: FightSeatCard(name: right?.name, ready: right?.ready ?? false, tone: 1, height: cardH)),
+            Expanded(
+              child: FightSeatCard(
+                name: right?.name,
+                ready: _phase == _Phase.fighting || (right?.ready ?? false),
+                tone: 1,
+                height: cardH,
+                // Hidden until the reveal; a spectator never sees picks.
+                charId: _phase == _Phase.fighting ? _peerPick : null,
+                alt: _peerPick != null && _peerPick == _myPick,
+                hint: right != null && _phase != _Phase.fighting ? l10n.fightOpponentHidden : null,
+              ),
+            ),
           ],
         ),
         SizedBox(height: box.maxHeight < 360 ? 12 : 28),
@@ -540,17 +619,35 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
 }
 
 class FightSeatCard extends StatelessWidget {
-  const FightSeatCard({super.key, required this.name, required this.ready, required this.tone, required this.height});
+  const FightSeatCard({
+    super.key,
+    required this.name,
+    required this.ready,
+    required this.tone,
+    required this.height,
+    this.charId,
+    this.hint,
+    this.onTap,
+    this.alt = false,
+  });
   final String? name;
   final bool ready;
   final int tone;
   final double height;
 
+  /// The fighter shown, or null for a hidden pick (a big question mark).
+  final int? charId;
+  final String? hint;
+  final VoidCallback? onTap;
+
+  /// The mirror-match outfit (both players on the same fighter).
+  final bool alt;
+
   @override
   Widget build(BuildContext context) {
     final colors = tone == 0 ? const [Color(0xff1fb5a8), Color(0xff0c3d3a)] : const [Color(0xffc8313b), Color(0xff3d0c14)];
     final look = fightLookOf(SettingsStore.instance.fightLook);
-    return SizedBox(
+    final card = SizedBox(
       height: height,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -563,12 +660,20 @@ class FightSeatCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // The fighter, alive: an empty seat shows a dim silhouette-free card.
-            if (name != null)
+            // The fighter, alive; a hidden pick is a question mark.
+            if (name != null && charId == null)
+              const Positioned.fill(
+                bottom: 44,
+                child: Center(
+                  child: Text('?', style: TextStyle(fontSize: 72, fontWeight: FontWeight.w900, color: Color(0x66ffffff))),
+                ),
+              ),
+            if (name != null && charId != null)
               Positioned.fill(
                 bottom: 44,
                 child: FighterPortrait(
-                  alt: tone == 1,
+                  charId: charId!,
+                  alt: alt,
                   facingLeft: tone == 1,
                   ready: ready,
                   look: look,
@@ -595,10 +700,13 @@ class FightSeatCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    roster[0].name,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xb3ffffff), letterSpacing: 1),
-                  ),
+                  if (charId != null || hint != null)
+                    Text(
+                      charId != null ? roster[charId!].name : hint!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xb3ffffff), letterSpacing: 1),
+                    ),
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
@@ -611,6 +719,8 @@ class FightSeatCard extends StatelessWidget {
         ),
       ),
     );
+    final tap = onTap;
+    return tap == null ? card : SpringPress(onTap: tap, scale: .96, semanticLabel: hint ?? name ?? '', child: card);
   }
 }
 

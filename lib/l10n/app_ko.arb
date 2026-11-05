@@ -4076,5 +4076,12 @@
   "fightOnlineResultDisputed": "두 휴대폰의 결과가 달라서 무승부로 처리됐어요.",
   "fightOnlineResultLeft": "{name} 님이 싸움에서 나갔어요.",
   "fightOnlineUpdateHint": "두 사람 모두 MonkeyHub 최신 버전이 필요해요.",
-  "fightGamepadHint": "컨트롤러: 스틱 또는 방향키로 이동. A 약공격, X 강공격, B 특수기, Y 슈퍼, RB 구르기, Start로 일시정지."
+  "fightGamepadHint": "컨트롤러: 스틱 또는 방향키로 이동. A 약공격, X 강공격, B 특수기, Y 슈퍼, RB 구르기, Start로 일시정지.",
+  "fightFamilyHuman": "인간",
+  "fightFamilyMonkey": "원숭이",
+  "fightFamilyAnimal": "동물",
+  "fightFamilyLegend": "전설",
+  "fightPickFighter": "파이터를 고르세요",
+  "fightTapToChange": "탭해서 변경",
+  "fightOpponentHidden": "시작할 때 공개"
 }

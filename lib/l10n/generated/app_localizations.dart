@@ -24618,6 +24618,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Controller: stick or D-pad to move. A light, X heavy, B special, Y super, RB roll, Start pauses.'**
   String get fightGamepadHint;
+
+  /// Fighter family label on a character card: a human fighter.
+  ///
+  /// In en, this message translates to:
+  /// **'Human'**
+  String get fightFamilyHuman;
+
+  /// Fighter family label on a character card: a monkey or ape fighter.
+  ///
+  /// In en, this message translates to:
+  /// **'Monkey'**
+  String get fightFamilyMonkey;
+
+  /// Fighter family label on a character card: an animal fighter (tiger, panda, fox, eagle...).
+  ///
+  /// In en, this message translates to:
+  /// **'Animal'**
+  String get fightFamilyAnimal;
+
+  /// Fighter family label on a character card: a mythical fighter (robot, ghost, dragon, golem, spirit).
+  ///
+  /// In en, this message translates to:
+  /// **'Legend'**
+  String get fightFamilyLegend;
+
+  /// Title of the fighter picker sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick your fighter'**
+  String get fightPickFighter;
+
+  /// Hint on your own fighter card in the online lobby.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to change'**
+  String get fightTapToChange;
+
+  /// On the opponent's card in the online lobby: their fighter is revealed when the fight starts.
+  ///
+  /// In en, this message translates to:
+  /// **'Revealed at the start'**
+  String get fightOpponentHidden;
 }
 
 class _AppLocalizationsDelegate

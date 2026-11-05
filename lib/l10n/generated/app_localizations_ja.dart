@@ -14135,4 +14135,25 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get fightGamepadHint =>
       'コントローラー: スティックか十字キーで移動。A 弱、X 強、B 必殺技、Y スーパー、RB ロール、Start で一時停止。';
+
+  @override
+  String get fightFamilyHuman => '人間';
+
+  @override
+  String get fightFamilyMonkey => 'サル';
+
+  @override
+  String get fightFamilyAnimal => '動物';
+
+  @override
+  String get fightFamilyLegend => '伝説';
+
+  @override
+  String get fightPickFighter => 'ファイターを選ぼう';
+
+  @override
+  String get fightTapToChange => 'タップで変更';
+
+  @override
+  String get fightOpponentHidden => '開始時に公開';
 }

@@ -17763,5 +17763,33 @@
   "fightGamepadHint": "Controller: stick or D-pad to move. A light, X heavy, B special, Y super, RB roll, Start pauses.",
   "@fightGamepadHint": {
     "description": "Controller controls shown on desktop under the keyboard hint, only while a game controller is connected. A, X, B, Y, RB are button names and stay as they are."
+  },
+  "fightFamilyHuman": "Human",
+  "@fightFamilyHuman": {
+    "description": "Fighter family label on a character card: a human fighter."
+  },
+  "fightFamilyMonkey": "Monkey",
+  "@fightFamilyMonkey": {
+    "description": "Fighter family label on a character card: a monkey or ape fighter."
+  },
+  "fightFamilyAnimal": "Animal",
+  "@fightFamilyAnimal": {
+    "description": "Fighter family label on a character card: an animal fighter (tiger, panda, fox, eagle...)."
+  },
+  "fightFamilyLegend": "Legend",
+  "@fightFamilyLegend": {
+    "description": "Fighter family label on a character card: a mythical fighter (robot, ghost, dragon, golem, spirit)."
+  },
+  "fightPickFighter": "Pick your fighter",
+  "@fightPickFighter": {
+    "description": "Title of the fighter picker sheet."
+  },
+  "fightTapToChange": "Tap to change",
+  "@fightTapToChange": {
+    "description": "Hint on your own fighter card in the online lobby."
+  },
+  "fightOpponentHidden": "Revealed at the start",
+  "@fightOpponentHidden": {
+    "description": "On the opponent's card in the online lobby: their fighter is revealed when the fight starts."
   }
 }

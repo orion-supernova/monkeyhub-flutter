@@ -11,8 +11,8 @@ import '../core/bot.dart' as fb;
 import '../core/core.dart';
 import 'art/fight_art.dart';
 import 'fight_renderer.dart';
+import 'fight_character_grid.dart';
 import 'fight_screen.dart';
-import 'fighter_portrait.dart';
 
 /// Jungle Fist's setup page, opened from Play the bot: a live bot-vs-bot
 /// demo up top, the fighter, and the three looks, each previewed live.
@@ -53,7 +53,11 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
 
   void _resetDemo() {
     _seed = (_seed * 48271) % 2147483647;
-    _demo = FightState.initial(seed: _seed, p1: roster[0], p2: roster[0]);
+    // The demo shows your pick against a different fighter each bout.
+    final me = fightCharOf(SettingsStore.instance.fightChar);
+    var other = _seed % roster.length;
+    if (other == me) other = (other + 1) % roster.length;
+    _demo = FightState.initial(seed: _seed, p1: roster[me], p2: roster[other]);
     _b1.reset();
     _b2.reset();
     _hero.resetCamera();
@@ -97,11 +101,15 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
   }
 
   void _fight() {
+    final me = fightCharOf(SettingsStore.instance.fightChar);
+    // The bot takes a random fighter (never a mirror, unless there's one).
+    var foe = DateTime.now().microsecondsSinceEpoch % roster.length;
+    if (foe == me && roster.length > 1) foe = (foe + 1) % roster.length;
     HapticFeedback.mediumImpact();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         fullscreenDialog: true,
-        builder: (_) => FightScreen(player: roster[0], opponent: roster[0], level: widget.level),
+        builder: (_) => FightScreen(player: roster[me], opponent: roster[foe], level: widget.level),
       ),
     );
   }
@@ -112,7 +120,7 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
     final l10n = AppLocalizations.of(context);
     final look = fightLookOf(SettingsStore.instance.fightLook);
     final text = fightHudText(l10n);
-    final names = [roster[0].name, roster[0].name];
+    final names = [_demo.chars[0].name, _demo.chars[1].name];
 
     Widget view(FightRenderer r, FightLook l) => CustomPaint(
       painter: FightPainter(renderer: r, state: () => _demo, look: l, names: names, text: text, repaint: _frame),
@@ -132,7 +140,14 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
         ),
         const SizedBox(height: 24),
         GroupedHeader(sentenceCaseOf(context, l10n.fightFighterTitle)),
-        _FighterRow(comingSoon: l10n.fightComingSoon),
+        FightCharacterGrid(
+          selected: fightCharOf(SettingsStore.instance.fightChar),
+          look: look,
+          onPick: (id) {
+            SettingsStore.instance.setFightChar(id);
+            _resetDemo();
+          },
+        ),
         const SizedBox(height: 24),
         GroupedHeader(sentenceCaseOf(context, l10n.fightLookTitle)),
         Row(
@@ -236,74 +251,6 @@ class _LookCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// KAI is playable; the other starters show as "coming soon" until their art
-/// exists (the engine already plays them).
-class _FighterRow extends StatelessWidget {
-  const _FighterRow({required this.comingSoon});
-  final String comingSoon;
-
-  static const _tones = [
-    [Color(0xff1fb5a8), Color(0xff0c3d3a)],
-    [Color(0xffc8642a), Color(0xff3d1a08)],
-    [Color(0xff6b7a8f), Color(0xff1e2430)],
-    [Color(0xff7b5cff), Color(0xff1d1240)],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Row(
-      children: [
-        for (final (i, c) in starters.indexed) ...[
-          if (i > 0) const SizedBox(width: 8),
-          Expanded(
-            child: Opacity(
-              opacity: i == 0 ? 1 : 0.55,
-              child: Container(
-                height: 132,
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: _tones[i], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                  borderRadius: BorderRadius.circular(groupedRadius(theme)),
-                  border: Border.all(color: i == 0 ? const Color(0xffff8a3d) : Colors.transparent, width: 2),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned.fill(bottom: 18, child: FighterPortrait(charId: c.id, glow: _tones[i][0])),
-                    Positioned(
-                      left: 8,
-                      right: 6,
-                      top: 6,
-                      child: i == 0
-                          ? const SizedBox.shrink()
-                          : Text(
-                              comingSoon,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xe6ffffff)),
-                            ),
-                    ),
-                    Positioned(
-                      left: 8,
-                      right: 6,
-                      bottom: 6,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(c.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ],
     );
   }
 }

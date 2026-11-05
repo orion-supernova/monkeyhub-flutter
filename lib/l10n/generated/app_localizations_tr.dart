@@ -14738,4 +14738,25 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get fightGamepadHint =>
       'Kumanda: hareket için analog veya yön tuşları. A hafif, X ağır, B özel, Y süper, RB yuvarlanma, Start duraklatır.';
+
+  @override
+  String get fightFamilyHuman => 'İnsan';
+
+  @override
+  String get fightFamilyMonkey => 'Maymun';
+
+  @override
+  String get fightFamilyAnimal => 'Hayvan';
+
+  @override
+  String get fightFamilyLegend => 'Efsane';
+
+  @override
+  String get fightPickFighter => 'Dövüşçünü seç';
+
+  @override
+  String get fightTapToChange => 'Değiştirmek için dokun';
+
+  @override
+  String get fightOpponentHidden => 'Başlangıçta açıklanır';
 }

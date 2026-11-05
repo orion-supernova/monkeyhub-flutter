@@ -4076,5 +4076,12 @@
   "fightOnlineResultDisputed": "Vos téléphones n'étaient pas d'accord sur le résultat, c'est donc une égalité.",
   "fightOnlineResultLeft": "{name} a quitté le combat.",
   "fightOnlineUpdateHint": "Vous avez besoin tous les deux de la dernière version de MonkeyHub.",
-  "fightGamepadHint": "Manette : stick ou croix directionnelle pour bouger. A léger, X lourd, B spécial, Y super, RB roulade, Start met en pause."
+  "fightGamepadHint": "Manette : stick ou croix directionnelle pour bouger. A léger, X lourd, B spécial, Y super, RB roulade, Start met en pause.",
+  "fightFamilyHuman": "Humain",
+  "fightFamilyMonkey": "Singe",
+  "fightFamilyAnimal": "Animal",
+  "fightFamilyLegend": "Légende",
+  "fightPickFighter": "Choisis ton combattant",
+  "fightTapToChange": "Touche pour changer",
+  "fightOpponentHidden": "Révélé au début"
 }

@@ -14807,4 +14807,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get fightGamepadHint =>
       'Controller: stick or D-pad to move. A light, X heavy, B special, Y super, RB roll, Start pauses.';
+
+  @override
+  String get fightFamilyHuman => 'Human';
+
+  @override
+  String get fightFamilyMonkey => 'Monkey';
+
+  @override
+  String get fightFamilyAnimal => 'Animal';
+
+  @override
+  String get fightFamilyLegend => 'Legend';
+
+  @override
+  String get fightPickFighter => 'Pick your fighter';
+
+  @override
+  String get fightTapToChange => 'Tap to change';
+
+  @override
+  String get fightOpponentHidden => 'Revealed at the start';
 }

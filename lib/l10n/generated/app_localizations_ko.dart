@@ -14168,4 +14168,25 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get fightGamepadHint =>
       '컨트롤러: 스틱 또는 방향키로 이동. A 약공격, X 강공격, B 특수기, Y 슈퍼, RB 구르기, Start로 일시정지.';
+
+  @override
+  String get fightFamilyHuman => '인간';
+
+  @override
+  String get fightFamilyMonkey => '원숭이';
+
+  @override
+  String get fightFamilyAnimal => '동물';
+
+  @override
+  String get fightFamilyLegend => '전설';
+
+  @override
+  String get fightPickFighter => '파이터를 고르세요';
+
+  @override
+  String get fightTapToChange => '탭해서 변경';
+
+  @override
+  String get fightOpponentHidden => '시작할 때 공개';
 }

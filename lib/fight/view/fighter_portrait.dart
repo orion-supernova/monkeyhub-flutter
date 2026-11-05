@@ -26,12 +26,16 @@ class FighterPortrait extends StatefulWidget {
     this.ready = false,
     this.look = FightLook.cartoon,
     this.glow = const Color(0xff3fd2c7),
+    this.animate = true,
   });
 
   final int charId;
   final bool alt, facingLeft, ready;
   final FightLook look;
   final Color glow;
+
+  /// False draws one still frame (grids of many portraits stay cheap).
+  final bool animate;
 
   @override
   State<FighterPortrait> createState() => _FighterPortraitState();
@@ -45,7 +49,8 @@ class _FighterPortraitState extends State<FighterPortrait> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _ticker = createTicker((d) => _t.value = d.inMicroseconds / 1e6)..start();
+    _ticker = createTicker((d) => _t.value = d.inMicroseconds / 1e6);
+    if (widget.animate) _ticker.start();
   }
 
   @override
@@ -53,6 +58,8 @@ class _FighterPortraitState extends State<FighterPortrait> with SingleTickerProv
     super.didUpdateWidget(old);
     if (widget.ready && !old.ready) _readyAt = _t.value;
     if (!widget.ready) _readyAt = null;
+    if (widget.animate && !_ticker.isActive) _ticker.start();
+    if (!widget.animate && _ticker.isActive) _ticker.stop();
   }
 
   @override

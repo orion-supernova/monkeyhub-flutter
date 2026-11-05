@@ -14944,4 +14944,25 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get fightGamepadHint =>
       'Mando: stick o cruceta para moverte. A ligero, X fuerte, B especial, Y súper, RB esquiva, Start pausa.';
+
+  @override
+  String get fightFamilyHuman => 'Humano';
+
+  @override
+  String get fightFamilyMonkey => 'Mono';
+
+  @override
+  String get fightFamilyAnimal => 'Animal';
+
+  @override
+  String get fightFamilyLegend => 'Leyenda';
+
+  @override
+  String get fightPickFighter => 'Elige tu luchador';
+
+  @override
+  String get fightTapToChange => 'Toca para cambiar';
+
+  @override
+  String get fightOpponentHidden => 'Se revela al empezar';
 }

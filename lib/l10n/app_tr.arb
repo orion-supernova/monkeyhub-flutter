@@ -4076,5 +4076,12 @@
   "fightOnlineResultDisputed": "Telefonlarınız sonuçta anlaşamadı, bu yüzden berabere sayılıyor.",
   "fightOnlineResultLeft": "{name} dövüşten ayrıldı.",
   "fightOnlineUpdateHint": "İkinizin de MonkeyHub'ın en son sürümüne sahip olması gerekiyor.",
-  "fightGamepadHint": "Kumanda: hareket için analog veya yön tuşları. A hafif, X ağır, B özel, Y süper, RB yuvarlanma, Start duraklatır."
+  "fightGamepadHint": "Kumanda: hareket için analog veya yön tuşları. A hafif, X ağır, B özel, Y süper, RB yuvarlanma, Start duraklatır.",
+  "fightFamilyHuman": "İnsan",
+  "fightFamilyMonkey": "Maymun",
+  "fightFamilyAnimal": "Hayvan",
+  "fightFamilyLegend": "Efsane",
+  "fightPickFighter": "Dövüşçünü seç",
+  "fightTapToChange": "Değiştirmek için dokun",
+  "fightOpponentHidden": "Başlangıçta açıklanır"
 }

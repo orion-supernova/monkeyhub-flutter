@@ -4076,5 +4076,12 @@
   "fightOnlineResultDisputed": "Sus teléfonos no coincidieron en el resultado, así que cuenta como empate.",
   "fightOnlineResultLeft": "{name} abandonó la pelea.",
   "fightOnlineUpdateHint": "Los dos necesitan la última versión de MonkeyHub.",
-  "fightGamepadHint": "Mando: stick o cruceta para moverte. A ligero, X fuerte, B especial, Y súper, RB esquiva, Start pausa."
+  "fightGamepadHint": "Mando: stick o cruceta para moverte. A ligero, X fuerte, B especial, Y súper, RB esquiva, Start pausa.",
+  "fightFamilyHuman": "Humano",
+  "fightFamilyMonkey": "Mono",
+  "fightFamilyAnimal": "Animal",
+  "fightFamilyLegend": "Leyenda",
+  "fightPickFighter": "Elige tu luchador",
+  "fightTapToChange": "Toca para cambiar",
+  "fightOpponentHidden": "Se revela al empezar"
 }

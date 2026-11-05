@@ -4076,5 +4076,12 @@
   "fightOnlineResultDisputed": "Os vossos telemóveis não concordaram no resultado, por isso conta como empate.",
   "fightOnlineResultLeft": "{name} saiu do combate.",
   "fightOnlineUpdateHint": "Precisam ambos da versão mais recente do MonkeyHub.",
-  "fightGamepadHint": "Comando: manípulo ou direcional para mover. A fraco, X forte, B especial, Y super, RB rolamento, Start pausa."
+  "fightGamepadHint": "Comando: manípulo ou direcional para mover. A fraco, X forte, B especial, Y super, RB rolamento, Start pausa.",
+  "fightFamilyHuman": "Humano",
+  "fightFamilyMonkey": "Macaco",
+  "fightFamilyAnimal": "Animal",
+  "fightFamilyLegend": "Lenda",
+  "fightPickFighter": "Escolhe o teu lutador",
+  "fightTapToChange": "Toca para mudar",
+  "fightOpponentHidden": "Revelado no início"
 }

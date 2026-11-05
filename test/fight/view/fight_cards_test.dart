@@ -35,9 +35,9 @@ void main() {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                const Expanded(child: FightSeatCard(name: 'muratcankoc', ready: true, tone: 0, height: 240)),
+                const Expanded(child: FightSeatCard(name: 'muratcankoc', ready: true, tone: 0, height: 240, charId: 0)),
                 const SizedBox(width: 50),
-                Expanded(child: FightSeatCard(name: 'zeynepoz', ready: rightReady, tone: 1, height: 240)),
+                Expanded(child: FightSeatCard(name: 'zeynepoz', ready: rightReady, tone: 1, height: 240, charId: 3)),
               ],
             ),
           ),

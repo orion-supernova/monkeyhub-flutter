@@ -14947,6 +14947,27 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get fightGamepadHint =>
       'Comando: manípulo ou direcional para mover. A fraco, X forte, B especial, Y super, RB rolamento, Start pausa.';
+
+  @override
+  String get fightFamilyHuman => 'Humano';
+
+  @override
+  String get fightFamilyMonkey => 'Macaco';
+
+  @override
+  String get fightFamilyAnimal => 'Animal';
+
+  @override
+  String get fightFamilyLegend => 'Lenda';
+
+  @override
+  String get fightPickFighter => 'Escolhe o teu lutador';
+
+  @override
+  String get fightTapToChange => 'Toca para mudar';
+
+  @override
+  String get fightOpponentHidden => 'Revelado no início';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -29874,4 +29895,25 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get fightGamepadHint =>
       'Controle: analógico ou direcional para mover. A fraco, X forte, B especial, Y super, RB rolagem, Start pausa.';
+
+  @override
+  String get fightFamilyHuman => 'Humano';
+
+  @override
+  String get fightFamilyMonkey => 'Macaco';
+
+  @override
+  String get fightFamilyAnimal => 'Animal';
+
+  @override
+  String get fightFamilyLegend => 'Lenda';
+
+  @override
+  String get fightPickFighter => 'Escolha seu lutador';
+
+  @override
+  String get fightTapToChange => 'Toque para trocar';
+
+  @override
+  String get fightOpponentHidden => 'Revelado no início';
 }

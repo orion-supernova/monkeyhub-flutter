@@ -14990,4 +14990,25 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get fightGamepadHint =>
       'وحدة التحكم: العصا أو أزرار الاتجاه للحركة. A خفيفة، X قوية، B خاصة، Y سوبر، RB تدحرج، Start للإيقاف المؤقت.';
+
+  @override
+  String get fightFamilyHuman => 'إنسان';
+
+  @override
+  String get fightFamilyMonkey => 'قرد';
+
+  @override
+  String get fightFamilyAnimal => 'حيوان';
+
+  @override
+  String get fightFamilyLegend => 'أسطورة';
+
+  @override
+  String get fightPickFighter => 'اختر مقاتلك';
+
+  @override
+  String get fightTapToChange => 'اضغط للتغيير';
+
+  @override
+  String get fightOpponentHidden => 'يُكشف عند البداية';
 }

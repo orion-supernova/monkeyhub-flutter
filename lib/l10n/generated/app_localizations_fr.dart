@@ -15013,4 +15013,25 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get fightGamepadHint =>
       'Manette : stick ou croix directionnelle pour bouger. A léger, X lourd, B spécial, Y super, RB roulade, Start met en pause.';
+
+  @override
+  String get fightFamilyHuman => 'Humain';
+
+  @override
+  String get fightFamilyMonkey => 'Singe';
+
+  @override
+  String get fightFamilyAnimal => 'Animal';
+
+  @override
+  String get fightFamilyLegend => 'Légende';
+
+  @override
+  String get fightPickFighter => 'Choisis ton combattant';
+
+  @override
+  String get fightTapToChange => 'Touche pour changer';
+
+  @override
+  String get fightOpponentHidden => 'Révélé au début';
 }

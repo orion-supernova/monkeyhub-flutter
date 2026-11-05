@@ -4076,5 +4076,12 @@
   "fightOnlineResultDisputed": "二人の端末で結果が一致しなかったため、引き分けになりました。",
   "fightOnlineResultLeft": "{name}がバトルから抜けました。",
   "fightOnlineUpdateHint": "二人とも最新版のMonkeyHubが必要です。",
-  "fightGamepadHint": "コントローラー: スティックか十字キーで移動。A 弱、X 強、B 必殺技、Y スーパー、RB ロール、Start で一時停止。"
+  "fightGamepadHint": "コントローラー: スティックか十字キーで移動。A 弱、X 強、B 必殺技、Y スーパー、RB ロール、Start で一時停止。",
+  "fightFamilyHuman": "人間",
+  "fightFamilyMonkey": "サル",
+  "fightFamilyAnimal": "動物",
+  "fightFamilyLegend": "伝説",
+  "fightPickFighter": "ファイターを選ぼう",
+  "fightTapToChange": "タップで変更",
+  "fightOpponentHidden": "開始時に公開"
 }
