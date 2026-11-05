@@ -321,7 +321,10 @@ import WebRTC
        !roomId.isEmpty,
        roomId == activeRoomId {
       // They are already reading this conversation — the live subscription
-      // put the message on screen before the push arrived.
+      // put the message on screen before the push arrived. Seen, so it ends
+      // the room's burst: the extension counted it on the way in, and left
+      // counted, the replies after the phone goes down would arrive silent.
+      AlertBurst.forget(roomId: roomId)
       completionHandler([])
       return
     }
@@ -2127,6 +2130,8 @@ import WebRTC
             result(nil)
             return
           }
+          // Read, so whatever burst the room was in is over. See AlertBurst.
+          AlertBurst.forget(roomId: roomId)
           center.getDeliveredNotifications { delivered in
             let ids = delivered
               .filter { $0.request.content.threadIdentifier == roomId }
