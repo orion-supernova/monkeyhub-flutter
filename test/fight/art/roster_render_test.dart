@@ -14,8 +14,11 @@ import 'package:monkeyhub/fight/view/fighter_portrait.dart';
 
 import '../fight_test_utils.dart';
 
-const String outDir =
-    '/private/tmp/claude-501/-Users-muratcankoc-Documents-Projects-monkeyhub-flutter-monkeyhub/e56bc469-ecc4-40cc-91e2-f5899446bcce/scratchpad/fight_png/roster';
+/// PNG output for eyeballing the art: set `FIGHT_SHOTS=dir` to write them.
+/// Unset (CI, everyday runs), the render tests return at once; the
+/// no-throw sweeps always run.
+final String? _shots = Platform.environment['FIGHT_SHOTS'];
+final String outDir = '${_shots ?? ''}/roster';
 const ui.Size sz = ui.Size(1280, 800);
 
 void forceMove(FightState s, int p, int moveId, int sf) {
@@ -131,11 +134,12 @@ Future<void> writePng(String path, ui.Picture pic, int w, int h) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  Directory(outDir).createSync(recursive: true);
+  if (_shots != null) Directory(outDir).createSync(recursive: true);
 
   for (final c in [mojo, tank, nyx]) {
     for (final look in FightLook.values) {
       test('roster ${c.key} ${look.name}', () async {
+        if (_shots == null) return; // PNGs only when FIGHT_SHOTS=<dir> is set
         final art = FightArt();
         final list = shots(c);
         final pics = <ui.Picture>[];
@@ -164,6 +168,7 @@ void main() {
   }
 
   testWidgets('portraits', (tester) async {
+    if (_shots == null) return; // PNGs only when FIGHT_SHOTS=<dir> is set
     final key = GlobalKey();
     await tester.pumpWidget(Directionality(
       textDirection: TextDirection.ltr,

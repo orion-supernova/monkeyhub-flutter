@@ -12,7 +12,11 @@ import 'package:monkeyhub/fight/view/art/poser.dart';
 
 import '../fight_test_utils.dart';
 
-const String outDir = '/private/tmp/claude-501/-Users-muratcankoc-Documents-Projects-monkeyhub-flutter-monkeyhub/e56bc469-ecc4-40cc-91e2-f5899446bcce/scratchpad/fight_png';
+/// PNG output for eyeballing the art: set `FIGHT_SHOTS=dir` to write them.
+/// Unset (CI, everyday runs), the render tests return at once; the
+/// no-throw sweeps always run.
+final String? _shots = Platform.environment['FIGHT_SHOTS'];
+final String outDir = _shots ?? '';
 const ui.Size sz = ui.Size(1280, 800);
 
 int runUntil(FightState s, bool Function(FightState) done, int Function(int f, FightState s) in0,
@@ -35,7 +39,7 @@ Future<void> save(FightArt art, String name, FightState s, FightLook look, {Figh
   art.paintHud(c, sz, s, look, [s.chars[0].name, s.chars[1].name]);
   final img = await rec.endRecording().toImage(sz.width.toInt(), sz.height.toInt());
   final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
-  Directory(outDir).createSync(recursive: true);
+  if (_shots != null) Directory(outDir).createSync(recursive: true);
   File('$outDir/${name}_${look.name}.png').writeAsBytesSync(bytes!.buffer.asUint8List());
 }
 
@@ -162,6 +166,7 @@ void main() {
   for (final look in FightLook.values) {
     for (final e in scenarios.entries) {
       test('render ${e.key} ${look.name}', () async {
+        if (_shots == null) return; // PNGs only when FIGHT_SHOTS=<dir> is set
         final s = e.value();
         await save(art, e.key, s, look);
         expect(File('$outDir/${e.key}_${look.name}.png').lengthSync(), greaterThan(5000));
@@ -209,6 +214,7 @@ void main() {
   });
 
   test('pose sheet', () async {
+    if (_shots == null) return; // PNGs only when FIGHT_SHOTS=<dir> is set
     final names = <String>[];
     final poses = <KPose>[];
     final k = kai;
@@ -247,7 +253,7 @@ void main() {
       }
       final img = await rec.endRecording().toImage((cols * cw).toInt(), (rows * ch).toInt());
       final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
-      Directory(outDir).createSync(recursive: true);
+      if (_shots != null) Directory(outDir).createSync(recursive: true);
       File('$outDir/sheet_${look.name}.png').writeAsBytesSync(bytes!.buffer.asUint8List());
     }
   });
