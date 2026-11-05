@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'art_common.dart';
+import 'quality.dart';
 import 'glow.dart';
 
 class FxPainter {
@@ -37,7 +38,7 @@ class FxPainter {
       final r = (big ? 70 : 46) * (.5 + k * .8);
       drawGlow(c, Offset.zero, r * 1.3, withA(tint, .9 * (1 - k)));
       drawGlow(c, Offset.zero, r * .55, Color.fromRGBO(255, 255, 255, 1 - k));
-      final n = big ? 16 : 10;
+      final n = (big ? 16 : 10) >> fightQuality.value.index; // fewer when the governor steps down
       for (var i = 0; i < n; i++) {
         final a = r0.next() * math.pi * 2, sp = (big ? 60 : 40) * (.5 + r0.next()), dd = sp * math.sqrt(k) + 6;
         _plus
@@ -55,7 +56,7 @@ class FxPainter {
       _s
         ..strokeWidth = 2.4
         ..color = kInk;
-      for (var i = 0; i < 10; i++) {
+      for (var i = 0, n = 10 >> fightQuality.value.index; i < n; i++) {
         final a = r0.next() * math.pi * 2, d0 = 30 + k * 40, d1 = d0 + 18 + r0.next() * 20;
         c.drawLine(Offset(math.cos(a) * d0, math.sin(a) * d0), Offset(math.cos(a) * d1, math.sin(a) * d1), _s);
       }

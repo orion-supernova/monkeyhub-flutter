@@ -7,6 +7,7 @@ import 'dart:ui';
 import 'art_common.dart';
 import 'roster_rig.dart';
 import 'cast/registry.dart';
+import 'quality.dart';
 
 // ------------------------------------------------------------------ pose
 
@@ -434,10 +435,13 @@ class RigPainter {
       return;
     }
     final sh = shade ?? dk(base, .4);
-    final q = _part(path);
+    // Quality governor: reduced drops rim light, occlusion and halftone;
+    // minimal drops the shading crescent too (flat fill + outline).
+    final qual = fightQuality.value;
+    final q = qual == FightQuality.minimal ? null : _part(path);
     final k = frameAngle == 0 ? 0 : ((frameAngle / (math.pi / 8)).round() % 16 + 16) % 16;
     if (paint) {
-      if (q != null && bb.width * bb.height >= 260) {
+      if (q != null && qual == FightQuality.full && bb.width * bb.height >= 260) {
         final g = q.grad.putIfAbsent(base.toARGB32() * 31 + sh.toARGB32(),
             () => Gradient.linear(bb.topLeft, bb.bottomRight, [lt(base, .2), base, sh], const [0, .5, 1]));
         c.drawPath(path, _fp..color = const Color(0xFFFFFFFF)..shader = g);
@@ -459,7 +463,7 @@ class RigPainter {
     if (q != null) {
       final cres = q.cut(0, k, _light);
       c.drawPath(cres, _fp..color = sh);
-      if (cel && !noHT) {
+      if (cel && !noHT && qual == FightQuality.full) {
         final s = _halftone();
         if (s != null) {
           _ht
