@@ -56,6 +56,8 @@ class Redactor {
     // Room/message ids and counts. Ids are opaque and the shape is the signal.
     'messages:markRoomRead': ArgPolicy.full,
     'messages:markRoomDelivered': ArgPolicy.full,
+    // No arguments at all; the session says whose devices.
+    'engagement:engagedElsewhere': ArgPolicy.full,
     'rooms:listRooms': ArgPolicy.keysOnly,
 
     // ---- Credential-equivalent. The server COMPARES these hashes, so logging

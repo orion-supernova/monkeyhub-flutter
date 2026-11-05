@@ -281,7 +281,13 @@ class NotificationService: UNNotificationServiceExtension {
           let roomId = info["roomId"] as? String, !roomId.isEmpty
     else { return content }
     let mentioned = (info["mention"] as? String) == "true"
-    guard !AlertBurst.shouldAlert(roomId: roomId, mention: mentioned),
+    // The person is chatting on another of their devices (backend
+    // engagement.ts). The server already sent this passive with no sound;
+    // restated here because the content is rebuilt on the way through, and
+    // returned BEFORE the burst rule so it is never counted: a line read
+    // elsewhere must not leave the next real one silent.
+    let quiet = (info["quiet"] as? String) == "true"
+    guard quiet || !AlertBurst.shouldAlert(roomId: roomId, mention: mentioned),
           let mutable = content.mutableCopy() as? UNMutableNotificationContent
     else { return content }
     mutable.sound = nil

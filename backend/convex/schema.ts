@@ -3413,6 +3413,15 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_live_beat", ["live", "beatAt"]),
 
+  // The device a person is chatting on right now, so their OTHER devices'
+  // notifications arrive quietly. One row per person; nothing subscribes.
+  // See engagement.ts.
+  deviceEngagement: defineTable({
+    userId: v.id("users"),
+    deviceId: v.string(),
+    at: v.number(),
+  }).index("by_user", ["userId"]),
+
   // Phase 6: the one place a person's name and face live for readers. Written
   // by profilesCore.syncProfile in the same transaction as every `users` change
   // to those fields; a deleted account keeps a tombstone (deleted: true, name

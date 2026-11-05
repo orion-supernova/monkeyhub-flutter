@@ -34,6 +34,7 @@ import type * as deletions from "../deletions.js";
 import type * as deployment from "../deployment.js";
 import type * as designSamples from "../designSamples.js";
 import type * as deviceLogin from "../deviceLogin.js";
+import type * as engagement from "../engagement.js";
 import type * as expressions from "../expressions.js";
 import type * as family from "../family.js";
 import type * as feed from "../feed.js";
@@ -180,6 +181,7 @@ declare const fullApi: ApiFromModules<{
   deployment: typeof deployment;
   designSamples: typeof designSamples;
   deviceLogin: typeof deviceLogin;
+  engagement: typeof engagement;
   expressions: typeof expressions;
   family: typeof family;
   feed: typeof feed;

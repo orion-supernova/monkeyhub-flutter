@@ -207,6 +207,7 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   // ── presence ──────────────────────────────────────────────────────────────
   "presence.userId": { rule: "cascade", index: "by_user", why: "A person's status goes with their account (presenceCore.clearPresence)." },
   "presenceBeats.userId": { rule: "cascade", index: "by_user", why: "A person's liveness beat goes with their account (presenceCore.clearPresence)." },
+  "deviceEngagement.userId": { rule: "cascade", index: "by_user", why: "Which device a person is chatting on goes with their account (engagement.ts)." },
 
   // ── reports ───────────────────────────────────────────────────────────────
   "problemReports.messageId": { rule: "history", why: "Never read; the delivered message lives in the log room. Plan suggests dropping the field.", today: "7 dangling test rows; deleted by the 90-day retention on 2026-11-06" },

@@ -684,6 +684,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         () => StorageService.instance.enforcePolicy());
     // Web message-banner clicks open the room, same as a push tap.
     MessageAlerts.instance.setOnOpenRoom(_openRoomFromPush);
+    // While you are chatting on another device, this one's own alerts hold
+    // back. See `MessageAlerts.engagedElsewhere`.
+    MessageAlerts.instance.engagedElsewhere = _api.engagedElsewhere;
     // Web Push banner clicks (background/closed tab) open the room too — the
     // service worker posts the roomId to whichever tab it focuses.
     WebPush.setOnOpenRoom(_openRoomFromPush);

@@ -1580,6 +1580,15 @@ class ChatApi {
   /// with `messages:send`, whose patch of that same document was aborting and
   /// re-running these under a fast two-way chat. See `messages.markRoomRead`.
   /// Omitted, the server falls back to the room's `lastMessageTime` as before.
+  /// Whether the signed-in person is chatting on a DIFFERENT device right
+  /// now — the server's record of the device that last sent, read or came to
+  /// the front (`engagement:engagedElsewhere`). One-shot by design; see
+  /// `MessageAlerts.engagedElsewhere`.
+  Future<bool> engagedElsewhere() async {
+    final res = await _cv.query('engagement:engagedElsewhere', const {});
+    return res == true;
+  }
+
   Future<void> markRoomRead({
     required String roomId,
     required String userId,

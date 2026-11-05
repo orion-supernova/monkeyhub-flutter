@@ -13,6 +13,7 @@ import { mayReachDevices } from "./deployment";
 import { liveSessionDeviceIds } from "./sessionCore";
 import { resolveMute } from "./mute";
 import { receiptFields } from "./receiptToken";
+import { engagedDeviceId } from "./engagement";
 
 // Deliberately NOT imported from ./webPush: that module runs in the Node
 // runtime (Convex's V8 isolate has no ECDH), and importing it here would drag
@@ -94,6 +95,16 @@ export type AlertSpec = {
    * [webSafeSpec]; the apps, which block capture, get the text as before.
    */
   secretRoom?: boolean;
+  /**
+   * Arrive without a sound, a banner or a lit screen: the recipient is
+   * chatting on another of their devices right now (see engagement.ts), so
+   * this one has nothing to interrupt them with. Still delivered, so it is
+   * waiting in Notification Center / the shade when they pick this device up,
+   * and swept as usual once the room is read. Also sent as `data.quiet` so
+   * the device-side burst rule does not count it (NotificationService.swift,
+   * ChatNotifications.kt): a line read elsewhere is not a line left unheard.
+   */
+  quiet?: boolean;
 };
 
 /**
@@ -218,10 +229,14 @@ export function buildApnsBody(spec: AlertSpec): Record<string, unknown> {
   if (spec.subtitle) {
     alert.subtitle = clamp(spec.subtitle, TITLE_MAX);
   }
-  const aps: Record<string, unknown> = {
-    alert,
-    sound: "default",
-  };
+  const aps: Record<string, unknown> = { alert };
+  if (spec.quiet) {
+    // No `sound` key at all, and passive: lands in Notification Center
+    // without lighting the screen. See `AlertSpec.quiet`.
+    aps["interruption-level"] = "passive";
+  } else {
+    aps.sound = "default";
+  }
   // An incoming call is not an unread item — badging it would leave the count
   // wrong the moment the call is answered, with nothing to correct it.
   if (spec.kind === "message" || spec.kind === "approval") {
@@ -261,7 +276,7 @@ export function buildApnsBody(spec: AlertSpec): Record<string, unknown> {
   if (spec.kind === "message" || spec.data.senderAvatarUrl) {
     aps["mutable-content"] = 1;
   }
-  return { aps, ...spec.data };
+  return { aps, ...spec.data, ...(spec.quiet ? { quiet: "true" } : {}) };
 }
 
 /**
@@ -289,6 +304,7 @@ export function buildFcmMessage(
   if (spec.body) data.body = clamp(spec.body, BODY_MAX);
   if (spec.threadId) data.threadId = spec.threadId;
   if (spec.collapseId) data.collapseId = spec.collapseId;
+  if (spec.quiet) data.quiet = "true";
   return {
     token,
     data,
@@ -313,6 +329,7 @@ export function buildWebPushPayload(spec: AlertSpec): Record<string, string> {
   if (spec.body) out.body = clamp(spec.body, BODY_MAX);
   if (spec.threadId) out.threadId = spec.threadId;
   if (spec.collapseId) out.collapseId = spec.collapseId;
+  if (spec.quiet) out.quiet = "true";
   return out;
 }
 
@@ -344,6 +361,12 @@ type AlertTarget = {
   mutesNotifications: boolean;
   /** The room is a secret room — see `AlertSpec.secretRoom`. */
   secretRoom: boolean;
+  /**
+   * The device this recipient is chatting on right now, when asked for and
+   * when there is one. Every OTHER device gets the push quietly; see
+   * `AlertSpec.quiet` and engagement.ts.
+   */
+  engagedDeviceId: string | null;
 };
 
 /**
@@ -365,9 +388,15 @@ export const _loadAlertTargets = internalQuery({
   args: {
     userIds: v.array(v.id("users")),
     roomId: v.optional(v.id("rooms")),
+    /** Resolve `engagedDeviceId`. One indexed read per recipient. */
+    withEngagement: v.optional(v.boolean()),
   },
-  handler: async (ctx, { userIds, roomId }): Promise<AlertTarget[]> => {
+  handler: async (
+    ctx,
+    { userIds, roomId, withEngagement },
+  ): Promise<AlertTarget[]> => {
     const out: AlertTarget[] = [];
+    const now = Date.now();
     // One read for the whole batch. Decided here, at the choke point, rather
     // than by each sender, so no push that names a room (a message, a
     // reaction, a mention, anything added later) can forget it.
@@ -433,6 +462,11 @@ export const _loadAlertTargets = internalQuery({
         lastReadAt,
         mutesNotifications,
         secretRoom,
+        // Skipped for a single device: there is no "other" to quiet.
+        engagedDeviceId:
+          withEngagement && devices.length > 0
+            ? await engagedDeviceId(ctx, userId, now)
+            : null,
       });
     }
     return out;
@@ -477,7 +511,14 @@ export const sendAlert = internalAction({
     if (!(await mayReachDevices(ctx, `sendAlert(${a.kind})`))) return null;
     const targets: AlertTarget[] = await ctx.runQuery(
       internal.push._loadAlertTargets,
-      { userIds: a.userIds, roomId: a.roomId },
+      {
+        userIds: a.userIds,
+        roomId: a.roomId,
+        // Chat messages only. A ring must ring everywhere (the person may be
+        // reaching for a different device to answer), and an approval is not
+        // part of the conversation being had on the engaged device.
+        withEngagement: a.kind === "message",
+      },
     );
     await Promise.allSettled(
       targets.map(async (t) => {
@@ -524,8 +565,20 @@ export const sendAlert = internalAction({
         }
         // Per device rather than per recipient: someone with a phone and a
         // laptop gets both, each with its own transport and its own failure.
+        // The device they are chatting on gets it as composed; the rest get
+        // it quietly. See `AlertSpec.quiet`.
+        const engaged = t.engagedDeviceId;
         await Promise.allSettled(
-          t.devices.map((d) => alertToDevice(ctx, t.userId, d, spec)),
+          t.devices.map((d) =>
+            alertToDevice(
+              ctx,
+              t.userId,
+              d,
+              engaged !== null && d.deviceId !== engaged
+                ? { ...spec, quiet: true }
+                : spec,
+            ),
+          ),
         );
       }),
     );

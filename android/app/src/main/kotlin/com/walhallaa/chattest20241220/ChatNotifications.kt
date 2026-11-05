@@ -388,7 +388,13 @@ object ChatNotifications {
 
     private fun showConversation(ctx: Context, roomId: String, data: Map<String, String>) {
         appendLine(ctx, roomId, data, fresh = !isShowing(ctx, roomId))
-        val alert = AlertBurst.shouldAlert(ctx, roomId, data["mention"] == "true")
+        // `quiet`: the person is chatting on another of their devices (see
+        // backend engagement.ts), so this one updates the shade silently. It
+        // is checked FIRST so the burst rule never counts it: a line already
+        // read elsewhere is not one left unheard, and counting it would leave
+        // the next real one silent after the person puts the other device down.
+        val alert = data["quiet"] != "true" &&
+            AlertBurst.shouldAlert(ctx, roomId, data["mention"] == "true")
         postConversation(ctx, roomId, alert)
 
         // Text first, face second, exactly as [show] does for the other kinds

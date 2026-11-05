@@ -37,6 +37,7 @@ import { ERR_FILTER_BLOCKED, hasHit } from "./contentFilter";
 import { FilterBlockedError, screenAndReport } from "./moderationCore";
 import { isSystemAccount, isSystemRoom } from "./systemAccount";
 import { canReadRoom } from "./roomAccess";
+import { noteEngaged } from "./engagement";
 import { copiesOn } from "./profileCopyGate";
 import { consume } from "./rateLimit";
 import { recordMentions } from "./mentions";
@@ -1208,6 +1209,9 @@ export const send = mutation({
       posterStorageId = undefined;
     }
     await claimUpload(ctx, posterStorageId, args.userId, "media", { solo });
+    // Sending is the plainest proof of which device is in use: its siblings'
+    // notifications go quiet for a while. See engagement.ts.
+    await noteEngaged(ctx, args.userId);
     try {
       return await sendCore(ctx, { ...args, posterStorageId });
     } catch (err) {
@@ -3617,6 +3621,12 @@ export const markRoomRead = mutation({
       )
       .first();
     if (!membership) return; // not a member, silently no-op
+
+    // Ahead of the early return below on purpose: re-entering an already-read
+    // room is still someone reading on this device. The client only calls
+    // this while its viewer is present (`viewerIsPresent`), so a hidden Mac
+    // window never claims it. Throttled inside; see engagement.ts.
+    await noteEngaged(ctx, userId);
 
     // Nothing new to mark. The same guard `markRoomDelivered` carries, for the
     // same reason and with more to gain: patching a `roomMembers` row re-fires

@@ -153,5 +153,70 @@ void main() {
       repo.fire([at(4000, sender: 'peer', unread: 1)]);
       expect(pings, 1);
     }, variant: _mac);
+
+    group('chatting on another device', () {
+      tearDown(() => MessageAlerts.instance.engagedElsewhere = null);
+
+      testWidgets('window in the background: held back', (tester) async {
+        tester.binding
+            .handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        var asked = 0;
+        MessageAlerts.instance.engagedElsewhere = () async {
+          asked++;
+          return true;
+        };
+        final repo = _FakeRepo([at(2000)], userId: 'me', activeRoomId: null);
+        MessageAlerts.instance.bind(repo);
+
+        repo.fire([at(3000, sender: 'peer', unread: 1)]);
+        await tester.pump();
+        expect(pings, 0, reason: 'already reading it on the phone');
+
+        repo.fire([at(4000, sender: 'peer', unread: 2)]);
+        await tester.pump();
+        expect(pings, 0);
+        expect(asked, 1, reason: 'one question per burst, not per line');
+      }, variant: _mac);
+
+      testWidgets('window in the background, nobody elsewhere: pings',
+          (tester) async {
+        tester.binding
+            .handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        MessageAlerts.instance.engagedElsewhere = () async => false;
+        final repo = _FakeRepo([at(2000)], userId: 'me', activeRoomId: null);
+        MessageAlerts.instance.bind(repo);
+
+        repo.fire([at(3000, sender: 'peer', unread: 1)]);
+        await tester.pump();
+        expect(pings, 1);
+      }, variant: _mac);
+
+      testWidgets('the question failing never costs the alert', (tester) async {
+        tester.binding
+            .handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        MessageAlerts.instance.engagedElsewhere =
+            () async => throw StateError('offline');
+        final repo = _FakeRepo([at(2000)], userId: 'me', activeRoomId: null);
+        MessageAlerts.instance.bind(repo);
+
+        repo.fire([at(3000, sender: 'peer', unread: 1)]);
+        await tester.pump();
+        expect(pings, 1);
+      }, variant: _mac);
+
+      testWidgets('in front of the person: never asks', (tester) async {
+        var asked = 0;
+        MessageAlerts.instance.engagedElsewhere = () async {
+          asked++;
+          return true;
+        };
+        final repo = _FakeRepo([at(2000)], userId: 'me', activeRoomId: null);
+        MessageAlerts.instance.bind(repo);
+
+        repo.fire([at(3000, sender: 'peer', unread: 1)]);
+        expect(pings, 1, reason: 'this IS the device in use');
+        expect(asked, 0);
+      }, variant: _mac);
+    });
   });
 }

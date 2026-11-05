@@ -53,6 +53,41 @@ class MessageAlerts {
   @visibleForTesting
   static VoidCallback? debugOnPing;
 
+  /// Whether the person is chatting on ANOTHER of their devices right now —
+  /// `engagement:engagedElsewhere` on the backend, installed by app.dart.
+  ///
+  /// Asked only while this window is not in front, just before an alert would
+  /// fire: you are replying from your phone, so the Linux box and the browser
+  /// tab have nothing to tell you. The push-driven platforms get the same rule
+  /// from the server, which sends their notifications quiet (push.ts
+  /// `AlertSpec.quiet`); this is the half for the alerts the app raises itself.
+  ///
+  /// Null means "never ask", which keeps alerts synchronous — the tests, and a
+  /// build whose backend has no such function yet.
+  Future<bool> Function()? engagedElsewhere;
+
+  /// The last answer, reused for [_kEngagedFresh] so a burst asks once.
+  ({DateTime at, bool value})? _engaged;
+  static const _kEngagedFresh = Duration(seconds: 5);
+
+  Future<bool> _isEngagedElsewhere(Future<bool> Function() ask) async {
+    final hit = _engaged;
+    final now = DateTime.now();
+    if (hit != null && now.difference(hit.at) < _kEngagedFresh) {
+      return hit.value;
+    }
+    bool value;
+    try {
+      value = await ask().timeout(const Duration(seconds: 3));
+    } catch (_) {
+      // Unknown is "not engaged": a missed quiet is a chime too many, a
+      // wrong one is a message nobody hears about.
+      value = false;
+    }
+    _engaged = (at: DateTime.now(), value: value);
+    return value;
+  }
+
   ChatRepository? _repo;
   // roomId → newest message time we've already alerted on (ms since epoch).
   final Map<String, int> _lastSeen = {};
@@ -82,6 +117,7 @@ class MessageAlerts {
     _repo = null;
     _lastSeen.clear();
     _burst.clear();
+    _engaged = null;
   }
 
   int _msgTime(ChatRoom room) =>
@@ -124,7 +160,7 @@ class MessageAlerts {
     if (LinuxNotifier.supported && focused && active != null) {
       unawaited(LinuxNotifier.instance.dismissRoom(active));
     }
-    var pinged = false;
+    final due = <ChatRoom>[];
     for (final r in repo.rooms) {
       final t = _msgTime(r);
       final prev = _lastSeen[r.id];
@@ -156,8 +192,27 @@ class MessageAlerts {
       if (r.isLastMessageFrom(me)) continue;
       final isActive = r.id == active;
       final shouldAlert = isActive ? !focused : r.hasUnread;
-      if (!shouldAlert) continue;
+      if (shouldAlert) due.add(r);
+    }
+    if (due.isEmpty) return;
 
+    // In front of the person, this IS the device in use; nothing to ask.
+    final ask = focused ? null : engagedElsewhere;
+    if (ask == null) {
+      _fire(repo, due, banners: banners);
+      return;
+    }
+    unawaited(() async {
+      if (await _isEngagedElsewhere(ask)) return;
+      // Signed out or rebound while the answer was on its way.
+      if (!identical(_repo, repo)) return;
+      _fire(repo, due, banners: banners);
+    }());
+  }
+
+  void _fire(ChatRepository repo, List<ChatRoom> due, {required bool banners}) {
+    var pinged = false;
+    for (final r in due) {
       if (banners) {
         unawaited(LinuxNotifier.instance.show(
           roomId: r.id,

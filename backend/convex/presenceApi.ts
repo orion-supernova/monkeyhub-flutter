@@ -21,6 +21,7 @@ import {
 } from "./presenceCore";
 import { consume } from "./rateLimit";
 import { touchSessions } from "./sessionCore";
+import { noteDisengaged, noteEngaged } from "./engagement";
 import { continueSweep, sweepArgs } from "./sweep";
 import { canSeeAs } from "./visibilityPoint";
 
@@ -65,6 +66,14 @@ export const setStatus = mutation({
       }
     }
     await setPresenceStatus(ctx, userId, status, { now });
+    // Per DEVICE, unlike the status above, and written on repeats too: a
+    // second device coming to the front must take the engagement even when
+    // the person was already online. See engagement.ts.
+    if (status === "online") {
+      await noteEngaged(ctx, userId, now);
+    } else {
+      await noteDisengaged(ctx, userId);
+    }
     return null;
   },
 });

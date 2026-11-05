@@ -65,7 +65,12 @@ self.addEventListener('push', (event) => {
       // Same semantics as the APNs collapse-id and the Android tag: a later
       // notification with this tag replaces this one rather than stacking.
       tag: d.collapseId || d.threadId || undefined,
-      renotify: !!(d.collapseId || d.threadId),
+      // `quiet`: the person is chatting on another of their devices right
+      // now (backend engagement.ts). Delivered, so it is in the tray when they
+      // come back, but without a sound or re-alert. `renotify` must be false
+      // alongside it, or Chrome alerts anyway for a replaced tag.
+      silent: d.quiet === 'true',
+      renotify: d.quiet !== 'true' && !!(d.collapseId || d.threadId),
       // The sender's own face, WhatsApp/Telegram-style, when they have one
       // and the recipient is allowed to see it (see rooms.ts's
       // `resolvePushContext` — the backend never sends this key otherwise).
