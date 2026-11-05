@@ -84,7 +84,23 @@ to Dart") ships. A bump must re-apply every patch below.
   from it. Upstream also moved the macOS ADM listing off the main thread;
   this does not, so nothing audio-side changes.
 
+- **W8, call camera: real resolution, exposure in dim light**
+  (Darwin: `FlutterRTCMediaStream.m`, `.h`, `CameraUtils.m`; Android:
+  `GetUserMediaImpl.java`). `getConstrainInt` read an `{ideal: n}` map only
+  when `ideal` was a string; a Dart int is an NSNumber, so every call camera
+  got a 0x0 target and the format picker chose the smallest format the
+  camera has (192x144 on an iPhone front camera). Android's twin bug looked
+  for `ideal` in the outer map and fell back to 720p. Both now read numbers
+  (the app also sends bare numbers since, see `videoConstraintsFor` in
+  `lib/calls/call_media.dart`). And after capture starts (getUserMedia and
+  switchCamera), `mh_tuneCallCamera` lets the frame rate float between the
+  target and 15 fps instead of pinning it, so auto exposure can expose up to
+  66 ms in lamp light rather than 33 ms and a dark room stops reading as a
+  dark picture; on iPhone it also turns on low-light boost, continuous
+  AE/AF/AWB and automatic video HDR where supported.
+
 Checked against 1.6.3 (2026-10-26): #1996, #2095, #2111 and PR #2197 are
 all still open, so the pin stands.
 
-Android and the rest of Dart are byte-identical to pub.dev 1.4.1.
+Android (except W8's one-line parse fix) and the rest of Dart are
+byte-identical to pub.dev 1.4.1.

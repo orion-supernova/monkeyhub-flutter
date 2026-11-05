@@ -1,4 +1,5 @@
 #import "CameraUtils.h"
+#import "FlutterRTCMediaStream.h"
 
 @implementation FlutterWebRTCPlugin (CameraUtils)
 
@@ -286,11 +287,16 @@
   AVCaptureDeviceFormat* selectedFormat = [self selectFormatForDevice:videoDevice
                                                           targetWidth:self._lastTargetWidth
                                                          targetHeight:self._lastTargetHeight];
+  NSInteger selectedFps = [self selectFpsForFormat:selectedFormat
+                                         targetFps:self._lastTargetFps];
   [self.videoCapturer startCaptureWithDevice:videoDevice
                                       format:selectedFormat
-                                         fps:[self selectFpsForFormat:selectedFormat
-                                                            targetFps:self._lastTargetFps]
+                                         fps:selectedFps
                            completionHandler:^(NSError* error) {
+                             if (error == nil) {
+                               // MONKEYHUB PATCH W8
+                               [FlutterWebRTCPlugin mh_tuneCallCamera:videoDevice fps:selectedFps];
+                             }
                              if (error != nil) {
                                result([FlutterError errorWithCode:@"Error while switching camera"
                                                           message:@"Error while switching camera"

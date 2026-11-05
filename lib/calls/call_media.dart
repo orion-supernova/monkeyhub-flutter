@@ -83,11 +83,33 @@ const Map<VideoQualityTier, VideoQualityPreset> videoQualityPresets = {
   ),
 };
 
-Map<String, dynamic> _videoConstraintsFor(
+/// The camera constraints for [tier].
+///
+/// Native platforms get bare numbers. flutter_webrtc's Darwin plugin reads
+/// an `{ideal: …}` map only when `ideal` is a STRING (`getConstrainInt` in
+/// FlutterRTCMediaStream.m), and a Dart int crosses the channel as an
+/// NSNumber, so the map form left iPhone and Mac with a 0×0 target: the
+/// format picker then chose the smallest format the camera has (192×144 on
+/// an iPhone front camera), which is why every Apple call looked small,
+/// muddy and dark next to WhatsApp. Android's parser has the matching bug
+/// (it looks for `ideal` in the outer map) and fell back to 720p. A bare
+/// number is read correctly by both, and by the browser too, where it means
+/// `ideal`. The browser keeps the range form, which it understands.
+@visibleForTesting
+Map<String, dynamic> videoConstraintsFor(
   VideoQualityTier tier, {
   bool back = false,
+  bool? web,
 }) {
   final preset = videoQualityPresets[tier]!;
+  if (!(web ?? kIsWeb)) {
+    return {
+      'facingMode': back ? 'environment' : 'user',
+      'width': preset.idealWidth,
+      'height': preset.idealHeight,
+      'frameRate': 30,
+    };
+  }
   return {
     'facingMode': back ? 'environment' : 'user',
     'width': {
@@ -179,7 +201,7 @@ Future<MediaStream> getCallUserMedia(
       'autoGainControl': true,
     },
     'video': kind == CallMediaKind.video
-        ? _videoConstraintsFor(tier)
+        ? videoConstraintsFor(tier)
         : false,
   };
   try {
@@ -220,7 +242,7 @@ Future<MediaStreamTrack> getCallVideoOnlyTrack(
 }) async {
   final stream = await navigator.mediaDevices.getUserMedia({
     'audio': false,
-    'video': _videoConstraintsFor(tier, back: back),
+    'video': videoConstraintsFor(tier, back: back),
   });
   final track = stream.getVideoTracks().first;
   // Detach the track before disposing its wrapper stream — `dispose()`
@@ -316,16 +338,26 @@ Future<void> configureVideoSenders(
     final senders = await pc.getSenders();
     for (final sender in senders) {
       final kind = sender.track?.kind;
-      if (kind == 'audio' && saving) {
-        // Opus stays intelligible well below this; it is what a voice call
-        // on a weak cellular link negotiates down to anyway.
+      if (kind == 'audio') {
+        // The voice is the call. When the link congests, libwebrtc shares
+        // what is left by each encoding's priority, and every encoding here
+        // used to go out at the default `low`, the same as the camera's.
+        // `high` makes the camera give way first, so a bad network costs
+        // picture before it costs words. `networkPriority` marks the
+        // packets for the voice queue (DSCP EF) where a network honours it,
+        // which home Wi-Fi routers (WMM) commonly do; see `enableDscp` in
+        // [kCallPeerConnectionTuning].
         final params = sender.parameters;
         var encodings = params.encodings;
         if (encodings == null || encodings.isEmpty) {
           encodings = [RTCRtpEncoding()];
         }
         for (final e in encodings) {
-          e.maxBitrate = kDataSaverAudioBitrate;
+          e.priority = RTCPriorityType.high;
+          e.networkPriority = RTCPriorityType.high;
+          // Opus stays intelligible well below this; it is what a voice
+          // call on a weak cellular link negotiates down to anyway.
+          if (saving) e.maxBitrate = kDataSaverAudioBitrate;
         }
         params.encodings = encodings;
         await sender.setParameters(params);
@@ -366,6 +398,13 @@ const int kDataSaverAudioBitrate = 24000;
 bool get callsSaveData => SettingsStore.instance.dataPrefs
     .callsSaveData(NetworkKindMonitor.instance.current);
 
+/// The codec order for every call connection: [preferH264Codec] for the
+/// camera, [preferOpusRed] for the voice.
+Future<void> preferCallCodecs(RTCPeerConnection pc) async {
+  await preferH264Codec(pc);
+  await preferOpusRed(pc);
+}
+
 /// Reorder video codecs to prefer H.264 — hardware encode/decode on both
 /// iOS (VideoToolbox) and most Android chipsets, far cooler than software
 /// VP8 at 720p30. Reorders, never filters, so peers without hardware H.264
@@ -390,6 +429,60 @@ Future<void> preferH264Codec(RTCPeerConnection pc) async {
     debugPrint('preferH264Codec skipped: $e');
   }
 }
+
+/// The audio codec order with RED first, or null when there is nothing to
+/// reorder (no RED, or no Opus for it to carry). Pure, for the tests.
+@visibleForTesting
+List<T>? orderOpusRedFirst<T>(List<T> codecs, String Function(T) mimeOf) {
+  bool isRed(T c) => mimeOf(c).toLowerCase() == 'audio/red';
+  bool isOpus(T c) => mimeOf(c).toLowerCase() == 'audio/opus';
+  if (!codecs.any(isRed) || !codecs.any(isOpus)) return null;
+  return [
+    ...codecs.where(isRed),
+    ...codecs.where(isOpus),
+    ...codecs.where((c) => !isRed(c) && !isOpus(c)),
+  ];
+}
+
+/// Puts RED (RFC 2198 redundant audio) ahead of plain Opus on every audio
+/// transceiver, so each packet also carries the previous frame of speech.
+/// A lost packet is then rebuilt from the next one instead of concealed,
+/// which is what keeps a voice clear through the 10-20% loss of a weak
+/// cellular or crowded Wi-Fi link; Google Meet ships the same thing. Opus's
+/// own in-band FEC stays on underneath. The cost is roughly double the
+/// voice's bitrate (about 30 kbps more), so the calls data saver skips it.
+/// Reorders, never filters: a peer without RED negotiates plain Opus.
+Future<void> preferOpusRed(RTCPeerConnection pc) async {
+  if (callsSaveData) return;
+  try {
+    final caps = await getRtpSenderCapabilities('audio');
+    final ordered = orderOpusRedFirst<RTCRtpCodecCapability>(
+      caps.codecs ?? [],
+      (c) => c.mimeType,
+    );
+    if (ordered == null) return;
+    for (final t in await pc.getTransceivers()) {
+      if (t.sender.track?.kind == 'audio') {
+        await t.setCodecPreferences(ordered);
+      }
+    }
+  } catch (e) {
+    debugPrint('preferOpusRed skipped: $e');
+  }
+}
+
+/// Peer connection settings every call path adds to its config.
+///
+/// `enableDscp` lets [configureVideoSenders]' `networkPriority` reach the
+/// wire as a DSCP mark (Darwin reads it; Android's plugin ignores the key,
+/// harmlessly). `iceBackupCandidatePairPingInterval` keeps a second
+/// candidate pair warm, so when the path carrying media dies (Wi-Fi fading
+/// as you walk out the door) ICE can switch to a pair it has already proven
+/// instead of starting from cold.
+const Map<String, dynamic> kCallPeerConnectionTuning = {
+  'enableDscp': true,
+  'iceBackupCandidatePairPingInterval': 2000,
+};
 
 /// Classify the AVAudioSession for calling BEFORE the callkit plugin's
 /// generic playAndRecord/.default config wins: voiceChat/videoChat modes

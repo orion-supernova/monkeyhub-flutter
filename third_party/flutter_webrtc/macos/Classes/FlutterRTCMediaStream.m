@@ -323,6 +323,11 @@ typedef void (^NavigatorUserMediaSuccessCallback)(RTCMediaStream* mediaStream);
     }
   } else if ([constraint isKindOfClass:[NSDictionary class]]) {
     id idealConstraint = constraint[@"ideal"];
+    // MONKEYHUB PATCH W8: a Dart int arrives as an NSNumber, which this
+    // used to skip, leaving a 0x0 target (the smallest camera format).
+    if ([idealConstraint isKindOfClass:[NSNumber class]]) {
+      return [idealConstraint intValue];
+    }
     if ([idealConstraint isKindOfClass:[NSString class]]) {
       int possibleValue = [idealConstraint intValue];
       if (possibleValue != 0) {
@@ -536,7 +541,10 @@ typedef void (^NavigatorUserMediaSuccessCallback)(RTCMediaStream* mediaStream);
                              completionHandler:^(NSError* error) {
                                if (error) {
                                  NSLog(@"Start capture error: %@", [error localizedDescription]);
+                                 return;
                                }
+                               // MONKEYHUB PATCH W8
+                               [FlutterWebRTCPlugin mh_tuneCallCamera:videoDevice fps:selectedFps];
                              }];
 
     NSString* trackUUID = [[NSUUID UUID] UUIDString];
@@ -1013,4 +1021,67 @@ typedef void (^NavigatorUserMediaSuccessCallback)(RTCMediaStream* mediaStream);
   return fmin(maxSupportedFramerate, targetFps);
 }
 
+// MONKEYHUB PATCH W8: camera exposure for calls.
+//
+// The capturer used to pin the frame rate at exactly the target (min and max
+// frame duration both 1/30 s), which caps every exposure at 33 ms. Under a
+// table lamp the sensor can't gather enough light in that, so auto exposure
+// pushes gain instead and the picture comes out dark and noisy; FaceTime and
+// WhatsApp let the rate sag toward 15 fps in dim light and expose twice as
+// long. Here the rate may float between the target and 15 fps (or the
+// format's own floor, if that is higher), and on iPhone the low-light boost,
+// continuous auto exposure / focus / white balance and automatic video HDR
+// are switched on where the camera supports them. Runs after the capturer
+// has applied its format, because changing activeFormat resets the frame
+// durations.
++ (void)mh_tuneCallCamera:(AVCaptureDevice*)device fps:(NSInteger)fps {
+  if (device == nil || fps <= 0) {
+    return;
+  }
+  NSError* lockError = nil;
+  if (![device lockForConfiguration:&lockError]) {
+    NSLog(@"mh_tuneCallCamera: lock failed: %@", lockError);
+    return;
+  }
+  @try {
+    AVCaptureDeviceFormat* format = device.activeFormat;
+    Float64 slowest = 0;
+    Float64 fastest = 0;
+    for (AVFrameRateRange* range in format.videoSupportedFrameRateRanges) {
+      slowest = slowest == 0 ? range.minFrameRate : fmin(slowest, range.minFrameRate);
+      fastest = fmax(fastest, range.maxFrameRate);
+    }
+    if (fastest > 0) {
+      int32_t top = (int32_t)fmin((Float64)fps, floor(fastest));
+      int32_t bottom = (int32_t)fmin((Float64)top, fmax(15.0, ceil(slowest)));
+      if (top > 0 && bottom > 0) {
+        device.activeVideoMinFrameDuration = CMTimeMake(1, top);
+        device.activeVideoMaxFrameDuration = CMTimeMake(1, bottom);
+        NSLog(@"mh_tuneCallCamera: %d-%d fps", bottom, top);
+      }
+    }
+    if ([device isExposureModeSupported:AVCaptureExposureModeContinuousAutoExposure]) {
+      device.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
+    }
+    if ([device isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
+      device.focusMode = AVCaptureFocusModeContinuousAutoFocus;
+    }
+    if ([device isWhiteBalanceModeSupported:AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance]) {
+      device.whiteBalanceMode = AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance;
+    }
+#if TARGET_OS_IOS
+    if (device.isLowLightBoostSupported) {
+      device.automaticallyEnablesLowLightBoostWhenAvailable = YES;
+    }
+    if (format.isVideoHDRSupported) {
+      device.automaticallyAdjustsVideoHDREnabled = YES;
+    }
+#endif
+  } @catch (NSException* exception) {
+    NSLog(@"mh_tuneCallCamera failed: %@", exception.reason);
+  }
+  [device unlockForConfiguration];
+}
+
 @end
+

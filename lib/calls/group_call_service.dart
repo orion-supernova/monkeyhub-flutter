@@ -323,7 +323,7 @@ class GroupCallService extends ChangeNotifier
   Future<bool> Function(CallMediaKind kind) ensurePermissionsFn =
       CallPermissions.ensure;
   @visibleForTesting
-  Future<void> Function(RTCPeerConnection pc) preferCodecFn = preferH264Codec;
+  Future<void> Function(RTCPeerConnection pc) preferCodecFn = preferCallCodecs;
 
   MediaStreamTrack? get _camTrack {
     final v = _localStream?.getVideoTracks();
@@ -1021,6 +1021,7 @@ class GroupCallService extends ChangeNotifier
       'rtcpMuxPolicy': 'require',
       'iceCandidatePoolSize': 2,
       'continualGatheringPolicy': kIceGatheringPolicy,
+      ...kCallPeerConnectionTuning,
     }, {});
 
     pc.onIceCandidate = (cand) {

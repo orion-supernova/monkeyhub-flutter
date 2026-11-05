@@ -20,4 +20,8 @@
 - (void)selectAudioInput:(nonnull NSString*)deviceId result:(nullable FlutterResult)result;
 
 - (void)selectAudioOutput:(nonnull NSString*)deviceId result:(nullable FlutterResult)result;
+
+// MONKEYHUB PATCH W8: frame-rate floor and low-light settings for a call
+// camera, applied after capture starts. See FlutterRTCMediaStream.m.
++ (void)mh_tuneCallCamera:(nullable AVCaptureDevice*)device fps:(NSInteger)fps;
 @end

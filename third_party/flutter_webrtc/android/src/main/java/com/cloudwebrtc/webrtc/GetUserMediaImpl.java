@@ -682,7 +682,9 @@ public class GetUserMediaImpl {
 
         if (constraintsMap.getType(key) == ObjectType.Map) {
             ConstraintsMap innerMap = constraintsMap.getMap(key);
-            if (constraintsMap.getType("ideal") == ObjectType.Number) {
+            // MONKEYHUB PATCH W8: read `ideal` from the inner map. Upstream
+            // asked the outer one, so every {ideal: n} fell back to 720p30.
+            if (innerMap != null && innerMap.getType("ideal") == ObjectType.Number) {
                 return innerMap.getInt("ideal");
             }
         }
