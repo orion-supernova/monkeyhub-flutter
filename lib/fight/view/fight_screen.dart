@@ -14,6 +14,7 @@ import '../core/bot.dart' as fb;
 import '../core/core.dart';
 import '../core/fight_step.dart' as fight;
 import 'art/fight_art.dart';
+import 'art/stages/stages.dart';
 import 'fight_audio.dart';
 import 'fight_audio_toggles.dart';
 import 'fight_controls.dart';
@@ -46,6 +47,7 @@ class FightPainter extends CustomPainter {
     required this.look,
     required this.names,
     required this.text,
+    this.stage = 0,
     required Listenable repaint,
   }) : super(repaint: repaint);
 
@@ -55,11 +57,14 @@ class FightPainter extends CustomPainter {
   final List<String> names;
   final FightHudText text;
 
-  @override
-  void paint(Canvas canvas, Size size) => renderer.paint(canvas, size, state(), look, names, text);
+  /// The place the fight is in (stages/stages.dart).
+  final int stage;
 
   @override
-  bool shouldRepaint(FightPainter o) => o.look != look || o.renderer != renderer || o.names != names;
+  void paint(Canvas canvas, Size size) => renderer.paint(canvas, size, state(), look, names, text, stage: stage);
+
+  @override
+  bool shouldRepaint(FightPainter o) => o.look != look || o.renderer != renderer || o.names != names || o.stage != stage;
 }
 
 /// A fight against the bot: the 60 Hz loop, input, haptics, pause and result.
@@ -130,18 +135,22 @@ class BotFightDriver implements FightDriver {
 }
 
 class FightScreen extends StatefulWidget {
-  FightScreen({super.key, required CharacterDef player, required CharacterDef opponent, required fb.BotLevel level, this.onExit})
+  FightScreen({super.key, required CharacterDef player, required CharacterDef opponent, required fb.BotLevel level, this.onExit, this.stage})
     : driver = BotFightDriver(player: player, opponent: opponent, level: level),
       names = [player.name, opponent.name];
 
   /// An externally driven fight (online). [names] by fighter index.
-  const FightScreen.driven({super.key, required this.driver, required this.names, this.onExit});
+  const FightScreen.driven({super.key, required this.driver, required this.names, this.onExit, this.stage = 0});
 
   final FightDriver driver;
   final List<String> names;
 
   /// Leaving the fight (quit, back to chat). Defaults to popping the route.
   final VoidCallback? onExit;
+
+  /// The place to fight in. Null (bot fights) = the player's setting, with
+  /// Random re-rolled for every match; online the host's pick is passed in.
+  final int? stage;
 
   @override
   State<FightScreen> createState() => _FightScreenState();
@@ -181,7 +190,10 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
     unawaited(FightAudio.instance.open().then((_) => FightAudio.instance.startMusic()));
   }
 
+  int _stage = 0;
+
   void _newMatch() {
+    _stage = widget.stage != null ? fightStageOf(widget.stage!) : fightStageResolve(SettingsStore.instance.fightStage);
     _renderer.resetCamera();
     _seenEventFrame = -1;
     _over = false;
@@ -321,6 +333,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
         look: look,
         names: widget.names,
         text: fightHudText(l10n),
+        stage: _stage,
         repaint: _frame,
       ),
       child: const SizedBox.expand(),
@@ -350,6 +363,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
               builder: (context, box) {
                 final portrait = box.maxHeight > box.maxWidth * 1.1;
                 final pad = MediaQuery.paddingOf(context);
+                if (!_touchFirst) return _desktopLayout(context, box, view, l10n, look, pad);
                 Widget body;
                 if (portrait) {
                   // The deck gets what thumbs need; the stage takes the rest
@@ -432,6 +446,72 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
           ),
         ),
       ),
+    );
+  }
+
+  /// Desktop and web: no title chrome and no scrolling. A slim top bar (close
+  /// top-left, pause top-right), the stage aspect-fit at 16:10 and centred on
+  /// the plain background (letterboxed on ultra-wide or tall windows), and the
+  /// key hint under it. The fight canvas sits in its own RepaintBoundary.
+  Widget _desktopLayout(BuildContext context, BoxConstraints box, Widget view, AppLocalizations l10n, FightLook look, EdgeInsets pad) {
+    const barH = 52.0, hintH = 40.0;
+    final availW = (box.maxWidth - pad.horizontal).clamp(0.0, double.infinity);
+    final availH = (box.maxHeight - pad.vertical - barH - hintH).clamp(0.0, double.infinity);
+    var w = availW, h = w / 1.6;
+    if (h > availH) {
+      h = availH;
+      w = h * 1.6;
+    }
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Padding(
+            padding: pad,
+            child: Column(
+              children: [
+                const SizedBox(height: barH),
+                Expanded(
+                  child: Center(
+                    child: SizedBox(width: w, height: h, child: RepaintBoundary(child: view)),
+                  ),
+                ),
+                SizedBox(height: hintH, child: _KeyboardHint(input: _input, text: l10n.fightKeyboardHint, padText: l10n.fightGamepadHint, faded: true)),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          top: pad.top + 6,
+          left: pad.left + 12,
+          child: _RoundIconButton(icon: CupertinoIcons.xmark, onTap: _d.offline ? _exit : () => _setPaused(true)),
+        ),
+        Positioned(
+          top: pad.top + 6,
+          right: pad.right + 12,
+          child: _RoundIconButton(icon: CupertinoIcons.pause_fill, onTap: () => _setPaused(true)),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: pad.top + barH + h * 0.32,
+          child: IgnorePointer(
+            child: ValueListenableBuilder<String?>(
+              valueListenable: _d.notice,
+              builder: (context, n, _) => n == null
+                  ? const SizedBox.shrink()
+                  : Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(color: const Color(0xcc000000), borderRadius: BorderRadius.circular(14)),
+                        child: Text(n, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                      ),
+                    ),
+            ),
+          ),
+        ),
+        if (_paused) Positioned.fill(child: _pauseMenu(l10n, look)),
+        if (_over) Positioned.fill(child: _resultCard(l10n)),
+      ],
     );
   }
 

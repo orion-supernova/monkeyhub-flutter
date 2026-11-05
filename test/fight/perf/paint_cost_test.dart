@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:monkeyhub/fight/core/core.dart';
 import 'package:monkeyhub/fight/view/art/fight_art.dart';
+import 'package:monkeyhub/fight/view/art/quality.dart';
+import 'package:monkeyhub/fight/view/art/stages/stages.dart';
 
 /// Counts what a frame of the fight asks the GPU to do. Clips, layers and
 /// blurs are the expensive ones on the web (CanvasKit) and on low-end
@@ -144,4 +146,45 @@ void main() {
       expect(w.blur, lessThanOrEqualTo(kMaxBlursPerFrame), reason: '${l.name}: blurs per frame');
     }
   }, timeout: const Timeout(Duration(minutes: 3)));
+
+  test('every stage in every look and quality stays inside the budget', () {
+    final art = FightArt();
+    final s = _fight(roster[0], roster[3], 120);
+    final report = <String>[];
+    final was = fightQuality.value;
+    for (final q in FightQuality.values) {
+      fightQuality.value = q;
+      for (final d in kFightStages) {
+        for (final look in looks) {
+          // The stage alone, over a sweep of cameras (the parallax layers
+          // re-aim every frame) and frames (the ambient motion).
+          final total = PaintCounts(), worst = PaintCounts();
+          FightCamera? cam;
+          const frames = 60;
+          for (var f = 0; f < frames; f++) {
+            s.p[0].x = 40000 + f * 300;
+            s.p[1].x = 90000 - f * 200;
+            cam = FightCamera.follow(s, size, cam);
+            final k = PaintCounts();
+            art.paintStage(CountingCanvas(k), size, cam, look, f * 3, d.id);
+            total.add(k);
+            if (k.clip > worst.clip) worst.clip = k.clip;
+            if (k.layer > worst.layer) worst.layer = k.layer;
+            if (k.blur > worst.blur) worst.blur = k.blur;
+          }
+          if (q == FightQuality.full) {
+            report.add('stage ${d.id} ${look.name.padRight(8)} avg/frame: ${total.per(frames)}  other ${(total.other / frames).toStringAsFixed(0)}');
+          }
+          final why = 'stage ${d.id} ${look.name} ${q.name}';
+          expect(worst.clip, lessThanOrEqualTo(kMaxClipsPerFrame), reason: '$why: clips per frame');
+          expect(worst.clip, 0, reason: '$why: stages draw no clips at all');
+          expect(worst.layer, lessThanOrEqualTo(kMaxLayersPerFrame), reason: '$why: layers per frame');
+          expect(worst.blur, lessThanOrEqualTo(kMaxBlursPerFrame), reason: '$why: blurs per frame');
+        }
+      }
+    }
+    fightQuality.value = was;
+    // ignore: avoid_print
+    print(report.join('\n'));
+  }, timeout: const Timeout(Duration(minutes: 2)));
 }

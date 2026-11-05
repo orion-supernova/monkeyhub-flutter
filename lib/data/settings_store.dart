@@ -68,6 +68,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kFightLook = 'mh.fight.look';
   // Jungle Fist: the fighter last picked (CharacterDef.id, as a string).
   static const _kFightChar = 'mh.fight.char';
+  static const _kFightStage = 'mh.fight.stage';
   static const _kFightSound = 'mh.fight.sound';
   static const _kFightMusic = 'mh.fight.music';
   // NOTE: 'mh.photoHd' was a sticky "send photos in HD" choice, retired
@@ -177,6 +178,7 @@ class SettingsStore extends ChangeNotifier {
   bool _showNetworkStats = false;
   String _fightLook = 'cartoon';
   int _fightChar = 0;
+  int _fightStage = 0;
   bool _fightSound = true;
   bool _fightMusic = true;
   VideoQualityTier _videoQualityTier = VideoQualityTier.auto;
@@ -362,6 +364,10 @@ class SettingsStore extends ChangeNotifier {
 
   /// Jungle Fist: the fighter last picked (a CharacterDef.id; callers clamp it to the roster).
   int get fightChar => _fightChar;
+
+  /// Jungle Fist: the place fights happen in (0 = rooftop ... see fight/view/art/stages/stages.dart),
+  /// or -1 for a random one each fight. Online, the host's pick wins.
+  int get fightStage => _fightStage;
 
   /// Jungle Fist sound effects / music. Both default on; the fight pause menu
   /// toggles them (lib/fight/view/fight_audio_toggles.dart).
@@ -704,6 +710,7 @@ class SettingsStore extends ChangeNotifier {
     final fl = s[_kFightLook];
     _fightLook = (fl == 'painted' || fl == 'pixel') ? fl! : 'cartoon';
     _fightChar = int.tryParse(s[_kFightChar] ?? '') ?? 0;
+    _fightStage = int.tryParse(s[_kFightStage] ?? '') ?? 0;
     _fightSound = s[_kFightSound] != 'false'; // default true
     _fightMusic = s[_kFightMusic] != 'false'; // default true
     _videoQualityTier = VideoQualityTierWire.parse(s[_kVideoQualityTier]);
@@ -1147,6 +1154,13 @@ class SettingsStore extends ChangeNotifier {
     _fightChar = v;
     notifyListeners();
     await _storage.write(key: _kFightChar, value: '$v');
+  }
+
+  Future<void> setFightStage(int v) async {
+    if (_fightStage == v) return;
+    _fightStage = v;
+    notifyListeners();
+    await _storage.write(key: _kFightStage, value: '$v');
   }
 
   Future<void> setFightSound(bool v) async {

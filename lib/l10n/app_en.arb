@@ -17952,6 +17952,22 @@
   "@fightTrainingLegend": {
     "description": "Training: key to the input letters in the move list"
   },
+  "fightTrainingSandbag": "Sandbag",
+  "@fightTrainingSandbag": {
+    "description": "Training: the dummy shown as a hanging heavy bag (also its name on the health bar)"
+  },
+  "fightTrainingDummyFighter": "Fighter",
+  "@fightTrainingDummyFighter": {
+    "description": "Training: the dummy shown as a fighter"
+  },
+  "fightTrainingDummy": "Dummy",
+  "@fightTrainingDummy": {
+    "description": "Training: label of the dummy choice (sandbag or fighter)"
+  },
+  "fightTrainingKeyHint": "[ ] browse moves, Enter repeats",
+  "@fightTrainingKeyHint": {
+    "description": "Training: keyboard hint under the move list (desktop and web)"
+  },
   "fightTrainingMoveStandLight": "Stand light",
   "@fightTrainingMoveStandLight": {
     "description": "Training move name"
@@ -17991,5 +18007,23 @@
   "fightTrainingMoveThrow": "Throw",
   "@fightTrainingMoveThrow": {
     "description": "Training move name: the basic throw"
-  }
+  },
+  "fightStageTitle": "Stage",
+  "@fightStageTitle": {"description": "Section header: the place a fight happens in."},
+  "fightStageRandom": "Random",
+  "@fightStageRandom": {"description": "Stage option: a different stage each fight."},
+  "fightStageHostPicks": "The host picks the stage",
+  "@fightStageHostPicks": {"description": "Online pre-fight note shown to the guest, who cannot change the stage."},
+  "fightStageRooftop": "Rooftop",
+  "@fightStageRooftop": {"description": "Fight stage name: a city rooftop at sunset."},
+  "fightStageTemple": "Moss Temple",
+  "@fightStageTemple": {"description": "Fight stage name: an overgrown jungle temple at dusk with a waterfall."},
+  "fightStageNeon": "Neon Alley",
+  "@fightStageNeon": {"description": "Fight stage name: a rainy neon night market alley."},
+  "fightStageAurora": "Aurora Shrine",
+  "@fightStageAurora": {"description": "Fight stage name: a snowy mountain shrine under the northern lights."},
+  "fightStageCanyon": "Canyon Noon",
+  "@fightStageCanyon": {"description": "Fight stage name: a sunbaked desert canyon at midday."},
+  "fightStageDeck": "Moonlit Deck",
+  "@fightStageDeck": {"description": "Fight stage name: a ship deck at night under the moon."}
 }

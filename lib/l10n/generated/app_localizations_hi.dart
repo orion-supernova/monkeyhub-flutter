@@ -14922,6 +14922,18 @@ class AppLocalizationsHi extends AppLocalizations {
   String get fightTrainingLegend => 'L हल्का, H भारी, S विशेष, → विरोधी की ओर';
 
   @override
+  String get fightTrainingSandbag => 'पंचिंग बैग';
+
+  @override
+  String get fightTrainingDummyFighter => 'फ़ाइटर';
+
+  @override
+  String get fightTrainingDummy => 'डमी';
+
+  @override
+  String get fightTrainingKeyHint => '[ ] से चालें देखें, Enter दोहराता है';
+
+  @override
   String get fightTrainingMoveStandLight => 'खड़े हुए हल्का';
 
   @override
@@ -14950,4 +14962,31 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get fightTrainingMoveThrow => 'फेंक';
+
+  @override
+  String get fightStageTitle => 'स्टेज';
+
+  @override
+  String get fightStageRandom => 'रैंडम';
+
+  @override
+  String get fightStageHostPicks => 'स्टेज होस्ट चुनता है';
+
+  @override
+  String get fightStageRooftop => 'छत';
+
+  @override
+  String get fightStageTemple => 'काई वाला मंदिर';
+
+  @override
+  String get fightStageNeon => 'नियॉन गली';
+
+  @override
+  String get fightStageAurora => 'ऑरोरा मंदिर';
+
+  @override
+  String get fightStageCanyon => 'दोपहर की घाटी';
+
+  @override
+  String get fightStageDeck => 'चाँदनी में जहाज़ का डेक';
 }

@@ -15092,6 +15092,18 @@ class AppLocalizationsPt extends AppLocalizations {
       'L Leve, H Pesado, S Especial, → em direção ao oponente';
 
   @override
+  String get fightTrainingSandbag => 'Saco de pancada';
+
+  @override
+  String get fightTrainingDummyFighter => 'Lutador';
+
+  @override
+  String get fightTrainingDummy => 'Boneco';
+
+  @override
+  String get fightTrainingKeyHint => '[ ] percorre os golpes, Enter repete';
+
+  @override
   String get fightTrainingMoveStandLight => 'Leve em pé';
 
   @override
@@ -15120,6 +15132,33 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get fightTrainingMoveThrow => 'Arremesso';
+
+  @override
+  String get fightStageTitle => 'Cenário';
+
+  @override
+  String get fightStageRandom => 'Aleatório';
+
+  @override
+  String get fightStageHostPicks => 'O anfitrião escolhe o cenário';
+
+  @override
+  String get fightStageRooftop => 'Terraço';
+
+  @override
+  String get fightStageTemple => 'Templo de musgo';
+
+  @override
+  String get fightStageNeon => 'Beco néon';
+
+  @override
+  String get fightStageAurora => 'Santuário da aurora';
+
+  @override
+  String get fightStageCanyon => 'Desfiladeiro ao meio-dia';
+
+  @override
+  String get fightStageDeck => 'Convés ao luar';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -30192,6 +30231,18 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'L Leve, H Pesado, S Especial, → em direção ao oponente';
 
   @override
+  String get fightTrainingSandbag => 'Saco de pancada';
+
+  @override
+  String get fightTrainingDummyFighter => 'Lutador';
+
+  @override
+  String get fightTrainingDummy => 'Boneco';
+
+  @override
+  String get fightTrainingKeyHint => '[ ] percorre os golpes, Enter repete';
+
+  @override
   String get fightTrainingMoveStandLight => 'Leve em pé';
 
   @override
@@ -30220,4 +30271,31 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get fightTrainingMoveThrow => 'Arremesso';
+
+  @override
+  String get fightStageTitle => 'Cenário';
+
+  @override
+  String get fightStageRandom => 'Aleatório';
+
+  @override
+  String get fightStageHostPicks => 'O anfitrião escolhe o cenário';
+
+  @override
+  String get fightStageRooftop => 'Terraço';
+
+  @override
+  String get fightStageTemple => 'Templo de musgo';
+
+  @override
+  String get fightStageNeon => 'Beco neon';
+
+  @override
+  String get fightStageAurora => 'Santuário da aurora';
+
+  @override
+  String get fightStageCanyon => 'Cânion ao meio-dia';
+
+  @override
+  String get fightStageDeck => 'Convés ao luar';
 }

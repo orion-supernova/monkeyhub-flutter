@@ -15,6 +15,7 @@ import 'kai_rig.dart';
 import 'poser.dart';
 import 'roster_fx.dart';
 import 'roster_poses.dart';
+import 'sandbag_art.dart';
 import 'stage_art.dart';
 import 'cast/registry.dart';
 
@@ -34,11 +35,19 @@ class FightArt {
   Shader? _vig;
   Size _vigSize = Size.zero;
 
+  /// Training: the player index drawn as a hanging heavy bag instead of its
+  /// fighter (-1 = none). The engine still simulates that fighter.
+  int sandbagFor = -1;
+  final SandbagArt _bag = SandbagArt();
+
+  /// The bag hangs still at the dummy's place on the next paint.
+  void resetSandbag() => _bag.reset();
+
   /// Stage background. Static layers are cached Pictures (per look / size); the
   /// neon flicker, string lights and reflections are drawn per call. Parallax:
   /// far layers move less with the camera than near ones.
-  void paintStage(Canvas c, Size size, FightCamera cam, FightLook look, int frame) {
-    _stage.paint(c, size, cam, look, frame);
+  void paintStage(Canvas c, Size size, FightCamera cam, FightLook look, int frame, [int stage = 0]) {
+    _stage.paint(c, size, cam, look, frame, stage);
   }
 
   /// Shadows, traps, both fighters (facing from Fighter.face), projectiles, and
@@ -46,6 +55,7 @@ class FightArt {
   /// shake is derived from the fighters' `stop`. The super-flash darkening is
   /// drawn here (between the stage and the fighters).
   void paintActors(Canvas c, Size size, FightCamera cam, FightState s, FightLook look) {
+    if (sandbagFor >= 0) _bag.update(s, sandbagFor);
     c.save();
     if (s.phase == Phase.fight && s.superFlash <= 0) {
       final stop = math.max(s.p[0].stop, s.p[1].stop);
@@ -58,7 +68,7 @@ class FightArt {
       _trap(c, cam, s, t, look);
     }
     for (var i = 0; i < 2; i++) {
-      _shadow(c, cam, s.p[i], look);
+      i == sandbagFor ? _bag.paintShadow(c, cam, look) : _shadow(c, cam, s.p[i], look);
     }
     if (s.superFlash > 0 && s.superBy >= 0) _superDarken(c, size, cam, s, look);
     for (var i = 0; i < 2; i++) {
@@ -69,7 +79,7 @@ class FightArt {
     int rank(int i) => s.p[i].state == St.move ? 2 : (s.p[i].state == St.grabbed ? 0 : 1);
     final order = rank(0) > rank(1) ? [1, 0] : [0, 1];
     for (final i in order) {
-      _fighter(c, cam, s, i, look);
+      i == sandbagFor ? _bag.paint(c, cam, look) : _fighter(c, cam, s, i, look);
     }
     for (var i = 0; i < 2; i++) {
       _smear(c, cam, s, i, look);

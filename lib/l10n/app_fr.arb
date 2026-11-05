@@ -4124,6 +4124,10 @@
   "fightTrainingFreePlay": "Jeu libre",
   "fightTrainingMoves": "Techniques",
   "fightTrainingLegend": "L Léger, H Lourd, S Spécial, → vers l'adversaire",
+  "fightTrainingSandbag": "Sac de frappe",
+  "fightTrainingDummyFighter": "Combattant",
+  "fightTrainingDummy": "Mannequin",
+  "fightTrainingKeyHint": "[ ] parcourt les coups, Entrée répète",
   "fightTrainingMoveStandLight": "Léger debout",
   "fightTrainingMoveStandLight2": "Léger 2",
   "fightTrainingMoveFinisher": "Finisseur",
@@ -4133,5 +4137,14 @@
   "fightTrainingMoveJumpLight": "Léger sauté",
   "fightTrainingMoveJumpHeavy": "Lourd sauté",
   "fightTrainingMoveFwdHeavy": "Lourd avant",
-  "fightTrainingMoveThrow": "Projection"
+  "fightTrainingMoveThrow": "Projection",
+  "fightStageTitle": "Décor",
+  "fightStageRandom": "Aléatoire",
+  "fightStageHostPicks": "L'hôte choisit le décor",
+  "fightStageRooftop": "Toit",
+  "fightStageTemple": "Temple de mousse",
+  "fightStageNeon": "Ruelle néon",
+  "fightStageAurora": "Sanctuaire de l'aurore",
+  "fightStageCanyon": "Canyon à midi",
+  "fightStageDeck": "Pont au clair de lune"
 }

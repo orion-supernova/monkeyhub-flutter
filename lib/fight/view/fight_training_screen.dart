@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/foundation.dart';
@@ -14,7 +15,9 @@ import 'art/fight_art.dart';
 import 'fight_character_grid.dart';
 import 'fight_controls.dart';
 import 'fight_renderer.dart';
-import 'fight_screen.dart' show FightLookPicker, fightHudText, fightLookOf;
+import 'art/stages/stages.dart';
+import 'fight_stage_picker.dart';
+import 'fight_screen.dart' show FightLookPicker, fightHudText, fightLookOf, fightLookWire;
 import 'fight_training_moves.dart';
 
 /// Opens the training room for [charId] (default: the fighter picked in the
@@ -70,15 +73,29 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
   Duration _last = Duration.zero, _acc = Duration.zero;
 
   late int _charId;
+
+  /// The place, from the setting (Random trains on the rooftop).
+  int _stage = fightStageOf(SettingsStore.instance.fightStage);
   late List<TrainMove> _moves;
   late FightState _s;
   TrainingScript? _script;
   int _sel = 0;
   int _since = 0; // sim frames since the last perform
   bool _paused = false, _loop = false, _boxes = false, _play = false;
+  bool _bag = true; // the dummy is drawn as a heavy bag (the engine still simulates a fighter)
+  final GlobalKey _selKey = GlobalKey();
   _Speed _speed = _Speed.full;
 
   CharacterDef get _char => roster[_charId];
+
+  /// Whether the dummy is drawn as the bag right now. A grab or throw would
+  /// lift the bag off its chain and a counter stance needs the dummy to poke,
+  /// so those moves always show the fighter.
+  bool get _bagShown {
+    if (!_bag) return false;
+    final m = _moves[_sel];
+    return !m.move.grab && m.group != TrainGroup.counters;
+  }
 
   bool get _touchFirst => switch (defaultTargetPlatform) {
     TargetPlatform.iOS || TargetPlatform.android => true,
@@ -104,6 +121,7 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
     _s = trainingState(_char);
     _cam.cam = null;
     _renderer.resetCamera();
+    _renderer.art.resetSandbag();
     _readout.value = '';
   }
 
@@ -169,8 +187,18 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
     _since = 0;
     _s = trainingState(_char, dist: script.dist, frame: _s.frame);
     _input.clear();
+    _renderer.art.resetSandbag();
     _publish();
     if (mounted) setState(() {});
+  }
+
+  /// Keyboard: step through the move list and perform what lands.
+  void _browse(int delta) {
+    _perform((_sel + delta).clamp(0, _moves.length - 1).toInt());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final c = _selKey.currentContext;
+      if (c != null && c.mounted) Scrollable.ensureVisible(c, alignment: .5, duration: const Duration(milliseconds: 140), curve: Curves.easeOut);
+    });
   }
 
   void _reset() {
@@ -178,6 +206,7 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
     _script = null;
     _since = 0;
     _s = trainingState(_char, frame: _s.frame);
+    _renderer.art.resetSandbag();
     _publish();
     setState(() {});
   }
@@ -193,6 +222,36 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
       _loadFighter();
     });
     _publish();
+  }
+
+  Future<void> _changeStage() async {
+    final l10n = AppLocalizations.of(context);
+    final id = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: const Color(0xff16121f),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l10n.fightStageTitle, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, decoration: TextDecoration.none)),
+              const SizedBox(height: 14),
+              FightStagePicker(selected: _stage, allowRandom: false, onPick: (id) => Navigator.of(context).pop(id)),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    _focus.requestFocus();
+    if (id == null || id == _stage) return;
+    HapticFeedback.selectionClick();
+    setState(() => _stage = id);
+    SettingsStore.instance.setFightStage(id);
   }
 
   void _setPaused(bool p) {
@@ -216,11 +275,14 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
 
   // ---------------------------------------------------------------- build
 
+  static const double _wideMin = 840;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final look = fightLookOf(SettingsStore.instance.fightLook);
     final name = _char.name;
+    final bag = _bagShown;
     final view = RepaintBoundary(
       child: CustomPaint(
         painter: FightTrainingPainter(
@@ -228,9 +290,11 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
           cam: _cam,
           state: () => _s,
           look: look,
-          names: [name, name],
+          names: [name, bag ? l10n.fightTrainingSandbag.toUpperCase() : name],
           text: fightHudText(l10n),
           boxes: _boxes,
+          sandbag: bag,
+          stage: _stage,
           repaint: _frame,
         ),
         child: const SizedBox.expand(),
@@ -244,9 +308,24 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
         if (!f) _input.clear();
       },
       onKeyEvent: (node, e) {
-        if (e is KeyDownEvent && e.logicalKey == LogicalKeyboardKey.escape) {
-          Navigator.of(context).maybePop();
-          return KeyEventResult.handled;
+        if (e is KeyDownEvent) {
+          final k = e.logicalKey;
+          if (k == LogicalKeyboardKey.escape) {
+            Navigator.of(context).maybePop();
+            return KeyEventResult.handled;
+          }
+          if (k == LogicalKeyboardKey.bracketRight || k == LogicalKeyboardKey.pageDown) {
+            _browse(1);
+            return KeyEventResult.handled;
+          }
+          if (k == LogicalKeyboardKey.bracketLeft || k == LogicalKeyboardKey.pageUp) {
+            _browse(-1);
+            return KeyEventResult.handled;
+          }
+          if (k == LogicalKeyboardKey.enter || k == LogicalKeyboardKey.numpadEnter) {
+            _perform(_sel);
+            return KeyEventResult.handled;
+          }
         }
         return _input.onKey(e);
       },
@@ -258,73 +337,159 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
             color: _bg,
             child: LayoutBuilder(
               builder: (context, box) {
-                final portrait = box.maxHeight > box.maxWidth * 1.1;
                 final pad = MediaQuery.paddingOf(context);
                 final header = _header(l10n, pad);
-                if (portrait) {
-                  return Column(
-                    children: [
-                      header,
-                      AspectRatio(aspectRatio: 1.6, child: view),
-                      _controls(l10n, compact: false),
-                      Expanded(child: Padding(padding: EdgeInsets.only(bottom: pad.bottom), child: _lower(l10n, withDeck: true))),
-                    ],
-                  );
-                }
-                final side = (box.maxWidth * .36).clamp(300.0, 430.0);
-                return Column(
-                  children: [
-                    header,
-                    Expanded(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: Padding(
-                              padding: EdgeInsets.only(left: pad.left),
-                              child: Column(
-                                children: [
-                                  Expanded(
-                                    child: Center(
-                                      child: AspectRatio(
-                                        aspectRatio: 1.6,
-                                        child: Stack(
-                                          fit: StackFit.expand,
-                                          children: [
-                                            view,
-                                            if (_touchFirst && _play)
-                                              Positioned.fill(child: _deck(overlay: true)),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  ConstrainedBox(
-                                    constraints: BoxConstraints(maxHeight: box.maxHeight * .34),
-                                    child: SingleChildScrollView(child: _controls(l10n, compact: true)),
-                                  ),
-                                  SizedBox(height: pad.bottom),
-                                ],
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: side + pad.right,
-                            child: Padding(
-                              padding: EdgeInsets.only(right: pad.right, bottom: pad.bottom),
-                              child: _lower(l10n, withDeck: false),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
+                if (box.maxWidth >= _wideMin && box.maxWidth > box.maxHeight) return _wide(l10n, box, pad, header, view);
+                return _phone(l10n, pad, header, view);
               },
             ),
           ),
         ),
       ),
+    );
+  }
+
+  /// Phones (and anything narrow): the stage is fixed at the top, a compact
+  /// control block sits under it and the move list takes all that is left.
+  Widget _phone(AppLocalizations l10n, EdgeInsets pad, Widget header, Widget view) {
+    return Column(
+      children: [
+        header,
+        AspectRatio(aspectRatio: 2.1, child: view),
+        Padding(
+          padding: EdgeInsets.fromLTRB(12 + pad.left, 8, 12 + pad.right, 0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  _speedSeg(),
+                  const SizedBox(width: 8),
+                  _pauseChip(l10n),
+                  const SizedBox(width: 6),
+                  _stepChip(l10n),
+                  Expanded(child: _readoutText(TextAlign.end)),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Wrap(spacing: 6, runSpacing: 6, children: _toggles(l10n)),
+            ],
+          ),
+        ),
+        if (!(_touchFirst && _play))
+          Padding(
+            padding: EdgeInsets.fromLTRB(12 + pad.left, 8, 12 + pad.right, 6),
+            child: _FrameDataPanel(key: const ValueKey('training_frame_data'), char: _char, move: _moves[_sel], l10n: l10n, repaint: _frame, state: () => _s, compact: true),
+          ),
+        Expanded(
+          child: _touchFirst && _play
+              ? Padding(padding: EdgeInsets.only(bottom: pad.bottom), child: _deck(overlay: false))
+              : _MoveList(
+                  moves: _moves,
+                  selected: _sel,
+                  selectedKey: _selKey,
+                  l10n: l10n,
+                  onPick: _perform,
+                  padding: EdgeInsets.fromLTRB(12 + pad.left, 0, 12 + pad.right, 12 + pad.bottom),
+                ),
+        ),
+      ],
+    );
+  }
+
+  /// Desktop and web (and landscape tablets): the stage fills the left at the
+  /// fight's own aspect ratio, never cropped, never scrolling; the right panel
+  /// holds the frame data and the move list.
+  Widget _wide(AppLocalizations l10n, BoxConstraints box, EdgeInsets pad, Widget header, Widget view) {
+    final side = (box.maxWidth * .28).clamp(360.0, 420.0);
+    final short = box.maxHeight < 560;
+    final strip = <Widget>[
+      _speedSeg(),
+      _pauseChip(l10n),
+      _stepChip(l10n),
+      SizedBox(width: 62, child: _readoutText(TextAlign.start)),
+      ..._toggles(l10n, withLook: false),
+      SizedBox(width: 250, child: FightLookPicker(look: fightLookOf(SettingsStore.instance.fightLook))),
+    ];
+    return Column(
+      children: [
+        header,
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(left: 12 + pad.left, bottom: math.max(pad.bottom, 12)),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: AspectRatio(
+                            aspectRatio: 1.6,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                view,
+                                if (_touchFirst && _play) Positioned.fill(child: _deck(overlay: true)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (short)
+                        // A landscape phone: one scrolling line, nothing cut.
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              for (final w in strip) Padding(padding: const EdgeInsets.only(right: 8), child: w),
+                            ],
+                          ),
+                        )
+                      else
+                        Wrap(alignment: WrapAlignment.center, crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, runSpacing: 8, children: strip),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                width: side + pad.right,
+                decoration: const BoxDecoration(border: Border(left: BorderSide(color: _line))),
+                child: Padding(
+                  padding: EdgeInsets.only(right: pad.right, bottom: pad.bottom),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+                        child: _FrameDataPanel(key: const ValueKey('training_frame_data'), char: _char, move: _moves[_sel], l10n: l10n, repaint: _frame, state: () => _s, compact: short),
+                      ),
+                      Expanded(
+                        child: _MoveList(
+                          moves: _moves,
+                          selected: _sel,
+                          selectedKey: _selKey,
+                          l10n: l10n,
+                          onPick: _perform,
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                        ),
+                      ),
+                      if (!_touchFirst)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                          child: Text(l10n.fightTrainingKeyHint, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Color(0x80ffffff))),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -336,8 +501,10 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
   );
 
   Widget _header(AppLocalizations l10n, EdgeInsets pad) {
+    // Two chips need the room on a phone; the title gives way there.
+    final narrow = MediaQuery.sizeOf(context).width < 460;
     return Padding(
-      padding: EdgeInsets.fromLTRB(12 + pad.left, pad.top + 8, 12 + pad.right, 8),
+      padding: EdgeInsets.fromLTRB(12 + pad.left, pad.top + 6, 12 + pad.right, 6),
       child: Row(
         children: [
           _IconBtn(
@@ -347,7 +514,7 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
             onTap: () => Navigator.of(context).maybePop(),
           ),
           const SizedBox(width: 12),
-          Expanded(
+          if (narrow) const Spacer() else Expanded(
             child: Text(
               l10n.fightTrainingTitle,
               maxLines: 1,
@@ -355,28 +522,21 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: .3),
             ),
           ),
-          SpringPress(
-            key: const ValueKey('training_change_fighter'),
-            onTap: _changeFighter,
-            semanticLabel: l10n.fightTrainingChangeFighter,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(14, 6, 10, 6),
-              decoration: BoxDecoration(color: const Color(0x1fffffff), borderRadius: BorderRadius.circular(14)),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(l10n.fightTrainingChangeFighter, style: const TextStyle(fontSize: 10, color: Color(0x99ffffff), fontWeight: FontWeight.w700)),
-                      Text(_char.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-                    ],
-                  ),
-                  const SizedBox(width: 6),
-                  const Icon(CupertinoIcons.chevron_down, size: 14, color: Colors.white70),
-                ],
-              ),
+          Flexible(
+            child: _HeaderChip(
+              key: const ValueKey('training_change_stage'),
+              onTap: _changeStage,
+              label: l10n.fightStageTitle,
+              value: fightStageName(l10n, _stage),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: _HeaderChip(
+              key: const ValueKey('training_change_fighter'),
+              onTap: _changeFighter,
+              label: l10n.fightTrainingChangeFighter,
+              value: _char.name,
             ),
           ),
         ],
@@ -384,125 +544,128 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
     );
   }
 
-  Widget _controls(AppLocalizations l10n, {required bool compact}) {
-    final look = fightLookOf(SettingsStore.instance.fightLook);
-    const gap = SizedBox(width: 8);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
-      child: Column(
+  // ---------------------------------------------------------------- controls
+
+  /// 1x / 1/2x / 1/4x as one joined control.
+  Widget _speedSeg() {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(color: const Color(0x1fffffff), borderRadius: BorderRadius.circular(12)),
+      child: Row(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              for (final sp in _Speed.values) ...[
-                Expanded(
-                  child: _Chip(
-                    key: ValueKey('training_speed_${sp.name}'),
-                    label: sp.label,
-                    selected: _speed == sp,
-                    onTap: () => setState(() => _speed = sp),
-                  ),
-                ),
-                gap,
-              ],
-              _Chip(
-                key: const ValueKey('training_pause'),
-                icon: _paused ? CupertinoIcons.play_fill : CupertinoIcons.pause_fill,
-                semantic: _paused ? l10n.fightTrainingPlay : l10n.fightTrainingPause,
-                selected: _paused,
-                onTap: () => _setPaused(!_paused),
-              ),
-              gap,
-              _Chip(
-                key: const ValueKey('training_step'),
-                icon: CupertinoIcons.forward_end_fill,
-                semantic: l10n.fightTrainingStep,
-                enabled: _paused,
-                onTap: _stepOneFrame,
-              ),
-              ValueListenableBuilder<String>(
-                valueListenable: _readout,
-                builder: (context, t, _) => SizedBox(
-                  width: 62,
-                  child: Text(
-                    t,
-                    key: const ValueKey('training_readout'),
-                    textAlign: TextAlign.end,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xb3ffffff), fontFeatures: [FontFeature.tabularFigures()]),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _Chip(
-                  key: const ValueKey('training_loop'),
-                  icon: CupertinoIcons.repeat,
-                  label: l10n.fightTrainingLoop,
-                  selected: _loop,
-                  onTap: () => setState(() => _loop = !_loop),
-                ),
-              ),
-              gap,
-              Expanded(
-                flex: 3,
-                child: _Chip(
-                  key: const ValueKey('training_hitboxes'),
-                  icon: CupertinoIcons.square_on_square,
-                  label: l10n.fightTrainingHitboxes,
-                  selected: _boxes,
-                  onTap: () {
-                    setState(() => _boxes = !_boxes);
-                    _frame.value++;
-                  },
-                ),
-              ),
-              gap,
-              Expanded(
-                child: _Chip(
-                  key: const ValueKey('training_reset'),
-                  icon: CupertinoIcons.arrow_counterclockwise,
-                  label: l10n.fightTrainingReset,
-                  onTap: _reset,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          FightLookPicker(look: look),
+          for (final sp in _Speed.values)
+            _SegCell(
+              key: ValueKey('training_speed_${sp.name}'),
+              label: sp.label,
+              selected: _speed == sp,
+              minWidth: 38,
+              onTap: () => setState(() => _speed = sp),
+            ),
         ],
       ),
     );
   }
 
-  /// The frame-data panel and the move list, or (phones) the touch deck.
-  Widget _lower(AppLocalizations l10n, {required bool withDeck}) {
-    final showDeck = withDeck && _touchFirst && _play;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (_touchFirst)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-            child: Row(
-              children: [
-                Expanded(child: _Chip(key: const ValueKey('training_tab_moves'), label: l10n.fightTrainingMoves, selected: !_play, onTap: () => setState(() => _play = false))),
-                const SizedBox(width: 8),
-                Expanded(child: _Chip(key: const ValueKey('training_tab_play'), label: l10n.fightTrainingFreePlay, selected: _play, onTap: () => setState(() => _play = true))),
-              ],
+  Widget _pauseChip(AppLocalizations l10n) => _Chip(
+    key: const ValueKey('training_pause'),
+    icon: _paused ? CupertinoIcons.play_fill : CupertinoIcons.pause_fill,
+    semantic: _paused ? l10n.fightTrainingPlay : l10n.fightTrainingPause,
+    selected: _paused,
+    onTap: () => _setPaused(!_paused),
+  );
+
+  Widget _stepChip(AppLocalizations l10n) => _Chip(
+    key: const ValueKey('training_step'),
+    icon: CupertinoIcons.forward_end_fill,
+    semantic: l10n.fightTrainingStep,
+    enabled: _paused,
+    onTap: _stepOneFrame,
+  );
+
+  Widget _readoutText(TextAlign align) => ValueListenableBuilder<String>(
+    valueListenable: _readout,
+    builder: (context, t, _) => Text(
+      t,
+      key: const ValueKey('training_readout'),
+      textAlign: align,
+      maxLines: 1,
+      softWrap: false,
+      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xb3ffffff), fontFeatures: [FontFeature.tabularFigures()]),
+    ),
+  );
+
+  /// Loop, hitboxes, dummy, reset and (phone) look / free play. A Wrap, so a
+  /// narrow screen reflows to another row instead of cutting a label.
+  List<Widget> _toggles(AppLocalizations l10n, {bool withLook = true}) {
+    final look = fightLookOf(SettingsStore.instance.fightLook);
+    String lookName(FightLook l) => switch (l) {
+      FightLook.cartoon => l10n.fightLookCartoon,
+      FightLook.painted => l10n.fightLookPainted,
+      FightLook.pixel => l10n.fightLookPixel,
+    };
+    return [
+      _Chip(key: const ValueKey('training_loop'), icon: CupertinoIcons.repeat, label: l10n.fightTrainingLoop, selected: _loop, onTap: () => setState(() => _loop = !_loop)),
+      _Chip(
+        key: const ValueKey('training_hitboxes'),
+        icon: CupertinoIcons.square_on_square,
+        label: l10n.fightTrainingHitboxes,
+        selected: _boxes,
+        onTap: () {
+          setState(() => _boxes = !_boxes);
+          _frame.value++;
+        },
+      ),
+      _dummySeg(l10n),
+      _Chip(key: const ValueKey('training_reset'), icon: CupertinoIcons.arrow_counterclockwise, label: l10n.fightTrainingReset, onTap: _reset),
+      if (withLook)
+        _Chip(
+          key: const ValueKey('training_look'),
+          icon: CupertinoIcons.paintbrush,
+          label: lookName(look),
+          semantic: lookName(look),
+          onTap: () => SettingsStore.instance.setFightLook(fightLookWire(FightLook.values[(look.index + 1) % FightLook.values.length])),
+        ),
+      if (_touchFirst)
+        _Chip(
+          key: const ValueKey('training_tab_play'),
+          icon: CupertinoIcons.game_controller_solid,
+          label: l10n.fightTrainingFreePlay,
+          selected: _play,
+          onTap: () => setState(() => _play = !_play),
+        ),
+    ];
+  }
+
+  /// Sandbag | Fighter: what the dummy is drawn as.
+  Widget _dummySeg(AppLocalizations l10n) {
+    return Semantics(
+      container: true,
+      label: l10n.fightTrainingDummy,
+      child: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(color: const Color(0x1fffffff), borderRadius: BorderRadius.circular(12)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _SegCell(
+              key: const ValueKey('training_dummy_bag'),
+              label: l10n.fightTrainingSandbag,
+              selected: _bag,
+              onTap: () {
+                _renderer.art.resetSandbag();
+                setState(() => _bag = true);
+              },
             ),
-          ),
-        if (showDeck)
-          Expanded(child: _deck(overlay: false))
-        else ...[
-          Padding(padding: const EdgeInsets.fromLTRB(12, 4, 12, 6), child: _FrameDataPanel(char: _char, move: _moves[_sel], l10n: l10n, repaint: _frame, state: () => _s)),
-          Expanded(child: _MoveList(moves: _moves, selected: _sel, l10n: l10n, onPick: _perform)),
-        ],
-      ],
+            _SegCell(
+              key: const ValueKey('training_dummy_fighter'),
+              label: l10n.fightTrainingDummyFighter,
+              selected: !_bag,
+              onTap: () => setState(() => _bag = false),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -527,6 +690,8 @@ class FightTrainingPainter extends CustomPainter {
     required this.names,
     required this.text,
     required this.boxes,
+    this.sandbag = false,
+    this.stage = 0,
     required Listenable repaint,
   }) : super(repaint: repaint);
 
@@ -538,6 +703,12 @@ class FightTrainingPainter extends CustomPainter {
   final FightHudText text;
   final bool boxes;
 
+  /// P2 is drawn as the heavy bag.
+  final bool sandbag;
+
+  /// The place (stages/stages.dart).
+  final int stage;
+
   static final Paint _fill = Paint();
   static final Paint _stroke = Paint()
     ..style = PaintingStyle.stroke
@@ -547,7 +718,8 @@ class FightTrainingPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
     final s = state();
-    renderer.paint(canvas, size, s, look, names, text);
+    renderer.art.sandbagFor = sandbag ? 1 : -1;
+    renderer.paint(canvas, size, s, look, names, text, stage: stage);
     final c = cam.cam = FightCamera.follow(s, size, cam.cam);
     if (!boxes) return;
     canvas.save();
@@ -557,7 +729,7 @@ class FightTrainingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(FightTrainingPainter o) => o.look != look || o.renderer != renderer || o.names != names || o.boxes != boxes;
+  bool shouldRepaint(FightTrainingPainter o) => o.look != look || o.renderer != renderer || o.names != names || o.boxes != boxes || o.sandbag != sandbag || o.stage != stage;
 }
 
 Rect _screenRect(FightCamera cam, TrainRect r) =>
@@ -638,22 +810,53 @@ class _Chip extends StatelessWidget {
         onTap: enabled ? onTap : () {},
         semanticLabel: semantic ?? label,
         child: Container(
-          height: 38,
+          height: 34,
           constraints: const BoxConstraints(minWidth: 40),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          alignment: Alignment.center,
+          padding: EdgeInsets.symmetric(horizontal: label == null ? 12 : 11),
           decoration: BoxDecoration(color: selected ? Colors.white : const Color(0x1fffffff), borderRadius: BorderRadius.circular(12)),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (icon != null) Icon(icon, size: 16, color: fg),
-              if (icon != null && label != null) const SizedBox(width: 6),
-              if (label != null)
-                Flexible(
-                  child: Text(label!, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: fg)),
-                ),
-            ],
+          // Sized by its content: a label is never clipped or ellipsized, the
+          // Wrap around the chips moves it to the next row instead.
+          child: Center(
+            widthFactor: 1,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) Icon(icon, size: 16, color: fg),
+                if (icon != null && label != null) const SizedBox(width: 6),
+                if (label != null) Text(label!, maxLines: 1, softWrap: false, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: fg)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One cell of a joined segmented control.
+class _SegCell extends StatelessWidget {
+  const _SegCell({super.key, required this.label, required this.selected, required this.onTap, this.minWidth = 0});
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final double minWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: SpringPress(
+        onTap: onTap,
+        semanticLabel: label,
+        child: Container(
+          height: 30,
+          constraints: BoxConstraints(minWidth: minWidth),
+          padding: const EdgeInsets.symmetric(horizontal: 11),
+          decoration: BoxDecoration(color: selected ? Colors.white : Colors.transparent, borderRadius: BorderRadius.circular(10)),
+          child: Center(
+            widthFactor: 1,
+            child: Text(label, maxLines: 1, softWrap: false, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: selected ? const Color(0xff0b0a12) : Colors.white)),
           ),
         ),
       ),
@@ -677,11 +880,13 @@ String _normalLabel(AppLocalizations l, int n) => switch (n) {
 String _moveLabel(AppLocalizations l, TrainMove m) => m.normal != null ? _normalLabel(l, m.normal!) : (m.ex ? '${m.name} EX' : m.name);
 
 class _MoveList extends StatelessWidget {
-  const _MoveList({required this.moves, required this.selected, required this.l10n, required this.onPick});
+  const _MoveList({required this.moves, required this.selected, required this.selectedKey, required this.l10n, required this.onPick, required this.padding});
   final List<TrainMove> moves;
   final int selected;
+  final GlobalKey selectedKey;
   final AppLocalizations l10n;
   final ValueChanged<int> onPick;
+  final EdgeInsets padding;
 
   String _title(TrainGroup g) => switch (g) {
     TrainGroup.normals => l10n.fightTrainingNormals,
@@ -703,7 +908,7 @@ class _MoveList extends StatelessWidget {
       items.add(i);
     }
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+      padding: padding,
       itemCount: items.length + 1,
       itemBuilder: (context, k) {
         if (k == items.length) {
@@ -715,7 +920,7 @@ class _MoveList extends StatelessWidget {
         final it = items[k];
         if (it is TrainGroup) {
           return Padding(
-            padding: const EdgeInsets.fromLTRB(2, 12, 2, 6),
+            padding: const EdgeInsets.fromLTRB(2, 10, 2, 6),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -730,14 +935,15 @@ class _MoveList extends StatelessWidget {
         final m = moves[i];
         final on = i == selected;
         return Padding(
+          key: on ? selectedKey : null,
           padding: const EdgeInsets.only(bottom: 6),
           child: SpringPress(
             key: ValueKey('training_move_$i'),
             onTap: () => onPick(i),
             semanticLabel: _moveLabel(l10n, m),
             child: Container(
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              height: 44,
+              padding: const EdgeInsets.fromLTRB(8, 0, 12, 0),
               decoration: BoxDecoration(
                 color: on ? const Color(0x26ffd23a) : const Color(0x14ffffff),
                 borderRadius: BorderRadius.circular(14),
@@ -745,14 +951,25 @@ class _MoveList extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Expanded(
-                    child: Text(_moveLabel(l10n, m), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                  // The input first: it is what you press, the name is what
+                  // you call it. A fixed column keeps the names in line.
+                  SizedBox(
+                    width: 84,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          decoration: BoxDecoration(color: on ? const Color(0x33ffd23a) : const Color(0x26ffffff), borderRadius: BorderRadius.circular(8)),
+                          child: Text(m.glyph, maxLines: 1, softWrap: false, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: .5, color: on ? _gold : const Color(0xffd9d4ea))),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                    decoration: BoxDecoration(color: const Color(0x26ffffff), borderRadius: BorderRadius.circular(8)),
-                    child: Text(m.glyph, maxLines: 1, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: .5, color: Color(0xffd9d4ea))),
+                  Expanded(
+                    child: Text(_moveLabel(l10n, m), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
                   ),
                 ],
               ),
@@ -765,12 +982,15 @@ class _MoveList extends StatelessWidget {
 }
 
 class _FrameDataPanel extends StatelessWidget {
-  const _FrameDataPanel({required this.char, required this.move, required this.l10n, required this.repaint, required this.state});
+  const _FrameDataPanel({super.key, required this.char, required this.move, required this.l10n, required this.repaint, required this.state, this.compact = false});
   final CharacterDef char;
   final TrainMove move;
   final AppLocalizations l10n;
   final Listenable repaint;
   final FightState Function() state;
+
+  /// Phones: no title row, the flags in one scrolling line.
+  final bool compact;
 
   String _height(BlockHeight h) => switch (h) {
     BlockHeight.high => l10n.fightTrainingHeightHigh,
@@ -810,61 +1030,62 @@ class _FrameDataPanel extends StatelessWidget {
       (l10n.fightTrainingHits, fd.hitsAnything ? '${fd.hits}' : '–'),
       (l10n.fightTrainingBlock, fd.hitsAnything ? _height(fd.height) : '–'),
     ];
+    final flags = fd.flags.isEmpty
+        ? null
+        : compact
+        ? SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [for (final f in fd.flags) Padding(padding: const EdgeInsets.only(right: 6), child: _flagChip(f))]),
+          )
+        : Wrap(spacing: 6, runSpacing: 6, children: [for (final f in fd.flags) _flagChip(f)]);
     return Container(
-      key: const ValueKey('training_frame_data'),
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-      decoration: BoxDecoration(color: _panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: _line)),
+      padding: EdgeInsets.fromLTRB(14, compact ? 9 : 10, 14, compact ? 9 : 12),
+      decoration: BoxDecoration(color: _panel, borderRadius: BorderRadius.circular(compact ? 16 : 18), border: Border.all(color: _line)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(_moveLabel(l10n, move), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
-              ),
-              Text(l10n.fightTrainingFrameData.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: .8, color: Color(0x80ffffff))),
-            ],
-          ),
-          const SizedBox(height: 8),
+          if (!compact) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Text(_moveLabel(l10n, move), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+                ),
+                Text(l10n.fightTrainingFrameData.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: .8, color: Color(0x80ffffff))),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
           SizedBox(
-            height: 12,
+            height: compact ? 8 : 12,
             child: CustomPaint(painter: _FrameBarPainter(fd: fd, moveId: move.moveId, state: state, repaint: repaint)),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: compact ? 7 : 10),
           Row(
             children: [
               for (final (label, value) in stats)
                 Expanded(
                   child: Column(
                     children: [
-                      FittedBox(fit: BoxFit.scaleDown, child: Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900))),
-                      const SizedBox(height: 2),
+                      FittedBox(fit: BoxFit.scaleDown, child: Text(value, style: TextStyle(fontSize: compact ? 15 : 16, fontWeight: FontWeight.w900))),
+                      const SizedBox(height: 1),
                       FittedBox(fit: BoxFit.scaleDown, child: Text(label, maxLines: 1, style: const TextStyle(fontSize: 10.5, color: Color(0x99ffffff), fontWeight: FontWeight.w700))),
                     ],
                   ),
                 ),
             ],
           ),
-          if (fd.flags.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final f in fd.flags)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                    decoration: BoxDecoration(color: const Color(0x1fffffff), borderRadius: BorderRadius.circular(8)),
-                    child: Text(_flag(f), style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xe6ffffff))),
-                  ),
-              ],
-            ),
-          ],
+          if (flags != null) ...[SizedBox(height: compact ? 7 : 10), flags],
         ],
       ),
     );
   }
+
+  Widget _flagChip(TrainFlag f) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+    decoration: BoxDecoration(color: const Color(0x1fffffff), borderRadius: BorderRadius.circular(8)),
+    child: Text(_flag(f), maxLines: 1, softWrap: false, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xe6ffffff))),
+  );
 }
 
 /// Startup / active / recovery as a bar, with a playhead while P1 plays it.
@@ -902,4 +1123,41 @@ class _FrameBarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_FrameBarPainter o) => o.fd != fd || o.moveId != moveId;
+}
+
+/// A header pill: a small caption over a value, with a chevron.
+class _HeaderChip extends StatelessWidget {
+  const _HeaderChip({super.key, required this.onTap, required this.label, required this.value});
+
+  final VoidCallback onTap;
+  final String label, value;
+
+  @override
+  Widget build(BuildContext context) {
+    return SpringPress(
+      onTap: onTap,
+      semanticLabel: '$label: $value',
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 5, 10, 5),
+        decoration: BoxDecoration(color: const Color(0x1fffffff), borderRadius: BorderRadius.circular(14)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: Color(0x99ffffff), fontWeight: FontWeight.w700)),
+                  Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(CupertinoIcons.chevron_down, size: 14, color: Colors.white70),
+          ],
+        ),
+      ),
+    );
+  }
 }

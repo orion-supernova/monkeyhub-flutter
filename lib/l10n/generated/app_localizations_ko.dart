@@ -14311,6 +14311,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get fightTrainingLegend => 'L 약, H 강, S 필살, → 상대 방향';
 
   @override
+  String get fightTrainingSandbag => '샌드백';
+
+  @override
+  String get fightTrainingDummyFighter => '파이터';
+
+  @override
+  String get fightTrainingDummy => '더미';
+
+  @override
+  String get fightTrainingKeyHint => '[ ] 기술 탐색, Enter 반복';
+
+  @override
   String get fightTrainingMoveStandLight => '서서 약';
 
   @override
@@ -14339,4 +14351,31 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get fightTrainingMoveThrow => '던지기';
+
+  @override
+  String get fightStageTitle => '스테이지';
+
+  @override
+  String get fightStageRandom => '랜덤';
+
+  @override
+  String get fightStageHostPicks => '스테이지는 호스트가 선택해요';
+
+  @override
+  String get fightStageRooftop => '옥상';
+
+  @override
+  String get fightStageTemple => '이끼 낀 사원';
+
+  @override
+  String get fightStageNeon => '네온 골목';
+
+  @override
+  String get fightStageAurora => '오로라 신전';
+
+  @override
+  String get fightStageCanyon => '한낮의 협곡';
+
+  @override
+  String get fightStageDeck => '달빛 갑판';
 }

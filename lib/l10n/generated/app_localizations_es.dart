@@ -15088,6 +15088,19 @@ class AppLocalizationsEs extends AppLocalizations {
       'L Ligero, H Fuerte, S Especial, → hacia el rival';
 
   @override
+  String get fightTrainingSandbag => 'Saco de boxeo';
+
+  @override
+  String get fightTrainingDummyFighter => 'Luchador';
+
+  @override
+  String get fightTrainingDummy => 'Muñeco';
+
+  @override
+  String get fightTrainingKeyHint =>
+      '[ ] recorre los movimientos, Intro repite';
+
+  @override
   String get fightTrainingMoveStandLight => 'Ligero de pie';
 
   @override
@@ -15116,4 +15129,31 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get fightTrainingMoveThrow => 'Lanzamiento';
+
+  @override
+  String get fightStageTitle => 'Escenario';
+
+  @override
+  String get fightStageRandom => 'Aleatorio';
+
+  @override
+  String get fightStageHostPicks => 'El anfitrión elige el escenario';
+
+  @override
+  String get fightStageRooftop => 'Azotea';
+
+  @override
+  String get fightStageTemple => 'Templo de musgo';
+
+  @override
+  String get fightStageNeon => 'Callejón neón';
+
+  @override
+  String get fightStageAurora => 'Santuario de aurora';
+
+  @override
+  String get fightStageCanyon => 'Cañón al mediodía';
+
+  @override
+  String get fightStageDeck => 'Cubierta a la luz de la luna';
 }

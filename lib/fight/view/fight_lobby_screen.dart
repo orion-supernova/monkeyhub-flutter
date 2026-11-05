@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -12,7 +13,9 @@ import '../core/core.dart';
 import 'art/fight_art.dart';
 import 'fight_renderer.dart';
 import 'fight_character_grid.dart';
+import 'art/stages/stages.dart';
 import 'fight_screen.dart';
+import 'fight_stage_picker.dart';
 import 'fight_training_screen.dart';
 
 /// Jungle Fist's setup page, opened from Play the bot: a live bot-vs-bot
@@ -147,97 +150,209 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
         names: names,
         text: text,
         repaint: still ? _stillTick : _frame,
+        stage: fightStageOf(SettingsStore.instance.fightStage),
       ),
       child: const SizedBox.expand(),
     );
 
-    return IosPage(
-      title: l10n.fightTitle,
+    final hero = RepaintBoundary(child: view(_hero, look));
+    final picked = fightCharOf(SettingsStore.instance.fightChar);
+    Widget grid({double? maxCardWidth}) => FightCharacterGrid(
+      selected: picked,
+      look: look,
+      maxCardWidth: maxCardWidth,
+      onPick: (id) {
+        SettingsStore.instance.setFightChar(id);
+        _resetDemo();
+      },
+    );
+    Widget looks() => Row(
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(groupedRadius(theme) + 4),
-          child: AspectRatio(aspectRatio: 16 / 10, child: RepaintBoundary(child: view(_hero, look))),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
-          child: Text(l10n.fightLobbyIntro, style: theme.body.copyWith(color: theme.inkSoft, height: 1.35)),
-        ),
-        const SizedBox(height: 24),
-        GroupedHeader(sentenceCaseOf(context, l10n.fightFighterTitle)),
-        FightCharacterGrid(
-          selected: fightCharOf(SettingsStore.instance.fightChar),
-          look: look,
-          onPick: (id) {
-            SettingsStore.instance.setFightChar(id);
-            _resetDemo();
-          },
-        ),
-        const SizedBox(height: 24),
-        GroupedHeader(sentenceCaseOf(context, l10n.fightLookTitle)),
-        Row(
+        for (final (i, l) in FightLook.values.indexed) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(
+            child: _LookCard(
+              key: ValueKey('fight_look_${l.name}'),
+              label: switch (l) {
+                FightLook.cartoon => l10n.fightLookCartoon,
+                FightLook.painted => l10n.fightLookPainted,
+                FightLook.pixel => l10n.fightLookPixel,
+              },
+              selected: l == look,
+              preview: RepaintBoundary(child: view(_previews[l]!, l, still: true)),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                SettingsStore.instance.setFightLook(fightLookWire(l));
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+    final footnote = Padding(
+      padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+      child: Text(sentenceCaseOf(context, l10n.fightLookFootnote), style: groupedFooterStyle(theme)),
+    );
+    final intro = Padding(
+      padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
+      child: Text(l10n.fightLobbyIntro, style: theme.body.copyWith(color: theme.inkSoft, height: 1.35)),
+    );
+    final buttons = _ActionPair(onFight: _fight, onTraining: () => openFightTraining(context, charId: fightCharOf(SettingsStore.instance.fightChar)));
+
+    return LayoutBuilder(
+      builder: (context, box) {
+        final wide = box.maxWidth >= 860;
+        if (!wide) {
+          return IosPage(
+            title: l10n.fightTitle,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(groupedRadius(theme) + 4),
+                child: AspectRatio(aspectRatio: 16 / 10, child: hero),
+              ),
+              intro,
+              const SizedBox(height: 24),
+              GroupedHeader(sentenceCaseOf(context, l10n.fightFighterTitle)),
+              grid(),
+              const SizedBox(height: 24),
+              GroupedHeader(sentenceCaseOf(context, l10n.fightLookTitle)),
+              looks(),
+              footnote,
+              _stageSlot(l10n),
+              const SizedBox(height: 28),
+              buttons,
+            ],
+          );
+        }
+        // Desktop and web: a centred two-column page. Fighters on the left; on
+        // the right the one live preview, the looks, the stage and the buttons.
+        final side = ((box.maxWidth - 1120) / 2).clamp(16.0, double.infinity);
+        return IosPage(
+          title: l10n.fightTitle,
+          padding: EdgeInsets.fromLTRB(side, 0, side, 32),
           children: [
-            for (final (i, l) in FightLook.values.indexed) ...[
-              if (i > 0) const SizedBox(width: 10),
-              Expanded(
-                child: _LookCard(
-                  key: ValueKey('fight_look_${l.name}'),
-                  label: switch (l) {
-                    FightLook.cartoon => l10n.fightLookCartoon,
-                    FightLook.painted => l10n.fightLookPainted,
-                    FightLook.pixel => l10n.fightLookPixel,
-                  },
-                  selected: l == look,
-                  preview: RepaintBoundary(child: view(_previews[l]!, l, still: true)),
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    SettingsStore.instance.setFightLook(fightLookWire(l));
-                  },
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 528,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GroupedHeader(sentenceCaseOf(context, l10n.fightFighterTitle)),
+                      grid(maxCardWidth: 96),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 32),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(groupedRadius(theme) + 4),
+                        child: AspectRatio(aspectRatio: 16 / 10, child: hero),
+                      ),
+                      intro,
+                      const SizedBox(height: 20),
+                      GroupedHeader(sentenceCaseOf(context, l10n.fightLookTitle)),
+                      looks(),
+                      footnote,
+                      _stageSlot(l10n),
+                      const SizedBox(height: 22),
+                      buttons,
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// The stage ("place") picker: a "Stage" section between the looks and the
+  /// buttons. Thumbnails are cached stills, so it costs no live renderer.
+  Widget _stageSlot(AppLocalizations l10n) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const SizedBox(height: 22),
+      GroupedHeader(sentenceCaseOf(context, l10n.fightStageTitle)),
+      FightStagePicker(selected: SettingsStore.instance.fightStage, onPick: SettingsStore.instance.setFightStage),
+    ],
+  );
+}
+
+/// Fight (the primary, gradient pill) and Training (the same pill, outlined and
+/// quiet) as one pair: equal height and radius, an icon each.
+class _ActionPair extends StatelessWidget {
+  const _ActionPair({required this.onFight, required this.onTraining});
+  final VoidCallback onFight, onTraining;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    const h = 56.0;
+    const r = BorderRadius.all(Radius.circular(h / 2));
+    return Row(
+      children: [
+        Expanded(
+          flex: 5,
+          child: SpringPress(
+            key: const ValueKey('fight_start'),
+            onTap: onFight,
+            semanticLabel: l10n.fightStart,
+            child: Container(
+              height: h,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(colors: [Color(0xffffcf6e), Color(0xffff8a3d), Color(0xffff4f6e)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                borderRadius: r,
+                boxShadow: [BoxShadow(color: Color(0x55ff6a3d), blurRadius: 24, offset: Offset(0, 10))],
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(CupertinoIcons.flame_fill, size: 22, color: Color(0xff1b0d02)),
+                    const SizedBox(width: 8),
+                    Text(l10n.fightStart, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xff1b0d02), letterSpacing: 0.5)),
+                  ],
                 ),
               ),
-            ],
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
-          child: Text(sentenceCaseOf(context, l10n.fightLookFootnote), style: groupedFooterStyle(theme)),
-        ),
-        const SizedBox(height: 28),
-        SpringPress(
-          key: const ValueKey('fight_start'),
-          onTap: _fight,
-          semanticLabel: l10n.fightStart,
-          child: Container(
-            height: 58,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xffffcf6e), Color(0xffff8a3d), Color(0xffff4f6e)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(groupedRadius(theme) + 4),
-              boxShadow: const [BoxShadow(color: Color(0x55ff6a3d), blurRadius: 24, offset: Offset(0, 10))],
-            ),
-            child: Text(
-              l10n.fightStart,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xff1b0d02), letterSpacing: 0.5),
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(width: 10),
         // Every move of every fighter on a sandbag: the training room.
-        SpringPress(
-          key: const ValueKey('fight_training'),
-          onTap: () => openFightTraining(context, charId: fightCharOf(SettingsStore.instance.fightChar)),
-          semanticLabel: l10n.fightTrainingTitle,
-          child: Container(
-            height: 50,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: groupedFill(theme),
-              borderRadius: BorderRadius.circular(groupedRadius(theme) + 4),
+        Expanded(
+          flex: 4,
+          child: SpringPress(
+            key: const ValueKey('fight_training'),
+            onTap: onTraining,
+            semanticLabel: l10n.fightTrainingTitle,
+            child: Container(
+              height: h,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: const Color(0x14ffffff),
+                borderRadius: r,
+                border: Border.all(color: const Color(0x33ffffff), width: 1.5),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.sports_mma, size: 20, color: Color(0xffffcf6e)),
+                    const SizedBox(width: 8),
+                    Text(l10n.fightTrainingTitle, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white)),
+                  ],
+                ),
+              ),
             ),
-            child: Text(l10n.fightTrainingTitle, style: theme.bodyEmph.copyWith(fontSize: 17)),
           ),
         ),
       ],

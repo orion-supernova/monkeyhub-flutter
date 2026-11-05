@@ -14981,6 +14981,18 @@ class AppLocalizationsSv extends AppLocalizations {
       'L Lätt, H Tung, S Special, → mot motståndaren';
 
   @override
+  String get fightTrainingSandbag => 'Boxningssäck';
+
+  @override
+  String get fightTrainingDummyFighter => 'Fighter';
+
+  @override
+  String get fightTrainingDummy => 'Dummy';
+
+  @override
+  String get fightTrainingKeyHint => '[ ] bläddrar bland moves, Enter upprepar';
+
+  @override
   String get fightTrainingMoveStandLight => 'Stående lätt';
 
   @override
@@ -15009,4 +15021,31 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get fightTrainingMoveThrow => 'Kast';
+
+  @override
+  String get fightStageTitle => 'Scen';
+
+  @override
+  String get fightStageRandom => 'Slumpad';
+
+  @override
+  String get fightStageHostPicks => 'Värden väljer scen';
+
+  @override
+  String get fightStageRooftop => 'Hustak';
+
+  @override
+  String get fightStageTemple => 'Mossigt tempel';
+
+  @override
+  String get fightStageNeon => 'Neongränd';
+
+  @override
+  String get fightStageAurora => 'Norrskensaltaret';
+
+  @override
+  String get fightStageCanyon => 'Kanjon vid middagstid';
+
+  @override
+  String get fightStageDeck => 'Däck i månsken';
 }

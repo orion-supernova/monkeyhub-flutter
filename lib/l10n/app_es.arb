@@ -4124,6 +4124,10 @@
   "fightTrainingFreePlay": "Juego libre",
   "fightTrainingMoves": "Movimientos",
   "fightTrainingLegend": "L Ligero, H Fuerte, S Especial, → hacia el rival",
+  "fightTrainingSandbag": "Saco de boxeo",
+  "fightTrainingDummyFighter": "Luchador",
+  "fightTrainingDummy": "Muñeco",
+  "fightTrainingKeyHint": "[ ] recorre los movimientos, Intro repite",
   "fightTrainingMoveStandLight": "Ligero de pie",
   "fightTrainingMoveStandLight2": "Ligero 2",
   "fightTrainingMoveFinisher": "Remate",
@@ -4133,5 +4137,14 @@
   "fightTrainingMoveJumpLight": "Ligero en salto",
   "fightTrainingMoveJumpHeavy": "Fuerte en salto",
   "fightTrainingMoveFwdHeavy": "Fuerte adelante",
-  "fightTrainingMoveThrow": "Lanzamiento"
+  "fightTrainingMoveThrow": "Lanzamiento",
+  "fightStageTitle": "Escenario",
+  "fightStageRandom": "Aleatorio",
+  "fightStageHostPicks": "El anfitrión elige el escenario",
+  "fightStageRooftop": "Azotea",
+  "fightStageTemple": "Templo de musgo",
+  "fightStageNeon": "Callejón neón",
+  "fightStageAurora": "Santuario de aurora",
+  "fightStageCanyon": "Cañón al mediodía",
+  "fightStageDeck": "Cubierta a la luz de la luna"
 }

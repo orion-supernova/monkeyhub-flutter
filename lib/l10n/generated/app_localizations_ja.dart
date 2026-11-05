@@ -14278,6 +14278,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get fightTrainingLegend => 'L 弱, H 強, S 必殺, → 相手の方向';
 
   @override
+  String get fightTrainingSandbag => 'サンドバッグ';
+
+  @override
+  String get fightTrainingDummyFighter => 'ファイター';
+
+  @override
+  String get fightTrainingDummy => 'ダミー';
+
+  @override
+  String get fightTrainingKeyHint => '[ ] で技を選択、Enter でもう一度';
+
+  @override
   String get fightTrainingMoveStandLight => '立ち弱';
 
   @override
@@ -14306,4 +14318,31 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get fightTrainingMoveThrow => '投げ';
+
+  @override
+  String get fightStageTitle => 'ステージ';
+
+  @override
+  String get fightStageRandom => 'ランダム';
+
+  @override
+  String get fightStageHostPicks => 'ステージはホストが選びます';
+
+  @override
+  String get fightStageRooftop => '屋上';
+
+  @override
+  String get fightStageTemple => '苔むす神殿';
+
+  @override
+  String get fightStageNeon => 'ネオン路地';
+
+  @override
+  String get fightStageAurora => 'オーロラの社';
+
+  @override
+  String get fightStageCanyon => '正午の渓谷';
+
+  @override
+  String get fightStageDeck => '月夜の甲板';
 }

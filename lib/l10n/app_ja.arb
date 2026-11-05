@@ -4124,6 +4124,10 @@
   "fightTrainingFreePlay": "フリープレイ",
   "fightTrainingMoves": "技",
   "fightTrainingLegend": "L 弱, H 強, S 必殺, → 相手の方向",
+  "fightTrainingSandbag": "サンドバッグ",
+  "fightTrainingDummyFighter": "ファイター",
+  "fightTrainingDummy": "ダミー",
+  "fightTrainingKeyHint": "[ ] で技を選択、Enter でもう一度",
   "fightTrainingMoveStandLight": "立ち弱",
   "fightTrainingMoveStandLight2": "弱2",
   "fightTrainingMoveFinisher": "フィニッシャー",
@@ -4133,5 +4137,14 @@
   "fightTrainingMoveJumpLight": "ジャンプ弱",
   "fightTrainingMoveJumpHeavy": "ジャンプ強",
   "fightTrainingMoveFwdHeavy": "前強",
-  "fightTrainingMoveThrow": "投げ"
+  "fightTrainingMoveThrow": "投げ",
+  "fightStageTitle": "ステージ",
+  "fightStageRandom": "ランダム",
+  "fightStageHostPicks": "ステージはホストが選びます",
+  "fightStageRooftop": "屋上",
+  "fightStageTemple": "苔むす神殿",
+  "fightStageNeon": "ネオン路地",
+  "fightStageAurora": "オーロラの社",
+  "fightStageCanyon": "正午の渓谷",
+  "fightStageDeck": "月夜の甲板"
 }

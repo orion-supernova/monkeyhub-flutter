@@ -4124,6 +4124,10 @@
   "fightTrainingFreePlay": "自由练习",
   "fightTrainingMoves": "招式",
   "fightTrainingLegend": "L 轻, H 重, S 特殊, → 朝向对手",
+  "fightTrainingSandbag": "沙袋",
+  "fightTrainingDummyFighter": "角色",
+  "fightTrainingDummy": "假人",
+  "fightTrainingKeyHint": "[ ] 浏览招式，Enter 重复",
   "fightTrainingMoveStandLight": "站立轻",
   "fightTrainingMoveStandLight2": "轻 2",
   "fightTrainingMoveFinisher": "终结技",
@@ -4133,5 +4137,14 @@
   "fightTrainingMoveJumpLight": "跳跃轻",
   "fightTrainingMoveJumpHeavy": "跳跃重",
   "fightTrainingMoveFwdHeavy": "前进重",
-  "fightTrainingMoveThrow": "投掷"
+  "fightTrainingMoveThrow": "投掷",
+  "fightStageTitle": "场景",
+  "fightStageRandom": "随机",
+  "fightStageHostPicks": "场景由房主选择",
+  "fightStageRooftop": "屋顶",
+  "fightStageTemple": "苔藓神殿",
+  "fightStageNeon": "霓虹小巷",
+  "fightStageAurora": "极光神社",
+  "fightStageCanyon": "正午峡谷",
+  "fightStageDeck": "月夜甲板"
 }

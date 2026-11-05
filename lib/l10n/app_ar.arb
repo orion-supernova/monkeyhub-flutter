@@ -4124,6 +4124,10 @@
   "fightTrainingFreePlay": "لعب حر",
   "fightTrainingMoves": "الحركات",
   "fightTrainingLegend": "L خفيفة، H ثقيلة، S خاصة، → نحو الخصم",
+  "fightTrainingSandbag": "كيس الملاكمة",
+  "fightTrainingDummyFighter": "مقاتل",
+  "fightTrainingDummy": "الهدف",
+  "fightTrainingKeyHint": "[ ] لتصفّح الحركات، Enter للإعادة",
   "fightTrainingMoveStandLight": "خفيفة واقفة",
   "fightTrainingMoveStandLight2": "خفيفة 2",
   "fightTrainingMoveFinisher": "الضربة الختامية",
@@ -4133,5 +4137,14 @@
   "fightTrainingMoveJumpLight": "خفيفة قفز",
   "fightTrainingMoveJumpHeavy": "ثقيلة قفز",
   "fightTrainingMoveFwdHeavy": "ثقيلة أمامية",
-  "fightTrainingMoveThrow": "رمي"
+  "fightTrainingMoveThrow": "رمي",
+  "fightStageTitle": "الساحة",
+  "fightStageRandom": "عشوائي",
+  "fightStageHostPicks": "المضيف يختار الساحة",
+  "fightStageRooftop": "السطح",
+  "fightStageTemple": "معبد الطحلب",
+  "fightStageNeon": "زقاق النيون",
+  "fightStageAurora": "ضريح الشفق",
+  "fightStageCanyon": "الوادي وقت الظهيرة",
+  "fightStageDeck": "سطح السفينة تحت القمر"
 }

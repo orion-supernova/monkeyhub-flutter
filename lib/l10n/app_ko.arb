@@ -4124,6 +4124,10 @@
   "fightTrainingFreePlay": "자유 플레이",
   "fightTrainingMoves": "기술",
   "fightTrainingLegend": "L 약, H 강, S 필살, → 상대 방향",
+  "fightTrainingSandbag": "샌드백",
+  "fightTrainingDummyFighter": "파이터",
+  "fightTrainingDummy": "더미",
+  "fightTrainingKeyHint": "[ ] 기술 탐색, Enter 반복",
   "fightTrainingMoveStandLight": "서서 약",
   "fightTrainingMoveStandLight2": "약 2",
   "fightTrainingMoveFinisher": "마무리",
@@ -4133,5 +4137,14 @@
   "fightTrainingMoveJumpLight": "점프 약",
   "fightTrainingMoveJumpHeavy": "점프 강",
   "fightTrainingMoveFwdHeavy": "앞 강",
-  "fightTrainingMoveThrow": "던지기"
+  "fightTrainingMoveThrow": "던지기",
+  "fightStageTitle": "스테이지",
+  "fightStageRandom": "랜덤",
+  "fightStageHostPicks": "스테이지는 호스트가 선택해요",
+  "fightStageRooftop": "옥상",
+  "fightStageTemple": "이끼 낀 사원",
+  "fightStageNeon": "네온 골목",
+  "fightStageAurora": "오로라 신전",
+  "fightStageCanyon": "한낮의 협곡",
+  "fightStageDeck": "달빛 갑판"
 }

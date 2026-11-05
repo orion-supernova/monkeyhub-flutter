@@ -14881,6 +14881,19 @@ class AppLocalizationsTr extends AppLocalizations {
   String get fightTrainingLegend => 'L Hafif, H Ağır, S Özel, → rakibe doğru';
 
   @override
+  String get fightTrainingSandbag => 'Kum torbası';
+
+  @override
+  String get fightTrainingDummyFighter => 'Dövüşçü';
+
+  @override
+  String get fightTrainingDummy => 'Manken';
+
+  @override
+  String get fightTrainingKeyHint =>
+      '[ ] hamleler arasında gezer, Enter tekrarlar';
+
+  @override
   String get fightTrainingMoveStandLight => 'Ayakta hafif';
 
   @override
@@ -14909,4 +14922,31 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get fightTrainingMoveThrow => 'Fırlatma';
+
+  @override
+  String get fightStageTitle => 'Sahne';
+
+  @override
+  String get fightStageRandom => 'Rastgele';
+
+  @override
+  String get fightStageHostPicks => 'Sahneyi ev sahibi seçer';
+
+  @override
+  String get fightStageRooftop => 'Çatı';
+
+  @override
+  String get fightStageTemple => 'Yosunlu Tapınak';
+
+  @override
+  String get fightStageNeon => 'Neon Sokak';
+
+  @override
+  String get fightStageAurora => 'Aurora Tapınağı';
+
+  @override
+  String get fightStageCanyon => 'Öğle Vakti Kanyon';
+
+  @override
+  String get fightStageDeck => 'Ay Işığında Güverte';
 }

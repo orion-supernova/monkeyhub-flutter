@@ -50,6 +50,7 @@ class FightRenderer {
   int _stageFrame = -1;
   bool _stagePalDirty = false;
   bool _buildingPalette = false;
+  int _pixStageId = 0;
 
   void dispose() {
     _pixStage?.dispose();
@@ -62,15 +63,16 @@ class FightRenderer {
   /// Snaps the camera on the next paint (new round, new match).
   void resetCamera() => _cam = null;
 
-  void paint(Canvas canvas, Size size, FightState s, FightLook look, List<String> names, FightHudText text) {
+  /// Which place to draw (stages/stages.dart). View-only: the simulation never sees it.
+  void paint(Canvas canvas, Size size, FightState s, FightLook look, List<String> names, FightHudText text, {int stage = 0}) {
     if (size.isEmpty) return;
     final cam = _cam = FightCamera.follow(s, size, _cam);
     canvas.save();
     canvas.clipRect(Offset.zero & size);
     if (look == FightLook.pixel) {
-      _paintPixel(canvas, size, cam, s, names, text);
+      _paintPixel(canvas, size, cam, s, names, text, stage);
     } else {
-      art.paintStage(canvas, size, cam, look, s.frame);
+      art.paintStage(canvas, size, cam, look, s.frame, stage);
       art.paintActors(canvas, size, cam, s, look);
       art.paintHud(canvas, size, s, look, names, text: text);
     }
@@ -79,10 +81,19 @@ class FightRenderer {
 
   // ---------------------------------------------------------------- pixel
 
-  void _paintPixel(Canvas canvas, Size size, FightCamera cam, FightState s, List<String> names, FightHudText text) {
+  void _paintPixel(Canvas canvas, Size size, FightCamera cam, FightState s, List<String> names, FightHudText text, int stage) {
     final k = size.width / _lowWidth;
     final low = Size(_lowWidth, (size.height / k).roundToDouble());
     final lowCam = FightCamera(cam.scale / k, cam.originX / k, cam.groundY / k);
+    if (stage != _pixStageId) {
+      // A new place: its colours are not in the old palettes, so rebuild them.
+      _pixStageId = stage;
+      _actorPal?.image.dispose();
+      _stagePal?.image.dispose();
+      _actorPal = _stagePal = null;
+      _pixStage?.dispose();
+      _pixStage = null;
+    }
     final stale = _pixStage == null || _pixSize != size || s.frame < _pixFrame || s.frame - _pixFrame >= _pixelStride;
     if (stale) {
       _pixSize = size;
@@ -90,11 +101,11 @@ class FightRenderer {
       final w = low.width.toInt(), h = low.height.toInt();
 
       // The stage is the costliest layer (dithered, full screen): redraw it
-      // only when the camera moved by a low-res pixel, or every half second
-      // for the neon and the string lights.
+      // only when the camera moved by a low-res pixel, or every quarter second
+      // for the ambient motion (neon, rain, fireflies, snow).
       final camMoved = (lowCam.originX - _stageCamX).abs() >= .5 || (lowCam.scale - _stageCamScale).abs() > .002;
-      final stageDue = _pixStage == null || camMoved || s.frame - _stageFrame >= 30 || s.frame < _stageFrame || _stagePalDirty;
-      final stageRaw = stageDue || _actorPal == null ? _record(low, (c) => art.paintStage(c, low, lowCam, FightLook.pixel, s.frame)) : null;
+      final stageDue = _pixStage == null || camMoved || s.frame - _stageFrame >= 15 || s.frame < _stageFrame || _stagePalDirty;
+      final stageRaw = stageDue || _actorPal == null ? _record(low, (c) => art.paintStage(c, low, lowCam, FightLook.pixel, s.frame, stage)) : null;
       final actorsRaw = _record(low, (c) => art.paintActors(c, low, lowCam, s, FightLook.pixel));
       if (stageDue && stageRaw != null) {
         _stageCamX = lowCam.originX;
@@ -105,7 +116,7 @@ class FightRenderer {
       }
       _replace(() => _pixActors, (v) => _pixActors = v, _process(actorsRaw, w, h, _actorPal, dither: 0, outline: true));
       _replace(() => _pixHud, (v) => _pixHud = v, _record(low, (c) => art.paintHud(c, low, s, FightLook.pixel, names, text: text)).toImageSync(w, h));
-      if (_actorPal == null && !_buildingPalette && stageRaw != null) _buildPalettes(stageRaw, actorsRaw, w, h);
+      if (_actorPal == null && !_buildingPalette && stageRaw != null) _buildPalettes(stageRaw, actorsRaw, w, h, stage);
     }
     final dst = Offset.zero & size;
     final paint = Paint()..filterQuality = FilterQuality.none;
@@ -156,18 +167,24 @@ class FightRenderer {
   /// a median cut of the first stage and actor renders, plus the effect
   /// colours that may not be on screen yet. Async (pixel readback), so the
   /// first few pixel frames are drawn unprocessed.
-  Future<void> _buildPalettes(ui.Picture stage, ui.Picture actors, int w, int h) async {
+  Future<void> _buildPalettes(ui.Picture stage, ui.Picture actors, int w, int h, int stageId) async {
     _buildingPalette = true;
     try {
       final si = stage.toImageSync(w, h), ai = actors.toImageSync(w, h);
       final sb = await si.toByteData(), ab = await ai.toByteData();
       si.dispose();
       ai.dispose();
-      if (sb == null || ab == null) return;
+      if (sb == null || ab == null || stageId != _pixStageId) return;
       final stageColors = medianCut(_opaque(sb), 40);
       final actorColors = medianCut(_opaque(ab), 40)..addAll(_effectColors);
-      _stagePal = await _Palette.build(stageColors);
-      _actorPal = await _Palette.build(actorColors);
+      final sp = await _Palette.build(stageColors), ap = await _Palette.build(actorColors);
+      if (stageId != _pixStageId) {
+        sp.image.dispose();
+        ap.image.dispose();
+        return;
+      }
+      _stagePal = sp;
+      _actorPal = ap;
       _pixFrame = -_pixelStride; // re-render with the palettes now
       _stagePalDirty = true;
     } finally {

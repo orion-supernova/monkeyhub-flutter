@@ -14,8 +14,10 @@ import '../../widgets/spring_press.dart';
 import '../core/core.dart';
 import '../net/fight_link.dart';
 import '../net/rollback_session.dart';
+import 'art/stages/stages.dart';
 import 'fight_character_grid.dart';
 import 'fight_screen.dart';
+import 'fight_stage_picker.dart';
 import 'fighter_portrait.dart';
 
 /// Opens the online fight for a `fight` chat match (lobby, connect, fight,
@@ -257,6 +259,13 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
   /// revealed together on the VS screen.
   int _myPick = fightCharOf(SettingsStore.instance.fightChar);
   int? _peerPick;
+
+  /// The place to fight in is the host's (seat 0) choice. The host picks in the
+  /// lobby ([_stagePick], possibly Random) and sends the resolved id with its
+  /// fighter pick; the guest takes whatever arrives, and a build from before
+  /// stages (no `s` in the pick) plays the rooftop.
+  int _stagePick = SettingsStore.instance.fightStage;
+  int _stage = 0;
   Timer? _peerPickTimeout;
   DateTime? _revealUntil;
   static const Duration _reveal = Duration(milliseconds: 2400);
@@ -306,13 +315,16 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
     switch (link.state.value) {
       case FightLinkState.open when _driver == null && _peerPickTimeout == null:
         HapticFeedback.mediumImpact();
+        final host = _mySeat == 0;
+        if (host) _stage = fightStageResolve(_stagePick);
         link.onControl = (m) {
           if (m['t'] == 'pick' && _peerPick == null) {
             _peerPick = fightCharOf((m['c'] as num?)?.toInt() ?? 0);
+            if (!host) _stage = fightStageOf((m['s'] as num?)?.toInt() ?? 0);
             _beginFight(l10n);
           }
         };
-        link.sendControl({'t': 'pick', 'c': _myPick});
+        link.sendControl({'t': 'pick', 'c': _myPick, if (host) 's': _stage});
         // A build from before fighter picks never sends one: it plays KAI.
         _peerPickTimeout = Timer(const Duration(seconds: 3), () {
           if (_peerPick != null) return;
@@ -359,11 +371,17 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
     unawaited(SettingsStore.instance.setFightChar(id));
   }
 
+  void _pickStage(int id) {
+    setState(() => _stagePick = id);
+    unawaited(SettingsStore.instance.setFightStage(id));
+  }
+
   Future<void> _retry() async {
     final old = _link;
     _link = null;
     _driver = null;
     _peerPick = null;
+    _stage = 0;
     _peerPickTimeout?.cancel();
     _peerPickTimeout = null;
     _revealUntil = null;
@@ -440,7 +458,7 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
     final d = _driver;
     final revealing = d != null && (_revealUntil?.isAfter(DateTime.now()) ?? false);
     if (d != null && !revealing) {
-      return FightScreen.driven(driver: d, names: _names, onExit: _leave);
+      return FightScreen.driven(driver: d, names: _names, onExit: _leave, stage: _stage);
     }
     final l10n = AppLocalizations.of(context);
     final m = _m;
@@ -569,7 +587,29 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
 
     return LayoutBuilder(builder: (context, box) {
     // Cards take what the height allows: a landscape phone is under 400 pt.
-    final cardH = (box.maxHeight * 0.42).clamp(110.0, 240.0);
+    // The host also fits a stage row under the cards.
+    final hostPicks = mine == 0 && _phase == _Phase.lobby;
+    final cardH = (box.maxHeight * (hostPicks ? 0.3 : 0.42)).clamp(96.0, 240.0);
+    Widget? stageRow;
+    if (hostPicks) {
+      stageRow = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.fightStageTitle.toUpperCase(),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: Color(0xb3ffffff)),
+          ),
+          const SizedBox(height: 4),
+          FightStagePicker(selected: _stagePick, onPick: _pickStage),
+        ],
+      );
+    } else if (mine == 1 && _phase == _Phase.lobby) {
+      stageRow = Text(l10n.fightStageHostPicks, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: Color(0xb3ffffff)));
+    } else if (_phase == _Phase.fighting) {
+      // The VS reveal: where the fight is.
+      stageRow = FightStagePicker(selected: _stage, onPick: (_) {}, readOnly: true);
+    }
     return Column(
       children: [
         Text(
@@ -610,6 +650,7 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
         ),
         SizedBox(height: box.maxHeight < 360 ? 12 : 28),
         DefaultTextStyle.merge(style: const TextStyle(fontSize: 16, height: 1.35, color: Color(0xe6ffffff)), child: status),
+        if (stageRow != null) ...[SizedBox(height: box.maxHeight < 360 ? 8 : 16), stageRow],
         const Spacer(),
         ?action,
       ],

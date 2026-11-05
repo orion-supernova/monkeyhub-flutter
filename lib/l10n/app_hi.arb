@@ -4124,6 +4124,10 @@
   "fightTrainingFreePlay": "फ़्री प्ले",
   "fightTrainingMoves": "चालें",
   "fightTrainingLegend": "L हल्का, H भारी, S विशेष, → विरोधी की ओर",
+  "fightTrainingSandbag": "पंचिंग बैग",
+  "fightTrainingDummyFighter": "फ़ाइटर",
+  "fightTrainingDummy": "डमी",
+  "fightTrainingKeyHint": "[ ] से चालें देखें, Enter दोहराता है",
   "fightTrainingMoveStandLight": "खड़े हुए हल्का",
   "fightTrainingMoveStandLight2": "हल्का 2",
   "fightTrainingMoveFinisher": "फ़िनिशर",
@@ -4133,5 +4137,14 @@
   "fightTrainingMoveJumpLight": "कूद हल्का",
   "fightTrainingMoveJumpHeavy": "कूद भारी",
   "fightTrainingMoveFwdHeavy": "आगे भारी",
-  "fightTrainingMoveThrow": "फेंक"
+  "fightTrainingMoveThrow": "फेंक",
+  "fightStageTitle": "स्टेज",
+  "fightStageRandom": "रैंडम",
+  "fightStageHostPicks": "स्टेज होस्ट चुनता है",
+  "fightStageRooftop": "छत",
+  "fightStageTemple": "काई वाला मंदिर",
+  "fightStageNeon": "नियॉन गली",
+  "fightStageAurora": "ऑरोरा मंदिर",
+  "fightStageCanyon": "दोपहर की घाटी",
+  "fightStageDeck": "चाँदनी में जहाज़ का डेक"
 }

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/cupertino.dart'
     show CupertinoIcons, CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
@@ -133,7 +134,9 @@ class _IosPageState extends State<IosPage> {
       ),
       SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 6, 20, 14),
+          // The title lines up with the content: 20pt on a default page,
+          // further in when a page centres its content (desktop layouts).
+          padding: EdgeInsets.fromLTRB(math.max(20.0, widget.padding.left + 4), 6, math.max(20.0, widget.padding.right + 4), 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

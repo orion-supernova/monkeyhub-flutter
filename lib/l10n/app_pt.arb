@@ -4124,6 +4124,10 @@
   "fightTrainingFreePlay": "Jogo livre",
   "fightTrainingMoves": "Golpes",
   "fightTrainingLegend": "L Leve, H Pesado, S Especial, → em direção ao oponente",
+  "fightTrainingSandbag": "Saco de pancada",
+  "fightTrainingDummyFighter": "Lutador",
+  "fightTrainingDummy": "Boneco",
+  "fightTrainingKeyHint": "[ ] percorre os golpes, Enter repete",
   "fightTrainingMoveStandLight": "Leve em pé",
   "fightTrainingMoveStandLight2": "Leve 2",
   "fightTrainingMoveFinisher": "Finalizador",
@@ -4133,5 +4137,14 @@
   "fightTrainingMoveJumpLight": "Leve no salto",
   "fightTrainingMoveJumpHeavy": "Pesado no salto",
   "fightTrainingMoveFwdHeavy": "Pesado em frente",
-  "fightTrainingMoveThrow": "Arremesso"
+  "fightTrainingMoveThrow": "Arremesso",
+  "fightStageTitle": "Cenário",
+  "fightStageRandom": "Aleatório",
+  "fightStageHostPicks": "O anfitrião escolhe o cenário",
+  "fightStageRooftop": "Terraço",
+  "fightStageTemple": "Templo de musgo",
+  "fightStageNeon": "Beco néon",
+  "fightStageAurora": "Santuário da aurora",
+  "fightStageCanyon": "Desfiladeiro ao meio-dia",
+  "fightStageDeck": "Convés ao luar"
 }

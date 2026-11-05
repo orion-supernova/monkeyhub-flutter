@@ -15133,6 +15133,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get fightTrainingLegend => 'L خفيفة، H ثقيلة، S خاصة، → نحو الخصم';
 
   @override
+  String get fightTrainingSandbag => 'كيس الملاكمة';
+
+  @override
+  String get fightTrainingDummyFighter => 'مقاتل';
+
+  @override
+  String get fightTrainingDummy => 'الهدف';
+
+  @override
+  String get fightTrainingKeyHint => '[ ] لتصفّح الحركات، Enter للإعادة';
+
+  @override
   String get fightTrainingMoveStandLight => 'خفيفة واقفة';
 
   @override
@@ -15161,4 +15173,31 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get fightTrainingMoveThrow => 'رمي';
+
+  @override
+  String get fightStageTitle => 'الساحة';
+
+  @override
+  String get fightStageRandom => 'عشوائي';
+
+  @override
+  String get fightStageHostPicks => 'المضيف يختار الساحة';
+
+  @override
+  String get fightStageRooftop => 'السطح';
+
+  @override
+  String get fightStageTemple => 'معبد الطحلب';
+
+  @override
+  String get fightStageNeon => 'زقاق النيون';
+
+  @override
+  String get fightStageAurora => 'ضريح الشفق';
+
+  @override
+  String get fightStageCanyon => 'الوادي وقت الظهيرة';
+
+  @override
+  String get fightStageDeck => 'سطح السفينة تحت القمر';
 }

@@ -48,8 +48,10 @@ const List<(FightFamily, List<int>)> kFightFamilies = [
 /// family. The picked one is alive (only it animates, so twenty portraits
 /// cost one ticker); rows scroll sideways when the screen is too narrow.
 class FightCharacterGrid extends StatelessWidget {
-  const FightCharacterGrid({super.key, required this.selected, required this.onPick, this.look = FightLook.cartoon});
+  const FightCharacterGrid({super.key, required this.selected, required this.onPick, this.look = FightLook.cartoon, this.maxCardWidth});
 
+  /// Caps a card's width (desktop); the rows then sit left-aligned.
+  final double? maxCardWidth;
   final int selected;
   final ValueChanged<int> onPick;
   final FightLook look;
@@ -62,7 +64,7 @@ class FightCharacterGrid extends StatelessWidget {
         const gap = 8.0;
         // Five across when they fit at a readable size, else a sideways row.
         final fit = (box.maxWidth - gap * 4) / 5;
-        final w = fit >= 76 ? fit : 84.0;
+        final w = fit >= 76 ? (maxCardWidth == null ? fit : (fit < maxCardWidth! ? fit : maxCardWidth!)) : 84.0;
         final h = w * 1.3;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

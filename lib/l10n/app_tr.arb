@@ -4124,6 +4124,10 @@
   "fightTrainingFreePlay": "Serbest oyun",
   "fightTrainingMoves": "Hamleler",
   "fightTrainingLegend": "L Hafif, H Ağır, S Özel, → rakibe doğru",
+  "fightTrainingSandbag": "Kum torbası",
+  "fightTrainingDummyFighter": "Dövüşçü",
+  "fightTrainingDummy": "Manken",
+  "fightTrainingKeyHint": "[ ] hamleler arasında gezer, Enter tekrarlar",
   "fightTrainingMoveStandLight": "Ayakta hafif",
   "fightTrainingMoveStandLight2": "Hafif 2",
   "fightTrainingMoveFinisher": "Bitirici",
@@ -4133,5 +4137,14 @@
   "fightTrainingMoveJumpLight": "Havada hafif",
   "fightTrainingMoveJumpHeavy": "Havada ağır",
   "fightTrainingMoveFwdHeavy": "İleri ağır",
-  "fightTrainingMoveThrow": "Fırlatma"
+  "fightTrainingMoveThrow": "Fırlatma",
+  "fightStageTitle": "Sahne",
+  "fightStageRandom": "Rastgele",
+  "fightStageHostPicks": "Sahneyi ev sahibi seçer",
+  "fightStageRooftop": "Çatı",
+  "fightStageTemple": "Yosunlu Tapınak",
+  "fightStageNeon": "Neon Sokak",
+  "fightStageAurora": "Aurora Tapınağı",
+  "fightStageCanyon": "Öğle Vakti Kanyon",
+  "fightStageDeck": "Ay Işığında Güverte"
 }

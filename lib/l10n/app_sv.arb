@@ -4124,6 +4124,10 @@
   "fightTrainingFreePlay": "Fritt spel",
   "fightTrainingMoves": "Drag",
   "fightTrainingLegend": "L Lätt, H Tung, S Special, → mot motståndaren",
+  "fightTrainingSandbag": "Boxningssäck",
+  "fightTrainingDummyFighter": "Fighter",
+  "fightTrainingDummy": "Dummy",
+  "fightTrainingKeyHint": "[ ] bläddrar bland moves, Enter upprepar",
   "fightTrainingMoveStandLight": "Stående lätt",
   "fightTrainingMoveStandLight2": "Lätt 2",
   "fightTrainingMoveFinisher": "Avslutare",
@@ -4133,5 +4137,14 @@
   "fightTrainingMoveJumpLight": "Hopp lätt",
   "fightTrainingMoveJumpHeavy": "Hopp tung",
   "fightTrainingMoveFwdHeavy": "Framåt tung",
-  "fightTrainingMoveThrow": "Kast"
+  "fightTrainingMoveThrow": "Kast",
+  "fightStageTitle": "Scen",
+  "fightStageRandom": "Slumpad",
+  "fightStageHostPicks": "Värden väljer scen",
+  "fightStageRooftop": "Hustak",
+  "fightStageTemple": "Mossigt tempel",
+  "fightStageNeon": "Neongränd",
+  "fightStageAurora": "Norrskensaltaret",
+  "fightStageCanyon": "Kanjon vid middagstid",
+  "fightStageDeck": "Däck i månsken"
 }

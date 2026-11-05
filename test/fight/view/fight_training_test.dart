@@ -4,12 +4,14 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart' show FontLoader;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/fight/core/core.dart';
-import 'package:monkeyhub/fight/view/art/camera.dart';
+import 'package:monkeyhub/fight/view/art/fight_art.dart';
+import 'package:monkeyhub/fight/view/art/sandbag_art.dart';
 import 'package:monkeyhub/fight/view/fight_renderer.dart';
 import 'package:monkeyhub/fight/view/fight_training_moves.dart';
 import 'package:monkeyhub/fight/view/fight_training_screen.dart';
@@ -30,6 +32,21 @@ void main() {
       GoogleFonts.doto(fontWeight: FontWeight.w900),
     ]);
     await FightRenderer.warmUp();
+    if (shotDir != null) {
+      // Real glyphs instead of the test font's blocks, so the PNGs can be read.
+      Future<void> font(String family, List<String> files) async {
+        final l = FontLoader(family);
+        for (final f in files) {
+          l.addFont(Future.value(ByteData.sublistView(File(f).readAsBytesSync())));
+        }
+        await l.load();
+      }
+
+      final mf = '${Platform.environment['FLUTTER_ROOT']}/bin/cache/artifacts/material_fonts';
+      await font('Roboto', ['$mf/Roboto-Regular.ttf', '$mf/Roboto-Bold.ttf', '$mf/Roboto-Black.ttf']);
+      final cup = Directory('${Platform.environment['HOME']}/.pub-cache/hosted/pub.dev').listSync().whereType<Directory>().where((d) => d.path.contains('cupertino_icons-')).toList();
+      if (cup.isNotEmpty) await font('packages/cupertino_icons/CupertinoIcons', ['${cup.last.path}/assets/CupertinoIcons.ttf']);
+    }
   });
 
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
@@ -167,6 +184,70 @@ void main() {
     });
   });
 
+
+  group('sandbag', () {
+    /// Runs [m] on a fresh room and feeds a bag every frame.
+    SandbagArt swing(CharacterDef c, TrainMove m, {int frames = 90, List<double>? out}) {
+      final bag = SandbagArt();
+      final script = trainingScript(c, m);
+      final s = trainingState(c, dist: script.dist);
+      for (var f = 0; f < frames; f++) {
+        step(s, script.p1(s), script.p2(s));
+        trainingKeepAlive(s);
+        bag.update(s, 1);
+        out?.add(bag.bodyX);
+      }
+      return bag;
+    }
+
+    test('a hit swings the bag away from the attacker, harder for more damage, and it settles', () {
+      final c = roster[0];
+      final moves = trainingMoves(c);
+      final light = moves.firstWhere((m) => m.normal == N.standLight);
+      final heavy = moves.firstWhere((m) => m.normal == N.standHeavy);
+      final a = <double>[], b = <double>[];
+      swing(c, light, out: a);
+      swing(c, heavy, out: b);
+      double reach(List<double> xs) => xs.map((x) => (x - xs.first).abs()).reduce((p, q) => p > q ? p : q);
+      expect(reach(a), greaterThan(4), reason: 'light');
+      expect(reach(b), greaterThan(reach(a)), reason: 'heavy swings further');
+      expect(b.reduce((p, q) => p > q ? p : q), greaterThan(b.first), reason: 'P1 is on the left, the bag goes right');
+    });
+
+    test('damping: it hangs still again long after the last hit', () {
+      final c = roster[0];
+      final m = trainingMoves(c).firstWhere((m) => m.normal == N.standHeavy);
+      final bag = SandbagArt();
+      final script = trainingScript(c, m);
+      final s = trainingState(c, dist: script.dist);
+      for (var f = 0; f < 1400; f++) {
+        step(s, f < 60 ? script.p1(s) : 0, 0);
+        trainingKeepAlive(s);
+        bag.update(s, 1);
+      }
+      // It rests 22 px past the dummy, away from the attacker (see SandbagArt.update).
+      expect((bag.bodyX - (s.p[1].x / unitsPerPx + 22)).abs(), lessThan(3));
+    });
+
+    test('paints in every look inside the clip and layer budget', () {
+      final c = roster[0];
+      final m = trainingMoves(c).firstWhere((m) => m.normal == N.standHeavy);
+      final script = trainingScript(c, m);
+      for (final look in FightLook.values) {
+        final art = FightArt()..sandbagFor = 1;
+        final s = trainingState(c, dist: script.dist);
+        for (var f = 0; f < 40; f++) {
+          step(s, script.p1(s), 0);
+          trainingKeepAlive(s);
+          final rec = ui.PictureRecorder();
+          final canvas = Canvas(rec);
+          art.paintActors(canvas, const Size(800, 500), FightCamera.follow(s, const Size(800, 500), null), s, look);
+          rec.endRecording().dispose();
+        }
+      }
+    });
+  });
+
   group('screen', () {
     Future<GlobalKey> pump(WidgetTester tester, Size size, {int charId = 0}) async {
       tester.view.physicalSize = size * 3;
@@ -206,8 +287,14 @@ void main() {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       final key = await pump(tester, const Size(393, 852));
       await tester.pump(const Duration(milliseconds: 50));
-      expect(find.text('Training'), findsOneWidget);
-      expect(find.text('Stand light'), findsNWidgets(2)); // panel title + list row
+      // On a phone the title gives way to the stage and fighter chips.
+      expect(find.byKey(const ValueKey('training_change_stage')), findsOneWidget);
+      expect(find.text('Rooftop'), findsOneWidget);
+      expect(find.text('Stand light'), findsOneWidget); // the list row (the compact panel has no title)
+      // Every control keeps its whole label on a phone.
+      for (final t in ['Loop', 'Hitboxes', 'Reset', 'Sandbag', 'Fighter']) {
+        expect(find.text(t), findsOneWidget, reason: t);
+      }
       await tester.scrollUntilVisible(find.text('Surge Palm'), 120, scrollable: find.byType(Scrollable).last);
       expect(find.byKey(const ValueKey('training_frame_data')), findsOneWidget);
 
@@ -245,7 +332,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('training_tab_play')));
       await tester.pump();
       expect(find.byType(ListView), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('training_tab_moves')));
+      await tester.tap(find.byKey(const ValueKey('training_tab_play')));
       await tester.pump();
       expect(find.byType(ListView), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -288,6 +375,34 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
     });
 
+    testWidgets('screenshots at phone, desktop and wide sizes', (tester) async {
+      if (shotDir == null) return;
+      Future<void> go(String name, Size size, TargetPlatform platform, {String look = 'cartoon', int move = 3, int frames = 24}) async {
+        debugDefaultTargetPlatformOverride = platform;
+        await SettingsStore.instance.setFightLook(look);
+        final key = await pump(tester, size);
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.ensureVisible(find.byKey(ValueKey('training_move_$move')));
+        await tester.tap(find.byKey(ValueKey('training_move_$move')));
+        for (var i = 0; i < frames; i++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+        await shot(tester, key, name);
+      }
+
+      await go('p402_cartoon', const Size(402, 874), TargetPlatform.iOS);
+      await go('p360_cartoon', const Size(360, 740), TargetPlatform.android, move: 2);
+      await go('p402_painted', const Size(402, 874), TargetPlatform.iOS, look: 'painted', frames: 30);
+      await go('p402_pixel', const Size(402, 874), TargetPlatform.iOS, look: 'pixel', frames: 30);
+      await go('d1440_cartoon', const Size(1440, 900), TargetPlatform.macOS);
+      await go('d1440_painted', const Size(1440, 900), TargetPlatform.macOS, look: 'painted', frames: 30);
+      await go('d1920_cartoon', const Size(1920, 1080), TargetPlatform.macOS, move: 2, frames: 30);
+      await go('d900_cartoon', const Size(900, 700), TargetPlatform.macOS);
+      await go('l852_cartoon', const Size(852, 393), TargetPlatform.iOS);
+      await SettingsStore.instance.setFightLook('cartoon');
+      debugDefaultTargetPlatformOverride = null;
+    });
+
     testWidgets('close button pops', (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       tester.view.physicalSize = const Size(393, 852) * 3;
@@ -306,12 +421,12 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pump(const Duration(milliseconds: 500));
-      expect(find.text('Training'), findsOneWidget);
+      expect(find.byKey(const ValueKey('training_close')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('training_close')));
       for (var k = 0; k < 30; k++) {
         await tester.pump(const Duration(milliseconds: 50));
       }
-      expect(find.text('Training'), findsNothing);
+      expect(find.byKey(const ValueKey('training_close')), findsNothing);
       debugDefaultTargetPlatformOverride = null;
     });
   });

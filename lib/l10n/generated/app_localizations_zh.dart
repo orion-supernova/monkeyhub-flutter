@@ -14145,6 +14145,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fightTrainingLegend => 'L 轻, H 重, S 特殊, → 朝向对手';
 
   @override
+  String get fightTrainingSandbag => '沙袋';
+
+  @override
+  String get fightTrainingDummyFighter => '角色';
+
+  @override
+  String get fightTrainingDummy => '假人';
+
+  @override
+  String get fightTrainingKeyHint => '[ ] 浏览招式，Enter 重复';
+
+  @override
   String get fightTrainingMoveStandLight => '站立轻';
 
   @override
@@ -14173,4 +14185,31 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get fightTrainingMoveThrow => '投掷';
+
+  @override
+  String get fightStageTitle => '场景';
+
+  @override
+  String get fightStageRandom => '随机';
+
+  @override
+  String get fightStageHostPicks => '场景由房主选择';
+
+  @override
+  String get fightStageRooftop => '屋顶';
+
+  @override
+  String get fightStageTemple => '苔藓神殿';
+
+  @override
+  String get fightStageNeon => '霓虹小巷';
+
+  @override
+  String get fightStageAurora => '极光神社';
+
+  @override
+  String get fightStageCanyon => '正午峡谷';
+
+  @override
+  String get fightStageDeck => '月夜甲板';
 }

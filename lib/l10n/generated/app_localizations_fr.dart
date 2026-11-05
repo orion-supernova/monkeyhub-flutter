@@ -15158,6 +15158,18 @@ class AppLocalizationsFr extends AppLocalizations {
       'L Léger, H Lourd, S Spécial, → vers l\'adversaire';
 
   @override
+  String get fightTrainingSandbag => 'Sac de frappe';
+
+  @override
+  String get fightTrainingDummyFighter => 'Combattant';
+
+  @override
+  String get fightTrainingDummy => 'Mannequin';
+
+  @override
+  String get fightTrainingKeyHint => '[ ] parcourt les coups, Entrée répète';
+
+  @override
   String get fightTrainingMoveStandLight => 'Léger debout';
 
   @override
@@ -15186,4 +15198,31 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get fightTrainingMoveThrow => 'Projection';
+
+  @override
+  String get fightStageTitle => 'Décor';
+
+  @override
+  String get fightStageRandom => 'Aléatoire';
+
+  @override
+  String get fightStageHostPicks => 'L\'hôte choisit le décor';
+
+  @override
+  String get fightStageRooftop => 'Toit';
+
+  @override
+  String get fightStageTemple => 'Temple de mousse';
+
+  @override
+  String get fightStageNeon => 'Ruelle néon';
+
+  @override
+  String get fightStageAurora => 'Sanctuaire de l\'aurore';
+
+  @override
+  String get fightStageCanyon => 'Canyon à midi';
+
+  @override
+  String get fightStageDeck => 'Pont au clair de lune';
 }

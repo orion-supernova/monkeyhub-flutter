@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../fight/core/bot.dart' as fb;
+import '../data/settings_store.dart';
+import '../fight/view/fight_character_grid.dart' show fightCharOf;
 import '../fight/view/fight_lobby_screen.dart';
+import '../fight/view/fighter_portrait.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../models/chat_match.dart';
@@ -76,8 +79,13 @@ class _BotHubScreenState extends State<BotHubScreen> {
       BotLevel.medium => l10n.chatGameBotMediumHint,
       BotLevel.hard => l10n.chatGameBotHardHint,
     };
+    return LayoutBuilder(
+      builder: (context, box) {
+    // Desktop and web: the content is a centred column, not edge to edge.
+    final side = ((box.maxWidth - 960) / 2).clamp(16.0, double.infinity);
     return IosPage(
       title: sentenceCaseOf(context, l10n.botHubTitle),
+      padding: EdgeInsets.fromLTRB(side, 0, side, 40),
       children: [
         _Intro(text: l10n.botHubSubtitle(l10n.chatGameBotName)),
         const SizedBox(height: 22),
@@ -117,6 +125,7 @@ class _BotHubScreenState extends State<BotHubScreen> {
           key: const ValueKey('bot_fight_banner'),
           title: l10n.fightTitle,
           subtitle: l10n.fightHubSubtitle,
+          wide: box.maxWidth >= 700,
           onTap: _playFight,
         ),
         const SizedBox(height: 26),
@@ -124,11 +133,7 @@ class _BotHubScreenState extends State<BotHubScreen> {
         LayoutBuilder(
           builder: (context, box) {
             const gap = 12.0;
-            final across = box.maxWidth >= 720
-                ? 4
-                : box.maxWidth >= 480
-                ? 3
-                : 2;
+            final across = box.maxWidth >= 480 ? 3 : 2;
             final w = (box.maxWidth - gap * (across - 1)) / across;
             return Wrap(
               spacing: gap,
@@ -162,6 +167,8 @@ class _BotHubScreenState extends State<BotHubScreen> {
           ],
         ),
       ],
+    );
+      },
     );
   }
 }
@@ -418,47 +425,66 @@ class _BotGameTile extends StatelessWidget {
 /// tile in the grid but a banner above it: the real-time game gets its own
 /// entrance and its own setup page.
 class _FightBanner extends StatelessWidget {
-  const _FightBanner({super.key, required this.title, required this.subtitle, required this.onTap});
+  const _FightBanner({super.key, required this.title, required this.subtitle, required this.onTap, this.wide = false});
 
   final String title, subtitle;
   final VoidCallback onTap;
 
+  /// Desktop: taller, with your fighter standing on the right.
+  final bool wide;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final r = BorderRadius.circular(groupedRadius(theme) + 4);
+    final texts = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title.toUpperCase(),
+          style: TextStyle(fontSize: wide ? 30 : 24, fontWeight: FontWeight.w900, color: const Color(0xffffcf6e), letterSpacing: 1),
+        ),
+        const SizedBox(height: 4),
+        Text(subtitle, style: theme.body.copyWith(color: const Color(0xe6ffffff), height: 1.3)),
+      ],
+    );
     return SpringPress(
       onTap: onTap,
       scale: 0.97,
       semanticLabel: title,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
+        height: wide ? 168 : null,
+        padding: EdgeInsets.fromLTRB(wide ? 28 : 18, wide ? 0 : 16, wide ? 0 : 14, wide ? 0 : 16),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Color(0xff2a1240), Color(0xff6a1d3a), Color(0xffa8452c)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(groupedRadius(theme) + 4),
+          borderRadius: r,
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: wide
+            ? Row(
                 children: [
-                  Text(
-                    title.toUpperCase(),
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xffffcf6e), letterSpacing: 1),
+                  Expanded(child: Align(alignment: Alignment.centerLeft, child: texts)),
+                  // A still pose (no ticker): the banner costs nothing live.
+                  SizedBox(
+                    width: 190,
+                    child: FighterPortrait(charId: fightCharOf(SettingsStore.instance.fightChar), animate: false, glow: const Color(0xffffb86b)),
                   ),
-                  const SizedBox(height: 4),
-                  Text(subtitle, style: theme.body.copyWith(color: const Color(0xe6ffffff), height: 1.3)),
+                  const SizedBox(width: 6),
+                  const Icon(CupertinoIcons.chevron_right, color: Color(0xccffffff), size: 22),
+                  const SizedBox(width: 20),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(child: texts),
+                  const SizedBox(width: 10),
+                  const Icon(CupertinoIcons.chevron_right, color: Color(0xccffffff), size: 20),
                 ],
               ),
-            ),
-            const SizedBox(width: 10),
-            const Icon(CupertinoIcons.chevron_right, color: Color(0xccffffff), size: 20),
-          ],
-        ),
       ),
     );
   }

@@ -24901,6 +24901,30 @@ abstract class AppLocalizations {
   /// **'L Light, H Heavy, S Special, → toward your opponent'**
   String get fightTrainingLegend;
 
+  /// Training: the dummy shown as a hanging heavy bag (also its name on the health bar)
+  ///
+  /// In en, this message translates to:
+  /// **'Sandbag'**
+  String get fightTrainingSandbag;
+
+  /// Training: the dummy shown as a fighter
+  ///
+  /// In en, this message translates to:
+  /// **'Fighter'**
+  String get fightTrainingDummyFighter;
+
+  /// Training: label of the dummy choice (sandbag or fighter)
+  ///
+  /// In en, this message translates to:
+  /// **'Dummy'**
+  String get fightTrainingDummy;
+
+  /// Training: keyboard hint under the move list (desktop and web)
+  ///
+  /// In en, this message translates to:
+  /// **'[ ] browse moves, Enter repeats'**
+  String get fightTrainingKeyHint;
+
   /// Training move name
   ///
   /// In en, this message translates to:
@@ -24960,6 +24984,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Throw'**
   String get fightTrainingMoveThrow;
+
+  /// Section header: the place a fight happens in.
+  ///
+  /// In en, this message translates to:
+  /// **'Stage'**
+  String get fightStageTitle;
+
+  /// Stage option: a different stage each fight.
+  ///
+  /// In en, this message translates to:
+  /// **'Random'**
+  String get fightStageRandom;
+
+  /// Online pre-fight note shown to the guest, who cannot change the stage.
+  ///
+  /// In en, this message translates to:
+  /// **'The host picks the stage'**
+  String get fightStageHostPicks;
+
+  /// Fight stage name: a city rooftop at sunset.
+  ///
+  /// In en, this message translates to:
+  /// **'Rooftop'**
+  String get fightStageRooftop;
+
+  /// Fight stage name: an overgrown jungle temple at dusk with a waterfall.
+  ///
+  /// In en, this message translates to:
+  /// **'Moss Temple'**
+  String get fightStageTemple;
+
+  /// Fight stage name: a rainy neon night market alley.
+  ///
+  /// In en, this message translates to:
+  /// **'Neon Alley'**
+  String get fightStageNeon;
+
+  /// Fight stage name: a snowy mountain shrine under the northern lights.
+  ///
+  /// In en, this message translates to:
+  /// **'Aurora Shrine'**
+  String get fightStageAurora;
+
+  /// Fight stage name: a sunbaked desert canyon at midday.
+  ///
+  /// In en, this message translates to:
+  /// **'Canyon Noon'**
+  String get fightStageCanyon;
+
+  /// Fight stage name: a ship deck at night under the moon.
+  ///
+  /// In en, this message translates to:
+  /// **'Moonlit Deck'**
+  String get fightStageDeck;
 }
 
 class _AppLocalizationsDelegate

@@ -14951,6 +14951,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'L Light, H Heavy, S Special, → toward your opponent';
 
   @override
+  String get fightTrainingSandbag => 'Sandbag';
+
+  @override
+  String get fightTrainingDummyFighter => 'Fighter';
+
+  @override
+  String get fightTrainingDummy => 'Dummy';
+
+  @override
+  String get fightTrainingKeyHint => '[ ] browse moves, Enter repeats';
+
+  @override
   String get fightTrainingMoveStandLight => 'Stand light';
 
   @override
@@ -14979,4 +14991,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fightTrainingMoveThrow => 'Throw';
+
+  @override
+  String get fightStageTitle => 'Stage';
+
+  @override
+  String get fightStageRandom => 'Random';
+
+  @override
+  String get fightStageHostPicks => 'The host picks the stage';
+
+  @override
+  String get fightStageRooftop => 'Rooftop';
+
+  @override
+  String get fightStageTemple => 'Moss Temple';
+
+  @override
+  String get fightStageNeon => 'Neon Alley';
+
+  @override
+  String get fightStageAurora => 'Aurora Shrine';
+
+  @override
+  String get fightStageCanyon => 'Canyon Noon';
+
+  @override
+  String get fightStageDeck => 'Moonlit Deck';
 }
