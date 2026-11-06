@@ -566,7 +566,7 @@ class _VanishTintState extends State<VanishTint>
     return IgnorePointer(
       child: RepaintBoundary(
         child: CustomPaint(
-          painter: _TintPainter(
+          painter: VanishTintPainter(
             animation: _eased,
             color: VanishPalette(theme).tint,
             origin: widget.origin,
@@ -578,38 +578,49 @@ class _VanishTintState extends State<VanishTint>
   }
 }
 
-class _TintPainter extends CustomPainter {
-  _TintPainter({
+/// Paints the wave. Public only so tests can reach it; it repaints through
+/// [animation] (its `repaint:` listenable), never through a widget rebuild.
+@visibleForTesting
+class VanishTintPainter extends CustomPainter {
+  VanishTintPainter({
     required this.animation,
     required this.color,
     required this.origin,
-  }) : super(repaint: animation);
+  })  : _paint = Paint()..color = color,
+        super(repaint: animation);
 
   final Animation<double> animation;
   final Color color;
   final Alignment origin;
 
+  // One Paint for the painter's life: nothing is allocated per frame.
+  final Paint _paint;
+
+  Size? _farFor;
+  double _far = 0;
+
   @override
   void paint(Canvas canvas, Size size) {
     final t = animation.value;
     if (t <= 0) return;
-    final c = origin.alongSize(size);
-    // Far enough that the circle covers the whole box at t = 1.
-    final far = [
-      (c - Offset.zero).distance,
-      (c - Offset(size.width, 0)).distance,
-      (c - Offset(0, size.height)).distance,
-      (c - Offset(size.width, size.height)).distance,
-    ].reduce((a, b) => a > b ? a : b);
     if (t >= 1) {
-      canvas.drawRect(Offset.zero & size, Paint()..color = color);
-    } else {
-      canvas.drawCircle(c, far * t, Paint()..color = color);
+      canvas.drawRect(Offset.zero & size, _paint);
+      return;
     }
+    final c = origin.alongSize(size);
+    if (_farFor != size) {
+      // Far enough that the circle covers the whole box at t = 1: the
+      // distance to the farthest corner. Only changes with the size.
+      final dx = c.dx > size.width - c.dx ? c.dx : size.width - c.dx;
+      final dy = c.dy > size.height - c.dy ? c.dy : size.height - c.dy;
+      _far = Offset(dx, dy).distance;
+      _farFor = size;
+    }
+    canvas.drawCircle(c, _far * t, _paint);
   }
 
   @override
-  bool shouldRepaint(_TintPainter old) =>
+  bool shouldRepaint(VanishTintPainter old) =>
       old.color != color || old.origin != origin || old.animation != animation;
 }
 

@@ -42,6 +42,20 @@ class VanishPalette {
   /// the bubble's text and stamp use) reads on it.
   Color get bubbleFill {
     final ink = _theme.accentInk;
+    // Every vanishing sent bubble asks for this on every build; the answer
+    // depends only on these two colours, so the nudge loop (up to 12 HSL and
+    // luminance rounds) runs once per theme instead of once per bubble.
+    final key = (vanish, ink);
+    final hit = _fillCache[key];
+    if (hit != null) return hit;
+    final fill = _computeBubbleFill(ink);
+    if (_fillCache.length > 32) _fillCache.clear();
+    return _fillCache[key] = fill;
+  }
+
+  static final Map<(Color, Color), Color> _fillCache = {};
+
+  Color _computeBubbleFill(Color ink) {
     var hsl = HSLColor.fromColor(vanish);
     // Away from the ink: a light ink wants a darker fill and vice versa.
     final darker = ink.computeLuminance() > 0.5;
