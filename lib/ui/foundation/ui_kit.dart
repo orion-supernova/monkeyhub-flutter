@@ -82,7 +82,17 @@ abstract final class UiKits {
   static bool get nativeControls =>
       debugNativeControls ??
       (Caps.nativeGlass &&
-          SettingsStore.instance.nativeScope == NativeScope.everything);
+          (_launchNativeControls ||
+              SettingsStore.instance.nativeScope == NativeScope.everything));
+
+  /// `flutter run --dart-define=NATIVE_CONTROLS=true`: native controls on
+  /// without touching Settings (simulator checks, screenshots).
+  static const bool _launchNativeControls =
+      bool.fromEnvironment('NATIVE_CONTROLS');
+
+  /// `flutter run --dart-define=UI_KIT=lite` (glass, liquid, material, lite,
+  /// shader): pins a kit for a debug run. Empty in every shipped build.
+  static const String _launchKit = String.fromEnvironment('UI_KIT');
 
   /// Forces [nativeControls] for a test or a preview. Null clears it.
   @visibleForTesting
@@ -178,7 +188,11 @@ abstract final class UiKits {
 
   /// The kit the app is drawn with right now.
   static UiKit get current =>
-      _debugOverride ?? resolve(SettingsStore.instance.uiKit);
+      _debugOverride ??
+      (_launchKit.isEmpty
+          ? resolve(SettingsStore.instance.uiKit)
+          : UiKit.values.asNameMap()[_launchKit] ??
+              resolve(SettingsStore.instance.uiKit));
 }
 
 /// Publishes the resolved [UiKit] to the tree. Sits once near the app root;
