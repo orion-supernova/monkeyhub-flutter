@@ -485,10 +485,14 @@ Merge the two send rate buckets into one document (−1 write per send).
 <tr><td>C4 app (archived split), D1 app fallbacks</td><td>Waiting: those screens are being reworked by other work</td></tr>
 <tr><td>C6 thumbnails</td><td>Not started: needs the media upload files other work is editing</td></tr>
 <tr><td>D5 container memory limit</td><td>Live (8 GB)</td></tr>
+<tr><td>Final cutover</td><td>Live (<code>d5e06ed5</code>, <code>f754402b</code>): legacy paths, fields and tables removed; old-build compatibility removed (forced update coming); push roster N reads not 2N</td></tr>
+<tr><td>Terms consent + staff moderation</td><td>Fixed (<code>8419f60f</code>): they required a client <code>userId</code> the app never sent, so they had failed since 2026-10-15; an audit of every app call against required server args is clean</td></tr>
+<tr><td>Next hotspot</td><td><code>feed:board</code> (~690 ms, ~67 docs per run in a quiet window); push badge totals still read ~2 docs per room per recipient. Re-measure under normal daytime use first.</td></tr>
 <tr><td>Schema field removals (users.status/lastSeen, profile copies, roomMembers cursors), 6Z</td><td>After the migrations below have finished (a later deploy)</td></tr>
 </table></div>
 
 <h3 id="rollout">Rollout runbook (waves 1 and 2)</h3>
+<p class="callout ok"><b>Completed 2026-11-07.</b> Kept for the record: the migration modules it names were deleted in <code>f754402b</code> once their data work was verified. Only <code>contentCounts:backfill</code> and <code>userDerived:backfill</code> remain, as re-runnable repair tools. Cloudflare (step 14) waits for the token.</p>
 <p>Run from <code>backend/</code>, in order. Each <code>run</code> is paged and self-chaining: wait for it to finish (watch <code>npx convex logs</code>) before the next numbered step. All are idempotent.</p>
 <pre><code>cd .. &amp;&amp; ./deploy.sh --convex-only &amp;&amp; cd backend      # 1. backend (dual-mode, safe for 1.3.137+)
 
