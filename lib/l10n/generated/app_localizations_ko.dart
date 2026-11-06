@@ -9724,7 +9724,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get motionCalmSub => '장식은 멈추고 나머지는 그대로예요.';
 
   @override
-  String get navigationPageFooter => '채팅, 피드, 탐색, 설정 사이를 이동하는 방식.';
+  String get navigationPageFooter => '탭 사이를 이동하는 방식과 바에 표시할 탭.';
 
   @override
   String get navTabBarSub => '항상 보이고, 어디든 한 번에.';
@@ -14827,4 +14827,439 @@ class AppLocalizationsKo extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get callBubbleCalling => '전화 거는 중…';
+
+  @override
+  String callBubbleIncomingCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': '수신 영상 통화',
+      'other': '수신 음성 통화',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleOutgoingCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': '발신 영상 통화',
+      'other': '발신 음성 통화',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': '영상 통화',
+      'other': '음성 통화',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleMissed(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': '부재중 영상 통화',
+      'other': '부재중 음성 통화',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get callBubbleNoAnswer => '응답 없음';
+
+  @override
+  String callBubbleCancelled(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': '취소된 영상 통화',
+      'other': '취소된 음성 통화',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleDeclined(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': '거절된 영상 통화',
+      'other': '거절된 음성 통화',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleOutgoingDuration(String duration) {
+    return '발신 · $duration';
+  }
+
+  @override
+  String callBubbleIncomingDuration(String duration) {
+    return '수신 · $duration';
+  }
+
+  @override
+  String get callBubbleOutgoing => '발신';
+
+  @override
+  String get callBubbleIncoming => '수신';
+
+  @override
+  String get callBubbleTapToCallBack => '탭하여 다시 걸기';
+
+  @override
+  String callBubbleAnsweredOn(String device) {
+    return '$device에서 받음';
+  }
+
+  @override
+  String get callBubbleQualityFair => '연결 상태 보통';
+
+  @override
+  String get callBubbleQualityPoor => '연결 상태 나쁨';
+
+  @override
+  String get callBubbleJoin => '참여';
+
+  @override
+  String callBubblePeople(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count명',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleMissedRun(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '부재중 전화 $count통',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleRunBadge(int count) {
+    return '×$count';
+  }
+
+  @override
+  String get callBubbleShowLess => '간략히 보기';
+
+  @override
+  String get callBubbleRinging => '신호 가는 중…';
+
+  @override
+  String callBubblePreviewDuration(String title, String duration) {
+    return '$title · $duration';
+  }
+
+  @override
+  String get callsTabNavLabel => '통화';
+
+  @override
+  String get callsTabNavShort => '통화';
+
+  @override
+  String get callsTabSettingsToggle => '통화 탭';
+
+  @override
+  String get callsTabSettingsToggleSub => '탭 바에 통화 기록 표시';
+
+  @override
+  String get callsTabLiveNow => '지금 진행 중';
+
+  @override
+  String get callsTabLiveHuddle => '허들';
+
+  @override
+  String get callsTabLiveGroupCall => '그룹 통화';
+
+  @override
+  String callsTabPeople(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count명',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsTabLiveJoinSemantic(String name) {
+    return '$name의 통화에 참여';
+  }
+
+  @override
+  String get callsTabFavourites => '즐겨찾기';
+
+  @override
+  String callsTabFavouriteSemantic(String name) {
+    return '$name에게 전화';
+  }
+
+  @override
+  String callsTabTalkTimeThisWeek(String duration) {
+    return '이번 주: 통화 $duration';
+  }
+
+  @override
+  String get callsTabTalkTimeNone => '이번 주에는 아직 통화가 없어요';
+
+  @override
+  String get callsTabTalkTimeSheetTitle => '이번 주';
+
+  @override
+  String callsTabCallCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '통화 $count건',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsTabTalkTimeFootnote(String start) {
+    return '$start부터 지금까지 통화에 연결되어 있던 시간만 계산해요. 울리기만 했거나 부재중이거나 거절한 통화는 포함되지 않아요.';
+  }
+
+  @override
+  String get callsTabTopPeople => '가장 많이 통화한 사람';
+
+  @override
+  String callsTabDurationHM(int hours, int minutes) {
+    return '$hours시간 $minutes분';
+  }
+
+  @override
+  String callsTabDurationM(int minutes) {
+    return '$minutes분';
+  }
+
+  @override
+  String callsTabDurationS(int seconds) {
+    return '$seconds초';
+  }
+
+  @override
+  String get callsTabFilterAll => '전체';
+
+  @override
+  String get callsTabFilterMissed => '부재중';
+
+  @override
+  String get callsTabToday => '오늘';
+
+  @override
+  String get callsTabYesterday => '어제';
+
+  @override
+  String get callsTabVoiceCall => '음성 통화';
+
+  @override
+  String get callsTabVideoCall => '영상 통화';
+
+  @override
+  String get callsTabOpenChat => '채팅 열기';
+
+  @override
+  String get callsTabDeleteFromHistory => '기록에서 삭제';
+
+  @override
+  String get callsTabInAudio => '수신 음성 통화';
+
+  @override
+  String get callsTabInVideo => '수신 영상 통화';
+
+  @override
+  String get callsTabOutAudio => '발신 음성 통화';
+
+  @override
+  String get callsTabOutVideo => '발신 영상 통화';
+
+  @override
+  String get callsTabMissedAudio => '부재중 음성 통화';
+
+  @override
+  String get callsTabMissedVideo => '부재중 영상 통화';
+
+  @override
+  String get callsTabNoAnswer => '응답 없음';
+
+  @override
+  String get callsTabDeclined => '거절됨';
+
+  @override
+  String get callsTabCancelled => '취소됨';
+
+  @override
+  String get callsTabHuddle => '허들';
+
+  @override
+  String get callsTabEmptyTitle => '아직 통화가 없어요';
+
+  @override
+  String get callsTabEmptyMessage => '걸거나 받은 음성 및 영상 통화가 여기에 표시돼요.';
+
+  @override
+  String get callsTabEmptyMissedTitle => '부재중 통화가 없어요';
+
+  @override
+  String get callsTabEmptyMissedMessage => '모두 확인했어요.';
+
+  @override
+  String get callsTabNewCall => '새 통화';
+
+  @override
+  String get callsTabNewCallSearch => '친구 검색';
+
+  @override
+  String get callsTabNewCallEmpty => '친구를 추가하면 전화할 수 있어요.';
+
+  @override
+  String get callsTabNewCallNoMatch => '일치하는 사람이 없어요.';
+
+  @override
+  String get callsTabDetailsStarted => '시작';
+
+  @override
+  String get callsTabDetailsRang => '울림';
+
+  @override
+  String get callsTabDetailsAnswered => '응답';
+
+  @override
+  String callsTabDetailsAnsweredOn(String platform) {
+    return '$platform에서 응답';
+  }
+
+  @override
+  String callsTabDetailsMovedTo(String platform) {
+    return '$platform(으)로 이동';
+  }
+
+  @override
+  String get callsTabDetailsEnded => '종료';
+
+  @override
+  String callsTabDetailsTalked(String duration) {
+    return '통화 시간 $duration';
+  }
+
+  @override
+  String get callsTabDetailsMessage => '메시지';
+
+  @override
+  String get callsTabPlatformIos => 'iPhone';
+
+  @override
+  String get callsTabPlatformMacos => 'Mac';
+
+  @override
+  String get callsTabPlatformAndroid => 'Android';
+
+  @override
+  String get callsTabPlatformWindows => 'Windows';
+
+  @override
+  String get callsTabPlatformLinux => 'Linux';
+
+  @override
+  String get callsTabPlatformWeb => '웹';
+
+  @override
+  String get callsTabQualityTitle => '연결 상태';
+
+  @override
+  String get callsTabQualityGood => '내내 연결 상태 양호';
+
+  @override
+  String callsTabQualityFair(int percent) {
+    return '통화의 $percent% 동안 끊김이 있었어요';
+  }
+
+  @override
+  String callsTabQualityPoor(int percent) {
+    return '통화의 $percent% 동안 연결 상태가 나빴어요';
+  }
+
+  @override
+  String get callsTabDeletedChat => '삭제된 채팅';
+
+  @override
+  String get callsTabUnknown => '알 수 없음';
+
+  @override
+  String get callsTabLoadFailed => '통화를 불러오지 못했어요.';
+
+  @override
+  String callsTabRowSemantic(String detail, String name, String time) {
+    return '$name, $detail, $time';
+  }
+
+  @override
+  String get destinationsGamesLabel => '게임';
+
+  @override
+  String get destinationsGamesShort => '게임';
+
+  @override
+  String get gamesTabTodayLabel => '오늘의 게임';
+
+  @override
+  String chatRequestsFolderLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '요청, $count개 대기 중',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFindFriendsTitle => '친구를 찾아보세요';
+
+  @override
+  String get chatFindFriendsBody => '아는 사람을 추가해서 대화하고, 하루를 공유하고, 함께 게임하세요.';
+
+  @override
+  String get callsTabFavAdd => '즐겨찾기에 추가';
+
+  @override
+  String get callsTabFavRemove => '즐겨찾기에서 제거';
+
+  @override
+  String get callsTabFavNotNow => '나중에';
+
+  @override
+  String get callsTabFavAddTitle => '즐겨찾기 추가';
+
+  @override
+  String get callsTabFavAddLabel => '추가';
+
+  @override
+  String get callsTabFavEmpty => '자주 통화하는 사람을 고정하세요. +를 눌러 추가하세요.';
+
+  @override
+  String get callsTabFavPickerEmpty => '추가할 사람이 없어요.';
+
+  @override
+  String callsTabFavSuggestCalls(int count, String name) {
+    return '최근 30일 동안 $name님에게 $count번 전화했어요';
+  }
+
+  @override
+  String callsTabFavSuggestTime(String name, String time) {
+    return '최근 30일 동안 $name님과 $time 통화했어요';
+  }
+
+  @override
+  String get callsTabFavAddFailed => '즐겨찾기에 추가하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get callsTabFavRemoveFailed => '즐겨찾기에서 제거하지 못했어요. 다시 시도해 주세요.';
 }

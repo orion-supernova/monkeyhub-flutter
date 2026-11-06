@@ -77,7 +77,7 @@ List<PlayStyle> playStylesOf(String game, {required bool isDm}) => [
 /// two days a move, with reminders and a nudge), its options, and Start.
 ///
 /// Bots are not here. A game against the app is not a chat thing; it lives
-/// on the Feed's games row ([BotHubScreen]).
+/// on the Games tab ([BotHubPanel]).
 ///
 /// [voiceAvailable] is whether group calls exist on this build; without them
 /// Imposter's voice option is not offered. [memberCount] is the room's size,

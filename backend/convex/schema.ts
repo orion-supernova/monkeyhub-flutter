@@ -2725,6 +2725,12 @@ export default defineSchema({
     // the line between the caller's "calling" and "ringing". Unset while
     // the push is still on its way, or if it never landed anywhere.
     ringingAt: v.optional(v.number()),
+    // The `call:` chat bubble (docs/design/calls.md). Stored so every
+    // terminal path settles it by id instead of searching the room.
+    messageId: v.optional(v.id("messages")),
+    // Device moves while active, so the call details can say "moved from
+    // iPhone to Mac". Capped at 20 so a flapping client cannot grow the row.
+    handoffs: v.optional(v.array(v.object({ at: v.number(), platform: v.string() }))),
   })
     .index("by_callee_status", ["calleeId", "status"])
     .index("by_caller_status", ["callerId", "status"])
@@ -2739,6 +2745,63 @@ export default defineSchema({
     .index("by_callee", ["calleeId"])
     // Room teardown: the live (ringing / active) calls in one room.
     .index("by_room_status", ["roomId", "status"]),
+
+  // One row per person per call, written once when the call ends (the Calls
+  // tab and its stats). Append-only apart from the owner's own quality report,
+  // so subscribing to it stays cheap, unlike `calls` which heartbeats.
+  // The Calls tab's favourites: people the user pinned THEMSELVES (the app
+  // only ever suggests). Synced so a favourite set on the phone is there on
+  // the Mac. Tiny: one row per pinned person, written only on add/remove.
+  callFavorites: defineTable({
+    userId: v.id("users"),
+    peerId: v.id("users"),
+    addedAt: v.number(),
+  })
+    .index("by_user_added", ["userId", "addedAt"])
+    .index("by_user_peer", ["userId", "peerId"])
+    .index("by_peer", ["peerId"]),
+
+  callLog: defineTable({
+    userId: v.id("users"),            // whose history this is
+    roomId: v.id("rooms"),
+    kind: v.union(v.literal("direct"), v.literal("group"), v.literal("huddle")),
+    callId: v.optional(v.id("calls")),
+    groupCallId: v.optional(v.id("groupCalls")),
+    type: v.string(),                 // "audio" | "video"
+    direction: v.union(v.literal("in"), v.literal("out")),
+    // answered: I talked. missed: rang me, I never picked up (incl. caller
+    // cancelled while ringing). unanswered: I called, nobody picked up.
+    // declined: I declined, or they declined my call. cancelled: I called and
+    // hung up before an answer.
+    outcome: v.union(
+      v.literal("answered"),
+      v.literal("missed"),
+      v.literal("unanswered"),
+      v.literal("declined"),
+      v.literal("cancelled"),
+    ),
+    peerId: v.optional(v.id("users")), // direct: the other person; group/huddle: the starter when it isn't me
+    people: v.optional(v.number()),    // group/huddle: everyone who joined, me included
+    startedAt: v.number(),             // ring started (huddle: huddle started)
+    ringingAt: v.optional(v.number()), // direct: callee device ringer up
+    answeredAt: v.optional(v.number()),
+    endedAt: v.number(),
+    durationMs: v.number(),            // my time connected, 0 if never
+    answeredOn: v.optional(v.string()),
+    handoffs: v.optional(v.array(v.object({ at: v.number(), platform: v.string() }))),
+    // Filled by the client's own report after the call.
+    quality: v.optional(
+      v.object({
+        worst: v.string(),           // "good" | "fair" | "poor"
+        // One bucket per 10 s connected: 0 good, 1 fair, 2 poor. At most 360.
+        samples: v.array(v.number()),
+      }),
+    ),
+  })
+    .index("by_user_started", ["userId", "startedAt"])
+    .index("by_user_outcome_started", ["userId", "outcome", "startedAt"])
+    .index("by_call_user", ["callId", "userId"])
+    .index("by_group_call_user", ["groupCallId", "userId"]),
 
   // Signaling messages between the two peers. Client subscribes by toUserId
   // and marks each delivered signal `consumed: true`. A cron cleans old rows.
@@ -2805,6 +2868,13 @@ export default defineSchema({
     // also the job's token; both clear when someone joins.
     aloneAt: v.optional(v.number()),
     aloneJobId: v.optional(v.id("_scheduled_functions")),
+    // The `call:` chat bubble of a ringing group call (never a huddle, whose
+    // history line is written once at the end).
+    messageId: v.optional(v.id("messages")),
+    // First join by someone other than the starter, set once: it is the
+    // "answered" instant, so the bubble goes live in one write and the talk
+    // time is measured from it.
+    firstJoinAt: v.optional(v.number()),
   })
     .index("by_room_status", ["roomId", "status"])
     // Huddle push cooldown. `pushedAt` is unset on every ringing call, so the

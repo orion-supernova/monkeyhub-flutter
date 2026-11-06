@@ -78,7 +78,7 @@ void main() {
 
   Future<void> pumpNav(
     WidgetTester tester, {
-    HomeSection active = HomeSection.chat,
+    HomeSection active = HomeSection.calls,
     ValueChanged<HomeSection>? onSelect,
     TextDirection direction = TextDirection.ltr,
     bool calm = false,
@@ -328,7 +328,10 @@ void main() {
       lessThan(from + (to - from) * 0.5),
       reason: 'a single frame must not carry it half way across the bar',
     );
-    expect(to, closeTo(slotOf(tester, 3).center.dx, 0.5));
+    expect(
+      to,
+      closeTo(slotOf(tester, _navDestinations.length - 1).center.dx, 0.5),
+    );
   });
 
   testWidgets('a drag carries the pill and commits where it is released', (

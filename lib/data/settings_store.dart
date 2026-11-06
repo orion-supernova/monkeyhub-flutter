@@ -37,6 +37,9 @@ class SettingsStore extends ChangeNotifier {
   static const _kVideoNoteAutoAdvance = 'mh.videoNoteAutoAdvance';
   static const _kNav = 'mh.nav';
   static const _kSection = 'mh.section';
+  static const _kShowCallsTab = 'mh.showCallsTab';
+  static const _kCallsSeenAt = 'mh.callsSeenAt';
+  static const _kCallsFavSnoozed = 'mh.callsFavSnoozed';
   static const _kPushEnabled = 'mh.pushEnabled';
   static const _kGameReminders = 'mh.gameReminders';
   static const _kFriendActivity = 'mh.friendActivity';
@@ -116,7 +119,7 @@ class SettingsStore extends ChangeNotifier {
   @visibleForTesting
   static const keys = {
     _kTheme, _kThemeMode, _kThemeLight, _kThemeDark, _kThemeOnboarded,
-    _kLayout, _kNav, _kSection, _kPushEnabled, _kGameReminders,
+    _kLayout, _kNav, _kSection, _kShowCallsTab, _kCallsSeenAt, _kCallsFavSnoozed, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
     _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
@@ -140,6 +143,10 @@ class SettingsStore extends ChangeNotifier {
   bool _videoNoteAutoAdvance = true;
   NavStyle _navStyle = NavStyle.pill;
   HomeSection _section = HomeSection.chat;
+  bool _showCallsTab = true;
+  int _callsSeenAt = 0;
+  // peerId -> epoch ms until which the Calls tab will not suggest pinning them.
+  Map<String, int> _callsFavSnoozed = {};
   // Null until the user drags the split shell's divider; the shell owns the
   // default so it can differ by window size.
   double? _chatListWidth;
@@ -285,7 +292,24 @@ class SettingsStore extends ChangeNotifier {
       await _storage.write(key: _kChatListWidth, value: v.toStringAsFixed(1));
     }
   }
-  HomeSection get section => _section;
+  /// The active shell section. A persisted or requested Calls section reads
+  /// as Chat while the tab is switched off, so nothing ever lands on a
+  /// destination the nav no longer shows.
+  HomeSection get section =>
+      _section == HomeSection.calls && !_showCallsTab
+          ? HomeSection.chat
+          : _section;
+
+  /// Whether the Calls tab is part of the nav (Settings > Navigation).
+  bool get showCallsTab => _showCallsTab;
+
+  /// When the Calls tab was last opened, epoch ms; 0 before the first open.
+  /// Local only: the badge counts missed calls newer than this.
+  int get callsSeenAt => _callsSeenAt;
+
+  /// Epoch ms until which "add to favourites?" is not suggested for [peerId];
+  /// 0 when it is not snoozed. Local only.
+  int callsFavSnoozedUntil(String peerId) => _callsFavSnoozed[peerId] ?? 0;
   bool get pushEnabled => _pushEnabled;
   bool get gameReminders => _gameReminders;
   bool get friendActivity => _friendActivity;
@@ -658,6 +682,9 @@ class SettingsStore extends ChangeNotifier {
     _navStyle = nav == 'radial' ? NavStyle.radial : NavStyle.pill;
     final sec = s[_kSection];
     _section = HomeSection.parse(sec);
+    _showCallsTab = s[_kShowCallsTab] != 'false'; // default true
+    _callsSeenAt = int.tryParse(s[_kCallsSeenAt] ?? '') ?? 0;
+    _callsFavSnoozed = _parseSnoozes(s[_kCallsFavSnoozed]);
     _chatListWidth = double.tryParse(s[_kChatListWidth] ?? '');
     final push = s[_kPushEnabled];
     _pushEnabled = push != 'false'; // default true
@@ -881,6 +908,7 @@ class SettingsStore extends ChangeNotifier {
   /// *this* run without making the destination sticky across restarts. Every
   /// in-app caller wants the default.
   Future<void> setSection(HomeSection s, {bool persist = true}) async {
+    if (s == HomeSection.calls && !_showCallsTab) s = HomeSection.chat;
     if (_section == s) return;
     _section = s;
     notifyListeners();
@@ -964,6 +992,55 @@ class SettingsStore extends ChangeNotifier {
     notifyListeners();
     await _storage.write(key: _kGameReminders, value: v ? 'true' : 'false');
   }
+
+  /// Shows or hides the Calls tab. Hiding it while it is the active section
+  /// sends the user to Chat (see [section]).
+  Future<void> setShowCallsTab(bool v) async {
+    if (_showCallsTab == v) return;
+    _showCallsTab = v;
+    notifyListeners();
+    await _storage.write(key: _kShowCallsTab, value: v ? 'true' : 'false');
+  }
+
+  /// Marks the missed calls up to [at] (epoch ms) as seen. Never moves back.
+  Future<void> markCallsSeen(int at) async {
+    if (at <= _callsSeenAt) return;
+    _callsSeenAt = at;
+    notifyListeners();
+    await _storage.write(key: _kCallsSeenAt, value: at.toString());
+  }
+
+  static Map<String, int> _parseSnoozes(String? raw) {
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final j = jsonDecode(raw);
+      if (j is! Map) return {};
+      final now = DateTime.now().millisecondsSinceEpoch;
+      return {
+        for (final e in j.entries)
+          if (e.value is num && (e.value as num).toInt() > now)
+            e.key.toString(): (e.value as num).toInt(),
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// "Not now" on the Calls tab's favourite suggestion: stays quiet about
+  /// [peerId] until [until] (epoch ms). Expired entries are dropped here.
+  Future<void> snoozeCallsFavSuggestion(String peerId, int until) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    _callsFavSnoozed = {
+      for (final e in _callsFavSnoozed.entries)
+        if (e.value > now) e.key: e.value,
+      peerId: until,
+    };
+    notifyListeners();
+    await _storage.write(key: _kCallsFavSnoozed, value: jsonEncode(_callsFavSnoozed));
+  }
+
+  @visibleForTesting
+  void resetCallsFavSnoozes() => _callsFavSnoozed = {};
 
   Future<void> setFriendActivity(bool v) async {
     if (_friendActivity == v) return;
@@ -1638,11 +1715,17 @@ enum ScheduledIndicator {
       _byName[s] ?? ScheduledIndicator.pill;
 }
 
-/// Top-level shell destinations, in nav order.
+/// Top-level shell destinations. Not the nav order, which lives in
+/// `navOrder` (destinations.dart) and puts Calls first.
+///
+/// No `discover`: it was a tab until Nov 2026 and is now a page pushed from
+/// the chat list. A persisted 'discover' falls through [parse] to [chat],
+/// which is where its way in lives now.
 enum HomeSection {
   chat,
+  calls,
   feed,
-  discover,
+  games,
   settings;
 
   static final Map<String, HomeSection> _byName = values.asNameMap();

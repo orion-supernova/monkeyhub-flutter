@@ -47,7 +47,7 @@ void main() {
 
   Future<void> pumpNav(
     WidgetTester tester, {
-    HomeSection active = HomeSection.chat,
+    HomeSection active = HomeSection.calls,
     ValueChanged<HomeSection>? onSelect,
     Map<HomeSection, int> badges = const {},
     TextDirection direction = TextDirection.ltr,
@@ -86,7 +86,7 @@ void main() {
     tester.view.padding = FakeViewPadding(bottom: inset);
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
-      wrap(PillBottomNav(active: HomeSection.chat, onSelect: (_) {}, badges: const {})),
+      wrap(PillBottomNav(active: HomeSection.calls, onSelect: (_) {}, badges: const {})),
     );
     await tester.pumpAndSettle();
     return size.height;
@@ -368,7 +368,7 @@ void main() {
   testWidgets('a badge hugs its icon instead of floating off to the right', (
     tester,
   ) async {
-    await pumpNav(tester, badges: {HomeSection.chat: 3});
+    await pumpNav(tester, badges: {HomeSection.calls: 3});
 
     final icon = tester.getRect(find.byIcon(_navDestinations.first.icon));
     final badge = tester.getRect(find.text('3'));

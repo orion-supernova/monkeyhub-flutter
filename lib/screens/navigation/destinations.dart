@@ -135,15 +135,33 @@ double segmentAlignmentAt(double position, int count) {
 /// needed in places that have no [AppLocalizations] to hand — the pill's
 /// `didUpdateWidget`, and the shell deciding which way a section transition
 /// should travel.
-const List<HomeSection> navOrder = [
+/// Calls leads, Chats second (user's call, Nov 2026). Leading the bar is not
+/// where the app opens: that is the remembered section, Chats when there is
+/// none (see [SettingsStore.section]).
+const List<HomeSection> _fullNavOrder = [
+  HomeSection.calls,
   HomeSection.chat,
   HomeSection.feed,
-  HomeSection.discover,
+  HomeSection.games,
   HomeSection.settings,
 ];
 
-/// Where [s] sits in [navOrder]. Never -1: every [HomeSection] is a nav
-/// destination.
+const List<HomeSection> _noCallsNavOrder = [
+  HomeSection.chat,
+  HomeSection.feed,
+  HomeSection.games,
+  HomeSection.settings,
+];
+
+/// The destinations the nav shows right now: Calls drops out when
+/// [SettingsStore.showCallsTab] is off. Both lists are const, so reading this
+/// allocates nothing.
+List<HomeSection> get navOrder => SettingsStore.instance.showCallsTab
+    ? _fullNavOrder
+    : _noCallsNavOrder;
+
+/// Where [s] sits in [navOrder]. Never -1 for a section the nav shows;
+/// [SettingsStore.section] never returns a hidden one.
 int navIndexOf(HomeSection s) => navOrder.indexOf(s);
 
 /// Localized per call — [label]/[short] can't be a compile-time [const] once
@@ -165,17 +183,23 @@ List<NavDest> navDestinations(AppLocalizations l10n) {
           label: l10n.destinationsChatLabel,
           short: l10n.destinationsChatShort,
         ),
+        HomeSection.calls => (
+          section: s,
+          icon: CupertinoIcons.phone,
+          label: l10n.callsTabNavLabel,
+          short: l10n.callsTabNavShort,
+        ),
         HomeSection.feed => (
           section: s,
           icon: CupertinoIcons.sparkles,
           label: l10n.destinationsFeedLabel,
           short: l10n.destinationsFeedShort,
         ),
-        HomeSection.discover => (
+        HomeSection.games => (
           section: s,
-          icon: CupertinoIcons.compass,
-          label: l10n.destinationsDiscoverLabel,
-          short: l10n.destinationsDiscoverShort,
+          icon: CupertinoIcons.game_controller,
+          label: l10n.destinationsGamesLabel,
+          short: l10n.destinationsGamesShort,
         ),
         HomeSection.settings => (
           section: s,

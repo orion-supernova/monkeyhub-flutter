@@ -94,10 +94,16 @@ class _ShortcutHostState extends State<ShortcutHost> {
       AppShortcuts.section2,
       AppShortcuts.section3,
       AppShortcuts.section4,
+      AppShortcuts.section5,
     ];
-    for (var i = 0; i < sections.length && i < navOrder.length; i++) {
-      final s = navOrder[i];
-      _tokens.add(reg.bind(sections[i], () => _goTo(s), always));
+    // Resolved when the key is pressed, not when it is bound: the Calls tab
+    // can be switched on and off, which moves every tab after it.
+    for (var i = 0; i < sections.length; i++) {
+      final index = i;
+      _tokens.add(reg.bind(sections[i], () {
+        final order = navOrder;
+        if (index < order.length) _goTo(order[index]);
+      }, always));
     }
     // ⌘Q is the Mac menu's. Windows and Linux have no owner for Ctrl+Q, so
     // it is ours there.

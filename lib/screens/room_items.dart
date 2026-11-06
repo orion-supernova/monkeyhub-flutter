@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../models/call_history.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -115,6 +116,7 @@ class MessageItem extends RoomItem {
     this.lastInRun = true,
     this.replyMarker = ReplyMarker.full,
     this.album = const [],
+    this.callRun = const [],
   });
 
   final ChatMessage message;
@@ -128,6 +130,12 @@ class MessageItem extends RoomItem {
   /// honest value for all three is the newest photo's: the album finished
   /// arriving when its last picture did.
   final List<ChatMessage> album;
+
+  /// Missed calls from one caller collapsed into this row, oldest first, with
+  /// [message] as the last of them (the same convention as [album]). Empty on
+  /// an ordinary row, and never of length one. The bubble draws them as one
+  /// with a x-N badge; see [collapseMissedCalls].
+  final List<ChatMessage> callRun;
 
   /// Continues a run from the same sender: the vertical gap tightens and the
   /// bubble's corners tighten on the sender's side, so five replies in a row
@@ -342,6 +350,66 @@ List<RoomItem> collapseAlbums(List<RoomItem> rows) {
   return out;
 }
 
+/// Collapses each run of adjacent missed calls from one caller (direct, same
+/// kind, nothing else between them, not even a date divider) into one row
+/// that draws a single bubble with a x-N badge.
+///
+/// Runs on the finished rows for the same reason [collapseAlbums] does:
+/// adjacency in the output is what "no other message between" means. The run's
+/// LAST call stays the row's message (timestamp, menu, avatar); the rest ride
+/// in [MessageItem.callRun] so the bubble can spring them open in place.
+List<RoomItem> collapseMissedCalls(List<RoomItem> rows) {
+  final out = <RoomItem>[];
+  for (var i = 0; i < rows.length;) {
+    final head = rows[i];
+    final headCall = head is MessageItem && head.album.isEmpty
+        ? _collapsibleCall(head.message)
+        : null;
+    if (head is! MessageItem || headCall == null) {
+      out.add(head);
+      i++;
+      continue;
+    }
+    var end = i + 1;
+    while (end < rows.length) {
+      final next = rows[end];
+      if (next is! MessageItem || next.album.isNotEmpty) break;
+      final c = _collapsibleCall(next.message);
+      if (c == null ||
+          next.message.senderId != head.message.senderId ||
+          !headCall.collapsesWith(c)) {
+        break;
+      }
+      end++;
+    }
+    if (end - i < 2) {
+      out.add(head);
+      i++;
+      continue;
+    }
+    final run = [for (var k = i; k < end; k++) rows[k] as MessageItem];
+    out.add(MessageItem(
+      run.last.message,
+      grouped: run.first.grouped,
+      newSender: run.first.newSender,
+      lastInRun: run.last.lastInRun,
+      replyMarker: run.last.replyMarker,
+      callRun: [for (final r in run) r.message],
+    ));
+    i = end;
+  }
+  return out;
+}
+
+CallEvent? _collapsibleCall(ChatMessage m) {
+  if (m.type != MessageType.system || !CallEvent.isCallContent(m.content)) {
+    return null;
+  }
+  if (m.id.startsWith('tmp_') || m.status != MessageStatus.sent) return null;
+  final e = CallEvent.parse(m.content);
+  return e != null && e.collapsesWith(e) ? e : null;
+}
+
 ({List<RoomItem> items, Set<String> hidden}) buildRoomItems({
   required List<ChatMessage> messages,
   required bool roomIsEphemeral,
@@ -499,5 +567,5 @@ List<RoomItem> collapseAlbums(List<RoomItem> rows) {
     prevVisible = m;
   }
 
-  return (items: collapseAlbums(out), hidden: hidden);
+  return (items: collapseMissedCalls(collapseAlbums(out)), hidden: hidden);
 }

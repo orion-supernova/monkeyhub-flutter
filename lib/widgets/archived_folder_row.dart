@@ -22,7 +22,7 @@ import 'teardown_safe.dart';
 /// chats are filed away is not news; how many of them are asking for you is.
 /// At rest (nothing unread) the row carries no badge at all, just the total in
 /// its second line.
-class ArchivedFolderRow extends StatefulWidget {
+class ArchivedFolderRow extends StatelessWidget {
   const ArchivedFolderRow({
     super.key,
     required this.totalCount,
@@ -45,29 +45,74 @@ class ArchivedFolderRow extends StatefulWidget {
   final VoidCallback onTap;
 
   @override
-  State<ArchivedFolderRow> createState() => _ArchivedFolderRowState();
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final unread = unreadRooms > 0;
+    return ChatFolderRow(
+      icon: CupertinoIcons.archivebox_fill,
+      disc: theme.inkMuted.withValues(alpha: 0.55),
+      title: sentenceCaseOf(context, l10n.archivedChatsFolderTitle),
+      subtitle: unread && unreadTitles.isNotEmpty
+          ? unreadTitles.join(', ')
+          : l10n.archivedChatsSheetCount(totalCount),
+      badge: unreadRooms,
+      semanticLabel: unread
+          ? l10n.archivedChatsFolderLabelUnread(totalCount, unreadRooms)
+          : l10n.archivedChatsFolderLabel(totalCount),
+      onTap: onTap,
+    );
+  }
 }
 
-class _ArchivedFolderRowState extends State<ArchivedFolderRow>
-    with TeardownSafe<ArchivedFolderRow> {
+/// A folder in the chat list, shaped like a chat row: a coloured disc with a
+/// glyph where a face would be, a title, a line under it, and a count on the
+/// right while something in it is waiting. Archived chats and Requests both
+/// use it, so the two read as the same kind of thing.
+class ChatFolderRow extends StatefulWidget {
+  const ChatFolderRow({
+    super.key,
+    required this.icon,
+    required this.disc,
+    required this.title,
+    required this.subtitle,
+    required this.badge,
+    required this.semanticLabel,
+    required this.onTap,
+    this.subtitleLines = 1,
+  });
+
+  final IconData icon;
+
+  /// A folder's line is a summary and stays on one; an invitation row (the
+  /// "Find your friends" card) needs room for its sentence.
+  final int subtitleLines;
+
+  /// The disc's fill behind the white glyph.
+  final Color disc;
+  final String title;
+  final String subtitle;
+
+  /// Zero draws no badge and a regular-weight title.
+  final int badge;
+  final String semanticLabel;
+  final VoidCallback onTap;
+
+  @override
+  State<ChatFolderRow> createState() => _ChatFolderRowState();
+}
+
+class _ChatFolderRowState extends State<ChatFolderRow>
+    with TeardownSafe<ChatFolderRow> {
   bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    final unread = widget.unreadRooms > 0;
-    final subtitle = unread && widget.unreadTitles.isNotEmpty
-        ? widget.unreadTitles.join(', ')
-        : l10n.archivedChatsSheetCount(widget.totalCount);
+    final unread = widget.badge > 0;
     return FocusableTap(
       onTap: widget.onTap,
-      semanticLabel: unread
-          ? l10n.archivedChatsFolderLabelUnread(
-              widget.totalCount,
-              widget.unreadRooms,
-            )
-          : l10n.archivedChatsFolderLabel(widget.totalCount),
+      semanticLabel: widget.semanticLabel,
       shape: FocusRingShape.rounded,
       radius: theme.radiusMd,
       child: GestureDetector(
@@ -90,14 +135,10 @@ class _ArchivedFolderRowState extends State<ArchivedFolderRow>
                 height: 54,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: theme.inkMuted.withValues(alpha: 0.55),
+                  color: widget.disc,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  CupertinoIcons.archivebox_fill,
-                  size: 24,
-                  color: Colors.white,
-                ),
+                child: Icon(widget.icon, size: 24, color: Colors.white),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -106,7 +147,7 @@ class _ArchivedFolderRowState extends State<ArchivedFolderRow>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      sentenceCaseOf(context, l10n.archivedChatsFolderTitle),
+                      widget.title,
                       style: theme.bodyEmph.copyWith(
                         color: theme.ink,
                         fontStyle: FontStyle.normal,
@@ -119,12 +160,12 @@ class _ArchivedFolderRowState extends State<ArchivedFolderRow>
                     // Not ink-strong when unread: the badge is the loud part,
                     // and a bold second line beside it would be two shouts.
                     Text(
-                      subtitle,
+                      widget.subtitle,
                       style: theme.caption.copyWith(
                         color: theme.inkMuted,
                         fontSize: 14,
                       ),
-                      maxLines: 1,
+                      maxLines: widget.subtitleLines,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -132,7 +173,7 @@ class _ArchivedFolderRowState extends State<ArchivedFolderRow>
               ),
               const SizedBox(width: 8),
               if (unread) ...[
-                ChatUnreadBadge(count: widget.unreadRooms),
+                ChatUnreadBadge(count: widget.badge),
                 const SizedBox(width: 8),
               ],
               Icon(

@@ -220,6 +220,12 @@ abstract final class AppShortcuts {
     // Chrome and Safari switch tabs on ⌘1–⌘9 and never let a page have it.
     [KeyCombo(LogicalKeyboardKey.digit4, primary: true, nativeOnly: true)],
   );
+  static const section5 = ShortcutDef(
+    'section5',
+    ShortcutGroup.navigation,
+    // Chrome and Safari switch tabs on ⌘1–⌘9 and never let a page have it.
+    [KeyCombo(LogicalKeyboardKey.digit5, primary: true, nativeOnly: true)],
+  );
   static const nextChat = ShortcutDef(
     'nextChat',
     ShortcutGroup.navigation,
@@ -477,6 +483,7 @@ abstract final class AppShortcuts {
     section2,
     section3,
     section4,
+    section5,
     nextChat,
     previousChat,
     nextUnread,
@@ -549,6 +556,7 @@ abstract final class AppShortcuts {
       'section2' => section(1),
       'section3' => section(2),
       'section4' => section(3),
+      'section5' => section(4),
       'nextChat' => l10n.kbdNextChat,
       'previousChat' => l10n.kbdPreviousChat,
       'nextUnread' => l10n.kbdNextUnread,

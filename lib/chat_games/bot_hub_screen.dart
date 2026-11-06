@@ -21,7 +21,7 @@ import 'monkey_avatar.dart';
 
 /// The board games you can play against the app's own bot.
 ///
-/// Its own place, reached from the Feed's games row, rather than a mode
+/// Its own place, shown inline on the Games tab ([BotHubPanel]), rather than a mode
 /// inside a chat's "Play a game" sheet: a game against the app posts nothing
 /// and involves nobody, so offering it from a conversation put a solo thing
 /// in a social place and made the sheet's first question ("how?") about the
@@ -29,14 +29,41 @@ import 'monkey_avatar.dart';
 ///
 /// Pick how tough the bot plays, then a game. The level is remembered for the
 /// session, so a rematch from here is one tap.
-class BotHubScreen extends StatefulWidget {
+class BotHubScreen extends StatelessWidget {
   const BotHubScreen({super.key});
 
   @override
-  State<BotHubScreen> createState() => _BotHubScreenState();
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return LayoutBuilder(
+      builder: (context, box) {
+        // Desktop and web: the content is a centred column, not edge to edge.
+        final side = ((box.maxWidth - 960) / 2).clamp(16.0, double.infinity);
+        return IosPage(
+          title: sentenceCaseOf(context, l10n.botHubTitle),
+          padding: EdgeInsets.fromLTRB(side, 0, side, 40),
+          children: [
+            _Intro(text: l10n.botHubSubtitle(l10n.chatGameBotName)),
+            const SizedBox(height: 22),
+            const BotHubPanel(),
+          ],
+        );
+      },
+    );
+  }
 }
 
-class _BotHubScreenState extends State<BotHubScreen> {
+/// The bot hub's working part: the level picker, the fighter banner, the
+/// board-game grid and the "not ranked" footer. Shared by [BotHubScreen] and
+/// the Games tab, which shows it inline rather than one more push away.
+class BotHubPanel extends StatefulWidget {
+  const BotHubPanel({super.key});
+
+  @override
+  State<BotHubPanel> createState() => _BotHubPanelState();
+}
+
+class _BotHubPanelState extends State<BotHubPanel> {
   static BotLevel _remembered = BotLevel.medium;
 
   BotLevel _level = _remembered;
@@ -81,14 +108,9 @@ class _BotHubScreenState extends State<BotHubScreen> {
     };
     return LayoutBuilder(
       builder: (context, box) {
-    // Desktop and web: the content is a centred column, not edge to edge.
-    final side = ((box.maxWidth - 960) / 2).clamp(16.0, double.infinity);
-    return IosPage(
-      title: sentenceCaseOf(context, l10n.botHubTitle),
-      padding: EdgeInsets.fromLTRB(side, 0, side, 40),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Intro(text: l10n.botHubSubtitle(l10n.chatGameBotName)),
-        const SizedBox(height: 22),
         GroupedHeader(sentenceCaseOf(context, l10n.botHubLevelTitle)),
         Row(
           children: [

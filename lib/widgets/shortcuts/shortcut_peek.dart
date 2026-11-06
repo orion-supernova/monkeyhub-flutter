@@ -284,6 +284,7 @@ class _Group extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         for (final d in defs)
+          if (AppShortcuts.label(l10n, d, sectionLabels: sectionLabels).isNotEmpty)
           SizedBox(
             height: 28,
             child: Row(

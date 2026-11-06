@@ -9700,7 +9700,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get motionCalmSub => '装飾は静止。それ以外は同じように動作します。';
 
   @override
-  String get navigationPageFooter => 'チャット、フィード、見つける、設定の切り替え方法。';
+  String get navigationPageFooter => 'タブの切り替え方法と、バーに表示するタブ。';
 
   @override
   String get navTabBarSub => '常に表示。どこへでもワンタップ。';
@@ -14795,4 +14795,439 @@ class AppLocalizationsJa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get callBubbleCalling => '発信中…';
+
+  @override
+  String callBubbleIncomingCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'ビデオ通話の着信',
+      'other': '音声通話の着信',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleOutgoingCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'ビデオ通話の発信',
+      'other': '音声通話の発信',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'ビデオ通話',
+      'other': '音声通話',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleMissed(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'ビデオ通話の不在着信',
+      'other': '音声通話の不在着信',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get callBubbleNoAnswer => '応答なし';
+
+  @override
+  String callBubbleCancelled(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'キャンセルしたビデオ通話',
+      'other': 'キャンセルした音声通話',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleDeclined(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': '拒否したビデオ通話',
+      'other': '拒否した音声通話',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleOutgoingDuration(String duration) {
+    return '発信 · $duration';
+  }
+
+  @override
+  String callBubbleIncomingDuration(String duration) {
+    return '着信 · $duration';
+  }
+
+  @override
+  String get callBubbleOutgoing => '発信';
+
+  @override
+  String get callBubbleIncoming => '着信';
+
+  @override
+  String get callBubbleTapToCallBack => 'タップして折り返し';
+
+  @override
+  String callBubbleAnsweredOn(String device) {
+    return '$deviceで応答';
+  }
+
+  @override
+  String get callBubbleQualityFair => '接続状態: 普通';
+
+  @override
+  String get callBubbleQualityPoor => '接続状態: 不安定';
+
+  @override
+  String get callBubbleJoin => '参加';
+
+  @override
+  String callBubblePeople(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleMissedRun(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '不在着信 $count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleRunBadge(int count) {
+    return '×$count';
+  }
+
+  @override
+  String get callBubbleShowLess => '表示を減らす';
+
+  @override
+  String get callBubbleRinging => '呼び出し中…';
+
+  @override
+  String callBubblePreviewDuration(String title, String duration) {
+    return '$title · $duration';
+  }
+
+  @override
+  String get callsTabNavLabel => '通話';
+
+  @override
+  String get callsTabNavShort => '通話';
+
+  @override
+  String get callsTabSettingsToggle => '通話タブ';
+
+  @override
+  String get callsTabSettingsToggleSub => 'タブバーに通話履歴を表示';
+
+  @override
+  String get callsTabLiveNow => 'ライブ中';
+
+  @override
+  String get callsTabLiveHuddle => 'ハドル';
+
+  @override
+  String get callsTabLiveGroupCall => 'グループ通話';
+
+  @override
+  String callsTabPeople(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsTabLiveJoinSemantic(String name) {
+    return '$nameの通話に参加';
+  }
+
+  @override
+  String get callsTabFavourites => 'お気に入り';
+
+  @override
+  String callsTabFavouriteSemantic(String name) {
+    return '$nameに発信';
+  }
+
+  @override
+  String callsTabTalkTimeThisWeek(String duration) {
+    return '今週:通話 $duration';
+  }
+
+  @override
+  String get callsTabTalkTimeNone => '今週はまだ通話がありません';
+
+  @override
+  String get callsTabTalkTimeSheetTitle => '今週';
+
+  @override
+  String callsTabCallCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件の通話',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsTabTalkTimeFootnote(String start) {
+    return '通話につながっていた時間だけを、$startから現在まで数えます。呼び出し中、不在着信、拒否した通話は含まれません。';
+  }
+
+  @override
+  String get callsTabTopPeople => 'よく話した相手';
+
+  @override
+  String callsTabDurationHM(int hours, int minutes) {
+    return '$hours時間$minutes分';
+  }
+
+  @override
+  String callsTabDurationM(int minutes) {
+    return '$minutes分';
+  }
+
+  @override
+  String callsTabDurationS(int seconds) {
+    return '$seconds秒';
+  }
+
+  @override
+  String get callsTabFilterAll => 'すべて';
+
+  @override
+  String get callsTabFilterMissed => '不在着信';
+
+  @override
+  String get callsTabToday => '今日';
+
+  @override
+  String get callsTabYesterday => '昨日';
+
+  @override
+  String get callsTabVoiceCall => '音声通話';
+
+  @override
+  String get callsTabVideoCall => 'ビデオ通話';
+
+  @override
+  String get callsTabOpenChat => 'チャットを開く';
+
+  @override
+  String get callsTabDeleteFromHistory => '履歴から削除';
+
+  @override
+  String get callsTabInAudio => '着信音声通話';
+
+  @override
+  String get callsTabInVideo => '着信ビデオ通話';
+
+  @override
+  String get callsTabOutAudio => '発信音声通話';
+
+  @override
+  String get callsTabOutVideo => '発信ビデオ通話';
+
+  @override
+  String get callsTabMissedAudio => '不在着信(音声)';
+
+  @override
+  String get callsTabMissedVideo => '不在着信(ビデオ)';
+
+  @override
+  String get callsTabNoAnswer => '応答なし';
+
+  @override
+  String get callsTabDeclined => '拒否';
+
+  @override
+  String get callsTabCancelled => 'キャンセル';
+
+  @override
+  String get callsTabHuddle => 'ハドル';
+
+  @override
+  String get callsTabEmptyTitle => '通話はまだありません';
+
+  @override
+  String get callsTabEmptyMessage => '発信・着信した音声通話とビデオ通話がここに表示されます。';
+
+  @override
+  String get callsTabEmptyMissedTitle => '不在着信はありません';
+
+  @override
+  String get callsTabEmptyMissedMessage => 'すべて確認済みです。';
+
+  @override
+  String get callsTabNewCall => '新規通話';
+
+  @override
+  String get callsTabNewCallSearch => '友だちを検索';
+
+  @override
+  String get callsTabNewCallEmpty => '友だちを追加すると通話できます。';
+
+  @override
+  String get callsTabNewCallNoMatch => '該当する人がいません。';
+
+  @override
+  String get callsTabDetailsStarted => '開始';
+
+  @override
+  String get callsTabDetailsRang => '呼び出し';
+
+  @override
+  String get callsTabDetailsAnswered => '応答';
+
+  @override
+  String callsTabDetailsAnsweredOn(String platform) {
+    return '$platformで応答';
+  }
+
+  @override
+  String callsTabDetailsMovedTo(String platform) {
+    return '$platformに移動';
+  }
+
+  @override
+  String get callsTabDetailsEnded => '終了';
+
+  @override
+  String callsTabDetailsTalked(String duration) {
+    return '通話時間 $duration';
+  }
+
+  @override
+  String get callsTabDetailsMessage => 'メッセージ';
+
+  @override
+  String get callsTabPlatformIos => 'iPhone';
+
+  @override
+  String get callsTabPlatformMacos => 'Mac';
+
+  @override
+  String get callsTabPlatformAndroid => 'Android';
+
+  @override
+  String get callsTabPlatformWindows => 'Windows';
+
+  @override
+  String get callsTabPlatformLinux => 'Linux';
+
+  @override
+  String get callsTabPlatformWeb => 'ウェブ';
+
+  @override
+  String get callsTabQualityTitle => '接続状態';
+
+  @override
+  String get callsTabQualityGood => '終始良好な接続';
+
+  @override
+  String callsTabQualityFair(int percent) {
+    return '通話の$percent%で途切れがありました';
+  }
+
+  @override
+  String callsTabQualityPoor(int percent) {
+    return '通話の$percent%で接続が不安定でした';
+  }
+
+  @override
+  String get callsTabDeletedChat => '削除されたチャット';
+
+  @override
+  String get callsTabUnknown => '不明';
+
+  @override
+  String get callsTabLoadFailed => '通話を読み込めませんでした。';
+
+  @override
+  String callsTabRowSemantic(String detail, String name, String time) {
+    return '$name、$detail、$time';
+  }
+
+  @override
+  String get destinationsGamesLabel => 'ゲーム';
+
+  @override
+  String get destinationsGamesShort => 'ゲーム';
+
+  @override
+  String get gamesTabTodayLabel => '今日のゲーム';
+
+  @override
+  String chatRequestsFolderLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'リクエスト、$count件が保留中',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFindFriendsTitle => '友達を見つけよう';
+
+  @override
+  String get chatFindFriendsBody => '知り合いを追加して、チャットや毎日のシェア、ゲームを一緒に楽しもう。';
+
+  @override
+  String get callsTabFavAdd => 'お気に入りに追加';
+
+  @override
+  String get callsTabFavRemove => 'お気に入りから削除';
+
+  @override
+  String get callsTabFavNotNow => '今はしない';
+
+  @override
+  String get callsTabFavAddTitle => 'お気に入りを追加';
+
+  @override
+  String get callsTabFavAddLabel => '追加';
+
+  @override
+  String get callsTabFavEmpty => 'よく電話する人を固定しましょう。+ をタップして追加。';
+
+  @override
+  String get callsTabFavPickerEmpty => '追加できる人がいません。';
+
+  @override
+  String callsTabFavSuggestCalls(int count, String name) {
+    return '過去30日間に$nameさんに$count回電話しました';
+  }
+
+  @override
+  String callsTabFavSuggestTime(String name, String time) {
+    return '過去30日間に$nameさんと$time話しました';
+  }
+
+  @override
+  String get callsTabFavAddFailed => 'お気に入りに追加できませんでした。もう一度お試しください。';
+
+  @override
+  String get callsTabFavRemoveFailed => 'お気に入りから削除できませんでした。もう一度お試しください。';
 }

@@ -17026,7 +17026,7 @@ abstract class AppLocalizations {
   /// Settings sub-page. Footer on the navigation page.
   ///
   /// In en, this message translates to:
-  /// **'How you move between Chats, Feed, Discover and Settings.'**
+  /// **'How you move between tabs, and which tabs the bar shows.'**
   String get navigationPageFooter;
 
   /// Settings sub-page. Navigation option description.
@@ -25770,6 +25770,654 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 person here} other{{count} people here}}'**
   String forkChipJoinSub(int count);
+
+  /// Title of a call bubble you started while it is still ringing.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling…'**
+  String get callBubbleCalling;
+
+  /// Call bubble title for a call someone made to you; also the chat list preview. type is audio or video.
+  ///
+  /// In en, this message translates to:
+  /// **'{type, select, video {Incoming video call} other {Incoming voice call}}'**
+  String callBubbleIncomingCall(String type);
+
+  /// Chat list preview of a call you made. type is audio or video.
+  ///
+  /// In en, this message translates to:
+  /// **'{type, select, video {Outgoing video call} other {Outgoing voice call}}'**
+  String callBubbleOutgoingCall(String type);
+
+  /// Title of a connected or finished call bubble. type is audio or video.
+  ///
+  /// In en, this message translates to:
+  /// **'{type, select, video {Video call} other {Voice call}}'**
+  String callBubbleCall(String type);
+
+  /// Title of a call bubble for a call you missed. type is audio or video.
+  ///
+  /// In en, this message translates to:
+  /// **'{type, select, video {Missed video call} other {Missed voice call}}'**
+  String callBubbleMissed(String type);
+
+  /// Title of a call bubble for a call you made that nobody answered.
+  ///
+  /// In en, this message translates to:
+  /// **'No answer'**
+  String get callBubbleNoAnswer;
+
+  /// Title of a call bubble for a call you made and hung up before it was answered. type is audio or video.
+  ///
+  /// In en, this message translates to:
+  /// **'{type, select, video {Cancelled video call} other {Cancelled voice call}}'**
+  String callBubbleCancelled(String type);
+
+  /// Title of a call bubble for a call that was declined. type is audio or video.
+  ///
+  /// In en, this message translates to:
+  /// **'{type, select, video {Declined video call} other {Declined voice call}}'**
+  String callBubbleDeclined(String type);
+
+  /// Second line of a finished call you made: direction and how long you talked, e.g. Outgoing · 12:41.
+  ///
+  /// In en, this message translates to:
+  /// **'Outgoing · {duration}'**
+  String callBubbleOutgoingDuration(String duration);
+
+  /// Second line of a finished call someone made to you: direction and how long you talked.
+  ///
+  /// In en, this message translates to:
+  /// **'Incoming · {duration}'**
+  String callBubbleIncomingDuration(String duration);
+
+  /// Second line of a finished call you made that has no duration.
+  ///
+  /// In en, this message translates to:
+  /// **'Outgoing'**
+  String get callBubbleOutgoing;
+
+  /// Second line of a finished call someone made to you that has no duration.
+  ///
+  /// In en, this message translates to:
+  /// **'Incoming'**
+  String get callBubbleIncoming;
+
+  /// Second line of a missed call bubble: tapping it calls the person back.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to call back'**
+  String get callBubbleTapToCallBack;
+
+  /// Shown on a call that was answered on another of your devices. device is a product name such as Mac or iPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Answered on {device}'**
+  String callBubbleAnsweredOn(String device);
+
+  /// Small chip on a finished call whose connection was fair.
+  ///
+  /// In en, this message translates to:
+  /// **'Fair connection'**
+  String get callBubbleQualityFair;
+
+  /// Small chip on a finished call whose connection was poor.
+  ///
+  /// In en, this message translates to:
+  /// **'Poor connection'**
+  String get callBubbleQualityPoor;
+
+  /// Pill on a live group call bubble that joins the call.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get callBubbleJoin;
+
+  /// How many people were in a group call.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} person} other{{count} people}}'**
+  String callBubblePeople(int count);
+
+  /// Second line of a collapsed bubble standing for several missed calls in a row.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} missed call} other{{count} missed calls}}'**
+  String callBubbleMissedRun(int count);
+
+  /// Badge on a collapsed bubble standing for several missed calls, e.g. ×3.
+  ///
+  /// In en, this message translates to:
+  /// **'×{count}'**
+  String callBubbleRunBadge(int count);
+
+  /// Small button under an expanded run of missed calls that folds them back into one bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Show less'**
+  String get callBubbleShowLess;
+
+  /// Second line of a call bubble while the call is still ringing.
+  ///
+  /// In en, this message translates to:
+  /// **'Ringing…'**
+  String get callBubbleRinging;
+
+  /// Chat list preview of a finished call: its title, then how long it lasted. title is e.g. Outgoing video call.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} · {duration}'**
+  String callBubblePreviewDuration(String title, String duration);
+
+  /// Nav label for the Calls section (tab bar, side rail, page title).
+  ///
+  /// In en, this message translates to:
+  /// **'Calls'**
+  String get callsTabNavLabel;
+
+  /// All-caps short form of the Calls nav destination; screen-reader-only label for the radial menu.
+  ///
+  /// In en, this message translates to:
+  /// **'CALLS'**
+  String get callsTabNavShort;
+
+  /// Settings > Navigation switch title: show or hide the Calls tab.
+  ///
+  /// In en, this message translates to:
+  /// **'Calls tab'**
+  String get callsTabSettingsToggle;
+
+  /// Settings > Navigation switch subtitle for the Calls tab.
+  ///
+  /// In en, this message translates to:
+  /// **'Show your call history in the tab bar'**
+  String get callsTabSettingsToggleSub;
+
+  /// Calls tab: heading of the strip of huddles and group calls going on right now in your rooms.
+  ///
+  /// In en, this message translates to:
+  /// **'Live now'**
+  String get callsTabLiveNow;
+
+  /// Calls tab live strip: caption under a room with a huddle (a call that rings no one).
+  ///
+  /// In en, this message translates to:
+  /// **'Huddle'**
+  String get callsTabLiveHuddle;
+
+  /// Calls tab live strip: caption under a room with a group call going on.
+  ///
+  /// In en, this message translates to:
+  /// **'Group call'**
+  String get callsTabLiveGroupCall;
+
+  /// Number of people, as a small caption ('3 people').
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 person} other{{count} people}}'**
+  String callsTabPeople(int count);
+
+  /// Screen-reader label for a live-now tile that joins the call. {name} is the room name.
+  ///
+  /// In en, this message translates to:
+  /// **'Join call in {name}'**
+  String callsTabLiveJoinSemantic(String name);
+
+  /// Calls tab: heading of the row of people the user pinned themselves (never auto-filled; the most-called list is callsTabTopPeople).
+  ///
+  /// In en, this message translates to:
+  /// **'Favourites'**
+  String get callsTabFavourites;
+
+  /// Screen-reader label for a favourite person's circle; tapping it offers voice or video. {name} is the person.
+  ///
+  /// In en, this message translates to:
+  /// **'Call {name}'**
+  String callsTabFavouriteSemantic(String name);
+
+  /// Calls tab talk-time header. {duration} is connected time this week, like '3h 20m'.
+  ///
+  /// In en, this message translates to:
+  /// **'This week: {duration} on calls'**
+  String callsTabTalkTimeThisWeek(String duration);
+
+  /// Calls tab talk-time header when there was no connected call time this week.
+  ///
+  /// In en, this message translates to:
+  /// **'No calls yet this week'**
+  String get callsTabTalkTimeNone;
+
+  /// Title of the sheet with the week's talk time and top people.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get callsTabTalkTimeSheetTitle;
+
+  /// Number of calls ('3 calls').
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 call} other{{count} calls}}'**
+  String callsTabCallCount(int count);
+
+  /// Footnote in the talk-time sheet saying exactly what is counted. {start} is the full date the week started on (weeks start on the locale's first weekday).
+  ///
+  /// In en, this message translates to:
+  /// **'Counts only the time you were connected on calls, from {start} until now. Ringing, missed and declined calls count for nothing.'**
+  String callsTabTalkTimeFootnote(String start);
+
+  /// Heading of the list of people you talked to most this week.
+  ///
+  /// In en, this message translates to:
+  /// **'Most talked to'**
+  String get callsTabTopPeople;
+
+  /// Talk time with hours and minutes, e.g. '3h 20m'.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h {minutes}m'**
+  String callsTabDurationHM(int hours, int minutes);
+
+  /// Talk time in whole minutes, e.g. '12m'.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m'**
+  String callsTabDurationM(int minutes);
+
+  /// Talk time under a minute, e.g. '40s'.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds}s'**
+  String callsTabDurationS(int seconds);
+
+  /// Calls tab segmented pill: all calls.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get callsTabFilterAll;
+
+  /// Calls tab segmented pill: missed calls only.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed'**
+  String get callsTabFilterMissed;
+
+  /// Day header in the calls list.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get callsTabToday;
+
+  /// Day header in the calls list.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get callsTabYesterday;
+
+  /// Action: start a voice call (swipe, hold menu, details, chooser).
+  ///
+  /// In en, this message translates to:
+  /// **'Voice call'**
+  String get callsTabVoiceCall;
+
+  /// Action: start a video call (swipe, hold menu, details, chooser).
+  ///
+  /// In en, this message translates to:
+  /// **'Video call'**
+  String get callsTabVideoCall;
+
+  /// Hold menu action on a call: open the chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Open chat'**
+  String get callsTabOpenChat;
+
+  /// Hold menu action on a call: remove it from my call history.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete from history'**
+  String get callsTabDeleteFromHistory;
+
+  /// Call row subtitle: an incoming voice call that was answered.
+  ///
+  /// In en, this message translates to:
+  /// **'Incoming voice call'**
+  String get callsTabInAudio;
+
+  /// Call row subtitle: an incoming video call that was answered.
+  ///
+  /// In en, this message translates to:
+  /// **'Incoming video call'**
+  String get callsTabInVideo;
+
+  /// Call row subtitle: an outgoing voice call that was answered.
+  ///
+  /// In en, this message translates to:
+  /// **'Outgoing voice call'**
+  String get callsTabOutAudio;
+
+  /// Call row subtitle: an outgoing video call that was answered.
+  ///
+  /// In en, this message translates to:
+  /// **'Outgoing video call'**
+  String get callsTabOutVideo;
+
+  /// Call row subtitle: a missed voice call (shown in red).
+  ///
+  /// In en, this message translates to:
+  /// **'Missed voice call'**
+  String get callsTabMissedAudio;
+
+  /// Call row subtitle: a missed video call (shown in red).
+  ///
+  /// In en, this message translates to:
+  /// **'Missed video call'**
+  String get callsTabMissedVideo;
+
+  /// Call row subtitle: I called and nobody picked up.
+  ///
+  /// In en, this message translates to:
+  /// **'No answer'**
+  String get callsTabNoAnswer;
+
+  /// Call row subtitle: the call was declined.
+  ///
+  /// In en, this message translates to:
+  /// **'Declined'**
+  String get callsTabDeclined;
+
+  /// Call row subtitle: I called and hung up before anyone answered.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get callsTabCancelled;
+
+  /// Call row subtitle: a huddle I was in.
+  ///
+  /// In en, this message translates to:
+  /// **'Huddle'**
+  String get callsTabHuddle;
+
+  /// Calls tab empty state title (no calls yet).
+  ///
+  /// In en, this message translates to:
+  /// **'No calls yet'**
+  String get callsTabEmptyTitle;
+
+  /// Calls tab empty state message.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice and video calls you make or get will show up here.'**
+  String get callsTabEmptyMessage;
+
+  /// Calls tab empty state title for the Missed filter.
+  ///
+  /// In en, this message translates to:
+  /// **'No missed calls'**
+  String get callsTabEmptyMissedTitle;
+
+  /// Calls tab empty state message for the Missed filter.
+  ///
+  /// In en, this message translates to:
+  /// **'You are all caught up.'**
+  String get callsTabEmptyMissedMessage;
+
+  /// Calls tab: new call button label and sheet title.
+  ///
+  /// In en, this message translates to:
+  /// **'New call'**
+  String get callsTabNewCall;
+
+  /// New call sheet: search field hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search friends'**
+  String get callsTabNewCallSearch;
+
+  /// New call sheet: shown when the person has no friends yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Add friends to call them.'**
+  String get callsTabNewCallEmpty;
+
+  /// New call sheet: search found nobody.
+  ///
+  /// In en, this message translates to:
+  /// **'No one matches that.'**
+  String get callsTabNewCallNoMatch;
+
+  /// Call details timeline: when the call started.
+  ///
+  /// In en, this message translates to:
+  /// **'Started'**
+  String get callsTabDetailsStarted;
+
+  /// Call details timeline: when the other phone started ringing.
+  ///
+  /// In en, this message translates to:
+  /// **'Rang'**
+  String get callsTabDetailsRang;
+
+  /// Call details timeline: when the call was answered (platform unknown).
+  ///
+  /// In en, this message translates to:
+  /// **'Answered'**
+  String get callsTabDetailsAnswered;
+
+  /// Call details timeline: answered on a device. {platform} is a device name such as Mac.
+  ///
+  /// In en, this message translates to:
+  /// **'Answered on {platform}'**
+  String callsTabDetailsAnsweredOn(String platform);
+
+  /// Call details timeline: the call moved to another of my devices. {platform} is a device name.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved to {platform}'**
+  String callsTabDetailsMovedTo(String platform);
+
+  /// Call details timeline: when the call ended.
+  ///
+  /// In en, this message translates to:
+  /// **'Ended'**
+  String get callsTabDetailsEnded;
+
+  /// Call details header: connected time. {duration} like '12:41'.
+  ///
+  /// In en, this message translates to:
+  /// **'Talked for {duration}'**
+  String callsTabDetailsTalked(String duration);
+
+  /// Call details button: open the chat to message.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get callsTabDetailsMessage;
+
+  /// Device name used in call details.
+  ///
+  /// In en, this message translates to:
+  /// **'iPhone'**
+  String get callsTabPlatformIos;
+
+  /// Device name used in call details.
+  ///
+  /// In en, this message translates to:
+  /// **'Mac'**
+  String get callsTabPlatformMacos;
+
+  /// Device name used in call details.
+  ///
+  /// In en, this message translates to:
+  /// **'Android'**
+  String get callsTabPlatformAndroid;
+
+  /// Device name used in call details.
+  ///
+  /// In en, this message translates to:
+  /// **'Windows'**
+  String get callsTabPlatformWindows;
+
+  /// Device name used in call details.
+  ///
+  /// In en, this message translates to:
+  /// **'Linux'**
+  String get callsTabPlatformLinux;
+
+  /// Device name used in call details, as in 'Answered on the web'.
+  ///
+  /// In en, this message translates to:
+  /// **'the web'**
+  String get callsTabPlatformWeb;
+
+  /// Call details: heading of the connection quality strip.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection'**
+  String get callsTabQualityTitle;
+
+  /// Call details quality summary: no rough patches.
+  ///
+  /// In en, this message translates to:
+  /// **'Good connection throughout'**
+  String get callsTabQualityGood;
+
+  /// Call details quality summary. {percent} is the share of the call that was choppy.
+  ///
+  /// In en, this message translates to:
+  /// **'Choppy for {percent}% of the call'**
+  String callsTabQualityFair(int percent);
+
+  /// Call details quality summary. {percent} is the share of the call with a bad connection.
+  ///
+  /// In en, this message translates to:
+  /// **'Poor connection for {percent}% of the call'**
+  String callsTabQualityPoor(int percent);
+
+  /// Calls list: name shown for a call whose chat no longer exists.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted chat'**
+  String get callsTabDeletedChat;
+
+  /// Calls list: name shown when a person cannot be resolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get callsTabUnknown;
+
+  /// Calls tab: shown when the history could not be loaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your calls.'**
+  String get callsTabLoadFailed;
+
+  /// Screen-reader label of a call row. {detail} is the type and outcome, {name} the person or room, {time} the time.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}, {detail}, {time}'**
+  String callsTabRowSemantic(String detail, String name, String time);
+
+  /// Bottom tab bar / side rail label for the Games tab (daily puzzles, streaks, games against the bot). One short word.
+  ///
+  /// In en, this message translates to:
+  /// **'Games'**
+  String get destinationsGamesLabel;
+
+  /// Screen-reader name of the Games tab in the icon-only radial menu. Uppercase where the script has case, like the other tabs' short names.
+  ///
+  /// In en, this message translates to:
+  /// **'GAMES'**
+  String get destinationsGamesShort;
+
+  /// Section header on the Games tab over today's daily puzzles, grouped by difficulty.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s games'**
+  String get gamesTabTodayLabel;
+
+  /// Screen-reader label for the Requests row pinned at the top of the chat list: friend requests and group invites waiting for an answer. {count} is how many are waiting.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{Requests, {count} waiting} other{Requests, {count} waiting}}'**
+  String chatRequestsFolderLabel(int count);
+
+  /// Title of the card at the top of the chat list for accounts with fewer than 3 friends. Invites them to find people they know.
+  ///
+  /// In en, this message translates to:
+  /// **'Find your friends'**
+  String get chatFindFriendsTitle;
+
+  /// One line under 'Find your friends' on the chat list card: what adding friends gets you. No em dashes.
+  ///
+  /// In en, this message translates to:
+  /// **'Add the people you know to chat, share your day and play together.'**
+  String get chatFindFriendsBody;
+
+  /// Calls tab: button that pins a person to the favourites row (suggestion card, call row menu, call details).
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favourites'**
+  String get callsTabFavAdd;
+
+  /// Calls tab: menu item / button that unpins a person from the favourites row.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favourites'**
+  String get callsTabFavRemove;
+
+  /// Calls tab: dismisses the favourite suggestion for 30 days.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get callsTabFavNotNow;
+
+  /// Title of the sheet where you pick a friend to add to your Calls favourites, and the screen-reader label of the plus circle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a favourite'**
+  String get callsTabFavAddTitle;
+
+  /// Calls tab: short label under the plus circle at the end of the favourites row.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get callsTabFavAddLabel;
+
+  /// Calls tab: caption next to the plus circle while the user has no favourites yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin the people you call most. Tap + to add one.'**
+  String get callsTabFavEmpty;
+
+  /// Add-a-favourite sheet: shown when there is nobody left to add.
+  ///
+  /// In en, this message translates to:
+  /// **'No one left to add.'**
+  String get callsTabFavPickerEmpty;
+
+  /// Calls tab suggestion card: says what it counts. {name} is the person, {count} their direct calls with the user in the last 30 days (at least 3).
+  ///
+  /// In en, this message translates to:
+  /// **'You called {name} {count} times in the last 30 days'**
+  String callsTabFavSuggestCalls(int count, String name);
+
+  /// Calls tab suggestion card: says what it counts. {name} is the person, {time} the connected talk time with them in the last 30 days (for example '25m', at least 20 minutes).
+  ///
+  /// In en, this message translates to:
+  /// **'You talked to {name} for {time} in the last 30 days'**
+  String callsTabFavSuggestTime(String name, String time);
+
+  /// Toast when adding a favourite failed and the row was rolled back.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t add to favourites. Try again.'**
+  String get callsTabFavAddFailed;
+
+  /// Toast when removing a favourite failed and the person came back to the row.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove from favourites. Try again.'**
+  String get callsTabFavRemoveFailed;
 }
 
 class _AppLocalizationsDelegate

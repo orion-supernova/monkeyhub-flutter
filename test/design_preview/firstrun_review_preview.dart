@@ -278,7 +278,7 @@ class _Nav extends StatelessWidget {
         child: Stack(children: [
           _Page(),
           PillBottomNav(
-            active: HomeSection.discover,
+            active: HomeSection.games,
             onSelect: _noop,
             badges: {HomeSection.chat: 12, HomeSection.settings: 1},
           ),

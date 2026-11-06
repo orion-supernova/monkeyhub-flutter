@@ -45,8 +45,9 @@ class UiSelectionStore extends ChangeNotifier {
   /// A one-shot request to show the friend-requests list, used when something
   /// outside the widget tree needs to steer the UI — currently a friend-request
   /// notification tap. The caller pairs it with
-  /// `SettingsStore.setSection(HomeSection.discover)`; Discover consumes it on
-  /// mount and scrolls its INCOMING section into view.
+  /// `SettingsStore.setSection(HomeSection.chat)`; the chat list sees it and
+  /// opens Discover over itself, which consumes it on mount and scrolls its
+  /// INCOMING section into view.
   ///
   /// One-shot because it's an event, not state: whoever acts on it calls
   /// [consumeRequestsView], so a later rebuild (or a second Discover after a
@@ -74,11 +75,11 @@ class UiSelectionStore extends ChangeNotifier {
     return pending;
   }
 
-  /// The same one-shot, for the daily games nudge: show the Feed's games shelf.
+  /// The same one-shot, for the daily games nudge: show today's games.
   ///
-  /// Paired with `SettingsStore.setSection(HomeSection.feed)` by the caller, and
-  /// consumed by [FeedScreen], which scrolls to its Games band. Routed through
-  /// here rather than handled in app.dart because on a wide window the Feed
+  /// Paired with `SettingsStore.setSection(HomeSection.games)` by the caller,
+  /// and consumed by `GamesScreen`, which returns to its top. Routed through
+  /// here rather than handled in app.dart because on a wide window the tab
   /// lives inside its own nested navigator and owns its own scroll position,
   /// neither of which the root can reach.
   ///

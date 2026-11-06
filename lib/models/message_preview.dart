@@ -1,3 +1,4 @@
+import 'call_history.dart';
 import 'chat_message.dart';
 import 'enums.dart';
 import 'expression_item.dart';
@@ -97,6 +98,11 @@ String _rawPreview(ChatMessage m, {required bool hasThumbnail}) {
       return 'location';
     case MessageType.system:
       // A huddle's history line is a code on the wire, not a sentence.
+      if (CallEvent.isCallContent(m.content)) {
+        return CallEvent.parse(m.content)?.isVideo == true
+            ? 'video call'
+            : 'call';
+      }
       return HuddleHistory.isHuddleLine(m.content) ? 'huddle' : m.content;
     case MessageType.poll:
     case MessageType.checklist:

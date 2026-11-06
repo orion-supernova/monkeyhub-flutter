@@ -15,8 +15,8 @@ import 'zip_screen.dart';
 
 /// The board screen for [game].
 ///
-/// One switch, used by every place a daily is opened from (the Feed's games
-/// row and the leaderboard), so a new game is wired in once and cannot open
+/// One switch, used by every place a daily is opened from (the Games tab's
+/// shelves and the leaderboard), so a new game is wired in once and cannot open
 /// from one of them and not the other.
 ///
 /// [challenge] is the dare a chat card opened this board against. It scopes

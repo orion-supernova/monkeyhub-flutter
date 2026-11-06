@@ -17,6 +17,11 @@ import { isTombstoned } from "./deletionCore";
 import { continueSweep, sweepArgs } from "./sweep";
 import { resolveMute } from "./mute";
 import { VANISH_PREVIEW, isSeenClockRoom, vanishUntilFor } from "./vanishCore";
+import {
+  markCallMessageActive,
+  openCallMessage,
+  recordGroupCallEnd,
+} from "./callHistory";
 
 // ────────────────────────────── constants ──────────────────────────────
 
@@ -153,7 +158,9 @@ async function trackAlone(ctx: any, call: any, joinedCount: number) {
   }
 }
 
-async function endCallIfEmpty(ctx: any, groupCallId: any) {
+// [record] is false only for room teardown (`endGroupCallsInRoom`): the room
+// is going away, so there is no bubble to settle and no history to keep.
+async function endCallIfEmpty(ctx: any, groupCallId: any, record: boolean = true) {
   const joined = await joinedParticipants(ctx, groupCallId);
   if (joined.length > 0) {
     await syncJoined(ctx, groupCallId, joined);
@@ -168,6 +175,14 @@ async function endCallIfEmpty(ctx: any, groupCallId: any) {
   });
   await purgeGroupSignals(ctx, groupCallId);
   if (call.kind === "huddle") await finishHuddle(ctx, call);
+  if (record) {
+    // Read before `dismissRingers` below flips the unanswered invites.
+    const rows = await ctx.db
+      .query("groupCallParticipants")
+      .withIndex("by_call", (q: any) => q.eq("groupCallId", groupCallId))
+      .take(100);
+    await recordGroupCallEnd(ctx, call, rows, Date.now());
+  }
   // Anyone whose phone is still ringing for a call that no longer exists.
   // Their realtime subscription drops the invite on its own, but a KILLED
   // app has no subscription — and a native card nothing can reach rings for
@@ -445,6 +460,19 @@ export const start = mutation({
       joinedUserIds: [userId],
       ...(isHuddle ? { kind: "huddle" as const } : {}),
     });
+    // A ringing call leaves a chat bubble that settles when it ends; a
+    // huddle keeps its single history line instead.
+    if (!isHuddle) {
+      const messageId = await openCallMessage(ctx, {
+        roomId,
+        userId,
+        startedAt: now,
+        k: "g",
+        id: groupCallId.toString(),
+        t: type,
+      });
+      if (messageId) await ctx.db.patch(groupCallId, { messageId });
+    }
     await ctx.db.insert("groupCallParticipants", {
       groupCallId,
       userId,
@@ -838,6 +866,15 @@ export const join = mutation({
         lastSeenAt: now,
       });
     }
+    // First person besides the starter: the call is answered. Once only, so
+    // the bubble goes live in a single write.
+    if (
+      call.firstJoinAt === undefined &&
+      userId.toString() !== call.startedBy.toString()
+    ) {
+      await ctx.db.patch(groupCallId, { firstJoinAt: now });
+      await markCallMessageActive(ctx, call.messageId, { at: now });
+    }
     await syncJoined(ctx, groupCallId);
     // Answered here, so stop the other phones in this person's pocket. Their
     // own subscriptions would drop the invite anyway; a killed one's card
@@ -934,7 +971,7 @@ export async function endGroupCallsInRoom(ctx: any, roomId: any) {
     for (const p of joined) {
       await ctx.db.patch(p._id, { status: "left", leftAt: Date.now() });
     }
-    await endCallIfEmpty(ctx, call._id);
+    await endCallIfEmpty(ctx, call._id, false);
   }
 }
 

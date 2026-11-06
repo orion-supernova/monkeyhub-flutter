@@ -1,6 +1,6 @@
 import 'daily_game.dart';
 
-/// How hard a daily is, as the Feed's games row groups them.
+/// How hard a daily is, as the Games tab's shelves group them.
 ///
 /// Fixed per game rather than rotating by weekday: a player who likes the
 /// easy ones finds them in the same place every morning, and a game's

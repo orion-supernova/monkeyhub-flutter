@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
@@ -7,7 +8,8 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/settings_pickers.dart';
-import '../widgets/ios_kit.dart' show quietFill;
+import '../widgets/ios_kit.dart'
+    show quietFill, GroupedSection, GroupedRow, TileTone;
 import 'navigation/destinations.dart';
 
 /// How you move between the app's sections: an always-visible tab bar, or the
@@ -42,6 +44,24 @@ class NavigationScreen extends StatelessWidget {
                   value: NavStyle.radial,
                   label: l10n.settingsScreenValueRadialOrb,
                   preview: const MiniListBackdrop(child: _RadialPreview()),
+                ),
+              ],
+            ),
+            // The Calls tab is on by default; off removes it from the tab bar
+            // and the side rail, and a saved "last tab" of Calls opens Chat.
+            GroupedSection(
+              margin: const EdgeInsets.only(top: 20, bottom: 8),
+              children: [
+                GroupedRow.toggle(
+                  icon: CupertinoIcons.phone_fill,
+                  tone: TileTone.green,
+                  title: l10n.callsTabSettingsToggle,
+                  subtitle: l10n.callsTabSettingsToggleSub,
+                  value: SettingsStore.instance.showCallsTab,
+                  onChanged: (v) {
+                    pickFeedback();
+                    SettingsStore.instance.setShowCallsTab(v);
+                  },
                 ),
               ],
             ),

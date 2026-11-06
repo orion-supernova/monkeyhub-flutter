@@ -108,6 +108,10 @@ class LiveCallsStore extends ChangeNotifier {
   Map<String, LiveRoomCall> _group = const {};
   LiveRoomCall? _direct;
 
+  /// Every group call or huddle going on in the rooms the list loaded, for the
+  /// Calls tab's live strip. A view over the map; nothing is copied.
+  Iterable<LiveRoomCall> get groupCalls => _group.values;
+
   /// The call in [roomId], if one is going on.
   LiveRoomCall? forRoom(String roomId) {
     final g = _group[roomId];

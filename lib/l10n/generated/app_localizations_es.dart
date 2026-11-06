@@ -10226,7 +10226,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get navigationPageFooter =>
-      'Cómo te mueves entre Chats, Feed, Descubrir y Ajustes.';
+      'Cómo te mueves entre pestañas y cuáles muestra la barra.';
 
   @override
   String get navTabBarSub => 'Siempre visible, a un toque de todo.';
@@ -15626,4 +15626,450 @@ class AppLocalizationsEs extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get callBubbleCalling => 'Llamando…';
+
+  @override
+  String callBubbleIncomingCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'Videollamada entrante',
+      'other': 'Llamada de voz entrante',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleOutgoingCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'Videollamada saliente',
+      'other': 'Llamada de voz saliente',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'Videollamada',
+      'other': 'Llamada de voz',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleMissed(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'Videollamada perdida',
+      'other': 'Llamada de voz perdida',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get callBubbleNoAnswer => 'Sin respuesta';
+
+  @override
+  String callBubbleCancelled(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'Videollamada cancelada',
+      'other': 'Llamada de voz cancelada',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleDeclined(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'Videollamada rechazada',
+      'other': 'Llamada de voz rechazada',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleOutgoingDuration(String duration) {
+    return 'Saliente · $duration';
+  }
+
+  @override
+  String callBubbleIncomingDuration(String duration) {
+    return 'Entrante · $duration';
+  }
+
+  @override
+  String get callBubbleOutgoing => 'Saliente';
+
+  @override
+  String get callBubbleIncoming => 'Entrante';
+
+  @override
+  String get callBubbleTapToCallBack => 'Toca para devolver la llamada';
+
+  @override
+  String callBubbleAnsweredOn(String device) {
+    return 'Contestada en $device';
+  }
+
+  @override
+  String get callBubbleQualityFair => 'Conexión regular';
+
+  @override
+  String get callBubbleQualityPoor => 'Conexión mala';
+
+  @override
+  String get callBubbleJoin => 'Unirse';
+
+  @override
+  String callBubblePeople(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count personas',
+      one: '$count persona',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleMissedRun(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count llamadas perdidas',
+      one: '$count llamada perdida',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleRunBadge(int count) {
+    return '×$count';
+  }
+
+  @override
+  String get callBubbleShowLess => 'Mostrar menos';
+
+  @override
+  String get callBubbleRinging => 'Sonando…';
+
+  @override
+  String callBubblePreviewDuration(String title, String duration) {
+    return '$title · $duration';
+  }
+
+  @override
+  String get callsTabNavLabel => 'Llamadas';
+
+  @override
+  String get callsTabNavShort => 'LLAMADAS';
+
+  @override
+  String get callsTabSettingsToggle => 'Pestaña Llamadas';
+
+  @override
+  String get callsTabSettingsToggleSub =>
+      'Mostrar tu historial de llamadas en la barra de pestañas';
+
+  @override
+  String get callsTabLiveNow => 'En vivo ahora';
+
+  @override
+  String get callsTabLiveHuddle => 'Huddle';
+
+  @override
+  String get callsTabLiveGroupCall => 'Llamada grupal';
+
+  @override
+  String callsTabPeople(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count personas',
+      one: '1 persona',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsTabLiveJoinSemantic(String name) {
+    return 'Unirse a la llamada en $name';
+  }
+
+  @override
+  String get callsTabFavourites => 'Favoritos';
+
+  @override
+  String callsTabFavouriteSemantic(String name) {
+    return 'Llamar a $name';
+  }
+
+  @override
+  String callsTabTalkTimeThisWeek(String duration) {
+    return 'Esta semana: $duration en llamadas';
+  }
+
+  @override
+  String get callsTabTalkTimeNone => 'Aún no hay llamadas esta semana';
+
+  @override
+  String get callsTabTalkTimeSheetTitle => 'Esta semana';
+
+  @override
+  String callsTabCallCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count llamadas',
+      one: '1 llamada',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsTabTalkTimeFootnote(String start) {
+    return 'Solo cuenta el tiempo que estuviste conectado en llamadas, desde el $start hasta ahora. Las llamadas que sonaron, perdidas o rechazadas no cuentan.';
+  }
+
+  @override
+  String get callsTabTopPeople => 'Con quién más hablas';
+
+  @override
+  String callsTabDurationHM(int hours, int minutes) {
+    return '$hours h $minutes min';
+  }
+
+  @override
+  String callsTabDurationM(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String callsTabDurationS(int seconds) {
+    return '$seconds s';
+  }
+
+  @override
+  String get callsTabFilterAll => 'Todas';
+
+  @override
+  String get callsTabFilterMissed => 'Perdidas';
+
+  @override
+  String get callsTabToday => 'Hoy';
+
+  @override
+  String get callsTabYesterday => 'Ayer';
+
+  @override
+  String get callsTabVoiceCall => 'Llamada de voz';
+
+  @override
+  String get callsTabVideoCall => 'Videollamada';
+
+  @override
+  String get callsTabOpenChat => 'Abrir chat';
+
+  @override
+  String get callsTabDeleteFromHistory => 'Eliminar del historial';
+
+  @override
+  String get callsTabInAudio => 'Llamada de voz entrante';
+
+  @override
+  String get callsTabInVideo => 'Videollamada entrante';
+
+  @override
+  String get callsTabOutAudio => 'Llamada de voz saliente';
+
+  @override
+  String get callsTabOutVideo => 'Videollamada saliente';
+
+  @override
+  String get callsTabMissedAudio => 'Llamada de voz perdida';
+
+  @override
+  String get callsTabMissedVideo => 'Videollamada perdida';
+
+  @override
+  String get callsTabNoAnswer => 'Sin respuesta';
+
+  @override
+  String get callsTabDeclined => 'Rechazada';
+
+  @override
+  String get callsTabCancelled => 'Cancelada';
+
+  @override
+  String get callsTabHuddle => 'Huddle';
+
+  @override
+  String get callsTabEmptyTitle => 'Aún no hay llamadas';
+
+  @override
+  String get callsTabEmptyMessage =>
+      'Las llamadas de voz y vídeo que hagas o recibas aparecerán aquí.';
+
+  @override
+  String get callsTabEmptyMissedTitle => 'Sin llamadas perdidas';
+
+  @override
+  String get callsTabEmptyMissedMessage => 'Estás al día.';
+
+  @override
+  String get callsTabNewCall => 'Nueva llamada';
+
+  @override
+  String get callsTabNewCallSearch => 'Buscar amigos';
+
+  @override
+  String get callsTabNewCallEmpty => 'Añade amigos para llamarlos.';
+
+  @override
+  String get callsTabNewCallNoMatch => 'Nadie coincide.';
+
+  @override
+  String get callsTabDetailsStarted => 'Inició';
+
+  @override
+  String get callsTabDetailsRang => 'Sonó';
+
+  @override
+  String get callsTabDetailsAnswered => 'Respondida';
+
+  @override
+  String callsTabDetailsAnsweredOn(String platform) {
+    return 'Respondida en $platform';
+  }
+
+  @override
+  String callsTabDetailsMovedTo(String platform) {
+    return 'Pasó a $platform';
+  }
+
+  @override
+  String get callsTabDetailsEnded => 'Terminó';
+
+  @override
+  String callsTabDetailsTalked(String duration) {
+    return 'Hablasteis $duration';
+  }
+
+  @override
+  String get callsTabDetailsMessage => 'Mensaje';
+
+  @override
+  String get callsTabPlatformIos => 'iPhone';
+
+  @override
+  String get callsTabPlatformMacos => 'Mac';
+
+  @override
+  String get callsTabPlatformAndroid => 'Android';
+
+  @override
+  String get callsTabPlatformWindows => 'Windows';
+
+  @override
+  String get callsTabPlatformLinux => 'Linux';
+
+  @override
+  String get callsTabPlatformWeb => 'la web';
+
+  @override
+  String get callsTabQualityTitle => 'Conexión';
+
+  @override
+  String get callsTabQualityGood => 'Buena conexión de principio a fin';
+
+  @override
+  String callsTabQualityFair(int percent) {
+    return 'Entrecortada el $percent % de la llamada';
+  }
+
+  @override
+  String callsTabQualityPoor(int percent) {
+    return 'Mala conexión el $percent % de la llamada';
+  }
+
+  @override
+  String get callsTabDeletedChat => 'Chat eliminado';
+
+  @override
+  String get callsTabUnknown => 'Desconocido';
+
+  @override
+  String get callsTabLoadFailed => 'No se pudieron cargar tus llamadas.';
+
+  @override
+  String callsTabRowSemantic(String detail, String name, String time) {
+    return '$name, $detail, $time';
+  }
+
+  @override
+  String get destinationsGamesLabel => 'Juegos';
+
+  @override
+  String get destinationsGamesShort => 'JUEGOS';
+
+  @override
+  String get gamesTabTodayLabel => 'Juegos de hoy';
+
+  @override
+  String chatRequestsFolderLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Solicitudes, $count pendientes',
+      one: 'Solicitudes, $count pendiente',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFindFriendsTitle => 'Encuentra a tus amigos';
+
+  @override
+  String get chatFindFriendsBody =>
+      'Añade a la gente que conoces para chatear, compartir tu día y jugar juntos.';
+
+  @override
+  String get callsTabFavAdd => 'Añadir a favoritos';
+
+  @override
+  String get callsTabFavRemove => 'Quitar de favoritos';
+
+  @override
+  String get callsTabFavNotNow => 'Ahora no';
+
+  @override
+  String get callsTabFavAddTitle => 'Añadir un favorito';
+
+  @override
+  String get callsTabFavAddLabel => 'Añadir';
+
+  @override
+  String get callsTabFavEmpty =>
+      'Fija a las personas a las que más llamas. Toca + para añadir una.';
+
+  @override
+  String get callsTabFavPickerEmpty => 'No queda nadie por añadir.';
+
+  @override
+  String callsTabFavSuggestCalls(int count, String name) {
+    return 'Llamaste a $name $count veces en los últimos 30 días';
+  }
+
+  @override
+  String callsTabFavSuggestTime(String name, String time) {
+    return 'Hablaste con $name durante $time en los últimos 30 días';
+  }
+
+  @override
+  String get callsTabFavAddFailed =>
+      'No se pudo añadir a favoritos. Inténtalo de nuevo.';
+
+  @override
+  String get callsTabFavRemoveFailed =>
+      'No se pudo quitar de favoritos. Inténtalo de nuevo.';
 }

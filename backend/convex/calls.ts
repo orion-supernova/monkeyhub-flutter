@@ -14,6 +14,12 @@ import { lensFor } from "./visibility";
 import { consume } from "./rateLimit";
 import { getLiveUser, isTombstoned } from "./deletionCore";
 import { continueSweep, sweepArgs } from "./sweep";
+import {
+  MAX_HANDOFFS,
+  markCallMessageActive,
+  openCallMessage,
+  recordDirectCallEnd,
+} from "./callHistory";
 
 // ────────────────────────────── helpers ──────────────────────────────
 
@@ -98,14 +104,24 @@ async function isPairBlocked(
 // (`bye`) AND native push (`taken`), purge everything else. Used by `end`,
 // by `cancel` when it loses the race to an accept, and by the busy-check
 // reaper in `initiate`.
-async function endCallImpl(ctx: any, call: any, byUserId: any) {
+//
+// [record] is false only for room teardown (`endLiveCallsInRoom`): the room is
+// going away, so there is no bubble to settle and no history worth keeping.
+async function endCallImpl(
+  ctx: any,
+  call: any,
+  byUserId: any,
+  record: boolean = true,
+) {
   // Read BEFORE the patch below flips it: this is the state the peer's
   // native card is in, and it decides whether a VoIP push can help it.
   const wasRinging = call.status === "ringing";
+  const endedAt = Date.now();
   await ctx.db.patch(call._id, {
     status: "ended",
-    endedAt: Date.now(),
+    endedAt,
   });
+  if (record) await recordDirectCallEnd(ctx, call, "ended", endedAt);
   const peer =
     call.callerId.toString() === byUserId.toString()
       ? call.calleeId
@@ -155,10 +171,12 @@ async function endCallImpl(ctx: any, call: any, byUserId: any) {
 // reap a scheduler-orphaned ringing row inline instead of refusing with
 // BUSY for a call that died a minute ago.
 async function expireRingingImpl(ctx: any, call: any) {
+  const endedAt = Date.now();
   await ctx.db.patch(call._id, {
     status: "missed",
-    endedAt: Date.now(),
+    endedAt,
   });
+  await recordDirectCallEnd(ctx, call, "missed", endedAt);
   // Notify both sides so their UI can transition out of ringing. Both
   // signals are kept by [purgeCallSignals] so each peer sees its own.
   const sigToCallee = await ctx.db.insert("callSignals", {
@@ -194,10 +212,12 @@ async function expireRingingImpl(ctx: any, call: any) {
 // abandoned `active` row must not BUSY-block a fresh call for the sweep
 // cadence (worst case ~8 minutes of "you can't call each other").
 async function reapActiveCall(ctx: any, call: any) {
+  const endedAt = Date.now();
   await ctx.db.patch(call._id, {
     status: "ended",
-    endedAt: Date.now(),
+    endedAt,
   });
+  await recordDirectCallEnd(ctx, call, "ended", endedAt);
   // Either side's native card could be the orphaned one (the abandoned
   // device, or a live peer whose app never heard the other side vanish) —
   // drop a bye signal and clear the native card for both.
@@ -241,7 +261,7 @@ export async function endLiveCallsInRoom(ctx: any, roomId: any) {
       )
       .take(50);
     for (const call of rows) {
-      await endCallImpl(ctx, call, call.callerId);
+      await endCallImpl(ctx, call, call.callerId, false);
       await ctx.db.insert("callSignals", {
         callId: call._id,
         fromUserId: call.calleeId,
@@ -517,15 +537,28 @@ export const initiate = mutation({
         ? await ctx.storage.getUrl(caller.avatarStorageId)
         : null;
 
+    const startedAt = Date.now();
     const callId = await ctx.db.insert("calls", {
       callerId,
       calleeId,
       roomId,
       type,
       status: "ringing",
-      startedAt: Date.now(),
+      startedAt,
       callerDeviceId: callerDeviceId ?? undefined,
     });
+    // The chat bubble. Its content carries the call id, so it can only exist
+    // after the call row; the id goes back onto the row in the same
+    // transaction so every terminal path can settle it by id.
+    const messageId = await openCallMessage(ctx, {
+      roomId,
+      userId: callerId,
+      startedAt,
+      k: "d",
+      id: callId.toString(),
+      t: type,
+    });
+    if (messageId) await ctx.db.patch(callId, { messageId });
 
     // Surface an "invite" signal IMMEDIATELY. Every callee device with an
     // active `signalsForUser` subscription receives it within ~50–150ms,
@@ -608,6 +641,19 @@ export const accept = mutation({
       // against their own deviceId and render the "Move call here" pill.
       acceptingDeviceId: acceptingDeviceId ?? undefined,
     });
+    // The bubble goes live. `o` is the platform that answered, kept even if
+    // the call later moves to another device.
+    let platform: string | undefined;
+    if (acceptingDeviceId && call.messageId) {
+      const dev = await ctx.db
+        .query("userDevices")
+        .withIndex("by_user_device", (q) =>
+          q.eq("userId", userId).eq("deviceId", acceptingDeviceId),
+        )
+        .first();
+      platform = dev?.platform;
+    }
+    await markCallMessageActive(ctx, call.messageId, { at: acceptedAt, platform });
     // Tell every other device of the callee to dismiss its ringer. All
     // callee devices share the `toUserId == calleeId` subscription; the
     // accepting device filters its own echo via `byDeviceId`.
@@ -668,10 +714,12 @@ export const reject = mutation({
       throw new Error("ONLY_CALLEE_CAN_REJECT");
     }
     if (call.status !== "ringing") return "not-ringing"; // idempotent
+    const endedAt = Date.now();
     await ctx.db.patch(callId, {
       status: "rejected",
-      endedAt: Date.now(),
+      endedAt,
     });
+    await recordDirectCallEnd(ctx, call, "rejected", endedAt);
     // Drop a terminal signal so the caller sees the rejection promptly.
     const sigToCaller = await ctx.db.insert("callSignals", {
       callId,
@@ -726,10 +774,12 @@ export const cancel = mutation({
       return "ended";
     }
     if (call.status !== "ringing") return "already-terminal";
+    const endedAt = Date.now();
     await ctx.db.patch(callId, {
       status: "cancelled",
-      endedAt: Date.now(),
+      endedAt,
     });
+    await recordDirectCallEnd(ctx, call, "cancelled", endedAt);
     const sigId = await ctx.db.insert("callSignals", {
       callId,
       fromUserId: userId,
@@ -888,12 +938,25 @@ export const handoffCall = mutation({
     if (oldDeviceId === newDeviceId) {
       return { oldDeviceId: oldDeviceId ?? null };
     }
-    await ctx.db.patch(
-      callId,
-      iAmCaller
+    // The move is history too ("moved from iPhone to Mac"), capped so a
+    // flapping client cannot grow the row.
+    const prior = call.handoffs ?? [];
+    let handoffs = prior;
+    if (prior.length < MAX_HANDOFFS) {
+      const dev = await ctx.db
+        .query("userDevices")
+        .withIndex("by_user_device", (q) =>
+          q.eq("userId", userId).eq("deviceId", newDeviceId),
+        )
+        .first();
+      handoffs = [...prior, { at: Date.now(), platform: dev?.platform ?? "unknown" }];
+    }
+    await ctx.db.patch(callId, {
+      ...(iAmCaller
         ? { callerDeviceId: newDeviceId }
-        : { acceptingDeviceId: newDeviceId },
-    );
+        : { acceptingDeviceId: newDeviceId }),
+      handoffs,
+    });
     // Tell the old device (if known) to tear down its PC quietly. Only
     // it acts because the signal is targetDeviceId-scoped.
     if (oldDeviceId) {
@@ -1387,10 +1450,12 @@ export const gcStuckRinging = internalMutation({
       )
       .take(50);
     for (const call of rows) {
+      const endedAt = Date.now();
       await ctx.db.patch(call._id, {
         status: "missed",
-        endedAt: Date.now(),
+        endedAt,
       });
+      await recordDirectCallEnd(ctx, call, "missed", endedAt);
       // Drop terminal signals so each side's UI clears.
       await ctx.db.insert("callSignals", {
         callId: call._id,

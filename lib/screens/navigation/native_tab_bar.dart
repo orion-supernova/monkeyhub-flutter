@@ -80,8 +80,12 @@ abstract final class NativeChrome {
         symbol: 'bubble.left.and.bubble.right',
         selected: 'bubble.left.and.bubble.right.fill',
       ),
+      HomeSection.calls => (symbol: 'phone', selected: 'phone.fill'),
       HomeSection.feed => (symbol: 'sparkles', selected: 'sparkles'),
-      HomeSection.discover => (symbol: 'safari', selected: 'safari.fill'),
+      HomeSection.games => (
+        symbol: 'gamecontroller',
+        selected: 'gamecontroller.fill',
+      ),
       HomeSection.settings => (symbol: 'gearshape', selected: 'gearshape.fill'),
     };
 

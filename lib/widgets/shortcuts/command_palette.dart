@@ -34,6 +34,8 @@ Future<void> showCommandPalette(
       if (!d.ambient &&
           d != AppShortcuts.commandPalette &&
           d.offeredHere &&
+          // The fifth tab only exists while Calls is switched on.
+          (d != AppShortcuts.section5 || sectionLabels.length > 4) &&
           reg.isBound(d))
         d,
   ];

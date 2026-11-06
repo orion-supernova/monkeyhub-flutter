@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../calls/call_service.dart';
+import '../calls/group_call_service.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/room_capabilities.dart';
 import '../privacy/app_only.dart';
+import 'call_bubble.dart' show callPreviewForContent;
 
 /// What a room card can say about itself when the conversation hasn't started.
 ///
@@ -25,7 +28,9 @@ enum RoomSubtitleKind {
 
 typedef RoomSubtitle = ({String text, RoomSubtitleKind kind});
 
-RoomSubtitle roomSubtitle(BuildContext context, ChatRoom room) {
+/// [myId] is the viewer, for the side a call preview is told from; it defaults
+/// to the signed-in user the call services already know.
+RoomSubtitle roomSubtitle(BuildContext context, ChatRoom room, {String? myId}) {
   // A secret room does not open where capture can't be blocked, so its last
   // message is not shown there either.
   if (room.isEphemeral && AppOnly.gatesCapture) {
@@ -36,6 +41,14 @@ RoomSubtitle roomSubtitle(BuildContext context, ChatRoom room) {
   }
   final last = room.lastMessage?.trim();
   if (last != null && last.isNotEmpty) {
+    // A call is a code on the wire (`call:{...}`); say it from the viewer's
+    // side instead of printing it.
+    final call = callPreviewForContent(
+      AppLocalizations.of(context),
+      last,
+      mine: room.isLastMessageFrom(myId ?? _viewerId()),
+    );
+    if (call != null) return (text: call, kind: RoomSubtitleKind.message);
     return (text: last, kind: RoomSubtitleKind.message);
   }
   // Gated on the same capability the chat header and room info ask, so a room
@@ -53,6 +66,9 @@ RoomSubtitle roomSubtitle(BuildContext context, ChatRoom room) {
     kind: RoomSubtitleKind.empty,
   );
 }
+
+String? _viewerId() =>
+    GroupCallService.maybeInstance?.userId ?? CallService.maybeInstance?.userId;
 
 /// How long ago, in the coarse words the room list uses.
 String roomTimeAgo(BuildContext context, DateTime then) {

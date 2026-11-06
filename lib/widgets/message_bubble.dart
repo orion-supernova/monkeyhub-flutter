@@ -72,7 +72,9 @@ import 'expressions/expression_bubble.dart';
 import 'expressions/expression_sheet.dart';
 import '../theme/vanish_palette.dart';
 import '../privacy/vanish_rules.dart';
+import '../models/call_history.dart';
 import '../models/huddle_history.dart';
+import 'call_bubble.dart';
 import 'huddle_bar.dart' show HuddleHistoryLine;
 import 'vanish_card.dart';
 import 'hold_scrub.dart';
@@ -119,6 +121,8 @@ class MessageBubble extends StatelessWidget {
     this.onDiscardSend,
     this.bubbleKey,
     this.album = const [],
+    this.callRun = const [],
+    this.onCallTap,
     this.onAlbumOpen,
     this.onAlbumTileLongPress,
     this.onAlbumTileContextMenu,
@@ -151,6 +155,14 @@ class MessageBubble extends StatelessWidget {
   /// the run and the swipe that arms a reply. Only the picture is different,
   /// and only because a mosaic is what the whole set looks like.
   final List<ChatMessage> album;
+
+  /// Missed calls from one caller collapsed into this row (oldest first,
+  /// [message] last) - see `collapseMissedCalls`. Empty on every other row.
+  final List<ChatMessage> callRun;
+
+  /// Call back (direct) or join (group, live) from a call bubble. Null where
+  /// the room does not allow calling: the bubble is then a plain record.
+  final void Function(CallEvent event)? onCallTap;
 
   /// Opens one photograph of [album] fullscreen. Null falls back to the
   /// gallery scope, exactly as a lone photo's tile does.
@@ -644,6 +656,8 @@ class MessageBubble extends StatelessWidget {
       currentUserId: currentUserId,
       onMentionTap: onMentionTap,
       album: album,
+      callRun: callRun,
+      onCallTap: onCallTap,
       onAlbumOpen: onAlbumOpen,
       onAlbumTileLongPress: onAlbumTileLongPress,
       onAlbumTileContextMenu: onAlbumTileContextMenu,
@@ -1693,6 +1707,8 @@ Widget buildMessageContent({
   /// as the last of them. Two or more turns the photo case into a mosaic;
   /// anything less leaves it the single tile it has always been.
   List<ChatMessage> album = const [],
+  List<ChatMessage> callRun = const [],
+  void Function(CallEvent event)? onCallTap,
   Future<void> Function(ChatMessage m, {required int sourceDecodeWidth})?
       onAlbumOpen,
   void Function(ChatMessage m, GlobalKey anchor)? onAlbumTileLongPress,
@@ -2271,6 +2287,55 @@ Widget buildMessageContent({
     case MessageType.liveLocation:
       // No bubble frame, matching the media tiles above: alignment in the row
       // already says mine/theirs, and a chat bubble drawn around a map card
+      final call = CallEvent.parse(message.content);
+      if (call != null) {
+        // A call is drawn as a bubble of its own (sender-sided, in the chosen
+        // bubble style), not as the caption below. See call_bubble.dart.
+        Decoration decorate(bool first, bool last) => theme.bubbleDecoration(
+              isMine: isMine,
+              ephemeral: ephemeral,
+              style: bubbleStyle,
+              firstInRun: first,
+              lastInRun: last,
+              fill: speakerFill ?? vanishFill,
+              edge: speakerFill == null
+                  ? null
+                  : SpeakerScope.markOf(context, message.senderId,
+                      on: authoredFill!),
+            );
+        return CallBubble(
+          message: message,
+          event: call,
+          isMine: isMine,
+          theme: theme,
+          decorate: decorate,
+          run: callRun,
+          onTap: onCallTap,
+          stampOf: (m) => inline
+              ? MessageStamp(
+                  createdAt: m.createdAt,
+                  status: m.status,
+                  countdown: countdown,
+                  receipt: messageReceipt(
+                    isMine: isMine,
+                    deliveredToOthers: deliveredToOthers,
+                    seenByOthers: seenByOthers,
+                    vanishing: m.vanishUntil != null,
+                  ),
+                  saved: m.id == message.id && saved,
+                  pinned: m.id == message.id && pinned,
+                  tone: bubbleTone,
+                  vanish: vanishMarkFor(
+                    context,
+                    message: m,
+                    isMine: isMine,
+                    tone: bubbleTone,
+                    theme: theme,
+                  ),
+                )
+              : null,
+        );
+      }
       // reads as a frame around a frame.
       //
       // No caption branch either, unlike image and file. Nothing can attach text

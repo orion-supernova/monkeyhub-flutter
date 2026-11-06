@@ -6,6 +6,7 @@ import '../data/chat_repository.dart';
 import '../data/room_filter.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
+import '../models/call_history.dart';
 import '../models/chat_room.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
@@ -76,7 +77,10 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen> {
     if (needle.isEmpty) return true;
     final title = chatListTitleOf(context, r, widget.repo.otherUserFor(r));
     if (title.toLowerCase().contains(needle)) return true;
-    return (r.lastMessage ?? '').toLowerCase().contains(needle);
+    final last = r.lastMessage ?? '';
+    // A call's code is not text anybody can search for.
+    if (CallEvent.isCallContent(last)) return false;
+    return last.toLowerCase().contains(needle);
   }
 
   Future<void> _unarchive(ChatRoom room) async {

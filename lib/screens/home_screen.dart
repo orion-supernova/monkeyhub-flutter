@@ -56,6 +56,8 @@ import 'navigation/tab_reselect.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/new_chat_menu.dart';
 import 'create_room_sheet.dart';
+import 'discover_screen.dart';
+import '../l10n/text_case.dart';
 import 'join_by_invite_screen.dart';
 import 'profile_screen.dart';
 
@@ -193,6 +195,12 @@ class _HomeScreenState extends State<HomeScreen>
     // rebuilt from scratch — which, being the app's home, it rarely is.
     widget.auth.addListener(_onAuth);
     _loadMe();
+    // A friend-request notification steers the shell here and leaves a
+    // one-shot in the store; Discover, opened over the list, consumes it and
+    // scrolls to the incoming requests. On mount for a cold start, and on
+    // change for a tap that arrives while the list is already up.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openPendingRequests());
+    UiSelectionStore.instance.addListener(_openPendingRequests);
   }
 
   void _onAuth() {
@@ -205,6 +213,7 @@ class _HomeScreenState extends State<HomeScreen>
     widget.family.removeListener(_onChange);
     SettingsStore.instance.removeListener(_onChange);
     widget.auth.removeListener(_onAuth);
+    UiSelectionStore.instance.removeListener(_openPendingRequests);
     _scroll.dispose();
     _searchCtrl.dispose();
     _searchFocus.dispose();
@@ -300,24 +309,93 @@ class _HomeScreenState extends State<HomeScreen>
     return false;
   }
 
-  /// The header's search button: brings the pull-down panel in and focuses its
-  /// field, the same surface a pull at the top reveals.
-  void _openSearch() {
-    HapticFeedback.selectionClick();
-    setState(() {
-      _pullPanelOpen = true;
-      _pullDropped = false;
-    });
-    if (_scroll.hasClients && _scroll.offset > 0) {
-      _scroll.animateTo(
-        0,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
+  /// Discover, pushed over the chat list: people and rooms to find, the
+  /// requests inbox, join by code.
+  ///
+  /// [_discoverOpen] keeps a second request (a notification tapped while
+  /// Discover is already up) from stacking another copy: the open one
+  /// consumes it and scrolls instead.
+  bool _discoverOpen = false;
+  Future<void> _openDiscover({bool haptic = true}) async {
+    if (_discoverOpen) return;
+    if (haptic) HapticFeedback.selectionClick();
+    _discoverOpen = true;
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => DiscoverScreen(
+            repo: widget.repo,
+            api: widget.api,
+            family: widget.family,
+          ),
+        ),
       );
+    } finally {
+      _discoverOpen = false;
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _searchFocus.requestFocus();
-    });
+  }
+
+  /// Peeks rather than consumes: Discover does the consuming once it is up,
+  /// which is what scrolls it to the requests.
+  void _openPendingRequests() {
+    if (!mounted || _discoverOpen) return;
+    if (!UiSelectionStore.instance.requestsViewPending) return;
+    _openDiscover(haptic: false);
+  }
+
+  /// Friend requests and group invites waiting on the viewer. Shown as a
+  /// folder at the top of the list while any are, and gone when none are.
+  Widget _requestsRow(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final requests = widget.repo.incomingRequests;
+    final invites = widget.repo.roomInvitations;
+    final count = requests.length + invites.length;
+    if (count == 0) return const SizedBox(width: double.infinity);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 16, 6),
+      child: ChatFolderRow(
+        key: const ValueKey('chat_requests_row'),
+        icon: CupertinoIcons.person_2_fill,
+        disc: theme.accent,
+        title: sentenceCaseOf(context, l10n.discoverScreenRequestsSectionLabel),
+        // Who is asking, the way the archived folder names who is waiting.
+        subtitle: [
+          for (final r in requests) r.user.displayName,
+          for (final i in invites) i.roomName,
+        ].join(', '),
+        badge: count,
+        semanticLabel: l10n.chatRequestsFolderLabel(count),
+        onTap: _openDiscover,
+      ),
+    );
+  }
+
+  /// The way in for a new account: until there are a few friends, the list's
+  /// top says how to get some. Not for an account that cannot send requests
+  /// (a supervised child), and not before the first load, or every cold
+  /// start would flash it.
+  Widget _findFriendsRow(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final show = widget.repo.roomsLoaded &&
+        widget.repo.friends.length < 3 &&
+        widget.family.canRequestContacts;
+    if (!show) return const SizedBox(width: double.infinity);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 16, 6),
+      child: ChatFolderRow(
+        key: const ValueKey('chat_find_friends_row'),
+        icon: CupertinoIcons.person_badge_plus_fill,
+        disc: theme.accent,
+        title: l10n.chatFindFriendsTitle,
+        subtitle: l10n.chatFindFriendsBody,
+        subtitleLines: 2,
+        badge: 0,
+        semanticLabel: l10n.chatFindFriendsTitle,
+        onTap: _openDiscover,
+      ),
+    );
   }
 
   void _collapsePullPanel() {
@@ -705,6 +783,17 @@ class _HomeScreenState extends State<HomeScreen>
                           onOpenArchived: openArchived,
                           onCollapse: _collapsePullPanel,
                         ),
+                        AnimatedSize(
+                          duration: theme.motionMed,
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.topCenter,
+                          child: Column(
+                            children: [
+                              _requestsRow(context),
+                              _findFriendsRow(context),
+                            ],
+                          ),
+                        ),
                         // Archived rooms are hidden from this list, so a
                         // message landing in one used to show up as a bump on
                         // the tab badge and nothing else. While any has
@@ -854,7 +943,7 @@ class _HomeScreenState extends State<HomeScreen>
                   // the one thing that account exists to do. The sheet itself
                   // draws only the actions the account actually has.
                   onCreateTap: _openNewChat,
-                  onSearchTap: _openSearch,
+                  onFindPeopleTap: _openDiscover,
                   filterButton: chipsStyle
                       ? null
                       : RoomFilterButton(
@@ -894,7 +983,7 @@ class _Header extends StatelessWidget {
     required this.api,
     required this.onProfileTap,
     this.onCreateTap,
-    this.onSearchTap,
+    this.onFindPeopleTap,
     this.filterButton,
   });
   final ScrollController scroll;
@@ -903,10 +992,12 @@ class _Header extends StatelessWidget {
   final VoidCallback onProfileTap;
   final VoidCallback? onCreateTap;
 
-  /// Opens the pull-down search field. Stands in for Signal's camera button:
-  /// the camera here is a chat attachment tool (it needs a room to send into),
-  /// and nothing in the chat list can receive a photo.
-  final VoidCallback? onSearchTap;
+  /// Opens Discover: finding people and rooms, requests, join by code. It
+  /// used to be a tab of its own, which mattered on day one and was a mis-tap
+  /// beside Feed every day after; adding someone is something you do from
+  /// the chat list, so its way in lives here. Search needs no button: a pull
+  /// at the top of the list reveals the field, and ⌘F focuses it.
+  final VoidCallback? onFindPeopleTap;
 
   /// Null under [FilterStyle.chips], where the chip row is the whole control.
   final Widget? filterButton;
@@ -918,11 +1009,14 @@ class _Header extends StatelessWidget {
     final top = MediaQuery.paddingOf(context).top;
     final bg = theme.background;
     final actions = [
-      if (onSearchTap != null)
+      if (onFindPeopleTap != null)
         GlassGroupItem(
-          icon: CupertinoIcons.search,
-          semanticLabel: l10n.pullRevealSearchHint,
-          onTap: onSearchTap,
+          icon: CupertinoIcons.person_badge_plus,
+          semanticLabel: sentenceCaseOf(
+            context,
+            l10n.discoverScreenFindPeopleTitle,
+          ),
+          onTap: onFindPeopleTap,
         ),
       // Unconditional: the sheet draws only the actions the account actually
       // has, and a locked-down child account still starts chats with people

@@ -55,6 +55,7 @@ class PeoplePicker extends StatefulWidget {
     this.leading = const [],
     this.minQueryForRemote = 2,
     this.bottomPadding = 0,
+    this.trailingFor,
   });
 
   /// Everyone selectable without a network call. Held by the host.
@@ -105,6 +106,10 @@ class PeoplePicker extends StatefulWidget {
 
   /// How many characters before [searchMore] is worth a round trip.
   final int minQueryForRemote;
+
+  /// Per-person actions at the row's end (the new-call sheet's voice and video
+  /// buttons). Omit for a plain "tap a person" list.
+  final Widget Function(ChatUser user)? trailingFor;
 
   @override
   State<PeoplePicker> createState() => _PeoplePickerState();
@@ -291,6 +296,7 @@ class _PeoplePickerState extends State<PeoplePicker> {
                     user: u,
                     api: widget.api,
                     onTap: () => widget.onPick(u),
+                    trailing: widget.trailingFor?.call(u),
                   ),
                   if (ruled)
                     Positioned(
@@ -367,17 +373,20 @@ class _PersonTile extends StatelessWidget {
     required this.user,
     required this.api,
     required this.onTap,
+    this.trailing,
   });
 
   final ChatUser user;
   final ChatApi api;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) => PersonRow(
         avatar: UserAvatar(user: user, size: kPersonRowAvatar, api: api),
         title: user.displayName,
         subtitle: '@${user.username}',
+        trailing: trailing,
         onTap: onTap,
       );
 }

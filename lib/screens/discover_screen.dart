@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
-import '../data/settings_store.dart';
 import 'navigation/scroll_memory.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
@@ -24,7 +23,6 @@ import 'discover_lists.dart';
 import 'navigation/destinations.dart';
 import 'join_by_invite_screen.dart';
 import 'navigation/open_room.dart';
-import 'navigation/tab_reselect.dart';
 import 'search_screen.dart';
 
 import '../widgets/ios_kit.dart';
@@ -88,17 +86,11 @@ class DiscoverScreen extends StatefulWidget {
 /// Which half of the requests section is showing.
 enum _RequestsTab { incoming, outgoing }
 
-class _DiscoverScreenState extends State<DiscoverScreen>
-    with TabReselectScroll<DiscoverScreen> {
+class _DiscoverScreenState extends State<DiscoverScreen> {
   // Not a plain ScrollController: this section's State is destroyed on
   // every tab switch, and the framework's own PageStorage restore is what
   // produced the settle-bounce on return. See [ScrollMemory].
   final _scroll = ScrollMemory.controller();
-
-  @override
-  HomeSection get reselectSection => HomeSection.discover;
-  @override
-  ScrollController get reselectScroll => _scroll;
 
   _RequestsTab _requestsTab = _RequestsTab.incoming;
 
@@ -603,6 +595,10 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           TabRootBar(
             title: t.destinationsDiscoverLabel,
             scroll: _scroll,
+            // Pushed from the chat list now, not a tab: it needs a way back.
+            leading: Navigator.of(context).canPop()
+                ? const GlassBackButton()
+                : null,
           ),
         ],
       ),

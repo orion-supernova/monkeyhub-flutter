@@ -35,7 +35,11 @@ class LiveCallHalo extends StatefulWidget {
     required this.size,
     required this.child,
     this.rim,
+    this.ringForHuddle = false,
   });
+
+  /// Draw the ring for a huddle too (the Calls tab's live strip does).
+  final bool ringForHuddle;
 
   final LiveRoomCall? call;
   final double size;
@@ -117,11 +121,13 @@ class _LiveCallHaloState extends State<LiveCallHalo>
               // in the room the avatar always had.
               Positioned.fill(
                 child: Transform.scale(
-                  scale: huddle ? 1 : 1 - 0.14 * on.clamp(0.0, 1.0),
+                  scale: huddle && !widget.ringForHuddle
+                      ? 1
+                      : 1 - 0.14 * on.clamp(0.0, 1.0),
                   child: child,
                 ),
               ),
-              if (!huddle)
+              if (!huddle || widget.ringForHuddle)
               Positioned.fill(
                 child: IgnorePointer(
                   child: RepaintBoundary(

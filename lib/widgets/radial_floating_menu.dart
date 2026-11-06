@@ -73,7 +73,11 @@ class RadialGeometry {
   /// slot centres sit `2·r·sin(13.3°)` apart: 44.3pt at r=96, which against a
   /// 44pt [itemSize] left a 0.3pt gap — orbs visually touching. r=112 puts
   /// centres 51.7pt apart, a 7.7pt gap.
-  static const double radius = 112;
+  ///
+  /// Raised again, to 140, for the fifth destination (Calls): the step drops to
+  /// 20°, so r=112 would put centres 38.9pt apart, overlapping the 44pt orbs;
+  /// r=140 gives 48.6pt, a 4.6pt gap.
+  static const double radius = 140;
 
   /// How far past either end of the fan a drag may stray and still commit.
   /// A gesture up-and-left plainly means "the top item" even though it points

@@ -11743,7 +11743,7 @@
   "@motionCalmSub": {
     "description": "Settings sub-page. Motion option description."
   },
-  "navigationPageFooter": "How you move between Chats, Feed, Discover and Settings.",
+  "navigationPageFooter": "How you move between tabs, and which tabs the bar shows.",
   "@navigationPageFooter": {
     "description": "Settings sub-page. Footer on the navigation page."
   },
@@ -18284,5 +18284,610 @@
   "forkChipTalkSub": "Nobody gets rung",
   "@forkChipTalkSub": {"description": "Caption under the Talk option of the swipe-up fork: starting a huddle does not ring anyone."},
   "forkChipJoinSub": "{count, plural, =1{1 person here} other{{count} people here}}",
-  "@forkChipJoinSub": {"description": "Caption under the Join option of the swipe-up fork: how many people are in the huddle.", "placeholders": {"count": {"type": "int"}}}
+  "@forkChipJoinSub": {"description": "Caption under the Join option of the swipe-up fork: how many people are in the huddle.", "placeholders": {"count": {"type": "int"}}},
+  "callBubbleCalling": "Calling…",
+  "@callBubbleCalling": {
+    "description": "Title of a call bubble you started while it is still ringing."
+  },
+  "callBubbleIncomingCall": "{type, select, video {Incoming video call} other {Incoming voice call}}",
+  "@callBubbleIncomingCall": {
+    "description": "Call bubble title for a call someone made to you; also the chat list preview. type is audio or video.",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "callBubbleOutgoingCall": "{type, select, video {Outgoing video call} other {Outgoing voice call}}",
+  "@callBubbleOutgoingCall": {
+    "description": "Chat list preview of a call you made. type is audio or video.",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "callBubbleCall": "{type, select, video {Video call} other {Voice call}}",
+  "@callBubbleCall": {
+    "description": "Title of a connected or finished call bubble. type is audio or video.",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "callBubbleMissed": "{type, select, video {Missed video call} other {Missed voice call}}",
+  "@callBubbleMissed": {
+    "description": "Title of a call bubble for a call you missed. type is audio or video.",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "callBubbleNoAnswer": "No answer",
+  "@callBubbleNoAnswer": {
+    "description": "Title of a call bubble for a call you made that nobody answered."
+  },
+  "callBubbleCancelled": "{type, select, video {Cancelled video call} other {Cancelled voice call}}",
+  "@callBubbleCancelled": {
+    "description": "Title of a call bubble for a call you made and hung up before it was answered. type is audio or video.",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "callBubbleDeclined": "{type, select, video {Declined video call} other {Declined voice call}}",
+  "@callBubbleDeclined": {
+    "description": "Title of a call bubble for a call that was declined. type is audio or video.",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "callBubbleOutgoingDuration": "Outgoing · {duration}",
+  "@callBubbleOutgoingDuration": {
+    "description": "Second line of a finished call you made: direction and how long you talked, e.g. Outgoing · 12:41.",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "callBubbleIncomingDuration": "Incoming · {duration}",
+  "@callBubbleIncomingDuration": {
+    "description": "Second line of a finished call someone made to you: direction and how long you talked.",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "callBubbleOutgoing": "Outgoing",
+  "@callBubbleOutgoing": {
+    "description": "Second line of a finished call you made that has no duration."
+  },
+  "callBubbleIncoming": "Incoming",
+  "@callBubbleIncoming": {
+    "description": "Second line of a finished call someone made to you that has no duration."
+  },
+  "callBubbleTapToCallBack": "Tap to call back",
+  "@callBubbleTapToCallBack": {
+    "description": "Second line of a missed call bubble: tapping it calls the person back."
+  },
+  "callBubbleAnsweredOn": "Answered on {device}",
+  "@callBubbleAnsweredOn": {
+    "description": "Shown on a call that was answered on another of your devices. device is a product name such as Mac or iPhone.",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "callBubbleQualityFair": "Fair connection",
+  "@callBubbleQualityFair": {
+    "description": "Small chip on a finished call whose connection was fair."
+  },
+  "callBubbleQualityPoor": "Poor connection",
+  "@callBubbleQualityPoor": {
+    "description": "Small chip on a finished call whose connection was poor."
+  },
+  "callBubbleJoin": "Join",
+  "@callBubbleJoin": {
+    "description": "Pill on a live group call bubble that joins the call."
+  },
+  "callBubblePeople": "{count, plural, =1{{count} person} other{{count} people}}",
+  "@callBubblePeople": {
+    "description": "How many people were in a group call.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "callBubbleMissedRun": "{count, plural, =1{{count} missed call} other{{count} missed calls}}",
+  "@callBubbleMissedRun": {
+    "description": "Second line of a collapsed bubble standing for several missed calls in a row.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "callBubbleRunBadge": "×{count}",
+  "@callBubbleRunBadge": {
+    "description": "Badge on a collapsed bubble standing for several missed calls, e.g. ×3.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "callBubbleShowLess": "Show less",
+  "@callBubbleShowLess": {
+    "description": "Small button under an expanded run of missed calls that folds them back into one bubble."
+  },
+  "callBubbleRinging": "Ringing…",
+  "@callBubbleRinging": {
+    "description": "Second line of a call bubble while the call is still ringing."
+  },
+  "callBubblePreviewDuration": "{title} · {duration}",
+  "@callBubblePreviewDuration": {
+    "description": "Chat list preview of a finished call: its title, then how long it lasted. title is e.g. Outgoing video call.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "callsTabNavLabel": "Calls",
+  "@callsTabNavLabel": {
+    "description": "Nav label for the Calls section (tab bar, side rail, page title)."
+  },
+  "callsTabNavShort": "CALLS",
+  "@callsTabNavShort": {
+    "description": "All-caps short form of the Calls nav destination; screen-reader-only label for the radial menu."
+  },
+  "callsTabSettingsToggle": "Calls tab",
+  "@callsTabSettingsToggle": {
+    "description": "Settings > Navigation switch title: show or hide the Calls tab."
+  },
+  "callsTabSettingsToggleSub": "Show your call history in the tab bar",
+  "@callsTabSettingsToggleSub": {
+    "description": "Settings > Navigation switch subtitle for the Calls tab."
+  },
+  "callsTabLiveNow": "Live now",
+  "@callsTabLiveNow": {
+    "description": "Calls tab: heading of the strip of huddles and group calls going on right now in your rooms."
+  },
+  "callsTabLiveHuddle": "Huddle",
+  "@callsTabLiveHuddle": {
+    "description": "Calls tab live strip: caption under a room with a huddle (a call that rings no one)."
+  },
+  "callsTabLiveGroupCall": "Group call",
+  "@callsTabLiveGroupCall": {
+    "description": "Calls tab live strip: caption under a room with a group call going on."
+  },
+  "callsTabPeople": "{count, plural, one{1 person} other{{count} people}}",
+  "@callsTabPeople": {
+    "description": "Number of people, as a small caption ('3 people').",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "callsTabLiveJoinSemantic": "Join call in {name}",
+  "@callsTabLiveJoinSemantic": {
+    "description": "Screen-reader label for a live-now tile that joins the call. {name} is the room name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "callsTabFavourites": "Favourites",
+  "@callsTabFavourites": {
+    "description": "Calls tab: heading of the row of people the user pinned themselves (never auto-filled; the most-called list is callsTabTopPeople)."
+  },
+  "callsTabFavouriteSemantic": "Call {name}",
+  "@callsTabFavouriteSemantic": {
+    "description": "Screen-reader label for a favourite person's circle; tapping it offers voice or video. {name} is the person.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "callsTabTalkTimeThisWeek": "This week: {duration} on calls",
+  "@callsTabTalkTimeThisWeek": {
+    "description": "Calls tab talk-time header. {duration} is connected time this week, like '3h 20m'.",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "callsTabTalkTimeNone": "No calls yet this week",
+  "@callsTabTalkTimeNone": {
+    "description": "Calls tab talk-time header when there was no connected call time this week."
+  },
+  "callsTabTalkTimeSheetTitle": "This week",
+  "@callsTabTalkTimeSheetTitle": {
+    "description": "Title of the sheet with the week's talk time and top people."
+  },
+  "callsTabCallCount": "{count, plural, one{1 call} other{{count} calls}}",
+  "@callsTabCallCount": {
+    "description": "Number of calls ('3 calls').",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "callsTabTalkTimeFootnote": "Counts only the time you were connected on calls, from {start} until now. Ringing, missed and declined calls count for nothing.",
+  "@callsTabTalkTimeFootnote": {
+    "description": "Footnote in the talk-time sheet saying exactly what is counted. {start} is the full date the week started on (weeks start on the locale's first weekday).",
+    "placeholders": {
+      "start": {
+        "type": "String"
+      }
+    }
+  },
+  "callsTabTopPeople": "Most talked to",
+  "@callsTabTopPeople": {
+    "description": "Heading of the list of people you talked to most this week."
+  },
+  "callsTabDurationHM": "{hours}h {minutes}m",
+  "@callsTabDurationHM": {
+    "description": "Talk time with hours and minutes, e.g. '3h 20m'.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "callsTabDurationM": "{minutes}m",
+  "@callsTabDurationM": {
+    "description": "Talk time in whole minutes, e.g. '12m'.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "callsTabDurationS": "{seconds}s",
+  "@callsTabDurationS": {
+    "description": "Talk time under a minute, e.g. '40s'.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "callsTabFilterAll": "All",
+  "@callsTabFilterAll": {
+    "description": "Calls tab segmented pill: all calls."
+  },
+  "callsTabFilterMissed": "Missed",
+  "@callsTabFilterMissed": {
+    "description": "Calls tab segmented pill: missed calls only."
+  },
+  "callsTabToday": "Today",
+  "@callsTabToday": {
+    "description": "Day header in the calls list."
+  },
+  "callsTabYesterday": "Yesterday",
+  "@callsTabYesterday": {
+    "description": "Day header in the calls list."
+  },
+  "callsTabVoiceCall": "Voice call",
+  "@callsTabVoiceCall": {
+    "description": "Action: start a voice call (swipe, hold menu, details, chooser)."
+  },
+  "callsTabVideoCall": "Video call",
+  "@callsTabVideoCall": {
+    "description": "Action: start a video call (swipe, hold menu, details, chooser)."
+  },
+  "callsTabOpenChat": "Open chat",
+  "@callsTabOpenChat": {
+    "description": "Hold menu action on a call: open the chat."
+  },
+  "callsTabDeleteFromHistory": "Delete from history",
+  "@callsTabDeleteFromHistory": {
+    "description": "Hold menu action on a call: remove it from my call history."
+  },
+  "callsTabInAudio": "Incoming voice call",
+  "@callsTabInAudio": {
+    "description": "Call row subtitle: an incoming voice call that was answered."
+  },
+  "callsTabInVideo": "Incoming video call",
+  "@callsTabInVideo": {
+    "description": "Call row subtitle: an incoming video call that was answered."
+  },
+  "callsTabOutAudio": "Outgoing voice call",
+  "@callsTabOutAudio": {
+    "description": "Call row subtitle: an outgoing voice call that was answered."
+  },
+  "callsTabOutVideo": "Outgoing video call",
+  "@callsTabOutVideo": {
+    "description": "Call row subtitle: an outgoing video call that was answered."
+  },
+  "callsTabMissedAudio": "Missed voice call",
+  "@callsTabMissedAudio": {
+    "description": "Call row subtitle: a missed voice call (shown in red)."
+  },
+  "callsTabMissedVideo": "Missed video call",
+  "@callsTabMissedVideo": {
+    "description": "Call row subtitle: a missed video call (shown in red)."
+  },
+  "callsTabNoAnswer": "No answer",
+  "@callsTabNoAnswer": {
+    "description": "Call row subtitle: I called and nobody picked up."
+  },
+  "callsTabDeclined": "Declined",
+  "@callsTabDeclined": {
+    "description": "Call row subtitle: the call was declined."
+  },
+  "callsTabCancelled": "Cancelled",
+  "@callsTabCancelled": {
+    "description": "Call row subtitle: I called and hung up before anyone answered."
+  },
+  "callsTabHuddle": "Huddle",
+  "@callsTabHuddle": {
+    "description": "Call row subtitle: a huddle I was in."
+  },
+  "callsTabEmptyTitle": "No calls yet",
+  "@callsTabEmptyTitle": {
+    "description": "Calls tab empty state title (no calls yet)."
+  },
+  "callsTabEmptyMessage": "Voice and video calls you make or get will show up here.",
+  "@callsTabEmptyMessage": {
+    "description": "Calls tab empty state message."
+  },
+  "callsTabEmptyMissedTitle": "No missed calls",
+  "@callsTabEmptyMissedTitle": {
+    "description": "Calls tab empty state title for the Missed filter."
+  },
+  "callsTabEmptyMissedMessage": "You are all caught up.",
+  "@callsTabEmptyMissedMessage": {
+    "description": "Calls tab empty state message for the Missed filter."
+  },
+  "callsTabNewCall": "New call",
+  "@callsTabNewCall": {
+    "description": "Calls tab: new call button label and sheet title."
+  },
+  "callsTabNewCallSearch": "Search friends",
+  "@callsTabNewCallSearch": {
+    "description": "New call sheet: search field hint."
+  },
+  "callsTabNewCallEmpty": "Add friends to call them.",
+  "@callsTabNewCallEmpty": {
+    "description": "New call sheet: shown when the person has no friends yet."
+  },
+  "callsTabNewCallNoMatch": "No one matches that.",
+  "@callsTabNewCallNoMatch": {
+    "description": "New call sheet: search found nobody."
+  },
+  "callsTabDetailsStarted": "Started",
+  "@callsTabDetailsStarted": {
+    "description": "Call details timeline: when the call started."
+  },
+  "callsTabDetailsRang": "Rang",
+  "@callsTabDetailsRang": {
+    "description": "Call details timeline: when the other phone started ringing."
+  },
+  "callsTabDetailsAnswered": "Answered",
+  "@callsTabDetailsAnswered": {
+    "description": "Call details timeline: when the call was answered (platform unknown)."
+  },
+  "callsTabDetailsAnsweredOn": "Answered on {platform}",
+  "@callsTabDetailsAnsweredOn": {
+    "description": "Call details timeline: answered on a device. {platform} is a device name such as Mac.",
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      }
+    }
+  },
+  "callsTabDetailsMovedTo": "Moved to {platform}",
+  "@callsTabDetailsMovedTo": {
+    "description": "Call details timeline: the call moved to another of my devices. {platform} is a device name.",
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      }
+    }
+  },
+  "callsTabDetailsEnded": "Ended",
+  "@callsTabDetailsEnded": {
+    "description": "Call details timeline: when the call ended."
+  },
+  "callsTabDetailsTalked": "Talked for {duration}",
+  "@callsTabDetailsTalked": {
+    "description": "Call details header: connected time. {duration} like '12:41'.",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "callsTabDetailsMessage": "Message",
+  "@callsTabDetailsMessage": {
+    "description": "Call details button: open the chat to message."
+  },
+  "callsTabPlatformIos": "iPhone",
+  "@callsTabPlatformIos": {
+    "description": "Device name used in call details."
+  },
+  "callsTabPlatformMacos": "Mac",
+  "@callsTabPlatformMacos": {
+    "description": "Device name used in call details."
+  },
+  "callsTabPlatformAndroid": "Android",
+  "@callsTabPlatformAndroid": {
+    "description": "Device name used in call details."
+  },
+  "callsTabPlatformWindows": "Windows",
+  "@callsTabPlatformWindows": {
+    "description": "Device name used in call details."
+  },
+  "callsTabPlatformLinux": "Linux",
+  "@callsTabPlatformLinux": {
+    "description": "Device name used in call details."
+  },
+  "callsTabPlatformWeb": "the web",
+  "@callsTabPlatformWeb": {
+    "description": "Device name used in call details, as in 'Answered on the web'."
+  },
+  "callsTabQualityTitle": "Connection",
+  "@callsTabQualityTitle": {
+    "description": "Call details: heading of the connection quality strip."
+  },
+  "callsTabQualityGood": "Good connection throughout",
+  "@callsTabQualityGood": {
+    "description": "Call details quality summary: no rough patches."
+  },
+  "callsTabQualityFair": "Choppy for {percent}% of the call",
+  "@callsTabQualityFair": {
+    "description": "Call details quality summary. {percent} is the share of the call that was choppy.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "callsTabQualityPoor": "Poor connection for {percent}% of the call",
+  "@callsTabQualityPoor": {
+    "description": "Call details quality summary. {percent} is the share of the call with a bad connection.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "callsTabDeletedChat": "Deleted chat",
+  "@callsTabDeletedChat": {
+    "description": "Calls list: name shown for a call whose chat no longer exists."
+  },
+  "callsTabUnknown": "Unknown",
+  "@callsTabUnknown": {
+    "description": "Calls list: name shown when a person cannot be resolved."
+  },
+  "callsTabLoadFailed": "Couldn't load your calls.",
+  "@callsTabLoadFailed": {
+    "description": "Calls tab: shown when the history could not be loaded."
+  },
+  "callsTabRowSemantic": "{name}, {detail}, {time}",
+  "@callsTabRowSemantic": {
+    "description": "Screen-reader label of a call row. {detail} is the type and outcome, {name} the person or room, {time} the time.",
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "destinationsGamesLabel": "Games",
+  "@destinationsGamesLabel": {
+    "description": "Bottom tab bar / side rail label for the Games tab (daily puzzles, streaks, games against the bot). One short word."
+  },
+  "destinationsGamesShort": "GAMES",
+  "@destinationsGamesShort": {
+    "description": "Screen-reader name of the Games tab in the icon-only radial menu. Uppercase where the script has case, like the other tabs' short names."
+  },
+  "gamesTabTodayLabel": "Today's games",
+  "@gamesTabTodayLabel": {
+    "description": "Section header on the Games tab over today's daily puzzles, grouped by difficulty."
+  },
+  "chatRequestsFolderLabel": "{count, plural, one{Requests, {count} waiting} other{Requests, {count} waiting}}",
+  "@chatRequestsFolderLabel": {
+    "description": "Screen-reader label for the Requests row pinned at the top of the chat list: friend requests and group invites waiting for an answer. {count} is how many are waiting.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chatFindFriendsTitle": "Find your friends",
+  "@chatFindFriendsTitle": {
+    "description": "Title of the card at the top of the chat list for accounts with fewer than 3 friends. Invites them to find people they know."
+  },
+  "chatFindFriendsBody": "Add the people you know to chat, share your day and play together.",
+  "@chatFindFriendsBody": {
+    "description": "One line under 'Find your friends' on the chat list card: what adding friends gets you. No em dashes."
+  },
+  "callsTabFavAdd": "Add to favourites",
+  "@callsTabFavAdd": {
+    "description": "Calls tab: button that pins a person to the favourites row (suggestion card, call row menu, call details)."
+  },
+  "callsTabFavRemove": "Remove from favourites",
+  "@callsTabFavRemove": {
+    "description": "Calls tab: menu item / button that unpins a person from the favourites row."
+  },
+  "callsTabFavNotNow": "Not now",
+  "@callsTabFavNotNow": {
+    "description": "Calls tab: dismisses the favourite suggestion for 30 days."
+  },
+  "callsTabFavAddTitle": "Add a favourite",
+  "@callsTabFavAddTitle": {
+    "description": "Title of the sheet where you pick a friend to add to your Calls favourites, and the screen-reader label of the plus circle."
+  },
+  "callsTabFavAddLabel": "Add",
+  "@callsTabFavAddLabel": {
+    "description": "Calls tab: short label under the plus circle at the end of the favourites row."
+  },
+  "callsTabFavEmpty": "Pin the people you call most. Tap + to add one.",
+  "@callsTabFavEmpty": {
+    "description": "Calls tab: caption next to the plus circle while the user has no favourites yet."
+  },
+  "callsTabFavPickerEmpty": "No one left to add.",
+  "@callsTabFavPickerEmpty": {
+    "description": "Add-a-favourite sheet: shown when there is nobody left to add."
+  },
+  "callsTabFavSuggestCalls": "You called {name} {count} times in the last 30 days",
+  "@callsTabFavSuggestCalls": {
+    "description": "Calls tab suggestion card: says what it counts. {name} is the person, {count} their direct calls with the user in the last 30 days (at least 3).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "callsTabFavSuggestTime": "You talked to {name} for {time} in the last 30 days",
+  "@callsTabFavSuggestTime": {
+    "description": "Calls tab suggestion card: says what it counts. {name} is the person, {time} the connected talk time with them in the last 30 days (for example '25m', at least 20 minutes).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "callsTabFavAddFailed": "Couldn't add to favourites. Try again.",
+  "@callsTabFavAddFailed": {
+    "description": "Toast when adding a favourite failed and the row was rolled back."
+  },
+  "callsTabFavRemoveFailed": "Couldn't remove from favourites. Try again.",
+  "@callsTabFavRemoveFailed": {
+    "description": "Toast when removing a favourite failed and the person came back to the row."
+  }
 }

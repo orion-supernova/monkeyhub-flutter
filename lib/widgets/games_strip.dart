@@ -11,8 +11,8 @@ import 'game_tile.dart';
 import 'desktop_scroll.dart';
 import 'ios_kit.dart';
 
-/// Today's games on the Feed board, one row that scrolls sideways: the code
-/// puzzle and the dailies, easiest first.
+/// Today's games: the code puzzle and the dailies, easiest first, in one row
+/// that scrolls sideways or, on the Games tab, one row per tier ([shelves]).
 ///
 /// The same tiles the hub used to shelve, with the same time and rank on them.
 /// The hub is the leaderboard now, and carrying the games there too put the
@@ -44,7 +44,15 @@ class GamesStrip extends StatelessWidget {
     this.puzzleRank,
     this.inset = 0,
     this.onOpenBots,
+    this.shelves = false,
   });
+
+  /// One sideways row PER TIER, stacked, instead of one row for everything:
+  /// the Games tab, where the games are the page rather than a band
+  /// summarising it. A wrapped grid was tried first; at two across the tiles
+  /// are tall, and eleven of them ran the page to about 2400pt with the bot
+  /// below all of it. Shelves keep each tier one row high.
+  final bool shelves;
 
   /// Opens the play-the-bot page. Null leaves its tile off the row.
   final VoidCallback? onOpenBots;
@@ -79,10 +87,20 @@ class GamesStrip extends StatelessWidget {
     // Every tile the row will hold, placeholders included, for the "all of
     // them fit" test below.
     final tiers = {tierOf(null), for (final g in DailyGame.values) tierOf(g)};
-    final count = DailyGame.values.length +
-        1 +
-        GameTier.values.where((t) => !tiers.contains(t)).length +
-        (onOpenBots == null ? 0 : 1);
+    // On shelves the widest row is the fullest tier, not the whole set.
+    final perTier = <GameTier, int>{
+      for (final t in GameTier.values) t: 0,
+    };
+    perTier[tierOf(null)] = perTier[tierOf(null)]! + 1;
+    for (final g in DailyGame.values) {
+      perTier[tierOf(g)] = perTier[tierOf(g)]! + 1;
+    }
+    final count = shelves
+        ? perTier.values.fold(1, (m, n) => n > m ? n : m)
+        : DailyGame.values.length +
+            1 +
+            GameTier.values.where((t) => !tiers.contains(t)).length +
+            (onOpenBots == null ? 0 : 1);
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     return LayoutBuilder(
@@ -138,6 +156,39 @@ class GamesStrip extends StatelessWidget {
             GameTier.hard => l10n.gameTierHard,
           },
         );
+        if (shelves) {
+          Widget shelf(List<Widget> tiles) => HorizontalWheelScroll(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.symmetric(horizontal: inset, vertical: 4),
+              clipBehavior: Clip.none,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final (i, tile) in tiles.indexed) ...[
+                    if (i > 0) const SizedBox(width: gap),
+                    tile,
+                  ],
+                ],
+              ),
+            ),
+          );
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final tier in GameTier.values) ...[
+                if (tier != GameTier.values.first)
+                  const SizedBox(height: groupGap),
+                Padding(
+                  padding: EdgeInsets.only(left: inset + 4, bottom: 6),
+                  child: Text(label(tier), style: caption),
+                ),
+                shelf(groups[tier]!),
+              ],
+            ],
+          );
+        }
         return HorizontalWheelScroll(
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,

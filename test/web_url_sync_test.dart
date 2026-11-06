@@ -13,8 +13,13 @@ void main() {
         const WebLocation.section(HomeSection.feed),
       );
       expect(
-        WebLocation.parse('/discover/'),
-        const WebLocation.section(HomeSection.discover),
+        WebLocation.parse('/games/'),
+        const WebLocation.section(HomeSection.games),
+      );
+      // Discover is a page off Chats now; old links land on Chats.
+      expect(
+        WebLocation.parse('/discover'),
+        WebLocation.home,
       );
       expect(
         WebLocation.parse('/settings'),
@@ -39,7 +44,7 @@ void main() {
       for (final loc in [
         WebLocation.home,
         const WebLocation.section(HomeSection.feed),
-        const WebLocation.section(HomeSection.discover),
+        const WebLocation.section(HomeSection.games),
         const WebLocation.section(HomeSection.settings),
         const WebLocation.room('abc'),
       ]) {
@@ -79,11 +84,11 @@ void main() {
       );
       expect(
         WebLocation.of(
-          section: HomeSection.discover,
+          section: HomeSection.games,
           roomId: null,
           paneShell: false,
         ).path,
-        '/discover',
+        '/games',
       );
     });
   });

@@ -8,6 +8,7 @@ import '../platform.dart';
 import '../data/chat_repository.dart';
 import '../media/file_url_cache.dart';
 import '../models/chat_room.dart';
+import '../widgets/call_bubble.dart' show callPreviewForContent;
 import '../privacy/app_only.dart';
 import 'alert_burst.dart';
 import 'banner_composer.dart';
@@ -293,7 +294,7 @@ class MessageAlerts {
       roomId: r.id,
       isDm: r.isDm,
       title: _bannerTitle(repo, r),
-      text: _bannerText(r, secret),
+      text: _bannerText(r, secret, repo.userId),
       sender: sender?.displayName,
       // A secret room says only what its chat-list row says, every time.
       replace: secret,
@@ -339,6 +340,12 @@ class MessageAlerts {
 
   /// The preview line. A secret room says only what its chat-list row says
   /// here, because the desktop builds do not open it.
-  String _bannerText(ChatRoom r, bool secret) =>
-      secret ? appLabels().appOnlySecretPreview : r.lastMessage?.trim() ?? '';
+  String _bannerText(ChatRoom r, bool secret, String? me) {
+    if (secret) return appLabels().appOnlySecretPreview;
+    final last = r.lastMessage?.trim() ?? '';
+    // A call is a code on the wire; say it from the viewer's side.
+    return callPreviewForContent(appLabels(), last,
+            mine: r.isLastMessageFrom(me)) ??
+        last;
+  }
 }

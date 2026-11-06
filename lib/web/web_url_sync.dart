@@ -54,8 +54,12 @@ class WebLocation {
     }
     if (parts.length != 2) return null;
     return switch (parts[1]) {
+      'calls' => const WebLocation.section(HomeSection.calls),
       'feed' => const WebLocation.section(HomeSection.feed),
-      'discover' => const WebLocation.section(HomeSection.discover),
+      'games' => const WebLocation.section(HomeSection.games),
+      // Discover was a tab; it is a page off the chat list now. Old links land
+      // on Chats, where its button is.
+      'discover' => home,
       'settings' => const WebLocation.section(HomeSection.settings),
       _ => null,
     };
@@ -66,8 +70,9 @@ class WebLocation {
     if (id != null) return '/c/$id';
     return switch (section) {
       HomeSection.chat => '/',
+      HomeSection.calls => '/calls',
       HomeSection.feed => '/feed',
-      HomeSection.discover => '/discover',
+      HomeSection.games => '/games',
       HomeSection.settings => '/settings',
     };
   }

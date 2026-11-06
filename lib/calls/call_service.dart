@@ -17,6 +17,7 @@ import 'camera_health.dart';
 import 'call_media.dart';
 import 'call_models.dart';
 import 'call_permissions.dart';
+import 'call_quality_report.dart';
 import 'call_recovery.dart';
 import 'call_stats_monitor.dart';
 import 'draw/draw_channel.dart';
@@ -46,6 +47,7 @@ class CallService extends ChangeNotifier
     _seenNetworkEpoch = _signaling.networkEpoch;
     _signaling.addListener(_onSignalingStatus);
     callQuality.addListener(_onQualitySnapshot);
+    callQuality.addListener(_recordQuality);
   }
 
   /// Transport health published by `ConnectionHealth`. See [SignalingStatus].
@@ -2111,6 +2113,25 @@ class CallService extends ChangeNotifier
   @override
   void dismissQualityNotice() => _quality.dismissQualityNotice();
 
+  /// The call's connection quality, bucketed per 10 s while connected and
+  /// reported once after it ends (`callLog:reportQuality`).
+  final CallQualityRecorder _qualityRec = CallQualityRecorder();
+
+  void _recordQuality() {
+    final q = callQuality.value;
+    final s = _session;
+    if (q == null || s == null || s.status != CallStatus.active) return;
+    _qualityRec.add(q.quality, DateTime.now());
+  }
+
+  /// Hands the recorded buckets to the server, fire and forget. Called as the
+  /// call ends; never awaited by hang-up, errors swallowed.
+  void _flushQualityReport(String? callId) {
+    final samples = _qualityRec.take();
+    if (callId == null) return;
+    sendQualityReport(callId: callId, samples: samples);
+  }
+
   /// Each stats poll goes to the weak-link policy.
   void _onQualitySnapshot() {
     final q = callQuality.value;
@@ -3878,6 +3899,7 @@ class CallService extends ChangeNotifier
     _acceptedNatively = false;
     _latchedAcceptCallId = null;
     final s = _session;
+    _flushQualityReport(s?.callId);
     if (s != null) {
       _session = s.copyWith(status: terminal, errorMessage: errorMessage);
       notifyListeners();
@@ -4037,6 +4059,7 @@ class CallService extends ChangeNotifier
     incomingTick.dispose();
     _disposePc();
     callQuality.removeListener(_onQualitySnapshot);
+    callQuality.removeListener(_recordQuality);
     callQuality.dispose();
     _quality.dispose();
     reopenTick.dispose();

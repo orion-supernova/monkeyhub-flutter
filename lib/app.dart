@@ -28,6 +28,7 @@ import 'calls/active_call_pill.dart';
 import 'calls/draw/screen_share_overlay.dart';
 import 'calls/in_call_pill.dart';
 import 'calls/live_calls_store.dart';
+import 'screens/calls/call_log_store.dart';
 import 'calls/screen_share.dart';
 import 'calls/call_media.dart' show logCallAudioState;
 import 'calls/call_models.dart';
@@ -920,20 +921,22 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   /// which is the default anyway.)
   void _openRequestsFromPush() {
     UiSelectionStore.instance.requestRequestsView();
-    SettingsStore.instance.setSection(HomeSection.discover, persist: false);
+    // Chats, which opens Discover over itself for a pending request (see
+    // `HomeScreen._openPendingRequests`). Discover is not a tab any more.
+    SettingsStore.instance.setSection(HomeSection.chat, persist: false);
     final nav = rootNavigatorKey.currentState;
     if (nav == null) return;
     nav.popUntil((r) => r.isFirst);
   }
 
-  /// A tapped daily-games nudge or shared result: the Feed, scrolled to its
-  /// Games band (see `FeedScreen._consumePendingGames`). Same three moves as the requests tap above, and for the same reasons —
+  /// A tapped daily-games nudge or shared result: the Games tab, back at its
+  /// top (see `GamesScreen._consumePendingGames`). Same three moves as the requests tap above, and for the same reasons —
   /// the section is steered without persisting (a notification is not a
   /// preference), and whatever was pushed over the shell is popped first so the
   /// tab the user is being sent to is actually the thing they see.
   void _openGamesFromPush() {
     UiSelectionStore.instance.requestGamesView();
-    SettingsStore.instance.setSection(HomeSection.feed, persist: false);
+    SettingsStore.instance.setSection(HomeSection.games, persist: false);
     final nav = rootNavigatorKey.currentState;
     if (nav == null) return;
     nav.popUntil((r) => r.isFirst);
@@ -1870,6 +1873,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         unawaited(MatchesStore.instance.attach(s.userId));
         // The chat list's "call going on here" rows.
         unawaited(LiveCallsStore.instance.attach(_groupCallApi, s.userId));
+        // The Calls tab's missed-call badge: one cheap subscription, and only
+        // while the tab is switched on.
+        CallLogStore.instance.setEnabled(SettingsStore.instance.showCallsTab);
         // Which rooms to look in: the chat list's, re-announced only when the
         // set changes.
         _repo.removeListener(_syncLiveCallRooms);
@@ -1995,6 +2001,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         MatchesStore.instance.detach();
         _repo.removeListener(_syncLiveCallRooms);
         LiveCallsStore.instance.detach();
+        CallLogStore.instance.setEnabled(false);
         ChallengesStore.instance.clear();
         // And for the share-sheet suggestions, which name people and live
         // OUTSIDE the app — in the system's shortcut store and in Siri's

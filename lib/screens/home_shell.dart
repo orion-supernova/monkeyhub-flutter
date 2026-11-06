@@ -22,7 +22,10 @@ import '../widgets/count_badge.dart';
 import '../widgets/radial_floating_menu.dart';
 import '../widgets/terms_consent.dart';
 import '../widgets/ios_kit.dart' show quietFill;
-import 'discover_screen.dart';
+import 'calls/call_log_store.dart';
+import 'calls/calls_directory.dart';
+import 'calls/calls_screen.dart';
+import 'games_screen.dart';
 import 'feed_screen.dart';
 import 'home_screen.dart' as chat;
 import 'navigation/destinations.dart';
@@ -73,6 +76,8 @@ class _HomeShellState extends State<HomeShell> {
     widget.repo.addListener(_onSettings);
     // Same for the Feed tab's unseen-moments badge.
     FeedStore.instance.addListener(_onSettings);
+    // Missed calls move the Calls tab's badge.
+    CallLogStore.instance.addListener(_onSettings);
     // Lights the Settings tab the moment either the launch check or a manual
     // "Check for Updates" tap finds a newer build.
     UpdateAvailability.instance.addListener(_onSettings);
@@ -90,12 +95,17 @@ class _HomeShellState extends State<HomeShell> {
     widget.family.removeListener(_onSettings);
     widget.repo.removeListener(_onSettings);
     FeedStore.instance.removeListener(_onSettings);
+    CallLogStore.instance.removeListener(_onSettings);
     UpdateAvailability.instance.removeListener(_onSettings);
     super.dispose();
   }
 
   void _onSettings() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    // The Calls tab's missed-call subscription lives exactly as long as the
+    // tab is switched on. A no-op when nothing changed.
+    CallLogStore.instance.setEnabled(SettingsStore.instance.showCallsTab);
+    setState(() {});
   }
 
   /// All three nav chromes report every tap here, including one on the
@@ -117,12 +127,16 @@ class _HomeShellState extends State<HomeShell> {
   /// chromes so they can't drift apart. Destinations with nothing to report are
   /// simply absent; [CountBadge] renders nothing at zero anyway.
   Map<HomeSection, int> get _badges => {
-    HomeSection.chat: widget.repo.unreadMessageTotal,
-    // Group invites live in the same Discover inbox as friend requests, so
-    // they have to move the same badge — a pending invite the tab bar does not
-    // mention is one nobody finds until the pushed banner is gone.
-    HomeSection.discover: widget.repo.incomingRequests.length +
+    // Unread messages plus friend requests and group invites: Discover is a
+    // page off the chat list now, and the Requests row at the top of that
+    // list is where those wait, so the tab that leads to them carries them.
+    HomeSection.chat: widget.repo.unreadMessageTotal +
+        widget.repo.incomingRequests.length +
         widget.repo.roomInvitations.length,
+    // Missed calls since the Calls tab was last opened. Read from the store's
+    // one shared "missed" subscription; zero when the tab is switched off.
+    if (SettingsStore.instance.showCallsTab)
+      HomeSection.calls: CallLogStore.instance.badgeCount,
     // Moments from friends the user hasn't opened. One entry lights the badge
     // in all three nav chromes, and it is the only reason anyone opens this
     // tab on day thirty. FeedStore is subscribed app-wide (attached in
@@ -146,11 +160,12 @@ class _HomeShellState extends State<HomeShell> {
           auth: widget.auth,
           family: widget.family,
         );
-      case HomeSection.discover:
-        return DiscoverScreen(
-          repo: widget.repo,
+      case HomeSection.games:
+        return GamesScreen(repo: widget.repo, feedApi: widget.feedApi);
+      case HomeSection.calls:
+        return CallsScreen(
+          directory: RepoCallsDirectory(widget.repo, widget.api),
           api: widget.api,
-          family: widget.family,
         );
       case HomeSection.feed:
         return FeedScreen(
@@ -305,17 +320,22 @@ class _HomeShellState extends State<HomeShell> {
           auth: widget.auth,
           family: widget.family,
         );
-      case HomeSection.discover:
-        // Full-width like Feed, but every push Discover makes (search, the
-        // people/rooms full lists, a friend-request draft) has to land in its
-        // own pane rather than the app's root navigator — see [_SectionPane].
+      case HomeSection.games:
+        // Full-width like Feed: the games, the leaderboard and the bot's
+        // matches all push, and those land in the content pane.
         content = _SectionPane(
-          sectionKey: 'discover',
-          child: DiscoverScreen(
-            repo: widget.repo,
-            api: widget.api,
-            family: widget.family,
-          ),
+          sectionKey: 'games',
+          child: GamesScreen(repo: widget.repo, feedApi: widget.feedApi),
+        );
+      case HomeSection.calls:
+        // Full-width like Feed; the details sheet and any chat it opens stay
+        // inside the content pane.
+        content = _SectionPane(
+          sectionKey: 'calls',
+          child: CallsScreen(
+          directory: RepoCallsDirectory(widget.repo, widget.api),
+          api: widget.api,
+        ),
         );
       case HomeSection.feed:
         content = _SectionPane(

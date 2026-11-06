@@ -16,10 +16,14 @@ void main() {
       }
     });
 
-    test('discover in particular survives a restart', () {
-      // Named explicitly: it's the member that was added, and the one the
-      // silent-fallback bug would have swallowed.
-      expect(HomeSection.parse('discover'), HomeSection.discover);
+    test('games in particular survives a restart', () {
+      // Named explicitly: it's the member that was added most recently, and
+      // the one the silent-fallback bug would have swallowed.
+      expect(HomeSection.parse('games'), HomeSection.games);
+    });
+
+    test('a stored discover (a tab until Nov 2026) opens on chat', () {
+      expect(HomeSection.parse('discover'), HomeSection.chat);
     });
 
     test('unknown and missing names fall back to chat', () {

@@ -106,7 +106,7 @@ void main() {
       body: Stack(children: [
         Positioned.fill(child: SizedBox(key: section)),
         NativeTabBar(
-          active: HomeSection.chat,
+          active: HomeSection.calls,
           onSelect: (_) {},
           badges: const {},
         ),
@@ -117,9 +117,9 @@ void main() {
 
   testWidgets('configures once, then sends only real changes', (tester) async {
     Widget bar(int unread) => host(NativeTabBar(
-          active: HomeSection.chat,
+          active: HomeSection.calls,
           onSelect: (_) {},
-          badges: {HomeSection.chat: unread},
+          badges: {HomeSection.calls: unread},
         ));
     await tester.pumpWidget(bar(2));
     expect(calls.map((c) => c.method), ['configure', 'update', 'setVisible']);
@@ -132,13 +132,13 @@ void main() {
 
     await tester.pumpWidget(bar(3));
     expect(calls.map((c) => c.method), ['update']);
-    expect((calls.single.arguments as Map)['badges'], [3, 0, 0, 0]);
+    expect((calls.single.arguments as Map)['badges'], [3, for (var i = 1; i < navOrder.length; i++) 0]);
   });
 
   testWidgets('a native tap reaches onSelect', (tester) async {
     HomeSection? picked;
     await tester.pumpWidget(host(NativeTabBar(
-      active: HomeSection.chat,
+      active: HomeSection.calls,
       onSelect: (s) => picked = s,
       badges: const {},
     )));
@@ -154,7 +154,7 @@ void main() {
 
   testWidgets('an overlay hold hides the bar until released', (tester) async {
     await tester.pumpWidget(host(NativeTabBar(
-      active: HomeSection.chat,
+      active: HomeSection.calls,
       onSelect: (_) {},
       badges: const {},
     )));
@@ -179,7 +179,7 @@ void main() {
       (tester) async {
     Widget bar(String key) => host(NativeTabBar(
           key: ValueKey(key),
-          active: HomeSection.chat,
+          active: HomeSection.calls,
           onSelect: (_) {},
           badges: const {},
         ));
@@ -205,7 +205,7 @@ void main() {
     HomeSection? picked;
     Widget bar(String key) => host(NativeTabBar(
           key: ValueKey(key),
-          active: HomeSection.chat,
+          active: HomeSection.calls,
           onSelect: (s) => picked = s,
           badges: const {},
         ));

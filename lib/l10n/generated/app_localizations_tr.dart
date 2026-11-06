@@ -10086,7 +10086,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get navigationPageFooter =>
-      'Sohbetler, Akış, Keşfet ve Ayarlar arasında nasıl geçtiğin.';
+      'Sekmeler arasında nasıl geçtiğin ve çubukta hangi sekmelerin olduğu.';
 
   @override
   String get navTabBarSub => 'Her zaman görünür, her yere tek dokunuş.';
@@ -15412,4 +15412,446 @@ class AppLocalizationsTr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get callBubbleCalling => 'Aranıyor…';
+
+  @override
+  String callBubbleIncomingCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'Gelen görüntülü arama',
+      'other': 'Gelen sesli arama',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleOutgoingCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'Giden görüntülü arama',
+      'other': 'Giden sesli arama',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'Görüntülü arama',
+      'other': 'Sesli arama',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleMissed(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'Cevapsız görüntülü arama',
+      'other': 'Cevapsız sesli arama',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get callBubbleNoAnswer => 'Cevap yok';
+
+  @override
+  String callBubbleCancelled(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'İptal edilen görüntülü arama',
+      'other': 'İptal edilen sesli arama',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleDeclined(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': 'Reddedilen görüntülü arama',
+      'other': 'Reddedilen sesli arama',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleOutgoingDuration(String duration) {
+    return 'Giden · $duration';
+  }
+
+  @override
+  String callBubbleIncomingDuration(String duration) {
+    return 'Gelen · $duration';
+  }
+
+  @override
+  String get callBubbleOutgoing => 'Giden';
+
+  @override
+  String get callBubbleIncoming => 'Gelen';
+
+  @override
+  String get callBubbleTapToCallBack => 'Geri aramak için dokun';
+
+  @override
+  String callBubbleAnsweredOn(String device) {
+    return '$device cihazında yanıtlandı';
+  }
+
+  @override
+  String get callBubbleQualityFair => 'Orta kalitede bağlantı';
+
+  @override
+  String get callBubbleQualityPoor => 'Zayıf bağlantı';
+
+  @override
+  String get callBubbleJoin => 'Katıl';
+
+  @override
+  String callBubblePeople(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kişi',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleMissedRun(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cevapsız arama',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleRunBadge(int count) {
+    return '×$count';
+  }
+
+  @override
+  String get callBubbleShowLess => 'Daha az göster';
+
+  @override
+  String get callBubbleRinging => 'Çalıyor…';
+
+  @override
+  String callBubblePreviewDuration(String title, String duration) {
+    return '$title · $duration';
+  }
+
+  @override
+  String get callsTabNavLabel => 'Aramalar';
+
+  @override
+  String get callsTabNavShort => 'ARAMALAR';
+
+  @override
+  String get callsTabSettingsToggle => 'Aramalar sekmesi';
+
+  @override
+  String get callsTabSettingsToggleSub =>
+      'Arama geçmişini sekme çubuğunda göster';
+
+  @override
+  String get callsTabLiveNow => 'Şu an canlı';
+
+  @override
+  String get callsTabLiveHuddle => 'Huddle';
+
+  @override
+  String get callsTabLiveGroupCall => 'Grup araması';
+
+  @override
+  String callsTabPeople(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kişi',
+      one: '1 kişi',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsTabLiveJoinSemantic(String name) {
+    return '$name odasındaki aramaya katıl';
+  }
+
+  @override
+  String get callsTabFavourites => 'Favoriler';
+
+  @override
+  String callsTabFavouriteSemantic(String name) {
+    return '$name kişisini ara';
+  }
+
+  @override
+  String callsTabTalkTimeThisWeek(String duration) {
+    return 'Bu hafta: aramalarda $duration';
+  }
+
+  @override
+  String get callsTabTalkTimeNone => 'Bu hafta henüz arama yok';
+
+  @override
+  String get callsTabTalkTimeSheetTitle => 'Bu hafta';
+
+  @override
+  String callsTabCallCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count arama',
+      one: '1 arama',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsTabTalkTimeFootnote(String start) {
+    return 'Yalnızca aramalarda bağlı kaldığın süreyi sayar: $start tarihinden şimdiye kadar. Çalan, cevapsız ve reddedilen aramalar sayılmaz.';
+  }
+
+  @override
+  String get callsTabTopPeople => 'En çok konuştukların';
+
+  @override
+  String callsTabDurationHM(int hours, int minutes) {
+    return '${hours}sa ${minutes}dk';
+  }
+
+  @override
+  String callsTabDurationM(int minutes) {
+    return '${minutes}dk';
+  }
+
+  @override
+  String callsTabDurationS(int seconds) {
+    return '${seconds}sn';
+  }
+
+  @override
+  String get callsTabFilterAll => 'Tümü';
+
+  @override
+  String get callsTabFilterMissed => 'Cevapsız';
+
+  @override
+  String get callsTabToday => 'Bugün';
+
+  @override
+  String get callsTabYesterday => 'Dün';
+
+  @override
+  String get callsTabVoiceCall => 'Sesli arama';
+
+  @override
+  String get callsTabVideoCall => 'Görüntülü arama';
+
+  @override
+  String get callsTabOpenChat => 'Sohbeti aç';
+
+  @override
+  String get callsTabDeleteFromHistory => 'Geçmişten sil';
+
+  @override
+  String get callsTabInAudio => 'Gelen sesli arama';
+
+  @override
+  String get callsTabInVideo => 'Gelen görüntülü arama';
+
+  @override
+  String get callsTabOutAudio => 'Giden sesli arama';
+
+  @override
+  String get callsTabOutVideo => 'Giden görüntülü arama';
+
+  @override
+  String get callsTabMissedAudio => 'Cevapsız sesli arama';
+
+  @override
+  String get callsTabMissedVideo => 'Cevapsız görüntülü arama';
+
+  @override
+  String get callsTabNoAnswer => 'Cevap yok';
+
+  @override
+  String get callsTabDeclined => 'Reddedildi';
+
+  @override
+  String get callsTabCancelled => 'İptal edildi';
+
+  @override
+  String get callsTabHuddle => 'Huddle';
+
+  @override
+  String get callsTabEmptyTitle => 'Henüz arama yok';
+
+  @override
+  String get callsTabEmptyMessage =>
+      'Yaptığın ve aldığın sesli ve görüntülü aramalar burada görünür.';
+
+  @override
+  String get callsTabEmptyMissedTitle => 'Cevapsız arama yok';
+
+  @override
+  String get callsTabEmptyMissedMessage => 'Hepsini yakaladın.';
+
+  @override
+  String get callsTabNewCall => 'Yeni arama';
+
+  @override
+  String get callsTabNewCallSearch => 'Arkadaş ara';
+
+  @override
+  String get callsTabNewCallEmpty => 'Aramak için arkadaş ekle.';
+
+  @override
+  String get callsTabNewCallNoMatch => 'Eşleşen kimse yok.';
+
+  @override
+  String get callsTabDetailsStarted => 'Başladı';
+
+  @override
+  String get callsTabDetailsRang => 'Çaldı';
+
+  @override
+  String get callsTabDetailsAnswered => 'Cevaplandı';
+
+  @override
+  String callsTabDetailsAnsweredOn(String platform) {
+    return '$platform üzerinde cevaplandı';
+  }
+
+  @override
+  String callsTabDetailsMovedTo(String platform) {
+    return '$platform cihazına taşındı';
+  }
+
+  @override
+  String get callsTabDetailsEnded => 'Bitti';
+
+  @override
+  String callsTabDetailsTalked(String duration) {
+    return '$duration konuşuldu';
+  }
+
+  @override
+  String get callsTabDetailsMessage => 'Mesaj';
+
+  @override
+  String get callsTabPlatformIos => 'iPhone';
+
+  @override
+  String get callsTabPlatformMacos => 'Mac';
+
+  @override
+  String get callsTabPlatformAndroid => 'Android';
+
+  @override
+  String get callsTabPlatformWindows => 'Windows';
+
+  @override
+  String get callsTabPlatformLinux => 'Linux';
+
+  @override
+  String get callsTabPlatformWeb => 'web';
+
+  @override
+  String get callsTabQualityTitle => 'Bağlantı';
+
+  @override
+  String get callsTabQualityGood => 'Baştan sona iyi bağlantı';
+
+  @override
+  String callsTabQualityFair(int percent) {
+    return 'Görüşmenin %$percent kadarı kesintiliydi';
+  }
+
+  @override
+  String callsTabQualityPoor(int percent) {
+    return 'Görüşmenin %$percent kadarı zayıf bağlantılıydı';
+  }
+
+  @override
+  String get callsTabDeletedChat => 'Silinmiş sohbet';
+
+  @override
+  String get callsTabUnknown => 'Bilinmiyor';
+
+  @override
+  String get callsTabLoadFailed => 'Aramaların yüklenemedi.';
+
+  @override
+  String callsTabRowSemantic(String detail, String name, String time) {
+    return '$name, $detail, $time';
+  }
+
+  @override
+  String get destinationsGamesLabel => 'Oyunlar';
+
+  @override
+  String get destinationsGamesShort => 'OYUNLAR';
+
+  @override
+  String get gamesTabTodayLabel => 'Bugünün oyunları';
+
+  @override
+  String chatRequestsFolderLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'İstekler, $count bekliyor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFindFriendsTitle => 'Arkadaşlarını bul';
+
+  @override
+  String get chatFindFriendsBody =>
+      'Tanıdığın kişileri ekle; sohbet et, gününü paylaş ve birlikte oyna.';
+
+  @override
+  String get callsTabFavAdd => 'Favorilere ekle';
+
+  @override
+  String get callsTabFavRemove => 'Favorilerden çıkar';
+
+  @override
+  String get callsTabFavNotNow => 'Şimdi değil';
+
+  @override
+  String get callsTabFavAddTitle => 'Favori ekle';
+
+  @override
+  String get callsTabFavAddLabel => 'Ekle';
+
+  @override
+  String get callsTabFavEmpty =>
+      'En çok aradığın kişileri sabitle. Eklemek için + dokun.';
+
+  @override
+  String get callsTabFavPickerEmpty => 'Eklenecek kimse kalmadı.';
+
+  @override
+  String callsTabFavSuggestCalls(int count, String name) {
+    return 'Son 30 günde $name kişisini $count kez aradın';
+  }
+
+  @override
+  String callsTabFavSuggestTime(String name, String time) {
+    return 'Son 30 günde $name ile $time konuştun';
+  }
+
+  @override
+  String get callsTabFavAddFailed => 'Favorilere eklenemedi. Tekrar dene.';
+
+  @override
+  String get callsTabFavRemoveFailed =>
+      'Favorilerden çıkarılamadı. Tekrar dene.';
 }

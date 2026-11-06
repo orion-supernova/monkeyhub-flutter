@@ -27,6 +27,7 @@ import '../fight/view/fight_online_screen.dart';
 import '../backend/matches_api.dart';
 import 'games/match_screen.dart';
 import '../calls/call_models.dart';
+import '../models/call_history.dart';
 import '../calls/group_call_banner.dart';
 import '../calls/group_call_button.dart';
 import '../calls/group_call_service.dart';
@@ -1142,7 +1143,7 @@ class _RoomScreenState extends State<_RoomView>
         // Every photograph of an album points at the one row that draws it,
         // so a reply-jump or a search hit aimed at the third picture still
         // has somewhere to land.
-        for (final p in item.album) {
+        for (final p in [...item.album, ...item.callRun]) {
           index[p.id] = i;
           // And the row's own id alongside it, because an index is not enough
           // on its own: `_dateTracks` is keyed by the id of the message the ROW
@@ -3584,7 +3585,7 @@ class _RoomScreenState extends State<_RoomView>
   }
 
   /// "Play a game": picks what and how, then starts it on the server. Bots
-  /// are not a chat thing; they live on the Feed's games row.
+  /// are not a chat thing; they live on the Games tab.
   Future<void> _startGame() async {
     final me = widget.repo.userId;
     final room = _room;
@@ -5487,6 +5488,58 @@ class _RoomScreenState extends State<_RoomView>
         (room.isDm ? dmUser != null : GroupCallService.maybeInstance != null);
     void call(CallMediaKind kind) {
       if (dmUser != null) {
+  /// What tapping a call bubble does in [room], or null where calling is off
+  /// (the same gates the header's call buttons use), which leaves the bubble a
+  /// plain record. A 1:1 call rings the other person back with the same kind
+  /// through the header button's own entry point; a group call that is live
+  /// joins, and one that is over opens the start sheet with its kind chosen.
+  void Function(CallEvent event)? _callBubbleTapFor(ChatRoom room) {
+    final caps = widget.repo.capabilitiesFor(room);
+    if (!caps.canCall || FamilyService.maybeInstance?.canCall == false) {
+      return null;
+    }
+    CallMediaKind kindOf(CallEvent e) =>
+        e.isVideo ? CallMediaKind.video : CallMediaKind.audio;
+    if (room.isDm) {
+      return (event) {
+        final dmUser = widget.repo.otherUserFor(room);
+        if (dmUser == null) return;
+        CallButton(
+          peerUserId: dmUser.id,
+          peerName: dmUser.displayName,
+          peerAvatarStorageId: dmUser.avatarStorageId,
+          roomId: room.id,
+          variant: CallButtonVariant.liquid,
+          kind: kindOf(event),
+        ).activate(context);
+      };
+    }
+    if (GroupCallService.maybeInstance == null) return null;
+    return (event) async {
+      final service = GroupCallService.instance;
+      if (service.inCall || (CallService.maybeInstance?.inCall ?? false)) {
+        return;
+      }
+      final live = LiveCallsStore.instance.forRoom(room.id);
+      if (event.isLive && live != null && live.groupCallId == event.id) {
+        try {
+          await service.joinCall(event.id);
+        } catch (e) {
+          if (!mounted) return;
+          final l10n = AppLocalizations.of(context);
+          showAppToast(
+              context,
+              e.toString().contains('CALL_FULL')
+                  ? l10n.groupCallBannerCallFullError
+                  : friendlyServerError(
+                      e, l10n, l10n.groupCallBannerJoinFailedError));
+        }
+        return;
+      }
+      GroupCallButton(roomId: room.id, kind: kindOf(event)).activate(context);
+    };
+  }
+
         CallButton(
           peerUserId: dmUser.id,
           peerName: dmUser.displayName,
@@ -7773,6 +7826,8 @@ class _RoomScreenState extends State<_RoomView>
                         },
                         // A right-click on a card is that card's menu, at
                         // the pointer, not the row's (the album's last item).
+                        callRun: messageItem.callRun,
+                        onCallTap: _callBubbleTapFor(room),
                         onAlbumTileContextMenu: (target, at) {
                           if (target.id.startsWith('tmp_')) return;
                           longPressOn(target, at: at);

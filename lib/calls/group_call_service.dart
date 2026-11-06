@@ -18,6 +18,7 @@ import 'call_media.dart';
 import 'call_models.dart';
 import 'call_permissions.dart';
 import 'call_recovery.dart';
+import 'call_quality_report.dart';
 import 'call_stats_monitor.dart';
 import 'draw/draw_channel.dart';
 import 'draw/draw_mirror.dart';
@@ -781,6 +782,9 @@ class GroupCallService extends ChangeNotifier
     _mediaEpoch++;
     final me = _userId;
     final id = _groupCallId;
+    // Fire and forget, after the fact; the buckets are dropped if there are none.
+    final qualitySamples = _qualityRec.take();
+    if (id != null) sendQualityReport(groupCallId: id, samples: qualitySamples);
     final notify = (me != null && id != null)
         ? () async {
             try {
@@ -2342,8 +2346,15 @@ class GroupCallService extends ChangeNotifier
     peer.stats = CallStatsMonitor(pc: pc, target: peer.quality)..start();
   }
 
+  /// The call's connection quality: the worst link in each 10 s, reported once
+  /// after the call (`callLog:reportQuality`).
+  final CallQualityRecorder _qualityRec = CallQualityRecorder();
+
   void _onPeerQuality(GroupPeer peer) {
     final q = peer.quality.value;
+    if (q != null && inCall && _peers[peer.userId] == peer) {
+      _qualityRec.add(q.quality, DateTime.now());
+    }
     if (q == null || !inCall || !localCamActive || peer.reconnecting) return;
     if (_peers[peer.userId] != peer) return;
     final before = _quality.liveTier;

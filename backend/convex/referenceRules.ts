@@ -107,6 +107,17 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "gameResultYears.userId": { rule: "cascade", index: "by_user_game_year", why: "Yearly rollup of the user's own old daily results (retention.foldOldResults)." },
   "gameResults.userId": { rule: "cascade", index: "by_user_day_game", why: "Daily results are the user's own; retention policy is a separate decision (plan section 7)." },
 
+  // ── call history ──────────────────────────────────────────────────────────
+  "callFavorites.userId": { rule: "cascade", index: "by_user_added", why: "A person's favourites go with their account." },
+  "callFavorites.peerId": { rule: "cascade", index: "by_peer", why: "A deleted account is nobody's favourite any more; a pinned circle for a gone person cannot be called." },
+  "callLog.userId": { rule: "cascade", index: "by_user_started", why: "A person's call history goes with their account." },
+  "callLog.peerId": { rule: "history", why: "The other end, shown as a name the client resolves; a deleted account reads as a deleted user." },
+  "callLog.roomId": { rule: "history", why: "Room deletion leaves the history; the Calls tab shows 'Deleted chat'." },
+  "callLog.callId": { rule: "softRef", why: "Back-pointer to a calls row that gcTerminalCalls reaps a day later; nothing joins through it after that." },
+  "callLog.groupCallId": { rule: "softRef", why: "Back-pointer to a groupCalls row that gcTerminalGroupCalls reaps a day later; nothing joins through it after that." },
+  "calls.messageId": { rule: "softRef", why: "The call bubble; a deleted or expired message is simply skipped when the call settles." },
+  "groupCalls.messageId": { rule: "softRef", why: "The call bubble; a deleted or expired message is simply skipped when the call settles." },
+
   // ── groupCalls and friends ────────────────────────────────────────────────
   "groupCallParticipants.groupCallId": { rule: "cascade", index: "by_call", why: "gcTerminalGroupCalls deletes participants with the call." },
   "groupCallParticipants.userId": { rule: "cascade", index: "by_user_status", why: "Roster rows go with the account." },

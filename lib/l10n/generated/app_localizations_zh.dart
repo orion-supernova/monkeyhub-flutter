@@ -9596,7 +9596,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get motionCalmSub => '装饰保持静止，其余一切照常。';
 
   @override
-  String get navigationPageFooter => '在聊天、动态、发现和设置之间切换的方式。';
+  String get navigationPageFooter => '在标签页之间切换的方式，以及栏中显示哪些标签页。';
 
   @override
   String get navTabBarSub => '始终可见，一点即达任意位置。';
@@ -14660,4 +14660,439 @@ class AppLocalizationsZh extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get callBubbleCalling => '正在呼叫…';
+
+  @override
+  String callBubbleIncomingCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': '视频来电',
+      'other': '语音来电',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleOutgoingCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': '视频呼出',
+      'other': '语音呼出',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleCall(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': '视频通话',
+      'other': '语音通话',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleMissed(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': '未接视频来电',
+      'other': '未接语音来电',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get callBubbleNoAnswer => '无人接听';
+
+  @override
+  String callBubbleCancelled(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': '已取消的视频通话',
+      'other': '已取消的语音通话',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleDeclined(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'video': '已拒绝的视频通话',
+      'other': '已拒绝的语音通话',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleOutgoingDuration(String duration) {
+    return '呼出 · $duration';
+  }
+
+  @override
+  String callBubbleIncomingDuration(String duration) {
+    return '来电 · $duration';
+  }
+
+  @override
+  String get callBubbleOutgoing => '呼出';
+
+  @override
+  String get callBubbleIncoming => '来电';
+
+  @override
+  String get callBubbleTapToCallBack => '点按回拨';
+
+  @override
+  String callBubbleAnsweredOn(String device) {
+    return '已在$device上接听';
+  }
+
+  @override
+  String get callBubbleQualityFair => '连接一般';
+
+  @override
+  String get callBubbleQualityPoor => '连接较差';
+
+  @override
+  String get callBubbleJoin => '加入';
+
+  @override
+  String callBubblePeople(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleMissedRun(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count个未接来电',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callBubbleRunBadge(int count) {
+    return '×$count';
+  }
+
+  @override
+  String get callBubbleShowLess => '收起';
+
+  @override
+  String get callBubbleRinging => '响铃中…';
+
+  @override
+  String callBubblePreviewDuration(String title, String duration) {
+    return '$title · $duration';
+  }
+
+  @override
+  String get callsTabNavLabel => '通话';
+
+  @override
+  String get callsTabNavShort => '通话';
+
+  @override
+  String get callsTabSettingsToggle => '通话标签页';
+
+  @override
+  String get callsTabSettingsToggleSub => '在标签栏中显示通话记录';
+
+  @override
+  String get callsTabLiveNow => '正在进行';
+
+  @override
+  String get callsTabLiveHuddle => 'Huddle';
+
+  @override
+  String get callsTabLiveGroupCall => '群组通话';
+
+  @override
+  String callsTabPeople(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsTabLiveJoinSemantic(String name) {
+    return '加入 $name 中的通话';
+  }
+
+  @override
+  String get callsTabFavourites => '收藏';
+
+  @override
+  String callsTabFavouriteSemantic(String name) {
+    return '呼叫 $name';
+  }
+
+  @override
+  String callsTabTalkTimeThisWeek(String duration) {
+    return '本周:通话 $duration';
+  }
+
+  @override
+  String get callsTabTalkTimeNone => '本周还没有通话';
+
+  @override
+  String get callsTabTalkTimeSheetTitle => '本周';
+
+  @override
+  String callsTabCallCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 次通话',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsTabTalkTimeFootnote(String start) {
+    return '仅统计你接通通话的时间,从 $start 到现在。响铃、未接和拒接的通话不计入。';
+  }
+
+  @override
+  String get callsTabTopPeople => '通话最多的人';
+
+  @override
+  String callsTabDurationHM(int hours, int minutes) {
+    return '$hours小时$minutes分钟';
+  }
+
+  @override
+  String callsTabDurationM(int minutes) {
+    return '$minutes分钟';
+  }
+
+  @override
+  String callsTabDurationS(int seconds) {
+    return '$seconds秒';
+  }
+
+  @override
+  String get callsTabFilterAll => '全部';
+
+  @override
+  String get callsTabFilterMissed => '未接';
+
+  @override
+  String get callsTabToday => '今天';
+
+  @override
+  String get callsTabYesterday => '昨天';
+
+  @override
+  String get callsTabVoiceCall => '语音通话';
+
+  @override
+  String get callsTabVideoCall => '视频通话';
+
+  @override
+  String get callsTabOpenChat => '打开聊天';
+
+  @override
+  String get callsTabDeleteFromHistory => '从记录中删除';
+
+  @override
+  String get callsTabInAudio => '来电语音通话';
+
+  @override
+  String get callsTabInVideo => '来电视频通话';
+
+  @override
+  String get callsTabOutAudio => '去电语音通话';
+
+  @override
+  String get callsTabOutVideo => '去电视频通话';
+
+  @override
+  String get callsTabMissedAudio => '未接语音通话';
+
+  @override
+  String get callsTabMissedVideo => '未接视频通话';
+
+  @override
+  String get callsTabNoAnswer => '无人接听';
+
+  @override
+  String get callsTabDeclined => '已拒绝';
+
+  @override
+  String get callsTabCancelled => '已取消';
+
+  @override
+  String get callsTabHuddle => 'Huddle';
+
+  @override
+  String get callsTabEmptyTitle => '还没有通话';
+
+  @override
+  String get callsTabEmptyMessage => '你拨打或接听的语音和视频通话会显示在这里。';
+
+  @override
+  String get callsTabEmptyMissedTitle => '没有未接来电';
+
+  @override
+  String get callsTabEmptyMissedMessage => '你已全部处理完。';
+
+  @override
+  String get callsTabNewCall => '新通话';
+
+  @override
+  String get callsTabNewCallSearch => '搜索好友';
+
+  @override
+  String get callsTabNewCallEmpty => '添加好友即可呼叫。';
+
+  @override
+  String get callsTabNewCallNoMatch => '没有匹配的人。';
+
+  @override
+  String get callsTabDetailsStarted => '开始';
+
+  @override
+  String get callsTabDetailsRang => '响铃';
+
+  @override
+  String get callsTabDetailsAnswered => '已接听';
+
+  @override
+  String callsTabDetailsAnsweredOn(String platform) {
+    return '在 $platform 上接听';
+  }
+
+  @override
+  String callsTabDetailsMovedTo(String platform) {
+    return '已转移到 $platform';
+  }
+
+  @override
+  String get callsTabDetailsEnded => '结束';
+
+  @override
+  String callsTabDetailsTalked(String duration) {
+    return '通话时长 $duration';
+  }
+
+  @override
+  String get callsTabDetailsMessage => '消息';
+
+  @override
+  String get callsTabPlatformIos => 'iPhone';
+
+  @override
+  String get callsTabPlatformMacos => 'Mac';
+
+  @override
+  String get callsTabPlatformAndroid => 'Android';
+
+  @override
+  String get callsTabPlatformWindows => 'Windows';
+
+  @override
+  String get callsTabPlatformLinux => 'Linux';
+
+  @override
+  String get callsTabPlatformWeb => '网页版';
+
+  @override
+  String get callsTabQualityTitle => '连接质量';
+
+  @override
+  String get callsTabQualityGood => '全程连接良好';
+
+  @override
+  String callsTabQualityFair(int percent) {
+    return '通话中有 $percent% 的时间不流畅';
+  }
+
+  @override
+  String callsTabQualityPoor(int percent) {
+    return '通话中有 $percent% 的时间连接较差';
+  }
+
+  @override
+  String get callsTabDeletedChat => '已删除的聊天';
+
+  @override
+  String get callsTabUnknown => '未知';
+
+  @override
+  String get callsTabLoadFailed => '无法加载你的通话。';
+
+  @override
+  String callsTabRowSemantic(String detail, String name, String time) {
+    return '$name,$detail,$time';
+  }
+
+  @override
+  String get destinationsGamesLabel => '游戏';
+
+  @override
+  String get destinationsGamesShort => '游戏';
+
+  @override
+  String get gamesTabTodayLabel => '今日游戏';
+
+  @override
+  String chatRequestsFolderLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '请求，$count 个待处理',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFindFriendsTitle => '找到你的朋友';
+
+  @override
+  String get chatFindFriendsBody => '添加你认识的人，一起聊天、分享日常、一起玩游戏。';
+
+  @override
+  String get callsTabFavAdd => '添加到收藏';
+
+  @override
+  String get callsTabFavRemove => '从收藏中移除';
+
+  @override
+  String get callsTabFavNotNow => '暂不';
+
+  @override
+  String get callsTabFavAddTitle => '添加收藏';
+
+  @override
+  String get callsTabFavAddLabel => '添加';
+
+  @override
+  String get callsTabFavEmpty => '固定你最常通话的人。点按 + 添加。';
+
+  @override
+  String get callsTabFavPickerEmpty => '没有可添加的人了。';
+
+  @override
+  String callsTabFavSuggestCalls(int count, String name) {
+    return '最近 30 天你给$name打了 $count 次电话';
+  }
+
+  @override
+  String callsTabFavSuggestTime(String name, String time) {
+    return '最近 30 天你和$name通话了 $time';
+  }
+
+  @override
+  String get callsTabFavAddFailed => '无法添加到收藏。请重试。';
+
+  @override
+  String get callsTabFavRemoveFailed => '无法从收藏中移除。请重试。';
 }

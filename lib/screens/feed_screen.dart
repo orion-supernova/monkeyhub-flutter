@@ -4,15 +4,12 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show RenderAbstractViewport;
 
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../backend/feed_api.dart';
-import '../chat_games/bot_hub_screen.dart';
 import '../data/chat_repository.dart';
 import '../data/feed_store.dart';
-import '../data/games_store.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
 import '../widgets/app_toast.dart';
@@ -20,7 +17,6 @@ import 'navigation/scroll_memory.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../models/daily_game.dart';
 import '../models/moment.dart';
 import '../theme/layout.dart';
 import '../theme/motion.dart';
@@ -30,7 +26,6 @@ import '../widgets/feed_depth_field.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/sunlit_surface.dart' show SunlitBackdrop;
 import '../widgets/meta_text.dart';
-import '../widgets/games_strip.dart';
 import '../widgets/moment_activity.dart';
 import '../widgets/moment_rail.dart';
 import '../widgets/points_board.dart';
@@ -40,9 +35,7 @@ import 'feed/moment_composer.dart';
 import 'feed/moment_viewer.dart';
 import 'feed/point_composer.dart';
 import 'feed/points_explainer.dart';
-import 'feed/puzzle_screen.dart';
 import 'games/leaderboard_screen.dart';
-import 'games/daily_game_screens.dart';
 import 'navigation/destinations.dart';
 import 'navigation/tab_reselect.dart';
 
@@ -105,92 +98,19 @@ class _FeedScreenState extends State<FeedScreen>
     // Idempotent — arms the day-rollover timer if some earlier mount hasn't.
     FeedStore.instance.start();
     FeedStore.instance.addListener(_onChange);
-    GamesStore.instance.addListener(_onChange);
-    // Boards only — the four thumbnails. `games:daily` reads no table, and the
-    // viewer's own results already ride in on the board payload, so the band
-    // costs one cheap call on the first Feed mount of the day and nothing
-    // after it. The friend leaderboards wait for the hub.
-    GamesStore.instance.loadBoards();
     unawaited(_loadMyAvatar());
     // The empty state turns on the friend count, so the board has to rebuild
     // when a friend request is accepted while it is on screen.
     widget.repo.addListener(_onChange);
-    // A daily-games nudge tapped before this screen existed is still waiting in
-    // the store — including on a cold start, where the tap lands long before
-    // any widget mounts.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _consumePendingGames());
-    // …and the same for a tapped friend-activity notification, which names one
-    // card rather than the shelf.
+    // A tapped friend-activity notification is waiting in the store when this
+    // screen mounts, including on a cold start, where the tap lands long
+    // before any widget does.
     WidgetsBinding.instance
         .addPostFrameCallback((_) => _consumePendingMoment());
     // …and the same request arriving while this screen is ALREADY on it. The
     // post-frame callback above only fires on mount, and steering the shell to
-    // a section it is already showing remounts nothing — so a nudge tapped by
-    // somebody who happened to be looking at the Feed would have set the
-    // one-shot and then had nobody left to consume it.
-    UiSelectionStore.instance.addListener(_consumePendingGames);
+    // a section it is already showing remounts nothing.
     UiSelectionStore.instance.addListener(_consumePendingMoment);
-  }
-
-  /// The Games band, for a tapped games notification to scroll to.
-  final _gamesKey = GlobalKey(debugLabel: 'feed-games');
-
-  /// A games notification is waiting for the board to settle before it
-  /// scrolls; see [_revealGames].
-  bool _gamesRevealPending = false;
-
-  /// Takes a tapped daily-games notification (the nudge, or a friend's
-  /// shared result) to the Games band on this Feed: where the five games are,
-  /// with the viewer's time and rank on each. It used to open the
-  /// leaderboard, which since the band landed holds the standings only.
-  ///
-  /// Anything this Feed's own navigator has open over it is popped first,
-  /// for the reason app.dart pops the root one: a wide window keeps the
-  /// section's pages on a navigator of its own, which the root pop misses.
-  void _consumePendingGames() {
-    if (!mounted) return;
-    if (!UiSelectionStore.instance.consumeGamesView()) return;
-    Navigator.of(context).popUntil((r) => r.isFirst);
-    _gamesRevealPending = true;
-    _revealGames();
-  }
-
-  /// Scrolls the Games band to just under the top, leaving a sliver of the
-  /// section above showing, so it reads as a place on the Feed rather than a
-  /// page of its own.
-  ///
-  /// Waits for the board: before it lands the sections above are skeletons
-  /// of another height, and a scroll aimed at a band that then moves lands
-  /// somewhere else. [_onChange] re-runs this when the board arrives, and a
-  /// band the list has not built yet is retried on the next frame.
-  void _revealGames([int tries = 10]) {
-    if (!mounted || !_gamesRevealPending) return;
-    if (!FeedStore.instance.loaded) return;
-    final target = _gamesKey.currentContext?.findRenderObject();
-    if (target == null || !_scroll.hasClients) {
-      if (tries > 0) {
-        WidgetsBinding.instance
-            .addPostFrameCallback((_) => _revealGames(tries - 1));
-      }
-      return;
-    }
-    _gamesRevealPending = false;
-    final position = _scroll.position;
-    final reveal = RenderAbstractViewport.maybeOf(target)
-        ?.getOffsetToReveal(target, 0)
-        .offset;
-    if (reveal == null) return;
-    final offset = (reveal - _kGamesRevealPeek)
-        .clamp(position.minScrollExtent, position.maxScrollExtent);
-    if (MotionScope.of(context).calm) {
-      _scroll.jumpTo(offset);
-    } else {
-      _scroll.animateTo(
-        offset,
-        duration: const Duration(milliseconds: 420),
-        curve: Curves.easeOutCubic,
-      );
-    }
   }
 
   /// Whether a tapped moment is already being fetched or shown, so a rebuild
@@ -199,8 +119,7 @@ class _FeedScreenState extends State<FeedScreen>
 
   /// Opens the moment a friend-activity notification named.
   ///
-  /// Peeks before consuming for the same cold-start reason
-  /// [_consumePendingGames] does — the Feed can mount before the repo has a
+  /// Peeks before consuming: the Feed can mount before the repo has a
   /// userId, and consuming there would drop the tap with nothing left to retry
   /// it. [_onChange] re-runs this once the repo attaches.
   ///
@@ -265,8 +184,6 @@ class _FeedScreenState extends State<FeedScreen>
   @override
   void dispose() {
     FeedStore.instance.removeListener(_onChange);
-    GamesStore.instance.removeListener(_onChange);
-    UiSelectionStore.instance.removeListener(_consumePendingGames);
     UiSelectionStore.instance.removeListener(_consumePendingMoment);
     widget.repo.removeListener(_onChange);
     _scroll.dispose();
@@ -277,9 +194,7 @@ class _FeedScreenState extends State<FeedScreen>
     if (!mounted) return;
     setState(() {});
     // The repo attaching (userId becoming available) is one of the reasons
-    // this fires — see [_consumePendingGames].
-    _consumePendingGames();
-    _revealGames();
+    // this fires — see [_consumePendingMoment].
     _consumePendingMoment();
   }
 
@@ -338,17 +253,6 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  void _openPuzzle() {
-    final userId = widget.repo.userId;
-    if (userId == null) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) =>
-            PuzzleScreen(feedApi: widget.feedApi, userId: userId),
-      ),
-    );
-  }
-
   /// Opens the leaderboard; [tab] picks a game's board over "Today".
   Future<void> _openLeaderboard({int tab = 0}) async {
     final userId = widget.repo.userId;
@@ -360,22 +264,6 @@ class _FeedScreenState extends State<FeedScreen>
           userId: userId,
           initialTab: tab,
         ),
-      ),
-    );
-  }
-
-  void _openBots() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const BotHubScreen()),
-    );
-  }
-
-  void _openGame(DailyGame game) {
-    final userId = widget.repo.userId;
-    if (userId == null) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => dailyGameScreen(game, userId),
       ),
     );
   }
@@ -481,8 +369,8 @@ class _FeedScreenState extends State<FeedScreen>
     // standings board tallies them and tells each one's story — and listing
     // them again here drew every point twice on the same screen.
     final activity = store.highlights;
-    // Finished dailies join the river. The games band above only ever shows
-    // the viewer's own tiles, so a friend's score had nowhere else to land.
+    // Finished dailies join the river: the Games tab shows the viewer's own
+    // tiles, and a friend's score lands here, among friends.
     final plays = store.plays;
     // With friends but nothing to list, the section goes rather than saying
     // "quiet so far" under a board full of points; someone with no friends
@@ -542,45 +430,6 @@ class _FeedScreenState extends State<FeedScreen>
                   onCapture: _compose,
                   onOpen: _openFromRail,
                 ),
-        ),
-      ),
-      (
-        id: 'games',
-        child: _SectionShell(
-          key: _gamesKey,
-          bleed: true,
-          label: l10n.feedBoardGamesLabel,
-          // The band is an entry point as much as a status line, so the header
-          // carries the way in to who is winning. The games themselves live
-          // HERE, in one sideways row with the viewer's time and rank on each
-          // tile; the page this opens is the leaderboard only, because a second
-          // shelf of the same five boxes one tap away read as a repeat.
-          // The code puzzle is one of
-          // the five drawn here (first tile) rather than a separate section
-          // above this one — it's a daily game exactly like the other four,
-          // and giving it its own differently-shaped section was the
-          // inconsistency, not this shelf.
-          actions: [
-            SectionAction(
-              icon: CupertinoIcons.rosette,
-              label: l10n.feedBoardGamesOpen,
-              onTap: _openLeaderboard,
-            ),
-          ],
-          body: GamesStrip(
-            inset: _kGutter,
-            boards: GamesStore.instance.boards,
-            results: store.games,
-            onOpen: _openGame,
-            puzzle: store.puzzle,
-            onOpenPuzzle: _openPuzzle,
-            ranks: {
-              for (final g in DailyGame.values)
-                g: ?store.gameRank(g, widget.repo.userId ?? ''),
-            },
-            puzzleRank: store.puzzleRank(widget.repo.userId ?? ''),
-            onOpenBots: _openBots,
-          ),
         ),
       ),
       (
@@ -678,21 +527,16 @@ class _FeedScreenState extends State<FeedScreen>
     // column: a phone-width board just centred in a wide browser tab is what
     // this screen looked like before this split existed.
     //
-    // Highlights and Games stay full-width bands rather than joining the
-    // split below — Games especially: at sidebar width its tiles were ~70px
-    // postage stamps, and "the games look tiny" was the whole complaint this
-    // shape exists to fix. What's left (standings, activity) runs as two
-    // even columns rather than a wide main column beside a cramped 320px
-    // sidebar — with the puzzle promoted into the games shelf above, a
-    // sidebar with exactly one thing left in it read as an afterthought
-    // rather than a considered second column, and each is capped at its own
+    // Highlights stay a full-width band rather than joining the split below.
+    // What's left (standings, activity) runs as two even columns rather than
+    // a wide main column beside a cramped 320px sidebar, each capped at its own
     // comfortable reading width instead of stretching edge to edge, so a
     // one-line "so-and-so added a point" row doesn't end up dragging a
     // trailing empty run halfway across the screen.
     final Widget body = context.isExpanded
         ? SingleChildScrollView(
             controller: _scroll,
-            key: const PageStorageKey('feed_board_v2_wide'),
+            key: const PageStorageKey('feed_board_v3_wide'),
             padding: EdgeInsets.fromLTRB(
               0,
               TabRootBar.clearance(context),
@@ -709,7 +553,6 @@ class _FeedScreenState extends State<FeedScreen>
                     staggered('masthead'),
                     staggered('trouble'),
                     staggered('highlights'),
-                    staggered('games'),
                     // `Expanded`, not a fixed width centred as a pair — every
                     // band above spans the full column edge to edge, and a
                     // centred pair left Standings starting well right of
@@ -731,11 +574,10 @@ class _FeedScreenState extends State<FeedScreen>
             child: ListView(
               controller: _scroll,
               // Versioned so the offset can be deliberately dropped when the
-              // section order changes. Bumped to _v2 when THE GAMES landed
-              // between the puzzle and the standings: a restored offset from
-              // before that band existed lands the board mid-section, which
-              // reads as the Feed having jumped on its own.
-              key: const PageStorageKey('feed_board_v2'),
+              // section order changes. _v3: the games band moved to the Games
+              // tab, and a restored offset measured with it would land the
+              // board mid-section, which reads as the Feed having jumped.
+              key: const PageStorageKey('feed_board_v3'),
               // The bar's clearance + the masthead's own 6 lands the large
               // title exactly where the chat list's sits, so switching tabs
               // never jumps it.
@@ -946,14 +788,8 @@ class _EditionStamp extends StatelessWidget {
 /// view, so a full-bleed row can ignore it.
 const double _kGutter = 20;
 
-/// How much of the section above the Games band stays in view when a games
-/// notification scrolls to it: enough to read that the Feed scrolled, not so
-/// much that the band sits mid-screen.
-const _kGamesRevealPeek = 28.0;
-
 class _SectionShell extends StatelessWidget {
   const _SectionShell({
-    super.key,
     required this.label,
     required this.body,
     this.actions = const [],

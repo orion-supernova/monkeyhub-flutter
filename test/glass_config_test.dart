@@ -352,7 +352,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             PillBottomNav(
-              active: HomeSection.chat,
+              active: HomeSection.calls,
               onSelect: (_) {},
               badges: const {},
             ),
@@ -382,7 +382,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           PillBottomNav(
-            active: HomeSection.chat,
+            active: HomeSection.calls,
             onSelect: (_) {},
             badges: const {},
           ),
