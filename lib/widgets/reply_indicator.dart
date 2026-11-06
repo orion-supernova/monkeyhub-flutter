@@ -22,6 +22,7 @@ import 'media_spoiler.dart';
 import 'remote_image.dart';
 import 'speaker_scope.dart';
 import 'user_avatar.dart';
+import 'liquid_glass.dart' show GlassShadow;
 
 /// The two colours a quote card paints the person it is quoting in.
 ///
@@ -685,7 +686,18 @@ class _BranchButton extends StatelessWidget {
         width: hitSize,
         height: hitSize,
         child: Center(
-          child: ClipOval(
+          // Shadow outside the clip (GlassShadow): inside it, the clip cut it
+          // off and only its grey showed, through the 18% accent glass.
+          child: GlassShadow(
+            shape: const CircleBorder(),
+            shadows: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+            child: ClipOval(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
               child: Container(
@@ -699,13 +711,6 @@ class _BranchButton extends StatelessWidget {
                     color: theme.accent.withValues(alpha: 0.55),
                     width: 1,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.18),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
                 ),
                 child: Icon(
                   CupertinoIcons.arrow_branch,
@@ -714,6 +719,7 @@ class _BranchButton extends StatelessWidget {
                 ),
               ),
             ),
+          ),
           ),
         ),
       ),

@@ -430,15 +430,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final decorated = tester.widget<DecoratedBox>(
+      final glass = tester.widget<GlassShadow>(
         find
             .descendant(
               of: find.byType(LiquidGlass),
-              matching: find.byType(DecoratedBox),
+              matching: find.byType(GlassShadow),
             )
             .first,
       );
-      final shadow = (decorated.decoration as ShapeDecoration).shadows!.single;
+      final shadow = glass.shadows!.single;
       expect(
         shadow.offset.dy,
         3.75,

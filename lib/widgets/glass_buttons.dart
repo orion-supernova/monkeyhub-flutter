@@ -216,10 +216,11 @@ class ChromeDisc extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: [
+      // Shadow painted after the disc, outside it: under it, the disc's own
+      // backdrop blur smeared it into a grey ring (see GlassShadow).
+      child: GlassShadow(
+        shape: const CircleBorder(),
+        shadows: [
             BoxShadow(
               color: (light ? theme.ink : Colors.black)
                   .withValues(alpha: light ? 0.12 : 0.30),
@@ -234,7 +235,6 @@ class ChromeDisc extends StatelessWidget {
                 offset: const Offset(0, 1),
               ),
           ],
-        ),
         child: CustomPaint(
           foregroundPainter: SpecularRim(
             shape: const CircleBorder(),

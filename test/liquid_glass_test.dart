@@ -56,18 +56,18 @@ void main() {
       (widget) =>
           widget is CustomPaint && widget.foregroundPainter is SpecularRim,
     );
-    ShapeDecoration frame() =>
-        tester
-                .widget<DecoratedBox>(
-                  find
-                      .descendant(
-                        of: find.byType(LiquidGlass),
-                        matching: find.byType(DecoratedBox),
-                      )
-                      .first,
-                )
-                .decoration
-            as ShapeDecoration;
+    // The glass's shadow lives on its GlassShadow (painted outside the
+    // shape, after the blur), not on a decoration under it.
+    List<BoxShadow>? frame() => tester
+        .widget<GlassShadow>(
+          find
+              .descendant(
+                of: find.byType(LiquidGlass),
+                matching: find.byType(GlassShadow),
+              )
+              .first,
+        )
+        .shadows;
     expect(rim, findsOneWidget);
     final nativeFrame = frame();
 
@@ -93,7 +93,7 @@ void main() {
     store.flushGlassWrites();
     await tester.pump();
     expect(rim, findsOneWidget);
-    expect(frame().shadows!.single.offset.dy, 3.75);
+    expect(frame()!.single.offset.dy, 3.75);
 
     store.setGlassEngine(GlassEngine.native);
     await tester.pump();

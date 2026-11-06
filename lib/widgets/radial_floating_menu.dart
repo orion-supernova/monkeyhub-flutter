@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
 import 'count_badge.dart';
+import 'liquid_glass.dart' show GlassShadow;
 
 /// Gesture-driven radial pie menu for major-section switching.
 ///
@@ -446,7 +447,12 @@ class _Slice extends StatelessWidget {
       ];
       scale = 1.0;
     }
-    final orb = ClipOval(
+    // Shadow outside the clip (GlassShadow): inside it, the clip cut it off
+    // and only its grey showed, through the translucent orb.
+    final orb = GlassShadow(
+      shape: const CircleBorder(),
+      shadows: shadow,
+      child: ClipOval(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: AnimatedContainer(
@@ -462,11 +468,11 @@ class _Slice extends StatelessWidget {
             border: borderColor == null
                 ? null
                 : Border.all(color: borderColor, width: borderWidth),
-            boxShadow: shadow,
           ),
           alignment: Alignment.center,
           child: Icon(item.icon, color: iconColor, size: 20),
         ),
+      ),
       ),
     );
     // The fan is icon-only by design, so [RadialMenuItem.label] is what names

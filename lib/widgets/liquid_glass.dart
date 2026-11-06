@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import '../data/glass_config.dart';
@@ -311,11 +312,9 @@ class LiquidGlass extends StatelessWidget {
     );
     // Rim and shadow sit outside the clip so the shadow casts past the glass
     // instead of being cut off at its own edge. Centred, never dropped.
-    return DecoratedBox(
-      decoration: ShapeDecoration(
-        shape: shape,
-        shadows: shadow ? const [MediaGlass.shadow] : null,
-      ),
+    return GlassShadow(
+      shape: shape,
+      shadows: shadow ? const [MediaGlass.shadow] : null,
       child: CustomPaint(
         foregroundPainter: SpecularRim(
           shape: shape,
@@ -454,22 +453,26 @@ class LiquidGlass extends StatelessWidget {
     // On a light page a dropped shadow reads as a hard grey lip under the
     // glass — the elevated-FAB look. Centred and halved there, it floats the
     // surface instead; dark themes keep exactly what was tuned.
-    return DecoratedBox(
-      decoration: ShapeDecoration(
-        shape: framedShape,
-        shadows: shadow
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: cfg.of(kShadowOpacity) * (isLight ? 0.5 : 1),
-                  ),
-                  blurRadius: cfg.of(kShadowBlur),
-                  offset: Offset(0, isLight ? 0 : cfg.of(kShadowY)),
+    // The accent rim is a FOREGROUND decoration: painted under the glass, the
+    // backdrop blur smeared it along with the shadow.
+    return GlassShadow(
+      shape: clipShape,
+      shadows: shadow
+          ? [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: cfg.of(kShadowOpacity) * (isLight ? 0.5 : 1),
                 ),
-              ]
-            : null,
+                blurRadius: cfg.of(kShadowBlur),
+                offset: Offset(0, isLight ? 0 : cfg.of(kShadowY)),
+              ),
+            ]
+          : null,
+      child: DecoratedBox(
+        position: DecorationPosition.foreground,
+        decoration: ShapeDecoration(shape: framedShape),
+        child: blurred,
       ),
-      child: blurred,
     );
   }
 
@@ -484,10 +487,9 @@ class LiquidGlass extends StatelessWidget {
     GlassConfig? config,
     Color? edge,
   }) {
-    return DecoratedBox(
-      decoration: ShapeDecoration(
-        shape: shape,
-        shadows: shadow
+    return GlassShadow(
+      shape: shape,
+      shadows: shadow
             ? [
                 BoxShadow(
                   color: Colors.black.withValues(
@@ -516,7 +518,6 @@ class LiquidGlass extends StatelessWidget {
                   ),
               ]
             : null,
-      ),
       child: CustomPaint(
         foregroundPainter: SpecularRim(
           shape: shape,
@@ -529,6 +530,77 @@ class LiquidGlass extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Casts [shadows] around [child] in the shape of [shape], for glass.
+///
+/// Never put a glass surface's shadow in a `BoxDecoration`/`ShapeDecoration`
+/// under it: a decoration paints before its child, so the child's backdrop
+/// blur samples the shadow and smears it inward as a grey ring just inside
+/// the edge — invisible on a dark page, a dirty bevel on a light one. This
+/// paints the shadow AFTER the child, clipped to the outside of the shape, so
+/// the blur never sees it and none of it shows through translucent glass.
+class GlassShadow extends StatelessWidget {
+  const GlassShadow({
+    super.key,
+    required this.shape,
+    required this.shadows,
+    required this.child,
+  });
+
+  final ShapeBorder shape;
+  final List<BoxShadow>? shadows;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = shadows;
+    if (s == null || s.isEmpty) return child;
+    return CustomPaint(
+      foregroundPainter: _OuterShadowPainter(shape: shape, shadows: s),
+      child: child,
+    );
+  }
+}
+
+class _OuterShadowPainter extends CustomPainter {
+  const _OuterShadowPainter({required this.shape, required this.shadows});
+
+  final ShapeBorder shape;
+  final List<BoxShadow> shadows;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    var reach = 0.0;
+    for (final s in shadows) {
+      final r = s.blurSigma * 3 + s.spreadRadius + s.offset.distance;
+      if (r > reach) reach = r;
+    }
+    // Half a pixel inside the edge: the glass's own anti-aliased edge is
+    // partly transparent, and stopping the shadow exactly at it leaves a
+    // pale seam between glass and shadow.
+    final hole = shape.getOuterPath(rect.deflate(0.5));
+    canvas.save();
+    canvas.clipPath(
+      Path.combine(
+        PathOperation.difference,
+        Path()..addRect(rect.inflate(reach + 1)),
+        hole,
+      ),
+    );
+    for (final s in shadows) {
+      canvas.drawPath(
+        shape.getOuterPath(rect.shift(s.offset).inflate(s.spreadRadius)),
+        s.toPaint(),
+      );
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_OuterShadowPainter old) =>
+      old.shape != shape || !listEquals(old.shadows, shadows);
 }
 
 /// Strokes [shape]'s outline with a top-lit gradient — the specular rim of
@@ -560,15 +632,46 @@ class SpecularRim extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (width <= 0 || opacity <= 0) return;
     final rect = Offset.zero & size;
+    final path = shape.getOuterPath(rect.deflate(width / 2));
+    final e = edge;
+    if (light && e != null) {
+      // Two strokes, never one gradient from white to the ink edge: a
+      // gradient between an opaque white and a nearly transparent dark
+      // interpolates through a half-opaque mid-grey, which drew a grey arc
+      // across the shoulders of every light disc, right where it should be
+      // brightest. The even hairline first, then the light fading out to
+      // transparent WHITE above it.
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width
+          ..color = e.withValues(alpha: e.a * opacity),
+      );
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white.withValues(alpha: 0.95),
+              Colors.white.withValues(alpha: 0),
+            ],
+            stops: const [0.0, 0.3],
+          ).scale(opacity).createShader(rect),
+      );
+      return;
+    }
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = width
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: light && edge != null
-            ? [Colors.white.withValues(alpha: 0.95), edge!, edge!]
-            : light
+        colors: light
             ? [
                 Colors.white.withValues(alpha: 0.95),
                 Colors.white.withValues(alpha: 0.35),
@@ -579,11 +682,9 @@ class SpecularRim extends CustomPainter {
                 Colors.white.withValues(alpha: 0.06),
                 Colors.white.withValues(alpha: 0.16),
               ],
-        stops: light && edge != null
-            ? const [0.0, 0.3, 1.0]
-            : const [0.0, 0.55, 1.0],
+        stops: const [0.0, 0.55, 1.0],
       ).scale(opacity).createShader(rect);
-    canvas.drawPath(shape.getOuterPath(rect.deflate(width / 2)), paint);
+    canvas.drawPath(path, paint);
   }
 
   @override
