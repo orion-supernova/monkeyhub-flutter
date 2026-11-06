@@ -1,4 +1,7 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
@@ -228,18 +231,24 @@ void main() {
     Object? failWith;
     int builds = 0;
 
-    Future<void> pumpScene(WidgetTester tester) async {
+    Future<void> pumpScene(
+      WidgetTester tester, {
+      TargetPlatform platform = TargetPlatform.android,
+      double dock = 60,
+    }) async {
       log = [];
       allowed = true;
       room = const ForkRoomState();
       failWith = null;
       builds = 0;
       await tester.pumpWidget(MaterialApp(
+        theme: ThemeData(platform: platform),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: ThemeScope(
           controller: ThemeController(BasicTheme.midnight()),
           child: _Host(
+            dock: dock,
             onBuild: () => builds++,
             build: (vsync) => fork = SwipeForkController(
               vsync: vsync,
@@ -352,11 +361,14 @@ void main() {
       await g.up();
     });
 
-    testWidgets('options are captured at touch-down', (t) async {
+    testWidgets('options are captured when the pull begins', (t) async {
       await pumpScene(t);
       final g = await t.startGesture(const Offset(200, 560));
+      await g.moveBy(const Offset(0, -10));
+      await t.pump(const Duration(milliseconds: 16));
+      expect(fork.visible.value, isTrue, reason: 'the pull has begun');
       room = const ForkRoomState(isSecret: true); // changes mid-gesture
-      for (var i = 0; i < 11; i++) {
+      for (var i = 0; i < 10; i++) {
         await g.moveBy(const Offset(0, -10));
         await t.pump(const Duration(milliseconds: 16));
       }
@@ -509,10 +521,263 @@ void main() {
       expect(fork.visible.value, isFalse);
     });
   });
+
+  group('from a scrolled list (one continuous drag)', () {
+    late SwipeForkController fork;
+    late List<String> log;
+
+    Future<void> scene(WidgetTester t,
+        {TargetPlatform platform = TargetPlatform.android,
+        double dock = 60}) async {
+      log = [];
+      await t.pumpWidget(MaterialApp(
+        theme: ThemeData(platform: platform),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: ThemeScope(
+          controller: ThemeController(BasicTheme.midnight()),
+          child: _Host(
+            dock: dock,
+            build: (vsync) => fork = SwipeForkController(
+              vsync: vsync,
+              hapticTier: HapticTier.silent,
+              canArm: () => true,
+              roomState: () => const ForkRoomState(),
+              onStartHuddle: () async => log.add('huddle'),
+              onJoinHuddle: () async => log.add('join'),
+              onToggleVanish: (on) async => log.add('vanish:$on'),
+            ),
+          ),
+        ),
+      ));
+    }
+
+    double pixels(WidgetTester t) =>
+        t.state<ScrollableState>(find.byType(Scrollable)).position.pixels;
+
+    Future<void> steps(WidgetTester t, TestGesture g, double dy, {int n = 10}) async {
+      for (var i = 0; i < n; i++) {
+        await g.moveBy(Offset(0, dy / n));
+        await t.pump(const Duration(milliseconds: 16));
+      }
+    }
+
+    for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+      testWidgets('scroll up, come back down, keep pulling: it forks ($platform)',
+          (t) async {
+        await scene(t, platform: platform);
+        final g = await t.startGesture(const Offset(200, 300));
+        // Away from the newest message (finger down = older), then back.
+        await steps(t, g, 260, n: 13);
+        expect(pixels(t), greaterThan(100));
+        expect(fork.visible.value, isFalse);
+        await steps(t, g, -200, n: 10);
+        expect(fork.visible.value, isFalse, reason: 'still has list to scroll');
+        // The rest of the way is the list's; everything after it is the pull.
+        await steps(t, g, -(pixels(t) + 20), n: 8);
+        expect(pixels(t), 0);
+        await steps(t, g, -130, n: 13);
+        expect(fork.visible.value, isTrue);
+        expect(fork.machine.phase, ForkPhase.fork);
+        // Measured from where the list hit the edge, not from touch-down.
+        expect(fork.machine.dy, closeTo(150, 3));
+        expect(pixels(t), 0, reason: 'the list did not also bounce');
+        await g.up();
+        await t.pump();
+        await t.pump(const Duration(seconds: 2));
+        expect(pixels(t), 0, reason: 'and does not coast or bounce after');
+      });
+
+      testWidgets('the content moves once while the fork owns the pull ($platform)',
+          (t) async {
+        await scene(t, platform: platform);
+        final rest = t.getTopLeft(find.text('m0')).dy;
+        final g = await t.startGesture(const Offset(200, 500));
+        await steps(t, g, -50, n: 5);
+        expect(fork.lift, closeTo(50, 1));
+        expect(pixels(t), 0);
+        expect(t.getTopLeft(find.text('m0')).dy, closeTo(rest - fork.lift, 0.01));
+        await steps(t, g, -140, n: 14);
+        expect(pixels(t), 0);
+        await g.up();
+        await t.pump();
+        await t.pump(const Duration(seconds: 2));
+        expect(t.getTopLeft(find.text('m0')).dy, rest);
+      });
+
+      testWidgets('pulling back down hands the drag back to the list ($platform)',
+          (t) async {
+        await scene(t, platform: platform);
+        final g = await t.startGesture(const Offset(200, 300));
+        await steps(t, g, -60, n: 6);
+        expect(fork.visible.value, isTrue);
+        // All the way back down, then on: that is a scroll to older messages.
+        await steps(t, g, 200, n: 20);
+        expect(fork.machine.active, isFalse);
+        expect(pixels(t), greaterThan(60));
+        await g.up();
+        await t.pump();
+        await t.pump(const Duration(seconds: 2));
+        expect(fork.visible.value, isFalse);
+        expect(log, isEmpty);
+      });
+    }
+
+    testWidgets('a fling that coasts to the newest message does not arm',
+        (t) async {
+      await scene(t);
+      final list = find.byType(ListView);
+      await t.fling(list, const Offset(0, 500), 3000); // away
+      await t.pumpAndSettle();
+      expect(pixels(t), greaterThan(100));
+      await t.fling(list, const Offset(0, -500), 4000); // back, ballistic
+      for (var i = 0; i < 60; i++) {
+        await t.pump(const Duration(milliseconds: 50));
+        expect(fork.visible.value, isFalse);
+      }
+      expect(pixels(t), 0);
+      expect(fork.machine.active, isFalse);
+    });
+
+    testWidgets('a finger that catches the list at the end can pull',
+        (t) async {
+      await scene(t);
+      await t.fling(find.byType(ListView), const Offset(0, 300), 1500);
+      await t.pumpAndSettle();
+      await t.fling(find.byType(ListView), const Offset(0, -2000), 3000);
+      await t.pumpAndSettle();
+      expect(pixels(t), 0);
+      final g = await t.startGesture(const Offset(200, 500));
+      await steps(t, g, -60, n: 6);
+      expect(fork.visible.value, isTrue);
+      await g.up();
+      await t.pump();
+      await t.pump(const Duration(seconds: 2));
+    });
+  });
+
+  group('chips ride the finger', () {
+    ForkGeometry geo({double dock = 60, double top = 80}) =>
+        ForkGeometry(const Size(400, 800), dock, topInset: top);
+
+    test('the chips are centred on the finger', () {
+      final g = geo();
+      expect(g.chipCenter(ForkSide.left, 120, 300).dy, 300);
+      expect(g.chipCenter(ForkSide.right, 120, 300).dy, 300);
+      expect(g.chipCenter(ForkSide.left, 120, 300).dx, lessThan(200));
+      expect(g.chipCenter(ForkSide.right, 120, 300).dx, greaterThan(200));
+    });
+
+    test('and held between the header and the dock with a margin', () {
+      final g = geo(dock: 86);
+      final hi = 800 - 86 - ForkGeometry.chipMargin - ForkGeometry.chipH / 2;
+      final lo = 80 + ForkGeometry.chipMargin + ForkGeometry.chipH / 2;
+      expect(g.chipCenter(ForkSide.left, 120, 790).dy, hi);
+      expect(g.chipCenter(ForkSide.right, 120, 10).dy, lo);
+    });
+
+    test('circle and caption stay above the dock at every lift', () {
+      final g = geo(dock: 86);
+      for (var lift = 0.0; lift <= 160; lift += 2) {
+        final c = g.circleCenter(lift);
+        final bottom = c.dy + ForkGeometry.circle / 2 + 6 + ForkGeometry.captionH * g.captionRoom(lift);
+        expect(bottom, lessThanOrEqualTo(g.dockTop), reason: 'lift $lift');
+      }
+    });
+  });
+
+  group('painted pixels', () {
+    // The overlay alone, rasterized over nothing: any alpha is something the
+    // fork drew.
+    Future<ui.Image> shot(WidgetTester t) async {
+      final b = _boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      return (await t.runAsync(() => b.toImage()))!;
+    }
+
+    Future<(int, Rect)> inkIn(WidgetTester t, ui.Image img, Rect r) async {
+      final bytes = (await t.runAsync(() => img.toByteData()))!;
+      var n = 0;
+      for (var y = r.top.floor(); y < r.bottom.ceil(); y++) {
+        for (var x = r.left.floor(); x < r.right.ceil(); x++) {
+          if (bytes.getUint8((y * img.width + x) * 4 + 3) != 0) n++;
+        }
+      }
+      return (n, r);
+    }
+
+    Future<SwipeForkController> forked(WidgetTester t,
+        {double dock = 60, double startY = 400, double pullTo = 130}) async {
+      late SwipeForkController c;
+      t.view.physicalSize = const Size(400, 800);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.iOS),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: ThemeScope(
+          controller: ThemeController(BasicTheme.midnight()),
+          child: _Host(
+            dock: dock,
+            build: (vsync) => c = SwipeForkController(
+              vsync: vsync,
+              hapticTier: HapticTier.silent,
+              canArm: () => true,
+              roomState: () => const ForkRoomState(),
+              onStartHuddle: () async {},
+              onJoinHuddle: () async {},
+              onToggleVanish: (on) async {},
+            ),
+          ),
+        ),
+      ));
+      final g = await t.startGesture(Offset(200, startY));
+      for (var i = 0; i < pullTo ~/ 10; i++) {
+        await g.moveBy(const Offset(0, -10));
+        await t.pump(const Duration(milliseconds: 16));
+      }
+      await t.pump(const Duration(milliseconds: 600));
+      return c;
+    }
+
+    testWidgets('finger high: the chips are at the finger, not down by the dock',
+        (t) async {
+      final c = await forked(t, startY: 330);
+      expect(c.viewForked, isTrue);
+      final img = await shot(t);
+      final fingerY = c.thumbY;
+      // A row of the left chip's body at the finger's height has ink...
+      final (atFinger, _) = await inkIn(t, img, Rect.fromLTWH(30, fingerY - 2, 100, 4));
+      expect(atFinger, greaterThan(100));
+      // ...and the strip just above the dock, where they used to bloom, has none
+      // in the chips' columns.
+      final (nearDock, _) = await inkIn(t, img, Rect.fromLTWH(30, 800 - 60 - 40, 100, 20));
+      expect(nearDock, 0);
+      await t.pump(const Duration(seconds: 2));
+    });
+
+    for (final dock in [60.0, 86.0]) {
+      for (final startY in [330.0, 560.0, 760.0]) {
+        testWidgets('nothing drawn reaches the dock (dock $dock, finger $startY)',
+            (t) async {
+          final c = await forked(t, dock: dock, startY: startY);
+          expect(c.viewForked, isTrue);
+          final img = await shot(t);
+          final (n, _) = await inkIn(t, img, Rect.fromLTWH(0, 800 - dock, 400, dock));
+          expect(n, 0);
+          await t.pump(const Duration(seconds: 2));
+        });
+      }
+    }
+  });
 }
 
+final _boundary = GlobalKey();
+final _dockKey = GlobalKey();
+
 class _Host extends StatefulWidget {
-  const _Host({required this.build, this.onBuild});
+  const _Host({required this.build, this.onBuild, this.dock = 60});
+  final double dock;
   final SwipeForkController Function(TickerProvider) build;
   final VoidCallback? onBuild;
   @override
@@ -536,8 +801,8 @@ class _HostState extends State<_Host> with TickerProviderStateMixin {
             controller: c,
             child: ListView.builder(
               reverse: true,
-              // Rows sit above the 60pt "dock" strip, as in the room.
-              padding: const EdgeInsets.only(bottom: 60),
+              // Rows sit above the "dock" strip, as in the room.
+              padding: EdgeInsets.only(bottom: widget.dock),
               itemCount: 30,
               itemBuilder: (_, i) {
                 widget.onBuild?.call();
@@ -546,7 +811,21 @@ class _HostState extends State<_Host> with TickerProviderStateMixin {
             ),
           ),
         ),
-        const Positioned(left: 0, right: 0, bottom: 0, height: 60, child: IgnorePointer(child: Text('dock'))),
-        SwipeForkOverlay(controller: c, dockHeight: () => 60),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: widget.dock,
+          child: IgnorePointer(child: SizedBox(key: _dockKey, child: const Text('dock'))),
+        ),
+        RepaintBoundary(
+          key: _boundary,
+          child: SwipeForkOverlay(
+            controller: c,
+            dockHeight: () => widget.dock,
+            dockKey: _dockKey,
+            topInset: () => 80,
+          ),
+        ),
       ]);
 }

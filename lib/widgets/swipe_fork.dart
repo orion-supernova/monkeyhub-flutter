@@ -10,12 +10,14 @@ import 'haptic_tick.dart';
 import 'swipe_fork/fork_machine.dart';
 import 'swipe_fork/fork_options.dart';
 import 'swipe_fork/fork_peek.dart';
+import 'swipe_fork/fork_scroll.dart';
 
 export 'swipe_fork/fork_gesture.dart';
 export 'swipe_fork/fork_machine.dart';
 export 'swipe_fork/fork_options.dart';
 export 'swipe_fork/fork_overlay.dart';
 export 'swipe_fork/fork_peek.dart';
+export 'swipe_fork/fork_scroll.dart';
 
 /// A value an [Animation] can wrap without a ticker: [HapticRamp] listens to an
 /// [Animation], and the fork's pull and slide are just numbers the pointer sets.
@@ -52,6 +54,8 @@ enum ForkExit { none, cancel, commitTalk, commitVanish }
 const double kForkBloomLift = 24;
 
 const _bloomSpring = SpringDescription(mass: 1, stiffness: 420, damping: 26);
+/// Critically damped and quick: the chips trail the finger without jitter.
+const _followSpring = SpringDescription(mass: 1, stiffness: 520, damping: 45.6);
 const _commitSpring = SpringDescription(mass: 1, stiffness: 300, damping: 30);
 const _cancelSpring = SpringDescription(mass: 1, stiffness: 520, damping: 40);
 
@@ -87,6 +91,9 @@ class SwipeForkController {
     chrome = unb();
     orbFade = unb();
     shake = unb();
+    fingerY = unb();
+    kick = unb();
+    pull = ForkPull(this);
   }
 
   /// Everything the gesture needs to be allowed: at the newest message, no
@@ -121,6 +128,14 @@ class SwipeForkController {
   late final AnimationController bloom, armLeft, armRight, glyph, pulse;
   late final AnimationController flight, chrome, orbFade, shake;
 
+  /// The finger's height (global), low-passed, which the chips ride while the
+  /// fork is open; and the one-shot outward nudge of their chevrons (0..1).
+  late final AnimationController fingerY, kick;
+
+  /// Turns the transcript's own drag into the pull (see [ForkPull]); mount it
+  /// with [SwipeForkGesture].
+  late final ForkPull pull;
+
   /// Pull progress 0..1 (the arc and the pull haptics read this).
   final ForkValue pullValue = ForkValue();
 
@@ -140,6 +155,7 @@ class SwipeForkController {
   double viewTravel = 0;
   double viewP = 0;
   double thumbX = 0;
+  double thumbY = 0;
   bool viewForked = false;
   bool viewSingle = false;
   ForkSide? viewArmed;
@@ -151,7 +167,7 @@ class SwipeForkController {
   /// The reason a commit failed, while the circle shows it.
   String? failReason;
 
-  Offset _down = Offset.zero;
+  Offset _at = Offset.zero;
   List<ForkOption> _opts = const [];
   HapticRamp? _pullRamp;
   HapticRamp? _slideRamp;
@@ -172,6 +188,8 @@ class SwipeForkController {
         chrome,
         orbFade,
         shake,
+        fingerY,
+        kick,
         peekValue,
       ]);
 
@@ -208,16 +226,17 @@ class SwipeForkController {
 
   // ───────── touch-down ─────────
 
-  /// Called at pointer-down. Returns whether the fork may arm, and captures the
+  /// Called when the list's own drag runs out of list at the newest message
+  /// ([at] is the finger). Returns whether the fork may arm, and captures the
   /// options. False for a gate that is closed or a room with nothing to offer
   /// (the list then just bounces).
-  bool prepare(Offset down) {
+  bool prepare(Offset at) {
     if (_disposed || busy) return false;
     if (!canArm()) return false;
     final opts = forkOptionsFor(roomState());
     if (opts.isEmpty) return false;
     _opts = opts;
-    _down = down;
+    _at = at;
     peekOn.value = false;
     return true;
   }
@@ -243,12 +262,13 @@ class SwipeForkController {
     viewP = 0;
     viewForked = false;
     viewArmed = null;
-    thumbX = _down.dx;
+    thumbX = _at.dx;
+    thumbY = _at.dy;
     exit = ForkExit.none;
     committed = null;
     failReason = null;
     _slideSign = 0;
-    for (final c in [bloom, armLeft, armRight, glyph, pulse, flight, chrome, orbFade, shake]) {
+    for (final c in [bloom, armLeft, armRight, glyph, pulse, flight, chrome, orbFade, shake, fingerY, kick]) {
       c.stop();
       c.value = 0;
     }
@@ -273,17 +293,28 @@ class SwipeForkController {
 
   // ───────── drag ─────────
 
-  void move(Offset pos) {
+  /// The finger is [pos]; the list has been pulled [dy] points past its end.
+  void move(double dy, Offset pos) {
     if (!machine.active) return;
-    final events = machine.update(_down.dy - pos.dy, pos.dx);
+    final events = machine.update(dy, pos.dx);
     thumbX = pos.dx;
+    thumbY = pos.dy;
     for (final e in events) {
       switch (e) {
         case ForkEvent.forked:
           _tick(0.9, HapticKind.notch);
           viewForked = true;
           _spring(glyph, 1, _bloomSpring);
-          if (!viewSingle) _bloomChips(1);
+          if (!viewSingle) {
+            _bloomChips(1);
+            // The chips open where the finger is, and nudge outward once.
+            fingerY.stop();
+            fingerY.value = pos.dy;
+            if (!calm) {
+              kick.value = 0;
+              kick.animateTo(1, duration: const Duration(milliseconds: 400));
+            }
+          }
           _pulse();
         case ForkEvent.unforked:
           viewForked = false;
@@ -303,6 +334,9 @@ class SwipeForkController {
           _tick(0.3, HapticKind.soft);
           _armTo(null);
       }
+    }
+    if (viewForked && !viewSingle && fingerY.value != pos.dy) {
+      _spring(fingerY, pos.dy, _followSpring);
     }
     viewTravel = machine.travel;
     viewP = machine.progress;
@@ -465,7 +499,7 @@ class SwipeForkController {
     failReason = null;
     committed = null;
     visible.value = false;
-    for (final c in [bloom, armLeft, armRight, glyph, pulse, flight, chrome, orbFade, shake]) {
+    for (final c in [bloom, armLeft, armRight, glyph, pulse, flight, chrome, orbFade, shake, fingerY, kick]) {
       c.stop();
       c.value = 0;
     }
@@ -476,7 +510,7 @@ class SwipeForkController {
     _disposed = true;
     _pullRamp?.dispose();
     _slideRamp?.dispose();
-    for (final c in [bloom, armLeft, armRight, glyph, pulse, flight, chrome, orbFade, shake]) {
+    for (final c in [bloom, armLeft, armRight, glyph, pulse, flight, chrome, orbFade, shake, fingerY, kick]) {
       c.dispose();
     }
     visible.dispose();

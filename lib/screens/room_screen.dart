@@ -421,6 +421,12 @@ class _RoomScreenState extends State<_RoomView>
     if (!SettingsStore.instance.shouldShowForkPeek) return;
     if (MotionScope.of(context).calm) return;
     if (!_forkCanArm() || _fork.busy) return;
+    // The peek shows where the pull starts, so only at the newest message and
+    // only when nothing is moving (the pull itself works from anywhere).
+    if (_scroll.hasClients) {
+      final pos = _scroll.position;
+      if (pos.pixels > 1 || pos.isScrollingNotifier.value) return;
+    }
     if (forkOptionsFor(_forkRoomState()).isEmpty) return;
     unawaited(SettingsStore.instance.markForkPeekShown());
     setState(() => _forkPeekOn = true);
@@ -3251,11 +3257,11 @@ class _RoomScreenState extends State<_RoomView>
 
   // ───────── swipe-up fork ─────────
 
-  /// Whether a drag that starts now may arm the fork. Asked at touch-down.
+  /// Whether the fork may arm. See [ForkPull].
   ///
-  /// The transcript must already be at the newest message (a fling that ARRIVES
-  /// there does not count: it is still scrolling), with the keyboard down and
-  /// nothing owning the composer. Mobile layouts only; the desktop and web
+  /// Evaluated when the pull begins, which is when a finger drag runs out of
+  /// list at the newest message (a fling that ARRIVES there does not count),
+  /// with the keyboard down and nothing owning the composer. Mobile layouts only; the desktop and web
   /// shells reach the same actions from room info and the call sheet.
   bool _forkCanArm() {
     final room = _room;
@@ -3275,10 +3281,9 @@ class _RoomScreenState extends State<_RoomView>
       return false;
     }
     if (widget.repo.inHistoryWindow(widget.roomId)) return false;
-    if (_scroll.hasClients) {
-      final pos = _scroll.position;
-      if (pos.pixels > 1 || pos.isScrollingNotifier.value) return false;
-    }
+    // No scroll-position gate: the fork starts from the list's own drag when
+    // it runs out of list at the newest message (ForkPull), wherever in the
+    // transcript that drag began; a fling arriving there never starts it.
     return true;
   }
 
@@ -6150,6 +6155,11 @@ class _RoomScreenState extends State<_RoomView>
                     SwipeForkOverlay(
                       controller: _fork,
                       dockHeight: () => _bottomChrome.height,
+                      // Both chat styles: the real drawn box of the dock, shelf
+                      // included (the classic style publishes no inset).
+                      dockKey: _chromeKey,
+                      topInset: () =>
+                          _topChromeOverList > 0 ? _topChromeOverList : null,
                     ),
                     if (_forkPeekOn)
                       // The list nudges up and settles; the overlay draws the

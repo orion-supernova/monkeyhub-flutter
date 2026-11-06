@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderAnimatedSize;
 
 import '../../l10n/generated/app_localizations.dart';
 import '../../theme/app_theme.dart';
@@ -83,12 +84,15 @@ class ForkLabels {
 /// strip between the (lifted) newest message and the top of the dock; the
 /// circle and the chips are centred in it.
 class ForkGeometry {
-  ForkGeometry(this.size, this.dockHeight);
+  ForkGeometry(this.size, this.dockHeight, {this.topInset = 0});
 
   static const circle = 28.0;
   static const chipW = 124.0;
   static const chipH = 108.0;
   static const chipSpread = 118.0;
+
+  /// Air kept between a chip and the header above it or the dock below it.
+  static const chipMargin = 8.0;
 
   /// Circle plus its two caption lines.
   static const block = 64.0;
@@ -97,6 +101,10 @@ class ForkGeometry {
 
   /// The measured dock (shelf, reply card, field), from the bottom edge.
   final double dockHeight;
+
+  /// The bottom of whatever sits above the transcript (the header), from the
+  /// top edge: the chips never ride up under it.
+  final double topInset;
 
   double get dockTop => size.height - dockHeight;
   double get cx => size.width / 2;
@@ -111,18 +119,38 @@ class ForkGeometry {
       Curves.easeOut.transform(((lift - 44) / 36).clamp(0.0, 1.0));
 
   /// The circle's centre for a list lifted by [lift].
-  Offset circleCenter(double lift) => Offset(
-        cx,
-        blockCenterY(lift) - (block - circle) / 2 * captionRoom(lift),
-      );
+  ///
+  /// Never lower than leaves room for the ring and, as it opens, its two
+  /// caption lines above the dock: a barely lifted list has a gap too small to
+  /// hold them, and the dock (with its shelf) is not theirs to draw on.
+  Offset circleCenter(double lift) {
+    final room = captionRoom(lift);
+    final ideal = blockCenterY(lift) - (block - circle) / 2 * room;
+    final lowest = dockTop - dockAir - circle / 2 - captionH * room;
+    return Offset(cx, math.min(ideal, lowest));
+  }
+
+  /// Air kept above the dock, and the two caption lines' room.
+  static const dockAir = 6.0;
+  static const captionH = 36.0;
 
   /// The circle's centre for the peek, which has no caption.
   Offset peekCenter() => Offset(cx, dockTop - 28);
 
-  /// Chip centres: either side of the circle, at the gap's height.
-  Offset chipCenter(ForkSide s, double lift) => Offset(
+  /// The chips' vertical centre: the finger's height ([fingerY], in this
+  /// box's coordinates), held between the header and the dock with a margin.
+  /// Without a finger (a test, a peek) the gap's centre.
+  double chipY(double? fingerY, double lift) {
+    final lo = topInset + chipMargin + chipH / 2;
+    final hi = dockTop - chipMargin - chipH / 2;
+    if (hi < lo) return (topInset + dockTop) / 2;
+    return (fingerY ?? blockCenterY(lift)).clamp(lo, hi).toDouble();
+  }
+
+  /// Chip centres: either side of the finger's column, at the finger's height.
+  Offset chipCenter(ForkSide s, double lift, [double? fingerY]) => Offset(
         cx + (s == ForkSide.left ? -chipSpread : chipSpread),
-        blockCenterY(lift),
+        chipY(fingerY, lift),
       );
 }
 
@@ -167,6 +195,8 @@ class SwipeForkOverlay extends StatelessWidget {
     super.key,
     required this.controller,
     this.dockHeight,
+    this.dockKey,
+    this.topInset,
   });
 
   final SwipeForkController controller;
@@ -174,6 +204,32 @@ class SwipeForkOverlay extends StatelessWidget {
   /// The dock's measured height, or null before it is measured (a composer's
   /// height over the safe area is assumed).
   final double? Function()? dockHeight;
+
+  /// The dock's own box (shelf, cards and field in one). When it is mounted
+  /// its drawn top is measured here, so a shelf row of any height, an
+  /// animating card, and the classic chat style (which publishes no inset) are
+  /// all cleared; [dockHeight] is the fallback.
+  final GlobalKey? dockKey;
+
+  /// How far down the header reaches, or null for the status bar and a bar.
+  final double? Function()? topInset;
+
+  /// The dock's drawn height from the bottom edge of [overlay], from the real
+  /// render boxes: the box itself, and the [AnimatedSize] it grows in (which is
+  /// the larger while a card is leaving).
+  double? _dockHeightIn(BuildContext overlay, Size size) {
+    final dock = dockKey?.currentContext?.findRenderObject();
+    final me = overlay.findRenderObject();
+    if (dock is! RenderBox || !dock.attached || !dock.hasSize) return null;
+    if (me is! RenderBox || !me.attached || !me.hasSize) return null;
+    var top = dock.localToGlobal(Offset.zero).dy;
+    final parent = dock.parent;
+    if (parent is RenderAnimatedSize && parent.hasSize) {
+      top = math.min(top, parent.localToGlobal(Offset.zero).dy);
+    }
+    final height = size.height - (top - me.localToGlobal(Offset.zero).dy);
+    return height.isFinite && height > 0 ? height : null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -184,6 +240,7 @@ class SwipeForkOverlay extends StatelessWidget {
     final labels = ForkLabels(AppLocalizations.of(context));
     final palette = ForkPalette(theme);
     final fallback = MediaQuery.viewPaddingOf(context).bottom + 72;
+    final defaultTop = MediaQuery.viewPaddingOf(context).top + 56;
     return ListenableBuilder(
       listenable: Listenable.merge([controller.visible, controller.peekOn]),
       builder: (context, _) {
@@ -195,7 +252,12 @@ class SwipeForkOverlay extends StatelessWidget {
             type: MaterialType.transparency,
             child: LayoutBuilder(
               builder: (context, box) {
-                final geo = ForkGeometry(box.biggest, dockHeight?.call() ?? fallback);
+                final here = context;
+                ForkGeometry geoOf(Size size) => ForkGeometry(
+                      size,
+                      _dockHeightIn(here, size) ?? dockHeight?.call() ?? fallback,
+                      topInset: topInset?.call() ?? defaultTop,
+                    );
                 return RepaintBoundary(
                   child: CustomPaint(
                     size: box.biggest,
@@ -204,7 +266,8 @@ class SwipeForkOverlay extends StatelessWidget {
                       theme: theme,
                       palette: palette,
                       labels: labels,
-                      geo: geo,
+                      geoOf: geoOf,
+                      originOf: () => _originOf(here),
                     ),
                   ),
                 );
@@ -217,6 +280,15 @@ class SwipeForkOverlay extends StatelessWidget {
   }
 }
 
+// The overlay's top-left, in screen coordinates.
+Offset _originOf(BuildContext overlay) {
+  final me = overlay.findRenderObject();
+  if (me is RenderBox && me.attached && me.hasSize) {
+    return me.localToGlobal(Offset.zero);
+  }
+  return Offset.zero;
+}
+
 // ───────── circle, chips, caption ─────────
 
 class ForkScenePainter extends CustomPainter {
@@ -225,14 +297,22 @@ class ForkScenePainter extends CustomPainter {
     required this.theme,
     required this.palette,
     required this.labels,
-    required this.geo,
+    required this.geoOf,
+    this.originOf,
   }) : super(repaint: controller.repaint);
 
   final SwipeForkController controller;
   final AppTheme theme;
   final ForkPalette palette;
   final ForkLabels labels;
-  final ForkGeometry geo;
+  final ForkGeometry Function(Size size) geoOf;
+
+  /// The overlay's top-left on screen, to bring the finger's global position
+  /// into the painter's own coordinates.
+  final Offset Function()? originOf;
+
+  /// Taken at the top of each paint, so the dock is measured as it is now.
+  late ForkGeometry geo;
 
   final Map<String, TextPainter> _text = {};
 
@@ -249,6 +329,7 @@ class ForkScenePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    geo = geoOf(size);
     final c = controller;
     final out = 1 - c.chrome.value.clamp(0.0, 1.0);
     final gesture = c.visible.value;
@@ -413,8 +494,11 @@ class ForkScenePainter extends CustomPainter {
     final other = (side == ForkSide.left ? c.armRight : c.armLeft).value.clamp(0.0, 1.0);
     final col = palette.of(o);
     final from = geo.circleCenter(lift);
-    final to = geo.chipCenter(side, lift);
-    final center = Offset.lerp(from, to, b)!;
+    final fingerY = c.fingerY.value - (originOf?.call().dy ?? 0);
+    final to = geo.chipCenter(side, lift, fingerY);
+    // The spring may overshoot the scale, never the place: a chip stays
+    // between the header and the dock all the way there.
+    final center = Offset.lerp(from, to, b.clamp(0.0, 1.0))!;
     final scale = (0.3 + 0.7 * b) * (1 + 0.1 * arm - 0.06 * other);
     final alpha = (b * 3).clamp(0.0, 1.0) * out * (1 - 0.5 * other);
 
@@ -442,6 +526,10 @@ class ForkScenePainter extends CustomPainter {
         ..strokeWidth = 1.2
         ..color = Color.lerp(theme.divider, col, arm)!,
     );
+
+    // The way to slide, on the side facing the finger: points outward, and
+    // nudges once that way as the chips bloom.
+    _chevron(canvas, side, rect, Color.lerp(theme.inkMuted, col, arm)!);
 
     // Icon disc.
     final disc = Offset(0, rect.top + 12 + 20);
@@ -473,6 +561,29 @@ class ForkScenePainter extends CustomPainter {
     }
     if (layer) canvas.restore();
     canvas.restore();
+  }
+
+  /// A small chevron on the chip's inner side, ‹ on the left chip and › on the
+  /// right one. [SwipeForkController.kick] moves it a few points outward and
+  /// back, once.
+  void _chevron(Canvas canvas, ForkSide side, Rect chip, Color color) {
+    final out = side == ForkSide.left ? -1.0 : 1.0;
+    final nudge = 5 * math.sin(math.pi * controller.kick.value.clamp(0.0, 1.0));
+    // The inner edge faces the finger: right edge of the left chip.
+    final x = -out * (chip.width / 2 - 13) + out * nudge;
+    final y = chip.top + 12 + 20;
+    canvas.drawPath(
+      Path()
+        ..moveTo(x - out * 3, y - 5)
+        ..lineTo(x + out * 3, y)
+        ..lineTo(x - out * 3, y + 5),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = color,
+    );
   }
 
   void _icon(Canvas canvas, ForkOption o, Offset at, Color color) {
@@ -533,8 +644,5 @@ class ForkScenePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(ForkScenePainter old) =>
-      old.theme != theme ||
-      old.geo.size != geo.size ||
-      old.geo.dockHeight != geo.dockHeight ||
-      old.labels.l != labels.l;
+      old.theme != theme || old.labels.l != labels.l;
 }
