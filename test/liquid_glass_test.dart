@@ -8,6 +8,7 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/liquid_glass.dart';
 import 'package:monkeyhub/widgets/glass_buttons.dart';
 import 'package:monkeyhub/widgets/search_field.dart';
+import 'package:monkeyhub/ui/foundation/ui_kit.dart';
 
 /// LiquidGlass is the shared chrome surface for the compact chat style — the
 /// header title capsule, the composer field and the round buttons all sit
@@ -35,18 +36,18 @@ void main() {
     tester,
   ) async {
     final store = SettingsStore.instance;
-    final previousEngine = store.glassEngine;
+    final previousEngine = store.uiKit;
     final previousProfile = store.glass;
     final previousPreset = store.glassPresetId;
     final previousSupport = NativeChrome.supported;
     addTearDown(() {
       NativeChrome.debugSupported = previousSupport;
-      store.setGlassEngine(previousEngine);
+      store.setUiKit(previousEngine);
       store.setGlassProfile(previousProfile, presetId: previousPreset);
       store.flushGlassWrites();
     });
     NativeChrome.debugSupported = true;
-    store.setGlassEngine(GlassEngine.native);
+    store.setUiKit(null);
     store.selectGlassPreset('frosted');
     await tester.pumpWidget(
       host(GlassIconButton(icon: Icons.add, onTap: () {})),
@@ -72,7 +73,7 @@ void main() {
     final nativeFrame = frame();
 
     // Keep the same mounted button: settings must update its material live.
-    store.setGlassEngine(GlassEngine.flutter);
+    store.setUiKit(UiKit.glass);
     await tester.pump();
     expect(rim, findsOneWidget);
     expect(frame(), nativeFrame);
@@ -95,10 +96,10 @@ void main() {
     expect(rim, findsOneWidget);
     expect(frame()!.single.offset.dy, 3.75);
 
-    store.setGlassEngine(GlassEngine.native);
+    store.setUiKit(null);
     await tester.pump();
     expect(rim, findsOneWidget);
-    store.setGlassEngine(GlassEngine.flutter);
+    store.setUiKit(UiKit.glass);
     await tester.pump();
     expect(rim, findsOneWidget);
 
@@ -112,13 +113,13 @@ void main() {
     tester,
   ) async {
     final store = SettingsStore.instance;
-    final previousEngine = store.glassEngine;
+    final previousEngine = store.uiKit;
     final previousProfile = store.glass;
     final previousPreset = store.glassPresetId;
-    store.setGlassEngine(GlassEngine.flutter);
+    store.setUiKit(UiKit.glass);
     store.selectGlassPreset('frosted');
     addTearDown(() {
-      store.setGlassEngine(previousEngine);
+      store.setUiKit(previousEngine);
       store.setGlassProfile(previousProfile, presetId: previousPreset);
       store.flushGlassWrites();
     });

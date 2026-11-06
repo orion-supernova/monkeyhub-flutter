@@ -1,37 +1,32 @@
-import 'package:flutter/foundation.dart'
-    show
-        TargetPlatform,
-        defaultTargetPlatform,
-        kIsWeb,
-        listEquals,
-        visibleForTesting;
+import 'package:flutter/foundation.dart' show listEquals, visibleForTesting;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../data/settings_store.dart';
+import '../../data/settings_store.dart' show HomeSection;
 import '../../l10n/generated/app_localizations.dart';
 import '../../theme/theme_preference.dart';
 import '../../theme/theme_scope.dart';
+import '../../ui/foundation/caps.dart';
+import '../../ui/foundation/ui_kit.dart';
 import 'destinations.dart';
 
 /// The bridge to `ios/Runner/NativeChrome.swift`.
 abstract final class NativeChrome {
   static const channel = MethodChannel('monkeyhub/native_chrome');
 
-  static bool _supported = false;
-
   /// True on an iPhone or iPad running iOS 26 or later — where the OS has
   /// Liquid Glass to give. Resolved once by [init]; false until then and
-  /// everywhere else.
-  static bool get supported => _supported;
+  /// everywhere else. The same fact as [Caps.nativeGlass], which is what the
+  /// rest of the app asks.
+  static bool get supported => Caps.nativeGlass;
 
   /// Lets a test or a design preview stand in for an iOS 26 phone.
   @visibleForTesting
-  static set debugSupported(bool v) => _supported = v;
+  static set debugSupported(bool v) => Caps.nativeGlassProbe = v;
 
-  /// Whether the shell should hand its bottom bar to iOS right now.
-  static bool get active =>
-      _supported && SettingsStore.instance.glassEngine == GlassEngine.native;
+  /// Whether the shell should hand its bottom bar to iOS right now: the app
+  /// is drawn with the [UiKit.liquid] kit.
+  static bool get active => UiKits.current == UiKit.liquid;
 
   /// How many overlays currently need the native bar out of the way.
   ///
@@ -59,16 +54,16 @@ abstract final class NativeChrome {
   /// The bridge belongs to the UI scene, while the engine can start headless
   /// or outlive that scene. An unanswered probe must not block `runApp`.
   static Future<void> init() async {
-    _supported = false;
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return;
+    Caps.nativeGlassProbe = false;
+    if (!Caps.iOS) return;
     try {
-      _supported =
+      Caps.nativeGlassProbe =
           await channel
               .invokeMethod<bool>('isSupported')
               .timeout(const Duration(seconds: 2)) ??
           false;
     } catch (_) {
-      _supported = false;
+      Caps.nativeGlassProbe = false;
     }
   }
 }

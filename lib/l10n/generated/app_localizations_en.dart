@@ -16021,4 +16021,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String roomContentCountSplit(String photos, String videos) {
     return '$photos, $videos';
   }
+
+  @override
+  String get uiKitAutoTitle => 'Automatic';
+
+  @override
+  String uiKitAutoBody(String style) {
+    return 'Picks the best style for this device. Now: $style';
+  }
+
+  @override
+  String get uiKitLiteTitle => 'Lite';
+
+  @override
+  String get uiKitLiteBody =>
+      'Solid surfaces, no blur. Smoothest on older phones and easy on the battery.';
+
+  @override
+  String get uiKitLiteFooter =>
+      'Lite draws no glass, so there is nothing to tune. Choose Frosted to shape the glass yourself.';
 }

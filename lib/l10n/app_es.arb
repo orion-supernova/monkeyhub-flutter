@@ -4383,5 +4383,10 @@
   "roomContentCountVoice": "{count, plural, one{1 mensaje de voz} other{{count} mensajes de voz}}",
   "roomContentCountLinks": "{count, plural, one{1 enlace} other{{count} enlaces}}",
   "roomContentCountSaved": "{count, plural, one{1 mensaje guardado} other{{count} mensajes guardados}}",
-  "roomContentCountSplit": "{photos}, {videos}"
+  "roomContentCountSplit": "{photos}, {videos}",
+  "uiKitAutoTitle": "Automático",
+  "uiKitAutoBody": "Elige el mejor estilo para este dispositivo. Ahora: {style}",
+  "uiKitLiteTitle": "Ligero",
+  "uiKitLiteBody": "Superficies sólidas, sin desenfoque. Lo más fluido en teléfonos antiguos y cuida la batería.",
+  "uiKitLiteFooter": "Ligero no dibuja vidrio, así que no hay nada que ajustar. Elige Esmerilado para dar forma al vidrio tú mismo."
 }

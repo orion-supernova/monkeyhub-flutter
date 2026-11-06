@@ -115,6 +115,7 @@ import 'theme/app_theme.dart';
 import 'theme/layout.dart';
 import 'theme/theme_preference.dart';
 import 'theme/theme_scope.dart';
+import 'ui/foundation/ui_kit.dart';
 import 'update/update_checker.dart';
 import 'widgets/app_brand_mark.dart';
 import 'widgets/app_toast.dart';
@@ -2080,6 +2081,14 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
 
   @override
   Widget build(BuildContext context) {
+    // The interface kit sits above the app so every route, sheet and overlay
+    // reads the same one (UiKit.of).
+    return UiKitScope(
+      child: _themed(context),
+    );
+  }
+
+  Widget _themed(BuildContext context) {
     return ThemeScope(
       controller: _themeController,
       child: AnimatedBuilder(

@@ -614,7 +614,7 @@ GlassProfile upgradeFrostedGlassProfile(
 }
 
 /// The recipe every app-drawn glass surface follows while iOS draws the tab
-/// bar ([GlassEngine.native]), in place of the user's tuning. Untuned app
+/// bar ([UiKit.liquid]), in place of the user's tuning. Untuned app
 /// chrome also uses this recipe with the Flutter tab bar, so switching only
 /// the bar's style leaves the default buttons consistent.
 ///

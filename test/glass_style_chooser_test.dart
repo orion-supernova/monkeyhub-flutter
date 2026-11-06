@@ -7,6 +7,7 @@ import 'package:monkeyhub/screens/glass_screen.dart';
 import 'package:monkeyhub/screens/navigation/native_tab_bar.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/ui/foundation/ui_kit.dart';
 
 void main() {
   final store = SettingsStore.instance;
@@ -15,7 +16,7 @@ void main() {
   setUp(() => NativeChrome.debugSupported = true);
   tearDown(() {
     NativeChrome.debugSupported = false;
-    store.setGlassEngine(GlassEngine.native);
+    store.setUiKit(null);
     store.selectGlassPreset(kDefaultGlassPresetId);
     store.flushGlassWrites();
   });
@@ -46,26 +47,39 @@ void main() {
   }
 
   testWidgets('the checkmark follows every tap, both ways', (tester) async {
-    store.setGlassEngine(GlassEngine.native);
+    store.setUiKit(null);
     await pump(tester);
-    expect(tick(tester, en.glassStyleLiquidTitle), 1);
+    expect(tick(tester, en.uiKitAutoTitle), 1);
+    expect(tick(tester, en.glassStyleLiquidTitle), 0,
+        reason: 'Automatic is its own choice, not a tick on what it resolved to');
     expect(tick(tester, en.glassStyleFrostedTitle), 0);
 
     await tester.tap(find.text(en.glassStyleFrostedTitle));
     await tester.pumpAndSettle();
-    expect(store.glassEngine, GlassEngine.flutter);
+    expect(store.uiKit, UiKit.glass);
     expect(tick(tester, en.glassStyleFrostedTitle), 1,
         reason: 'the tick has to move, not just the stored value');
-    expect(tick(tester, en.glassStyleLiquidTitle), 0);
+    expect(tick(tester, en.uiKitAutoTitle), 0);
 
     await tester.tap(find.text(en.glassStyleLiquidTitle));
     await tester.pumpAndSettle();
-    expect(store.glassEngine, GlassEngine.native);
+    expect(store.uiKit, UiKit.liquid);
     expect(tick(tester, en.glassStyleLiquidTitle), 1);
+    expect(tick(tester, en.glassStyleFrostedTitle), 0);
+
+    await tester.tap(find.text(en.uiKitLiteTitle));
+    await tester.pumpAndSettle();
+    expect(store.uiKit, UiKit.lite);
+    expect(tick(tester, en.uiKitLiteTitle), 1);
+
+    await tester.tap(find.text(en.uiKitAutoTitle));
+    await tester.pumpAndSettle();
+    expect(store.uiKit, isNull);
+    expect(tick(tester, en.uiKitAutoTitle), 1);
   });
 
   testWidgets('under Frosted a look can be picked', (tester) async {
-    store.setGlassEngine(GlassEngine.flutter);
+    store.setUiKit(UiKit.glass);
     await pump(tester);
     final clear = find.text('Clear');
     await tester.scrollUntilVisible(clear, 120,

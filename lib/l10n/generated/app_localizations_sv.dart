@@ -16057,4 +16057,23 @@ class AppLocalizationsSv extends AppLocalizations {
   String roomContentCountSplit(String photos, String videos) {
     return '$photos, $videos';
   }
+
+  @override
+  String get uiKitAutoTitle => 'Automatiskt';
+
+  @override
+  String uiKitAutoBody(String style) {
+    return 'Väljer den bästa stilen för den här enheten. Nu: $style';
+  }
+
+  @override
+  String get uiKitLiteTitle => 'Lätt';
+
+  @override
+  String get uiKitLiteBody =>
+      'Heltäckande ytor utan oskärpa. Smidigast på äldre telefoner och snällt mot batteriet.';
+
+  @override
+  String get uiKitLiteFooter =>
+      'Lätt ritar inget glas, så det finns inget att justera. Välj Frostat för att forma glaset själv.';
 }

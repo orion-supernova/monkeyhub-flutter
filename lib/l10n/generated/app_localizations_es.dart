@@ -16167,4 +16167,23 @@ class AppLocalizationsEs extends AppLocalizations {
   String roomContentCountSplit(String photos, String videos) {
     return '$photos, $videos';
   }
+
+  @override
+  String get uiKitAutoTitle => 'Automático';
+
+  @override
+  String uiKitAutoBody(String style) {
+    return 'Elige el mejor estilo para este dispositivo. Ahora: $style';
+  }
+
+  @override
+  String get uiKitLiteTitle => 'Ligero';
+
+  @override
+  String get uiKitLiteBody =>
+      'Superficies sólidas, sin desenfoque. Lo más fluido en teléfonos antiguos y cuida la batería.';
+
+  @override
+  String get uiKitLiteFooter =>
+      'Ligero no dibuja vidrio, así que no hay nada que ajustar. Elige Esmerilado para dar forma al vidrio tú mismo.';
 }

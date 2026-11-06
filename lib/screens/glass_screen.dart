@@ -13,7 +13,7 @@ import '../widgets/ios_kit.dart';
 import '../widgets/sheet_kit.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/value_slider.dart';
-import 'navigation/native_tab_bar.dart' show NativeChrome;
+import '../ui/foundation/ui_kit.dart';
 import 'navigation/pill_bottom_nav.dart';
 
 /// Live tuning for every glass surface, plus named slots to keep looks in.
@@ -298,8 +298,9 @@ class _GlassScreenState extends State<GlassScreen> {
     final activeId = _store.glassPresetId;
     final base = _baseline;
     final dirty = profile != base;
-    final liquid = NativeChrome.supported &&
-        _store.glassEngine == GlassEngine.native;
+    // The dials tune the Frosted kit only: Liquid Glass is drawn by iOS and
+    // Lite draws no glass at all.
+    final liquid = UiKits.current != UiKit.glass;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -382,10 +383,8 @@ class _GlassScreenState extends State<GlassScreen> {
                                     ],
                                   ),
                                 ),
-                                if (NativeChrome.supported) ...[
-                                  const SizedBox(height: 22),
-                                  const _GlassStyleChooser(),
-                                ],
+                                const SizedBox(height: 22),
+                                const _GlassStyleChooser(),
                               ],
                             ),
                           ),
@@ -1513,11 +1512,9 @@ class _GlassProfileTween extends Tween<GlassProfile> {
   GlassProfile lerp(double t) => GlassProfile.lerp(begin ?? end!, end!, t);
 }
 
-/// Apple's Liquid Glass or the app's Frosted glass — the first decision on
-/// this screen, and on iOS 26+ the one that matters most, so it leads and
-/// Liquid Glass is listed (and recommended) first.
-///
-/// Only built where iOS has Liquid Glass to give ([NativeChrome.supported]).
+/// The interface kit: Automatic, then every kit this device can draw
+/// ([UiKits.offered]): Liquid Glass on iOS 26+, Frosted and Lite everywhere.
+/// The first decision on this screen, so it leads.
 class _GlassStyleChooser extends StatelessWidget {
   const _GlassStyleChooser();
 
@@ -1530,48 +1527,67 @@ class _GlassStyleChooser extends StatelessWidget {
         builder: (context, _) => _build(context),
       );
 
+  static String kitTitle(AppLocalizations l10n, UiKit kit) => switch (kit) {
+        UiKit.liquid => l10n.glassStyleLiquidTitle,
+        UiKit.glass || UiKit.material => l10n.glassStyleFrostedTitle,
+        UiKit.lite => l10n.uiKitLiteTitle,
+      };
+
   Widget _build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final store = SettingsStore.instance;
-    final liquid = store.glassEngine == GlassEngine.native;
+    final choice = store.uiKit;
+    final resolved = UiKits.current;
+    final auto = choice == null || !UiKits.available(choice);
+    bool on(UiKit k) => !auto && resolved == k;
     return GroupedSection(
       header: l10n.glassStyleHeader,
-      footer: liquid ? l10n.glassStyleLiquidFooter : null,
+      footer: switch (resolved) {
+        UiKit.liquid => l10n.glassStyleLiquidFooter,
+        UiKit.lite => l10n.uiKitLiteFooter,
+        _ => null,
+      },
       margin: EdgeInsets.zero,
       children: [
         GroupedRow(
-          icon: CupertinoIcons.drop_fill,
-          tone: TileTone.teal,
-          title: l10n.glassStyleLiquidTitle,
-          subtitle: l10n.glassStyleLiquidBody,
+          icon: CupertinoIcons.wand_stars,
+          tone: TileTone.blue,
+          title: l10n.uiKitAutoTitle,
+          subtitle: l10n.uiKitAutoBody(kitTitle(l10n, UiKits.automatic)),
           chevron: false,
-          onTap: () => store.setGlassEngine(GlassEngine.native),
-          titleTrailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-            decoration: BoxDecoration(
-              color: quietFill(theme),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              l10n.glassStyleRecommended,
-              style: groupedMetaStyle(theme).copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.accent,
+          onTap: () => store.setUiKit(null),
+          trailing: _Tick(on: auto),
+        ),
+        for (final kit in UiKits.offered)
+          switch (kit) {
+            UiKit.liquid => GroupedRow(
+                icon: CupertinoIcons.drop_fill,
+                tone: TileTone.teal,
+                title: l10n.glassStyleLiquidTitle,
+                subtitle: l10n.glassStyleLiquidBody,
+                chevron: false,
+                onTap: () => store.setUiKit(UiKit.liquid),
+                trailing: _Tick(on: on(UiKit.liquid)),
               ),
-            ),
-          ),
-          trailing: _Tick(on: liquid),
-        ),
-        GroupedRow(
-          icon: CupertinoIcons.circle_grid_hex_fill,
-          tone: TileTone.indigo,
-          title: l10n.glassStyleFrostedTitle,
-          subtitle: l10n.glassStyleFrostedBody,
-          chevron: false,
-          onTap: () => store.setGlassEngine(GlassEngine.flutter),
-          trailing: _Tick(on: !liquid),
-        ),
+            UiKit.glass || UiKit.material => GroupedRow(
+                icon: CupertinoIcons.circle_grid_hex_fill,
+                tone: TileTone.indigo,
+                title: l10n.glassStyleFrostedTitle,
+                subtitle: l10n.glassStyleFrostedBody,
+                chevron: false,
+                onTap: () => store.setUiKit(UiKit.glass),
+                trailing: _Tick(on: on(UiKit.glass)),
+              ),
+            UiKit.lite => GroupedRow(
+                icon: CupertinoIcons.square_fill,
+                tone: TileTone.gray,
+                title: l10n.uiKitLiteTitle,
+                subtitle: l10n.uiKitLiteBody,
+                chevron: false,
+                onTap: () => store.setUiKit(UiKit.lite),
+                trailing: _Tick(on: on(UiKit.lite)),
+              ),
+          },
       ],
     );
   }

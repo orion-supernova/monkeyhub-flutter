@@ -25,9 +25,7 @@ import 'sunlit_surface.dart' show sunlitHairline;
 /// different buttons. One opaque colour, a step off the surface (an ink wash
 /// on light palettes, a white one on dark), is the same disc on a page, a
 /// sheet and a card.
-Color chromeDiscFill(AppTheme theme) => theme.isLight
-    ? Color.alphaBlend(theme.ink.withValues(alpha: 0.06), theme.surface)
-    : Color.alphaBlend(Colors.white.withValues(alpha: 0.12), theme.surface);
+Color chromeDiscFill(AppTheme theme) => plateFill(theme);
 
 /// THE icon button: a 44pt circle with a glyph — back, close, compose, more,
 /// and every control floating over a photo or the camera.

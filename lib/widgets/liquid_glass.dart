@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import '../data/glass_config.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart' show FocusRingShape;
-import '../screens/navigation/native_tab_bar.dart' show NativeChrome;
+import '../theme/app_theme.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
 import 'glass_reveal.dart';
 import 'spring_press.dart';
 import 'sunlit_surface.dart' show sunlitHairline;
@@ -54,6 +56,20 @@ abstract final class MediaGlass {
   /// glass. Centred, it still separates white glass from a bright photo.
   static const shadow = BoxShadow(color: Color(0x40000000), blurRadius: 14);
 }
+
+/// The opaque fill of a control drawn without glass: a step off the page —
+/// an ink wash on light palettes, a white one on dark. The chrome disc of a
+/// still button and every [UiKit.lite] surface wear it, so a plate on a page,
+/// a sheet and a card is the same plate.
+Color plateFill(AppTheme theme) => theme.isLight
+    ? Color.alphaBlend(theme.ink.withValues(alpha: 0.06), theme.surface)
+    : Color.alphaBlend(Colors.white.withValues(alpha: 0.12), theme.surface);
+
+/// The hairline round a [plateFill] surface, so it keeps an edge on a page of
+/// the same colour.
+Color plateEdge(AppTheme theme) => theme.isLight
+    ? theme.ink.withValues(alpha: 0.08)
+    : Colors.white.withValues(alpha: 0.08);
 
 /// THE glass of the app. Every glass surface — buttons, pills, menus, bars,
 /// camera and viewer chrome — is this widget, so they read as one material.
@@ -163,6 +179,12 @@ class LiquidGlass extends StatelessWidget {
 
   /// The engine-aware material: which recipe the glass wears.
   Widget _material(BuildContext context, bool pressed) {
+    final kit = UiKit.of(context);
+    if (!kit.blurs) {
+      return tone == GlassTone.media
+          ? _media(context, pressed, plate: true)
+          : _plate(context, pressed);
+    }
     if (tone == GlassTone.media) return _media(context, pressed);
     final cfg = config;
     if (cfg != null) return _app(context, cfg, pressed);
@@ -176,14 +198,17 @@ class LiquidGlass extends StatelessWidget {
       listenable: SettingsStore.instance,
       builder: (context, _) {
         final app = SettingsStore.instance.glass.app;
-        final recipe = NativeChrome.active || app.isUntouched
+        // Resolved in here, not above: with no scope over this glass the kit
+        // comes straight from the store, and this is the part that listens.
+        final liquid = UiKit.of(context) == UiKit.liquid;
+        final recipe = liquid || app.isUntouched
             ? kNativeMatchGlass
             : resolveAppGlass(app);
         return _app(
           context,
           recipe,
           pressed,
-          appChrome: !NativeChrome.active && !app.isUntouched,
+          appChrome: !liquid && !app.isUntouched,
         );
       },
     );
@@ -259,11 +284,13 @@ class LiquidGlass extends StatelessWidget {
   /// not a filled disc with a dropped shadow and an even outline, which is
   /// Material elevation and read as Android over a photo. A [tint] makes it a
   /// solid, lit control.
-  Widget _media(BuildContext context, bool pressed) {
+  ///
+  /// [plate] is the lite kit: the still fill, and no shadow.
+  Widget _media(BuildContext context, bool pressed, {bool plate = false}) {
     final t = tint;
     final shape = _border();
     // Shadows the field: still here or still because the subtree is fading.
-    final still = this.still || GlassStill.of(context);
+    final still = plate || this.still || GlassStill.of(context);
     final Color fill;
     if (t != null) {
       fill = t;
@@ -314,7 +341,7 @@ class LiquidGlass extends StatelessWidget {
     // instead of being cut off at its own edge. Centred, never dropped.
     return GlassShadow(
       shape: shape,
-      shadows: shadow ? const [MediaGlass.shadow] : null,
+      shadows: shadow && !plate ? const [MediaGlass.shadow] : null,
       child: CustomPaint(
         foregroundPainter: SpecularRim(
           shape: shape,
@@ -322,6 +349,41 @@ class LiquidGlass extends StatelessWidget {
           opacity: t == null ? 1 : 0.7,
         ),
         child: clipped,
+      ),
+    );
+  }
+
+  /// The [UiKit.lite] surface: the same shape as the glass, drawn as an
+  /// opaque plate one step off the page, with a hairline edge. No backdrop
+  /// blur and no shadow, which are the two things a low-end GPU pays for.
+  Widget _plate(BuildContext context, bool pressed) {
+    final theme = ThemeScope.of(context);
+    final t = tint;
+    final fill = t ??
+        (tinted
+            ? Color.alphaBlend(theme.accent.withValues(alpha: 0.22), theme.surface)
+            : plateFill(theme));
+    final shape = _border(
+      side: BorderSide(color: plateEdge(theme), width: t == null ? 0.5 : 0),
+    );
+    return DecoratedBox(
+      position: DecorationPosition.foreground,
+      decoration: ShapeDecoration(shape: shape),
+      child: ClipPath(
+        clipper: ShapeBorderClipper(shape: _border()),
+        child: Stack(
+          children: [
+            Positioned.fill(child: ColoredBox(color: fill)),
+            if (pressed)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: (theme.isLight ? theme.ink : Colors.white)
+                      .withValues(alpha: 0.07),
+                ),
+              ),
+            _content(context),
+          ],
+        ),
       ),
     );
   }

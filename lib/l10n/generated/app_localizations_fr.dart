@@ -16236,4 +16236,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String roomContentCountSplit(String photos, String videos) {
     return '$photos, $videos';
   }
+
+  @override
+  String get uiKitAutoTitle => 'Automatique';
+
+  @override
+  String uiKitAutoBody(String style) {
+    return 'Choisit le meilleur style pour cet appareil. Actuellement : $style';
+  }
+
+  @override
+  String get uiKitLiteTitle => 'Léger';
+
+  @override
+  String get uiKitLiteBody =>
+      'Surfaces pleines, sans flou. Le plus fluide sur les anciens téléphones et économe en batterie.';
+
+  @override
+  String get uiKitLiteFooter =>
+      'Léger ne dessine pas de verre, il n\'y a donc rien à régler. Choisissez Givré pour façonner le verre vous-même.';
 }

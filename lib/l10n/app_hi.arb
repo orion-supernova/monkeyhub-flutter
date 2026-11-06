@@ -4383,5 +4383,10 @@
   "roomContentCountVoice": "{count, plural, one{1 वॉइस मैसेज} other{{count} वॉइस मैसेज}}",
   "roomContentCountLinks": "{count, plural, one{1 लिंक} other{{count} लिंक}}",
   "roomContentCountSaved": "{count, plural, one{1 सेव किया गया मैसेज} other{{count} सेव किए गए मैसेज}}",
-  "roomContentCountSplit": "{photos}, {videos}"
+  "roomContentCountSplit": "{photos}, {videos}",
+  "uiKitAutoTitle": "स्वचालित",
+  "uiKitAutoBody": "इस डिवाइस के लिए सबसे अच्छी शैली चुनता है। अभी: {style}",
+  "uiKitLiteTitle": "लाइट",
+  "uiKitLiteBody": "ठोस सतहें, कोई धुंधलापन नहीं। पुराने फ़ोन पर सबसे स्मूद और बैटरी पर हल्का।",
+  "uiKitLiteFooter": "लाइट कोई ग्लास नहीं बनाता, इसलिए कुछ ट्यून करने को नहीं है। ग्लास खुद आकार देने के लिए फ़्रॉस्टेड चुनें।"
 }

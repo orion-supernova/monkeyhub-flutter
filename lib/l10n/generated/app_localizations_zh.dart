@@ -15184,4 +15184,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String roomContentCountSplit(String photos, String videos) {
     return '$photos、$videos';
   }
+
+  @override
+  String get uiKitAutoTitle => '自动';
+
+  @override
+  String uiKitAutoBody(String style) {
+    return '为此设备选择最合适的样式。当前：$style';
+  }
+
+  @override
+  String get uiKitLiteTitle => '轻量';
+
+  @override
+  String get uiKitLiteBody => '实色表面，无模糊。在旧手机上最流畅，也更省电。';
+
+  @override
+  String get uiKitLiteFooter => '轻量样式不绘制玻璃，因此无需调节。选择磨砂即可自行调整玻璃。';
 }

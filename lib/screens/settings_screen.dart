@@ -64,7 +64,7 @@ import 'motion_screen.dart';
 import 'map_apps_screen.dart';
 import 'navigation_screen.dart';
 import 'navigation/destinations.dart';
-import 'navigation/native_tab_bar.dart' show NativeChrome;
+import '../ui/foundation/ui_kit.dart';
 import 'navigation/open_room.dart';
 import 'navigation/tab_reselect.dart';
 import 'profile_screen.dart';
@@ -254,7 +254,14 @@ class _SettingsScreenState extends State<SettingsScreen>
     final store = SettingsStore.instance;
     // Under iOS's own glass the dials do not apply, so naming a preset here
     // would describe something that is not on screen.
-    if (_nativeGlass) return l10n.glassStyleLiquidTitle;
+    switch (UiKits.current) {
+      case UiKit.liquid:
+        return l10n.glassStyleLiquidTitle;
+      case UiKit.lite:
+        return l10n.uiKitLiteTitle;
+      case UiKit.glass || UiKit.material:
+        break;
+    }
     final id = store.glassPresetId;
     if (id == null) return l10n.settingsScreenValueCustom;
     for (final p in store.glassPresets) {
@@ -267,10 +274,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
     return l10n.settingsScreenValueCustom;
   }
-
-  bool get _nativeGlass =>
-      NativeChrome.supported &&
-      SettingsStore.instance.glassEngine == GlassEngine.native;
 
   String get _videoQualityLabel {
     final l10n = AppLocalizations.of(context);

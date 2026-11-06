@@ -4383,5 +4383,10 @@
   "roomContentCountVoice": "{count, plural, one{1 sesli mesaj} other{{count} sesli mesaj}}",
   "roomContentCountLinks": "{count, plural, one{1 bağlantı} other{{count} bağlantı}}",
   "roomContentCountSaved": "{count, plural, one{1 kayıtlı mesaj} other{{count} kayıtlı mesaj}}",
-  "roomContentCountSplit": "{photos}, {videos}"
+  "roomContentCountSplit": "{photos}, {videos}",
+  "uiKitAutoTitle": "Otomatik",
+  "uiKitAutoBody": "Bu cihaz için en iyi stili seçer. Şu an: {style}",
+  "uiKitLiteTitle": "Hafif",
+  "uiKitLiteBody": "Düz yüzeyler, bulanıklık yok. Eski telefonlarda en akıcısı ve pili yormaz.",
+  "uiKitLiteFooter": "Hafif stil cam çizmez, bu yüzden ayarlanacak bir şey yok. Camı kendin şekillendirmek için Buzlu'yu seç."
 }

@@ -4383,5 +4383,10 @@
   "roomContentCountVoice": "{count, plural, zero{لا رسائل صوتية} one{رسالة صوتية واحدة} two{رسالتان صوتيتان} few{{count} رسائل صوتية} many{{count} رسالة صوتية} other{{count} رسالة صوتية}}",
   "roomContentCountLinks": "{count, plural, zero{لا روابط} one{رابط واحد} two{رابطان} few{{count} روابط} many{{count} رابطًا} other{{count} رابط}}",
   "roomContentCountSaved": "{count, plural, zero{لا رسائل محفوظة} one{رسالة محفوظة واحدة} two{رسالتان محفوظتان} few{{count} رسائل محفوظة} many{{count} رسالة محفوظة} other{{count} رسالة محفوظة}}",
-  "roomContentCountSplit": "{photos}، {videos}"
+  "roomContentCountSplit": "{photos}، {videos}",
+  "uiKitAutoTitle": "تلقائي",
+  "uiKitAutoBody": "يختار أفضل نمط لهذا الجهاز. الآن: {style}",
+  "uiKitLiteTitle": "خفيف",
+  "uiKitLiteBody": "أسطح مصمتة بلا ضبابية. الأكثر سلاسة على الهواتف الأقدم وأخف على البطارية.",
+  "uiKitLiteFooter": "النمط الخفيف لا يرسم زجاجًا، لذا لا يوجد ما يُضبط. اختر «مُصنفَر» لتشكيل الزجاج بنفسك."
 }

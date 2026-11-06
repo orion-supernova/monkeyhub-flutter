@@ -15949,4 +15949,23 @@ class AppLocalizationsTr extends AppLocalizations {
   String roomContentCountSplit(String photos, String videos) {
     return '$photos, $videos';
   }
+
+  @override
+  String get uiKitAutoTitle => 'Otomatik';
+
+  @override
+  String uiKitAutoBody(String style) {
+    return 'Bu cihaz için en iyi stili seçer. Şu an: $style';
+  }
+
+  @override
+  String get uiKitLiteTitle => 'Hafif';
+
+  @override
+  String get uiKitLiteBody =>
+      'Düz yüzeyler, bulanıklık yok. Eski telefonlarda en akıcısı ve pili yormaz.';
+
+  @override
+  String get uiKitLiteFooter =>
+      'Hafif stil cam çizmez, bu yüzden ayarlanacak bir şey yok. Camı kendin şekillendirmek için Buzlu\'yu seç.';
 }

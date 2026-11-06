@@ -16171,6 +16171,25 @@ class AppLocalizationsPt extends AppLocalizations {
   String roomContentCountSplit(String photos, String videos) {
     return '$photos, $videos';
   }
+
+  @override
+  String get uiKitAutoTitle => 'Automático';
+
+  @override
+  String uiKitAutoBody(String style) {
+    return 'Escolhe o melhor estilo para este dispositivo. Agora: $style';
+  }
+
+  @override
+  String get uiKitLiteTitle => 'Leve';
+
+  @override
+  String get uiKitLiteBody =>
+      'Superfícies sólidas, sem desfoque. Mais fluido em telemóveis antigos e poupa bateria.';
+
+  @override
+  String get uiKitLiteFooter =>
+      'Leve não desenha vidro, por isso não há nada para ajustar. Escolha Fosco para moldar o vidro você mesmo.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -32319,4 +32338,23 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String roomContentCountSplit(String photos, String videos) {
     return '$photos, $videos';
   }
+
+  @override
+  String get uiKitAutoTitle => 'Automático';
+
+  @override
+  String uiKitAutoBody(String style) {
+    return 'Escolhe o melhor estilo para este dispositivo. Agora: $style';
+  }
+
+  @override
+  String get uiKitLiteTitle => 'Leve';
+
+  @override
+  String get uiKitLiteBody =>
+      'Superfícies sólidas, sem desfoque. Mais fluido em celulares antigos e economiza bateria.';
+
+  @override
+  String get uiKitLiteFooter =>
+      'Leve não desenha vidro, então não há nada para ajustar. Escolha Fosco para moldar o vidro você mesmo.';
 }

@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI Architecture Handbook</title>
+<style>
+:root {
+  --bg: #fbfaf8; --panel: #ffffff; --ink: #1b1d22; --muted: #5f6470; --line: #e4e2dc;
+  --accent: #2f6fde; --ok: #1f8a4c; --warn: #b26b00; --bad: #c2362f; --chip: #f0eee9;
+  --code: #f3f1ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111317; --panel: #181b21; --ink: #e8e9ec; --muted: #9aa0ab; --line: #2a2e37;
+    --accent: #6c9cff; --ok: #4cc283; --warn: #f0a63a; --bad: #ff6b62; --chip: #222631;
+    --code: #1f232b;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111317; --panel: #181b21; --ink: #e8e9ec; --muted: #9aa0ab; --line: #2a2e37;
+  --accent: #6c9cff; --ok: #4cc283; --warn: #f0a63a; --bad: #ff6b62; --chip: #222631;
+  --code: #1f232b;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif; }
+.wrap { max-width: 1000px; margin: 0 auto; padding: 32px 16px 96px; }
+header h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -0.4px; }
+header p { color: var(--muted); margin: 0; }
+nav.toc { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 18px; margin: 24px 0 8px; }
+nav.toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 28px; }
+nav.toc li { margin: 2px 0; break-inside: avoid; }
+@media (max-width: 640px) { nav.toc ol { columns: 1; } }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h2 { font-size: 22px; margin: 44px 0 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+h3 { font-size: 17px; margin: 26px 0 8px; }
+p, li { max-width: 80ch; }
+code { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code);
+  padding: 1px 5px; border-radius: 5px; }
+pre { background: var(--code); padding: 12px 14px; border-radius: 10px; overflow-x: auto;
+  font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+pre code { background: none; padding: 0; }
+.tbl { overflow-x: auto; margin: 10px 0 16px; border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; background: var(--panel); }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .3px; }
+tr:last-child td { border-bottom: none; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 16px 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.card .k { color: var(--muted); font-size: 12.5px; }
+.card .v { font-size: 22px; font-weight: 650; margin-top: 2px; }
+.card p { margin: 6px 0 0; font-size: 13.5px; color: var(--muted); }
+.rule { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+  border-radius: 10px; padding: 10px 14px; margin: 10px 0; }
+.rule b { display: inline-block; min-width: 2.6em; color: var(--accent); }
+.pill { display: inline-block; font-size: 11.5px; font-weight: 650; padding: 1px 8px; border-radius: 999px;
+  background: var(--chip); color: var(--muted); white-space: nowrap; }
+.pill.ok { color: var(--ok); } .pill.warn { color: var(--warn); } .pill.bad { color: var(--bad); }
+.diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin: 14px 0; }
+.layer { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 8px 0; background: var(--bg); }
+.layer .t { font-weight: 650; }
+.layer .d { color: var(--muted); font-size: 13.5px; }
+.layer .row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.arrow { text-align: center; color: var(--muted); font-size: 13px; margin: -2px 0; }
+.note { color: var(--muted); font-size: 13.5px; }
+footer { margin-top: 60px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>UI Architecture Handbook</h1>
+  <p>How MonkeyHub shares one codebase across iOS, Android, web, macOS, Windows and Linux, and how it
+  swaps whole control families (Liquid Glass, Frosted, Lite, Material) from one setting. Read §1 and the
+  §10 checklist before adding any screen, control or platform branch.</p>
+  <p class="note">Started 2026-11-06. Code is the source of truth. When this page and the code disagree, fix
+  this page in the same commit.</p>
+</header>
+
+<nav class="toc"><ol>
+  <li><a href="#rules">The rules</a></li>
+  <li><a href="#layers">Layer map</a></li>
+  <li><a href="#caps">Platform seam: <code>Caps</code></a></li>
+  <li><a href="#kits">UI kits</a></li>
+  <li><a href="#catalog">Component catalog</a></li>
+  <li><a href="#layout">Layout: phone, tablet, desktop</a></li>
+  <li><a href="#logic">Shared logic modules</a></li>
+  <li><a href="#plan">Refactor plan and status</a></li>
+  <li><a href="#bugs">Bugs found along the way</a></li>
+  <li><a href="#checklist">Checklist for new work</a></li>
+  <li><a href="#decisions">Decisions log</a></li>
+</ol></nav>
+
+<!-- ======================================================================= -->
+<h2 id="rules">1. The rules</h2>
+
+<div class="rule"><b>R1</b> <strong>One widget per role.</strong> A back button is <code>GlassBackButton</code>, everywhere:
+pages, sheets, viewers, games, the fight screens. If a role exists in the <a href="#catalog">catalog</a>, use it. If it
+almost fits, add a parameter to it. Never write a private <code>_BackButton</code>, <code>_Chip</code> or <code>_Pill</code>.</div>
+
+<div class="rule"><b>R2</b> <strong>Behaviour once, pixels per kit.</strong> A shared component owns semantics, focus,
+hover hint, keyboard shortcut, haptic, disabled state and tap target. Only the paint is swapped per kit, through
+<code>KitSwitch</code> / <code>kitValue</code>. A fix to behaviour lands in one place and every kit gets it.</div>
+
+<div class="rule"><b>R3</b> <strong>Ask <code>Caps</code>, by intent.</strong> No <code>Platform.isX</code>,
+<code>defaultTargetPlatform</code> or <code>kIsWeb</code> in UI code. Ask <code>Caps.hover</code>,
+<code>Caps.physicalKeyboard</code>, <code>Caps.mobileCalls</code>. A new intent is a new getter in
+<code>lib/ui/foundation/caps.dart</code>, documented with who is in and who is out, web included.</div>
+
+<div class="rule"><b>R4</b> <strong>Layout follows the window, not the OS.</strong> Phone vs split shell is
+<code>context.usesSplitShell</code> / <code>context.windowClass</code>. A screen body is written once and placed by
+the shell. No magic-number widths: add a constant to <code>Breakpoints</code>.</div>
+
+<div class="rule"><b>R5</b> <strong>Theme tokens only.</strong> No hard-coded colours in shared chrome. Light/dark
+is <code>theme.isLight</code>. Plates use <code>plateFill</code> / <code>plateEdge</code>.</div>
+
+<div class="rule"><b>R6</b> <strong>Never animate a blur, never fade glass.</strong> Glass grows in
+(<code>GlassReveal</code>); a moving surface is <code>still</code>. Every <code>BackdropFilter</code> outside
+<code>LiquidGlass</code> must check <code>UiKit.of(context).blurs</code>.</div>
+
+<div class="rule"><b>R7</b> <strong>Motion through <code>MotionScope</code>.</strong> Never read
+<code>MediaQuery.disableAnimations</code> directly: it ignores the user's Calm/Full override.</div>
+
+<div class="rule"><b>R8</b> <strong>No ink.</strong> No <code>InkWell</code>, ripples or Material buttons. Tappables are
+<code>SpringPress</code> (or <code>FocusableTap</code> for a bare row). Never wrap a <code>GestureDetector(onTap)</code>
+inside a <code>FocusableTap(onTap)</code> with the same callback.</div>
+
+<div class="rule"><b>R9</b> <strong>44pt targets.</strong> Every tappable is at least 44×44 logical pixels on touch,
+even when the visual is smaller (pad the hit area, not the glyph). Density may shrink desktop controls.</div>
+
+<div class="rule"><b>R10</b> <strong>Format once.</strong> Durations, "x ago", day labels, byte sizes, initials and
+room titles come from the shared modules in <a href="#logic">§7</a>, never a private <code>_fmt</code>.</div>
+
+<!-- ======================================================================= -->
+<h2 id="layers">2. Layer map</h2>
+
+<div class="diagram">
+  <div class="layer"><div class="t">Screens <span class="pill">lib/screens, lib/calls, lib/games…</span></div>
+    <div class="d">Compose components and shared bodies. Contain no platform checks, no hard-coded colours,
+    no private copies of catalog roles.</div></div>
+  <div class="arrow">uses ↓</div>
+  <div class="layer"><div class="t">Shells <span class="pill">home_shell, list_detail_split, room_side_pane</span></div>
+    <div class="d">Decide WHERE a body goes: phone stack with bottom bar, or split shell with side rail. The only
+    place phone vs desktop structure forks.</div></div>
+  <div class="arrow">uses ↓</div>
+  <div class="layer"><div class="t">Components <span class="pill">lib/widgets (catalog §5)</span></div>
+    <div class="d">One widget per role. Behaviour here. Paint delegated per kit.</div>
+    <div class="row"><span class="pill">GlassIconButton</span><span class="pill">GlassBackButton</span>
+    <span class="pill">SheetActionButton</span><span class="pill">SheetTextField</span><span class="pill">SearchField</span>
+    <span class="pill">RowSwitch</span><span class="pill">IosSegmentedControl</span><span class="pill">FilterCapsule</span>
+    <span class="pill">UserAvatar</span><span class="pill">SheetFrame</span><span class="pill">IosPage</span></div></div>
+  <div class="arrow">paints with ↓</div>
+  <div class="layer"><div class="t">Surfaces &amp; motion <span class="pill">LiquidGlass, SpringPress, chrome_motion</span></div>
+    <div class="d"><code>LiquidGlass</code> is the one material. It reads the kit and draws Frosted glass,
+    native-matched glass (Liquid) or an opaque plate (Lite).</div></div>
+  <div class="arrow">reads ↓</div>
+  <div class="layer"><div class="t">Foundation <span class="pill">lib/ui/foundation, lib/theme</span></div>
+    <div class="d"><code>Caps</code> (platform), <code>UiKit</code> + <code>UiKitScope</code> (kit),
+    <code>ThemeScope</code> (tokens), <code>LayoutScope</code> (window class), <code>DensityScope</code>,
+    <code>MotionScope</code>, <code>Perf</code> (device tier).</div></div>
+</div>
+
+<!-- ======================================================================= -->
+<h2 id="caps">3. Platform seam: <code>Caps</code></h2>
+
+<p><code>lib/ui/foundation/caps.dart</code>. Every platform question is a getter named for what the caller wants.
+<code>lib/platform.dart</code> keeps the two legacy names (<code>isWebOrDesktop</code>,
+<code>isPhysicalKeyboardPlatform</code>) as aliases until the last caller moves.</p>
+
+<div class="tbl"><table>
+<tr><th>Getter</th><th>Means</th><th>Web</th><th>Use for</th></tr>
+<tr><td><code>iOS android macOS windows linux</code></td><td>the running binary</td><td>false</td><td>channels, stores, file paths</td></tr>
+<tr><td><code>nativeMobile</code> / <code>nativeDesktop</code> / <code>nativeApple</code></td><td>native app families</td><td>false</td><td>OS integrations</td></tr>
+<tr><td><code>appleLook</code> / <code>desktopLook</code></td><td>the OS family the person sees</td><td>follows UA</td><td>modifier glyphs, labels</td></tr>
+<tr><td><code>physicalKeyboard</code></td><td>Enter can mean submit</td><td>follows UA</td><td>key reinterpretation only</td></tr>
+<tr><td><code>hover</code></td><td>a hovering pointer</td><td>follows UA (phone browser: no)</td><td>hover hints, always-visible viewer chrome</td></tr>
+<tr><td><code>touchFirst</code></td><td>touch is primary</td><td>follows UA</td><td>gesture-first affordances</td></tr>
+<tr><td><code>inAppAlerts</code></td><td>no OS push banners; play own sounds</td><td>true</td><td>alert sounds, in-page notifications</td></tr>
+<tr><td><code>mobileCalls</code></td><td>CallKit / ConnectionService audio</td><td>false</td><td>call audio routing</td></tr>
+<tr><td><code>nativeGlass</code></td><td>iOS 26+ Liquid Glass</td><td>false</td><td>kit resolution only</td></tr>
+<tr><td><code>disk</code></td><td>local disk cache</td><td>false</td><td>caches</td></tr>
+</table></div>
+
+<h3>What the audit found (2026-11-06)</h3>
+<ul>
+  <li>~510 platform-check lines in ~170 files; the "kIsWeb first" dance repeated ~120 times.</li>
+  <li>"Desktop" meant three different things. <code>isWebOrDesktop</code> was used as "has hover" in ~30 places,
+  which gave phone browsers desktop viewer chrome. Those move to <code>Caps.hover</code>.</li>
+  <li>The mobile-call predicate was copied 6 times (<code>call_media</code>, <code>call_service</code>,
+  <code>group_call_service</code>, <code>call_pip</code>, <code>draw_mirror</code>, <code>capture_compose</code>);
+  <code>app.dart</code> had one iOS/Android function twice.</li>
+  <li>Platform channels: <code>monkeyhub/device</code> declared in 8 files, <code>voip</code> in 4,
+  <code>haptics</code> in 3. Target: one Dart bridge class per channel name, under <code>lib/ui/native/</code>
+  or the owning feature folder.</li>
+  <li>14 conditional-import barrels key on <code>dart.library.html</code>, which resolves to the io twin under WASM.
+  Standard: <code>if (dart.library.js_interop)</code>, files named <code>*_io.dart</code> / <code>*_web.dart</code>.</li>
+</ul>
+
+<!-- ======================================================================= -->
+<h2 id="kits">4. UI kits</h2>
+
+<div class="cards">
+  <div class="card"><div class="k">UiKit.glass</div><div class="v">Frosted</div>
+    <p>MonkeyHub's own glass. The reference kit: every other kit falls back to it, component by component.</p></div>
+  <div class="card"><div class="k">UiKit.liquid</div><div class="v">Liquid Glass</div>
+    <p>iOS 26+. Native <code>UITabBar</code> as a sibling view; app glass uses the native-matched recipe.</p></div>
+  <div class="card"><div class="k">UiKit.lite</div><div class="v">Lite</div>
+    <p>No backdrop blur, opaque plates, no drop shadows. Auto on low-RAM phones. Offered everywhere.</p></div>
+  <div class="card"><div class="k">UiKit.material</div><div class="v">Material</div>
+    <p>Android. Not built: <code>UiKits.materialReady = false</code>, so never offered or resolved.</p></div>
+</div>
+
+<h3>Resolution</h3>
+<pre><code>SettingsStore.uiKit   (null = Automatic, persisted as 'mh.ui.kit')
+      │  UiKits.resolve(choice)          lib/ui/foundation/ui_kit.dart
+      ▼
+choice available on this device?  → that kit
+else Caps.nativeGlass             → liquid
+else Perf.low (RAM &lt; 3600 MB)     → lite
+else android &amp;&amp; materialReady     → material
+else                              → glass
+      │
+      ▼
+UiKitScope (above MaterialApp in app.dart)  →  UiKit.of(context)</code></pre>
+<p>A choice the device cannot honour (Liquid Glass on Android) quietly means Automatic, so a synced or restored
+setting never breaks a device. The old <code>mh.glass.engine = 'flutter'</code> migrates to an explicit Frosted;
+the old default (<code>native</code>) migrates to Automatic, which resolves to the same thing.</p>
+<p>Settings › Glass › Style shows Automatic plus <code>UiKits.offered</code>. The glass dials only show under
+Frosted. Settings' Glass row names the active kit.</p>
+
+<h3>Writing a kit-aware component</h3>
+<pre><code>class GlassIconButton extends StatelessWidget {
+  // Behaviour: semantics, HoverHint, shortcut, haptic, disabled, 44pt target.
+  @override
+  Widget build(BuildContext context) =&gt; HoverHint(
+    label: semanticLabel, shortcut: shortcut, enabled: onTap != null,
+    child: SpringPress(
+      onTap: onTap, semanticLabel: semanticLabel,
+      builder: (context, pressed) =&gt; KitSwitch(
+        glass: (context) =&gt; _GlassDisc(pressed: pressed, …),   // required: the reference
+        lite: (context) =&gt; _PlateDisc(pressed: pressed, …),    // optional
+        // liquid, material: fall back to glass until they have a skin
+      ),
+    ),
+  );
+}
+
+// Values, not widgets:
+final radius = kitValue(UiKit.of(context), glass: 22.0, material: 16.0);</code></pre>
+<p>Most components need no <code>KitSwitch</code> at all today: they paint with <code>LiquidGlass</code>, and
+<code>LiquidGlass</code> already draws all three live kits. Add a skin only when a kit needs a different SHAPE or
+structure (Material's filled tonal button, a native UISwitch).</p>
+
+<h3>Adding a kit (the iOS 26 native controls, the Android library)</h3>
+<ol>
+  <li>Implement skins for the core set first: surface (<code>LiquidGlass</code>), icon button, primary/secondary button,
+  text field, search field, switch, segmented control, chip. Everything else falls back to glass meanwhile.</li>
+  <li>Flip the availability flag in <code>UiKits.available</code> (<code>materialReady</code>) and add the row to the
+  chooser in <code>glass_screen.dart</code> (plus ARB strings via <code>tool/arb_add.py</code>).</li>
+  <li>Render every theme with the kit pinned (<code>UiKitScope(kit: …)</code> in a design preview) and look at the PNGs.</li>
+  <li><strong>Native views:</strong> never put a <code>UiKitView</code> inside a scrolling list (drops 120 Hz to 60 Hz
+  and doubles BackdropFilter cost). Native controls go in as siblings over the Flutter view (the
+  <code>NativeChrome</code> tab-bar pattern) or are matched in Flutter (the <code>kNativeMatchGlass</code> recipe).
+  A per-control platform view is acceptable only for a control that is alone on a static screen.</li>
+  <li><strong>Third-party Android library:</strong> wrap it inside the material skin of each component. Screens never
+  import it directly. If the library's widgets cannot take our tap/semantics wrapper, wrap them, not the reverse.</li>
+</ol>
+
+<h3>Performance contract per kit</h3>
+<div class="tbl"><table>
+<tr><th></th><th>glass</th><th>liquid</th><th>lite</th></tr>
+<tr><td>BackdropFilter</td><td>grouped, never animated</td><td>grouped, never animated</td><td>none</td></tr>
+<tr><td>Drop shadows</td><td>yes</td><td>yes</td><td>none</td></tr>
+<tr><td>Spring press</td><td>yes</td><td>yes</td><td>yes (cheap)</td></tr>
+<tr><td>Moments (dust, waves)</td><td>full</td><td>full</td><td>full, particle counts via <code>Perf</code></td></tr>
+</table></div>
+
+<!-- ======================================================================= -->
+<h2 id="catalog">5. Component catalog</h2>
+<p>The canonical widget for each role. "Absorbs" lists the duplicates found in the 2026-11-06 audit and merged
+(or still to merge, see §8). If you need a role that is not here, add it here in the same commit.</p>
+
+<h3>Buttons</h3>
+<div class="tbl"><table>
+<tr><th>Role</th><th>Use</th><th>File</th><th>Absorbs</th></tr>
+<tr><td>Icon button (44pt disc)</td><td><code>GlassIconButton</code></td><td>widgets/glass_buttons.dart</td>
+<td>fight <code>_RoundIconButton</code>/<code>_IconBtn</code>/quit-X, <code>huddle_bar _RoundButton</code>, <code>new_call_sheet _CallGlyphButton</code>, <code>liars_dice _StepButton</code>, 4× <code>_PlayDisc</code>/<code>_GlyphDisc</code>/<code>_Disc</code></td></tr>
+<tr><td>Back</td><td><code>GlassBackButton</code></td><td>glass_buttons.dart</td><td><code>reaction_picker_sheet</code> hand-built chevron</td></tr>
+<tr><td>Close (×)</td><td><code>GlassCloseButton</code> (<code>SheetCloseButton</code> on sheets)</td><td>glass_buttons.dart, sheet_kit.dart</td>
+<td>~15 <code>GlassIconButton(icon: xmark)</code> sites, <code>composer_capture</code> ChromeDisc × ×4, fight closes</td></tr>
+<tr><td>Back that turns into ×</td><td><code>SheetBackCloseButton</code> (composes <code>GlassIconButton</code>)</td><td>sheet_kit.dart</td><td>its own ChromeDisc/Semantics/HoverHint fork</td></tr>
+<tr><td>Full-width primary / tonal / destructive</td><td><code>SheetActionButton</code></td><td>widgets/action_buttons.dart</td>
+<td><code>SheetPrimaryButton</code>, <code>SheetSecondaryButton</code> (dead), <code>SheetButton</code>, <code>ProminentButton</code>, <code>_Cta</code>/<code>_SecondaryCta</code>, <code>_BigButton</code>, <code>_MenuButton</code>, <code>_CardButton</code></td></tr>
+<tr><td>Glass capsule button</td><td><code>GlassPillButton</code></td><td>glass_buttons.dart</td><td></td></tr>
+<tr><td>Compact row pill</td><td><code>RowPillButton</code></td><td>action_buttons.dart</td><td><code>StripPill</code> styling</td></tr>
+<tr><td>Text / link button</td><td><code>TextLinkButton</code></td><td>action_buttons.dart</td><td><code>SectionActionButton</code> styling, <code>_HeaderAction</code>, <code>_CancelTextButton</code></td></tr>
+<tr><td>Grouped buttons</td><td><code>GlassButtonGroup</code></td><td>glass_buttons.dart</td><td></td></tr>
+<tr><td>Brand sign-in</td><td><code>SocialSignInButtons</code></td><td>widgets/social_sign_in_buttons.dart</td><td>(vendor-spec'd, own role)</td></tr>
+<tr><td>Press feedback</td><td><code>SpringPress</code> (builder for pressed state)</td><td>widgets/spring_press.dart</td><td>~20 hand-rolled <code>_pressed</code> + <code>AnimatedScale</code></td></tr>
+</table></div>
+
+<h3>Inputs and controls</h3>
+<div class="tbl"><table>
+<tr><th>Role</th><th>Use</th><th>File</th><th>Absorbs</th></tr>
+<tr><td>Form field (single/multi-line)</td><td><code>SheetTextField</code> (<code>ThemedInput</code> = preset)</td><td>widgets/labeled_field.dart</td><td><code>link_input_sheet</code>, <code>interaction_compose_sheet</code> option rows</td></tr>
+<tr><td>Labelled field</td><td><code>LabeledField</code></td><td>labeled_field.dart</td><td></td></tr>
+<tr><td>Password</td><td><code>PasswordField</code></td><td>widgets/password_field.dart</td><td></td></tr>
+<tr><td>Code / OTP</td><td><code>CodeField</code></td><td>widgets/code_field.dart</td><td></td></tr>
+<tr><td>Search</td><td><code>SearchField</code> (+ door mode, <code>SearchFieldHero</code>)</td><td>widgets/search_field.dart</td><td>command palette field, sticker search doors</td></tr>
+<tr><td>Switch</td><td><code>RowSwitch</code> (haptic built in)</td><td>widgets/ios_kit.dart</td><td><code>_HubToggle</code>, <code>_StoreToggle</code>, child_policy/mute_room flip haptics</td></tr>
+<tr><td>Selection ring / radio</td><td><code>SelectionCheck</code></td><td>widgets/selection_check.dart</td><td><code>RadioCheck</code></td></tr>
+<tr><td>Segmented</td><td><code>IosSegmentedControl</code></td><td>widgets/segmented_control.dart</td><td></td></tr>
+<tr><td>Slider</td><td><code>ValueSlider</code> / <code>SteppedSlider</code></td><td>widgets/value_slider.dart</td><td>camera editor <code>_WidthSlider</code></td></tr>
+<tr><td>Stepper</td><td><code>NumberStepper</code></td><td>widgets/number_stepper.dart</td><td></td></tr>
+<tr><td>Filter / choice chip</td><td><code>FilterCapsule</code></td><td>widgets/filter_capsule.dart</td><td><code>expression_panel _Chip</code>, <code>camera_editor _Chip</code></td></tr>
+<tr><td>Count badge</td><td><code>CountBadge</code></td><td>widgets/count_badge.dart</td><td><code>ChatUnreadBadge</code>, <code>RowBadge</code>, <code>call_bubble _CountBadge</code></td></tr>
+<tr><td>Status pill (read-only)</td><td><code>PinnedBadge</code> / <code>MutedBadge</code> family</td><td>widgets/pinned_badge.dart</td><td>(target: one <code>StatusPill</code> with tone, §8)</td></tr>
+</table></div>
+
+<h3>Surfaces, pages, identity</h3>
+<div class="tbl"><table>
+<tr><th>Role</th><th>Use</th><th>File</th><th>Absorbs</th></tr>
+<tr><td>Glass surface</td><td><code>LiquidGlass</code></td><td>widgets/liquid_glass.dart</td><td>one-off <code>BackdropFilter</code>s must respect the kit</td></tr>
+<tr><td>Pushed page</td><td><code>IosPage</code></td><td>widgets/ios_kit.dart</td><td>hand-rolled <code>_Header</code>s (search, friend request, receipts…)</td></tr>
+<tr><td>Profile-style page</td><td><code>HeroPage</code></td><td>widgets/account_kit.dart</td><td></td></tr>
+<tr><td>Tab root header</td><td><code>TabRootBar</code></td><td>widgets/tab_root_bar.dart</td><td></td></tr>
+<tr><td>Grouped list</td><td><code>GroupedSection</code> / <code>GroupedRow</code> / <code>GroupedCard</code></td><td>ios_kit.dart</td><td></td></tr>
+<tr><td>Sheet</td><td><code>SheetFrame</code> via <code>showAdaptiveSheet</code></td><td>sheet_kit.dart, adaptive_sheet.dart</td><td>fight <code>showModalBottomSheet</code>s</td></tr>
+<tr><td>Confirm</td><td><code>showConfirmSheet</code></td><td>widgets/destructive_sheet.dart</td><td><code>showIosActionSheet&lt;bool&gt;</code> confirms</td></tr>
+<tr><td>Action sheet</td><td><code>showIosActionSheet</code></td><td>sheet_kit.dart</td><td></td></tr>
+<tr><td>Toast</td><td><code>showAppToast</code></td><td>widgets/app_toast.dart</td><td>(snackbars are banned)</td></tr>
+<tr><td>Person avatar</td><td><code>UserAvatar</code></td><td>widgets/user_avatar.dart</td><td><code>score_row</code> monogram stack</td></tr>
+<tr><td>Room avatar</td><td><code>ChatRoomAvatar</code></td><td>widgets/chat_list_row.dart</td><td><code>room_screen _RoomAvatar</code>, <code>destructive_sheet</code> ClipOval, <code>room_info</code> saved disc</td></tr>
+<tr><td>Empty state</td><td><code>EmptyState</code> / <code>EmptyLine</code></td><td>widgets/empty_state.dart</td><td>~11 private <code>_EmptyState</code>/<code>_Empty</code></td></tr>
+<tr><td>Skeleton</td><td><code>SkeletonBox</code> family</td><td>widgets/skeleton_rows.dart</td><td>~9 private shimmers</td></tr>
+<tr><td>Progress ring</td><td><code>ProgressRing</code></td><td>widgets/progress_ring.dart</td><td>the same-named class in glass_progress_dialog.dart</td></tr>
+<tr><td>Spinner</td><td><code>CupertinoActivityIndicator</code></td><td></td><td>8 Material spinners</td></tr>
+</table></div>
+
+<h3>Chat chrome and motion</h3>
+<p>See <code>docs/design/chat-chrome-language.md</code> and <code>lib/widgets/chrome_motion.dart</code>. Two leave
+animations exist on purpose and both stay: the vanish burn (<code>DustDissolve</code> via <code>MessageExits</code>)
+for ephemeral rooms and the delete exit for deleted messages.</p>
+
+<!-- ======================================================================= -->
+<h2 id="layout">6. Layout: phone, tablet, desktop</h2>
+<ul>
+  <li><code>lib/theme/layout.dart</code>: <code>Breakpoints.medium = 600</code>, <code>split = 720</code>,
+  <code>expanded = 1024</code>; <code>WindowClass</code> published once by <code>LayoutScope</code>; read
+  <code>context.usesSplitShell</code>, <code>context.isCompact</code>, <code>context.windowClass</code>.</li>
+  <li><strong>The shell forks, bodies don't.</strong> <code>HomeShell</code> picks phone (bottom bar: native or pill)
+  or split (side rail + <code>ListDetailSplit</code> + <code>RoomSidePane</code>). The chat list, the room, settings
+  pages are the same widgets in both.</li>
+  <li>Back vs ×: <code>GlassBackButton</code> decides by itself (× on the split shell at depth 1).</li>
+  <li>Sheets: <code>showAdaptiveSheet</code> is a bottom sheet on compact and a floating panel on wider windows.</li>
+  <li>Viewer chrome (always-visible vs tap-to-toggle) keys off <code>Caps.hover</code>, not off "web or desktop".</li>
+  <li>Known magic numbers to fold into <code>Breakpoints</code>: fight lobby 860/460, media pager 700, game start sheet
+  560/420, bot hub 700/480, device_turn 600, swipe_to_reply 430.</li>
+</ul>
+
+<!-- ======================================================================= -->
+<h2 id="logic">7. Shared logic modules</h2>
+<div class="tbl"><table>
+<tr><th>Concern</th><th>Canonical</th><th>Notes</th></tr>
+<tr><td>Clock durations (m:ss, h:mm:ss)</td><td><code>formatClock(Duration)</code> in <code>lib/format/duration_format.dart</code></td><td>9 copies found; <code>formatPartyClock</code> stays (rounds up, bare seconds by design)</td></tr>
+<tr><td>Relative time</td><td><code>roomTimeAgo</code> / <code>relativeAgo</code></td><td>moment viewer and comments copies call these</td></tr>
+<tr><td>Byte sizes</td><td><code>formatFileSize</code> (media/file_meta.dart)</td><td></td></tr>
+<tr><td>Initials</td><td><code>initialOf(String)</code> next to <code>ChatUser.displayInitial</code></td><td>grapheme-safe</td></tr>
+<tr><td>Room title</td><td><code>chatListTitleOf</code></td><td>saved messages, then DM peer, then name</td></tr>
+<tr><td>DM peer</td><td><code>ChatRepository.otherUserFor</code></td><td></td></tr>
+<tr><td>Avatar storage id</td><td><code>ProfileCache.avatarFor</code></td><td>respects tombstones</td></tr>
+<tr><td>Message preview</td><td><code>messagePreviewLine</code></td><td></td></tr>
+<tr><td>Error text</td><td><code>humanizeAuthError</code> / <code>friendlyServerError</code></td><td></td></tr>
+<tr><td>Copy to clipboard</td><td><code>copyText(context, text)</code></td><td>toast + haptic in one place</td></tr>
+<tr><td>Open a URL</td><td><code>LinkOpener</code></td><td></td></tr>
+<tr><td>Haptics</td><td><code>HapticTick</code> / <code>HapticFeedback.*</code> through <code>AppBinding</code></td><td>a global on/off hooks into both (not built)</td></tr>
+<tr><td>Subscriptions</td><td>stores over <code>ConvexBackend.subscribe</code></td><td>never subscribe from a widget (see backend handbook)</td></tr>
+</table></div>
+
+<!-- ======================================================================= -->
+<h2 id="plan">8. Refactor plan and status</h2>
+<p>Each phase is shippable alone, keeps every existing behaviour and is verified with the analyzer (baseline:
+0 errors) and the tests covering the touched files. Status is updated in the commit that changes it.</p>
+
+<div class="tbl"><table>
+<tr><th>#</th><th>Phase</th><th>Scope</th><th>Status</th></tr>
+<tr><td>0</td><td>Audit + this handbook</td><td>5 parallel audits: buttons, inputs, surfaces, platform, logic</td><td><span class="pill ok">done</span></td></tr>
+<tr><td>1</td><td>Foundation</td><td><code>Caps</code>, <code>UiKit</code>/<code>UiKits</code>/<code>UiKitScope</code>/<code>KitSwitch</code>/<code>kitValue</code>,
+settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass</code>, kit chooser, <code>NativeChrome</code> on <code>Caps</code></td><td><span class="pill ok">done</span></td></tr>
+<tr><td>2a</td><td>Buttons</td><td>Merge per catalog; × call sites; dead aliases; hand-rolled press → <code>SpringPress</code>; 44pt targets; double tap handlers</td><td><span class="pill warn">in progress</span></td></tr>
+<tr><td>2b</td><td>Inputs</td><td>Field merge, autofill hints, keyboard appearance, switch haptic, selection check, search doors, badges</td><td><span class="pill warn">in progress</span></td></tr>
+<tr><td>2c</td><td>Surfaces</td><td>Avatars, ProgressRing clash, dead code, fight sheets, blur bugs, every <code>BackdropFilter</code> kit-aware, empty states</td><td><span class="pill warn">in progress</span></td></tr>
+<tr><td>2d</td><td>Platform</td><td>Caps migration, hover fix, channel bridges, js_interop barrels, MotionScope bypasses</td><td><span class="pill warn">in progress</span></td></tr>
+<tr><td>2e</td><td>Logic</td><td>Format module, room titles, mounted bugs, clipboard, links, localized plurals</td><td><span class="pill warn">in progress</span></td></tr>
+<tr><td>3</td><td>Pages</td><td>Hand-rolled headers onto <code>IosPage</code>; viewer top bars onto <code>ViewerTopBar</code>; menu row/scrim shared by the four menus</td><td><span class="pill">planned</span></td></tr>
+<tr><td>4</td><td>StatusPill + Notice</td><td>One read-only pill with tone; one inline banner with tone (absorbs <code>SoftNote</code>, <code>FormErrorBanner</code>, …)</td><td><span class="pill">planned</span></td></tr>
+<tr><td>5</td><td>Composer</td><td>Merge <code>chat_composer</code> classic/liquid field (documented "kept in step by hand")</td><td><span class="pill">planned</span></td></tr>
+<tr><td>6</td><td>Material kit</td><td>Pick the Android library; skins for the core set; flip <code>materialReady</code></td><td><span class="pill">planned</span></td></tr>
+<tr><td>7</td><td>Native iOS 26 controls</td><td>Sibling-view native controls where it pays (switch, segmented on static screens); matched glass elsewhere</td><td><span class="pill">planned</span></td></tr>
+<tr><td>8</td><td>Haptics setting</td><td>Global on/off wired into <code>AppBinding.send</code> and <code>HapticTick.current()</code></td><td><span class="pill">planned</span></td></tr>
+</table></div>
+
+<!-- ======================================================================= -->
+<h2 id="bugs">9. Bugs found along the way</h2>
+<div class="tbl"><table>
+<tr><th>Where</th><th>Bug</th><th>Status</th></tr>
+<tr><td>login_screen, PasswordField</td><td>No <code>autofillHints</code>: password managers can't fill or save</td><td><span class="pill warn">phase 2b</span></td></tr>
+<tr><td>thread_overlay.dart</td><td>Animates a blur sigma per frame (breaks R6, jank)</td><td><span class="pill warn">phase 2c</span></td></tr>
+<tr><td>chat_row_action_menu.dart</td><td>Live <code>BackdropFilter</code> inside a <code>FadeTransition</code> (flicker case)</td><td><span class="pill warn">phase 2c</span></td></tr>
+<tr><td>voice_recorder, login, friend_request_draft, room_info, camera</td><td><code>setState</code> after <code>await</code> without <code>mounted</code></td><td><span class="pill warn">phase 2e</span></td></tr>
+<tr><td>room_content_actions.dart</td><td>English-only hand-built plurals</td><td><span class="pill warn">phase 2e</span></td></tr>
+<tr><td>~30 sites</td><td>Phone browsers treated as hover devices (<code>isWebOrDesktop</code>)</td><td><span class="pill warn">phase 2d</span></td></tr>
+<tr><td>42 sites</td><td>Raw <code>disableAnimations</code> reads ignore the in-app motion override</td><td><span class="pill warn">phase 2d</span></td></tr>
+<tr><td>Several buttons</td><td>Tap targets of 37–40pt</td><td><span class="pill warn">phase 2a</span></td></tr>
+<tr><td>5 controls</td><td><code>FocusableTap(onTap)</code> around <code>GestureDetector(onTap)</code>: double handlers</td><td><span class="pill warn">phase 2a</span></td></tr>
+<tr><td>liquid_glass.dart</td><td>Kit read outside the settings listener left a mounted button on the old recipe (caught by test while building phase 1)</td><td><span class="pill ok">fixed</span></td></tr>
+</table></div>
+
+<!-- ======================================================================= -->
+<h2 id="checklist">10. Checklist for new work</h2>
+<ol>
+  <li>Is the role in the <a href="#catalog">catalog</a>? Use it. Missing a parameter? Add it there.</li>
+  <li>No <code>Platform</code>/<code>kIsWeb</code>/<code>defaultTargetPlatform</code> outside <code>lib/ui/foundation</code>
+  and OS bridges. Ask <code>Caps</code>.</li>
+  <li>No colour literals in chrome; light/dark via <code>theme.isLight</code>.</li>
+  <li>Any <code>BackdropFilter</code>? Prefer <code>LiquidGlass</code>. Otherwise gate it on <code>UiKit.of(context).blurs</code>
+  and never animate it.</li>
+  <li>Any motion? <code>MotionScope.of(context)</code>; kicks per chrome-language; moments only for real moments.</li>
+  <li>Tap target ≥ 44pt; semantics label; disabled = null <code>onTap</code>; no ink.</li>
+  <li>Strings through <code>python3 tool/arb_add.py</code> (all 12 locales, no em dashes in UI text).</li>
+  <li>Layout via <code>context.usesSplitShell</code>/<code>windowClass</code>; body written once.</li>
+  <li>Formatting via §7 helpers.</li>
+  <li>Render a PNG (design preview) in each kit you touched before calling it done.</li>
+  <li>Never <code>dart format</code> (hand-formatted repo). Run only the tests you touched.</li>
+</ol>
+
+<!-- ======================================================================= -->
+<h2 id="decisions">11. Decisions log</h2>
+<ul>
+  <li><strong>2026-11-06</strong> <code>GlassEngine {native, flutter}</code> generalized into <code>UiKit</code> with an
+  Automatic default. Liquid Glass loses its "Recommended" tag; Automatic picks it on iOS 26.</li>
+  <li><strong>2026-11-06</strong> Low-RAM phones (&lt; 3600 MB, the iPhone 8/XR/SE 2 class and 3 GB Android) resolve to
+  Lite under Automatic. iOS 26 devices stay on Liquid Glass even when low-RAM: the OS draws that glass.</li>
+  <li><strong>2026-11-06</strong> Low Power Mode keeps calming motion only. It does not switch kits: a whole-UI change
+  on a battery threshold would be jarring.</li>
+  <li><strong>2026-11-06</strong> Components keep their existing names (<code>GlassIconButton</code> etc.) rather than a
+  mass rename to <code>App*</code>: the names are in memory, docs and graphify, and the kit layer works under them.
+  The catalog is the index.</li>
+  <li><strong>2026-11-06</strong> Both message leave animations stay: vanish burn for ephemeral rooms, delete exit
+  for deletes.</li>
+  <li><strong>2026-10-02</strong> Native glass is a sibling <code>UITabBar</code>, never a platform view in Flutter
+  content (performance).</li>
+</ul>
+
+<footer>Maintained alongside the code. Update §5, §8 and §9 in the same commit as the change they describe.</footer>
+</div>
+</body>
+</html>

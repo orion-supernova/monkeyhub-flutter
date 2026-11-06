@@ -15993,4 +15993,23 @@ class AppLocalizationsHi extends AppLocalizations {
   String roomContentCountSplit(String photos, String videos) {
     return '$photos, $videos';
   }
+
+  @override
+  String get uiKitAutoTitle => 'स्वचालित';
+
+  @override
+  String uiKitAutoBody(String style) {
+    return 'इस डिवाइस के लिए सबसे अच्छी शैली चुनता है। अभी: $style';
+  }
+
+  @override
+  String get uiKitLiteTitle => 'लाइट';
+
+  @override
+  String get uiKitLiteBody =>
+      'ठोस सतहें, कोई धुंधलापन नहीं। पुराने फ़ोन पर सबसे स्मूद और बैटरी पर हल्का।';
+
+  @override
+  String get uiKitLiteFooter =>
+      'लाइट कोई ग्लास नहीं बनाता, इसलिए कुछ ट्यून करने को नहीं है। ग्लास खुद आकार देने के लिए फ़्रॉस्टेड चुनें।';
 }

@@ -26460,6 +26460,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{photos}, {videos}'**
   String roomContentCountSplit(String photos, String videos);
+
+  /// Settings › Glass › Style: row that lets the app pick the interface style for this device.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get uiKitAutoTitle;
+
+  /// Subtitle of the Automatic interface style row. {style} is the style currently chosen for this device, e.g. 'Liquid Glass', 'Frosted' or 'Lite'.
+  ///
+  /// In en, this message translates to:
+  /// **'Picks the best style for this device. Now: {style}'**
+  String uiKitAutoBody(String style);
+
+  /// Settings › Glass › Style: name of the low-end interface style with solid surfaces and no blur.
+  ///
+  /// In en, this message translates to:
+  /// **'Lite'**
+  String get uiKitLiteTitle;
+
+  /// Subtitle of the Lite interface style row.
+  ///
+  /// In en, this message translates to:
+  /// **'Solid surfaces, no blur. Smoothest on older phones and easy on the battery.'**
+  String get uiKitLiteBody;
+
+  /// Footer under the interface style choice when Lite is active: explains why the glass dials are hidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Lite draws no glass, so there is nothing to tune. Choose Frosted to shape the glass yourself.'**
+  String get uiKitLiteFooter;
 }
 
 class _AppLocalizationsDelegate

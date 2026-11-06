@@ -4383,5 +4383,10 @@
   "roomContentCountVoice": "{count, plural, other{{count} 条语音消息}}",
   "roomContentCountLinks": "{count, plural, other{{count} 个链接}}",
   "roomContentCountSaved": "{count, plural, other{{count} 条已保存消息}}",
-  "roomContentCountSplit": "{photos}、{videos}"
+  "roomContentCountSplit": "{photos}、{videos}",
+  "uiKitAutoTitle": "自动",
+  "uiKitAutoBody": "为此设备选择最合适的样式。当前：{style}",
+  "uiKitLiteTitle": "轻量",
+  "uiKitLiteBody": "实色表面，无模糊。在旧手机上最流畅，也更省电。",
+  "uiKitLiteFooter": "轻量样式不绘制玻璃，因此无需调节。选择磨砂即可自行调整玻璃。"
 }

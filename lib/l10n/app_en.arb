@@ -18961,5 +18961,30 @@
         "type": "String"
       }
     }
+  },
+  "uiKitAutoTitle": "Automatic",
+  "@uiKitAutoTitle": {
+    "description": "Settings › Glass › Style: row that lets the app pick the interface style for this device."
+  },
+  "uiKitAutoBody": "Picks the best style for this device. Now: {style}",
+  "@uiKitAutoBody": {
+    "description": "Subtitle of the Automatic interface style row. {style} is the style currently chosen for this device, e.g. 'Liquid Glass', 'Frosted' or 'Lite'.",
+    "placeholders": {
+      "style": {
+        "type": "String"
+      }
+    }
+  },
+  "uiKitLiteTitle": "Lite",
+  "@uiKitLiteTitle": {
+    "description": "Settings › Glass › Style: name of the low-end interface style with solid surfaces and no blur."
+  },
+  "uiKitLiteBody": "Solid surfaces, no blur. Smoothest on older phones and easy on the battery.",
+  "@uiKitLiteBody": {
+    "description": "Subtitle of the Lite interface style row."
+  },
+  "uiKitLiteFooter": "Lite draws no glass, so there is nothing to tune. Choose Frosted to shape the glass yourself.",
+  "@uiKitLiteFooter": {
+    "description": "Footer under the interface style choice when Lite is active: explains why the glass dials are hidden."
   }
 }

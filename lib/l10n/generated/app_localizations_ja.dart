@@ -15319,4 +15319,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String roomContentCountSplit(String photos, String videos) {
     return '$photos、$videos';
   }
+
+  @override
+  String get uiKitAutoTitle => '自動';
+
+  @override
+  String uiKitAutoBody(String style) {
+    return 'このデバイスに最適なスタイルを選びます。現在: $style';
+  }
+
+  @override
+  String get uiKitLiteTitle => 'ライト';
+
+  @override
+  String get uiKitLiteBody => 'ぼかしのない不透明な面。古いスマホでも最も滑らかで、バッテリーにも優しい。';
+
+  @override
+  String get uiKitLiteFooter =>
+      'ライトはガラスを描画しないため、調整する項目はありません。ガラスを自分で調整するには「すりガラス」を選んでください。';
 }

@@ -10,6 +10,7 @@ import '../theme/bubble_shape.dart';
 import '../theme/speaker_colors.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart' show UiKit;
 import 'glass_config.dart';
 import 'room_filter.dart';
 import 'settings_keychain.dart';
@@ -96,7 +97,11 @@ class SettingsStore extends ChangeNotifier {
   static const _kGlassProfile = 'mh.glass.profile';
   static const _kGlassSlots = 'mh.glass.slots';
   static const _kGlassPreset = 'mh.glass.preset';
-  static const _kGlassEngine = 'mh.glass.engine';
+  static const _kUiKit = 'mh.ui.kit';
+
+  /// Pre-[UiKit] storage of the Liquid Glass / Frosted choice. Read once to
+  /// carry an explicit "Frosted" over; never written again.
+  static const _kLegacyGlassEngine = 'mh.glass.engine';
   static const _kLocale = 'mh.locale';
   static const _kMotionLevel = 'mh.motionLevel';
   static const _kPowerSaving = 'mh.powerSaving';
@@ -125,7 +130,7 @@ class SettingsStore extends ChangeNotifier {
     _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
     _kVideoQualityTier, _kAutoLowerVideoQuality, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
-    _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel, _kPowerSaving,
+    _kGlassProfile, _kGlassSlots, _kGlassPreset, _kUiKit, _kLocale, _kMotionLevel, _kPowerSaving,
     _kScheduledIndicator, _kSebastianEnabled, _kTranslationTarget,
     _kTranslatedRoomIds, _kMarloweBrainId, _kCompanionForceCpu,
   };
@@ -199,7 +204,7 @@ class SettingsStore extends ChangeNotifier {
   bool _forkGestureDone = false;
   Set<String>? _diagHiddenCategories;
   FilterStyle _filterStyle = FilterStyle.chips;
-  GlassEngine _glassEngine = GlassEngine.native;
+  UiKit? _uiKit;
   RoomFilter _roomFilter = RoomFilter.empty;
   GlassProfile _glass = _presetById(kDefaultGlassPresetId).profile;
   List<GlassPreset> _glassSlots = const [];
@@ -509,12 +514,11 @@ class SettingsStore extends ChangeNotifier {
   /// you have to open first is a control most people never find.
   FilterStyle get filterStyle => _filterStyle;
 
-  /// Who draws the glass chrome. [GlassEngine.native] — the default — hands
-  /// the bottom bar to iOS itself wherever the OS has Liquid Glass (iOS 26+);
-  /// anywhere it doesn't, the app's own glass is drawn whatever this says, so
-  /// the setting only ever means something on a phone that can honour it.
-  /// See `NativeChrome.supported`.
-  GlassEngine get glassEngine => _glassEngine;
+  /// The user's interface kit, or null for Automatic. Never read this to
+  /// decide how to draw: ask `UiKit.of(context)` (or `UiKits.current`), which
+  /// resolves it against what this device can actually do — a choice the
+  /// device cannot honour (Liquid Glass off iOS 26) quietly means Automatic.
+  UiKit? get uiKit => _uiKit;
 
   /// Active chat-list filter. Persisted, so a cold start can open onto a
   /// filtered — possibly empty — list. The chat screen therefore always renders
@@ -792,9 +796,12 @@ class SettingsStore extends ChangeNotifier {
     // First-launch default is chips; honour an explicit 'drawer' selection.
     _filterStyle = fs == 'drawer' ? FilterStyle.drawer : FilterStyle.chips;
     _roomFilter = RoomFilter.decode(s[_kRoomFilter]);
-    _glassEngine = s[_kGlassEngine] == 'flutter'
-        ? GlassEngine.flutter
-        : GlassEngine.native;
+    final kit = s[_kUiKit];
+    _uiKit = kit != null
+        ? UiKit.values.asNameMap()[kit]
+        // The old two-way switch: only an explicit Frosted was a choice;
+        // 'native' was the default, which Automatic now resolves to.
+        : (s[_kLegacyGlassEngine] == 'flutter' ? UiKit.glass : null);
     _glassSlots = _decodeSlots(s[_kGlassSlots]);
     final rawGlass = s[_kGlassProfile];
     // The stored profile wins, because a look can be selected and then
@@ -943,11 +950,16 @@ class SettingsStore extends ChangeNotifier {
     await _storage.write(key: _kPowerSaving, value: v.name);
   }
 
-  Future<void> setGlassEngine(GlassEngine e) async {
-    if (_glassEngine == e) return;
-    _glassEngine = e;
+  /// Null returns to Automatic.
+  Future<void> setUiKit(UiKit? kit) async {
+    if (_uiKit == kit) return;
+    _uiKit = kit;
     notifyListeners();
-    await _storage.write(key: _kGlassEngine, value: e.name);
+    if (kit == null) {
+      await _storage.delete(key: _kUiKit);
+    } else {
+      await _storage.write(key: _kUiKit, value: kit.name);
+    }
   }
 
   Future<void> setFilterStyle(FilterStyle s) async {
@@ -1604,13 +1616,6 @@ enum RoomLayout { list, cards, grid }
 
 enum NavStyle { radial, pill }
 
-/// Who draws the app's glass chrome on a phone that offers a choice.
-///
-/// * `native` (default) — iOS's own Liquid Glass: the bottom bar is a real
-///   `UITabBar` laid over the Flutter view (`ios/Runner/NativeChrome.swift`).
-/// * `flutter` — the app's own frosted glass, the same on every platform and
-///   tunable in Settings › Glass.
-enum GlassEngine { native, flutter }
 
 /// Shape of the chat list's filter control.
 ///

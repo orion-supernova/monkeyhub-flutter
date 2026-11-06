@@ -4383,5 +4383,10 @@
   "roomContentCountVoice": "{count, plural, one{1 mensagem de voz} other{{count} mensagens de voz}}",
   "roomContentCountLinks": "{count, plural, one{1 link} other{{count} links}}",
   "roomContentCountSaved": "{count, plural, one{1 mensagem salva} other{{count} mensagens salvas}}",
-  "roomContentCountSplit": "{photos}, {videos}"
+  "roomContentCountSplit": "{photos}, {videos}",
+  "uiKitAutoTitle": "Automático",
+  "uiKitAutoBody": "Escolhe o melhor estilo para este dispositivo. Agora: {style}",
+  "uiKitLiteTitle": "Leve",
+  "uiKitLiteBody": "Superfícies sólidas, sem desfoque. Mais fluido em celulares antigos e economiza bateria.",
+  "uiKitLiteFooter": "Leve não desenha vidro, então não há nada para ajustar. Escolha Fosco para moldar o vidro você mesmo."
 }

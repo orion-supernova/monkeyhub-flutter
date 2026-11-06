@@ -15351,4 +15351,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String roomContentCountSplit(String photos, String videos) {
     return '$photos, $videos';
   }
+
+  @override
+  String get uiKitAutoTitle => '자동';
+
+  @override
+  String uiKitAutoBody(String style) {
+    return '이 기기에 가장 잘 맞는 스타일을 고릅니다. 현재: $style';
+  }
+
+  @override
+  String get uiKitLiteTitle => '라이트';
+
+  @override
+  String get uiKitLiteBody => '블러 없는 단색 표면. 오래된 휴대폰에서도 가장 부드럽고 배터리 부담이 적습니다.';
+
+  @override
+  String get uiKitLiteFooter =>
+      '라이트는 유리를 그리지 않으므로 조정할 것이 없습니다. 유리를 직접 다듬으려면 프로스티드를 선택하세요.';
 }

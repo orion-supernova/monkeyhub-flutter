@@ -7,6 +7,7 @@ import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/screens/glass_screen.dart';
 import 'package:monkeyhub/screens/navigation/native_tab_bar.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/ui/foundation/ui_kit.dart';
 
 import 'preview_kit.dart';
 
@@ -18,7 +19,7 @@ void main() {
   for (final id in ['basic', 'basic_daylight']) {
     testWidgets('glass surfaces preview: $id', (tester) async {
       NativeChrome.debugSupported = false;
-      SettingsStore.instance.setGlassEngine(GlassEngine.flutter);
+      SettingsStore.instance.setUiKit(UiKit.glass);
       SettingsStore.instance.selectGlassPreset('frosted');
       SettingsStore.instance.flushGlassWrites();
       await snap(
@@ -40,12 +41,12 @@ void main() {
     });
   }
 
-  for (final engine in GlassEngine.values) {
+  for (final engine in [UiKit.liquid, UiKit.glass, UiKit.lite]) {
     for (final id in ['basic', 'basic_daylight']) {
       testWidgets('glass preview: ${engine.name} $id', (tester) async {
         // Not awaited: the field flips synchronously, and the keychain write
         // behind it never answers under flutter_test.
-        SettingsStore.instance.setGlassEngine(engine);
+        SettingsStore.instance.setUiKit(engine);
         await snap(
           tester,
           previewApp(ThemeController.byId(id), const GlassScreen()),

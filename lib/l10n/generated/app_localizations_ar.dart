@@ -16260,4 +16260,23 @@ class AppLocalizationsAr extends AppLocalizations {
   String roomContentCountSplit(String photos, String videos) {
     return '$photos، $videos';
   }
+
+  @override
+  String get uiKitAutoTitle => 'تلقائي';
+
+  @override
+  String uiKitAutoBody(String style) {
+    return 'يختار أفضل نمط لهذا الجهاز. الآن: $style';
+  }
+
+  @override
+  String get uiKitLiteTitle => 'خفيف';
+
+  @override
+  String get uiKitLiteBody =>
+      'أسطح مصمتة بلا ضبابية. الأكثر سلاسة على الهواتف الأقدم وأخف على البطارية.';
+
+  @override
+  String get uiKitLiteFooter =>
+      'النمط الخفيف لا يرسم زجاجًا، لذا لا يوجد ما يُضبط. اختر «مُصنفَر» لتشكيل الزجاج بنفسك.';
 }
