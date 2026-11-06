@@ -299,11 +299,30 @@ structure (Material's filled tonal button, a native UISwitch).</p>
 <p>Real SwiftUI controls, one Flutter platform view each (view type <code>monkeyhub/native_control</code>), driven by a
 <code>NativeSpec</code> from Dart and reporting <code>tap / changed / changeEnd / submitted / select / focus / size</code> back over
 <code>monkeyhub/native_control/&lt;id&gt;</code>. Components opt in with <code>liquid: NativeControl.ready ? _liquid : null</code> in their
-<code>KitSwitch</code>, so everything falls back to glass when the flag is off, the device is not iOS 26, or a control has
+<code>KitSwitch</code>, so everything falls back to glass when the scope is "just the tab bar", the device is not iOS 26, or a control has
 no exact native form (an icon without an SF Symbol in <code>sfSymbolFor</code>, a segment with a badge, a busy button).</p>
 <ul>
-  <li><strong>Turning it on:</strong> set <code>UiKits.nativeControlsReady = true</code> after a device pass (profile mode): buttons, switch rows in
-  Settings, segmented controls, sliders in Data &amp; Storage, sheet primary buttons. Check list frame rate with a native control on screen.</li>
+  <li><strong>The scope setting</strong> replaces the old <code>nativeControlsReady</code> flag: Settings &rsaquo; Glass &rsaquo; Native controls
+  (shown under Liquid Glass only) is <code>SettingsStore.nativeScope</code>, <code>NativeScope.everything</code> or <code>NativeScope.tabBar</code>
+  (default: just the tab bar until a device pass). <code>UiKits.nativeControls</code> reads it; <code>NativeControl.readyIn(context)</code> is the
+  one question components ask. Settings &rsaquo; Glass &rsaquo; Controls lab (<code>lib/ui/lab/controls_lab_screen.dart</code>, also
+  <code>--dart-define=OPEN_LAB=true</code>) lists every shared control in the active kit for review and screenshots.</li>
+  <li><strong>Covered components</strong> (each keeps its behaviour, adds a native skin when it has an exact native form):
+    <code>GlassIconButton</code> / back / close (symbol button), <code>GlassButtonGroup</code> (one native capsule when every slot is a plain symbol),
+    <code>GlassPillButton</code> and <code>RowPillButton</code> (labelled glass button), <code>ThemedInput</code> / <code>SheetTextField</code> /
+    <code>PasswordField</code> (single-line field, secure for passwords; synced through <code>NativeTextInput</code>: typing never echoes back, an outside
+    controller edit bumps <code>textRev</code>, <code>FocusNode</code> and the native first responder mirror each other),
+    <code>SearchField</code> (plain mode), <code>PullDownButton</code> (a SwiftUI <code>Menu</code>: the glass button morphs into the system menu),
+    <code>RowSwitch</code>, <code>IosSegmentedControl</code>, <code>ValueSlider</code>, <code>SheetActionButton</code>, the compose sheet's date-and-time wheel
+    (<code>datePicker</code>, wheel), <code>ViewerToolbar</code> (native discs plus a capsule), <code>CallGlyphButton</code> and
+    <code>CallButtonPair</code> (the chat header's video and voice buttons: two separate discs in one <code>GlassEffectContainer</code>, so they
+    merge like the iOS 26 toolbar; <code>toolbar</code> takes <code>spacing</code> and <code>blend</code>).</li>
+  <li><strong>What stays Flutter, and why:</strong> sheets (their content is Flutter, so a native sheet would need the content in a platform view);
+  the hold / long-press menus (<code>showMessageActionMenu</code>, <code>showChatRowActionMenu</code>, and the row-anchored <code>showPullDownMenu</code> callers
+  in Calls and Data &amp; Storage: they lift a Flutter preview or anchor to a row, not to a button); multi-line fields and fields with a character
+  limit, a trailing widget or a custom fill; a lit or text or drawn-glyph slot in a button group; a busy or badged button; a search field with a
+  scope tag, hero flight or custom clear; <code>ScheduleTimePicker</code> (5-minute steps and a moving floor and ceiling that
+  <code>DatePicker</code> cannot express); the busy call buttons (they dim and still answer a tap). Media-tone glass over photos stays Flutter.</li>
   <li><strong>Cost:</strong> any platform view on screen drops Flutter lists to bursts of 60 Hz (flutter/flutter#190815) and doubles a nearby
   BackdropFilter. Fixed chrome (page bar buttons, viewer toolbars) should move to sibling views like <code>NativeChrome</code>'s tab bar.</li>
   <li><strong>Carried lessons</strong> from the React Native port (<code>monkeyhub-reactnative/docs/native-ui.md</code>): hosts ignore the safe area;
@@ -350,6 +369,7 @@ no exact native form (an icon without an SF Symbol in <code>sfSymbolFor</code>, 
 <tr><th>Role</th><th>Use</th><th>File</th><th>Absorbs</th></tr>
 <tr><td>Form field (single/multi-line)</td><td><code>SheetTextField</code> / <code>ThemedInput</code> (both presets over one private <code>_TextBox</code>; autofill, keyboard appearance from theme)</td><td>widgets/labeled_field.dart</td><td><code>link_input_sheet</code>. Open: <code>interaction_compose_sheet</code> option rows</td></tr>
 <tr><td>Labelled field</td><td><code>LabeledField</code></td><td>labeled_field.dart</td><td></td></tr>
+<tr><td>Pull-down menu button</td><td><code>PullDownButton&lt;T&gt;</code> (icon or label + <code>PullDownItem</code>s + <code>onSelected</code>; native <code>Menu</code> in the liquid kit, <code>GlassIconButton</code> + <code>showPullDownMenu</code> elsewhere)</td><td>widgets/pull_down_button.dart</td><td>New. Row-anchored and long-press menus keep calling <code>showPullDownMenu</code></td></tr>
 <tr><td>Password</td><td><code>PasswordField</code></td><td>widgets/password_field.dart</td><td></td></tr>
 <tr><td>Code / OTP</td><td><code>CodeField</code></td><td>widgets/code_field.dart</td><td></td></tr>
 <tr><td>Search</td><td><code>SearchField</code> (+ door mode, <code>SearchFieldHero</code>)</td><td>widgets/search_field.dart</td><td>Open: command palette header (needs a bare mode)</td></tr>
@@ -462,7 +482,7 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
 <tr><td>4</td><td>StatusPill + Notice</td><td>One read-only pill with tone and a per-kit skin; one inline banner with tone (<code>SoftNote</code>, <code>FormErrorBanner</code> are presets). Specialised strips and cards stay separate, see §5.</td><td><span class="pill ok">done</span></td></tr>
 <tr><td>5</td><td>Composer</td><td>Merge <code>chat_composer</code> classic/liquid field into <code>ComposerTextField</code> (also used by the friend-request draft; shared send-pop transition) <span class="pill ok">done</span>; command palette search field; leftover relative-time families (<code>roomTimeAgo</code>, <code>requestAgo</code>, devices, family, remove-contact) still planned</td><td><span class="pill">partial</span></td></tr>
 <tr><td>6</td><td>Material kit</td><td>Flutter Material 3 chosen; skins for the core set (LiquidGlass, icon/back/close/ChromeDisc/pill buttons, SheetActionButton, TextLinkButton, RowPillButton, text fields, SearchField, RowSwitch, segmented, FilterCapsule, SelectionCheck, ValueSlider, <code>AppSpinner</code>, SheetPanel/SheetHandle); <code>materialReady = true</code>, Android only. Media-tone glass over photos and the glass button group keep the blur-free plate. Not yet seen on a device.</td><td><span class="pill ok">built</span></td></tr>
-<tr><td>7</td><td>Native iOS 26 controls</td><td>Real SwiftUI controls for the liquid kit (<code>ios/Runner/NativeControls.swift</code>, <code>lib/ui/native/native_control.dart</code>): symbol buttons (back, close, icon), switch, segmented, slider, primary button; also text field, menu and toolbar specs ready. Behind <code>UiKits.nativeControlsReady</code> (off) until device-verified. Next: sibling-view hosting for fixed chrome, native text fields, native sheets.</td><td><span class="pill warn">built, gated</span></td></tr>
+<tr><td>7</td><td>Native iOS 26 controls</td><td>Real SwiftUI controls for the liquid kit (<code>ios/Runner/NativeControls.swift</code>, <code>lib/ui/native/native_control.dart</code>): symbol buttons (back, close, icon), switch, segmented, slider, primary button; also text field, menu and toolbar specs ready. Phase 7 now covers buttons, button groups, merged toolbar discs, labelled buttons, text / secure / search fields, pull-down menus, date wheel, viewer toolbar and call buttons, behind the Settings &rsaquo; Glass &rsaquo; Native controls scope (default: tab bar only) and checked in the Controls lab. Never run on a device yet. Next: device pass (frame rate with platform views, field focus and keyboard, menu morph), sibling-view hosting for fixed chrome, native sheets.</td><td><span class="pill warn">built, gated, unverified on device</span></td></tr>
 <tr><td>8</td><td>Haptics setting</td><td>Global on/off wired into <code>AppBinding.send</code> and <code>HapticTick.current()</code></td><td><span class="pill ok">done</span></td></tr>
 </table></div>
 
