@@ -15,6 +15,8 @@ import { TAKEN_PUSH_GRACE_MS } from "./calls";
 import { consume } from "./rateLimit";
 import { isTombstoned } from "./deletionCore";
 import { continueSweep, sweepArgs } from "./sweep";
+import { resolveMute } from "./mute";
+import { VANISH_PREVIEW, isSeenClockRoom, vanishUntilFor } from "./vanishCore";
 
 // ────────────────────────────── constants ──────────────────────────────
 
@@ -32,6 +34,16 @@ const INVITE_RING_WINDOW_MS = 60 * 1000;
 // pendingInviteForUser already hide non-live participants immediately so a
 // killed app never leaves a lingering "ongoing call" banner.
 const HEARTBEAT_STALE_MS = 45 * 1000;
+
+// Huddles (kind: "huddle"): a call that rings no one.
+/** A huddle push goes only to rooms this small; bigger rooms see the Join pill only. */
+export const HUDDLE_PUSH_MAX_MEMBERS = 20;
+/** At most one huddle push per room per this long (derived from `pushedAt`). */
+export const HUDDLE_PUSH_COOLDOWN_MS = 2 * 60 * 60 * 1000;
+/** A huddle with one person left ends itself after this long. */
+export const HUDDLE_ALONE_MS = 3 * 60 * 1000;
+/** Android notification channel of the passive huddle push. */
+export const HUDDLE_CHANNEL_ID = "huddles";
 
 // Rows per run of the GC sweeps below; a full page schedules the next.
 const PARTICIPANT_GC_PAGE = 100;
@@ -113,6 +125,32 @@ async function syncJoined(ctx: any, groupCallId: any, joined?: any[]) {
     return;
   }
   await ctx.db.patch(groupCallId, { joinedUserIds: ids });
+  if (call.kind === "huddle") await trackAlone(ctx, call, ids.length);
+}
+
+/// Huddles only: one job, three minutes after the starter is left alone, that
+/// ends the huddle if they still are. Someone joining cancels it. `aloneAt` on
+/// the row is the job's token, so a job that raced a join does nothing.
+async function trackAlone(ctx: any, call: any, joinedCount: number) {
+  if (call.status !== "active") return;
+  if (joinedCount === 1 && call.aloneAt === undefined) {
+    const aloneAt = Date.now();
+    const jobId = await ctx.scheduler.runAfter(
+      HUDDLE_ALONE_MS,
+      internal.groupCalls._huddleAloneTimeout,
+      { groupCallId: call._id, aloneAt },
+    );
+    await ctx.db.patch(call._id, { aloneAt, aloneJobId: jobId });
+  } else if (joinedCount > 1 && call.aloneAt !== undefined) {
+    if (call.aloneJobId) {
+      try {
+        await ctx.scheduler.cancel(call.aloneJobId);
+      } catch {
+        // already ran
+      }
+    }
+    await ctx.db.patch(call._id, { aloneAt: undefined, aloneJobId: undefined });
+  }
 }
 
 async function endCallIfEmpty(ctx: any, groupCallId: any) {
@@ -129,6 +167,7 @@ async function endCallIfEmpty(ctx: any, groupCallId: any) {
     joinedUserIds: [],
   });
   await purgeGroupSignals(ctx, groupCallId);
+  if (call.kind === "huddle") await finishHuddle(ctx, call);
   // Anyone whose phone is still ringing for a call that no longer exists.
   // Their realtime subscription drops the invite on its own, but a KILLED
   // app has no subscription — and a native card nothing can reach rings for
@@ -136,6 +175,88 @@ async function endCallIfEmpty(ctx: any, groupCallId: any) {
   await dismissRingers(ctx, groupCallId, "ended");
   return true;
 }
+
+/// A huddle just ended: withdraw its push (outbound only) and, only if someone
+/// besides the starter actually joined, leave one history message. An empty
+/// huddle writes nothing ("nobody joined" is a local bubble on the starter's
+/// device). The message follows the room's own clock like any other: in a
+/// secret or vanishing room it expires with the room's rules.
+async function finishHuddle(ctx: any, call: any) {
+  if (call.aloneJobId) {
+    try {
+      await ctx.scheduler.cancel(call.aloneJobId);
+    } catch {
+      // already ran
+    }
+  }
+  if (call.pushedTo && call.pushedTo.length > 0) {
+    await ctx.scheduler.runAfter(0, internal.notifications.dismissAndSync, {
+      userIds: call.pushedTo,
+      dismissIds: [`huddle:${call._id}`],
+    });
+  }
+  const rows = await ctx.db
+    .query("groupCallParticipants")
+    .withIndex("by_call", (q: any) => q.eq("groupCallId", call._id))
+    .collect();
+  const others = new Set<string>();
+  for (const r of rows) {
+    if (r.joinedAt !== undefined && r.userId.toString() !== call.startedBy.toString()) {
+      others.add(r.userId.toString());
+    }
+  }
+  if (others.size === 0) return;
+  const room = await ctx.db.get(call.roomId);
+  if (!room || isTombstoned(room)) return;
+  const now = Date.now();
+  const durationMs = Math.max(0, now - call.startedAt);
+  const vanishUntil = vanishUntilFor(room, now);
+  const expiresAt =
+    room.messageLifetime && !isSeenClockRoom(room)
+      ? now + room.messageLifetime * 1000
+      : undefined;
+  const messageId = await ctx.db.insert("messages", {
+    roomId: call.roomId,
+    userId: call.startedBy,
+    // Machine-readable: huddle:ended:<durationMs>:<people who joined>
+    content: `huddle:ended:${durationMs}:${others.size + 1}`,
+    createdAt: now,
+    type: "system",
+    ...(expiresAt !== undefined ? { expiresAt } : {}),
+    ...(vanishUntil !== undefined ? { vanishUntil } : {}),
+  });
+  if (expiresAt !== undefined) {
+    await ctx.scheduler.runAt(new Date(expiresAt), internal.messages.expireMessage, {
+      messageId,
+    });
+  }
+  await ctx.db.patch(call.roomId, {
+    lastMessage: vanishUntil !== undefined ? VANISH_PREVIEW : "Huddle",
+    lastMessageTime: now,
+    lastMessageSenderId: call.startedBy,
+  });
+}
+
+/// The alone timeout: still alone after three minutes, end the huddle quietly.
+export const _huddleAloneTimeout = internalMutation({
+  args: { groupCallId: v.id("groupCalls"), aloneAt: v.number() },
+  returns: v.null(),
+  handler: async (ctx, { groupCallId, aloneAt }) => {
+    const call = await ctx.db.get(groupCallId);
+    if (!call || call.status !== "active" || call.kind !== "huddle") return null;
+    if (call.aloneAt !== aloneAt) return null; // someone joined, or superseded
+    const joined = await joinedParticipants(ctx, groupCallId);
+    if (joined.length > 1) {
+      await ctx.db.patch(groupCallId, { aloneAt: undefined, aloneJobId: undefined });
+      return null;
+    }
+    for (const p of joined) {
+      await ctx.db.patch(p._id, { status: "left", leftAt: Date.now() });
+    }
+    await endCallIfEmpty(ctx, groupCallId);
+    return null;
+  },
+});
 
 /// Everyone still sitting on an unanswered invite, as of right now — the
 /// rows, because the fan-out below flips them.
@@ -274,8 +395,12 @@ export const start = mutation({
     deviceId: v.optional(v.string()),
     type: v.string(), // "audio" | "video"
     inviteeIds: v.optional(v.array(v.id("users"))),
+    // "huddle": a call that rings no one. Writes no invitee rows, no
+    // callSignals and sends no VoIP/ring push, whatever `inviteeIds` says.
+    kind: v.optional(v.literal("huddle")),
   },
-  handler: async (ctx, { roomId, userId, deviceId, type, inviteeIds }) => {
+  handler: async (ctx, { roomId, userId, deviceId, type, inviteeIds, kind }) => {
+    const isHuddle = kind === "huddle";
     if (type !== "audio" && type !== "video") throw new Error("BAD_CALL_TYPE");
     await requireMember(ctx, roomId, userId);
     // Starting a call rings the room. Start, end, repeat used to ring
@@ -318,6 +443,7 @@ export const start = mutation({
       status: "active",
       startedAt: now,
       joinedUserIds: [userId],
+      ...(isHuddle ? { kind: "huddle" as const } : {}),
     });
     await ctx.db.insert("groupCallParticipants", {
       groupCallId,
@@ -335,8 +461,11 @@ export const start = mutation({
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
       .collect();
     const memberIds = new Set(members.map((m) => m.userId.toString()));
-    const requested =
-      inviteeIds ?? members.map((m) => m.userId);
+    // A huddle rings no one: nobody is "requested", so no invitee row, no
+    // signal and no VoIP push can be written below.
+    const requested = isHuddle
+      ? []
+      : (inviteeIds ?? members.map((m) => m.userId));
     const invited: any[] = [];
     for (const inviteeId of requested) {
       // A call holds six; ringing a whole public room for six seats is noise.
@@ -454,7 +583,124 @@ export const start = mutation({
       );
     }
 
+    if (isHuddle) {
+      await announceHuddle(ctx, {
+        groupCallId,
+        roomId,
+        starterId: userId,
+        members,
+        now,
+      });
+    }
+
     return { groupCallId, existing: false };
+  },
+});
+
+/// The soft "hanging out" push for a new huddle, and the alone timeout.
+///
+/// Passive, per ROOM and rare: rooms of 20 or fewer, muted members skipped,
+/// at most once per room per two hours (the previous huddle's `pushedAt`, one
+/// indexed read, so no per-person cooldown rows). Reuses the member rows
+/// `start` already loaded. The starter never learns who was notified.
+async function announceHuddle(
+  ctx: any,
+  a: { groupCallId: any; roomId: any; starterId: any; members: any[]; now: number },
+) {
+  const { groupCallId, roomId, starterId, members, now } = a;
+  // Alone from the first second: the same 3-minute timeout as when everyone
+  // else leaves.
+  const call = await ctx.db.get(groupCallId);
+  if (call) await trackAlone(ctx, call, 1);
+
+  if (members.length > HUDDLE_PUSH_MAX_MEMBERS) return;
+  const recent = await ctx.db
+    .query("groupCalls")
+    .withIndex("by_room_pushed", (q: any) =>
+      q.eq("roomId", roomId).gt("pushedAt", now - HUDDLE_PUSH_COOLDOWN_MS),
+    )
+    .first();
+  if (recent) return;
+
+  const room = await ctx.db.get(roomId);
+  if (!room) return;
+  const isDm = typeof room.name === "string" && room.name.startsWith("dm:");
+  const recipients: any[] = [];
+  for (const m of members) {
+    if (m.userId.toString() === starterId.toString()) continue;
+    if (resolveMute(m, now).notifications) continue;
+    // Anyone who blocked the starter is not told they are hanging out. (A
+    // group allows one-way blocks; a DM refuses sends both ways, so the
+    // starter's own blocks matter there too.)
+    const theyBlocked = await ctx.db
+      .query("blocks")
+      .withIndex("by_pair", (q: any) =>
+        q.eq("userId", m.userId).eq("blockedUserId", starterId),
+      )
+      .first();
+    if (theyBlocked) continue;
+    if (isDm) {
+      const iBlocked = await ctx.db
+        .query("blocks")
+        .withIndex("by_pair", (q: any) =>
+          q.eq("userId", starterId).eq("blockedUserId", m.userId),
+        )
+        .first();
+      if (iBlocked) continue;
+    }
+    recipients.push(m.userId);
+  }
+  if (recipients.length === 0) return;
+
+  const starter = await ctx.db.get(starterId);
+  const name = starter?.name ?? starter?.username ?? "Someone";
+  await ctx.db.patch(groupCallId, { pushedAt: now, pushedTo: recipients });
+  await ctx.scheduler.runAfter(0, internal.groupCalls.sendHuddlePush, {
+    groupCallId,
+    roomId,
+    userIds: recipients,
+    starterName: name,
+    roomName: isDm ? undefined : room.name,
+  });
+}
+
+/// The passive huddle push. Invitation copy, never a summons: "{name} is
+/// hanging out in {room} · Drop in" in groups, "{name} is free to talk" in DMs.
+/// iOS interruption-level passive; Android's separate low-importance "huddles"
+/// channel. Withdrawn through `dismissAndSync` when the huddle ends.
+export const sendHuddlePush = internalAction({
+  args: {
+    groupCallId: v.id("groupCalls"),
+    roomId: v.id("rooms"),
+    userIds: v.array(v.id("users")),
+    starterName: v.string(),
+    roomName: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, { groupCallId, roomId, userIds, starterName, roomName }) => {
+    if (userIds.length === 0) return null;
+    const body =
+      roomName !== undefined
+        ? `${starterName} is hanging out in ${roomName} · Drop in`
+        : `${starterName} is free to talk`;
+    await ctx.runAction(internal.push.sendAlert, {
+      userIds,
+      kind: "huddle",
+      title: roomName ?? starterName,
+      body,
+      data: {
+        kind: "huddle",
+        roomId: roomId.toString(),
+        groupCallId: groupCallId.toString(),
+        senderName: starterName,
+        isGroup: roomName !== undefined ? "true" : "false",
+        ...(roomName !== undefined ? { roomName } : {}),
+      },
+      roomId,
+      collapseId: `huddle:${groupCallId}`,
+      channelId: HUDDLE_CHANNEL_ID,
+    });
+    return null;
   },
 });
 
@@ -733,6 +979,7 @@ export const activeForRoom = query({
       groupCallId: call._id,
       roomId: call.roomId,
       type: call.type,
+      kind: call.kind ?? null,
       startedAt: call.startedAt,
       startedBy: call.startedBy,
       participants,
@@ -791,6 +1038,7 @@ export const liveInMyRooms = query({
           roomId: call.roomId,
           groupCallId: call._id,
           type: call.type,
+          kind: call.kind ?? null,
           startedAt: call.startedAt,
           joinedUserIds: joined,
         });
@@ -824,6 +1072,7 @@ export const roster = query({
       roomName: room?.name ?? "a room",
       roomAvatarStorageId: room?.avatarStorageId?.toString() ?? null,
       type: call.type,
+      kind: call.kind ?? null,
       status: call.status,
       startedAt: call.startedAt,
       participants,

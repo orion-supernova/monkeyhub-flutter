@@ -47,7 +47,8 @@ export type AlertKind =
   | "dismiss"
   | "daily_games"
   | "friend_moment"
-  | "game_result";
+  | "game_result"
+  | "huddle";
 
 /**
  * The kinds that are not an unread item and therefore carry no badge.
@@ -63,6 +64,8 @@ const UNBADGED_KINDS: ReadonlySet<AlertKind> = new Set<AlertKind>([
   "daily_games",
   "friend_moment",
   "game_result",
+  // A huddle invite is an invitation, not an unread item.
+  "huddle",
 ]);
 
 export type AlertSpec = {
@@ -96,6 +99,12 @@ export type AlertSpec = {
    * [webSafeSpec]; the apps, which block capture, get the text as before.
    */
   secretRoom?: boolean;
+  /**
+   * Android notification channel for this alert. Absent = the app's default
+   * chat channel. Huddles use their own low-importance "huddles" channel so
+   * people can switch them off on their own.
+   */
+  channelId?: string;
   /**
    * Arrive without a sound, a banner or a lit screen: the recipient is
    * chatting on another of their devices right now (see engagement.ts), so
@@ -175,6 +184,9 @@ const KIND_TTL_SECONDS: Record<AlertKind, number> = {
   // player's local midnight, and a result that lands tomorrow is a boast about
   // a board nobody can still be beaten on.
   game_result: 43200,
+  // A "hanging out" invite is stale within the hour; the push is withdrawn
+  // when the huddle ends, and one that lands after that is worse than none.
+  huddle: 3600,
 };
 
 // APNs and FCM both cap a payload at 4096 bytes and Web Push has less than
@@ -231,7 +243,11 @@ export function buildApnsBody(spec: AlertSpec): Record<string, unknown> {
     alert.subtitle = clamp(spec.subtitle, TITLE_MAX);
   }
   const aps: Record<string, unknown> = { alert };
-  if (spec.quiet) {
+  if (spec.kind === "huddle") {
+    // An invitation, never a summons: no sound, no screen wake. It waits in
+    // Notification Center.
+    aps["interruption-level"] = "passive";
+  } else if (spec.quiet) {
     // No `sound` key at all, and passive: lands in Notification Center
     // without lighting the screen. See `AlertSpec.quiet`.
     aps["interruption-level"] = "passive";
@@ -306,11 +322,13 @@ export function buildFcmMessage(
   if (spec.threadId) data.threadId = spec.threadId;
   if (spec.collapseId) data.collapseId = spec.collapseId;
   if (spec.quiet) data.quiet = "true";
+  if (spec.channelId) data.channelId = spec.channelId;
   return {
     token,
     data,
     android: {
-      priority: spec.kind === "dismiss" ? "normal" : "high",
+      priority:
+        spec.kind === "dismiss" || spec.kind === "huddle" ? "normal" : "high",
       ttl: `${KIND_TTL_SECONDS[spec.kind]}s`,
       // Deliberately NO collapse_key. FCM's collapse discards an UNDELIVERED
       // message, which for chat means silently losing messages — it is not
@@ -331,6 +349,7 @@ export function buildWebPushPayload(spec: AlertSpec): Record<string, string> {
   if (spec.threadId) out.threadId = spec.threadId;
   if (spec.collapseId) out.collapseId = spec.collapseId;
   if (spec.quiet) out.quiet = "true";
+  if (spec.channelId) out.channelId = spec.channelId;
   return out;
 }
 
@@ -485,6 +504,7 @@ export const sendAlert = internalAction({
       v.literal("call_invite"),
       v.literal("group_call_invite"),
       v.literal("dismiss"),
+      v.literal("huddle"),
     ),
     title: v.optional(v.string()),
     /** See `AlertSpec.subtitle` — iOS only; Android/web read `data` instead. */
@@ -509,6 +529,10 @@ export const sendAlert = internalAction({
      * a new start for them. See alertBurst.ts.
      */
     burstSince: v.optional(v.number()),
+    /** Treat the room as private for this push (web shows no text). Vanishing messages. */
+    privatePreview: v.optional(v.boolean()),
+    /** Android notification channel; see `AlertSpec.channelId`. */
+    channelId: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, a) => {
@@ -559,7 +583,8 @@ export const sendAlert = internalAction({
           badge: t.badge,
           threadId: a.roomId?.toString(),
           collapseId: a.collapseId,
-          ...(t.secretRoom ? { secretRoom: true } : {}),
+          ...(t.secretRoom || a.privatePreview ? { secretRoom: true } : {}),
+          ...(a.channelId ? { channelId: a.channelId } : {}),
         };
         // The delivery proof this recipient's phone posts back on arrival —
         // the second tick without the app having to be opened. Per recipient

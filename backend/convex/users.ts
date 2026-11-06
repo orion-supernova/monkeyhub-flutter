@@ -341,6 +341,9 @@ export const updateVisibility = mutation({
     points: v.optional(v.string()),
     puzzle: v.optional(v.string()),
     pointsPast: v.optional(v.string()),
+    // "Share my reads in vanishing chats". A private consent switch for people
+    // who hide "seen"; see vanish.ts. Boolean, not a level.
+    vanishShareReads: v.optional(v.boolean()),
   },
   handler: async (
     ctx,
@@ -355,6 +358,7 @@ export const updateVisibility = mutation({
       points,
       puzzle,
       pointsPast,
+      vanishShareReads,
     }
   ) => {
     const user = await getLiveUser(ctx, userId);
@@ -394,6 +398,7 @@ export const updateVisibility = mutation({
       ...(pointsPast !== undefined
         ? { pointsPast: pick(pointsPast, feedValid) }
         : {}),
+      ...(vanishShareReads !== undefined ? { vanishShareReads } : {}),
     };
     await ctx.db.patch(userId, { visibility: next });
     await syncProfile(ctx, userId);

@@ -44,6 +44,7 @@ import { grantRoomAccess, revokeRoomAccess } from "./roomAccess";
 import { removeUserFromRoomGroupCall } from "./groupCalls";
 import { purgeScheduledForRoomUser } from "./scheduledMessages";
 import { isTombstoned } from "./deletionCore";
+import { isVanishRoom, vanishAfterLeave } from "./vanishCore";
 import {
   MAX_ROOMS_PER_USER,
   currentRoomCount,
@@ -336,6 +337,10 @@ export async function removeMembership(
   if (room && room.memberCount > 0) {
     await ctx.db.patch(roomId, { memberCount: room.memberCount - 1 });
   }
+  // A leaver stops counting toward the vanish floor at once. Only for a room
+  // in vanish mode (the room doc is already in hand): anywhere else this adds
+  // nothing, not even a read.
+  if (room && isVanishRoom(room)) await vanishAfterLeave(ctx, roomId, userId);
 
   // Emptiness only needs one row, however big the room was.
   const anyLeft = await ctx.db

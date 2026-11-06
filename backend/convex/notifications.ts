@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { lensFor } from "./visibility";
 import { challengePushBody } from "./challengeCopy";
 import { displayName } from "./profileCopyGate";
+import { VANISH_PREVIEW } from "./vanishCore";
 
 // What each kind of event says on a lock screen.
 //
@@ -190,6 +191,12 @@ export const sendMessagePush = internalAction({
      * time. Passed through to `push.sendAlert`. See alertBurst.ts.
      */
     burstSince: v.optional(v.number()),
+    /**
+     * The message is a vanishing one (vanish mode, or a secret room on the
+     * "seen" clock). Its push says only "Vanishing message": no text, no
+     * thumbnail, no seed. A lock-screen banner is a screenshot nobody can block.
+     */
+    vanishing: v.optional(v.boolean()),
   },
   handler: async (
     ctx,
@@ -203,6 +210,7 @@ export const sendMessagePush = internalAction({
       mentionedUserIds,
       mentionsEveryone,
       burstSince,
+      vanishing,
     },
   ) => {
     // Cheapest possible guard against the "typed it, sent it, deleted it"
@@ -290,7 +298,9 @@ export const sendMessagePush = internalAction({
     }
 
     const body =
-      type === "text"
+      vanishing === true
+        ? VANISH_PREVIEW
+        : type === "text"
         ? content
         : type === "image"
           ? "📷 Image"
@@ -458,7 +468,7 @@ export const sendMessagePush = internalAction({
         ...(createdAt !== undefined ? { createdAt: String(createdAt) } : {}),
         // Whether the message is simple enough to seed at all. See
         // `rooms:getMemberIds`, which decides it off the row it already holds.
-        ...(plain ? { plain: "true" } : {}),
+        ...(plain && vanishing !== true ? { plain: "true" } : {}),
         // Duplicated off `subtitle` for Android/web, which have no `aps.alert`
         // to read it from — see ChatNotifications.kt / mh-push-sw.js. iOS's
         // extension reads it too: a communication notification is titled
@@ -483,6 +493,7 @@ export const sendMessagePush = internalAction({
       sentAt: Date.now(),
       perUser,
       burstSince,
+      ...(vanishing === true ? { privatePreview: true } : {}),
     });
 
     await syncBadgeOnly();

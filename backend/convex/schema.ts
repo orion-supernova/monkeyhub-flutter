@@ -101,6 +101,10 @@ export default defineSchema({
         points: v.optional(v.string()),      // my POINTS (jinx/fate/…) reach friends
         puzzle: v.optional(v.string()),      // my daily puzzle score is comparable
         pointsPast: v.optional(v.string()),  // friends may look past today
+        // "Share my reads in vanishing chats". Only meaningful when `seen`
+        // is "nobody"; absent/false = off. Boolean (not a level) because it
+        // is a private consent switch, never shown to anyone else.
+        vanishShareReads: v.optional(v.boolean()),
       })
     ),
     // Supervised (child) accounts. Absent === "adult" — every pre-existing
@@ -324,6 +328,18 @@ export default defineSchema({
     // New fields
     type: v.optional(v.string()),          // "regular" | "secret"
     messageLifetime: v.optional(v.number()), // auto-expiry in seconds
+    // ── Vanish mode (see vanish.ts) ──────────────────────────────────────
+    // Regular rooms only; toggled by `vanish.setVanishMode`. Messages sent
+    // while this is true get `vanishUntil`.
+    vanishMode: v.optional(v.boolean()),
+    // Seconds a vanishing message lives after everyone it was sent to has
+    // seen it: 10 (default), 60 or 3600.
+    vanishAfterSeen: v.optional(v.number()),
+    // Secret rooms only: when `messageLifetime` starts counting. Absent
+    // means "sent" (the original behaviour, untouched: `expiresAt` + one
+    // job per message). "seen" means the lifetime counts from everyone having
+    // seen the message, on the vanish machinery (`vanishUntil`, no `expiresAt`).
+    messageClock: v.optional(v.union(v.literal("seen"), v.literal("sent"))),
     avatarStorageId: v.optional(v.id("_storage")),
     lastMessage: v.optional(v.string()),
     lastMessageTime: v.optional(v.number()),
@@ -523,6 +539,15 @@ export default defineSchema({
     // resolves through `DEFAULT_LEVEL.seen` ("friends") until the one-time
     // backfill migration runs; see `migrations.backfillSeenVisibility`.
     seenVisibility: v.optional(v.string()),
+    // ── Vanish mode ──────────────────────────────────────────────────────
+    // A separate read cursor that advances only for reads the reader agreed
+    // to share (see vanish.ts). Absent reads as `joinedAt`: a member who
+    // never shares holds every message sent after they joined for the full
+    // 24 hours. Written in the SAME patch as `lastReadAt`, so it costs nothing.
+    vanishSeenAt: v.optional(v.number()),
+    // Per-chat consent to share reads in vanishing chats, for people who hide
+    // "seen" globally. Absent = follow the global setting.
+    vanishShareReads: v.optional(v.boolean()),
   })
     // No standalone `by_room` — `by_room_user` alone serves every "all
     // members of this room" read as a prefix scan on `roomId`.
@@ -1157,6 +1182,11 @@ export default defineSchema({
 
     senderName: v.optional(v.string()),
     expiresAt: v.optional(v.number()),       // Unix ms timestamp — set for Chamber of Secrets rooms
+    // Vanish mode: `createdAt + 24h`, stamped at insert when the room is in
+    // vanish mode or is a secret room on the "seen" clock. The hard deadline;
+    // the message may die sooner once everyone it was sent to has seen it.
+    // Never set together with `expiresAt`. See vanish.ts.
+    vanishUntil: v.optional(v.number()),
     // Reply support. `replyToId` points at the parent message; `replyToPreview`
     // is a denormalized snapshot of that parent taken at send time so the
     // inline tether keeps rendering even after the parent is deleted/expired
@@ -1436,6 +1466,10 @@ export default defineSchema({
     // `by_room_time` alone serves both as a prefix scan on `roomId` and as
     // the time-ordered read; a narrower index would only add write cost.
     .index("by_room_time", ["roomId", "createdAt"])
+    // Vanish mode: both deaths (seen-by-everyone and the 24h deadline) are a
+    // range on this. `vanishUntil` is unset on every normal message and unset
+    // sorts LOWEST, so every range MUST be bounded below with gt(…, 0).
+    .index("by_room_vanish", ["roomId", "vanishUntil"])
     // The dedupe lookup. Scoped by sender as well as room so a client can only
     // ever collide with — or discover — its own keys.
     .index("by_room_user_client", ["roomId", "userId", "clientId"])
@@ -1629,6 +1663,56 @@ export default defineSchema({
     .index("by_room_user", ["roomId", "userId"])
     // Account teardown: rows where the departing user was the VIEWER.
     .index("by_user", ["userId"]),
+
+  // Vanish mode bookkeeping: ONE row per room that has vanish activity, never
+  // for a normal room. Side table (not fields on `rooms`) because a burn must
+  // not patch the room row, which fans out to every member's chat list. Only
+  // screens open on the room subscribe to it. See vanish.ts.
+  //
+  // "Seen" cursors are `roomMembers.vanishSeenAt ?? joinedAt`. The two lowest
+  // are cached here so a read by anyone else costs one read (this row) and no
+  // member scan: only the lowest/second-lowest reader forces a rescan.
+  vanishState: defineTable({
+    roomId: v.id("rooms"),
+    // Vanish is currently on (always true for a seen-clock secret room). The
+    // row outlives it until the last promised message is gone.
+    active: v.boolean(),
+    // Seconds of grace after "seen by everyone". Copied here so a read never
+    // touches the rooms row.
+    afterSeen: v.number(),
+    // Lowest cursor among members (everything at or below was seen by all),
+    // who holds it, and the second-lowest (the bound for that person's OWN
+    // messages, which never wait for them). `floor` is monotonic.
+    floor: v.number(),
+    slowestUserId: v.optional(v.id("users")),
+    floor2: v.optional(v.number()),
+    secondUserId: v.optional(v.id("users")),
+    // The one pending burn: delete messages with createdAt <= burnUpTo, plus
+    // burnWho's own messages with createdAt <= burnUpTo2, at burnAt.
+    burnUpTo: v.optional(v.number()),
+    burnWho: v.optional(v.id("users")),
+    burnUpTo2: v.optional(v.number()),
+    burnAt: v.optional(v.number()),
+    burnJobId: v.optional(v.id("_scheduled_functions")),
+    // The target recorded while a burn was pending, and when it was reached.
+    // Rescheduled for nextReachedAt + afterSeen when the running burn ends.
+    nextUpTo: v.optional(v.number()),
+    nextWho: v.optional(v.id("users")),
+    nextUpTo2: v.optional(v.number()),
+    nextReachedAt: v.optional(v.number()),
+    // How far (a createdAt) the burn's own-messages range has been scanned, so
+    // skipped messages by other senders are not rescanned on every burn.
+    sideDone: v.optional(v.number()),
+    sideWho: v.optional(v.id("users")),
+    // The single 24h-deadline job for the room and the instant it fires. The
+    // job carries `at` as a token: a mismatch means it was superseded.
+    deadlineJobId: v.optional(v.id("_scheduled_functions")),
+    deadlineAt: v.optional(v.number()),
+  })
+    .index("by_room", ["roomId"])
+    // The daily backstop: rooms whose deadline job is overdue (lost). Unset
+    // sorts lowest, so the range is bounded below with gt(…, 0).
+    .index("by_deadline", ["deadlineAt"]),
 
   // One row per (person named, message that named them) they have not SEEN
   // yet: the room's `@` badge and its jump-to-mention stack. See mentions.ts.
@@ -2705,8 +2789,25 @@ export default defineSchema({
     // rows a heartbeat patches every 15s per person. Unset on rows from
     // before it existed: those read as nobody, until their next join/leave.
     joinedUserIds: v.optional(v.array(v.id("users"))),
+    // "huddle": a call that rings no one (no invitee rows, no callSignals, no
+    // VoIP pushes). Absent = an ordinary ringing call.
+    kind: v.optional(v.literal("huddle")),
+    // When the passive "hanging out" push for this huddle went out. The
+    // per-ROOM 2h cooldown reads the newest of these (`by_room_pushed`).
+    pushedAt: v.optional(v.number()),
+    // Who that push went to, so ending the huddle can withdraw it without
+    // re-reading the room. At most 20 ids (huddle pushes skip bigger rooms).
+    pushedTo: v.optional(v.array(v.id("users"))),
+    // Huddles: when the starter became the only one left, and the one job
+    // (3 minutes later) that ends the huddle if they still are. `aloneAt` is
+    // also the job's token; both clear when someone joins.
+    aloneAt: v.optional(v.number()),
+    aloneJobId: v.optional(v.id("_scheduled_functions")),
   })
     .index("by_room_status", ["roomId", "status"])
+    // Huddle push cooldown. `pushedAt` is unset on every ringing call, so the
+    // read is always bounded below with gt(…, 0).
+    .index("by_room_pushed", ["roomId", "pushedAt"])
     .index("by_status", ["status", "startedAt"]),
 
   groupCallParticipants: defineTable({

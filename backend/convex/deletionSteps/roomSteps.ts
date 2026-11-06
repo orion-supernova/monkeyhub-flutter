@@ -14,6 +14,7 @@ import { releaseMessageBlobs, releaseRowFiles } from "../files";
 import { endGroupCallsInRoom } from "../groupCalls";
 import { decrementRoomCount } from "../roomCounts";
 import { purgeScheduledForRoom } from "../scheduledMessages";
+import { cancelJob, vanishStateOf } from "../vanishCore";
 
 /**
  * Custom teardown steps for the `room` deletion kind. `deletionPlans.planFor`
@@ -322,6 +323,29 @@ export const roomSteps: Step[] = [
           reason: "room",
         });
       }
+    },
+  },
+  {
+    id: "vanish",
+    tier: 1,
+    claims: ["vanishState.roomId"],
+    /**
+     * Vanish bookkeeping. The two job ids are cancelled (a job that fires for
+     * a missing row would do nothing anyway, but there is no reason to leave
+     * one queued for up to a day), then the row goes. The messages themselves
+     * are the `messages` step's.
+     */
+    async run(ctx, job, b) {
+      const roomId = roomOf(ctx, job);
+      if (!roomId) return { done: true };
+      const state = await vanishStateOf(ctx, roomId);
+      b.read();
+      if (!state) return { done: true };
+      await cancelJob(ctx, state.burnJobId);
+      await cancelJob(ctx, state.deadlineJobId);
+      await ctx.db.delete(state._id);
+      b.write();
+      return { done: true };
     },
   },
   {

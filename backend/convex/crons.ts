@@ -421,6 +421,7 @@ for (const [name, fn] of [
   ["retention.gcFamilyCodes", internal.retention.gcFamilyCodes],
   ["retention.gcLogRoomMessages", internal.retention.gcLogRoomMessages],
   ["retention.gcIntegrityRuns", internal.retention.gcIntegrityRuns],
+  ["retention.gcVanishBackstop", internal.retention.gcVanishBackstop],
 ] as const) {
   crons.interval(name, { hours: 24 }, fn, {});
 }

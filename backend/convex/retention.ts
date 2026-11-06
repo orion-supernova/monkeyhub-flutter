@@ -8,6 +8,7 @@ import { releaseRowFiles } from "./files";
 import { CODE_GAME, foldSolveIntoYear, yearOfDayKey } from "./recordBook";
 import { SYSTEM_ROOM_LOGS, LOG_USERNAME, LOG_FORMER_USERNAMES } from "./systemAccount";
 import { continueSweep, sweepArgs } from "./sweep";
+import { sweepOverdueVanish } from "./vanish";
 
 /**
  * Retention: how long rows live once nobody needs them (plan section 7).
@@ -508,6 +509,26 @@ export const gcIntegrityRuns = internalMutation({
       runs.length === PAGE_HEAVY && deleted > 0,
       chain,
     );
+    return null;
+  },
+});
+
+// ── Vanish mode backstop ────────────────────────────────────────────────────
+
+/**
+ * Vanishing messages whose deadline job was lost. Each vanishing room has ONE
+ * self-rescheduling deadline job (vanish.ts); this finds the rooms whose job is
+ * an hour overdue (`vanishState.by_deadline`, bounded below with gt 0), deletes
+ * what is past `vanishUntil` through the shared delete core and re-arms the
+ * chain. Normally one empty range read a day, and no cron of its own: it is
+ * one more entry in the daily retention loop in crons.ts.
+ */
+export const gcVanishBackstop = internalMutation({
+  args: sweepArgs,
+  returns: v.null(),
+  handler: async (ctx, { chain }) => {
+    const full = await sweepOverdueVanish(ctx, Date.now());
+    await continueSweep(ctx, internal.retention.gcVanishBackstop, full, chain);
     return null;
   },
 });

@@ -17,6 +17,7 @@ import { MUTE_ALWAYS, resolveMute } from "./mute";
 import { attachFile, claimUpload, releaseFile } from "./files";
 import { wipeRoomCompletely } from "./roomCleanup";
 import { getLiveUser, isTombstoned } from "./deletionCore";
+import { assertSeenTimer, isSecretRoom, syncSecretClock } from "./vanishCore";
 import {
   ROLE_MEMBER,
   ROLE_OWNER,
@@ -75,8 +76,11 @@ export const create = mutation({
     passwordHash: v.optional(v.string()),
     type: v.optional(v.string()),           // "regular" | "secret"
     messageLifetime: v.optional(v.number()), // seconds
+    // Secret rooms: whether the lifetime counts from "sent" (default) or from
+    // everyone having "seen" the message. Ignored for regular rooms.
+    messageClock: v.optional(v.union(v.literal("seen"), v.literal("sent"))),
   },
-  handler: async (ctx, { name, description, isPrivate, userId, passwordHash, type, messageLifetime }) => {
+  handler: async (ctx, { name, description, isPrivate, userId, passwordHash, type, messageLifetime, messageClock }) => {
     // Children can't make rooms unless a guardian switched it on, and even
     // then only private ones — a child publishing a public room would be a
     // discoverable surface nobody approved.
@@ -96,6 +100,8 @@ export const create = mutation({
       .first();
     if (existing) throw new Error("ROOM_EXISTS");
 
+    const clock = type === "secret" ? messageClock : undefined;
+    if (clock === "seen") assertSeenTimer(messageLifetime);
     const roomId = await ctx.db.insert("rooms", {
       name,
       description,
@@ -108,8 +114,12 @@ export const create = mutation({
       passwordHash: passwordHash && passwordHash.length > 0 ? passwordHash : undefined,
       type: type ?? "regular",
       messageLifetime,
+      ...(clock !== undefined ? { messageClock: clock } : {}),
     });
     await addMembership(ctx, roomId, userId, ROLE_OWNER);
+    if (clock === "seen") {
+      await syncSecretClock(ctx, await ctx.db.get(roomId), Date.now());
+    }
     return roomId;
   },
 });
@@ -249,8 +259,11 @@ export const updateRoom = mutation({
     description: v.optional(v.string()),
     isPrivate: v.optional(v.boolean()),
     messageLifetime: v.optional(v.number()),
+    // Secret rooms only. Once secret, always secret: only the timer (and the
+    // clock it counts on) can change, never back to a regular room.
+    messageClock: v.optional(v.union(v.literal("seen"), v.literal("sent"))),
   },
-  handler: async (ctx, { roomId, userId, name, description, isPrivate, messageLifetime }) => {
+  handler: async (ctx, { roomId, userId, name, description, isPrivate, messageLifetime, messageClock }) => {
     const room = await ctx.db.get(roomId);
     if (!room || isTombstoned(room)) throw new Error("ROOM_NOT_FOUND");
     // A system room's name is load-bearing (`ensureReportRoom` looks it up by
@@ -287,12 +300,26 @@ export const updateRoom = mutation({
       }
     }
 
+    const secret = isSecretRoom(room);
+    const nextClock = secret && messageClock !== undefined ? messageClock : room.messageClock;
+    const nextLifetime = messageLifetime !== undefined ? messageLifetime : room.messageLifetime;
+    if (secret && nextClock === "seen" && (messageClock !== undefined || messageLifetime !== undefined)) {
+      assertSeenTimer(nextLifetime);
+    }
     await ctx.db.patch(roomId, {
       name: trimmed,
       description: description && description.length > 0 ? description : undefined,
       ...(isPrivate !== undefined ? { isPrivate } : {}),
       ...(messageLifetime !== undefined ? { messageLifetime } : {}),
+      ...(secret && messageClock !== undefined ? { messageClock } : {}),
     });
+    if (secret && (messageClock !== undefined || messageLifetime !== undefined)) {
+      await syncSecretClock(
+        ctx,
+        { ...room, messageLifetime: nextLifetime, messageClock: nextClock },
+        Date.now(),
+      );
+    }
   },
 });
 
@@ -876,8 +903,10 @@ export const getOrCreateDM = mutation({
     friendId: v.id("users"),
     roomType: v.optional(v.string()),
     messageLifetime: v.optional(v.number()),
+    // Secret DMs: count the lifetime from "seen" instead of "sent".
+    messageClock: v.optional(v.union(v.literal("seen"), v.literal("sent"))),
   },
-  handler: async (ctx, { userId, friendId, roomType, messageLifetime }) => {
+  handler: async (ctx, { userId, friendId, roomType, messageLifetime, messageClock }) => {
     if (userId.toString() === friendId.toString()) throw new Error("CANNOT_DM_SELF");
     // No DM with an account being deleted (the friendship row outlives the
     // tombstone until the teardown's social step).
@@ -953,6 +982,8 @@ export const getOrCreateDM = mutation({
     // `messageLifetime` would delete bug reports on a timer.
     await assertNoSystemAccount(ctx, userId, friendId);
 
+    const dmClock = roomKey === "secret" ? messageClock : undefined;
+    if (dmClock === "seen") assertSeenTimer(messageLifetime);
     const roomId = await ctx.db.insert("rooms", {
       name,
       createdBy: userId,
@@ -962,10 +993,14 @@ export const getOrCreateDM = mutation({
       memberCount: 0,
       type: resolvedRoomType,
       messageLifetime,
+      ...(dmClock !== undefined ? { messageClock: dmClock } : {}),
     });
 
     await addMembership(ctx, roomId, userId, ROLE_OWNER);
     await addMembership(ctx, roomId, friendId, ROLE_MEMBER);
+    if (dmClock === "seen") {
+      await syncSecretClock(ctx, await ctx.db.get(roomId), Date.now());
+    }
 
     return roomId;
   },

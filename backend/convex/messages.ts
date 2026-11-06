@@ -42,6 +42,14 @@ import { copiesOn } from "./profileCopyGate";
 import { consume } from "./rateLimit";
 import { recordMentions } from "./mentions";
 import { alertBurstStep } from "./alertBurst";
+import {
+  VANISH_PREVIEW,
+  isSeenClockRoom,
+  isVanishRoom,
+  vanishAfterRead,
+  vanishExpired,
+  vanishUntilFor,
+} from "./vanishCore";
 
 // ── Delivery-receipt tuning ─────────────────────────────────────────────────
 
@@ -619,9 +627,14 @@ export async function guardOutgoing(
   // Chamber of Secrets. Derived from the TARGET room, which is what makes
   // forwarding out of an ephemeral room into a permanent one a laundering
   // path — `forwardToRoom` refuses that at the source instead.
-  const expiresAt = room?.messageLifetime
-    ? Date.now() + room.messageLifetime * 1000
-    : undefined;
+  //
+  // Not for a secret room on the "seen" clock: there `messageLifetime` is the
+  // grace after everyone has seen a message, enforced by the vanish machinery
+  // (`vanishUntil`), with no `expiresAt` and no per-message job.
+  const expiresAt =
+    room?.messageLifetime && !isSeenClockRoom(room)
+      ? Date.now() + room.messageLifetime * 1000
+      : undefined;
 
   return { room, roster, resolvedSenderName, expiresAt, senderUser };
 }
@@ -690,7 +703,11 @@ export function roomPreviewFor(msg: {
   fileName?: string;
   viewOnce?: boolean;
   formatting?: FormattingSpan[];
+  // A vanishing message previews as a neutral line, for the same reason a
+  // secret room's does: the chat list is visible on a lock screen.
+  vanishUntil?: number;
 }): string {
+  if (msg.vanishUntil !== undefined) return VANISH_PREVIEW;
   const type = msg.type ?? "text";
   // Masked BEFORE the slice: span offsets index the whole `content`.
   if (type === "text") {
@@ -1575,6 +1592,7 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
   // message by `lastMessageTime === createdAt` — two reads a tick apart
   // made that miss.
   const sentAt = Date.now();
+  const vanishUntil = vanishUntilFor(room, sentAt);
   const messageId = await ctx.db.insert("messages", {
     roomId,
     userId,
@@ -1625,6 +1643,9 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     ...(fmt ? { formatting: fmt } : {}),
     ...(copiesOn() ? { senderName: resolvedSenderName } : {}),
     expiresAt,
+    // Vanish mode / seen-clock secret room: the 24h promise, from the room doc
+    // `guardOutgoing` already read, so a send costs nothing extra. No job.
+    ...(vanishUntil !== undefined ? { vanishUntil } : {}),
     // Stored so the retry that arrives after this one commits can find it.
     clientId,
     // Bounded: it is a client-made key, and only ever compared.
@@ -1756,6 +1777,7 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     fileName,
     viewOnce: armed,
     formatting: fmt,
+    vanishUntil,
   });
   // The room's burst, for the devices that cannot keep one themselves (see
   // alertBurst.ts). Read off the row before this patch moves it, and stored in
@@ -1808,6 +1830,9 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     // that was rejected above and isn't on the stored row.
     mentionedUserIds: resolvedMentions?.map((m) => m.userId),
     mentionsEveryone: everyone ? true : undefined,
+    // A vanishing message's push carries no text and no seed. See
+    // `sendMessagePush`.
+    ...(vanishUntil !== undefined ? { vanishing: true } : {}),
     // Mid-burst: quiet on a Mac or a browser for anyone who has not read
     // since the previous message. See alertBurst.ts.
     ...(burst && !burst.alerts && prevMessageTime !== undefined
@@ -2120,10 +2145,17 @@ export async function markReplyDeleted(
  *
  * [msg] must still exist; a caller that may hold a stale copy re-reads it first.
  */
+/** Options for the shared message-deletion core. */
+export type RemoveOpts = {
+  /** Leave `rooms.lastMessage*` alone (vanish burns: no `rooms` patch). */
+  keepPreview?: boolean;
+};
+
 export async function removeMessageImmediate(
   ctx: any,
   msg: any,
   messageId: any,
+  opts: RemoveOpts = {},
 ): Promise<{ overflow: boolean; deletedStorageIds: string[] }> {
   const cap = tuning.inlineCap;
   let overflow = false;
@@ -2138,7 +2170,11 @@ export async function removeMessageImmediate(
   // actually the newest: a mid-history delete would otherwise re-write the
   // room doc and needlessly invalidate every member's listUserRooms
   // subscription.
-  const room = await ctx.db.get(msg.roomId);
+  //
+  // Skipped for a vanish burn (`opts.keepPreview`): the preview of a vanishing
+  // message is the neutral line anyway, and a burn must not patch `rooms`,
+  // which fans out to every member's chat list.
+  const room = opts.keepPreview ? null : await ctx.db.get(msg.roomId);
   if (room && room.lastMessageTime === msg.createdAt) {
     const newest = await ctx.db
       .query("messages")
@@ -2233,11 +2269,13 @@ export async function removeMessageBounded(
   ctx: any,
   msg: any,
   messageId: any,
+  opts: RemoveOpts = {},
 ): Promise<void> {
   const { overflow, deletedStorageIds } = await removeMessageImmediate(
     ctx,
     msg,
     messageId,
+    opts,
   );
   if (overflow) {
     await enqueueDeletion(ctx, {
@@ -2268,8 +2306,9 @@ export async function removeMessageAndFanout(
   ctx: any,
   msg: any,
   messageId: any,
+  opts: RemoveOpts = {},
 ) {
-  await removeMessageBounded(ctx, msg, messageId);
+  await removeMessageBounded(ctx, msg, messageId, opts);
 
   // A game move was posted quietly (`sendCore`'s `quiet`): no push of its
   // own to take back, and a long game would schedule one job per move.
@@ -2577,6 +2616,8 @@ export const forwardToRoom = mutation({
     const sourceRoom = await getLiveRoom(ctx, sourceRoomId);
     if (!sourceRoom) throw new Error("ROOM_NOT_FOUND");
     if (sourceRoom.messageLifetime) throw new Error("SOURCE_IS_EPHEMERAL");
+    // Vanishing messages too: forwarding one would launder its promise away.
+    if (isVanishRoom(sourceRoom)) throw new Error("SOURCE_IS_EPHEMERAL");
 
     const sources = await Promise.all(messageIds.map((id) => ctx.db.get(id)));
 
@@ -2614,7 +2655,13 @@ export const forwardToRoom = mutation({
       { media: false, location: false, kinds: [] as PostKind[] }
     );
 
-    const { resolvedSenderName, expiresAt } = await guardOutgoing(
+    // A message sent while vanish mode was on keeps its promise after the mode
+    // is turned off: refuse the forward whatever the room says now.
+    if (sources.some((m) => m && m.vanishUntil !== undefined)) {
+      throw new Error("SOURCE_IS_EPHEMERAL");
+    }
+
+    const { resolvedSenderName, expiresAt, room: targetRoom } = await guardOutgoing(
       ctx,
       targetRoomId,
       userId,
@@ -2682,11 +2729,13 @@ export const forwardToRoom = mutation({
       }
 
       const msgType = msg.type ?? "text";
+      const copiedAt = Date.now();
+      const copyVanishUntil = vanishUntilFor(targetRoom, copiedAt);
       const newId = await ctx.db.insert("messages", {
         roomId: targetRoomId,
         userId,
         content: msg.content ?? "",
-        createdAt: Date.now(),
+        createdAt: copiedAt,
         type: msgType,
         mediaStorageId: msg.mediaStorageId,
         mediaWidth: msg.mediaWidth,
@@ -2731,6 +2780,7 @@ export const forwardToRoom = mutation({
         ...(msg.mediaSpoiler === true ? { mediaSpoiler: true } : {}),
         ...(copiesOn() ? { senderName: resolvedSenderName } : {}),
         expiresAt,
+        ...(copyVanishUntil !== undefined ? { vanishUntil: copyVanishUntil } : {}),
         ...(clientId !== undefined ? { clientId } : {}),
       });
 
@@ -2775,7 +2825,10 @@ export const forwardToRoom = mutation({
     // all land in the same write set, so only the last would matter anyway —
     // but every one of them contends with concurrent sends into that room.
     if (forwarded > 0 && newest !== null) {
-      const preview = roomPreviewFor(newest);
+      const targetVanishes = isVanishRoom(targetRoom);
+      const preview = roomPreviewFor(
+        targetVanishes ? { ...newest, vanishUntil: 1 } : newest,
+      );
       await ctx.db.patch(targetRoomId, {
         lastMessage: preview,
         lastMessageTime: Date.now(),
@@ -2793,6 +2846,7 @@ export const forwardToRoom = mutation({
         // Forced to "text" for a batch so the notification renders the count
         // sentence rather than replacing it with a "📷 Image" label.
         type: forwarded === 1 ? (newest.type ?? "text") : "text",
+        ...(targetVanishes ? { vanishing: true } : {}),
       });
     }
 
@@ -2895,8 +2949,9 @@ async function visiblePage(
       )
       .order(direction === "older" ? "desc" : "asc")
       .take(want);
+    const now = Date.now();
     for (const m of batch) {
-      if (!hidden.has(m.userId.toString())) out.push(m);
+      if (!hidden.has(m.userId.toString()) && !vanishExpired(m, now)) out.push(m);
     }
     if (batch.length < want) break;
     cursor = batch[batch.length - 1].createdAt;
@@ -2923,13 +2978,15 @@ export const list = query({
     // Members only. Through `roomAccess`, not `roomMembers`: see why there.
     if (!(await canReadRoom(ctx, roomId, viewerUserId))) return [];
     const hidden = await blockedAuthors(ctx, viewerUserId);
+    // A late deadline job must never let an expired vanishing message render.
+    const now = Date.now();
     const msgs = (
       await ctx.db
         .query("messages")
         .withIndex("by_room_time", (q) => q.eq("roomId", roomId))
         .order("desc")
         .take(clampPage(limit, 100))
-    ).filter((m) => !hidden.has(m.userId.toString()));
+    ).filter((m) => !hidden.has(m.userId.toString()) && !vanishExpired(m, now));
 
     // Do NOT read `users` here. Convex reactivity tracks every doc read, so
     // including `ctx.db.get(msg.userId)` made this subscription re-fire on
@@ -3047,6 +3104,7 @@ export const listAround = query({
     if (
       !anchor ||
       anchor.roomId.toString() !== roomId.toString() ||
+      vanishExpired(anchor, Date.now()) ||
       !(await canReadRoom(ctx, roomId, viewerUserId))
     ) {
       return {
@@ -3076,8 +3134,11 @@ export const listAround = query({
       .take(fwdCap);
 
     const hidden = await blockedAuthors(ctx, viewerUserId);
+    const now = Date.now();
     const collected = [...older.reverse(), anchor, ...newer].filter(
-      (m) => m === anchor || !hidden.has(m.userId.toString()),
+      (m) =>
+        m === anchor ||
+        (!hidden.has(m.userId.toString()) && !vanishExpired(m, now)),
     );
 
     // Reactions only. Do NOT read `users` here — same reason as `list`.
@@ -3161,7 +3222,10 @@ export const getThreadPage = query({
 
     const descendants = await q.order("desc").take(cap);
     const hasMore = descendants.length === cap;
-    const collected = descendants.reverse(); // chronological
+    const nowMs = Date.now();
+    const collected = descendants
+      .reverse() // chronological
+      .filter((m) => !vanishExpired(m, nowMs));
 
     // Scan ran dry — prepend the root, unless the caller already has it.
     if (!hasMore) {
@@ -3169,7 +3233,8 @@ export const getThreadPage = query({
       if (
         root &&
         root.roomId.toString() === roomId.toString() &&
-        (beforeTimestamp === undefined || root.createdAt < beforeTimestamp)
+        (beforeTimestamp === undefined || root.createdAt < beforeTimestamp) &&
+        !vanishExpired(root, nowMs)
       ) {
         collected.unshift(root);
       }
@@ -3629,8 +3694,17 @@ export const markRoomRead = mutation({
     // it is both the guard's bar and the cursor written, and the room
     // document is not read at all — see below for why that is the point.
     upTo: v.optional(v.number()),
+    // Vanish mode. `vanish`: the client says this room is vanishing (vanish
+    // mode on, or a secret room on the "seen" clock). Absent/false = a normal
+    // room, and NOTHING below this line costs a thing: no read, no write.
+    // `vanishCounts`: this read may be shared, i.e. the reader hides nothing
+    // (`visibility.seen != "nobody"`), or opted in globally or for this chat.
+    // The membership row is already loaded, so the server cannot check it for
+    // free; a modified client can only expose its OWN reads, which is fine.
+    vanish: v.optional(v.boolean()),
+    vanishCounts: v.optional(v.boolean()),
   },
-  handler: async (ctx, { roomId, userId, upTo }) => {
+  handler: async (ctx, { roomId, userId, upTo, vanish, vanishCounts }) => {
     const membership = await ctx.db
       .query("roomMembers")
       .withIndex("by_room_user", (q) =>
@@ -3687,7 +3761,22 @@ export const markRoomRead = mutation({
       const room = await getLiveRoom(ctx, roomId);
       newest = room?.lastMessageTime ?? 0;
     }
-    if ((membership.lastReadAt ?? 0) >= newest) return;
+    const countsVanish = vanish === true && vanishCounts === true;
+    if ((membership.lastReadAt ?? 0) >= newest) {
+      // Already read, but possibly before this reader agreed to share: catch
+      // the vanish cursor up to the read cursor (one patch, only when behind).
+      // A normal room, or a reader who does not share, returns exactly as before.
+      if (
+        countsVanish &&
+        (membership.vanishSeenAt ?? 0) < (membership.lastReadAt ?? 0)
+      ) {
+        await ctx.db.patch(membership._id, {
+          vanishSeenAt: membership.lastReadAt,
+        });
+        await vanishAfterRead(ctx, roomId, userId, Date.now());
+      }
+      return;
+    }
     // Only cursor moves count: the early return above already makes a
     // repeated call free.
     await consume(ctx, `read:${userId}`, MAX_READS_PER_MINUTE, 60 * 1000);
@@ -3725,7 +3814,12 @@ export const markRoomRead = mutation({
       ...(cursor > deliveredBefore ? { lastDeliveredClock: clock } : {}),
       ...readClear,
       ...deliveredClear,
+      // The vanish cursor rides the SAME patch, so it costs no extra write.
+      ...(countsVanish
+        ? { vanishSeenAt: Math.max(membership.vanishSeenAt ?? 0, cursor) }
+        : {}),
     });
+    if (countsVanish) await vanishAfterRead(ctx, roomId, userId, clock);
 
     // Reading the room retires its outstanding notifications. The device that
     // did the reading also clears them locally (it doesn't need a round trip);

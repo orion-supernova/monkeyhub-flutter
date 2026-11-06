@@ -145,6 +145,8 @@ import type * as turnGames_types from "../turnGames/types.js";
 import type * as typing from "../typing.js";
 import type * as userSearch from "../userSearch.js";
 import type * as users from "../users.js";
+import type * as vanish from "../vanish.js";
+import type * as vanishCore from "../vanishCore.js";
 import type * as visibility from "../visibility.js";
 import type * as visibilityPoint from "../visibilityPoint.js";
 import type * as voipPush from "../voipPush.js";
@@ -295,6 +297,8 @@ declare const fullApi: ApiFromModules<{
   typing: typeof typing;
   userSearch: typeof userSearch;
   users: typeof users;
+  vanish: typeof vanish;
+  vanishCore: typeof vanishCore;
   visibility: typeof visibility;
   visibilityPoint: typeof visibilityPoint;
   voipPush: typeof voipPush;
