@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalQuery } from "./_generated/server";
+import { internalMutation } from "./dbHooks";
 import { mutation, query } from "./functions";
 import { SESSION_LIVE_CAP, evictExcessLive } from "./sessionCore";
 

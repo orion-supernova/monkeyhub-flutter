@@ -11,7 +11,8 @@
 // themselves with the scheduler, so each page is its own small transaction.
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalQuery } from "./_generated/server";
+import { internalMutation } from "./dbHooks";
 import { isTombstoned } from "./deletionCore";
 import { isPresenceStatus } from "./presenceCore";
 import { isSystemAccount } from "./systemAccount";

@@ -42,11 +42,8 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import {
-  internalMutation,
-  internalQuery,
-  type MutationCtx,
-} from "./_generated/server";
+import { internalQuery, type MutationCtx } from "./_generated/server";
+import { internalMutation } from "./dbHooks";
 import { FILE_FIELDS, REFERENCE_RULES } from "./referenceRules";
 import schema from "./schema";
 import { refKey, schemaRefs, type SchemaRef } from "./schemaRefs";

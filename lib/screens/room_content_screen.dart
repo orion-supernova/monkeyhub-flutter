@@ -645,16 +645,32 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
               Padding(
                 // Clear of the 40pt button and the text action on each side.
                 padding: const EdgeInsets.symmetric(horizontal: 96),
-                child: Text(
-                  selecting
-                      ? l10n.roomContentScreenSelectionCount(picked)
-                      : _tab.headerLabel(context),
-                  style: sheetTitleStyle(theme).copyWith(
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      selecting
+                          ? l10n.roomContentScreenSelectionCount(picked)
+                          : _tab.headerLabel(context),
+                      style: sheetTitleStyle(theme).copyWith(
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (!selecting)
+                      if (_tabSummary(l10n) case final summary?)
+                        Text(
+                          summary,
+                          style: groupedMetaStyle(theme).copyWith(
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                  ],
                 ),
               ),
               Row(
@@ -724,7 +740,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
                 value: t,
                 label: t.label(context),
                 badge: t == RoomContentTab.saved && _hasUnseenSaves,
-                semanticLabel: switch (_countFor(t)?.badge) {
+                semanticLabel: switch (_countFor(t)?.badge(MaterialLocalizations.of(context))) {
                   null => null,
                   final n => l10n.roomContentTabSemantic(n, t.label(context)),
                 },
@@ -733,6 +749,39 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
         ),
       ),
     );
+  }
+
+  /// The exact total under the title: "12 photos, 3 videos" on MEDIA, "3
+  /// files" and so on elsewhere. Null while the counts are loading, for an
+  /// empty tab, and for a count that is only a floor (a room the server could
+  /// not count exactly), so the line never shows a number that is not true.
+  ///
+  /// Never on LINKS: the server counts messages with a link, while the tab
+  /// lists every URL as its own row, so "24 links" could sit over 27 rows.
+  String? _tabSummary(AppLocalizations l10n) {
+    if (_tab == RoomContentTab.media) {
+      final photos = _counts['photos'];
+      final videos = _counts['videos'];
+      if (photos == null || videos == null) return null;
+      if (photos.capped || videos.capped) return null;
+      final parts = [
+        if (photos.count > 0) l10n.roomContentCountPhotos(photos.count),
+        if (videos.count > 0) l10n.roomContentCountVideos(videos.count),
+      ];
+      return switch (parts) {
+        [] => null,
+        [final one] => one,
+        [final a, final b, ...] => l10n.roomContentCountSplit(a, b),
+      };
+    }
+    final c = _countFor(_tab);
+    if (c == null || c.capped || c.count <= 0) return null;
+    return switch (_tab) {
+      RoomContentTab.file => l10n.roomContentCountFiles(c.count),
+      RoomContentTab.voice => l10n.roomContentCountVoice(c.count),
+      RoomContentTab.saved => l10n.roomContentCountSaved(c.count),
+      RoomContentTab.links || RoomContentTab.media => null,
+    };
   }
 
   /// This tab's badge number, from the server counts or from the bookmark

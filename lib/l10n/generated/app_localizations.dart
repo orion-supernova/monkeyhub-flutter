@@ -26418,6 +26418,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t remove from favourites. Try again.'**
   String get callsTabFavRemoveFailed;
+
+  /// Under the Media tab title in a room's shared content: how many photos the room has.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 photo} other{{count} photos}}'**
+  String roomContentCountPhotos(int count);
+
+  /// Under the Media tab title: how many videos (video notes included) the room has.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 video} other{{count} videos}}'**
+  String roomContentCountVideos(int count);
+
+  /// Under the Files tab title: how many files the room has.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 file} other{{count} files}}'**
+  String roomContentCountFiles(int count);
+
+  /// Under the Voice tab title: how many voice messages the room has.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 voice message} other{{count} voice messages}}'**
+  String roomContentCountVoice(int count);
+
+  /// Under the Links tab title: how many messages with links the room has.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 link} other{{count} links}}'**
+  String roomContentCountLinks(int count);
+
+  /// Under the Saved tab title: how many messages you saved in this room.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 saved message} other{{count} saved messages}}'**
+  String roomContentCountSaved(int count);
+
+  /// Joins the photo and video counts under the Media tab title, e.g. "12 photos, 3 videos".
+  ///
+  /// In en, this message translates to:
+  /// **'{photos}, {videos}'**
+  String roomContentCountSplit(String photos, String videos);
 }
 
 class _AppLocalizationsDelegate

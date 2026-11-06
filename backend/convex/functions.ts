@@ -1,13 +1,13 @@
 import { v, type ObjectType, type PropertyValidators } from "convex/values";
 import {
   action as rawAction,
-  mutation as rawMutation,
   query as rawQuery,
   internalQuery,
   type ActionCtx,
   type MutationCtx,
   type QueryCtx,
 } from "./_generated/server";
+import { mutation as rawMutation } from "./dbHooks";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { requireSession, resolveSession, setCallerSession } from "./sessionCore";

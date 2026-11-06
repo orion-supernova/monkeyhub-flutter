@@ -16141,4 +16141,123 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get callsTabFavRemoveFailed =>
       'تعذّرت الإزالة من المفضلة. حاول مرة أخرى.';
+
+  @override
+  String roomContentCountPhotos(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString صورة',
+      many: '$countString صورة',
+      few: '$countString صور',
+      two: 'صورتان',
+      one: 'صورة واحدة',
+      zero: 'لا صور',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountVideos(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString فيديو',
+      many: '$countString فيديو',
+      few: '$countString فيديوهات',
+      two: 'فيديوهان',
+      one: 'فيديو واحد',
+      zero: 'لا فيديوهات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountFiles(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString ملف',
+      many: '$countString ملفًا',
+      few: '$countString ملفات',
+      two: 'ملفان',
+      one: 'ملف واحد',
+      zero: 'لا ملفات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountVoice(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString رسالة صوتية',
+      many: '$countString رسالة صوتية',
+      few: '$countString رسائل صوتية',
+      two: 'رسالتان صوتيتان',
+      one: 'رسالة صوتية واحدة',
+      zero: 'لا رسائل صوتية',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountLinks(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString رابط',
+      many: '$countString رابطًا',
+      few: '$countString روابط',
+      two: 'رابطان',
+      one: 'رابط واحد',
+      zero: 'لا روابط',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountSaved(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString رسالة محفوظة',
+      many: '$countString رسالة محفوظة',
+      few: '$countString رسائل محفوظة',
+      two: 'رسالتان محفوظتان',
+      one: 'رسالة محفوظة واحدة',
+      zero: 'لا رسائل محفوظة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountSplit(String photos, String videos) {
+    return '$photos، $videos';
+  }
 }

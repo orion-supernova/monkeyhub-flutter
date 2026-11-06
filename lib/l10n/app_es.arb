@@ -4376,5 +4376,12 @@
   "callsTabFavSuggestCalls": "Llamaste a {name} {count} veces en los últimos 30 días",
   "callsTabFavSuggestTime": "Hablaste con {name} durante {time} en los últimos 30 días",
   "callsTabFavAddFailed": "No se pudo añadir a favoritos. Inténtalo de nuevo.",
-  "callsTabFavRemoveFailed": "No se pudo quitar de favoritos. Inténtalo de nuevo."
+  "callsTabFavRemoveFailed": "No se pudo quitar de favoritos. Inténtalo de nuevo.",
+  "roomContentCountPhotos": "{count, plural, one{1 foto} other{{count} fotos}}",
+  "roomContentCountVideos": "{count, plural, one{1 vídeo} other{{count} vídeos}}",
+  "roomContentCountFiles": "{count, plural, one{1 archivo} other{{count} archivos}}",
+  "roomContentCountVoice": "{count, plural, one{1 mensaje de voz} other{{count} mensajes de voz}}",
+  "roomContentCountLinks": "{count, plural, one{1 enlace} other{{count} enlaces}}",
+  "roomContentCountSaved": "{count, plural, one{1 mensaje guardado} other{{count} mensajes guardados}}",
+  "roomContentCountSplit": "{photos}, {videos}"
 }

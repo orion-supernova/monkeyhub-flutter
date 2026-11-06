@@ -2338,7 +2338,8 @@ class ChatApi {
     return _decodeContentPage(res);
   }
 
-  /// How much each tab holds, capped server-side — see [RoomContentCount].
+  /// How much each tab holds: exact, from the room's server-side counts row
+  /// — see [RoomContentCount].
   Future<Map<String, RoomContentCount>> roomContentCounts({
     required String roomId,
     required String userId,

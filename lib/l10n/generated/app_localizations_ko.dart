@@ -15262,4 +15262,93 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get callsTabFavRemoveFailed => '즐겨찾기에서 제거하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String roomContentCountPhotos(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '사진 $countString장',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountVideos(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '동영상 $countString개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountFiles(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '파일 $countString개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountVoice(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '음성 메시지 $countString개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountLinks(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '링크 $countString개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountSaved(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '저장한 메시지 $countString개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountSplit(String photos, String videos) {
+    return '$photos, $videos';
+  }
 }

@@ -422,6 +422,26 @@ export default defineSchema({
     count: v.number(),
   }).index("by_user", ["userId"]),
 
+  // Exact totals for a room's shared-content tabs, so room info reads one row
+  // instead of scanning every tab's index on every open. Kept current by the
+  // `messages` write hook in `dbHooks.ts`, which every mutation goes through,
+  // so no write path can forget it. A MISSING row means "not counted yet" for
+  // a room older than the backfill, and zero for one created after it. See
+  // `contentCounts.ts`.
+  roomContentCounts: defineTable({
+    roomId: v.id("rooms"),
+    photos: v.number(),
+    // Videos and video notes: the MEDIA tab shows both.
+    videos: v.number(),
+    files: v.number(),
+    voice: v.number(),
+    links: v.number(),
+    // Set by the backfill for a room with too much to count in one
+    // transaction: the hook leaves it alone and reads fall back to the
+    // bounded "99+" answer.
+    tooLarge: v.optional(v.boolean()),
+  }).index("by_room", ["roomId"]),
+
   roomMembers: defineTable({
     roomId: v.id("rooms"),
     userId: v.id("users"),

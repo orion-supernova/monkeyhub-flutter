@@ -18889,5 +18889,77 @@
   "callsTabFavRemoveFailed": "Couldn't remove from favourites. Try again.",
   "@callsTabFavRemoveFailed": {
     "description": "Toast when removing a favourite failed and the person came back to the row."
+  },
+  "roomContentCountPhotos": "{count, plural, one{1 photo} other{{count} photos}}",
+  "@roomContentCountPhotos": {
+    "description": "Under the Media tab title in a room's shared content: how many photos the room has.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "roomContentCountVideos": "{count, plural, one{1 video} other{{count} videos}}",
+  "@roomContentCountVideos": {
+    "description": "Under the Media tab title: how many videos (video notes included) the room has.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "roomContentCountFiles": "{count, plural, one{1 file} other{{count} files}}",
+  "@roomContentCountFiles": {
+    "description": "Under the Files tab title: how many files the room has.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "roomContentCountVoice": "{count, plural, one{1 voice message} other{{count} voice messages}}",
+  "@roomContentCountVoice": {
+    "description": "Under the Voice tab title: how many voice messages the room has.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "roomContentCountLinks": "{count, plural, one{1 link} other{{count} links}}",
+  "@roomContentCountLinks": {
+    "description": "Under the Links tab title: how many messages with links the room has.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "roomContentCountSaved": "{count, plural, one{1 saved message} other{{count} saved messages}}",
+  "@roomContentCountSaved": {
+    "description": "Under the Saved tab title: how many messages you saved in this room.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "roomContentCountSplit": "{photos}, {videos}",
+  "@roomContentCountSplit": {
+    "description": "Joins the photo and video counts under the Media tab title, e.g. \"12 photos, 3 videos\".",
+    "placeholders": {
+      "photos": {
+        "type": "String"
+      },
+      "videos": {
+        "type": "String"
+      }
+    }
   }
 }

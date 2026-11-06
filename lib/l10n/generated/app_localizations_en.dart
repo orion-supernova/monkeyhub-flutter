@@ -15926,4 +15926,99 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get callsTabFavRemoveFailed =>
       'Couldn\'t remove from favourites. Try again.';
+
+  @override
+  String roomContentCountPhotos(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString photos',
+      one: '1 photo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountVideos(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString videos',
+      one: '1 video',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountFiles(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString files',
+      one: '1 file',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountVoice(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString voice messages',
+      one: '1 voice message',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountLinks(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString links',
+      one: '1 link',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountSaved(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString saved messages',
+      one: '1 saved message',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentCountSplit(String photos, String videos) {
+    return '$photos, $videos';
+  }
 }

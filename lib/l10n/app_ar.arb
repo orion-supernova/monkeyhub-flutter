@@ -4376,5 +4376,12 @@
   "callsTabFavSuggestCalls": "اتصلت بـ {name} {count} مرات في آخر 30 يومًا",
   "callsTabFavSuggestTime": "تحدثت مع {name} لمدة {time} في آخر 30 يومًا",
   "callsTabFavAddFailed": "تعذّرت الإضافة إلى المفضلة. حاول مرة أخرى.",
-  "callsTabFavRemoveFailed": "تعذّرت الإزالة من المفضلة. حاول مرة أخرى."
+  "callsTabFavRemoveFailed": "تعذّرت الإزالة من المفضلة. حاول مرة أخرى.",
+  "roomContentCountPhotos": "{count, plural, zero{لا صور} one{صورة واحدة} two{صورتان} few{{count} صور} many{{count} صورة} other{{count} صورة}}",
+  "roomContentCountVideos": "{count, plural, zero{لا فيديوهات} one{فيديو واحد} two{فيديوهان} few{{count} فيديوهات} many{{count} فيديو} other{{count} فيديو}}",
+  "roomContentCountFiles": "{count, plural, zero{لا ملفات} one{ملف واحد} two{ملفان} few{{count} ملفات} many{{count} ملفًا} other{{count} ملف}}",
+  "roomContentCountVoice": "{count, plural, zero{لا رسائل صوتية} one{رسالة صوتية واحدة} two{رسالتان صوتيتان} few{{count} رسائل صوتية} many{{count} رسالة صوتية} other{{count} رسالة صوتية}}",
+  "roomContentCountLinks": "{count, plural, zero{لا روابط} one{رابط واحد} two{رابطان} few{{count} روابط} many{{count} رابطًا} other{{count} رابط}}",
+  "roomContentCountSaved": "{count, plural, zero{لا رسائل محفوظة} one{رسالة محفوظة واحدة} two{رسالتان محفوظتان} few{{count} رسائل محفوظة} many{{count} رسالة محفوظة} other{{count} رسالة محفوظة}}",
+  "roomContentCountSplit": "{photos}، {videos}"
 }

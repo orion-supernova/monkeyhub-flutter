@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalMutation } from "./_generated/server";
+import { internalMutation } from "./dbHooks";
 
 /**
  * How many rooms each user is in: the number behind `MAX_ROOMS_PER_USER`.

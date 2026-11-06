@@ -4376,5 +4376,12 @@
   "callsTabFavSuggestCalls": "Son 30 günde {name} kişisini {count} kez aradın",
   "callsTabFavSuggestTime": "Son 30 günde {name} ile {time} konuştun",
   "callsTabFavAddFailed": "Favorilere eklenemedi. Tekrar dene.",
-  "callsTabFavRemoveFailed": "Favorilerden çıkarılamadı. Tekrar dene."
+  "callsTabFavRemoveFailed": "Favorilerden çıkarılamadı. Tekrar dene.",
+  "roomContentCountPhotos": "{count, plural, one{1 fotoğraf} other{{count} fotoğraf}}",
+  "roomContentCountVideos": "{count, plural, one{1 video} other{{count} video}}",
+  "roomContentCountFiles": "{count, plural, one{1 dosya} other{{count} dosya}}",
+  "roomContentCountVoice": "{count, plural, one{1 sesli mesaj} other{{count} sesli mesaj}}",
+  "roomContentCountLinks": "{count, plural, one{1 bağlantı} other{{count} bağlantı}}",
+  "roomContentCountSaved": "{count, plural, one{1 kayıtlı mesaj} other{{count} kayıtlı mesaj}}",
+  "roomContentCountSplit": "{photos}, {videos}"
 }

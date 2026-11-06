@@ -1,5 +1,6 @@
 import { query } from "./functions";
 import { v } from "convex/values";
+import { countsRow } from "./contentCountsCore";
 
 /**
  * The room's shared-content browser: everything a room has ever sent, split
@@ -144,15 +145,20 @@ export const listLinks = query({
 });
 
 /**
- * How much is in each tab, capped at [COUNT_CAP].
+ * How much is in each tab.
  *
- * Separate from the pages on purpose: room info wants all four numbers at once
- * to decide which tabs to offer, while the browser wants one tab's rows. Fusing
- * them would make opening room info read four pages of documents it will never
- * render.
+ * Exact, from the room's `roomContentCounts` row: one indexed read however
+ * much the room holds (see `contentCounts.ts`). `photos` and `videos` split the
+ * MEDIA tab for the browser's header.
  *
- * `capped` says the number is a floor rather than a total, so the client can
- * render "99+" without hardcoding the same constant.
+ * Falls back to the old bounded scan, capped at [COUNT_CAP], for a room with
+ * no row (not yet backfilled) or one the backfill marked too large. After the
+ * backfill, a room without a row has nothing shared, so its scan reads empty
+ * index ranges. `capped` says the number is a floor, so the client renders
+ * "99+" only in that fallback.
+ *
+ * The shape is unchanged for older clients: the four tab keys keep
+ * `{ count, capped }`, and the split arrives as two extra keys they ignore.
  */
 export const counts = query({
   args: {
@@ -161,6 +167,19 @@ export const counts = query({
   },
   handler: async (ctx, { roomId, userId }) => {
     await assertMember(ctx, roomId, userId);
+
+    const row = await countsRow(ctx, roomId);
+    if (row && row.tooLarge !== true) {
+      const exact = (count: number) => ({ count, capped: false });
+      return {
+        media: exact(row.photos + row.videos),
+        photos: exact(row.photos),
+        videos: exact(row.videos),
+        file: exact(row.files),
+        voice: exact(row.voice),
+        link: exact(row.links),
+      };
+    }
 
     const out: Record<string, { count: number; capped: boolean }> = {};
 
@@ -175,6 +194,14 @@ export const counts = query({
         count: Math.min(rows.length, COUNT_CAP),
         capped: rows.length > COUNT_CAP,
       };
+      if (bucket === "media") {
+        // The split from the rows already in hand; a floor when capped.
+        const counted = rows.slice(0, COUNT_CAP);
+        const photos = counted.filter((m: any) => m.type === "image").length;
+        const capped = rows.length > COUNT_CAP;
+        out.photos = { count: photos, capped };
+        out.videos = { count: counted.length - photos, capped };
+      }
     }
 
     const linkRows = await ctx.db

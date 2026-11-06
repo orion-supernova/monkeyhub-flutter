@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../theme/layout.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import 'hero_dock.dart';
 import 'ios_kit.dart';
 import 'sunlit_surface.dart' show SunlitBackdrop;
 import 'teardown_safe.dart';
@@ -36,8 +39,10 @@ List<Widget> readableSlivers(BuildContext context, List<Widget> children) => [
     ];
 
 /// A page led by a person or a room rather than by a title: the hero (big
-/// avatar, name, actions) scrolls away and the name fades into the bar, the
-/// way Contacts and Telegram profiles behave.
+/// avatar, name, actions) scrolls away while the avatar and name dock into
+/// the bar, the way Telegram profiles behave. The hero marks its avatar and
+/// name with [HeroDockAvatar] and [HeroDockTitle]; without them the name
+/// simply fades into the bar.
 class HeroPage extends StatefulWidget {
   const HeroPage({
     super.key,
@@ -60,13 +65,22 @@ class HeroPage extends StatefulWidget {
 class _HeroPageState extends State<HeroPage> {
   final _scroll = ScrollController();
   final _heroKey = GlobalKey();
+  late final _dock = HeroDockController(_scroll);
+
+  /// How far below the bar the docked veil fades out.
+  static const double _veilFade = 30;
+
+  /// The page lives in its own overlay so the docked avatar and name can
+  /// paint above the bar's veil. See hero_dock.dart.
+  late final _body = OverlayEntry(builder: _buildBody, opaque: true);
 
   /// The hero's laid-out height, measured after layout; it sets where the
-  /// bar's small title starts to appear.
+  /// bar's small title starts to appear when nothing docks.
   double _heroHeight = 0;
 
   @override
   void dispose() {
+    _dock.dispose();
     _scroll.dispose();
     super.dispose();
   }
@@ -78,116 +92,204 @@ class _HeroPageState extends State<HeroPage> {
     setState(() => _heroHeight = box.size.height);
   }
 
+  /// A release part way through the dock settles it open or shut, so the
+  /// bar never rests on a half-shrunk avatar.
+  bool _settle(ScrollEndNotification n) {
+    if (n.depth != 0 || !_scroll.hasClients) return false;
+    final docked = _dock.dockedAt;
+    if (docked == null) return false;
+    final position = _scroll.position;
+    final s = position.pixels;
+    if (s <= 0 || s >= docked) return false;
+    final target = s < docked / 2 ? 0.0 : math.min(docked, position.maxScrollExtent);
+    if ((target - s).abs() < 1) return false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients) return;
+      _scroll.animateTo(
+        target,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    });
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
+    // The entry builds from this state; rebuild it with the page.
+    _body.markNeedsBuild();
+    return Overlay(initialEntries: [_body]);
+  }
+
+  Widget _buildBody(BuildContext context) {
     final theme = ThemeScope.of(context);
     final canPop = Navigator.of(context).canPop();
     final top = MediaQuery.paddingOf(context).top;
     final bg = theme.background;
     final clearance = top + IosPage.barHeight;
+    _dock.barCentre = top + IosPage.barHeight / 2;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _measureHero();
     });
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          const SunlitBackdrop(),
-          CustomScrollView(
-            controller: _scroll,
-            slivers: [
-              // Pinned and empty: holds the bar's place so the hero starts
-              // below it, as IosPage does.
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _HeroBarClearance(clearance),
+    final barTitleStyle = theme.bodyEmph.copyWith(
+      color: theme.ink,
+      fontSize: 17,
+      fontWeight: FontWeight.w600,
+    );
+    _dock.barTitle = Text(
+      widget.title,
+      style: barTitleStyle,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+    return HeroDockScope(
+      dock: _dock,
+      child: Scaffold(
+        key: _dock.pageKey,
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            const SunlitBackdrop(),
+            NotificationListener<ScrollEndNotification>(
+              onNotification: _settle,
+              child: CustomScrollView(
+                controller: _scroll,
+                slivers: [
+                  // Pinned and empty: holds the bar's place so the hero starts
+                  // below it, as IosPage does.
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _HeroBarClearance(clearance),
+                  ),
+                  SliverToBoxAdapter(
+                    child: KeyedSubtree(key: _heroKey, child: widget.hero),
+                  ),
+                  ...readableSlivers(context, widget.children),
+                ],
               ),
-              SliverToBoxAdapter(
-                child: KeyedSubtree(key: _heroKey, child: widget.hero),
-              ),
-              ...readableSlivers(context, widget.children),
-            ],
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Stack(
-              children: [
-                // The soft edge, taller than the bar so rows dissolve as
-                // they scroll under it.
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            bg,
-                            bg.withValues(alpha: 0.92),
-                            bg.withValues(alpha: 0),
-                          ],
-                          stops: const [0, 0.62, 1],
+            ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // The soft edge, taller than the bar so rows dissolve as
+                  // they scroll under it.
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              bg,
+                              bg.withValues(alpha: 0.92),
+                              bg.withValues(alpha: 0),
+                            ],
+                            stops: const [0, 0.62, 1],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: top, bottom: 14),
-                  child: SizedBox(
-                    height: IosPage.barHeight,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 64),
-                            child: CollapsedTitleFade(
-                              scroll: _scroll,
-                              // The name sits a little above the hero's
-                              // bottom edge: show the small title as it goes
-                              // under the bar.
-                              start: (_heroHeight - 110).clamp(
-                                0.0,
-                                double.infinity,
-                              ),
-                              span: 24,
-                              child: Text(
-                                widget.title,
-                                style: theme.bodyEmph.copyWith(
-                                  color: theme.ink,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                  // Solid through the whole bar once the head docks, then a
+                  // short fade below it: the docked avatar and name and the
+                  // glass back button sit on the page colour, with no rows
+                  // ghosting through. Fades in over the last stretch of the
+                  // dock, as the RN header's veil does. The fade below is long:
+                  // a short one read as a black shadow cast on the first card.
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: clearance + _veilFade,
+                    child: IgnorePointer(
+                      child: ListenableBuilder(
+                        listenable: Listenable.merge([_scroll, _dock.geometry]),
+                        builder: (context, child) {
+                          final docked = _dock.dockedAt;
+                          final s = _dock.pixels;
+                          final o = docked == null
+                              ? 0.0
+                              : ((s - (docked - 56)) / 48).clamp(0.0, 1.0);
+                          return o == 0
+                              ? const SizedBox.shrink()
+                              : Opacity(opacity: o, child: child);
+                        },
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [bg, bg, bg.withValues(alpha: 0)],
+                              stops: [0, clearance / (clearance + _veilFade), 1],
                             ),
                           ),
-                          Row(
-                            children: [
-                              if (canPop) const GlassBackButton(),
-                              const Spacer(),
-                              for (var i = 0;
-                                  i < widget.actions.length;
-                                  i++) ...[
-                                if (i > 0) const SizedBox(width: 10),
-                                widget.actions[i],
-                              ],
-                            ],
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  Padding(
+                    padding: EdgeInsets.only(top: top, bottom: 14),
+                    child: SizedBox(
+                      height: IosPage.barHeight,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // Only when the hero has no docking name; one that
+                            // docks IS the bar title.
+                            ListenableBuilder(
+                              listenable: _dock.geometry,
+                              builder: (context, _) => _dock.hasTitle
+                                  ? const SizedBox.shrink()
+                                  : Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 64),
+                                      child: CollapsedTitleFade(
+                                        scroll: _scroll,
+                                        // The name sits a little above the hero's
+                                        // bottom edge: show the small title as it
+                                        // goes under the bar.
+                                        start: (_heroHeight - 110).clamp(
+                                          0.0,
+                                          double.infinity,
+                                        ),
+                                        span: 24,
+                                        child: Text(
+                                          widget.title,
+                                          style: barTitleStyle,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                            ),
+                            Row(
+                              children: [
+                                if (canPop) const GlassBackButton(),
+                                const Spacer(),
+                                for (var i = 0;
+                                    i < widget.actions.length;
+                                    i++) ...[
+                                  if (i > 0) const SizedBox(width: 10),
+                                  widget.actions[i],
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

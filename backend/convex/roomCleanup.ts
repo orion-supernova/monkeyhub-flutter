@@ -14,7 +14,8 @@
  */
 
 import { enqueueDeletion, startRoomDeletion, tuning } from "./deletionCore";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalQuery } from "./_generated/server";
+import { internalMutation } from "./dbHooks";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 

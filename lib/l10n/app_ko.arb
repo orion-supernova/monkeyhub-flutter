@@ -4376,5 +4376,12 @@
   "callsTabFavSuggestCalls": "최근 30일 동안 {name}님에게 {count}번 전화했어요",
   "callsTabFavSuggestTime": "최근 30일 동안 {name}님과 {time} 통화했어요",
   "callsTabFavAddFailed": "즐겨찾기에 추가하지 못했어요. 다시 시도해 주세요.",
-  "callsTabFavRemoveFailed": "즐겨찾기에서 제거하지 못했어요. 다시 시도해 주세요."
+  "callsTabFavRemoveFailed": "즐겨찾기에서 제거하지 못했어요. 다시 시도해 주세요.",
+  "roomContentCountPhotos": "{count, plural, other{사진 {count}장}}",
+  "roomContentCountVideos": "{count, plural, other{동영상 {count}개}}",
+  "roomContentCountFiles": "{count, plural, other{파일 {count}개}}",
+  "roomContentCountVoice": "{count, plural, other{음성 메시지 {count}개}}",
+  "roomContentCountLinks": "{count, plural, other{링크 {count}개}}",
+  "roomContentCountSaved": "{count, plural, other{저장한 메시지 {count}개}}",
+  "roomContentCountSplit": "{photos}, {videos}"
 }

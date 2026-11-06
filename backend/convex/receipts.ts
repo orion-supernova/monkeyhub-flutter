@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalMutation } from "./_generated/server";
+import { internalMutation } from "./dbHooks";
 import { appendReceiptLog, type ReceiptLogEntry } from "./receiptLog";
 
 /**

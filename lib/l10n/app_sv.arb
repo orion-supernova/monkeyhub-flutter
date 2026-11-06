@@ -4376,5 +4376,12 @@
   "callsTabFavSuggestCalls": "Du har ringt {name} {count} gånger de senaste 30 dagarna",
   "callsTabFavSuggestTime": "Du har pratat med {name} i {time} de senaste 30 dagarna",
   "callsTabFavAddFailed": "Det gick inte att lägga till i favoriter. Försök igen.",
-  "callsTabFavRemoveFailed": "Det gick inte att ta bort från favoriter. Försök igen."
+  "callsTabFavRemoveFailed": "Det gick inte att ta bort från favoriter. Försök igen.",
+  "roomContentCountPhotos": "{count, plural, one{1 foto} other{{count} foton}}",
+  "roomContentCountVideos": "{count, plural, one{1 video} other{{count} videor}}",
+  "roomContentCountFiles": "{count, plural, one{1 fil} other{{count} filer}}",
+  "roomContentCountVoice": "{count, plural, one{1 röstmeddelande} other{{count} röstmeddelanden}}",
+  "roomContentCountLinks": "{count, plural, one{1 länk} other{{count} länkar}}",
+  "roomContentCountSaved": "{count, plural, one{1 sparat meddelande} other{{count} sparade meddelanden}}",
+  "roomContentCountSplit": "{photos}, {videos}"
 }

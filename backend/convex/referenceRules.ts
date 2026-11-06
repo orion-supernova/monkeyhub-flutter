@@ -252,6 +252,7 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "roomBans.roomId": { rule: "cascade", index: "by_room_user", why: "A ban on a deleted room means nothing." },
   "roomBans.userId": { rule: "cascade", index: "by_user", why: "A deleted account's bans go with it; expired bans are swept via by_until." },
   "roomChangeRequests.decidedBy": { rule: "setNull", index: "by_decider", why: "Other people's request history is kept; only the decider pointer is cleared." },
+  "roomContentCounts.roomId": { rule: "cascade", index: "by_room", why: "The shared-content counter (contentCounts.ts) dies with the room; generic step." },
   "roomChangeRequests.roomId": { rule: "cascade", index: "by_room_status", why: "Room teardown, every status." },
   "roomChangeRequests.storageId": { rule: "file", fileHold: "ref", index: "by_storage", why: "Owner: the request while pending; an approved row's file is the room's avatar (rooms.avatarStorageId owns it), so the field must be cleared on release." },
   "roomChangeRequests.userId": { rule: "cascade", index: "by_user", why: "A person's suggestions go with their account (pending files released)." },

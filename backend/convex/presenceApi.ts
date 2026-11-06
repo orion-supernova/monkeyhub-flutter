@@ -11,7 +11,7 @@
 // subscription is bounded however many friends the viewer has.
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalMutation } from "./_generated/server";
+import { internalMutation } from "./dbHooks";
 import { mutation, query } from "./functions";
 import { PRESENCE_OFFLINE_MS } from "./presence";
 import {

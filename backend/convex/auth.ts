@@ -1,5 +1,6 @@
 import { syncProfile } from "./profilesCore";
-import { internalMutation, mutation as rawMutation, type MutationCtx } from "./_generated/server";
+import { type MutationCtx } from "./_generated/server";
+import { internalMutation, mutation as rawMutation } from "./dbHooks";
 import type { Id } from "./_generated/dataModel";
 import {  mutation, publicMutation, query  } from "./functions";
 import {

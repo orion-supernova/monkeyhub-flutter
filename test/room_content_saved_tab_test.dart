@@ -76,6 +76,20 @@ class _FakeRepo extends Fake implements ChatRepository {
 /// decoration and swallows, and for media thumbnails no fixture here has.
 class _FakeApi extends Fake implements ChatApi {}
 
+/// Answers the counts query with exact server totals, the shape
+/// `roomContent:counts` returns from its counts row.
+class _CountsApi extends Fake implements ChatApi {
+  @override
+  Future<Map<String, RoomContentCount>> roomContentCounts({
+    required String roomId,
+    required String userId,
+  }) async => const {
+        'media': RoomContentCount(count: 1235, capped: false),
+        'photos': RoomContentCount(count: 1234, capped: false),
+        'videos': RoomContentCount(count: 1, capped: false),
+      };
+}
+
 void main() {
   final l10n = AppLocalizationsEn();
 
@@ -129,6 +143,7 @@ void main() {
     WidgetTester tester, {
     required _FakeRepo repo,
     RoomContentTab tab = RoomContentTab.saved,
+    ChatApi? withApi,
   }) async {
     ChatMessage? popped;
     await tester.pumpWidget(host(
@@ -142,7 +157,7 @@ void main() {
                     builder: (_) => RoomContentScreen(
                       roomId: 'rA',
                       repo: repo,
-                      api: api,
+                      api: withApi ?? api,
                       initialTab: tab,
                     ),
                   ),
@@ -324,13 +339,13 @@ void main() {
       final c = roomContentCountFor(RoomContentTab.saved,
           serverCounts: const {}, savedCount: 50);
       expect(c?.capped, isFalse);
-      expect(c?.badge, '50');
+      expect(c?.badge(const DefaultMaterialLocalizations()), '50');
     });
 
     test('an empty shelf badges nothing rather than a zero', () {
       final c = roomContentCountFor(RoomContentTab.saved,
           serverCounts: const {}, savedCount: 0);
-      expect(c?.badge, isNull);
+      expect(c?.badge(const DefaultMaterialLocalizations()), isNull);
     });
 
     test('a server tab whose count has not landed stays unknown', () {
@@ -378,5 +393,28 @@ void main() {
       expect(RoomContentTab.media.bucket, 'media');
       expect(RoomContentTab.links.countKey, 'link');
     });
+  });
+
+  testWidgets('the title line says exactly how many are saved', (tester) async {
+    await open(
+      tester,
+      repo: _FakeRepo({
+        'rA': [saved('m1', 'keep this'), saved('m2', 'and this')],
+      }),
+    );
+    expect(find.text(l10n.roomContentCountSaved(2)), findsOneWidget);
+  });
+
+  testWidgets('MEDIA splits its exact total into photos and videos',
+      (tester) async {
+    await open(
+      tester,
+      repo: _FakeRepo(const {}),
+      tab: RoomContentTab.media,
+      withApi: _CountsApi(),
+    );
+    await tester.pump();
+    // Exact past 99, grouped, and both kinds named.
+    expect(find.text('1,234 photos, 1 video'), findsOneWidget);
   });
 }

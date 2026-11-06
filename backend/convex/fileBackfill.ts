@@ -29,7 +29,8 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
+import { internalQuery, type MutationCtx } from "./_generated/server";
+import { internalMutation } from "./dbHooks";
 import { backfillRef } from "./files";
 import { fileRefViolations, holdsRef } from "./integrity";
 import { FILE_FIELDS } from "./referenceRules";

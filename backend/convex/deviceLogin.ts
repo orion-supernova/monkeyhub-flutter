@@ -1,4 +1,4 @@
-import { internalMutation } from "./_generated/server";
+import { internalMutation } from "./dbHooks";
 import { mutation, publicMutation, publicQuery, query } from "./functions";
 import { mintSession } from "./sessionCore";
 import { v } from "convex/values";

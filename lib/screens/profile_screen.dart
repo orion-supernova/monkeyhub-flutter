@@ -32,6 +32,7 @@ import '../widgets/account_kit.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/block_choice_sheet.dart';
+import '../widgets/hero_dock.dart';
 import '../widgets/destructive_sheet.dart' show showConfirmSheet;
 import '../widgets/ios_kit.dart';
 import '../widgets/labeled_field.dart';
@@ -1178,29 +1179,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: readableInset(context, top: 6, bottom: 24),
       child: Column(
         children: [
-          AvatarPop(child: _avatarWithBadge(theme)),
+          // The avatar and name dock into the bar as the page scrolls.
+          HeroDockAvatar(
+            diameter: _avatarSize,
+            extent: _avatarSize + _badgeOverhang,
+            child: AvatarPop(child: _avatarWithBadge(theme)),
+          ),
           const SizedBox(height: 14),
-          RiseIn(
-            index: 1,
-            // A spring under the finger is the only sign these lines are
-            // editable, so they get the same press as every other control.
-            child: SpringPress(
-              onTap: canEditMe
-                  ? () => _confirmAndEdit(
-                      title: _u.name.trim().isNotEmpty
-                          ? l10n.acctEditNameTitle
-                          : l10n.acctAddNameTitle,
-                      currentValue: _u.name,
-                      hint: l10n.profileScreenNameHint,
-                      onSave: _updateName,
-                    )
-                  : null,
-              scale: 0.97,
-              haptic: false,
-              child: Text(
-                _u.displayName,
-                textAlign: TextAlign.center,
-                style: theme.displayMedium,
+          HeroDockTitle(
+            fontSize: theme.displayMedium.fontSize ?? 28,
+            child: RiseIn(
+              index: 1,
+              // A spring under the finger is the only sign these lines are
+              // editable, so they get the same press as every other control.
+              child: SpringPress(
+                onTap: canEditMe
+                    ? () => _confirmAndEdit(
+                        title: _u.name.trim().isNotEmpty
+                            ? l10n.acctEditNameTitle
+                            : l10n.acctAddNameTitle,
+                        currentValue: _u.name,
+                        hint: l10n.profileScreenNameHint,
+                        onSave: _updateName,
+                      )
+                    : null,
+                scale: 0.97,
+                haptic: false,
+                child: Text(
+                  _u.displayName,
+                  textAlign: TextAlign.center,
+                  style: theme.displayMedium,
+                ),
               ),
             ),
           ),
@@ -1209,22 +1218,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
             index: 2,
             child: Column(
               children: [
-                SpringPress(
-                  onTap: _canRenameUsername
-                      ? () => _confirmAndEdit(
-                          title: l10n.acctChangeUsernameTitle,
-                          confirmBody: l10n.profileScreenChangeUsernameWarning,
-                          currentValue: _u.username,
-                          hint: l10n.profileScreenUsernameHint,
-                          checksAvailability: true,
-                          onSave: _updateUsername,
-                        )
-                      : null,
-                  scale: 0.97,
-                  haptic: false,
-                  child: Text(
-                    '@${_u.username}',
-                    style: groupedValueStyle(theme),
+                // Gone before the name docks above it.
+                HeroDockFade(
+                  distance: 64,
+                  child: SpringPress(
+                    onTap: _canRenameUsername
+                        ? () => _confirmAndEdit(
+                            title: l10n.acctChangeUsernameTitle,
+                            confirmBody: l10n.profileScreenChangeUsernameWarning,
+                            currentValue: _u.username,
+                            hint: l10n.profileScreenUsernameHint,
+                            checksAvailability: true,
+                            onSave: _updateUsername,
+                          )
+                        : null,
+                    scale: 0.97,
+                    haptic: false,
+                    child: Text(
+                      '@${_u.username}',
+                      style: groupedValueStyle(theme),
+                    ),
                   ),
                 ),
                 // Only while the handle is actually locked. Saying "changeable
@@ -1329,7 +1342,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Positioned(
               right: 0,
               bottom: 0,
-              child: SpringPress(
+              // Fades as the avatar starts for the bar.
+              child: HeroDockFade(child: SpringPress(
                 onTap: _busy ? null : _openAvatarSheet,
                 semanticLabel: l10n.profileScreenChangeProfilePictureSemantic,
                 scale: 0.88,
@@ -1347,7 +1361,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: theme.accentInk,
                   ),
                 ),
-              ),
+              )),
             ),
         ],
       ),

@@ -1,4 +1,5 @@
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalQuery } from "./_generated/server";
+import { internalMutation } from "./dbHooks";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { signJwt } from "./pushCodec";

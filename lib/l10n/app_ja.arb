@@ -4376,5 +4376,12 @@
   "callsTabFavSuggestCalls": "過去30日間に{name}さんに{count}回電話しました",
   "callsTabFavSuggestTime": "過去30日間に{name}さんと{time}話しました",
   "callsTabFavAddFailed": "お気に入りに追加できませんでした。もう一度お試しください。",
-  "callsTabFavRemoveFailed": "お気に入りから削除できませんでした。もう一度お試しください。"
+  "callsTabFavRemoveFailed": "お気に入りから削除できませんでした。もう一度お試しください。",
+  "roomContentCountPhotos": "{count, plural, other{写真 {count}枚}}",
+  "roomContentCountVideos": "{count, plural, other{動画 {count}本}}",
+  "roomContentCountFiles": "{count, plural, other{ファイル {count}件}}",
+  "roomContentCountVoice": "{count, plural, other{ボイスメッセージ {count}件}}",
+  "roomContentCountLinks": "{count, plural, other{リンク {count}件}}",
+  "roomContentCountSaved": "{count, plural, other{保存したメッセージ {count}件}}",
+  "roomContentCountSplit": "{photos}、{videos}"
 }

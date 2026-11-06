@@ -4376,5 +4376,12 @@
   "callsTabFavSuggestCalls": "最近 30 天你给{name}打了 {count} 次电话",
   "callsTabFavSuggestTime": "最近 30 天你和{name}通话了 {time}",
   "callsTabFavAddFailed": "无法添加到收藏。请重试。",
-  "callsTabFavRemoveFailed": "无法从收藏中移除。请重试。"
+  "callsTabFavRemoveFailed": "无法从收藏中移除。请重试。",
+  "roomContentCountPhotos": "{count, plural, other{{count} 张照片}}",
+  "roomContentCountVideos": "{count, plural, other{{count} 个视频}}",
+  "roomContentCountFiles": "{count, plural, other{{count} 个文件}}",
+  "roomContentCountVoice": "{count, plural, other{{count} 条语音消息}}",
+  "roomContentCountLinks": "{count, plural, other{{count} 个链接}}",
+  "roomContentCountSaved": "{count, plural, other{{count} 条已保存消息}}",
+  "roomContentCountSplit": "{photos}、{videos}"
 }

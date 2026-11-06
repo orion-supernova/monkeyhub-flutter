@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { markOffline } from "./presenceCore";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalQuery } from "./_generated/server";
+import { internalMutation } from "./dbHooks";
 import { mutation, query } from "./functions";
 import {
   revokeSessionsForDevice,

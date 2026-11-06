@@ -4376,5 +4376,12 @@
   "callsTabFavSuggestCalls": "आपने पिछले 30 दिनों में {name} को {count} बार कॉल किया",
   "callsTabFavSuggestTime": "आपने पिछले 30 दिनों में {name} से {time} बात की",
   "callsTabFavAddFailed": "पसंदीदा में नहीं जोड़ा जा सका। फिर कोशिश करें।",
-  "callsTabFavRemoveFailed": "पसंदीदा से नहीं हटाया जा सका। फिर कोशिश करें।"
+  "callsTabFavRemoveFailed": "पसंदीदा से नहीं हटाया जा सका। फिर कोशिश करें।",
+  "roomContentCountPhotos": "{count, plural, one{1 फ़ोटो} other{{count} फ़ोटो}}",
+  "roomContentCountVideos": "{count, plural, one{1 वीडियो} other{{count} वीडियो}}",
+  "roomContentCountFiles": "{count, plural, one{1 फ़ाइल} other{{count} फ़ाइलें}}",
+  "roomContentCountVoice": "{count, plural, one{1 वॉइस मैसेज} other{{count} वॉइस मैसेज}}",
+  "roomContentCountLinks": "{count, plural, one{1 लिंक} other{{count} लिंक}}",
+  "roomContentCountSaved": "{count, plural, one{1 सेव किया गया मैसेज} other{{count} सेव किए गए मैसेज}}",
+  "roomContentCountSplit": "{photos}, {videos}"
 }

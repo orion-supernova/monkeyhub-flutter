@@ -45,6 +45,7 @@ import '../widgets/skeleton_rows.dart';
 import '../widgets/room_change_requests_sheet.dart';
 import '../widgets/room_join_requests_sheet.dart';
 import '../widgets/room_member_actions_sheet.dart';
+import '../widgets/hero_dock.dart';
 import '../widgets/steady_hero.dart';
 import '../theme/speaker_colors.dart';
 import '../widgets/user_avatar.dart';
@@ -1455,21 +1456,28 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       padding: readableInset(context, top: 6, bottom: 24),
       child: Column(
         children: [
-          AvatarPop(child: _avatarBlock(theme, r, peer)),
+          _avatarBlock(theme, r, peer),
           const SizedBox(height: 14),
-          RiseIn(
-            index: 1,
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              style: theme.displayMedium,
+          // Docks into the bar beside the avatar as the page scrolls.
+          HeroDockTitle(
+            fontSize: theme.displayMedium.fontSize ?? 28,
+            child: RiseIn(
+              index: 1,
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: theme.displayMedium,
+              ),
             ),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
-            RiseIn(
-              index: 2,
-              child: Text(subtitle, style: groupedSubtitleStyle(theme)),
+            HeroDockFade(
+              distance: 64,
+              child: RiseIn(
+                index: 2,
+                child: Text(subtitle, style: groupedSubtitleStyle(theme)),
+              ),
             ),
           ],
           const SizedBox(height: 20),
@@ -1494,6 +1502,15 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   /// Diameter of the avatar at the top of this screen.
   static const _avatarSize = 104.0;
 
+  /// The avatar circle, popped in on arrival and docked into the bar on
+  /// scroll. [extent] covers a badge hanging past the circle.
+  Widget _dockingAvatar(Widget child, {double extent = _avatarSize}) =>
+      HeroDockAvatar(
+        diameter: _avatarSize,
+        extent: extent,
+        child: AvatarPop(child: child),
+      );
+
   /// How far the camera badge hangs past the avatar's circle.
   static const _badgeOverhang = 2.0;
 
@@ -1514,7 +1531,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     const size = _avatarSize;
     if (r.isSavedMessages) {
       return Center(
-        child: Container(
+        child: _dockingAvatar(Container(
           width: size,
           height: size,
           alignment: Alignment.center,
@@ -1530,7 +1547,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             ),
           ),
           child: Icon(CupertinoIcons.bookmark_fill, size: size * 0.40, color: theme.accentInk),
-        ),
+        )),
       );
     }
     // A DM shows the other person's avatar, and it isn't editable — you can't
@@ -1544,7 +1561,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         child: Column(
           children: [
             if (peer != null)
-              Builder(builder: (context) {
+              _dockingAvatar(Builder(builder: (context) {
                 final avatar = UserAvatar(user: peer, size: size, api: widget.api);
                 if (!canViewPeer) return avatar;
                 final heroTag = 'room-info-peer-avatar-${peer.id}';
@@ -1563,9 +1580,9 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                     child: SteadyHero(tag: heroTag, child: avatar),
                   ),
                 );
-              })
+              }))
             else
-              Container(
+              _dockingAvatar(Container(
                 width: size,
                 height: size,
                 decoration: BoxDecoration(
@@ -1577,7 +1594,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                   color: theme.inkMuted,
                   size: size * 0.42,
                 ),
-              ),
+              )),
           ],
         ),
       );
@@ -1617,98 +1634,103 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: size + _badgeOverhang,
-            height: size + _badgeOverhang,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  width: size,
-                  height: size,
-                  child: hasAvatar
-                      ? FocusableTap(
-                          onTap: () => _openAvatarFullscreen(
-                            storageId: r.avatarStorageId!,
-                            heroTag: heroTag,
-                          ),
-                          shape: FocusRingShape.circle,
-                          semanticLabel: AppLocalizations.of(context).roomInfoScreenViewRoomPictureSemantic,
-                          child: GestureDetector(
-                            onTap: () => _openAvatarFullscreen(
-                              storageId: r.avatarStorageId!,
-                              heroTag: heroTag,
-                            ),
-                            child: picture,
-                          ),
-                        )
-                      : picture,
-                ),
-                if (_changingAvatar)
+          _dockingAvatar(
+            extent: size + _badgeOverhang,
+            SizedBox(
+              width: size + _badgeOverhang,
+              height: size + _badgeOverhang,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
                   Positioned(
                     left: 0,
                     top: 0,
                     width: size,
                     height: size,
-                    // Must not swallow taps meant for the badge.
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black.withValues(alpha: 0.45),
-                        ),
-                        child: Center(
-                          child: PhotoSpinner(
-                            size: 26,
-                            color: Colors.white.withValues(alpha: 0.95),
+                    child: hasAvatar
+                        ? FocusableTap(
+                            onTap: () => _openAvatarFullscreen(
+                              storageId: r.avatarStorageId!,
+                              heroTag: heroTag,
+                            ),
+                            shape: FocusRingShape.circle,
+                            semanticLabel: AppLocalizations.of(context).roomInfoScreenViewRoomPictureSemantic,
+                            child: GestureDetector(
+                              onTap: () => _openAvatarFullscreen(
+                                storageId: r.avatarStorageId!,
+                                heroTag: heroTag,
+                              ),
+                              child: picture,
+                            ),
+                          )
+                        : picture,
+                  ),
+                  if (_changingAvatar)
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      width: size,
+                      height: size,
+                      // Must not swallow taps meant for the badge.
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.black.withValues(alpha: 0.45),
+                          ),
+                          child: Center(
+                            child: PhotoSpinner(
+                              size: 26,
+                              color: Colors.white.withValues(alpha: 0.95),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                // The badge, for people who may change the picture — and now also
-                // for people who may ASK to. `rooms.updateRoomAvatar` stays
-                // admin-only; a member's tap ends in `roomChangeRequests.propose`
-                // instead (see [_changeAvatar]), which is why the gate widened
-                // rather than the mutation loosening.
-                //
-                // Still gated: without it somebody who can do NEITHER would pick a
-                // photo, sit through the upload, and be refused at the last step.
-                if (!r.isGroupChat || _perms.canEditRoom || _perms.canSuggestChanges)
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: FocusableTap(
-                    onTap: _working ? null : _changeAvatar,
-                    shape: FocusRingShape.circle,
-                    semanticLabel: r.isGroupChat && !_perms.canEditRoom
-                        ? AppLocalizations.of(context).roomInfoScreenSuggestRoomPictureSemantic
-                        : hasAvatar
-                            ? AppLocalizations.of(context).roomInfoScreenChangeRoomPictureSemantic
-                            : AppLocalizations.of(context).roomInfoScreenAddRoomPictureSemantic,
-                    child: GestureDetector(
+                  // The badge, for people who may change the picture — and now also
+                  // for people who may ASK to. `rooms.updateRoomAvatar` stays
+                  // admin-only; a member's tap ends in `roomChangeRequests.propose`
+                  // instead (see [_changeAvatar]), which is why the gate widened
+                  // rather than the mutation loosening.
+                  //
+                  // Still gated: without it somebody who can do NEITHER would pick a
+                  // photo, sit through the upload, and be refused at the last step.
+                  if (!r.isGroupChat || _perms.canEditRoom || _perms.canSuggestChanges)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    // Fades as the avatar starts for the bar: a badge shrunk
+                    // to a speck would be a target nobody can hit.
+                    child: HeroDockFade(child: FocusableTap(
                       onTap: _working ? null : _changeAvatar,
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: theme.accent,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: theme.background, width: 3),
-                        ),
-                        child: Icon(
-                          CupertinoIcons.camera_fill,
-                          size: 14,
-                          color: theme.accentInk,
+                      shape: FocusRingShape.circle,
+                      semanticLabel: r.isGroupChat && !_perms.canEditRoom
+                          ? AppLocalizations.of(context).roomInfoScreenSuggestRoomPictureSemantic
+                          : hasAvatar
+                              ? AppLocalizations.of(context).roomInfoScreenChangeRoomPictureSemantic
+                              : AppLocalizations.of(context).roomInfoScreenAddRoomPictureSemantic,
+                      child: GestureDetector(
+                        onTap: _working ? null : _changeAvatar,
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: theme.accent,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: theme.background, width: 3),
+                          ),
+                          child: Icon(
+                            CupertinoIcons.camera_fill,
+                            size: 14,
+                            color: theme.accentInk,
+                          ),
                         ),
                       ),
-                    ),
+                    )),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           if (suggesting) ...[
@@ -2581,7 +2603,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
           // nothing at all rather than a placeholder dash.
           final value = count == null
               ? null
-              : (count.count == 0 ? l10n.riNone : count.badge);
+              : (count.count == 0 ? l10n.riNone : count.badge(MaterialLocalizations.of(context)));
           return GroupedRow(
             icon: icon,
             tone: tone,

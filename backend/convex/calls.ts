@@ -1,8 +1,5 @@
-import {
-  internalAction,
-  internalMutation,
-  internalQuery,
-} from "./_generated/server";
+import { internalAction, internalQuery } from "./_generated/server";
+import { internalMutation } from "./dbHooks";
 import { action, mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";

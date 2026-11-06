@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart' show BuildContext;
+import 'package:flutter/material.dart' show BuildContext, MaterialLocalizations;
 
 import '../l10n/generated/app_localizations.dart';
 import 'chat_message.dart';
@@ -81,24 +81,28 @@ extension RoomContentTabWire on RoomContentTab {
 
 /// How many of something a tab holds, and whether that number is the truth.
 ///
-/// The server stops counting at 99 (`COUNT_CAP` in roomContent.ts) because a
-/// true count means reading every matching row on every room-info open, and
-/// the badge only has to answer "is this tab worth opening".
+/// Exact as a rule: the server keeps a per-room counts row current at write
+/// time (`contentCounts.ts`), so room info reads one row, not the tabs. A count
+/// is a floor only in the server's fallback for a room it could not count
+/// (`COUNT_CAP` in roomContent.ts), and then [capped] says so.
 class RoomContentCount {
   const RoomContentCount({required this.count, required this.capped});
 
   final int count;
 
-  /// The real total is [count] or more. Render `99+`, never `99`.
+  /// The real total is [count] or more (the server's fallback). Render `99+`,
+  /// never `99`.
   final bool capped;
 
   static const zero = RoomContentCount(count: 0, capped: false);
 
-  /// `12`, `99+`, or null when there is nothing to badge — an empty tab reads
-  /// better with no badge than with a `0`.
-  String? get badge {
+  /// `12`, `1,234`, `99+`, or null when there is nothing to badge — an empty
+  /// tab reads better with no badge than with a `0`. Grouped in the app's
+  /// locale, now that counts are exact and can run past three digits.
+  String? badge(MaterialLocalizations l) {
     if (count <= 0) return null;
-    return capped ? '$count+' : '$count';
+    final n = l.formatDecimal(count);
+    return capped ? '$n+' : n;
   }
 
   factory RoomContentCount.fromJson(Map<String, dynamic> j) => RoomContentCount(
@@ -113,8 +117,8 @@ class RoomContentCount {
 /// pill strip — need the same answer, and the answer is not uniform, so it lives
 /// here rather than being written out twice.
 ///
-/// [serverCounts] is `roomContent:counts`, capped at 99 and fetched once per
-/// screen. [savedCount] is `ChatRepository.savedFor(roomId).length`, which is a
+/// [serverCounts] is `roomContent:counts`, exact (see [RoomContentCount]) and
+/// fetched once per screen. [savedCount] is `ChatRepository.savedFor(roomId).length`, which is a
 /// live subscription the room already holds.
 ///
 /// ── Why SAVED is counted on the client and the other four are not ──

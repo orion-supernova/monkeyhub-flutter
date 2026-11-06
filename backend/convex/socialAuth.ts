@@ -24,7 +24,8 @@ import { syncProfile } from "./profilesCore";
  */
 
 import { searchNameOf } from "./userSearch";
-import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internalAction, internalQuery } from "./_generated/server";
+import { internalMutation } from "./dbHooks";
 import { action, mutation, publicAction, query } from "./functions";
 import { assertIdentityNotBanned, assertSignupNotBanned, mintSession } from "./sessionCore";
 import { v, type Infer } from "convex/values";

@@ -18,7 +18,8 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalQuery } from "./_generated/server";
+import { internalMutation } from "./dbHooks";
 import { Budget, meter, testHooks, tuning } from "./deletionCore";
 import { planFor } from "./deletionPlans";
 import { postOutcome } from "./moderationCore";
