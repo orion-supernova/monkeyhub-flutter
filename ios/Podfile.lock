@@ -54,6 +54,9 @@ PODS:
   - gal (1.0.0):
     - Flutter
     - FlutterMacOS
+  - gamepads_darwin (0.1.1):
+    - Flutter
+    - FlutterMacOS
   - geolocator_apple (1.2.0):
     - Flutter
     - FlutterMacOS
@@ -167,6 +170,7 @@ DEPENDENCIES:
   - flutter_soloud (from `.symlinks/plugins/flutter_soloud/ios`)
   - flutter_webrtc (from `.symlinks/plugins/flutter_webrtc/ios`)
   - gal (from `.symlinks/plugins/gal/darwin`)
+  - gamepads_darwin (from `.symlinks/plugins/gamepads_darwin/darwin`)
   - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
   - google_sign_in_ios (from `.symlinks/plugins/google_sign_in_ios/darwin`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
@@ -242,6 +246,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_webrtc/ios"
   gal:
     :path: ".symlinks/plugins/gal/darwin"
+  gamepads_darwin:
+    :path: ".symlinks/plugins/gamepads_darwin/darwin"
   geolocator_apple:
     :path: ".symlinks/plugins/geolocator_apple/darwin"
   google_sign_in_ios:
@@ -306,6 +312,7 @@ SPEC CHECKSUMS:
   flutter_soloud: 272cc604453b6ca135f274045fb259e7c6426122
   flutter_webrtc: ec91d94b484ad49cf191ef93413f64a40ffd3b4c
   gal: baecd024ebfd13c441269ca7404792a7152fde89
+  gamepads_darwin: 7a021dc1aece71b59fae638865287e8e2d89a56a
   geolocator_apple: ab36aa0e8b7d7a2d7639b3b4e48308394e8cef5e
   google_sign_in_ios: 000870aa06da9b28d1d0bf7ef70ff0213059dd28
   GoogleSignIn: e449a40a92e9f2eea56e98b5214d13725dc5a00a
