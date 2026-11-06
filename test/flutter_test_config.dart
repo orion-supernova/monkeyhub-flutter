@@ -24,6 +24,10 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   // Widget tests are written against the glass reference kit; a kit test
   // pins its kit with UiKitScope(kit:) or picks one in the store.
   UiKits.debugAutomatic = UiKit.glass;
+  // `--dart-define=UI_KIT=lite` (or material, liquid) renders a design
+  // preview in that kit.
+  const kit = String.fromEnvironment('UI_KIT');
+  if (kit.isNotEmpty) UiKits.debugKit = UiKit.values.byName(kit);
   await testMain();
 }
 

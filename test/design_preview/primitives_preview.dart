@@ -512,8 +512,12 @@ class _Round2State extends State<_Round2> {
                     color: sheetFill(theme),
                     borderRadius: BorderRadius.circular(18),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // Wraps: four 44pt discs do not fit half a phone at 1.3x
+                  // text, and a real sheet bar never carries four.
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    spacing: 6,
+                    runSpacing: 6,
                     children: [
                       const SheetCloseButton(),
                       SheetConfirmButton(onTap: () {}),
