@@ -12,7 +12,6 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.useRealTimers();
-  delete process.env.PRESENCE_COMPAT_MIRROR;
 });
 
 async function mk(t: ReturnType<typeof convexTest>, username: string, extra: any = {}) {
@@ -109,18 +108,30 @@ describe("backfillPresence", () => {
 });
 
 describe("stripUsersPresence", () => {
-  test("refuses without PRESENCE_COMPAT_MIRROR=off", async () => {
+  test("unsets both fields and touches nothing else", async () => {
     const t = convexTest(schema);
-    await mk(t, "a", { status: "online", lastSeen: 1 });
-    await expect(t.mutation(internal.presenceMigrations.stripUsersPresence, {})).rejects.toThrow(/refused/);
-    process.env.PRESENCE_COMPAT_MIRROR = "on";
-    await expect(t.mutation(internal.presenceMigrations.stripUsersPresence, {})).rejects.toThrow(/refused/);
-    const s = await dump(t);
-    expect(s.users[0].status).toBe("online");
+    const id = await mk(t, "a", { status: "online", lastSeen: 1, email: "e@x.y" });
+    await t.mutation(internal.presenceMigrations.stripUsersPresence, {});
+    const u: any = (await dump(t)).users.find((x: any) => x._id === id);
+    expect(u.status).toBeUndefined();
+    expect(u.lastSeen).toBeUndefined();
+    expect("status" in u || "lastSeen" in u).toBe(false);
+    expect(u).toMatchObject({ username: "a", email: "e@x.y" });
+  });
+
+  test("is idempotent: a second run strips nothing and writes nothing", async () => {
+    const t = convexTest(schema);
+    await mk(t, "a", { status: "away", lastSeen: 5 });
+    await mk(t, "b", { lastSeen: 7 });
+    const first = await t.mutation(internal.presenceMigrations.stripUsersPresence, {});
+    expect(first).toMatchObject({ done: true, stripped: 2 });
+    const before = await dump(t);
+    const second = await t.mutation(internal.presenceMigrations.stripUsersPresence, {});
+    expect(second).toMatchObject({ done: true, stripped: 0 });
+    expect(await dump(t)).toEqual(before);
   });
 
   test("pages and throttles: one page per tick, 5 s apart", async () => {
-    process.env.PRESENCE_COMPAT_MIRROR = "off";
     const t = convexTest(schema);
     for (let i = 0; i < 5; i++) await mk(t, `u${i}`, { status: "away", lastSeen: i + 1 });
     await mk(t, "clean");
@@ -139,7 +150,6 @@ describe("stripUsersPresence", () => {
   });
 
   test("is a no-op when fields are already absent", async () => {
-    process.env.PRESENCE_COMPAT_MIRROR = "off";
     const t = convexTest(schema);
     await mk(t, "a");
     await mk(t, "b");
@@ -168,7 +178,6 @@ describe("counts", () => {
     expect(await sum(internal.presenceMigrations.countUsersWithPresenceFields, "carrying")).toBe(3);
     await t.mutation(internal.presenceMigrations.backfillPresence, {});
     expect(await sum(internal.presenceMigrations.countMissingPresence, "missing")).toBe(0);
-    process.env.PRESENCE_COMPAT_MIRROR = "off";
     await t.mutation(internal.presenceMigrations.stripUsersPresence, {});
     expect(await sum(internal.presenceMigrations.countUsersWithPresenceFields, "carrying")).toBe(0);
   });

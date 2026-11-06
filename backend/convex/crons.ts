@@ -22,38 +22,34 @@ const crons = cronJobs();
 // delivered them; keeping the rows around bloats the by_to_unconsumed index.
 crons.interval(
   "calls.gcConsumedSignals",
-  { minutes: 2 },
+  { minutes: 5 },
   internal.calls.gcConsumedSignals,
   {},
 );
 
 // Sweep terminal-status calls older than 1 day, plus any lingering signals
-// (defense in depth — purgeCallSignals should already have cleaned them).
+// (defense in depth — purgeCallSignals should already have cleaned them), and
+// the day-old ended group calls with their participants and signals (the group
+// tables grew forever). One entry; calls.gcTerminalAll schedules both sweeps.
 crons.interval(
-  "calls.gcTerminalCalls",
+  "calls.gcTerminalAll",
   { hours: 1 },
-  internal.calls.gcTerminalCalls,
+  internal.calls.gcTerminalAll,
   {},
 );
 
-// Safety net: any 'ringing' call older than 90s gets forced to 'missed'.
-// The per-call scheduled expireRingingCall fires at 30s; this catches the
-// edge case where it didn't (backend restart, scheduler glitch, etc.).
+// Safety nets (calls.gcStuckCalls runs both as separate transactions):
+// - any 'ringing' call older than 90s gets forced to 'missed'. The per-call
+//   scheduled expireRingingCall fires at 30s; this catches the edge case where
+//   it didn't (backend restart, scheduler glitch, etc.).
+// - any 'active' call whose heartbeat has gone silent for 3+ min (client
+//   crashed, battery died, OS jetsam) gets forced to 'ended' and both sides'
+//   native CallKit/ConnectionService cards are cleared. See calls.ts
+//   heartbeat/gcStuckActive.
 crons.interval(
-  "calls.gcStuckRinging",
+  "calls.gcStuckCalls",
   { minutes: 5 },
-  internal.calls.gcStuckRinging,
-  {},
-);
-
-// Safety net: any 'active' call whose heartbeat has gone silent for 3+ min
-// (client crashed, battery died, OS jetsam) gets forced to 'ended' and both
-// sides' native CallKit/ConnectionService cards are cleared. See calls.ts
-// heartbeat/gcStuckActive.
-crons.interval(
-  "calls.gcStuckActive",
-  { minutes: 5 },
-  internal.calls.gcStuckActive,
+  internal.calls.gcStuckCalls,
   {},
 );
 
@@ -74,32 +70,8 @@ crons.interval(
   internal.groupCalls.gcConsumedGroupSignals,
   {},
 );
-// Day-old ended group calls, their participants, and their signals. The 1:1
-// table had this from the start (calls.gcTerminalCalls); the group tables
-// grew forever.
-crons.interval(
-  "groupCalls.gcTerminalGroupCalls",
-  { hours: 1 },
-  internal.groupCalls.gcTerminalGroupCalls,
-  {},
-);
 
-// Presence backstop: demote users who stopped heartbeating (closed tab, killed
-// app) to 'offline'. Readers already correct this on the fly via
-// effectiveStatus; this keeps the stored value honest. See presence.ts.
-//
-// Every minute: a subscription does not re-run because time passed, so a
-// reader's `effectiveStatus` only goes offline when this patch lands. At five
-// minutes a closed app read as online for up to eight. The range is per
-// status and usually empty, so a tick is a couple of index reads.
-crons.interval(
-  "users.sweepStalePresence",
-  { minutes: 1 },
-  internal.users.sweepStalePresence,
-  {},
-);
-
-// The same backstop for the presence tables: beats that went quiet are retired
+// Presence backstop: beats that went quiet are retired
 // and their presence rows go offline with lastSeen = the last beat. See
 // presenceApi.sweepStale.
 crons.interval(
@@ -425,6 +397,7 @@ for (const [name, fn] of [
   ["retention.gcCallLog", internal.retention.gcCallLog],
   ["retention.gcMentionInbox", internal.retention.gcMentionInbox],
   ["retention.gcDeviceEngagement", internal.retention.gcDeviceEngagement],
+  ["retention.gcMessageGaps", internal.retention.gcMessageGaps],
 ] as const) {
   crons.interval(name, { hours: 24 }, fn, {});
 }

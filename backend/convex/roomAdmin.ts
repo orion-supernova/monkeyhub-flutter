@@ -36,6 +36,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { assertNotSystemRoom } from "./systemAccount";
 import { seenVisibilityOf } from "./visibility";
+import { deleteMemberRows, insertMemberRows } from "./roomState";
 import { wipeRoomCompletely } from "./roomCleanup";
 import { purgeSpeakerColorsForMember } from "./speakerColors";
 import { releaseRowFiles } from "./files";
@@ -240,13 +241,18 @@ export async function addMembership(
   if (!skipRoomCap && before.count >= MAX_ROOMS_PER_USER) {
     throw new Error(ERR_TOO_MANY_ROOMS);
   }
+  const joinedAt = Date.now();
+  const seen = await seenVisibilityOf(ctx, userId);
+  // C1: a room with a sequence gives the member their private state and public
+  // cursors as rows of their own, so the roster row stays a roster row. An
+  // unmigrated room keeps the legacy row alone (the backfill adds the rest).
+  const onNewTables = await insertMemberRows(ctx, target, userId, joinedAt, seen, extra);
   await ctx.db.insert("roomMembers", {
     roomId,
     userId,
-    joinedAt: Date.now(),
+    joinedAt,
     role,
-    seenVisibility: await seenVisibilityOf(ctx, userId),
-    ...extra,
+    ...(onNewTables ? {} : { seenVisibility: seen, ...extra }),
   });
   await recordJoin(ctx, userId, before);
   await grantRoomAccess(ctx, roomId, userId);
@@ -275,6 +281,9 @@ export async function removeMembership(
   if (!member) return "absent";
 
   await ctx.db.delete(member._id);
+  // C1: their private state, public cursors and receipt moves go with the
+  // roster row, so a rejoin starts clean.
+  await deleteMemberRows(ctx, roomId, userId);
   await decrementRoomCount(ctx, userId);
   await revokeRoomAccess(ctx, roomId, userId);
 

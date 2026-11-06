@@ -1,9 +1,8 @@
 import { convexTest } from "convex-test";
-import { afterEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import schema from "./schema";
 import {
   BEAT_THROTTLE_MS,
-  COMPAT_MIRROR_MS,
   clearPresence,
   demoteStale,
   markOffline,
@@ -36,12 +35,8 @@ async function setup(extra: Record<string, any> = {}) {
   return { t, userId, rows };
 }
 
-afterEach(() => {
-  delete process.env.PRESENCE_COMPAT_MIRROR;
-});
-
 describe("setStatus", () => {
-  test("online: row without lastSeen, live beat, mirrored to users", async () => {
+  test("online: row without lastSeen, live beat, nothing on users", async () => {
     const { t, userId, rows } = await setup();
     const r = await t.run((ctx) => setStatus(ctx, userId, "online", { now: T0 }));
     expect(r.changed).toBe(true);
@@ -50,7 +45,8 @@ describe("setStatus", () => {
     expect(s.presence[0].status).toBe("online");
     expect(s.presence[0].lastSeen).toBeUndefined();
     expect(s.beat[0]).toMatchObject({ beatAt: T0, live: true });
-    expect(s.user).toMatchObject({ status: "online", lastSeen: T0 });
+    expect(s.user.status).toBeUndefined();
+    expect(s.user.lastSeen).toBeUndefined();
   });
 
   test("leaving the foreground sets lastSeen; coming back clears it", async () => {
@@ -104,16 +100,6 @@ describe("setStatus", () => {
     await t.run((ctx) => setStatus(ctx, sys, "online", { now: T0 }));
     expect((await rows()).presence).toHaveLength(0);
   });
-
-  test("mirror: false and the env switch leave users alone", async () => {
-    const a = await setup();
-    await a.t.run((ctx) => setStatus(ctx, a.userId, "online", { now: T0, mirror: false }));
-    expect((await a.rows()).user.status).toBeUndefined();
-    process.env.PRESENCE_COMPAT_MIRROR = "off";
-    const b = await setup();
-    await b.t.run((ctx) => setStatus(ctx, b.userId, "online", { now: T0 }));
-    expect((await b.rows()).user.status).toBeUndefined();
-  });
 });
 
 describe("noteBeat", () => {
@@ -135,10 +121,7 @@ describe("noteBeat", () => {
     const s = await rows();
     expect(s.beat[0].beatAt).toBe(now);
     expect(s.presence[0]).toEqual(before);
-    // users.lastSeen only refreshes every COMPAT_MIRROR_MS.
-    expect(s.user.lastSeen).toBe(T0);
-    await t.run((ctx) => noteBeat(ctx, userId, { now: T0 + COMPAT_MIRROR_MS }));
-    expect((await rows()).user.lastSeen).toBe(T0 + COMPAT_MIRROR_MS);
+    expect(s.user.lastSeen).toBeUndefined();
   });
 
   test("an offline or absent user is not resurrected unless asked", async () => {
@@ -172,7 +155,6 @@ describe("demoteStale / clearPresence / syncLevels", () => {
     const s = await rows();
     expect(s.presence[0]).toMatchObject({ status: "offline", lastSeen: T0 });
     expect(s.beat[0].live).toBe(false);
-    expect(s.user).toMatchObject({ status: "offline", lastSeen: T0 });
     expect((await t.run((ctx) => demoteStale(ctx, userId, T0, { now: T0 + 1 }))).changed).toBe(false);
   });
 
@@ -192,10 +174,9 @@ describe("demoteStale / clearPresence / syncLevels", () => {
     );
     const s = await rows();
     expect(s.presence[0]).toMatchObject({ status: "offline", lastSeen: T0 + 1000 });
-    expect(s.user).toMatchObject({ status: "offline", lastSeen: T0 + 1000 });
   });
 
-  test("away beats do not refresh the old builds' lastSeen", async () => {
+  test("away beats do not move presence.lastSeen", async () => {
     const { t, userId, rows } = await setup();
     await t.run((ctx) => markOnline(ctx, userId, { now: T0 }));
     await t.run((ctx) => setStatus(ctx, userId, "away", { now: T0 + 1000 }));
@@ -203,7 +184,6 @@ describe("demoteStale / clearPresence / syncLevels", () => {
       await t.run((ctx) => noteBeat(ctx, userId, { now: T0 + i * 600_000 }));
     }
     const s = await rows();
-    expect(s.user).toMatchObject({ status: "away", lastSeen: T0 + 1000 });
     expect(s.presence[0].lastSeen).toBe(T0 + 1000);
   });
 

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation } from "./dbHooks";
+import { receiptOf } from "./roomState";
 import {
   RECEIPT_LOG_CAP,
   appendReceiptLog,
@@ -393,7 +394,15 @@ export async function restampSeenPage(
     .withIndex("by_user", (q: any) => q.eq("userId", userId))
     .paginate({ numItems: RESTAMP_PAGE, cursor });
   for (const m of page.page) {
-    if (m.seenVisibility !== seen) await ctx.db.patch(m._id, { seenVisibility: seen });
+    // C1: a migrated membership's stamp lives on its `roomReceipts` row.
+    const receipt = await receiptOf(ctx, m.roomId, m.userId);
+    if (receipt) {
+      if (receipt.seenVisibility !== seen) {
+        await ctx.db.patch(receipt._id, { seenVisibility: seen });
+      }
+    } else if (m.seenVisibility !== seen) {
+      await ctx.db.patch(m._id, { seenVisibility: seen });
+    }
   }
   return page.isDone ? null : page.continueCursor;
 }

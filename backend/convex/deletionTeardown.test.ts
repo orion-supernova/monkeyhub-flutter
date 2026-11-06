@@ -321,20 +321,6 @@ describe("user teardown", () => {
     });
   });
 
-  test("the old purgeMessagesLater shim finishes a removed account's messages through the engine", async () => {
-    const t = convexTest(schema);
-    const u = await mkUser(t, "gone");
-    const r = await mkRoom(t, u);
-    await join(t, r, u, "owner");
-    const o = await mkUser(t, "o");
-    await join(t, r, o);
-    for (let i = 0; i < 5; i++) await say(t, r, u, `m${i}`);
-    await t.run((ctx) => ctx.db.delete(u));
-    await t.mutation(internal.auth.purgeMessagesLater, { userId: u });
-    await drain(t);
-    expect((await rows(t, "messages")).filter((m) => m.userId === u)).toHaveLength(0);
-    expect(((await jobFor(t, "user", u)) as any).state).toBe("done");
-  });
 });
 
 describe("room teardown", () => {
@@ -489,18 +475,6 @@ describe("room teardown", () => {
         expect(b.writes, s.id).toBe(0);
       }
     });
-  });
-
-  test("the old wipeMessagesLater shim finishes a removed room's messages through the engine", async () => {
-    const t = convexTest(schema);
-    const owner = await mkUser(t, "owner");
-    const room = await mkRoom(t, owner);
-    for (let i = 0; i < 5; i++) await say(t, room, owner, `m${i}`);
-    await t.run((ctx) => ctx.db.delete(room));
-    await t.mutation(internal.roomCleanup.wipeMessagesLater, { roomId: room });
-    await drain(t);
-    expect(await rows(t, "messages")).toHaveLength(0);
-    expect(((await jobFor(t, "room", room)) as any).state).toBe("done");
   });
 
   test("a room being deleted is not found, takes no member and no scheduled message", async () => {
@@ -802,15 +776,6 @@ describe("poison rows and shrinking budgets", () => {
 });
 
 describe("shims, alerts, scrub, cursors, orphan sweep", () => {
-  test("the shims leave a live account and a live room alone", async () => {
-    const t = convexTest(schema);
-    const u = await mkUser(t, "alive");
-    const room = await mkRoom(t, u);
-    await t.mutation(internal.auth.purgeMessagesLater, { userId: u });
-    await t.mutation(internal.roomCleanup.wipeMessagesLater, { roomId: room });
-    expect(await rows(t, "deletions")).toHaveLength(0);
-  });
-
   test("an alert with nobody to hear it retries hourly, three times, then logs", async () => {
     const t = convexTest(schema);
     const owner = await mkUser(t, "owner"); // not staff: no inbox

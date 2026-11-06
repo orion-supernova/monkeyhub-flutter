@@ -454,7 +454,7 @@ export const listIncoming = query({
           // Storage id, not a URL — see the note in `roomInvites.preview`.
           avatarStorageId: room.avatarStorageId ?? null,
         },
-        inviter: publicUserView(lens, inviter, now),
+        inviter: await publicUserView(ctx, lens, inviter),
       });
     }
     return out;
@@ -494,7 +494,7 @@ export const listForRoom = query({
         createdAt: r.createdAt,
         inviterId: r.inviterId,
         awaitingGuardian: !isReleasedToRecipient(r.stage),
-        invitee: publicUserView(lens, invitee, now),
+        invitee: await publicUserView(ctx, lens, invitee),
         canCancel:
           isAdminRole(role) || r.inviterId.toString() === userId.toString(),
       });
@@ -543,7 +543,7 @@ export const invitableFriends = query({
       if (taken.has(f.friendId.toString())) continue;
       const friend = await ctx.db.get(f.friendId);
       if (!friend || isSystemAccount(friend) || isTombstoned(friend)) continue;
-      out.push(publicUserView(lens, friend, now));
+      out.push(await publicUserView(ctx, lens, friend));
     }
     return out;
   },

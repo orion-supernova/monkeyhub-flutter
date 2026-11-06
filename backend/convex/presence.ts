@@ -1,16 +1,9 @@
-// Presence staleness helpers.
+// Presence timing constants.
 //
-// `users.status` is a stored string ("online" | "away" | "offline") written by
-// the client on lifecycle transitions. The problem it can't solve on its own:
-// when a client vanishes without a clean "offline" write — a closed browser
-// tab (Flutter web never reliably fires AppLifecycleState.detached), a crash,
-// or a hard-killed native app — the stored value stays "online"/"away" forever.
-//
-// The fix is time-based: the client stamps `lastSeen` on a periodic heartbeat
-// (see users.heartbeat), and readers treat a user whose `lastSeen` is older
-// than PRESENCE_OFFLINE_MS as offline regardless of the stored string. That
-// self-heals every platform, and a cron (users.sweepStalePresence) persists the
-// demotion so the stored value stays honest too.
+// Presence lives in the `presence` / `presenceBeats` tables (presenceCore.ts,
+// presenceApi.ts). A client that vanishes without a clean "offline" (closed
+// tab, crash, killed app) stops beating; `presenceApi.sweepStale` demotes it
+// once its last beat is older than PRESENCE_OFFLINE_MS.
 
 /** Heartbeat cadence on the client, in ms. Keep the window below comfortably
  *  larger than this so a throttled background tab (browsers slow timers to
@@ -34,25 +27,3 @@ export const PRESENCE_OFFLINE_MS = 180_000; // 3 minutes
  * connectivity canary — they just usually don't cause a write.
  */
 export const PRESENCE_WRITE_INTERVAL_MS = 90_000; // 1.5 minutes
-
-/**
- * The effective presence status accounting for heartbeat staleness. Returns
- * "offline" when the stored status is already offline, or when `lastSeen` is
- * older than the offline window; otherwise the stored status.
- *
- * `now` has no default, deliberately — the same discipline `mute.ts`'s
- * `resolveMute(row, now)` follows. Callers compute one `Date.now()` at the
- * top of their query handler and pass it through, so every subject resolved
- * in the same call is judged against the same instant (see the identical
- * reasoning in `rooms.getMemberIds`).
- */
-export function effectiveStatus(
-  status: string | undefined,
-  lastSeen: number | undefined,
-  now: number,
-  windowMs: number = PRESENCE_OFFLINE_MS,
-): string {
-  if (status === "offline") return "offline";
-  if (lastSeen == null) return status ?? "offline";
-  return now - lastSeen > windowMs ? "offline" : status ?? "offline";
-}

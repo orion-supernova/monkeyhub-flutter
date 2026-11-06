@@ -714,8 +714,7 @@ export const touchIdentity = internalMutation({
         ? { appleRefreshToken: args.appleRefreshToken, appleRefreshCheckedAt: now }
         : {}),
     });
-    await ctx.db.patch(user._id, { status: "online", lastSeen: now });
-    await markOnline(ctx, user._id, { now, mirror: false });
+    await markOnline(ctx, user._id, { now });
 
     return {
       status: "signedIn" as const,
@@ -814,12 +813,10 @@ export const createWithIdentity = internalMutation({
       // be theatre. `recovery_gate.dart` short-circuits for these accounts.
       email: args.email,
       createdAt: now,
-      status: "online",
-      lastSeen: now,
       ...terms,
     });
     await syncProfile(ctx, userId);
-    await markOnline(ctx, userId, { now, mirror: false });
+    await markOnline(ctx, userId, { now });
 
     await ctx.db.insert("socialIdentities", {
       provider: args.provider,
@@ -930,8 +927,7 @@ export const attachToExistingAccount = internalMutation({
       });
     }
 
-    await ctx.db.patch(user._id, { status: "online", lastSeen: now });
-    await markOnline(ctx, user._id, { now, mirror: false });
+    await markOnline(ctx, user._id, { now });
     return {
       status: "signedIn" as const,
       userId: user._id,

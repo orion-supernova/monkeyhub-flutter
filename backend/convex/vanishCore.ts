@@ -211,9 +211,24 @@ export async function recomputeFloor(
     .withIndex("by_room_user", (q: any) => q.eq("roomId", state.roomId))
     .take(MEMBER_SCAN_CAP + 1);
   if (members.length > MEMBER_SCAN_CAP || members.length === 0) return false;
+  // C1: a migrated member's vanish cursor is on `roomReceipts`; the roster row
+  // answers only for memberships the backfill has not reached.
+  const receipts = await ctx.db
+    .query("roomReceipts")
+    .withIndex("by_room_user", (q: any) => q.eq("roomId", state.roomId))
+    .take(MEMBER_SCAN_CAP + 1);
+  const receiptOfUser = new Map<string, any>(
+    receipts.map((r: any) => [r.userId.toString(), r]),
+  );
 
   const rows = members
-    .map((m: any) => ({ userId: m.userId, seen: Math.min(seenOf(m), now) }))
+    .map((m: any) => {
+      const r = receiptOfUser.get(m.userId.toString());
+      return {
+        userId: m.userId,
+        seen: Math.min(r ? r.vanishSeenAt : seenOf(m), now),
+      };
+    })
     .sort((a: any, b: any) =>
       a.seen !== b.seen ? a.seen - b.seen : a.userId.toString().localeCompare(b.userId.toString()),
     );

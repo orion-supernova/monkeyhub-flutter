@@ -38,26 +38,6 @@ export async function wipeRoomCompletely(
 }
 
 /**
- * Shim for one release: a message-wiping chain scheduled by the old teardown
- * names this function, so it has to keep existing. It hands the room to the
- * engine, which sweeps whatever messages are left (the room row is already
- * gone, and every step copes with that). Delete once nothing is scheduled.
- */
-export const wipeMessagesLater = internalMutation({
-  args: { roomId: v.id("rooms") },
-  handler: async (ctx, { roomId }) => {
-    // A live room is not this shim's to touch.
-    const row = await ctx.db.get(roomId);
-    if (row && row.deletingAt === undefined) return;
-    await enqueueDeletion(ctx, {
-      kind: "room",
-      targetId: roomId,
-      reason: "legacy",
-    });
-  },
-});
-
-/**
  * Read-only orphan report — which roomMembers rows point at rooms that no
  * longer exist. Membership and messages for a deleted room become permanently
  * invisible: there is no room to open and mark read. This can happen if a

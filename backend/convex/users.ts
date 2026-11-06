@@ -2,8 +2,6 @@ import { internalMutation } from "./dbHooks";
 import { mutation, publicQuery, query } from "./functions";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { PRESENCE_WRITE_INTERVAL_MS } from "./presence";
-import { COMPAT_OFFLINE_MS } from "./presenceCore";
 import { attachFile, claimUpload, releaseRowFiles } from "./files";
 import { enqueueDeletion, getLiveUser, isTombstoned } from "./deletionCore";
 import {
@@ -30,20 +28,13 @@ import {
   isStaffHandle,
   isSystemAccount,
 } from "./systemAccount";
-import { lensFor } from "./visibility";
+import { lensFor, presenceFields } from "./visibility";
 import { searchNameOf } from "./userSearch";
 import { assertCleanName, isObjectionableName } from "./contentFilter";
 import { fileContentReport } from "./moderationCore";
 import { isRetiredHandle } from "./retiredHandles";
-import { consume } from "./rateLimit";
 import { continueSweep, sweepArgs } from "./sweep";
-import { touchSessions } from "./sessionCore";
-import {
-  noteBeat,
-  setStatus as setPresenceStatus,
-  syncLevels,
-  type PresenceStatus,
-} from "./presenceCore";
+import { syncLevels } from "./presenceCore";
 import { restampSeenPage } from "./receipts";
 import { syncProfile } from "./profilesCore";
 
@@ -89,7 +80,10 @@ export const getProfile = query({
     const isGuardian = !isSelf && lens.isGuardian(userId);
 
     const vis = user.visibility ?? {};
-    const identity = lens.identity(user, Date.now());
+    const identity = {
+      ...lens.identity(user),
+      ...(await presenceFields(ctx, lens, user)),
+    };
 
     // Whether a pending request between the viewer and this profile is parked
     // at the VIEWER'S OWN guardian hop — see the long note in
@@ -190,142 +184,6 @@ export const getProfile = query({
       acceptsFriendRequests: (vis.friendRequests ?? "public") === "public",
       awaitingGuardian,
     };
-  },
-});
-
-/**
- * Sets the user's presence status. Called from the Flutter client whenever the
- * app's lifecycle changes (resume → "online", pause/inactive → "away",
- * detach → "offline"). Also stamps `lastSeen` so other clients can render
- * "last seen N minutes ago" based on the most recent transition.
- *
- * Note: this writes the top-level `status` field (the presence indicator),
- * not `visibility.status` (which controls whether other users can SEE this
- * field). Those are two separate concepts that happen to share a name.
- */
-export const updateStatus = mutation({
-  args: {
-    userId: v.id("users"),
-    status: v.string(),
-  },
-  handler: async (ctx, { userId, status }) => {
-    const allowed = new Set(["online", "away", "offline"]);
-    if (!allowed.has(status)) return; // ignore unknown values silently
-    const user = await ctx.db.get(userId);
-    if (!user) return; // user gone — nothing to update
-    // Nothing changed and `lastSeen` is still fresh, so the write would only
-    // move the timestamp — and every write to a `users` row recomputes each
-    // subscription that read it. A lock/unlock cycle sends several transitions
-    // that collapse to the same status; the client suppresses the obvious
-    // repeats, this catches the rest (a second device, a resumed session).
-    // See presence.ts for why the write rate matters here.
-    const now = Date.now();
-    if (
-      user.status === status &&
-      user.lastSeen != null &&
-      now - user.lastSeen < PRESENCE_WRITE_INTERVAL_MS
-    ) {
-      return;
-    }
-    // A real status CHANGE is still written, but not without limit: flipping
-    // online/away on a loop rewrote this row, and every subscription reading
-    // it, on every call. Over the limit the flip is dropped, not refused.
-    try {
-      await consume(ctx, `presence:${userId}`, 20, 60 * 1000);
-    } catch {
-      return;
-    }
-    await ctx.db.patch(userId, {
-      status,
-      lastSeen: now,
-    });
-    // Old builds land in `presence` too (the users patch above is their
-    // mirror, so the core must not write it again).
-    await setPresenceStatus(ctx, userId, status as PresenceStatus, {
-      now,
-      mirror: false,
-    });
-  },
-});
-
-/**
- * Lightweight presence keepalive. The client calls this on an interval while
- * signed in so `lastSeen` stays fresh; readers use that timestamp to treat a
- * client that stopped heartbeating (closed tab / killed app) as offline. Only
- * stamps `lastSeen` — the online/away distinction stays owned by updateStatus.
- * Skips a user already marked offline (logged out) so a stray late heartbeat
- * can't resurrect them. See presence.ts.
- */
-export const heartbeat = mutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
-    // Session idle expiry's "refreshed on use": at most one write a day per
-    // session, an empty index probe otherwise. Before the early returns below,
-    // which are about presence and say nothing about the session being used.
-    await touchSessions(ctx, userId);
-    // Old builds feed `presenceBeats` as well: no resurrect (a late beat from a
-    // signed-out client must not bring anyone back) and no mirror (the users
-    // throttle below is this path's mirror).
-    await noteBeat(ctx, userId, { now: Date.now(), mirror: false });
-    const user = await ctx.db.get(userId);
-    if (!user || user.status === "offline") return;
-    // Usually a pure read. Clients beat every 30s because the round-trip is
-    // also their connectivity canary, but `lastSeen` only needs to stay fresher
-    // than PRESENCE_OFFLINE_MS — and each write here recomputes every
-    // subscription that read this row. See presence.ts.
-    const now = Date.now();
-    if (
-      user.lastSeen != null &&
-      now - user.lastSeen < PRESENCE_WRITE_INTERVAL_MS
-    ) {
-      return;
-    }
-    await ctx.db.patch(userId, { lastSeen: now });
-  },
-});
-
-/**
- * Cron backstop: persist the offline demotion for anyone still marked
- * online/away whose last heartbeat is older than the offline window. Readers
- * already compute this on the fly via effectiveStatus; this keeps the STORED
- * value honest too (so any consumer that reads status directly is correct).
- * The lower bound (> 0) skips rows with no lastSeen at all (never heartbeated),
- * which would otherwise be swept the instant they appear.
- */
-export const sweepStalePresence = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    const cutoff = Date.now() - COMPAT_OFFLINE_MS;
-    // Bounded on purpose. This is a backstop, not a deadline — readers already
-    // compute the right answer on the fly via effectiveStatus, so a backlog
-    // costs nothing but a few extra ticks. An unbounded .collect() over a
-    // growing users table is the opposite trade: it eventually exceeds the
-    // read limit or the 1s mutation budget and then the sweep stops working
-    // entirely, silently.
-    //
-    // Scanned per status rather than over `lastSeen` alone, and that is what
-    // makes the bound above a page size instead of a permanent ceiling. The
-    // old range took the 200 oldest-`lastSeen` rows in the whole table while
-    // patching only `status`, so every row it demoted kept its ancient
-    // timestamp and stayed in range. Once ~200 dormant accounts sat below the
-    // cutoff the sweep re-read that same dead prefix every five minutes and
-    // never reached anyone who had newly gone stale — it looked healthy and
-    // did nothing. Ranging within a status means a patched row leaves the
-    // range on the spot, so each tick sees only live work.
-    //
-    // The lower bound (> 0) skips rows with no lastSeen at all (never
-    // heartbeated), which would otherwise be swept the instant they appear.
-    for (const status of ["online", "away"] as const) {
-      const stale = await ctx.db
-        .query("users")
-        .withIndex("by_status_lastSeen", (q) =>
-          q.eq("status", status).gt("lastSeen", 0).lt("lastSeen", cutoff),
-        )
-        .take(200);
-      for (const u of stale) {
-        await ctx.db.patch(u._id, { status: "offline" });
-      }
-    }
   },
 });
 
@@ -909,7 +767,8 @@ export async function searchUsersCore(
         // the LAST place that may ignore the setting. Someone at "avatar:
         // friends" is searchable by handle and still faceless until they
         // accept you.
-        ...lens.identity(u, now),
+        ...lens.identity(u),
+        ...(await presenceFields(ctx, lens, u)),
         friendshipStatus,
         requestId,
         awaitingGuardian,

@@ -274,10 +274,13 @@ describe("signing out takes the push row with it", () => {
       expect(rows, `${first} first`).toEqual([]);
 
       // And the account reads as offline whichever one got there.
-      const user = await t.run(async (ctx) => ctx.db.get(me.userId as any));
-      expect((user as { status?: string }).status, `${first} first`).toBe(
-        "offline",
+      const pres = await t.run(async (ctx) =>
+        ctx.db
+          .query("presence")
+          .withIndex("by_user", (q) => q.eq("userId", me.userId as any))
+          .first(),
       );
+      expect(pres?.status, `${first} first`).toBe("offline");
     }
   });
 
@@ -329,8 +332,13 @@ describe("signing out takes the push row with it", () => {
       deviceId: PHONE,
     });
 
-    const user = await t.run(async (ctx) => ctx.db.get(me.userId as any));
-    expect((user as { status?: string }).status).not.toBe("offline");
+    const pres = await t.run(async (ctx) =>
+      ctx.db
+        .query("presence")
+        .withIndex("by_user", (q) => q.eq("userId", me.userId as any))
+        .first(),
+    );
+    expect(pres?.status).not.toBe("offline");
   });
 });
 

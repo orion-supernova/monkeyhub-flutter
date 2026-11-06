@@ -254,7 +254,14 @@ describe("the room cap holds everywhere", () => {
         .first(),
     );
     expect(row.role).toBe("owner");
-    expect(row.isPinned).toBe(true);
+    // Born pinned: the flag is on the member's private state row (C1).
+    const st: any = await t.run(async (ctx: any) =>
+      ctx.db
+        .query("roomUserState")
+        .withIndex("by_room_user", (q: any) => q.eq("roomId", self).eq("userId", owner.userId))
+        .first(),
+    );
+    expect(st.isPinned).toBe(true);
     expect(((await get(t, self)) as any).memberCount).toBe(1);
   });
 });

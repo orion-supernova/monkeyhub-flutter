@@ -159,8 +159,8 @@ describe("tombstoneProfile and nameOf", () => {
     expect((await profileRows(t, a.userId))[0].deleted).toBe(true);
   });
 
-  test("PROFILE_COPIES is on until the strip", () => {
-    expect(PROFILE_COPIES).toBe(true);
+  test("PROFILE_COPIES is off: stage W3 is done", () => {
+    expect(PROFILE_COPIES).toBe(false);
   });
 });
 

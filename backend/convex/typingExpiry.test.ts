@@ -42,6 +42,7 @@ async function sharedRoom(t: ReturnType<typeof convexTest>, a: string, b: string
         joinedAt: NOW,
         role: "member",
       } as any);
+      await ctx.db.insert("roomAccess", { roomId, userId: u as any });
     }
     await ctx.db.insert("typingIndicators", {
       roomId,

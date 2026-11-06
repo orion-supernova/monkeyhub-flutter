@@ -32,7 +32,10 @@ export default defineSchema({
     passwordHash: v.string(),
     recoveryKeyHash: v.optional(v.string()),
     createdAt: v.number(),
-    status: v.optional(v.string()), // "online" | "away" | "offline"
+    // Retired: presence lives in `presence`. Nothing writes or reads these;
+    // they stay optional only until presenceMigrations.stripUsersPresence has
+    // run everywhere, then a later deploy deletes both lines.
+    status: v.optional(v.string()),
     lastSeen: v.optional(v.number()),
     email: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
@@ -155,18 +158,7 @@ export default defineSchema({
     searchName: v.optional(v.string()),
   })
     .index("by_username", ["username"])
-    .searchIndex("search_users", { searchField: "searchName" })
-    // Presence staleness sweep (users.sweepStalePresence) ranges over lastSeen
-    // to find clients that stopped heartbeating. See presence.ts.
-    //
-    // `status` leads on purpose. Ranging `lastSeen` alone gave the 200 OLDEST
-    // rows in the table, and the sweep only patches `status` — so a swept row
-    // kept its ancient `lastSeen`, stayed in the range forever, and every tick
-    // re-read the same prefix of long-dead accounts. Past ~200 of those, nobody
-    // newly stale was ever reached. Leading with `status` means a patched row
-    // leaves the scanned range immediately, which is what makes the bound on
-    // the query a page size rather than a permanent ceiling.
-    .index("by_status_lastSeen", ["status", "lastSeen"]),
+    .searchIndex("search_users", { searchField: "searchName" }),
 
   // Per-device push registration. One row per (userId, deviceId) — every
   // logged-in device gets its own entry so a sibling device login doesn't
@@ -389,6 +381,10 @@ export default defineSchema({
     // Tombstone: set by `deletionCore.startRoomDeletion`, which also renames
     // the room and makes it private. Checked on rows already in hand; no index.
     deletingAt: v.optional(v.number()),
+    // Highest `messages.seq` handed out in this room (C1, docs/backend/c1-cursors-design.md).
+    // Undefined = a room the seq backfill has not reached: unread falls back
+    // to the legacy `createdAt` scan. New rooms are born with 0 (`dbHooks.ts`).
+    lastSeq: v.optional(v.number()),
   })
     .index("by_name", ["name"])
     .index("by_last_activity", ["lastMessageTime"])
@@ -620,6 +616,66 @@ export default defineSchema({
     // Owner re-seating when the owner leaves or is deleted: the longest-standing
     // admin or member, without reading the whole room.
     .index("by_room_role", ["roomId", "role"]),
+
+  // C1: the member's PRIVATE per-room state (was on `roomMembers`). Read by the
+  // chat list, badges, push mute checks and send; NOT written by delivery
+  // reports, so a delivery re-runs nothing here. unread =
+  // room.lastSeq - readSeq - gaps(readSeq, lastSeq] - own messages not gapped.
+  // Dual-mode: a membership with no row here is still on its `roomMembers`
+  // row (legacy) until the backfill (`roomStateMigration.ts`) creates one.
+  roomUserState: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    readSeq: v.number(),
+    // Today's `lastReadAt`: the unread anchor and push's "already read" check.
+    readAt: v.optional(v.number()),
+    // Own messages above `readSeq` (consecutive sends coalesce), at most 8.
+    ownRuns: v.optional(v.array(v.object({ from: v.number(), to: v.number() }))),
+    // A 9th run was needed: runs are dropped and unread uses the capped scan
+    // until `markRoomRead` moves `readSeq` past everything.
+    ownOverflow: v.optional(v.boolean()),
+    archived: v.boolean(),
+    archivedAt: v.optional(v.number()),
+    isPinned: v.optional(v.boolean()),
+    pinnedAt: v.optional(v.number()),
+    muteNotifications: v.optional(v.boolean()),
+    muteBadges: v.optional(v.boolean()),
+    mutedUntil: v.optional(v.number()),
+    // A DM's other member, so the chat list needs no member scan.
+    dmPeerId: v.optional(v.id("users")),
+    vanishShareReads: v.optional(v.boolean()),
+  })
+    .index("by_user_archived", ["userId", "archived"])
+    .index("by_room_user", ["roomId", "userId"]),
+
+  // C1: the member's PUBLIC cursors (was on `roomMembers`): what other members
+  // see as ticks. Written by delivery and read reports; read by read-state /
+  // seen-by and vanish only, never by the chat list.
+  roomReceipts: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    lastReadAt: v.optional(v.number()),
+    lastDeliveredAt: v.optional(v.number()),
+    readClock: v.optional(v.number()),
+    deliveredClock: v.optional(v.number()),
+    // Vanish "seen" cursor; initialised to `joinedAt` so it never reads absent.
+    vanishSeenAt: v.number(),
+    seenVisibility: v.optional(v.string()),
+  })
+    .index("by_room_user", ["roomId", "userId"])
+    .index("by_user", ["userId"]),
+
+  // C1: one row per deleted message that had a `seq` (and was younger than
+  // `GAP_HORIZON`), so unread can subtract the holes. Cascades with the room.
+  messageGaps: defineTable({
+    roomId: v.id("rooms"),
+    seq: v.number(),
+    // The deleted message's `createdAt`.
+    at: v.number(),
+  })
+    .index("by_room_seq", ["roomId", "seq"])
+    // Retention: gaps past the horizon are never counted (retention.gcMessageGaps).
+    .index("by_at", ["at"]),
 
   // Each member's receipt history per cursor (was `roomMembers.readLog` /
   // `deliveredLog`). Out of the membership row because that row is rewritten by
@@ -1117,6 +1173,10 @@ export default defineSchema({
   messages: defineTable({
     roomId: v.id("rooms"),
     userId: v.id("users"),
+    // Per-room sequence number, assigned by the `messages` insert hook
+    // (`dbHooks.ts`) from `rooms.lastSeq`; never reused, so a deleted message
+    // leaves a hole that `messageGaps` accounts for. Unindexed (R13).
+    seq: v.optional(v.number()),
     content: v.string(),
     createdAt: v.number(),
     edited: v.optional(v.boolean()),

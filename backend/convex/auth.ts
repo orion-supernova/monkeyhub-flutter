@@ -174,12 +174,10 @@ export const signup = publicMutation({
       recoveryKeyHash,
       email,
       createdAt: Date.now(),
-      status: "online",
-      lastSeen: Date.now(),
       ...terms,
     });
     await syncProfile(ctx, userId);
-    await markOnline(ctx, userId, { now: Date.now(), mirror: false });
+    await markOnline(ctx, userId, { now: Date.now() });
     return { userId, username, name, token: await mintSession(ctx, userId, deviceId, deviceSecret) };
   },
 });
@@ -234,8 +232,7 @@ export const login = publicMutation({
     await clearFailures(ctx, key);
     await upgradeIfLegacy(ctx, user, passwordHash);
 
-    await ctx.db.patch(user._id, { status: "online", lastSeen: Date.now() });
-    await markOnline(ctx, user._id, { now: Date.now(), mirror: false });
+    await markOnline(ctx, user._id, { now: Date.now() });
     return {
       userId: user._id,
       username: user.username,
@@ -265,8 +262,7 @@ export const logout = mutation({
       )
       .first();
     if (device) await ctx.db.delete(device._id);
-    await ctx.db.patch(userId, { status: "offline", lastSeen: Date.now() });
-    await markOffline(ctx, userId, { now: Date.now(), mirror: false });
+    await markOffline(ctx, userId, { now: Date.now() });
   },
 });
 
@@ -336,10 +332,8 @@ export const resetPasswordWithRecoveryKey = publicMutation({
 
     await ctx.db.patch(user._id, {
       passwordHash: await hashPassword(newPasswordHash),
-      status: "online",
-      lastSeen: Date.now(),
     });
-    await markOnline(ctx, user._id, { now: Date.now(), mirror: false });
+    await markOnline(ctx, user._id, { now: Date.now() });
     // A reset is what someone does when they think the password is known to
     // somebody else, so every other signed-in device goes with it.
     await revokeOtherSessions(ctx, user._id, deviceId);
@@ -588,22 +582,3 @@ export const purgeAccount = internalMutation({
   },
 });
 
-/**
- * Shim for one release: the old teardown scheduled this to finish a removed
- * account's messages, so a job already in the queue names it. The account row
- * is gone by then; the engine's user plan finishes the messages (and anything
- * else left) by id. Delete once nothing is scheduled.
- */
-export const purgeMessagesLater = internalMutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
-    // A live account is not this shim's to touch (an id reused by mistake).
-    const row = await ctx.db.get(userId);
-    if (row && !isTombstoned(row)) return;
-    await enqueueDeletion(ctx, {
-      kind: "user",
-      targetId: userId,
-      reason: "legacy",
-    });
-  },
-});

@@ -36,9 +36,9 @@ async function signUp(t: ReturnType<typeof convexTest>, username = "alice") {
 }
 
 async function beat(t: ReturnType<typeof convexTest>, who: any) {
-  await t.mutation(api.users.heartbeat, {
+  await t.mutation(api.presenceApi.beat, {
     sessionToken: who.token,
-    userId: who.userId as any,
+    status: "online",
   });
 }
 

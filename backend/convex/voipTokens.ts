@@ -603,8 +603,7 @@ export const clearDeviceToken = mutation({
     // is also reachable from the Devices screen of a phone the user is still
     // holding, and that phone is not offline.
     if (!(await hasAnyLiveSession(ctx, userId))) {
-      await ctx.db.patch(userId, { status: "offline", lastSeen: Date.now() });
-      await markOffline(ctx, userId, { now: Date.now(), mirror: false });
+      await markOffline(ctx, userId, { now: Date.now() });
     }
   },
 });

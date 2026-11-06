@@ -13,6 +13,7 @@ import { mayReachDevices } from "./deployment";
 import { liveSessionDeviceIds } from "./sessionCore";
 import { buildPushDevices } from "./userDerivedCore";
 import { resolveMute } from "./mute";
+import { stateOf } from "./roomState";
 import { DELIVERY_MEMBER_LIMIT, receiptFields } from "./receiptToken";
 import { engagedDeviceId } from "./engagement";
 import { SERVER_BURST_PLATFORMS } from "./alertBurst";
@@ -467,13 +468,18 @@ export const _loadAlertTargets = internalQuery({
       let lastReadAt = 0;
       let mutesNotifications = false;
       if (roomId) {
-        const m = await ctx.db
-          .query("roomMembers")
-          .withIndex("by_room_user", (q) =>
-            q.eq("roomId", roomId).eq("userId", userId),
-          )
-          .first();
-        lastReadAt = m?.lastReadAt ?? 0;
+        // C1: the private state row owns the read position and the mute for a
+        // migrated membership; the roster row is the legacy answer.
+        const st = await stateOf(ctx, roomId, userId);
+        const m =
+          st ??
+          (await ctx.db
+            .query("roomMembers")
+            .withIndex("by_room_user", (q) =>
+              q.eq("roomId", roomId).eq("userId", userId),
+            )
+            .first());
+        lastReadAt = (st ? st.readAt : m?.lastReadAt) ?? 0;
         // Free: the row we already fetched for the read cursor carries the
         // mute columns too, so the gate below costs no extra read.
         mutesNotifications = resolveMute(m, Date.now()).notifications;

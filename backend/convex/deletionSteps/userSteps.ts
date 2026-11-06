@@ -23,6 +23,7 @@ import { purgeScheduledForRoomUser, purgeScheduledForUser } from "../scheduledMe
 import { purgeSpeakerColorsForUser } from "../speakerColors";
 import { deleteFriendshipRow } from "../users";
 import { sweep, sweepRows } from "./roomSteps";
+import { deleteMemberRows } from "../roomState";
 
 /**
  * Custom teardown steps for the `user` deletion kind. `deletionPlans.planFor`
@@ -182,6 +183,8 @@ export const userSteps: Step[] = [
       if (!userId || !membership) return;
       const roomId: Id<"rooms"> = membership.roomId;
       await ctx.db.delete(membership._id);
+      // C1: their private state, public cursors and receipt moves for the room.
+      await deleteMemberRows(ctx, roomId, userId);
       await decrementRoomCount(ctx, userId);
       await revokeRoomAccess(ctx, roomId, userId);
       // Before the room can go: forfeiting writes to the games.

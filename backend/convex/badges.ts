@@ -5,6 +5,8 @@ import {
 import { resolveMute } from "./mute";
 import { isTombstoned } from "./deletionCore";
 import { computePendingCounts } from "./userDerivedCore";
+import { stateBackfilled } from "./roomState";
+import { roomUnread } from "./unread";
 
 /**
  * Per-room unread counts and the single "needs attention" number that drives
@@ -90,29 +92,50 @@ async function unreadBadgePart(
   ctx: any,
   userId: any,
 ): Promise<{ unread: number; perRoom: Array<{ roomId: any; count: number }> }> {
-  const memberships = await ctx.db
-    .query("roomMembers")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+  // C1: one `roomUserState` row and one room doc per room, no message scans.
+  const states = await ctx.db
+    .query("roomUserState")
+    .withIndex("by_user_archived", (q: any) => q.eq("userId", userId))
     .collect();
 
   const now = Date.now();
   const perRoom: Array<{ roomId: any; count: number }> = [];
   let unread = 0;
-  for (const m of memberships) {
-    if (resolveMute(m, now).badges) continue;
-    const room = await ctx.db.get(m.roomId);
+  for (const s of states) {
+    if (resolveMute(s, now).badges) continue;
+    const room = await ctx.db.get(s.roomId);
     // A room being deleted counts for nothing (row already in hand).
     if (!room || isTombstoned(room)) continue;
-    const { count } = await unreadForRoom(
-      ctx,
-      m.roomId,
-      userId,
-      m.lastReadAt,
-      room.lastMessageTime,
-    );
+    const { count } = await roomUnread(ctx, room, s, now);
     if (count > 0) {
-      perRoom.push({ roomId: m.roomId, count });
+      perRoom.push({ roomId: s.roomId, count });
       unread += count;
+    }
+  }
+
+  // Memberships the backfill has not reached keep the legacy arithmetic.
+  if (!(await stateBackfilled(ctx))) {
+    const have = new Set<string>(states.map((s: any) => s.roomId.toString()));
+    const memberships = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .collect();
+    for (const m of memberships) {
+      if (have.has(m.roomId.toString())) continue;
+      if (resolveMute(m, now).badges) continue;
+      const room = await ctx.db.get(m.roomId);
+      if (!room || isTombstoned(room)) continue;
+      const { count } = await unreadForRoom(
+        ctx,
+        m.roomId,
+        userId,
+        m.lastReadAt,
+        room.lastMessageTime,
+      );
+      if (count > 0) {
+        perRoom.push({ roomId: m.roomId, count });
+        unread += count;
+      }
     }
   }
   return { unread, perRoom };

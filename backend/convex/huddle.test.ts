@@ -153,8 +153,9 @@ describe("the passive push", () => {
     const t = convexTest(schema);
     const { people, roomId } = await roomWith(t, ["alice", "bob", "carol"]);
     await t.run(async (ctx) => {
+      // Mute lives on the member's private state row (C1).
       const row = await ctx.db
-        .query("roomMembers")
+        .query("roomUserState")
         .withIndex("by_room_user", (q) =>
           q.eq("roomId", roomId).eq("userId", people[1].userId),
         )

@@ -168,7 +168,10 @@ describe("anonymity is a promise, not a filter", () => {
     });
 
     const row = await readOne(t, author, roomId);
-    expect(row.choices[1].respondents.map((r: any) => r.name)).toEqual(["voter"]);
+    // Names are not copied onto the row any more (PROFILE_COPIES off): the
+    // preview carries the id, the client resolves the name from the profile.
+    expect(row.choices[1].respondents.map((r: any) => r.userId)).toEqual([voter.userId]);
+    expect(row.choices[1].respondents[0].name).toBeUndefined();
 
     const detail = await t.query(api.interactions.respondents, {
       sessionToken: author.token,
@@ -403,7 +406,7 @@ describe("a checklist tick belongs to an item, not to a ballot", () => {
     // Ticked once, by the first person to reach it — a task is done or it is
     // not, and the second tap is agreement rather than a second vote.
     expect(countOf(row, "0")).toBe(1);
-    expect(row.choices[0].respondents.map((r: any) => r.name)).toEqual(["bea"]);
+    expect(row.choices[0].respondents.map((r: any) => r.userId)).toEqual([b.userId]);
   });
 
   test("only the ticker or the author may untick", async () => {

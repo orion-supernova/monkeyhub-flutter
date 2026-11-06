@@ -44,6 +44,7 @@ import { FilterBlockedError, screenAndReport } from "./moderationCore";
 import { isSystemAccount, isSystemRoom } from "./systemAccount";
 import { canReadRoom } from "./roomAccess";
 import { noteEngaged } from "./engagement";
+import { receiptOf, receiptRoster, stateOf } from "./roomState";
 import { copiesOn } from "./profileCopyGate";
 import { ERR_RATE_LIMITED, consume } from "./rateLimit";
 import { recordMentions } from "./mentions";
@@ -3712,6 +3713,131 @@ export const recountViewOnceRecipients = internalMutation({
 // ──────────────────────── Delivery + read receipts ───────────────────────────
 
 /**
+ * The newest sequence number at or before [cursor] in [roomId]: where the read
+ * position lands when a client says it has read up to a message's `createdAt`.
+ *
+ * Takes the highest `seq` of the few newest candidates rather than the first
+ * row: sequence order matches `createdAt` order except for two mutations that
+ * committed out of clock order (a few ms), and an earlier-stamped message that
+ * got the later number must still count as read. See `roomStateCore.ts`.
+ */
+async function resolveReadSeq(ctx: any, roomId: any, cursor: number): Promise<number> {
+  const rows = await ctx.db
+    .query("messages")
+    .withIndex("by_room_time", (q: any) => q.eq("roomId", roomId).lte("createdAt", cursor))
+    .order("desc")
+    // 8: covers a burst of concurrent sends committing out of clock order in a
+    // busy room; each is a small read only when the cursor moves.
+    .take(8);
+  let seq = 0;
+  for (const m of rows) if ((m.seq ?? 0) > seq) seq = m.seq;
+  return seq;
+}
+
+/**
+ * `markRoomRead` for a membership on the C1 tables. Reads `roomReceipts` for
+ * the early return, resolves the read position from the message index (not the
+ * room doc), then patches the viewer's private `roomUserState` and their public
+ * `roomReceipts`. Writes no `roomMembers` row.
+ */
+async function markReadWithState(
+  ctx: any,
+  a: {
+    roomId: Id<"rooms">;
+    userId: Id<"users">;
+    upTo: number | undefined;
+    vanish: boolean | undefined;
+    vanishCounts: boolean | undefined;
+    state: any;
+  },
+): Promise<void> {
+  const { roomId, userId, upTo, vanish, vanishCounts, state } = a;
+  await noteEngaged(ctx, userId);
+
+  let receipt = await receiptOf(ctx, roomId, userId);
+  if (!receipt) {
+    // Self-heal a state row whose receipts row is missing.
+    const member = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId).eq("userId", userId))
+      .first();
+    if (!member) return;
+    const id = await ctx.db.insert("roomReceipts", {
+      roomId,
+      userId,
+      vanishSeenAt: member.joinedAt,
+      ...(member.seenVisibility !== undefined ? { seenVisibility: member.seenVisibility } : {}),
+    });
+    receipt = await ctx.db.get(id);
+  }
+
+  let newest: number;
+  if (upTo !== undefined) {
+    newest = Math.min(upTo, Date.now());
+  } else {
+    const room = await getLiveRoom(ctx, roomId);
+    newest = room?.lastMessageTime ?? 0;
+  }
+  const countsVanish = vanish === true && vanishCounts === true;
+  if ((receipt.lastReadAt ?? 0) >= newest) {
+    if (countsVanish && receipt.vanishSeenAt < (receipt.lastReadAt ?? 0)) {
+      await ctx.db.patch(receipt._id, { vanishSeenAt: receipt.lastReadAt });
+      await vanishAfterRead(ctx, roomId, userId, Date.now());
+    }
+    return;
+  }
+  await consume(ctx, `read:${userId}`, MAX_READS_PER_MINUTE, 60 * 1000);
+
+  const clock = Date.now();
+  const cursor = upTo !== undefined ? Math.min(upTo, clock) : clock;
+  const resolved = await resolveReadSeq(ctx, roomId, cursor);
+  const readSeq = Math.max(state.readSeq, resolved);
+
+  // Own runs the new position has passed are dropped or trimmed.
+  const runs = (state.ownRuns ?? [])
+    .filter((r: any) => r.to > readSeq)
+    .map((r: any) => (r.from <= readSeq ? { from: readSeq + 1, to: r.to } : r));
+  const statePatch: Record<string, unknown> = {};
+  if (readSeq !== state.readSeq) statePatch.readSeq = readSeq;
+  if (state.readAt !== cursor) statePatch.readAt = cursor;
+  if (runs.length !== (state.ownRuns ?? []).length ||
+      JSON.stringify(runs) !== JSON.stringify(state.ownRuns ?? [])) {
+    statePatch.ownRuns = runs.length > 0 ? runs : undefined;
+  }
+  if (state.ownOverflow === true) {
+    // Own messages above the old position were not tracked, so only a read that
+    // reaches the room's newest message proves none are left.
+    const room = await ctx.db.get(roomId);
+    if (room && readSeq >= (room.lastSeq ?? 0)) statePatch.ownOverflow = undefined;
+  }
+  if (Object.keys(statePatch).length > 0) await ctx.db.patch(state._id, statePatch);
+
+  const deliveredBefore = receipt.lastDeliveredAt ?? 0;
+  await appendReceiptMove(ctx, receipt, "read", {
+    before: receipt.lastReadAt ?? 0,
+    upTo: cursor,
+    at: clock,
+  });
+  if (cursor > deliveredBefore) {
+    await appendReceiptMove(ctx, receipt, "delivered", {
+      before: deliveredBefore,
+      upTo: cursor,
+      at: clock,
+    });
+  }
+  await ctx.db.patch(receipt._id, {
+    lastReadAt: cursor,
+    readClock: clock,
+    lastDeliveredAt: Math.max(deliveredBefore, cursor),
+    ...(cursor > deliveredBefore ? { deliveredClock: clock } : {}),
+    ...(countsVanish ? { vanishSeenAt: Math.max(receipt.vanishSeenAt, cursor) } : {}),
+  });
+  if (countsVanish) await vanishAfterRead(ctx, roomId, userId, clock);
+
+  await scheduleReadDismiss(ctx, { userId, roomId, membership: state });
+}
+
+/**
  * Mark a room as "read up to now" for the given user. Persisted on the
  * roomMembers row so the relationship is O(rooms × members) rather than
  * O(messages × members).
@@ -3744,6 +3870,13 @@ export const markRoomRead = mutation({
     vanishCounts: v.optional(v.boolean()),
   },
   handler: async (ctx, { roomId, userId, upTo, vanish, vanishCounts }) => {
+    // C1: a membership with a `roomUserState` row lives on the new tables and
+    // never touches `roomMembers` (which would re-run every roster query).
+    const state = await stateOf(ctx, roomId, userId);
+    if (state) {
+      await markReadWithState(ctx, { roomId, userId, upTo, vanish, vanishCounts, state });
+      return;
+    }
     const membership = await ctx.db
       .query("roomMembers")
       .withIndex("by_room_user", (q) =>
@@ -3941,6 +4074,26 @@ async function advanceDelivered(
   userId: Id<"users">,
   upTo: number | undefined,
 ): Promise<void> {
+  // C1: a membership on the new tables moves its `roomReceipts` row only. No
+  // `roomMembers`, no `roomUserState`, no room doc: a delivery report re-runs
+  // nothing but the read-state / seen-by views.
+  const receipt = await receiptOf(ctx, roomId, userId);
+  if (receipt) {
+    let to: number;
+    if (upTo === undefined) {
+      const room = await getLiveRoom(ctx, roomId);
+      if ((room?.memberCount ?? 0) > DELIVERY_MEMBER_LIMIT) return;
+      to = room?.lastMessageTime ?? 0;
+    } else {
+      to = Math.min(upTo, Date.now());
+    }
+    const at = receipt.lastDeliveredAt ?? 0;
+    if (at >= to) return;
+    const now = Date.now();
+    await appendReceiptMove(ctx, receipt, "delivered", { before: at, upTo: to, at: now });
+    await ctx.db.patch(receipt._id, { lastDeliveredAt: to, deliveredClock: now });
+    return;
+  }
   const membership = await ctx.db
     .query("roomMembers")
     .withIndex("by_room_user", (q: any) =>
@@ -4030,10 +4183,7 @@ export const getReadState = query({
     viewerUserId: v.id("users"),
   },
   handler: async (ctx, { roomId, viewerUserId }) => {
-    const members = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
-      .collect();
+    const members = await receiptRoster(ctx, roomId);
     // Members only; the roster is already read, so this costs nothing.
     if (!members.some((m) => m.userId === viewerUserId)) return [];
 
@@ -4113,10 +4263,7 @@ export const getReceiptTimes = query({
     createdAt: v.number(),
   },
   handler: async (ctx, { roomId, viewerUserId, createdAt }) => {
-    const members = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
-      .collect();
+    const members = await receiptRoster(ctx, roomId);
     // Members only; the roster is already read, so this costs nothing.
     if (!members.some((m) => m.userId === viewerUserId)) return [];
     const lens = await lensFor(ctx, viewerUserId);

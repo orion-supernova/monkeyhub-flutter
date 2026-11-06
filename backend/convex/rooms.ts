@@ -11,8 +11,10 @@ import {
 } from "./childGuard";
 import { assertNoSystemAccount, assertNotSystemRoom } from "./systemAccount";
 import { assertCleanName, assertCleanText } from "./contentFilter";
-import { lensFor, levelOf, publicUserView, seenVisibilityOf } from "./visibility";
+import { lensFor, levelOf, seenVisibilityOf } from "./visibility";
 import { unreadForRoom } from "./badges";
+import { roomUnread } from "./unread";
+import { stateBackfilled, stateOf, withMuteState } from "./roomState";
 import { MUTE_ALWAYS, resolveMute } from "./mute";
 import { attachFile, claimUpload, releaseFile } from "./files";
 import { wipeRoomCompletely } from "./roomCleanup";
@@ -412,129 +414,216 @@ export const listPublic = query({
   },
 });
 
+/**
+ * The fields of a room the chat list draws: exactly what `ChatRoom.fromJson`
+ * reads, and nothing else. No `...rest` spread (a room doc grows fields the list
+ * never draws), and no `passwordHash`.
+ */
+const LIST_ROOM_FIELDS = [
+  "_id",
+  "_creationTime",
+  "name",
+  "description",
+  "createdBy",
+  "createdAt",
+  "isPrivate",
+  "memberCount",
+  "lastMessage",
+  "lastMessageTime",
+  "lastMessageSenderId",
+  "type",
+  "messageLifetime",
+  "messageClock",
+  "avatarStorageId",
+  "system",
+  "postingPolicy",
+  "vanishMode",
+  "vanishAfterSeen",
+] as const;
+
+function listCard(room: any): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const k of LIST_ROOM_FIELDS) if (room[k] !== undefined) out[k] = room[k];
+  out.hasPassword = !!room.passwordHash;
+  return out;
+}
+
+/** What a viewer's own organisation (pin, archive, mute) adds to a list entry. */
+function viewerFields(m: any, archivedKey: "archived" | "isArchived"): Record<string, any> {
+  return {
+    isPinned: m.isPinned ?? false,
+    pinnedAt: m.pinnedAt ?? null,
+    isArchived: (archivedKey === "archived" ? m.archived : m.isArchived) ?? false,
+    archivedAt: m.archivedAt ?? null,
+    // RAW, not resolved against the clock: see `lib/models/room_mute.dart`.
+    muteNotifications: m.muteNotifications ?? false,
+    muteBadges: m.muteBadges ?? false,
+    mutedUntil: m.mutedUntil ?? null,
+  };
+}
+
+/**
+ * The chat list: one entry per room the viewer is in.
+ *
+ * Per run, per room: the viewer's `roomUserState` row, the room doc and (only
+ * while something is unread) the room's gap rows. Unread is exact arithmetic on
+ * sequence numbers (`unread.ts`), not a message scan, and a DM's other member
+ * is on the state row, not found by scanning the roster. A delivery report
+ * writes `roomReceipts`, which this never reads, so it does not re-run.
+ *
+ * `scope` ("active" | "archived") narrows to one half of the viewer's list;
+ * absent means everything, which is what builds already in users' hands expect.
+ *
+ * Dual-mode until the state backfill marker is set: a membership with no state
+ * row yet is listed from its legacy `roomMembers` row, as before.
+ *
+ * `lastDeliveredAt` is always null: reading it would make the list re-run on
+ * every delivery report. Builds that used it to skip already-reported rooms
+ * now send at most one no-op delivery mutation per room with unread.
+ */
 export const listUserRooms = query({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
-    const memberships = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+  args: {
+    userId: v.id("users"),
+    scope: v.optional(v.union(v.literal("active"), v.literal("archived"))),
+  },
+  handler: async (ctx, { userId, scope }) => {
+    const backfilled = await stateBackfilled(ctx);
+    // Once every membership has its rows the scope is an index range. Before
+    // that, all states are read and filtered, because the legacy half needs to
+    // know which rooms already have one whichever side they are on.
+    const wantArchived = scope === undefined ? undefined : scope === "archived";
+    const states = await ctx.db
+      .query("roomUserState")
+      .withIndex("by_user_archived", (q) =>
+        backfilled && wantArchived !== undefined
+          ? q.eq("userId", userId).eq("archived", wantArchived)
+          : q.eq("userId", userId),
+      )
       .collect();
 
-    const rooms = await Promise.all(
-      memberships.map(async (m) => {
-        const room = await ctx.db.get(m.roomId);
-        // A room being deleted vanishes from the list at once (its membership
-        // rows go in the first teardown step); the row is in hand, so free.
-        if (!room || isTombstoned(room)) return null;
-
-        // Participant ids, for DMs ONLY. The narrowing is a fan-out fix, not a
-        // payload saving.
-        //
-        // Collecting every member put each of their `roomMembers` rows into
-        // this subscription's read set, once per room the viewer is in. That
-        // row is patched by `markRoomRead` on every incoming message — so four
-        // people talking quickly re-ran this entire query, N rooms x (a room
-        // read + a member scan + an unread scan), for every member on every
-        // message. It was the top UserTimeout in the server logs by a wide
-        // margin, and the work was mostly for nobody: the client reads
-        // `participantIds` at exactly one place, `ChatRoom.otherParticipantId`,
-        // which its only caller guards behind `isDm` and which returns null for
-        // anything else. A group room's copy was built, shipped and dropped.
-        //
-        // Restricting the read to DMs leaves that one consumer exactly as
-        // correct while taking group rooms out of the invalidation path
-        // entirely. Older clients are safe: `ChatRoom.fromJson` already
-        // defaults the field to `const []`, which is what a group room now
-        // sends.
-        //
-        // A DM still collects, and still refires when its two members read —
-        // two rows, one peer, which is the cost of knowing who you are talking
-        // to. `startsWith("dm:")` is the same test the rest of the backend uses
-        // (roomAdmin.isGroupRoom, childGuard, roomCleanup).
-        const participantIds = room.name?.startsWith("dm:")
-          ? (
+    const entries: any[] = [];
+    const now = Date.now();
+    await Promise.all(
+      states.map(async (s) => {
+        if (wantArchived !== undefined && s.archived !== wantArchived) return;
+        const room = await ctx.db.get(s.roomId);
+        // A room being deleted vanishes from the list at once.
+        if (!room || isTombstoned(room)) return;
+        const unread = await roomUnread(ctx, room, s, now);
+        let participantIds: string[] = [];
+        if (room.name?.startsWith("dm:")) {
+          if (room.name.startsWith("dm:self:")) participantIds = [userId.toString()];
+          else if (s.dmPeerId) participantIds = [userId.toString(), s.dmPeerId.toString()];
+          else {
+            // A DM whose name the parser did not recognise: the old roster read.
+            participantIds = (
               await ctx.db
                 .query("roomMembers")
-                .withIndex("by_room_user", (q) => q.eq("roomId", m.roomId))
+                .withIndex("by_room_user", (q) => q.eq("roomId", s.roomId))
                 .collect()
-            ).map((mem) => mem.userId.toString())
-          : [];
-        const { passwordHash, ...rest } = room;
-        // Surface the caller's own read cursor so the client can flag rooms
-        // with messages newer than lastReadAt as unread (m is this user's
-        // membership row). markRoomRead keeps lastReadAt current.
-        //
-        // `unreadCount` is a capped scan rather than a denormalized counter.
-        // This subscription already re-runs on every message — `messages.send`
-        // patches rooms.lastMessage, and we ctx.db.get(m.roomId) right above —
-        // so counting here adds no new invalidation for the common case, while
-        // a counter on roomMembers would patch N member rows per send and
-        // re-fire getReadState for the whole room. See badges.ts.
-        // `room.lastMessageTime` lets it answer 0 without a scan for every
-        // room the viewer has already read to the end — which, on any one
-        // message, is nearly all of them. See `unreadForRoom`.
-        const unread = await unreadForRoom(
-          ctx,
-          m.roomId,
-          userId,
-          m.lastReadAt,
-          room.lastMessageTime
-        );
-        return {
-          ...rest,
+            ).map((mem) => mem.userId.toString());
+          }
+        }
+        entries.push({
+          ...listCard(room),
           participantIds,
-          hasPassword: !!passwordHash,
-          lastReadAt: m.lastReadAt ?? null,
-          // The caller's own delivery cursor, for the same reason: it lets the
-          // client see which rooms it has ALREADY reported as delivered and
-          // skip them. Without it, a cold start with twenty unread rooms would
-          // fire twenty `markRoomDelivered` mutations on every launch instead
-          // of only on rooms that genuinely moved since.
-          lastDeliveredAt: m.lastDeliveredAt ?? null,
+          lastReadAt: s.readAt ?? null,
+          lastDeliveredAt: null,
           unreadCount: unread.count,
           unreadCapped: unread.capped,
-          // Computed from the rows `unreadForRoom` already read — see badges.ts.
           hasMention: unread.hasMention,
-          isPinned: m.isPinned ?? false,
-          pinnedAt: m.pinnedAt ?? null,
-          isArchived: m.isArchived ?? false,
-          archivedAt: m.archivedAt ?? null,
-          // The caller's own mute, RAW rather than resolved against the clock.
-          //
-          // Sending a resolved `isMuted: true` would be a lie with a shelf
-          // life: this is a reactive subscription, and `mutedUntil` passing is
-          // not a database change, so nothing re-fires the query when a mute
-          // lapses under an open client. It would sit there claiming the room
-          // is muted until the next unrelated write to it.
-          //
-          // The deadline itself has no shelf life, so the client re-resolves
-          // it at render time (`lib/models/room_mute.dart`) and gets the same
-          // answer this backend would. It needs the instant anyway to say
-          // "until 8:00 PM" in the viewer's own timezone.
-          //
-          // `unreadCount` above is deliberately the TRUE count even when
-          // `muteBadges` is set: the room info screen can then say "muted, 12
-          // unread", and hiding the pill stays a presentation decision in one
-          // place rather than a hole in the data. `badges.badgeTotalFor` is
-          // where a badge-muted room actually stops counting.
-          muteNotifications: m.muteNotifications ?? false,
-          muteBadges: m.muteBadges ?? false,
-          mutedUntil: m.mutedUntil ?? null,
-        };
-      })
+          ...viewerFields(s, "archived"),
+        });
+      }),
     );
 
-    return rooms
-      .filter(Boolean)
-      .sort((a, b) => (b!.lastMessageTime ?? b!.createdAt) - (a!.lastMessageTime ?? a!.createdAt));
+    if (!backfilled) {
+      const have = new Set(states.map((s) => s.roomId.toString()));
+      const memberships = await ctx.db
+        .query("roomMembers")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      await Promise.all(
+        memberships.map(async (m) => {
+          if (have.has(m.roomId.toString())) return;
+          if (wantArchived !== undefined && (m.isArchived === true) !== wantArchived) return;
+          const room = await ctx.db.get(m.roomId);
+          if (!room || isTombstoned(room)) return;
+          // DMs only (see git history for why group rooms never collect).
+          const participantIds = room.name?.startsWith("dm:")
+            ? (
+                await ctx.db
+                  .query("roomMembers")
+                  .withIndex("by_room_user", (q) => q.eq("roomId", m.roomId))
+                  .collect()
+              ).map((mem) => mem.userId.toString())
+            : [];
+          const unread = await unreadForRoom(
+            ctx,
+            m.roomId,
+            userId,
+            m.lastReadAt,
+            room.lastMessageTime,
+          );
+          entries.push({
+            ...listCard(room),
+            participantIds,
+            lastReadAt: m.lastReadAt ?? null,
+            lastDeliveredAt: null,
+            unreadCount: unread.count,
+            unreadCapped: unread.capped,
+            hasMention: unread.hasMention,
+            ...viewerFields(m, "isArchived"),
+          });
+        }),
+      );
+    }
+
+    return entries.sort(
+      (a, b) => (b.lastMessageTime ?? b.createdAt) - (a.lastMessageTime ?? a.createdAt),
+    );
+  },
+});
+
+/**
+ * How many rooms the viewer has archived, for the "Archived (n)" row that sits
+ * above a list fetched with `scope: "active"`. Reads only the state rows in the
+ * archived half of the index (plus, until the backfill marker is set, legacy
+ * memberships without a state row).
+ */
+export const archivedCount = query({
+  args: { userId: v.id("users") },
+  returns: v.number(),
+  handler: async (ctx, { userId }) => {
+    const archived = await ctx.db
+      .query("roomUserState")
+      .withIndex("by_user_archived", (q) => q.eq("userId", userId).eq("archived", true))
+      .collect();
+    let n = archived.length;
+    if (!(await stateBackfilled(ctx))) {
+      const states = await ctx.db
+        .query("roomUserState")
+        .withIndex("by_user_archived", (q) => q.eq("userId", userId))
+        .collect();
+      const have = new Set(states.map((s) => s.roomId.toString()));
+      const memberships = await ctx.db
+        .query("roomMembers")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const m of memberships) {
+        if (m.isArchived === true && !have.has(m.roomId.toString())) n++;
+      }
+    }
+    return n;
   },
 });
 
 /**
  * Per-viewer chat-list organization: pin/unpin and archive/unarchive a room
- * for the calling user only. Same lookup-then-patch shape as `markRoomRead`
- * (messages.ts) — patched on the caller's own `roomMembers` row, so it never
- * touches how the room looks to anyone else in it.
+ * for the calling user only. Patches the caller's own `roomUserState` row (or,
+ * for a membership the backfill has not reached, their legacy `roomMembers`
+ * row), so it never touches how the room looks to anyone else in it and never
+ * re-runs a roster or read-state query.
  */
 async function patchOwnMembership(
   ctx: any,
@@ -542,6 +631,15 @@ async function patchOwnMembership(
   userId: any,
   patch: Record<string, unknown>
 ) {
+  const state = await stateOf(ctx, roomId, userId);
+  if (state) {
+    const { isArchived, ...rest } = patch as any;
+    await ctx.db.patch(state._id, {
+      ...rest,
+      ...("isArchived" in patch ? { archived: isArchived === true } : {}),
+    });
+    return;
+  }
   const membership = await ctx.db
     .query("roomMembers")
     .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId).eq("userId", userId))
@@ -791,10 +889,16 @@ export const getMemberIds = internalQuery({
         !msg.replyToId &&
         msg.mediaSpoiler !== true;
     }
-    const memberRows = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
-      .collect();
+    // Mute lives on `roomUserState` for migrated memberships (C1); the roster
+    // row only answers for the ones the backfill has not reached.
+    const memberRows = await withMuteState(
+      ctx,
+      roomId,
+      await ctx.db
+        .query("roomMembers")
+        .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
+        .collect(),
+    );
     const now = Date.now();
     const filtered = memberRows.filter(
       (m) => m.userId.toString() !== excludeUserId.toString(),

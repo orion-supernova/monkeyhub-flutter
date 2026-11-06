@@ -509,7 +509,7 @@ export const listJoinRequests = query({
       out.push({
         requestId: r._id,
         createdAt: r.createdAt,
-        user: publicUserView(lens, user, now),
+        user: await publicUserView(ctx, lens, user),
       });
     }
     return out;

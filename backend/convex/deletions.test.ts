@@ -345,8 +345,7 @@ describe("user tombstone", () => {
     expect(row.deletingAt).toBeTypeOf("number");
     expect(row.username).toBe(`deleted:${userId}`);
     expect(row.passwordHash).toBe("");
-    expect(row.status).toBe("offline");
-    for (const f of ["name", "email", "recoveryKeyHash", "lastSeen"]) expect(row[f]).toBeUndefined();
+    for (const f of ["name", "email", "recoveryKeyHash", "status", "lastSeen"]) expect(row[f]).toBeUndefined();
     expect(row.suspendedAt).toBe(7); // the ban survives the scrub
     const sessions: any[] = await t.run((ctx) => ctx.db.query("sessions").collect());
     expect(sessions.every((s) => s.revokedAt !== undefined)).toBe(true);

@@ -492,7 +492,7 @@ export const listPending = query({
           row.field === FIELD_AVATAR ? null : currentValue(room, row.field),
         currentStorageId:
           row.field === FIELD_AVATAR ? (room.avatarStorageId ?? null) : null,
-        user: publicUserView(lens, user, now),
+        user: await publicUserView(ctx, lens, user),
       });
     }
     return out;

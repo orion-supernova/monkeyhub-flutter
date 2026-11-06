@@ -259,8 +259,9 @@ describe("setStatus", () => {
     await t.mutation(api.presenceApi.setStatus, { sessionToken: me.token, status: "away" });
     const s = await rowsOf(t, me.userId);
     expect(s.presence[0]).toMatchObject({ status: "away", lastSeen: T0 + 5_000 });
-    // new endpoint mirrors to users for old viewers
-    expect(s.user).toMatchObject({ status: "away", lastSeen: T0 + 5_000 });
+    // Nothing is mirrored to users any more.
+    expect(s.user.status).toBeUndefined();
+    expect(s.user.lastSeen).toBeUndefined();
   });
 
   test("a repeat writes nothing and is not charged to the limit", async () => {
@@ -293,53 +294,7 @@ describe("setStatus", () => {
   });
 });
 
-describe("old and new endpoints both land in presence", () => {
-  test("users.updateStatus and users.heartbeat", async () => {
-    const t = convexTest(schema);
-    const me = await signUp(t, "me");
-    vi.setSystemTime(T0 + 5_000);
-    await t.mutation(api.users.updateStatus, {
-      sessionToken: me.token,
-      userId: me.userId,
-      status: "away",
-    } as any);
-    let s = await rowsOf(t, me.userId);
-    expect(s.presence[0]).toMatchObject({ status: "away", lastSeen: T0 + 5_000 });
-    expect(s.user).toMatchObject({ status: "away", lastSeen: T0 + 5_000 });
-
-    await t.mutation(api.users.updateStatus, {
-      sessionToken: me.token,
-      userId: me.userId,
-      status: "online",
-    } as any);
-    vi.setSystemTime(T0 + 200_000);
-    await t.mutation(api.users.heartbeat, {
-      sessionToken: me.token,
-      userId: me.userId,
-    } as any);
-    s = await rowsOf(t, me.userId);
-    expect(s.presence[0].status).toBe("online");
-    expect(s.beats[0]).toMatchObject({ beatAt: T0 + 200_000, live: true });
-  });
-
-  test("a stray heartbeat does not resurrect an offline user", async () => {
-    const t = convexTest(schema);
-    const me = await signUp(t, "me");
-    await t.run(async (ctx) => {
-      const p = await ctx.db
-        .query("presence")
-        .withIndex("by_user", (q) => q.eq("userId", me.userId as any))
-        .first();
-      await ctx.db.patch(p!._id, { status: "offline", lastSeen: T0 });
-    });
-    vi.setSystemTime(T0 + 200_000);
-    await t.mutation(api.users.heartbeat, {
-      sessionToken: me.token,
-      userId: me.userId,
-    } as any);
-    expect((await rowsOf(t, me.userId)).presence[0].status).toBe("offline");
-  });
-
+describe("visibility levels and sign-in", () => {
   test("updateVisibility copies the levels onto presence", async () => {
     const t = convexTest(schema);
     const me = await signUp(t, "me");
@@ -402,7 +357,7 @@ describe("sweepStale", () => {
       lastSeen: T0 - PRESENCE_OFFLINE_MS - 5_000,
     });
     expect(s.beats[0].live).toBe(false);
-    expect(s.user).toMatchObject({ status: "offline" }); // mirrored for old viewers
+    expect(s.user.status).toBe("online"); // the sweep never touches users
     const f = await rowsOf(t, fresh);
     expect(f.presence[0].status).toBe("online");
     expect(f.beats[0].live).toBe(true);
@@ -430,34 +385,18 @@ describe("sweepStale", () => {
   });
 });
 
-describe("compat window for old-path readers", () => {
-  test("a 30 s beater never reads offline over 20 minutes", async () => {
-    const { effectiveStatus } = await import("./presence");
-    const { COMPAT_OFFLINE_MS } = await import("./presenceCore");
+describe("a steady beater", () => {
+  test("a 30 s beater stays online over 20 minutes of sweeps", async () => {
     const t = convexTest(schema);
     const me = await signUp(t, "me");
     for (let s = 30; s <= 20 * 60; s += 30) {
       vi.setSystemTime(T0 + s * 1000);
       await t.mutation(api.presenceApi.beat, { sessionToken: me.token, status: "online" });
-      if (s % 60 === 0) {
-        await t.mutation(internal.presenceApi.sweepStale, {});
-        await t.mutation(internal.users.sweepStalePresence, {});
-      }
-      const u = (await rowsOf(t, me.userId)).user;
-      expect(effectiveStatus(u.status, u.lastSeen, Date.now(), COMPAT_OFFLINE_MS)).toBe("online");
+      if (s % 60 === 0) await t.mutation(internal.presenceApi.sweepStale, {});
+      const r = await rowsOf(t, me.userId);
+      expect(r.presence[0].status).toBe("online");
+      expect(r.user.status).toBeUndefined();
     }
-  });
-
-  test("mirrorLive restores a users.status the old sweep flipped", async () => {
-    const t = convexTest(schema);
-    const me = await signUp(t, "me");
-    await t.run((ctx) => ctx.db.patch(me.userId as any, { status: "offline" }));
-    vi.setSystemTime(T0 + 100_000);
-    await t.mutation(api.presenceApi.beat, { sessionToken: me.token, status: "online" });
-    expect((await rowsOf(t, me.userId)).user).toMatchObject({
-      status: "online",
-      lastSeen: T0 + 100_000,
-    });
   });
 });
 

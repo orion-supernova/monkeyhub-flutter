@@ -62,24 +62,6 @@ describe("heartbeat refreshes only the calling session", () => {
     expect(phone.token).toBeTruthy();
   });
 
-  test("the legacy users.heartbeat is per-session too, and throttled", async () => {
-    const t = convexTest(schema);
-    const laptop = await signUp(t, "bob");
-    await login(t, "bob", "phone");
-    const first = Date.now();
-    // Fresh session: no write.
-    vi.setSystemTime(first + 1000);
-    await t.mutation(api.users.heartbeat, { sessionToken: laptop.token, userId: laptop.userId } as any);
-    let rows = await sessions(t, laptop.userId);
-    expect(rows.every((r) => r.lastSeenAt === first)).toBe(true);
-
-    vi.setSystemTime(first + SESSION_TOUCH_MS + 1000);
-    await t.mutation(api.users.heartbeat, { sessionToken: laptop.token, userId: laptop.userId } as any);
-    rows = await sessions(t, laptop.userId);
-    const touched = rows.filter((r) => r.lastSeenAt > first);
-    expect(touched.map((r) => r.deviceId)).toEqual(["device-bob"]);
-  });
-
   test("a forgotten session still idles out while another stays active", async () => {
     const t = convexTest(schema);
     const laptop = await signUp(t, "cara");

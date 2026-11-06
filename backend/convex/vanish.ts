@@ -7,6 +7,7 @@ import { removeMessageAndFanout } from "./messages";
 import { assertNotSystemRoom } from "./systemAccount";
 import { assertAdmin, isGroupRoom, membershipOf } from "./roomAdmin";
 import { consume } from "./rateLimit";
+import { receiptOf, stateOf } from "./roomState";
 import {
   AFTER_SEEN_OPTIONS,
   DEFAULT_AFTER_SEEN_SECONDS,
@@ -139,13 +140,19 @@ export const setVanishMode = mutation({
   },
 });
 
+/** The per-chat "share my reads" answer: the state row's (C1), else the legacy membership's. */
+async function perChatShare(ctx: any, membership: any): Promise<boolean | undefined> {
+  const state = await stateOf(ctx, membership.roomId, membership.userId);
+  return state ? state.vanishShareReads : membership.vanishShareReads;
+}
+
 /**
  * Whether this member's reads in [room] may count, decided server-side from
  * the user's own settings (used for the catch-up paths below; the hot path,
  * markRoomRead, takes the client's word, which can only expose its own reads).
  */
 async function mayShareReads(ctx: any, userId: any, membership: any): Promise<boolean> {
-  if (membership.vanishShareReads === true) return true;
+  if ((await perChatShare(ctx, membership)) === true) return true;
   const user = await ctx.db.get(userId);
   const vis = user?.visibility;
   // `seen` defaults to "friends" (visibility.ts), i.e. not hidden.
@@ -158,10 +165,12 @@ async function mayShareReads(ctx: any, userId: any, membership: any): Promise<bo
  * nothing to catch up. Reads the vanishState only when the cursor moved.
  */
 async function catchUp(ctx: any, membership: any, roomId: any): Promise<boolean> {
-  const read = membership.lastReadAt ?? 0;
-  const current = membership.vanishSeenAt ?? 0;
+  // C1: the cursors are on `roomReceipts` for a migrated membership.
+  const receipt = await receiptOf(ctx, roomId, membership.userId);
+  const read = (receipt ? receipt.lastReadAt : membership.lastReadAt) ?? 0;
+  const current = (receipt ? receipt.vanishSeenAt : membership.vanishSeenAt) ?? 0;
   if (read <= current) return false;
-  await ctx.db.patch(membership._id, { vanishSeenAt: read });
+  await ctx.db.patch((receipt ?? membership)._id, { vanishSeenAt: read });
   const state = await vanishStateOf(ctx, roomId);
   if (state) await recomputeFloor(ctx, state, Date.now());
   return true;
@@ -183,7 +192,12 @@ export const setVanishShareReads = mutation({
   handler: async (ctx, { roomId, userId, share }) => {
     const membership = await membershipOf(ctx, roomId, userId);
     if (!membership) throw new Error("NOT_A_MEMBER");
-    if (membership.vanishShareReads !== share) {
+    const state = await stateOf(ctx, roomId, userId);
+    if (state) {
+      if (state.vanishShareReads !== share) {
+        await ctx.db.patch(state._id, { vanishShareReads: share });
+      }
+    } else if (membership.vanishShareReads !== share) {
       await ctx.db.patch(membership._id, { vanishShareReads: share });
     }
     if (share) await catchUp(ctx, membership, roomId);
@@ -275,7 +289,7 @@ export const myVanishPrefs = query({
     const user = await ctx.db.get(userId);
     const seen = user?.visibility?.seen ?? "friends";
     const global = user?.visibility?.vanishShareReads === true;
-    const perChat = membership.vanishShareReads ?? null;
+    const perChat = (await perChatShare(ctx, membership)) ?? null;
     return {
       perChat,
       global,

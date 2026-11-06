@@ -204,17 +204,21 @@ export const getTypingForUser = query({
   },
   handler: async (ctx, { userId, roomId, withUntil, roomIds }) => {
     const now = Date.now();
-    const memberships: { roomId: any }[] = roomIds
-      ? []
-      : roomId
-      ? await ctx.db
-          .query("roomMembers")
-          .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
-          .take(1)
-      : await ctx.db
-          .query("roomMembers")
+    // Access through `roomAccess` (a churn-free row per membership), never a
+    // `roomMembers` scan: those rows are rewritten by roster changes, and the
+    // legacy whole-session branch below used to re-run on every one of them.
+    const memberships: { roomId: any }[] = [];
+    if (!roomIds) {
+      if (roomId) {
+        if (await canReadRoom(ctx, roomId, userId)) memberships.push({ roomId });
+      } else {
+        const grants = await ctx.db
+          .query("roomAccess")
           .withIndex("by_user", (q) => q.eq("userId", userId))
           .collect();
+        for (const g of grants) memberships.push({ roomId: g.roomId });
+      }
+    }
 
     if (roomIds) {
       const seen = new Set<string>();

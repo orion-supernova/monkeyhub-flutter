@@ -32,6 +32,8 @@ async function room(t: ReturnType<typeof convexTest>, owner: string, members: st
         joinedAt: NOW,
         role: "member",
       } as any);
+      // The whole-session typing read goes through the access rows.
+      await ctx.db.insert("roomAccess", { roomId, userId: u as any });
     }
     return roomId;
   });

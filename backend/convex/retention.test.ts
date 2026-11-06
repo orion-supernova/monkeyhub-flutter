@@ -639,4 +639,21 @@ describe("call log, mention inbox, device engagement (D3)", () => {
     const left = await all(t, "deviceEngagement");
     expect(left.map((r: any) => r.deviceId).sort()).toEqual(["edge", "new"]);
   });
+
+  test("messageGaps: drains gaps past the unread horizon plus a day, keeps newer", async () => {
+    const t = convexTest(schema);
+    const { room } = await world(t);
+    const horizon = 181 * DAY;
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 450; i++) {
+        await ctx.db.insert("messageGaps", { roomId: room, seq: i + 1, at: NOW - horizon - 1 - i });
+      }
+      await ctx.db.insert("messageGaps", { roomId: room, seq: 1000, at: NOW - horizon });
+      await ctx.db.insert("messageGaps", { roomId: room, seq: 1001, at: NOW - 30 * DAY });
+    });
+    await t.mutation(internal.retention.gcMessageGaps, {});
+    await drain(t);
+    const left = await all(t, "messageGaps");
+    expect(left.map((r: any) => r.seq).sort()).toEqual([1000, 1001]);
+  });
 });

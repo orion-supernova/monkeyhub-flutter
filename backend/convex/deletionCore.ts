@@ -412,9 +412,12 @@ export async function startUserDeletion(
       name: undefined,
       email: undefined,
       recoveryKeyHash: undefined,
+      // Legacy presence fields: no longer written anywhere, but a row from
+      // before the presence table may still carry them; a tombstone keeps
+      // nothing it doesn't need.
+      status: undefined,
       lastSeen: undefined,
       passwordHash: "",
-      status: "offline",
       avatarStorageId: undefined,
       // Legacy push tokens on the row itself: a ghost must not ring.
       voipToken: undefined,

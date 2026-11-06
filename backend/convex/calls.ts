@@ -1695,3 +1695,22 @@ export const dismissedDevicesInternal = internalQuery({
     return call?.dismissedDeviceIds ?? [];
   },
 });
+
+// D4: one cron entry per family instead of two. Each wrapper only schedules
+// the real sweeps as their own transactions, so what runs (and how each one
+// pages and chains itself) is exactly what the separate cron entries did.
+export const gcStuckCalls = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    await ctx.scheduler.runAfter(0, internal.calls.gcStuckRinging, {});
+    await ctx.scheduler.runAfter(0, internal.calls.gcStuckActive, {});
+  },
+});
+
+export const gcTerminalAll = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    await ctx.scheduler.runAfter(0, internal.calls.gcTerminalCalls, {});
+    await ctx.scheduler.runAfter(0, internal.groupCalls.gcTerminalGroupCalls, {});
+  },
+});

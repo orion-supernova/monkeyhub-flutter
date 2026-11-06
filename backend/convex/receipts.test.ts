@@ -89,9 +89,10 @@ async function timesFor(
 }
 
 async function readerRow(t: ReturnType<typeof convexTest>, roomId: any, userId: any) {
+  // The public cursors live on `roomReceipts` since C1.
   return await t.run((ctx: any) =>
     ctx.db
-      .query("roomMembers")
+      .query("roomReceipts")
       .withIndex("by_room_user", (q: any) =>
         q.eq("roomId", roomId).eq("userId", userId)
       )

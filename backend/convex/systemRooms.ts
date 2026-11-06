@@ -1,6 +1,7 @@
 import { syncProfile } from "./profilesCore";
 import { attachShared } from "./fileShare";
 import { seenVisibilityOf } from "./visibility";
+import { insertMemberRows } from "./roomState";
 import { LOG_ROOM_POSTING_PRESET } from "./roomPolicy";
 import {
   SYSTEM_PASSWORD_PREFIX,
@@ -117,11 +118,8 @@ export async function ensureSystemAccount(
     name: spec.displayName,
     passwordHash: SYSTEM_PASSWORD_PREFIX + randomHex(16),
     createdAt: Date.now(),
-    // Never "online": this account has no client and no heartbeat, and it
-    // keeps the row permanently outside `sweepStalePresence`, which ranges
-    // only within status "online" and "away".
-    status: "offline",
-    // No `lastSeen`: there is no last time this account was seen.
+    // No presence at all: this account has no client and never beats, so it
+    // has no `presence` row and reads offline with no last seen.
     //
     // The visibility block is what makes the account private. Leaving it
     // absent would hand this account `visibility.DEFAULT_LEVEL`: a public face,
@@ -284,6 +282,7 @@ export async function reconcileSystemRoomMembers(
     .query("roomMembers")
     .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
     .collect();
+  const roomDoc = await ctx.db.get(roomId);
   const byUser = new Map<string, any>(
     rows.map((r: any) => [r.userId.toString(), r]),
   );
@@ -293,12 +292,15 @@ export async function reconcileSystemRoomMembers(
   // every human in here is a reader who may come and go.
   const botRow = byUser.get(accountId.toString());
   if (!botRow) {
+    const joinedAt = Date.now();
+    const seen = await seenVisibilityOf(ctx, accountId);
+    const onNew = await insertMemberRows(ctx, roomDoc, accountId, joinedAt, seen);
     await ctx.db.insert("roomMembers", {
       roomId,
       userId: accountId,
-      joinedAt: Date.now(),
+      joinedAt,
       role: "owner",
-      seenVisibility: await seenVisibilityOf(ctx, accountId),
+      ...(onNew ? {} : { seenVisibility: seen }),
     });
     await incrementRoomCount(ctx, accountId);
     await grantRoomAccess(ctx, roomId, accountId);
@@ -310,14 +312,18 @@ export async function reconcileSystemRoomMembers(
   for (const readerId of readerIds) {
     const key = readerId.toString();
     if (present.has(key)) continue;
+    // No read position (`readSeq` 0 / no `lastReadAt`): the backlog counts as
+    // unread to somebody newly responsible for reading it, which is the
+    // honest number.
+    const joinedAt = Date.now();
+    const seen = await seenVisibilityOf(ctx, readerId);
+    const onNew = await insertMemberRows(ctx, roomDoc, readerId, joinedAt, seen);
     await ctx.db.insert("roomMembers", {
       roomId,
       userId: readerId,
-      joinedAt: Date.now(),
+      joinedAt,
       role: "member",
-      // No `lastReadAt`: the backlog counts as unread to somebody newly
-      // responsible for reading it, which is the honest number.
-      seenVisibility: await seenVisibilityOf(ctx, readerId),
+      ...(onNew ? {} : { seenVisibility: seen }),
     });
     await incrementRoomCount(ctx, readerId);
     await grantRoomAccess(ctx, roomId, readerId);

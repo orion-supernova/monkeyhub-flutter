@@ -3,9 +3,19 @@
 //   backfillPresence    W1. Creates `presence` + `presenceBeats` rows from
 //                       `users.status/lastSeen/visibility` for every user that
 //                       has none. Idempotent; rows the new endpoints wrote win.
-//   stripUsersPresence  W4. Clears `users.status/lastSeen`. Refuses to run until
-//                       `PRESENCE_COMPAT_MIRROR=off`.
+//   stripUsersPresence  W4. Unsets `users.status/lastSeen` (nothing reads or
+//                       writes them any more). Paged, throttled, idempotent: a
+//                       clean row is not written, a re-run finds nothing.
 //   countMissingPresence / countUsersWithPresenceFields  progress counters.
+//
+// Order (two deploys):
+//   1. Deploy this code (writers and readers of the users fields are gone, the
+//      schema still lists both fields as optional), then run
+//      `npx convex run presenceMigrations:stripUsersPresence '{}'` and check
+//      `countUsersWithPresenceFields` sums to 0.
+//   2. Only then a LATER deploy deletes `status` / `lastSeen` from the `users`
+//      table in schema.ts. Doing it first would fail schema validation on the
+//      existing rows.
 //
 // All of them walk `users` with one `.paginate` per function and chain
 // themselves with the scheduler, so each page is its own small transaction.
@@ -118,11 +128,6 @@ export const stripUsersPresence = internalMutation({
     pages: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    if (process.env.PRESENCE_COMPAT_MIRROR !== "off") {
-      throw new Error(
-        'stripUsersPresence refused: set PRESENCE_COMPAT_MIRROR=off first (stage W3). Old builds still read users.status/lastSeen.',
-      );
-    }
     const page = await ctx.db
       .query("users")
       .paginate({ cursor: args.cursor ?? null, numItems: args.numItems ?? STRIP_PAGE });

@@ -105,7 +105,6 @@ export async function suspendAccount(ctx: any, targetId: any, byId: any) {
   await ctx.db.patch(targetId, {
     suspendedAt: now,
     suspendedBy: byId,
-    status: "offline",
   });
   const sessions = await ctx.db
     .query("sessions")
@@ -125,8 +124,7 @@ export async function suspendAccount(ctx: any, targetId: any, byId: any) {
   // keep hashes of the install secret and email so a new username cannot be
   // signed up from the same install (sessionCore.recordAccountBans).
   await recordAccountBans(ctx, targetId, target.email);
-  // `users.status` was patched above, so don't mirror it again.
-  await markOffline(ctx, targetId, { now, mirror: false });
+  await markOffline(ctx, targetId, { now });
   const memberships = await ctx.db
     .query("roomMembers")
     .withIndex("by_user", (q: any) => q.eq("userId", targetId))

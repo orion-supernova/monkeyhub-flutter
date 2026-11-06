@@ -10,11 +10,8 @@
 // foreground (away/offline), or to the last beat when the sweep demotes. That
 // is what keeps the beat off `presence`.
 //
-// Compat mirror: until old builds are gone, `users.status/lastSeen` are what
-// they read. Writers here copy to `users` on transitions, and refresh
-// `users.lastSeen` at most every COMPAT_MIRROR_MS while live. Env
-// `PRESENCE_COMPAT_MIRROR=off` stops all of it without a redeploy. Callers on
-// the OLD endpoints (which patch `users` themselves) pass `mirror: false`.
+// `users.status/lastSeen` are no longer written or read (the compat mirror and
+// the legacy `users:heartbeat` / `users:updateStatus` endpoints are gone).
 //
 // None of these functions rate-limit or touch sessions; the endpoint does.
 import { PRESENCE_WRITE_INTERVAL_MS } from "./presence";
@@ -24,21 +21,12 @@ export type PresenceStatus = "online" | "away" | "offline";
 
 /** A live beat younger than this is not rewritten. Same as the old users throttle. */
 export const BEAT_THROTTLE_MS = PRESENCE_WRITE_INTERVAL_MS; // 90_000
-/** Live refresh of `users.lastSeen` for old viewers, at most this often. */
-export const COMPAT_MIRROR_MS = 300_000;
-/** Window old-path readers must use against `users.lastSeen` while mirrored. */
-export const COMPAT_OFFLINE_MS = 420_000;
-
 /** A beat this soon after an explicit offline does not bring the user back. */
 export const RESURRECT_GUARD_MS = 60_000;
 
 /** Tombstoned or suspended: presence must not be written for them. */
 function isGone(user: any): boolean {
   return user.deletingAt !== undefined || user.suspendedAt !== undefined;
-}
-
-export function compatMirrorEnabled(): boolean {
-  return process.env.PRESENCE_COMPAT_MIRROR !== "off";
 }
 
 export function isPresenceStatus(s: unknown): s is PresenceStatus {
@@ -48,8 +36,6 @@ export function isPresenceStatus(s: unknown): s is PresenceStatus {
 type Opts = {
   /** One `Date.now()` for the whole call. */
   now: number;
-  /** Mirror to `users` (default true). Old endpoints pass false. */
-  mirror?: boolean;
 };
 
 async function presenceRow(ctx: any, userId: any) {
@@ -76,41 +62,6 @@ async function writeBeat(ctx: any, userId: any, row: any, beatAt: number, live: 
   }
 }
 
-/** Copy a transition to the users row, for old viewers. */
-async function mirrorTransition(
-  ctx: any,
-  user: any,
-  status: PresenceStatus,
-  lastSeen: number,
-) {
-  if (!compatMirrorEnabled() || !user) return;
-  await ctx.db.patch(user._id, { status, lastSeen });
-}
-
-/**
- * Throttled live refresh of `users.lastSeen`. Reads the users row, so only
- * call it from a path that is already writing a beat.
- */
-async function mirrorLive(ctx: any, user: any, now: number, status: PresenceStatus) {
-  if (!compatMirrorEnabled()) return;
-  // The old sweep may have flipped users.status to offline between refreshes;
-  // restore it whenever it disagrees with presence.
-  const statusDiffers = user.status !== status;
-  // Only an ONLINE user's lastSeen is refreshed: old builds read it as "still
-  // here". Refreshing it for an away user (a hidden Mac beating all night)
-  // told every old build they had been seen a minute ago.
-  if (status !== "online") {
-    if (statusDiffers) await ctx.db.patch(user._id, { status });
-    return;
-  }
-  const stale = user.lastSeen == null || now - user.lastSeen >= COMPAT_MIRROR_MS;
-  if (!statusDiffers && !stale) return;
-  await ctx.db.patch(user._id, {
-    ...(statusDiffers ? { status } : {}),
-    ...(stale || statusDiffers ? { lastSeen: now } : {}),
-  });
-}
-
 /**
  * The 90 s heartbeat.
  *
@@ -129,7 +80,6 @@ export async function noteBeat(
   opts: Opts & { resurrect?: "online" | "away" },
 ): Promise<{ wrote: boolean }> {
   const { now } = opts;
-  const mirror = opts.mirror ?? true;
   const [beat, pres] = await Promise.all([beatRow(ctx, userId), presenceRow(ctx, userId)]);
   const alive = pres != null && pres.status !== "offline";
   if (alive && beat?.live && now - beat.beatAt < BEAT_THROTTLE_MS) {
@@ -151,9 +101,7 @@ export async function noteBeat(
   const user = await ctx.db.get(userId);
   if (!user || isSystemAccount(user) || isGone(user)) return { wrote: false };
   if (!alive && opts.resurrect) {
-    await writePresence(ctx, user, pres, opts.resurrect, now, mirror);
-  } else if (mirror) {
-    await mirrorLive(ctx, user, now, pres!.status);
+    await writePresence(ctx, user, pres, opts.resurrect, now);
   }
   await writeBeat(ctx, userId, beat, now, true);
   return { wrote: true };
@@ -176,7 +124,6 @@ async function writePresence(
   existing: any,
   status: PresenceStatus,
   now: number,
-  mirror: boolean,
   lastSeen: number = now,
 ) {
   const leftForeground = !existing || existing.status === "online";
@@ -201,7 +148,6 @@ async function writePresence(
         : {}),
     });
   }
-  if (mirror) await mirrorTransition(ctx, user, status, ls ?? lastSeen);
 }
 
 /**
@@ -221,7 +167,6 @@ export async function setStatus(
   opts: Opts,
 ): Promise<{ changed: boolean }> {
   const { now } = opts;
-  const mirror = opts.mirror ?? true;
   const user = await ctx.db.get(userId);
   if (!user || isSystemAccount(user)) return { changed: false };
   // Nothing comes back online for a tombstoned or suspended account; going
@@ -229,7 +174,7 @@ export async function setStatus(
   if (isGone(user) && status !== "offline") return { changed: false };
   const [beat, pres] = await Promise.all([beatRow(ctx, userId), presenceRow(ctx, userId)]);
   const changed = !pres || pres.status !== status;
-  if (changed) await writePresence(ctx, user, pres, status, now, mirror);
+  if (changed) await writePresence(ctx, user, pres, status, now);
   const live = status !== "offline";
   if (changed || !beat || beat.live !== live || (live && now - beat.beatAt >= BEAT_THROTTLE_MS)) {
     await writeBeat(ctx, userId, beat, now, live);
@@ -258,18 +203,15 @@ export async function demoteStale(
   beatAt: number,
   opts: Opts,
 ): Promise<{ changed: boolean }> {
-  const mirror = opts.mirror ?? true;
   const [beat, pres] = await Promise.all([beatRow(ctx, userId), presenceRow(ctx, userId)]);
   if (beat?.live) await writeBeat(ctx, userId, beat, beat.beatAt, false);
   if (!pres || pres.status === "offline") return { changed: false };
-  const user = await ctx.db.get(userId);
   // Online until the beats stopped: last seen at the last beat. Away already:
   // they left the foreground earlier, and the background beats since say
   // nothing about the person — keep the time they left. See [writePresence].
   const lastSeen =
     pres.status === "away" && pres.lastSeen != null ? pres.lastSeen : beatAt;
   await ctx.db.patch(pres._id, { status: "offline", lastSeen });
-  if (mirror) await mirrorTransition(ctx, user, "offline", lastSeen);
   return { changed: true };
 }
 

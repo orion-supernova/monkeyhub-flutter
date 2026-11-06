@@ -403,7 +403,7 @@ export const listPendingRequests = query({
       incoming.map(async (f) => {
         const user = await ctx.db.get(f.userId);
         return user && !isTombstoned(user)
-          ? { ...publicUserView(lens, user, now), friendshipId: f._id }
+          ? { ...await publicUserView(ctx, lens, user), friendshipId: f._id }
           : null;
       })
     );
@@ -749,7 +749,7 @@ export const listIncomingDirectRequests = query({
           // "avatar: friends" arrives faceless — which is the setting working,
           // not a bug. Their handle and name still identify them well enough
           // to decide.
-          user: publicUserView(lens, requester, now),
+          user: await publicUserView(ctx, lens, requester),
         };
       })
     );
@@ -792,7 +792,7 @@ export const listOutgoingDirectRequests = query({
           stage: request.stage ?? null,
           // Same as the incoming list: sending someone a request doesn't
           // unlock their profile while it's still pending.
-          user: publicUserView(lens, receiver, now),
+          user: await publicUserView(ctx, lens, receiver),
         };
       })
     );

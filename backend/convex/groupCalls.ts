@@ -13,6 +13,7 @@ import { consume } from "./rateLimit";
 import { isTombstoned } from "./deletionCore";
 import { continueSweep, sweepArgs } from "./sweep";
 import { resolveMute } from "./mute";
+import { withMuteState } from "./roomState";
 import { VANISH_PREVIEW, isSeenClockRoom, vanishUntilFor } from "./vanishCore";
 import {
   markCallMessageActive,
@@ -651,7 +652,9 @@ async function announceHuddle(
   if (!room) return;
   const isDm = typeof room.name === "string" && room.name.startsWith("dm:");
   const recipients: any[] = [];
-  for (const m of members) {
+  // Mute is on `roomUserState` for migrated memberships (C1).
+  const withMute = await withMuteState(ctx, roomId, members);
+  for (const m of withMute) {
     if (m.userId.toString() === starterId.toString()) continue;
     if (resolveMute(m, now).notifications) continue;
     // Anyone who blocked the starter is not told they are hanging out. (A

@@ -1435,12 +1435,10 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
       'rooms:listUserRooms',
       {'userId': userId},
       onData: (data) {
-        // This query re-fires for reasons the list does not show (it reads the
-        // viewer's own membership rows, which every read/delivery/pin write
-        // patches). An identical payload is no news: skip the parse, the
-        // cache write and the rebuild. The delivery report's inputs
-        // (unread, newest message, delivered cursor) are all in the payload,
-        // so an unchanged payload leaves nothing for it to do either.
+        // An identical payload is no news: skip the parse, the cache write and
+        // the rebuild. The delivery report's inputs (unread, newest message)
+        // are all in the payload, so an unchanged payload leaves nothing for
+        // it to do either.
         String? sig;
         try {
           sig = jsonEncode(data);
@@ -1611,13 +1609,17 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
 
   /// The newest `lastMessageTime` we have already reported delivered, per room.
   ///
-  /// Purely an in-flight guard. `markRoomDelivered` patches our own membership
-  /// row, which re-fires `rooms:listUserRooms` — so without this the echo of
-  /// our own write would arrive before the new cursor did and we would report
-  /// the same room again, and again. The durable version of this guard is the
-  /// server's own `lastDeliveredAt`, which [_reportDelivery] reads off the room
-  /// and which survives a relaunch; this map only covers the window between
-  /// firing the mutation and seeing it come back.
+  /// The only guard against reporting a room twice. The server no longer sends
+  /// our own `lastDeliveredAt` in `rooms:listUserRooms` (reading it would
+  /// re-run the whole chat list on every delivery report), so there is no
+  /// durable "the server already knows" signal to lean on: this map, kept in
+  /// memory for the life of the session, is it. A relaunch with unread rooms
+  /// therefore sends at most one report per room, and the server drops a
+  /// report that does not move the cursor without writing anything.
+  ///
+  /// Keyed by room and compared against the room's newest `lastMessageTime`, so
+  /// a room is reported again only when something newer arrives. It also covers
+  /// the window between firing the mutation and the next list update.
   final Map<String, DateTime> _deliveryReported = {};
 
   /// How many messages the live `messages:list` subscription holds open.
@@ -1839,14 +1841,15 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
   /// they are looking at is already covered by `markRoomRead`, which advances
   /// both cursors.
   ///
-  /// At most one mutation per room per burst of new traffic, and none at all on
-  /// a launch that brings no news:
+  /// At most one mutation per room per burst of new traffic (and one per room
+  /// with unread messages after a relaunch):
   ///
   ///  * `unreadCount == 0` means nothing of anyone else's is outstanding — our
   ///    own sends do not need reporting to ourselves;
-  ///  * a `lastDeliveredAt` already at or past the room's newest message means
-  ///    the server knows, from this device or another of ours;
-  ///  * [_deliveryReported] covers the round trip in between.
+  ///  * [_deliveryReported] holds the newest message already reported per room,
+  ///    so a room is reported again only when something newer arrives. (The
+  ///    list payload's `lastDeliveredAt` is null now, so the server's own
+  ///    cursor cannot be consulted; see [_deliveryReported].)
   ///
   /// Failures are swallowed. A delivery cursor that misses a beat corrects
   /// itself on the next message, and there is no user-visible action to offer.
@@ -1866,8 +1869,6 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
       if (newest == null) continue;
       if (room.unreadCount <= 0) continue;
       if (room.memberCount > kDeliveryMemberLimit) continue;
-      final onServer = room.lastDeliveredAt;
-      if (onServer != null && !newest.isAfter(onServer)) continue;
       final inFlight = _deliveryReported[room.id];
       if (inFlight != null && !newest.isAfter(inFlight)) continue;
       _deliveryReported[room.id] = newest;

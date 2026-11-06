@@ -4,6 +4,7 @@ import { api, internal } from "./_generated/api";
 import { startRoomDeletion, startUserDeletion } from "./deletionCore";
 import { drainDeletions, shrinkTuning } from "./deletionTestUtils";
 import schema from "./schema";
+import { makeLegacyRoom } from "./roomStateTestUtils";
 
 /**
  * Receipt logs live in `receiptLogs`, not on `roomMembers` (plan 4C): the same
@@ -47,6 +48,8 @@ async function pair(t: T) {
     userId: reader.userId as any,
     roomId,
   });
+  // These tests are about the pre-backfill (dual-mode) shape of a membership.
+  await makeLegacyRoom(t, roomId);
   return { sender, reader, roomId };
 }
 
@@ -352,7 +355,8 @@ describe("seenVisibility fan-out", () => {
 describe("deletion cleans receiptMoves", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-  });
+    // Pages through hundreds of memberships: slow on a loaded machine.
+  }, 30_000);
   const restore: Array<() => void> = [];
   afterEach(() => restore.splice(0).forEach((f) => f()));
 

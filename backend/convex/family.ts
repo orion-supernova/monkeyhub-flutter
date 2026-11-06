@@ -171,8 +171,6 @@ export const createChildAccount = mutation({
       searchName: searchNameOf(handle, name.trim() || handle),
       passwordHash: CHILD_PASSWORD_SENTINEL,
       createdAt: Date.now(),
-      status: "offline",
-      lastSeen: Date.now(),
       accountType: ACCOUNT_CHILD,
       birthYear,
       childPolicy: { ...DEFAULT_CHILD_POLICY },
@@ -371,8 +369,7 @@ export const redeemPairingCode = publicMutation({
       consumedAt: Date.now(),
       consumedDeviceId: deviceId,
     });
-    await ctx.db.patch(child._id, { status: "online", lastSeen: Date.now() });
-    await markOnline(ctx, child._id, { now: Date.now(), mirror: false });
+    await markOnline(ctx, child._id, { now: Date.now() });
 
     // Register the device so the "Move call here" pill and call wake-ups work
     // for the child exactly as they do for an adult.
@@ -437,8 +434,7 @@ async function releaseDevice(ctx: any, childId: any, deviceId: string) {
   // the child is the session, and it never expired: a released phone stayed the
   // child's for good.
   await revokeSessionsForDevice(ctx, childId, deviceId);
-  await ctx.db.patch(childId, { status: "offline", lastSeen: Date.now() });
-  await markOffline(ctx, childId, { now: Date.now(), mirror: false });
+  await markOffline(ctx, childId, { now: Date.now() });
   return { childId };
 }
 

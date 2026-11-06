@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import { RECEIPT_LOG_CAP } from "./receiptLog";
 import schema from "./schema";
+import { makeLegacyRoom } from "./roomStateTestUtils";
 
 /**
  * B1/B2/B4/B7 of the backend handbook: receipt history as one row per move,
@@ -46,6 +47,8 @@ async function pair(t: T) {
     userId: reader.userId as any,
     roomId,
   });
+  // These tests are about the pre-backfill (dual-mode) shape of a membership.
+  await makeLegacyRoom(t, roomId);
   return { sender, reader, roomId };
 }
 

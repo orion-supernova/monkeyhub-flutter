@@ -98,15 +98,35 @@ async function stateOf(t: T, roomId: any) {
   );
 }
 
+/** The member's cursors as one row: roster fields plus the C1 receipts row. */
 async function memberRow(t: T, roomId: any, userId: any) {
-  return await t.run((ctx) =>
-    ctx.db
+  return await t.run(async (ctx) => {
+    const m = await ctx.db
       .query("roomMembers")
       .withIndex("by_room_user", (q) =>
         q.eq("roomId", roomId).eq("userId", userId),
       )
-      .first(),
-  );
+      .first();
+    const r = await ctx.db
+      .query("roomReceipts")
+      .withIndex("by_room_user", (q) =>
+        q.eq("roomId", roomId).eq("userId", userId),
+      )
+      .first();
+    const st = await ctx.db
+      .query("roomUserState")
+      .withIndex("by_room_user", (q) =>
+        q.eq("roomId", roomId).eq("userId", userId),
+      )
+      .first();
+    return {
+      ...m,
+      ...(r ?? {}),
+      ...(st ? { vanishShareReads: st.vanishShareReads } : {}),
+      _id: r?._id ?? m?._id,
+      joinedAt: m?.joinedAt,
+    };
+  });
 }
 
 /** Pending scheduled jobs whose name contains [needle]. */
@@ -279,7 +299,7 @@ describe("the seen floor and the burn", () => {
     const id = await send(t, people[0], roomId, "hello");
     const m: any = await msg(t, id);
     await read(t, people[1], roomId, m.createdAt);
-    expect(((await memberRow(t, roomId, people[1].userId)) as any).vanishSeenAt).toBeUndefined();
+    expect(((await memberRow(t, roomId, people[1].userId)) as any).vanishSeenAt).toBe(((await memberRow(t, roomId, people[1].userId)) as any).joinedAt);
     expect(await stateOf(t, roomId)).toBeNull();
     expect(await pending(t, "burnVanished")).toHaveLength(0);
   });
@@ -293,7 +313,7 @@ describe("the seen floor and the burn", () => {
     const m: any = await msg(t, id);
     at(T0 + 2000);
     await read(t, people[1], roomId, m.createdAt);
-    expect(((await memberRow(t, roomId, people[1].userId)) as any).vanishSeenAt).toBeUndefined();
+    expect(((await memberRow(t, roomId, people[1].userId)) as any).vanishSeenAt).toBe(((await memberRow(t, roomId, people[1].userId)) as any).joinedAt);
     expect(await pending(t, "burnVanished")).toHaveLength(0);
   });
 
@@ -311,7 +331,7 @@ describe("the seen floor and the burn", () => {
     // The normal cursor moved, the vanish one did not, nothing was queued.
     const row: any = await memberRow(t, roomId, bob.userId);
     expect(row.lastReadAt).toBe(m.createdAt);
-    expect(row.vanishSeenAt).toBeUndefined();
+    expect(row.vanishSeenAt).toBe(row.joinedAt);
     expect(await pending(t, "burnVanished")).toHaveLength(0);
 
     // Hours later it is still there...

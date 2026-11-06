@@ -11,6 +11,12 @@ import {
   applyPendingChange,
   refreshPushState,
 } from "./userDerivedCore";
+import {
+  noteDeletedMessage,
+  noteOwnMessage,
+  prepareMessageInsert,
+  prepareRoomInsert,
+} from "./roomStateCore";
 
 /**
  * Write hooks: derived data kept true by the database layer itself, rather
@@ -36,31 +42,68 @@ import {
  *  - `userDevices` and `sessions` → `userPushState` (see `userDerivedCore.ts`).
  *    Recomputed for the owner when a push-relevant field changes (tokens,
  *    pushEnabled, locale, revokedAt, deviceId). `lastSeenAt`-style touches skip.
+ *  - `messages` → per-room sequence (C1, `roomStateCore.ts`). An insert gets
+ *    `seq = rooms.lastSeq + 1` (rooms with no `lastSeq` yet are left to the
+ *    backfill), the sender's `roomUserState` is advanced or given an own-run,
+ *    and a delete leaves a `messageGaps` row (not for a room being torn down).
+ *  - `rooms` → an insert is born with `lastSeq: 0`.
  *  - `friendships` and `roomInvitations` → `userBadgeCounts`. Moved by exact
  *    deltas when status/stage/recipient change.
  */
 
 type Hook = {
+  /** Insert only: may return a changed value to write (the message's `seq`). Gets the raw db. */
+  prepare?(db: any, value: any): Promise<any> | any;
   /** Fields whose change matters; a patch touching none returns before any read. null = every write. */
   fields: readonly string[] | null;
-  /** Called after the write with the row before (null on insert) and after (null on delete). */
-  apply(db: any, before: any, after: any): Promise<void>;
+  /**
+   * Called after the write with the row before (null on insert) and after
+   * (null on delete). [defer] queues work to run once per key at the end of
+   * the mutation (before it commits): a derived row that is a function of many
+   * source rows is recomputed once, not once per source write.
+   */
+  apply(db: any, before: any, after: any, defer: Defer): Promise<void>;
 };
 
+/** Queues [run] under [key] (deferred mode) or runs it now (immediate mode). Always awaited. */
+type Defer = (key: string, run: () => Promise<void>) => Promise<void>;
+
+/** Runs every queued job once, in queue order; jobs may queue more. */
+async function flush(queue: Map<string, () => Promise<void>>): Promise<void> {
+  while (queue.size > 0) {
+    const [key, run] = queue.entries().next().value as [string, () => Promise<void>];
+    queue.delete(key);
+    await run();
+  }
+}
+
+async function applyMessage(db: any, before: any, after: any): Promise<void> {
+  await applyMessageChange(db, before, after);
+  if (before === null && after) await noteOwnMessage(db, after);
+  else if (after === null && before) await noteDeletedMessage(db, before);
+}
+
 const HOOKS: Record<string, Hook> = {
-  messages: { fields: COUNTED_FIELDS, apply: applyMessageChange },
+  messages: { fields: COUNTED_FIELDS, prepare: prepareMessageInsert, apply: applyMessage },
+  // No patch ever matches, so a room patch costs nothing extra; only an insert
+  // (and, rarely, a delete) passes through.
+  rooms: { fields: [], prepare: (_db, value) => prepareRoomInsert(value), apply: async () => {} },
   userDevices: {
     fields: PUSH_DEVICE_FIELDS,
-    apply: async (db, before, after) => {
-      const ids = new Set([before?.userId, after?.userId]);
-      for (const id of ids) await refreshPushState(db, id);
+    apply: async (db, before, after, defer) => {
+      for (const id of new Set([before?.userId, after?.userId])) {
+        if (id) await defer(`push:${id}`, () => refreshPushState(db, id));
+      }
     },
   },
   sessions: {
     fields: PUSH_SESSION_FIELDS,
-    apply: async (db, before, after) => {
-      const ids = new Set([before?.userId, after?.userId]);
-      for (const id of ids) await refreshPushState(db, id);
+    // "Sign out everywhere" revokes up to 50 sessions in one mutation: one
+    // recompute at the end, not 50.
+    apply: async (db, before, after, defer) => {
+      for (const id of new Set([before?.userId, after?.userId])) {
+        if (id) await defer(`push:${id}`, () => refreshPushState(db, id));
+      }
     },
   },
   friendships: {
@@ -117,12 +160,19 @@ function target(db: any, args: any[]): { id: any; rest: any[]; hook: Hook | unde
   return { id, rest: args.slice(1), hook: undefined };
 }
 
-export function hookDb(db: any): any {
+/**
+ * [db] with the write hooks. With [defer] (the mutation builders pass one),
+ * deferred work runs at the end of the mutation; without it (tests calling
+ * this directly), it runs immediately.
+ */
+export function hookDb(db: any, defer?: Defer): any {
+  const later: Defer = defer ?? ((_key, run) => run());
   const overrides: Record<string, any> = {
     async insert(table: string, value: any) {
-      const id = await db.insert(table, value);
       const hook = HOOKS[table];
-      if (hook) await hook.apply(db, null, value);
+      const row = hook?.prepare ? await hook.prepare(db, value) : value;
+      const id = await db.insert(table, row);
+      if (hook) await hook.apply(db, null, row, later);
       return id;
     },
     async patch(...args: any[]) {
@@ -136,21 +186,21 @@ export function hookDb(db: any): any {
       if (before && !changesHookedField(hook, before, value)) return;
       // An `undefined` in a patch unsets the field, and reads as unset to
       // `contribution` too, so the merge is exact.
-      await hook.apply(db, before, before ? { ...before, ...value } : null);
+      await hook.apply(db, before, before ? { ...before, ...value } : null, later);
     },
     async replace(...args: any[]) {
       const { id, rest, hook } = target(db, args);
       if (!hook) return db.replace(...args);
       const before = await db.get(id);
       await db.replace(...args);
-      await hook.apply(db, before, { ...rest[0], roomId: rest[0]?.roomId ?? before?.roomId });
+      await hook.apply(db, before, { ...rest[0], roomId: rest[0]?.roomId ?? before?.roomId }, later);
     },
     async delete(...args: any[]) {
       const { id, hook } = target(db, args);
       if (!hook) return db.delete(...args);
       const before = await db.get(id);
       await db.delete(...args);
-      if (before) await hook.apply(db, before, null);
+      if (before) await hook.apply(db, before, null, later);
     },
   };
   return new Proxy(db, {
@@ -169,18 +219,33 @@ export function hookDb(db: any): any {
  * `storage`. That same spread, live in production, is the evidence that
  * Convex's context keys are own and enumerable.
  */
-function hookCtx(ctx: any): any {
-  return { ...ctx, db: hookDb(ctx.db) };
+function hookCtx(ctx: any, queue: Map<string, () => Promise<void>>): any {
+  const defer: Defer = async (key, run) => {
+    if (!queue.has(key)) queue.set(key, run);
+  };
+  return { ...ctx, db: hookDb(ctx.db, defer) };
+}
+
+/**
+ * Runs [handler] with the hooked context, then the deferred hook work, all in
+ * the same transaction: a throw anywhere rolls back everything, and derived
+ * rows commit with the writes that moved them.
+ */
+async function runHooked(handler: any, ctx: any, args: any): Promise<any> {
+  const queue = new Map<string, () => Promise<void>>();
+  const result = await handler(hookCtx(ctx, queue), args);
+  await flush(queue);
+  return result;
 }
 
 function hooked(builder: any): any {
   return (def: any) => {
     if (typeof def === "function") {
-      return builder((ctx: any, args: any) => def(hookCtx(ctx), args));
+      return builder((ctx: any, args: any) => runHooked(def, ctx, args));
     }
     return builder({
       ...def,
-      handler: (ctx: any, args: any) => def.handler(hookCtx(ctx), args),
+      handler: (ctx: any, args: any) => runHooked(def.handler, ctx, args),
     });
   };
 }

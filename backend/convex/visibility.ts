@@ -1,5 +1,4 @@
-import { effectiveStatus } from "./presence";
-import { COMPAT_OFFLINE_MS } from "./presenceCore";
+import { presenceOf } from "./profileView";
 import { childrenOf } from "./childGuard";
 // Imports nothing itself, so this cannot cycle — see the note at the top of
 // `systemAccount.ts` on why that module exists.
@@ -93,21 +92,12 @@ export type PrivacyLens = {
   /** Pass the whole `users` ROW — the level is read off `row.visibility`. */
   canSee(subject: any, field: VisField): boolean;
   /**
-   * The three identity fields, redacted. Hidden fields come back `undefined`
-   * rather than nulled or zeroed: the client renders the gradient-initials
-   * fallback for a missing avatar and no status dot for a missing status, so
-   * "hidden" and "not set" land on the same, already-correct UI.
-   *
-   * `now` has no default — see `presence.effectiveStatus`, which this calls
-   * into for the `status` field. Pass one `Date.now()` computed at the top of
-   * the calling handler so every subject resolved in the same query is
-   * judged against the same instant.
+   * The avatar, redacted. Hidden comes back `undefined` rather than nulled:
+   * the client renders the gradient-initials fallback for a missing avatar.
+   * Status and lastSeen are NOT here any more (they live in the `presence`
+   * table, not on `users`): see [presenceFields].
    */
-  identity(subject: any, now: number): {
-    avatarStorageId?: any;
-    status?: string;
-    lastSeen?: number;
-  };
+  identity(subject: any): { avatarStorageId?: any };
 };
 
 /**
@@ -172,33 +162,40 @@ export async function lensFor(
       if (level === "friends") return lens.isFriend(id);
       return false; // "nobody"
     },
-    identity(subject, now) {
+    identity(subject) {
       return {
         // `undefined`, not the raw id — Convex ships whatever the handler
         // returns, so omitting the key IS the redaction.
         avatarStorageId: lens.canSee(subject, "avatar")
           ? subject?.avatarStorageId
           : undefined,
-        // Staleness-corrected on the way out, so no caller has to remember to
-        // do it and none can forget. See presence.ts.
-        status: lens.canSee(subject, "status")
-          ? effectiveStatus(
-              subject?.status,
-              subject?.lastSeen,
-              now,
-              // users-sourced path: new builds refresh users.lastSeen only
-              // every COMPAT_MIRROR_MS, so the window must cover that.
-              COMPAT_OFFLINE_MS,
-            )
-          : undefined,
-        lastSeen: lens.canSee(subject, "lastSeen")
-          ? subject?.lastSeen
-          : undefined,
       };
     },
   };
 
   return lens;
+}
+
+/**
+ * `status` / `lastSeen` of [subject] as the lens's viewer may see them, read
+ * from the `presence` table (one point read; the sweep keeps a vanished client
+ * honest, so no staleness window is applied here). The levels are the
+ * subject's live `users.visibility` ones, same as every other lens check.
+ * A subject with no presence row reads "offline" with no lastSeen.
+ */
+export async function presenceFields(
+  ctx: any,
+  lens: PrivacyLens,
+  subject: any,
+): Promise<{ status?: string; lastSeen?: number }> {
+  const wantStatus = lens.canSee(subject, "status");
+  const wantLastSeen = lens.canSee(subject, "lastSeen");
+  if (!wantStatus && !wantLastSeen) return {};
+  const row = await presenceOf(ctx, subject._id);
+  return {
+    status: wantStatus ? (row?.status ?? "offline") : undefined,
+    lastSeen: wantLastSeen ? (row?.lastSeen ?? undefined) : undefined,
+  };
 }
 
 /**
@@ -227,7 +224,7 @@ export async function seenVisibilityOf(ctx: any, userId: any): Promise<string | 
  * access-control boundary, so add a field here only after asking whether every
  * stranger who can address a friend request to you should have it.
  */
-export function publicUserView(lens: PrivacyLens, user: any, now: number) {
+export async function publicUserView(ctx: any, lens: PrivacyLens, user: any) {
   return {
     _id: user._id,
     username: user.username,
@@ -235,7 +232,8 @@ export function publicUserView(lens: PrivacyLens, user: any, now: number) {
     // No `email`. It used to be here, and it failed the test above: a stranger
     // who can address a friend request to you should not learn your address.
     // `users.getProfile` serves it to self and guardians only.
-    ...lens.identity(user, now),
+    ...lens.identity(user),
+    ...(await presenceFields(ctx, lens, user)),
     // Passes the test above trivially: it is not a fact ABOUT anyone, it is the
     // statement that this row is the app rather than a person. Only ever true
     // for a row `problemReports.ensureLogAccount` wrote, so it discloses

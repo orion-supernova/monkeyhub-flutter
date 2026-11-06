@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { GAP_HORIZON_MS } from "./roomState";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation } from "./dbHooks";
@@ -576,6 +577,27 @@ export const gcMentionInbox = internalMutation({
       .take(PAGE);
     for (const row of rows) await ctx.db.delete(row._id);
     await continueSweep(ctx, internal.retention.gcMentionInbox, rows.length === PAGE, chain);
+    return null;
+  },
+});
+
+/**
+ * Deleted-message gap rows past the unread horizon. Exact unread only uses
+ * gaps above a cursor younger than GAP_HORIZON_MS, and a message older than
+ * that cursor sits below it, so these can never be counted again. One day of
+ * margin for clock skew.
+ */
+export const gcMessageGaps = internalMutation({
+  args: sweepArgs,
+  returns: v.null(),
+  handler: async (ctx, { chain }) => {
+    const cutoff = Date.now() - GAP_HORIZON_MS - 24 * 60 * 60 * 1000;
+    const rows = await ctx.db
+      .query("messageGaps")
+      .withIndex("by_at", (q) => q.gt("at", 0).lt("at", cutoff))
+      .take(PAGE);
+    for (const row of rows) await ctx.db.delete(row._id);
+    await continueSweep(ctx, internal.retention.gcMessageGaps, rows.length === PAGE, chain);
     return null;
   },
 });
