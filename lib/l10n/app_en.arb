@@ -18268,5 +18268,19 @@
   "appOnlyVanishBody": "{platform, select, web{Your browser can't block screenshots, so vanishing messages stay sealed here and never count as read. Open this chat in MonkeyHub on your phone, or on a Mac or Windows computer.} other{Linux can't block screenshots, so vanishing messages stay sealed here and never count as read. Open this chat in MonkeyHub on your phone, or on a Mac or Windows computer.}}",
   "@appOnlyVanishBody": {"description": "Body of the sheet shown when someone taps a sealed vanishing message in a browser or on Linux.", "placeholders": {"platform": {"type": "String"}}},
   "appOnlyVanishUnread": "Sealed messages never count as read",
-  "@appOnlyVanishUnread": {"description": "Row on that sheet: a sealed vanishing message cannot start anyone's disappearing timer."}
+  "@appOnlyVanishUnread": {"description": "Row on that sheet: a sealed vanishing message cannot start anyone's disappearing timer."},
+  "forkSlideToChoose": "Slide to choose",
+  "@forkSlideToChoose": {"description": "Hint while the swipe-up fork is open and no choice is selected: slide the finger left or right."},
+  "forkLetGoCancel": "let go here to cancel",
+  "@forkLetGoCancel": {"description": "Second line under 'Slide to choose': releasing in the middle cancels."},
+  "forkSlideBackCancel": "slide back to cancel",
+  "@forkSlideBackCancel": {"description": "Second line of the swipe-up hint with a choice selected: sliding back to the middle cancels."},
+  "forkChipVanishSub": "Messages disappear",
+  "@forkChipVanishSub": {"description": "Caption under the Vanish option of the swipe-up fork."},
+  "forkChipTurnOffSub": "Messages stay",
+  "@forkChipTurnOffSub": {"description": "Caption under the Turn off option of the swipe-up fork."},
+  "forkChipTalkSub": "Nobody gets rung",
+  "@forkChipTalkSub": {"description": "Caption under the Talk option of the swipe-up fork: starting a huddle does not ring anyone."},
+  "forkChipJoinSub": "{count, plural, =1{1 person here} other{{count} people here}}",
+  "@forkChipJoinSub": {"description": "Caption under the Join option of the swipe-up fork: how many people are in the huddle.", "placeholders": {"count": {"type": "int"}}}
 }

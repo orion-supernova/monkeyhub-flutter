@@ -4260,5 +4260,12 @@
   "vanishNoteKept": "أنت لا تشارك قراءتك هنا، لذا تبقى الرسائل المرسلة إليك 24 ساعة.",
   "vanishedParent": "اختفت",
   "appOnlyVanishBody": "{platform, select, web{لا يستطيع متصفحك منع لقطات الشاشة، لذا تبقى الرسائل التي تختفي مختومة هنا ولا تُحتسب أبدًا كمقروءة. افتح هذه المحادثة في MonkeyHub على هاتفك، أو على كمبيوتر Mac أو Windows.} other{لا يستطيع Linux منع لقطات الشاشة، لذا تبقى الرسائل التي تختفي مختومة هنا ولا تُحتسب أبدًا كمقروءة. افتح هذه المحادثة في MonkeyHub على هاتفك، أو على كمبيوتر Mac أو Windows.}}",
-  "appOnlyVanishUnread": "الرسائل المختومة لا تُحتسب أبدًا كمقروءة"
+  "appOnlyVanishUnread": "الرسائل المختومة لا تُحتسب أبدًا كمقروءة",
+  "forkSlideToChoose": "اسحب للاختيار",
+  "forkLetGoCancel": "اترك هنا للإلغاء",
+  "forkSlideBackCancel": "ارجع للمنتصف للإلغاء",
+  "forkChipVanishSub": "تختفي الرسائل",
+  "forkChipTurnOffSub": "تبقى الرسائل",
+  "forkChipTalkSub": "لا أحد يتلقى رنينًا",
+  "forkChipJoinSub": "{count, plural, =1{شخص واحد هنا} two{شخصان هنا} few{{count} أشخاص هنا} many{{count} شخصًا هنا} other{{count} شخص هنا}}"
 }

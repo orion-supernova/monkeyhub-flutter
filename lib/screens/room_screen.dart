@@ -389,14 +389,14 @@ class _RoomScreenState extends State<_RoomView>
   final ChatBottomInset _bottomChrome = ChatBottomInset();
 
   /// How visible the whole bottom dock and its floats are, 0 gone to 1 shown.
-  /// Nothing drives it: the hook for a takeover that dims the dock while a
-  /// gesture owns the screen (the swipe-up no longer does; its capsules sit on
-  /// top of the dock). See [DockFade].
+  /// Nothing drives it yet: it is the hook for a takeover that dims the dock
+  /// while a gesture owns the screen. See [DockFade]. (The swipe-up fork leaves
+  /// the dock fully visible and still: it lifts the transcript instead.)
   final ValueNotifier<double> dockFade = ValueNotifier<double>(1);
 
-  /// The swipe-up: pull up from the newest message and capsules grow out of the
-  /// composer's edge, like the chat list's row swipe. Mounted over the
-  /// transcript in [_messageBody], painted by [SwipeForkOverlay] in [build].
+  /// The swipe-up fork: pull up from the newest message, slide, let go. Mounted
+  /// over the transcript in [_messageBody], which it lifts through [ForkLift];
+  /// the circle and chips are painted by [SwipeForkOverlay] in [build].
   late final SwipeForkController _fork = SwipeForkController(
     vsync: this,
     canArm: _forkCanArm,
@@ -408,14 +408,14 @@ class _RoomScreenState extends State<_RoomView>
     onCommitted: () => unawaited(SettingsStore.instance.markForkGestureDone()),
   );
 
-  /// The discoverability peek is on screen. See [ForkPeek].
+  /// The discoverability chevron is on screen. See [ForkPeek].
   bool _forkPeekOn = false;
   Timer? _forkPeekTimer;
 
   /// The first few times the reader lands at the bottom of a chat where the
-  /// fork has an option, the tops of the capsules peek 8pt above the composer
-  /// for a second. Never after the gesture has been completed once; skipped
-  /// under Reduce Motion (the gate in [_forkCanArm] already excludes desktop, web and split shell).
+  /// fork has an option, a one-second chevron rises above the composer. Never
+  /// after the gesture has been completed once; skipped under Reduce Motion
+  /// (the gate in [_forkCanArm] already excludes desktop, web and split shell).
   void _maybeForkPeek() {
     if (!mounted || _forkPeekOn) return;
     if (!SettingsStore.instance.shouldShowForkPeek) return;
@@ -1167,8 +1167,6 @@ class _RoomScreenState extends State<_RoomView>
 
   void _onScroll() {
     if (!_scroll.hasClients) return;
-    // A scroll closes the swipe-up's settled-open capsules.
-    if (_fork.isOpen) _fork.dismiss();
     // The list is rendered with reverse:true — items[0] (newest) sits at the
     // bottom, pixels=0 is the bottom, maxScrollExtent is the top. Trigger an
     // older-page load when the user scrolls within 220px of the top.
@@ -3282,22 +3280,6 @@ class _RoomScreenState extends State<_RoomView>
       if (pos.pixels > 1 || pos.isScrollingNotifier.value) return false;
     }
     return true;
-  }
-
-  /// The dock's height from the bottom of the screen: the measured shelf,
-  /// reply card and field. The classic style doesn't measure its column; there
-  /// it falls back to a composer's height over the safe area.
-  double _forkDockHeight() =>
-      _bottomChrome.height ?? MediaQuery.viewPaddingOf(context).bottom + 72;
-
-  /// The peek's capsule fills, left to right on screen.
-  List<Color> _forkPeekColors(AppTheme theme) {
-    final palette = ForkPalette(theme);
-    final rtl = Directionality.of(context) == TextDirection.rtl;
-    final opts = forkOptionsFor(_forkRoomState());
-    final onLeft = [for (final o in opts) if (o.isVanish != rtl) o];
-    final onRight = [for (final o in opts) if (o.isVanish == rtl) o];
-    return [for (final o in [...onLeft, ...onRight]) palette.of(o)];
   }
 
   /// The slice of room state the fork's options depend on.
@@ -6167,29 +6149,18 @@ class _RoomScreenState extends State<_RoomView>
                     // only while a gesture (or its exit) is on screen.
                     SwipeForkOverlay(
                       controller: _fork,
-                      dockHeight: _forkDockHeight,
+                      dockHeight: () => _bottomChrome.height,
                     ),
                     if (_forkPeekOn)
-                      // Rides the MEASURED dock (shelf, reply card, field), so
-                      // a scheduled pill or a reply card can never cover it.
-                      // The classic style doesn't measure its column; there it
-                      // falls back to a composer's height over the safe area.
-                      ListenableBuilder(
-                        listenable: _bottomChrome,
-                        builder: (context, child) => Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: _forkDockHeight(),
-                          child: child!,
-                        ),
-                        child: ForkPeek(
-                          semanticLabel:
-                              AppLocalizations.of(context).forkHintSwipeUp,
-                          colors: _forkPeekColors(theme),
-                          onDone: () {
-                            if (mounted) setState(() => _forkPeekOn = false);
-                          },
-                        ),
+                      // The list nudges up and settles; the overlay draws the
+                      // circle on the MEASURED dock (shelf, reply card, field).
+                      ForkPeek(
+                        controller: _fork,
+                        semanticLabel:
+                            AppLocalizations.of(context).forkHintSwipeUp,
+                        onDone: () {
+                          if (mounted) setState(() => _forkPeekOn = false);
+                        },
                       ),
                   ],
                 ),
@@ -6966,7 +6937,9 @@ class _RoomScreenState extends State<_RoomView>
                 // _recomputePositionState keeps measuring in list-local
                 // coordinates; the Align this may introduce offsets x only,
                 // and only .dy is read.
-                ChatColumn(
+                ForkLift(
+                  controller: _fork,
+                  child: ChatColumn(
                   child: TimelineListView(
                   key: _listViewportKey,
                   controller: _scroll,
@@ -7895,6 +7868,7 @@ class _RoomScreenState extends State<_RoomView>
                 );
               },
                   ),
+                ),
                 ),
                 Positioned(
                   // Anchor below the list's own top padding so the chip

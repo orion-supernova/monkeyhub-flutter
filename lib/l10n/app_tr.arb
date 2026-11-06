@@ -4260,5 +4260,12 @@
   "vanishNoteKept": "Okuduklarını burada paylaşmıyorsun, bu yüzden sana gönderilen mesajlar 24 saat kalır.",
   "vanishedParent": "Kayboldu",
   "appOnlyVanishBody": "{platform, select, web{Tarayıcın ekran görüntüsünü engelleyemiyor, bu yüzden kaybolan mesajlar burada mühürlü kalır ve okundu sayılmaz. Bu sohbeti telefonundaki MonkeyHub'da ya da bir Mac veya Windows bilgisayarda aç.} other{Linux ekran görüntüsünü engelleyemiyor, bu yüzden kaybolan mesajlar burada mühürlü kalır ve okundu sayılmaz. Bu sohbeti telefonundaki MonkeyHub'da ya da bir Mac veya Windows bilgisayarda aç.}}",
-  "appOnlyVanishUnread": "Mühürlü mesajlar okundu sayılmaz"
+  "appOnlyVanishUnread": "Mühürlü mesajlar okundu sayılmaz",
+  "forkSlideToChoose": "Seçmek için kaydır",
+  "forkLetGoCancel": "iptal etmek için burada bırak",
+  "forkSlideBackCancel": "iptal etmek için geri kaydır",
+  "forkChipVanishSub": "Mesajlar kaybolur",
+  "forkChipTurnOffSub": "Mesajlar kalır",
+  "forkChipTalkSub": "Kimse aranmaz",
+  "forkChipJoinSub": "{count, plural, =1{1 kişi burada} other{{count} kişi burada}}"
 }

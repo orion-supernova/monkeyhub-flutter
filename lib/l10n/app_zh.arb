@@ -4260,5 +4260,12 @@
   "vanishNoteKept": "你在这里没有分享已读，所以发给你的消息会保留 24 小时。",
   "vanishedParent": "已消失",
   "appOnlyVanishBody": "{platform, select, web{浏览器无法阻止截屏，所以会消失的消息在这里保持密封，也不会算作已读。请在手机上的 MonkeyHub 中打开此聊天，或在 Mac 或 Windows 电脑上打开。} other{Linux 无法阻止截屏，所以会消失的消息在这里保持密封，也不会算作已读。请在手机上的 MonkeyHub 中打开此聊天，或在 Mac 或 Windows 电脑上打开。}}",
-  "appOnlyVanishUnread": "密封的消息不会算作已读"
+  "appOnlyVanishUnread": "密封的消息不会算作已读",
+  "forkSlideToChoose": "滑动选择",
+  "forkLetGoCancel": "在此松手即可取消",
+  "forkSlideBackCancel": "滑回中间取消",
+  "forkChipVanishSub": "消息会消失",
+  "forkChipTurnOffSub": "消息会保留",
+  "forkChipTalkSub": "不会响铃通知任何人",
+  "forkChipJoinSub": "{count, plural, other{{count} 人在这里}}"
 }

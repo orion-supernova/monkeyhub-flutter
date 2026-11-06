@@ -4260,5 +4260,12 @@
   "vanishNoteKept": "तुम यहाँ अपना पढ़ना शेयर नहीं करते, इसलिए तुम्हें भेजे मैसेज 24 घंटे रहते हैं।",
   "vanishedParent": "गायब हो गया",
   "appOnlyVanishBody": "{platform, select, web{आपका ब्राउज़र स्क्रीनशॉट नहीं रोक सकता, इसलिए वैनिश मैसेज यहाँ सील रहते हैं और कभी पढ़े हुए नहीं गिने जाते। इस चैट को अपने फ़ोन पर MonkeyHub में, या किसी Mac या Windows कंप्यूटर पर खोलें।} other{Linux स्क्रीनशॉट नहीं रोक सकता, इसलिए वैनिश मैसेज यहाँ सील रहते हैं और कभी पढ़े हुए नहीं गिने जाते। इस चैट को अपने फ़ोन पर MonkeyHub में, या किसी Mac या Windows कंप्यूटर पर खोलें।}}",
-  "appOnlyVanishUnread": "सील किए मैसेज कभी पढ़े हुए नहीं गिने जाते"
+  "appOnlyVanishUnread": "सील किए मैसेज कभी पढ़े हुए नहीं गिने जाते",
+  "forkSlideToChoose": "चुनने के लिए स्लाइड करो",
+  "forkLetGoCancel": "रद्द करने के लिए यहाँ छोड़ो",
+  "forkSlideBackCancel": "रद्द करने के लिए वापस स्लाइड करो",
+  "forkChipVanishSub": "मैसेज गायब होते हैं",
+  "forkChipTurnOffSub": "मैसेज बने रहते हैं",
+  "forkChipTalkSub": "किसी को रिंग नहीं जाती",
+  "forkChipJoinSub": "{count, plural, =1{1 व्यक्ति यहाँ} other{{count} लोग यहाँ}}"
 }

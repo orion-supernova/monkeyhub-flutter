@@ -14763,4 +14763,33 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get appOnlyVanishUnread => '封をしたメッセージは既読になりません';
+
+
+  @override
+  String get forkSlideToChoose => 'スライドして選ぶ';
+
+  @override
+  String get forkLetGoCancel => 'ここで離すとキャンセル';
+
+  @override
+  String get forkSlideBackCancel => '戻すとキャンセル';
+
+  @override
+  String get forkChipVanishSub => 'メッセージが消える';
+
+  @override
+  String get forkChipTurnOffSub => 'メッセージが残る';
+
+  @override
+  String get forkChipTalkSub => '誰にも鳴らしません';
+
+  @override
+  String forkChipJoinSub(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count人が参加中',
+    );
+    return '$_temp0';
+  }
 }

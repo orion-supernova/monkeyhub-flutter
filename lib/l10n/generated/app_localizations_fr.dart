@@ -15663,4 +15663,34 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get appOnlyVanishUnread =>
       'Les messages scellés ne comptent jamais comme lus';
+
+
+  @override
+  String get forkSlideToChoose => 'Glisse pour choisir';
+
+  @override
+  String get forkLetGoCancel => 'relâche ici pour annuler';
+
+  @override
+  String get forkSlideBackCancel => 'reviens au centre pour annuler';
+
+  @override
+  String get forkChipVanishSub => 'Les messages disparaissent';
+
+  @override
+  String get forkChipTurnOffSub => 'Les messages restent';
+
+  @override
+  String get forkChipTalkSub => 'Personne n\'est appelé';
+
+  @override
+  String forkChipJoinSub(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count personnes ici',
+      one: '1 personne ici',
+    );
+    return '$_temp0';
+  }
 }

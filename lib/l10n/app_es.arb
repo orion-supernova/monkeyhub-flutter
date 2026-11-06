@@ -4260,5 +4260,12 @@
   "vanishNoteKept": "No compartes tus lecturas aquí, así que los mensajes que te envían duran 24 horas.",
   "vanishedParent": "Desapareció",
   "appOnlyVanishBody": "{platform, select, web{Tu navegador no puede bloquear capturas de pantalla, así que los mensajes que desaparecen siguen sellados aquí y nunca cuentan como leídos. Abre este chat en MonkeyHub en tu teléfono, o en un ordenador Mac o Windows.} other{Linux no puede bloquear capturas de pantalla, así que los mensajes que desaparecen siguen sellados aquí y nunca cuentan como leídos. Abre este chat en MonkeyHub en tu teléfono, o en un ordenador Mac o Windows.}}",
-  "appOnlyVanishUnread": "Los mensajes sellados nunca cuentan como leídos"
+  "appOnlyVanishUnread": "Los mensajes sellados nunca cuentan como leídos",
+  "forkSlideToChoose": "Desliza para elegir",
+  "forkLetGoCancel": "suelta aquí para cancelar",
+  "forkSlideBackCancel": "desliza atrás para cancelar",
+  "forkChipVanishSub": "Los mensajes desaparecen",
+  "forkChipTurnOffSub": "Los mensajes se quedan",
+  "forkChipTalkSub": "No suena a nadie",
+  "forkChipJoinSub": "{count, plural, =1{1 persona aquí} other{{count} personas aquí}}"
 }

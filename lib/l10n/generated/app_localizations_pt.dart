@@ -15597,6 +15597,36 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get appOnlyVanishUnread =>
       'As mensagens seladas nunca contam como lidas';
+
+
+  @override
+  String get forkSlideToChoose => 'Desliza para escolher';
+
+  @override
+  String get forkLetGoCancel => 'larga aqui para cancelar';
+
+  @override
+  String get forkSlideBackCancel => 'desliza para trás para cancelar';
+
+  @override
+  String get forkChipVanishSub => 'As mensagens desaparecem';
+
+  @override
+  String get forkChipTurnOffSub => 'As mensagens ficam';
+
+  @override
+  String get forkChipTalkSub => 'Ninguém é chamado';
+
+  @override
+  String forkChipJoinSub(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pessoas aqui',
+      one: '1 pessoa aqui',
+    );
+    return '$_temp0';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -31172,4 +31202,34 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get appOnlyVanishUnread =>
       'Mensagens lacradas nunca contam como lidas';
+
+
+  @override
+  String get forkSlideToChoose => 'Deslize para escolher';
+
+  @override
+  String get forkLetGoCancel => 'solte aqui para cancelar';
+
+  @override
+  String get forkSlideBackCancel => 'deslize de volta para cancelar';
+
+  @override
+  String get forkChipVanishSub => 'As mensagens somem';
+
+  @override
+  String get forkChipTurnOffSub => 'As mensagens ficam';
+
+  @override
+  String get forkChipTalkSub => 'Ninguém é chamado';
+
+  @override
+  String forkChipJoinSub(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pessoas aqui',
+      one: '1 pessoa aqui',
+    );
+    return '$_temp0';
+  }
 }

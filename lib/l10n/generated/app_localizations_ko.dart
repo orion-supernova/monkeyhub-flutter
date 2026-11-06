@@ -14796,4 +14796,33 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get appOnlyVanishUnread => '봉인된 메시지는 읽음으로 처리되지 않아요';
+
+
+  @override
+  String get forkSlideToChoose => '밀어서 선택';
+
+  @override
+  String get forkLetGoCancel => '여기서 놓으면 취소';
+
+  @override
+  String get forkSlideBackCancel => '되돌리면 취소';
+
+  @override
+  String get forkChipVanishSub => '메시지가 사라져요';
+
+  @override
+  String get forkChipTurnOffSub => '메시지가 남아요';
+
+  @override
+  String get forkChipTalkSub => '아무에게도 벨이 울리지 않아요';
+
+  @override
+  String forkChipJoinSub(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count명 참여 중',
+    );
+    return '$_temp0';
+  }
 }

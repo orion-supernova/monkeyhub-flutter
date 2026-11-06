@@ -15449,4 +15449,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appOnlyVanishUnread => 'Sealed messages never count as read';
+
+
+  @override
+  String get forkSlideToChoose => 'Slide to choose';
+
+  @override
+  String get forkLetGoCancel => 'let go here to cancel';
+
+  @override
+  String get forkSlideBackCancel => 'slide back to cancel';
+
+  @override
+  String get forkChipVanishSub => 'Messages disappear';
+
+  @override
+  String get forkChipTurnOffSub => 'Messages stay';
+
+  @override
+  String get forkChipTalkSub => 'Nobody gets rung';
+
+  @override
+  String forkChipJoinSub(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count people here',
+      one: '1 person here',
+    );
+    return '$_temp0';
+  }
 }

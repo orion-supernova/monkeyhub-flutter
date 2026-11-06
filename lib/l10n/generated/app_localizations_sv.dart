@@ -15484,4 +15484,34 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get appOnlyVanishUnread =>
       'Förseglade meddelanden räknas aldrig som lästa';
+
+
+  @override
+  String get forkSlideToChoose => 'Dra för att välja';
+
+  @override
+  String get forkLetGoCancel => 'släpp här för att avbryta';
+
+  @override
+  String get forkSlideBackCancel => 'dra tillbaka för att avbryta';
+
+  @override
+  String get forkChipVanishSub => 'Meddelanden försvinner';
+
+  @override
+  String get forkChipTurnOffSub => 'Meddelanden finns kvar';
+
+  @override
+  String get forkChipTalkSub => 'Ingen får samtal';
+
+  @override
+  String forkChipJoinSub(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count personer här',
+      one: '1 person här',
+    );
+    return '$_temp0';
+  }
 }

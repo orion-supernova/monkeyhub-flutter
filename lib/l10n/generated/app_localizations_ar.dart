@@ -15643,4 +15643,37 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get appOnlyVanishUnread => 'الرسائل المختومة لا تُحتسب أبدًا كمقروءة';
+
+
+  @override
+  String get forkSlideToChoose => 'اسحب للاختيار';
+
+  @override
+  String get forkLetGoCancel => 'اترك هنا للإلغاء';
+
+  @override
+  String get forkSlideBackCancel => 'ارجع للمنتصف للإلغاء';
+
+  @override
+  String get forkChipVanishSub => 'تختفي الرسائل';
+
+  @override
+  String get forkChipTurnOffSub => 'تبقى الرسائل';
+
+  @override
+  String get forkChipTalkSub => 'لا أحد يتلقى رنينًا';
+
+  @override
+  String forkChipJoinSub(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count شخص هنا',
+      many: '$count شخصًا هنا',
+      few: '$count أشخاص هنا',
+      two: 'شخصان هنا',
+      one: 'شخص واحد هنا',
+    );
+    return '$_temp0';
+  }
 }

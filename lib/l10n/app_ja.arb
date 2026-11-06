@@ -4260,5 +4260,12 @@
   "vanishNoteKept": "ここでは既読を共有していないため、届くメッセージは24時間残ります。",
   "vanishedParent": "消えました",
   "appOnlyVanishBody": "{platform, select, web{ブラウザではスクリーンショットを防げないため、消えるメッセージはここでは封をしたままで、既読にもなりません。スマートフォンのMonkeyHub、またはMacかWindowsのパソコンでこのチャットを開いてください。} other{Linuxではスクリーンショットを防げないため、消えるメッセージはここでは封をしたままで、既読にもなりません。スマートフォンのMonkeyHub、またはMacかWindowsのパソコンでこのチャットを開いてください。}}",
-  "appOnlyVanishUnread": "封をしたメッセージは既読になりません"
+  "appOnlyVanishUnread": "封をしたメッセージは既読になりません",
+  "forkSlideToChoose": "スライドして選ぶ",
+  "forkLetGoCancel": "ここで離すとキャンセル",
+  "forkSlideBackCancel": "戻すとキャンセル",
+  "forkChipVanishSub": "メッセージが消える",
+  "forkChipTurnOffSub": "メッセージが残る",
+  "forkChipTalkSub": "誰にも鳴らしません",
+  "forkChipJoinSub": "{count, plural, other{{count}人が参加中}}"
 }

@@ -4260,5 +4260,12 @@
   "vanishNoteKept": "Você não compartilha suas leituras aqui, então as mensagens enviadas para você duram 24 horas.",
   "vanishedParent": "Sumiu",
   "appOnlyVanishBody": "{platform, select, web{Seu navegador não consegue bloquear capturas de tela, então mensagens que somem ficam lacradas aqui e nunca contam como lidas. Abra este chat no MonkeyHub do seu celular, ou em um computador Mac ou Windows.} other{O Linux não consegue bloquear capturas de tela, então mensagens que somem ficam lacradas aqui e nunca contam como lidas. Abra este chat no MonkeyHub do seu celular, ou em um computador Mac ou Windows.}}",
-  "appOnlyVanishUnread": "Mensagens lacradas nunca contam como lidas"
+  "appOnlyVanishUnread": "Mensagens lacradas nunca contam como lidas",
+  "forkSlideToChoose": "Deslize para escolher",
+  "forkLetGoCancel": "solte aqui para cancelar",
+  "forkSlideBackCancel": "deslize de volta para cancelar",
+  "forkChipVanishSub": "As mensagens somem",
+  "forkChipTurnOffSub": "As mensagens ficam",
+  "forkChipTalkSub": "Ninguém é chamado",
+  "forkChipJoinSub": "{count, plural, =1{1 pessoa aqui} other{{count} pessoas aqui}}"
 }

@@ -4260,5 +4260,12 @@
   "vanishNoteKept": "Tu ne partages pas tes lectures ici, donc les messages qu'on t'envoie durent 24 heures.",
   "vanishedParent": "Disparu",
   "appOnlyVanishBody": "{platform, select, web{Ton navigateur ne peut pas bloquer les captures d'écran, donc les messages éphémères restent scellés ici et ne comptent jamais comme lus. Ouvre ce chat dans MonkeyHub sur ton téléphone, ou sur un ordinateur Mac ou Windows.} other{Linux ne peut pas bloquer les captures d'écran, donc les messages éphémères restent scellés ici et ne comptent jamais comme lus. Ouvre ce chat dans MonkeyHub sur ton téléphone, ou sur un ordinateur Mac ou Windows.}}",
-  "appOnlyVanishUnread": "Les messages scellés ne comptent jamais comme lus"
+  "appOnlyVanishUnread": "Les messages scellés ne comptent jamais comme lus",
+  "forkSlideToChoose": "Glisse pour choisir",
+  "forkLetGoCancel": "relâche ici pour annuler",
+  "forkSlideBackCancel": "reviens au centre pour annuler",
+  "forkChipVanishSub": "Les messages disparaissent",
+  "forkChipTurnOffSub": "Les messages restent",
+  "forkChipTalkSub": "Personne n'est appelé",
+  "forkChipJoinSub": "{count, plural, =1{1 personne ici} other{{count} personnes ici}}"
 }

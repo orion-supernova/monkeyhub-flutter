@@ -15380,4 +15380,34 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get appOnlyVanishUnread => 'Mühürlü mesajlar okundu sayılmaz';
+
+
+  @override
+  String get forkSlideToChoose => 'Seçmek için kaydır';
+
+  @override
+  String get forkLetGoCancel => 'iptal etmek için burada bırak';
+
+  @override
+  String get forkSlideBackCancel => 'iptal etmek için geri kaydır';
+
+  @override
+  String get forkChipVanishSub => 'Mesajlar kaybolur';
+
+  @override
+  String get forkChipTurnOffSub => 'Mesajlar kalır';
+
+  @override
+  String get forkChipTalkSub => 'Kimse aranmaz';
+
+  @override
+  String forkChipJoinSub(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kişi burada',
+      one: '1 kişi burada',
+    );
+    return '$_temp0';
+  }
 }

@@ -1,35 +1,23 @@
-/// The swipe-up gesture's state machine. Pure Dart: no widgets, no haptics, no
-/// animation. It is fed pointer positions and answers with what changed
-/// ([ForkEvent]s); the controller turns those into springs and ticks.
+/// The swipe-up fork's gesture state machine. Pure Dart: no widgets, no
+/// haptics, no animation. It is fed pointer positions and answers with what
+/// changed ([ForkEvent]s); the controller turns those into springs and ticks.
 ///
-/// The picture is the chat list's row swipe turned on its side: capsules grow
-/// up out of the composer's edge as the finger pulls.
-///
-///  * under [openAt]: letting go snaps closed;
-///  * [openAt] to [commitAt]: letting go settles OPEN, capsules stay for a tap;
-///  * past [commitAt]: the capsule under the finger's half is armed, sliding
-///    sideways re-arms the other, letting go fires the armed one. Dropping
-///    back under `commitAt - hysteresis` disarms.
+/// Behaviour follows the reference prototype at the bottom of
+/// docs/design/swipe-up-fork.html.
 library;
 
 import 'fork_options.dart';
 
-/// Where the gesture is.
+/// Where the fork's thumb is.
 enum ForkPhase {
-  /// Nothing on screen.
+  /// Nothing in progress.
   idle,
 
-  /// Finger down, below the commit line. May be short of [ForkMachine.openAt].
+  /// Below the fork line: orb rising, ring filling.
   pull,
 
-  /// Let go between open and commit: the capsules wait for a tap.
-  open,
-
-  /// Finger down past the commit line with a capsule armed.
-  armed,
-
-  /// Let go on an armed capsule, or tapped one: the action is running.
-  committing,
+  /// Past the line: chips are out (or, with one option, the orb is armed).
+  fork,
 }
 
 /// Which side an option sits on, in screen terms.
@@ -37,67 +25,51 @@ enum ForkSide { left, right }
 
 /// Something the machine wants the outside world to react to.
 enum ForkEvent {
-  /// Crossed the open line going up: notch haptic.
-  opened,
+  /// Crossed the fork line going up: notch haptic, bloom the chips.
+  forked,
 
-  /// Dropped back under the open line (with a little hysteresis).
-  unopened,
+  /// Dropped under the un-fork line: collapse the chips.
+  unforked,
 
-  /// A capsule just armed (see [ForkMachine.armedSide]).
+  /// A side just armed (see [ForkMachine.armed]).
   armed,
 
-  /// Dropped under the commit line: nothing armed any more.
+  /// Left the armed side into the middle: soft tick.
   disarmed,
 
-  /// Went straight from one armed capsule to the other.
+  /// Went straight from one armed side to the other.
   swapped,
 }
 
-/// What lifting the finger (or a tap) meant.
-enum ForkResult { cancel, settleOpen, commit }
-
+/// How a gesture ended.
 class ForkOutcome {
-  const ForkOutcome.commit(this.option, this.side) : result = ForkResult.commit;
-  const ForkOutcome.settle()
-      : result = ForkResult.settleOpen,
-        option = null,
-        side = null;
+  const ForkOutcome.commit(this.option, this.side) : committed = true;
   const ForkOutcome.cancel()
-      : result = ForkResult.cancel,
+      : committed = false,
         option = null,
         side = null;
 
-  final ForkResult result;
+  final bool committed;
   final ForkOption? option;
   final ForkSide? side;
-
-  bool get committed => result == ForkResult.commit;
-  bool get settled => result == ForkResult.settleOpen;
 }
 
 class ForkMachine {
   ForkMachine({
-    this.openAt = 56,
-    this.commitAt = 120,
-    this.hysteresis = 16,
-    this.unopenHysteresis = 8,
-    this.band = 0.35,
+    this.forkAt = 96,
+    this.unforkAt = 72,
+    this.armAt = 40,
+    this.disarmAt = 22,
+    this.flickVelocity = 600,
   });
 
-  /// Pull (pt) that a release settles open.
-  final double openAt;
+  final double forkAt;
+  final double unforkAt;
+  final double armAt;
+  final double disarmAt;
 
-  /// Pull (pt) that arms a capsule.
-  final double commitAt;
-
-  /// Dropping this far under [commitAt] disarms.
-  final double hysteresis;
-
-  /// Dropping this far under [openAt] un-opens (so the notch does not chatter).
-  final double unopenHysteresis;
-
-  /// How much of the finger a pull past [commitAt] still shows (rubber band).
-  final double band;
+  /// Sideways speed (pt/s) past the line that arms a side on release.
+  final double flickVelocity;
 
   ForkPhase phase = ForkPhase.idle;
 
@@ -105,130 +77,106 @@ class ForkMachine {
   ForkOption? left;
   ForkOption? right;
 
-  /// The x that divides the screen into the left and right halves.
-  double midX = 0;
-
-  /// The armed capsule, or null.
-  ForkSide? armedSide;
+  /// The armed side, or null in the middle (the cancel target).
+  ForkSide? armed;
 
   /// Upward travel since touch-down, raw (not rubber-banded).
   double dy = 0;
 
-  bool _reached = false;
+  /// Sideways travel from the thumb's x at bloom. Zero before the fork.
+  double dx = 0;
+  double _bloomX = 0;
 
   bool get active => phase != ForkPhase.idle;
 
-  /// Whether the finger is still down.
-  bool get holding => phase == ForkPhase.pull || phase == ForkPhase.armed;
-
-  /// Exactly one option: one wide capsule.
+  /// Exactly one option: a single pull with no fork.
   bool get single => (left == null) != (right == null);
 
-  /// Past the open line (what a release now would keep open).
-  bool get reached => _reached;
+  /// Pull progress 0..1 up to the fork line.
+  double get progress => (dy / forkAt).clamp(0.0, 1.0);
 
-  /// Pull progress 0..1 up to the commit line.
-  double get progress => (dy / commitAt).clamp(0.0, 1.0);
+  /// Slide progress 0..1 toward [armAt], signed by side.
+  double get slide => (dx.abs() / armAt).clamp(0.0, 1.0);
 
-  /// How tall the capsules are for [dy]: 1:1 with the finger up to the commit
-  /// line, a rubber band past it.
-  double get reveal => rubber(dy);
+  /// Orb travel for [dy]: 1:1 up to the line, a rubber band past it.
+  double get travel => rubber(dy);
 
   double rubber(double d) {
     if (d <= 0) return 0;
-    return d < commitAt ? d : commitAt + (d - commitAt) * band;
+    return d < forkAt ? d : forkAt + (d - forkAt) * 0.35;
   }
 
   ForkOption? optionAt(ForkSide s) => s == ForkSide.left ? left : right;
 
-  /// The side whose capsule is under [x]: the only one, when there is one.
-  ForkSide sideAt(double x) {
-    if (single) return left != null ? ForkSide.left : ForkSide.right;
-    return x < midX ? ForkSide.left : ForkSide.right;
-  }
-
-  /// Starts a gesture with [options] (already placed on screen sides), the
-  /// screen split at [midX].
-  void begin({ForkOption? left, ForkOption? right, double midX = 0}) {
+  /// Starts a gesture with [options] (already placed on screen sides).
+  void begin({ForkOption? left, ForkOption? right}) {
     this.left = left;
     this.right = right;
-    this.midX = midX;
     phase = ForkPhase.pull;
-    armedSide = null;
+    armed = null;
     dy = 0;
-    _reached = false;
+    dx = 0;
+    _bloomX = 0;
   }
 
-  /// Feeds the finger: [up] is how far above the touch-down point it is
+  /// Feeds the thumb: [up] is how far above the touch-down point it is
   /// (negative when below), [x] its horizontal position.
   List<ForkEvent> update(double up, double x) {
-    if (!holding) return const [];
+    if (phase == ForkPhase.idle) return const [];
     final events = <ForkEvent>[];
     dy = up;
-    if (!_reached && up >= openAt) {
-      _reached = true;
-      events.add(ForkEvent.opened);
-    } else if (_reached && up < openAt - unopenHysteresis) {
-      _reached = false;
-      events.add(ForkEvent.unopened);
+    if (phase == ForkPhase.pull && up >= forkAt) {
+      phase = ForkPhase.fork;
+      _bloomX = x;
+      dx = 0;
+      events.add(ForkEvent.forked);
+    } else if (phase == ForkPhase.fork && up < unforkAt) {
+      phase = ForkPhase.pull;
+      armed = null;
+      dx = 0;
+      events.add(ForkEvent.unforked);
     }
-    if (phase == ForkPhase.pull && up >= commitAt) {
-      phase = ForkPhase.armed;
-      armedSide = sideAt(x);
-      events.add(ForkEvent.armed);
-    } else if (phase == ForkPhase.armed) {
-      if (up < commitAt - hysteresis) {
-        phase = ForkPhase.pull;
-        armedSide = null;
+    if (phase == ForkPhase.fork && !single) {
+      dx = x - _bloomX;
+      final a = armed;
+      if (a == null && dx.abs() >= armAt) {
+        armed = dx < 0 ? ForkSide.left : ForkSide.right;
+        events.add(ForkEvent.armed);
+      } else if (a != null && dx.abs() < disarmAt) {
+        armed = null;
         events.add(ForkEvent.disarmed);
-      } else {
-        final side = sideAt(x);
-        if (side != armedSide) {
-          armedSide = side;
-          events.add(ForkEvent.swapped);
-        }
+      } else if (a == ForkSide.left && dx >= armAt) {
+        armed = ForkSide.right;
+        events.add(ForkEvent.swapped);
+      } else if (a == ForkSide.right && dx <= -armAt) {
+        armed = ForkSide.left;
+        events.add(ForkEvent.swapped);
       }
     }
     return events;
   }
 
-  /// The finger lifted. Armed: fires that capsule. Past the open line: settles
-  /// open. Otherwise closes.
-  ForkOutcome end() {
-    switch (phase) {
-      case ForkPhase.armed:
-        final side = armedSide!;
-        final option = optionAt(side)!;
-        phase = ForkPhase.committing;
-        return ForkOutcome.commit(option, side);
-      case ForkPhase.pull:
-        if (dy >= openAt) {
-          phase = ForkPhase.open;
-          return const ForkOutcome.settle();
-        }
-        reset();
-        return const ForkOutcome.cancel();
-      case ForkPhase.idle:
-      case ForkPhase.open:
-      case ForkPhase.committing:
-        return const ForkOutcome.cancel();
+  /// The finger lifted at [vx] pt/s sideways. Resets the machine.
+  ForkOutcome end(double vx) {
+    final wasFork = phase == ForkPhase.fork;
+    ForkSide? pick = armed;
+    if (wasFork && pick == null && !single && vx.abs() > flickVelocity) {
+      pick = vx < 0 ? ForkSide.left : ForkSide.right;
     }
+    if (wasFork && single) pick = left != null ? ForkSide.left : ForkSide.right;
+    final option = pick == null ? null : optionAt(pick);
+    reset();
+    return option == null
+        ? const ForkOutcome.cancel()
+        : ForkOutcome.commit(option, pick);
   }
 
-  /// A tap on the capsule at [side] while settled open.
-  ForkOutcome tap(ForkSide side) {
-    final option = phase == ForkPhase.open ? optionAt(side) : null;
-    if (option == null) return const ForkOutcome.cancel();
-    phase = ForkPhase.committing;
-    armedSide = side;
-    return ForkOutcome.commit(option, side);
-  }
-
-  /// Abandons the gesture or closes the settled capsules.
+  /// Abandons the gesture (second finger, app backgrounded).
   void reset() {
     phase = ForkPhase.idle;
-    armedSide = null;
+    armed = null;
     dy = 0;
-    _reached = false;
+    dx = 0;
+    _bloomX = 0;
   }
 }

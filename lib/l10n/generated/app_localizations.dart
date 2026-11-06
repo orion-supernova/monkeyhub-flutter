@@ -25722,6 +25722,49 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sealed messages never count as read'**
   String get appOnlyVanishUnread;
+
+
+  /// Hint while the swipe-up fork is open and no choice is selected: slide the finger left or right.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide to choose'**
+  String get forkSlideToChoose;
+
+  /// Second line under 'Slide to choose': releasing in the middle cancels.
+  ///
+  /// In en, this message translates to:
+  /// **'let go here to cancel'**
+  String get forkLetGoCancel;
+
+  /// Second line of the swipe-up hint with a choice selected: sliding back to the middle cancels.
+  ///
+  /// In en, this message translates to:
+  /// **'slide back to cancel'**
+  String get forkSlideBackCancel;
+
+  /// Caption under the Vanish option of the swipe-up fork.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages disappear'**
+  String get forkChipVanishSub;
+
+  /// Caption under the Turn off option of the swipe-up fork.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages stay'**
+  String get forkChipTurnOffSub;
+
+  /// Caption under the Talk option of the swipe-up fork: starting a huddle does not ring anyone.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody gets rung'**
+  String get forkChipTalkSub;
+
+  /// Caption under the Join option of the swipe-up fork: how many people are in the huddle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 person here} other{{count} people here}}'**
+  String forkChipJoinSub(int count);
 }
 
 class _AppLocalizationsDelegate

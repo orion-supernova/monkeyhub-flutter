@@ -15421,4 +15421,34 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get appOnlyVanishUnread => 'सील किए मैसेज कभी पढ़े हुए नहीं गिने जाते';
+
+
+  @override
+  String get forkSlideToChoose => 'चुनने के लिए स्लाइड करो';
+
+  @override
+  String get forkLetGoCancel => 'रद्द करने के लिए यहाँ छोड़ो';
+
+  @override
+  String get forkSlideBackCancel => 'रद्द करने के लिए वापस स्लाइड करो';
+
+  @override
+  String get forkChipVanishSub => 'मैसेज गायब होते हैं';
+
+  @override
+  String get forkChipTurnOffSub => 'मैसेज बने रहते हैं';
+
+  @override
+  String get forkChipTalkSub => 'किसी को रिंग नहीं जाती';
+
+  @override
+  String forkChipJoinSub(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count लोग यहाँ',
+      one: '1 व्यक्ति यहाँ',
+    );
+    return '$_temp0';
+  }
 }

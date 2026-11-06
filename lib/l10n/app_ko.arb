@@ -4260,5 +4260,12 @@
   "vanishNoteKept": "여기서 읽음을 공유하지 않아서 받은 메시지는 24시간 동안 남아요.",
   "vanishedParent": "사라짐",
   "appOnlyVanishBody": "{platform, select, web{브라우저는 스크린샷을 막을 수 없어서 사라지는 메시지는 여기서 봉인된 채로 남고 읽음으로 처리되지 않아요. 휴대폰의 MonkeyHub나 Mac 또는 Windows 컴퓨터에서 이 채팅을 열어 주세요.} other{Linux는 스크린샷을 막을 수 없어서 사라지는 메시지는 여기서 봉인된 채로 남고 읽음으로 처리되지 않아요. 휴대폰의 MonkeyHub나 Mac 또는 Windows 컴퓨터에서 이 채팅을 열어 주세요.}}",
-  "appOnlyVanishUnread": "봉인된 메시지는 읽음으로 처리되지 않아요"
+  "appOnlyVanishUnread": "봉인된 메시지는 읽음으로 처리되지 않아요",
+  "forkSlideToChoose": "밀어서 선택",
+  "forkLetGoCancel": "여기서 놓으면 취소",
+  "forkSlideBackCancel": "되돌리면 취소",
+  "forkChipVanishSub": "메시지가 사라져요",
+  "forkChipTurnOffSub": "메시지가 남아요",
+  "forkChipTalkSub": "아무에게도 벨이 울리지 않아요",
+  "forkChipJoinSub": "{count, plural, other{{count}명 참여 중}}"
 }

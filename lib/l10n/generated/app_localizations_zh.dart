@@ -14629,4 +14629,33 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get appOnlyVanishUnread => '密封的消息不会算作已读';
+
+
+  @override
+  String get forkSlideToChoose => '滑动选择';
+
+  @override
+  String get forkLetGoCancel => '在此松手即可取消';
+
+  @override
+  String get forkSlideBackCancel => '滑回中间取消';
+
+  @override
+  String get forkChipVanishSub => '消息会消失';
+
+  @override
+  String get forkChipTurnOffSub => '消息会保留';
+
+  @override
+  String get forkChipTalkSub => '不会响铃通知任何人';
+
+  @override
+  String forkChipJoinSub(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 人在这里',
+    );
+    return '$_temp0';
+  }
 }
