@@ -28,7 +28,21 @@ class InCallPill extends StatefulWidget {
     required this.group,
     required this.callScreenUp,
     this.floating,
+    this.activeRoomId,
+    this.roomChanges,
+    this.onOpenRoom,
   });
+
+  /// The room on screen, if any. A huddle has its own bar on that room's
+  /// dock, so this pill stands down there instead of saying it twice.
+  final String? Function()? activeRoomId;
+
+  /// Fires when [activeRoomId] may have changed.
+  final Listenable? roomChanges;
+
+  /// Opens a room. A huddle's Return goes here (to the room, whose bar opens
+  /// the call) rather than straight to the call screen.
+  final void Function(String roomId)? onOpenRoom;
 
   final CallService call;
   final GroupCallService? group;
@@ -57,6 +71,7 @@ class _InCallPillState extends State<InCallPill> {
     widget.floating?.addListener(_changed);
     widget.call.drawArmed.addListener(_changed);
     widget.group?.drawArmed.addListener(_changed);
+    widget.roomChanges?.addListener(_changed);
   }
 
   @override
@@ -67,6 +82,7 @@ class _InCallPillState extends State<InCallPill> {
     widget.floating?.removeListener(_changed);
     widget.call.drawArmed.removeListener(_changed);
     widget.group?.drawArmed.removeListener(_changed);
+    widget.roomChanges?.removeListener(_changed);
     super.dispose();
   }
 
@@ -95,7 +111,23 @@ class _InCallPillState extends State<InCallPill> {
       group?.joinedAt,
       group?.localScreenSharing,
       group?.drawArmed.value,
+      _huddleHere(),
+      _huddleOnly(),
     ]);
+  }
+
+  /// The group call is a huddle that presents as its pill (no video yet).
+  bool _huddleOnly() {
+    final g = widget.group;
+    return !widget.call.inCall && (g?.inCall ?? false) && g!.presentsAsHuddle;
+  }
+
+  /// That huddle's room is the one on screen, where its bar already is.
+  bool _huddleHere() {
+    final g = widget.group;
+    if (!_huddleOnly()) return false;
+    final r = g!.roomId;
+    return r != null && widget.activeRoomId?.call() == r;
   }
 
   void _changed() {
@@ -122,6 +154,7 @@ class _InCallPillState extends State<InCallPill> {
         session.status != CallStatus.handedOff;
     final inGroup = group?.inCall ?? false;
     final visible = (oneToOne || inGroup) &&
+        !_huddleHere() &&
         !widget.callScreenUp.value &&
         !(widget.floating?.value ?? false);
     final sharing = oneToOne ? call.localScreenSharing : (group?.localScreenSharing ?? false);
@@ -214,6 +247,12 @@ class _InCallPillState extends State<InCallPill> {
   }
 
   void _reopen(bool oneToOne) {
+    final g = widget.group;
+    final room = g?.roomId;
+    if (!oneToOne && _huddleOnly() && room != null && widget.onOpenRoom != null) {
+      widget.onOpenRoom!(room);
+      return;
+    }
     if (oneToOne) {
       widget.call.reopenTick.value++;
     } else {

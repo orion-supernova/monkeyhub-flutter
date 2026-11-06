@@ -70,9 +70,58 @@ Future<int?> showVanishTimerPicker(BuildContext context, int current) {
   );
 }
 
-/// A `vanish:on|change|off` system line in the transcript: one quiet centered
-/// sentence in the vanish violet, with "Change" when the viewer may change the
-/// timer.
+/// The short "what vanish mode does" sheet behind a tap on the system line:
+/// four one-line facts, no paragraph.
+Future<void> showVanishExplainer(BuildContext context, int seconds) {
+  return showAdaptiveSheet<void>(
+    context,
+    builder: (sheetContext) {
+      final l10n = AppLocalizations.of(sheetContext);
+      final theme = ThemeScope.of(sheetContext);
+      final violet = VanishPalette(theme).vanish;
+      Widget fact(IconData icon, String text) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 1),
+                  child: Icon(icon, size: 18, color: violet),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    text,
+                    style: theme.body.copyWith(color: theme.ink, height: 1.3),
+                  ),
+                ),
+              ],
+            ),
+          );
+      return SheetFrame(
+        title: l10n.vanishExplainTitle,
+        showClose: true,
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            fact(CupertinoIcons.timer,
+                l10n.vanishExplainSeen(vanishTimerLabel(l10n, seconds))),
+            fact(CupertinoIcons.clock, l10n.vanishExplain24h),
+            fact(CupertinoIcons.camera_viewfinder, l10n.vanishExplainShots),
+            fact(CupertinoIcons.device_phone_portrait, l10n.vanishExplainApp),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+/// A `vanish:on|change|off` system line in the transcript: ONE short quiet
+/// centered sentence with a small timer glyph inline before it, in the vanish
+/// violet. Tapping the line (on / change) opens [showVanishExplainer]; "Change"
+/// follows it when the viewer may change the timer.
 class VanishSystemLine extends StatelessWidget {
   const VanishSystemLine({
     super.key,
@@ -100,48 +149,64 @@ class VanishSystemLine extends StatelessWidget {
       letterSpacing: 0,
       color: theme.inkMuted,
     );
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    // "Off" has no timer to explain; the other two open the explainer.
+    final explain = line.kind != VanishLineKind.off;
+    final text = Text.rich(
+      TextSpan(
+        style: base,
         children: [
-          Icon(CupertinoIcons.timer, size: 14, color: violet),
-          const SizedBox(height: 4),
-          Text.rich(
-            TextSpan(
-              style: base,
-              children: [
-                TextSpan(text: vanishLineText(l10n, line, name: name)),
-                if (onChange != null) ...[
-                  const TextSpan(text: ' '),
-                  WidgetSpan(
-                    alignment: PlaceholderAlignment.baseline,
-                    baseline: TextBaseline.alphabetic,
-                    child: FocusableTap(
-                      onTap: onChange!,
-                      semanticLabel: l10n.vanishSysChangeAction,
-                      radius: 6,
-                      inset: 2,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: onChange,
-                        child: Text(
-                        l10n.vanishSysChangeAction,
-                        style: base.copyWith(
-                          color: violet,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      ),
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 5),
+              child: Icon(CupertinoIcons.timer, size: 13, color: violet),
+            ),
+          ),
+          // With "Change" after it, the last word and "Change" are glued
+          // with no-break spaces so "Change" never wraps onto a line alone.
+          TextSpan(
+            text: onChange == null
+                ? vanishLineText(l10n, line, name: name)
+                : _glueLastWord(vanishLineText(l10n, line, name: name)),
+          ),
+          if (onChange != null) ...[
+            const TextSpan(text: '\u00A0'),
+            WidgetSpan(
+              alignment: PlaceholderAlignment.baseline,
+              baseline: TextBaseline.alphabetic,
+              child: FocusableTap(
+                onTap: onChange!,
+                semanticLabel: l10n.vanishSysChangeAction,
+                radius: 6,
+                inset: 2,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onChange,
+                  child: Text(
+                    l10n.vanishSysChangeAction,
+                    style: base.copyWith(
+                      color: violet,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
-              ],
+                ),
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
+          ],
         ],
       ),
+      textAlign: TextAlign.center,
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),
+      child: explain
+          ? GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () =>
+                  showVanishExplainer(context, line.seconds ?? 10),
+              child: text,
+            )
+          : text,
     );
   }
 }
@@ -546,4 +611,11 @@ class _TintPainter extends CustomPainter {
   @override
   bool shouldRepaint(_TintPainter old) =>
       old.color != color || old.origin != origin || old.animation != animation;
+}
+
+/// [s] with its last space made a no-break space, so the final word stays on
+/// the same line as whatever follows it.
+String _glueLastWord(String s) {
+  final i = s.lastIndexOf(' ');
+  return i < 0 ? s : '${s.substring(0, i)}\u00A0${s.substring(i + 1)}';
 }

@@ -14977,8 +14977,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get newRoomPreviewSecretBadge => 'GİZLİ';
 
   @override
-  String get newRoomPreviewAvatarSemantic =>
-      'Oda emojisi. Başka bir tane seçmek için dokun';
+  String get newRoomPictureSemantic => 'Oda fotoğrafı. Seçmek için dokun';
+
+  @override
+  String get newRoomPictureRemoveSemantic => 'Oda fotoğrafını kaldır';
 
   @override
   String get newRoomSectionPeople => 'Kişiler';
@@ -15098,12 +15100,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get forkSubVanishOff => 'kaybolmayı kapatmak için';
 
   @override
-  String get forkSlideToChoose => 'Seçmek için kaydır';
-
-  @override
-  String get forkLetGoCancel => 'iptal etmek için burada bırak';
-
-  @override
   String get forkReleaseTalk => 'Konuşmak için bırak';
 
   @override
@@ -15119,9 +15115,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get forkDragDownCancel => 'iptal etmek için aşağı çek';
 
   @override
-  String get forkSlideBackCancel => 'iptal etmek için geri kaydır';
-
-  @override
   String get forkChipVanish => 'Kaybolsun';
 
   @override
@@ -15132,26 +15125,6 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get forkChipJoin => 'Katıl';
-
-  @override
-  String get forkChipVanishSub => 'Mesajlar kaybolur';
-
-  @override
-  String get forkChipTurnOffSub => 'Mesajlar kalır';
-
-  @override
-  String get forkChipTalkSub => 'Kimse aranmaz';
-
-  @override
-  String forkChipJoinSub(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count kişi burada',
-      one: '1 kişi burada',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get forkFailGeneric => 'Olmadı. Tekrar dene.';
@@ -15308,35 +15281,53 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String vanishSysOn(String name, String timer) {
-    return '$name kaybolma modunu açtı. Yeni mesajlar, herkes gördükten $timer sonra ya da en geç 24 saat içinde kaybolur. Ekran görüntüsü engellenir.';
+    return '$name kaybolma modunu açtı · görüldükten $timer sonra';
   }
 
   @override
   String vanishSysOnSelf(String timer) {
-    return 'Kaybolma modunu açtın. Yeni mesajlar, herkes gördükten $timer sonra ya da en geç 24 saat içinde kaybolur. Ekran görüntüsü engellenir.';
+    return 'Kaybolma modunu açtın · görüldükten $timer sonra';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return '$name kaybolma modunu değiştirdi. Yeni mesajlar, herkes gördükten $timer sonra kaybolur.';
+    return '$name kaybolma modunu görüldükten $timer sonra olarak ayarladı';
   }
 
   @override
   String vanishSysChangeSelf(String timer) {
-    return 'Kaybolma modunu değiştirdin. Yeni mesajlar, herkes gördükten $timer sonra kaybolur.';
+    return 'Kaybolma modunu görüldükten $timer sonra olarak ayarladın';
   }
 
   @override
   String vanishSysOff(String name) {
-    return '$name kaybolma modunu kapattı. Mod açıkken gönderilen mesajlar yine zamanında kaybolur.';
+    return '$name kaybolma modunu kapattı';
   }
 
   @override
-  String get vanishSysOffSelf =>
-      'Kaybolma modunu kapattın. Mod açıkken gönderilen mesajlar yine zamanında kaybolur.';
+  String get vanishSysOffSelf => 'Kaybolma modunu kapattın';
 
   @override
   String get vanishSysChangeAction => 'Değiştir';
+
+  @override
+  String get vanishExplainTitle => 'Kaybolma modu';
+
+  @override
+  String vanishExplainSeen(String timer) {
+    return 'Mesajlar, herkes gördükten $timer sonra kaybolur.';
+  }
+
+  @override
+  String get vanishExplain24h =>
+      'Biri Görüldü bilgisini paylaşmıyorsa mesajlar 24 saat kalır.';
+
+  @override
+  String get vanishExplainShots => 'Ekran görüntüsü engellenir.';
+
+  @override
+  String get vanishExplainApp =>
+      'Web ve Linux\'ta bu mesajlar yalnızca uygulamada açılır.';
 
   @override
   String get vanishTimerPickerTitle => 'Görüldükten sonra kaybol';

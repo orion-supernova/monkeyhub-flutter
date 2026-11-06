@@ -1,9 +1,14 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/data/chat_repository.dart';
 import 'package:monkeyhub/data/ui_selection_store.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
+import 'package:monkeyhub/media/image_raster.dart';
 import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/screens/create_room_sheet.dart';
@@ -11,6 +16,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/layout.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/adaptive_sheet.dart';
+import 'package:monkeyhub/widgets/chat_list_row.dart';
 import 'package:monkeyhub/widgets/message_life_picker.dart';
 
 /// The redesigned new-room sheet: a live preview card over four sections.
@@ -25,6 +31,9 @@ class _Created {
 class _FakeRepo extends Fake implements ChatRepository {
   final List<_Created> created = [];
   final List<String> invited = [];
+
+  @override
+  String? get userId => 'me';
 
   @override
   List<ChatUser> get friends => [
@@ -64,10 +73,33 @@ class _FakeRepo extends Fake implements ChatRepository {
   }
 }
 
-class _FakeApi extends Fake implements ChatApi {}
+class _FakeApi extends Fake implements ChatApi {
+  int uploadUrls = 0;
+
+  /// The upload itself needs a network; counting the request is enough to show
+  /// the picture was sent on, and failing here proves a failed upload cannot
+  /// hurt the room.
+  @override
+  Future<String> generateUploadUrl() async {
+    uploadUrls++;
+    throw StateError('offline');
+  }
+}
+
+/// A real 8x8 PNG, so Image.memory has something to decode.
+Future<Uint8List> _png() async {
+  final rec = ui.PictureRecorder();
+  Canvas(rec).drawRect(const Rect.fromLTWH(0, 0, 8, 8),
+      Paint()..color = const Color(0xFFCC3355));
+  final img = await rec.endRecording().toImage(8, 8);
+  final data = await img.toByteData(format: ui.ImageByteFormat.png);
+  return data!.buffer.asUint8List();
+}
 
 void main() {
   late _FakeRepo repo;
+  late _FakeApi api;
+  CroppedImage? nextPick;
 
   Widget host() => ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
@@ -88,7 +120,11 @@ void main() {
                       context,
                       useSafeArea: true,
                       builder: (_) =>
-                          CreateRoomSheet(repo: repo, api: _FakeApi()),
+                          CreateRoomSheet(
+                        repo: repo,
+                        api: api,
+                        pickPicture: (_) async => nextPick,
+                      ),
                     ),
                     child: const Text('open'),
                   ),
@@ -108,7 +144,11 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  setUp(() => repo = _FakeRepo());
+  setUp(() {
+    repo = _FakeRepo();
+    api = _FakeApi();
+    nextPick = null;
+  });
 
   testWidgets('starts as an invite-only regular room with only you',
       (tester) async {
@@ -233,5 +273,80 @@ void main() {
     await tester.tap(find.text('Open the room'));
     await tester.pumpAndSettle();
     expect(repo.created.single.args['description'], 'Mind the gap');
+  });
+
+  group('room picture', () {
+    Future<CroppedImage> pick(WidgetTester tester) async {
+      final bytes = (await tester.runAsync(_png))!;
+      return CroppedImage(
+          bytes: bytes, contentType: 'image/png', width: 8, height: 8);
+    }
+
+    testWidgets('wears the default lettered face that follows the name',
+        (tester) async {
+      await open(tester);
+      expect(find.byType(MonogramAvatar), findsOneWidget);
+      expect(find.text('#'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).first, 'tube club');
+      await tester.pump();
+      expect(find.text('T'), findsOneWidget);
+      expect(find.byType(Image), findsNothing);
+    });
+
+    testWidgets('tapping the avatar picks a photo; the x puts it back',
+        (tester) async {
+      await open(tester);
+      nextPick = await pick(tester);
+      await tester.tap(find.byType(MonogramAvatar));
+      await tester.pumpAndSettle();
+      expect(find.byType(MonogramAvatar), findsNothing);
+      expect(find.byType(Image), findsOneWidget);
+
+      // The card's own x (10px); the sheet's close glyph is bigger.
+      await tester.tap(find.byWidgetPredicate((w) =>
+          w is Icon && w.icon == CupertinoIcons.xmark && w.size == 10));
+      await tester.pumpAndSettle();
+      expect(find.byType(Image), findsNothing);
+      expect(find.byType(MonogramAvatar), findsOneWidget);
+    });
+
+    testWidgets('a cancelled pick changes nothing', (tester) async {
+      await open(tester);
+      await tester.tap(find.byType(MonogramAvatar));
+      await tester.pumpAndSettle();
+      expect(find.byType(MonogramAvatar), findsOneWidget);
+    });
+
+    testWidgets('long-press drops the picked photo', (tester) async {
+      await open(tester);
+      nextPick = await pick(tester);
+      await tester.tap(find.byType(MonogramAvatar));
+      await tester.pumpAndSettle();
+      await tester.longPress(find.byType(Image));
+      await tester.pumpAndSettle();
+      expect(find.byType(Image), findsNothing);
+    });
+
+    testWidgets('create uploads the picked photo; a failure keeps the room',
+        (tester) async {
+      await open(tester);
+      nextPick = await pick(tester);
+      await tester.tap(find.byType(MonogramAvatar));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Pics');
+      await tester.tap(find.text('Open the room'));
+      await tester.pumpAndSettle();
+      expect(repo.created, hasLength(1));
+      expect(api.uploadUrls, 1);
+      expect(UiSelectionStore.instance.roomId, 'room-1');
+    });
+
+    testWidgets('no picture means no upload', (tester) async {
+      await open(tester);
+      await tester.enterText(find.byType(TextField).first, 'Plain');
+      await tester.tap(find.text('Open the room'));
+      await tester.pumpAndSettle();
+      expect(api.uploadUrls, 0);
+    });
   });
 }

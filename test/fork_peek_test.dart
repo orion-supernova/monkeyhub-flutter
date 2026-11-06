@@ -47,21 +47,29 @@ void main() {
     expect(store.shouldShowForkPeek, isFalse);
   });
 
-  testWidgets('the chevron rises, fades, then reports done', (t) async {
+  testWidgets('the capsules peek 8pt, then slide back and report done',
+      (t) async {
     var done = 0;
     await t.pumpWidget(MaterialApp(
       home: ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
-        child: Center(
-          child: ForkPeek(semanticLabel: 'Swipe up', onDone: () => done++),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: ForkPeek(
+            semanticLabel: 'Swipe up',
+            colors: const [Color(0xFF7C4DFF), Color(0xFF34C759)],
+            onDone: () => done++,
+          ),
         ),
       ),
     ));
-    final start = t.getTopLeft(find.byType(Icon)).dy;
-    await t.pump(const Duration(milliseconds: 600));
-    expect(t.getTopLeft(find.byType(Icon)).dy, lessThan(start));
+    Rect firstCapsule() => t.getRect(find.byType(DecoratedBox).first);
+    final hidden = firstCapsule().top;
+    await t.pump(const Duration(milliseconds: 400));
+    expect(firstCapsule().top, lessThan(hidden));
+    expect(find.byType(DecoratedBox), findsNWidgets(2));
     expect(done, 0);
-    await t.pump(const Duration(milliseconds: 500));
+    await t.pump(const Duration(milliseconds: 700));
     expect(done, 1);
     expect(find.bySemanticsLabel('Swipe up'), findsOneWidget);
   });

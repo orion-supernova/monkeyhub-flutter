@@ -385,3 +385,13 @@ describe("ring someone into a huddle", () => {
     ).rejects.toThrow(/CALL_ENDED|NOT_IN_CALL/);
   });
 });
+
+describe("join tells the client it's a huddle", () => {
+  test("join returns kind so a cold-start join stays a pill", async () => {
+    const t = convexTest(schema);
+    const { people, roomId } = await roomWith(t, ["alice", "bob"]);
+    const id = await startHuddle(t, people[0], roomId);
+    const res: any = await t.mutation(api.groupCalls.join, { ...as(people[1]), groupCallId: id });
+    expect(res.kind).toBe("huddle");
+  });
+});

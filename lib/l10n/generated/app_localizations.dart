@@ -25087,11 +25087,17 @@ abstract class AppLocalizations {
   /// **'SECRET'**
   String get newRoomPreviewSecretBadge;
 
-  /// Screen-reader label of the emoji button next to the room name field in the new-room sheet.
+  /// Screen-reader label of the tappable room picture on the new-room preview card (opens the photo library and a circle crop).
   ///
   /// In en, this message translates to:
-  /// **'Room emoji. Tap to choose another'**
-  String get newRoomPreviewAvatarSemantic;
+  /// **'Room picture. Tap to choose one'**
+  String get newRoomPictureSemantic;
+
+  /// Screen-reader label of the small x on the new-room preview card that removes the picked room picture.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove room picture'**
+  String get newRoomPictureRemoveSemantic;
 
   /// Section label in the new-room sheet: friends to invite when the room is created.
   ///
@@ -25303,18 +25309,6 @@ abstract class AppLocalizations {
   /// **'to turn off vanish'**
   String get forkSubVanishOff;
 
-  /// Hint while the swipe-up fork is open and no choice is selected: slide the finger left or right.
-  ///
-  /// In en, this message translates to:
-  /// **'Slide to choose'**
-  String get forkSlideToChoose;
-
-  /// Second line under 'Slide to choose': releasing in the middle cancels.
-  ///
-  /// In en, this message translates to:
-  /// **'let go here to cancel'**
-  String get forkLetGoCancel;
-
   /// Hint when the Talk choice is selected in the swipe-up fork: letting go starts a huddle.
   ///
   /// In en, this message translates to:
@@ -25345,12 +25339,6 @@ abstract class AppLocalizations {
   /// **'drag down to cancel'**
   String get forkDragDownCancel;
 
-  /// Second line of the swipe-up hint with a choice selected: sliding back to the middle cancels.
-  ///
-  /// In en, this message translates to:
-  /// **'slide back to cancel'**
-  String get forkSlideBackCancel;
-
   /// Label of the swipe-up fork option that turns vanish mode on. Short.
   ///
   /// In en, this message translates to:
@@ -25374,30 +25362,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Join'**
   String get forkChipJoin;
-
-  /// Caption under the Vanish option of the swipe-up fork.
-  ///
-  /// In en, this message translates to:
-  /// **'Messages disappear'**
-  String get forkChipVanishSub;
-
-  /// Caption under the Turn off option of the swipe-up fork.
-  ///
-  /// In en, this message translates to:
-  /// **'Messages stay'**
-  String get forkChipTurnOffSub;
-
-  /// Caption under the Talk option of the swipe-up fork: starting a huddle does not ring anyone.
-  ///
-  /// In en, this message translates to:
-  /// **'Nobody gets rung'**
-  String get forkChipTalkSub;
-
-  /// Caption under the Join option of the swipe-up fork: how many people are in the huddle.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 person here} other{{count} people here}}'**
-  String forkChipJoinSub(int count);
 
   /// Shown under the orb when a swipe-up fork action fails.
   ///
@@ -25618,37 +25582,37 @@ abstract class AppLocalizations {
   /// System line in a chat when vanish mode is turned on. {name} is who did it (someone else; your own action uses vanishSysOnSelf so the verb can be conjugated for 'you'), {timer} is like '10 seconds' or '1 hour'. A tappable 'Change' follows it.
   ///
   /// In en, this message translates to:
-  /// **'{name} turned on vanish mode. New messages disappear {timer} after everyone has seen them, or after 24 hours at most. Screenshots are blocked.'**
+  /// **'{name} turned on vanish mode · {timer} after seen'**
   String vanishSysOn(String name, String timer);
 
   /// Same as vanishSysOn when the reader turned it on themselves. {timer} is like '10 seconds' or '1 hour'.
   ///
   /// In en, this message translates to:
-  /// **'You turned on vanish mode. New messages disappear {timer} after everyone has seen them, or after 24 hours at most. Screenshots are blocked.'**
+  /// **'You turned on vanish mode · {timer} after seen'**
   String vanishSysOnSelf(String timer);
 
   /// System line in a chat when the vanish timer is changed. {name} is who did it (someone else; your own action uses vanishSysChangeSelf), {timer} is like '1 minute'.
   ///
   /// In en, this message translates to:
-  /// **'{name} changed vanish mode. New messages disappear {timer} after everyone has seen them.'**
+  /// **'{name} set vanish mode to {timer} after seen'**
   String vanishSysChange(String name, String timer);
 
   /// Same as vanishSysChange when the reader changed it themselves. {timer} is like '1 minute'.
   ///
   /// In en, this message translates to:
-  /// **'You changed vanish mode. New messages disappear {timer} after everyone has seen them.'**
+  /// **'You set vanish mode to {timer} after seen'**
   String vanishSysChangeSelf(String timer);
 
   /// System line in a chat when vanish mode is turned off. {name} is who did it (someone else; your own action uses vanishSysOffSelf).
   ///
   /// In en, this message translates to:
-  /// **'{name} turned off vanish mode. Messages sent while it was on still disappear on time.'**
+  /// **'{name} turned off vanish mode'**
   String vanishSysOff(String name);
 
   /// Same as vanishSysOff when the reader turned it off themselves.
   ///
   /// In en, this message translates to:
-  /// **'You turned off vanish mode. Messages sent while it was on still disappear on time.'**
+  /// **'You turned off vanish mode'**
   String get vanishSysOffSelf;
 
   /// Tappable word at the end of the vanish-mode system line; opens the timer picker.
@@ -25656,6 +25620,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Change'**
   String get vanishSysChangeAction;
+
+  /// Title of the small sheet that opens when the vanish-mode system line in a chat is tapped.
+  ///
+  /// In en, this message translates to:
+  /// **'Vanish mode'**
+  String get vanishExplainTitle;
+
+  /// First line of the vanish-mode explainer sheet. {timer} is like '10 seconds' or '1 hour'.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages vanish {timer} after everyone has seen them.'**
+  String vanishExplainSeen(String timer);
+
+  /// Second line of the vanish-mode explainer sheet: what happens when somebody hides their Seen.
+  ///
+  /// In en, this message translates to:
+  /// **'If someone doesn\'t share Seen, messages last 24 hours.'**
+  String get vanishExplain24h;
+
+  /// Third line of the vanish-mode explainer sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshots are blocked.'**
+  String get vanishExplainShots;
+
+  /// Last line of the vanish-mode explainer sheet: web and Linux cannot block screenshots, so vanishing messages stay sealed there.
+  ///
+  /// In en, this message translates to:
+  /// **'On web and Linux, these messages open only in the app.'**
+  String get vanishExplainApp;
 
   /// Title of the small sheet that picks how long after everyone has seen a message it disappears.
   ///

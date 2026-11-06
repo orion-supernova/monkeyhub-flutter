@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
@@ -7,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import 'chat_list_row.dart' show MonogramAvatar;
 import 'chrome_motion.dart';
 import 'ios_kit.dart';
 import 'user_avatar.dart';
@@ -19,27 +23,46 @@ Color secretRoomTint(AppTheme theme) => tileColor(theme, TileTone.purple);
 /// The living card at the top of the new-room sheet: the room as it will look
 /// to the people in it, reacting to every choice made below.
 ///
-/// An emoji avatar, the name (a quiet placeholder until one is typed), a
+/// The room's picture (or, before one is picked, the same lettered face a
+/// room without a picture wears everywhere else, its initial following the
+/// typed name), the name (a quiet placeholder until one is typed), a
 /// one-line subtitle that slides to its next value whenever a choice changes
 /// it ("Invite only · you + 2 · secret · 1m after seen"), the faces of the
 /// people picked so far, and a SECRET badge that drops in when the room is
 /// secret. A secret room turns the whole card deep violet.
 ///
 /// Pure display: the sheet owns every value. The avatar kicks (a pop) when
-/// [emoji] changes, the same glyph kick the chat chrome uses; the picked
+/// [picture] changes, the same glyph kick the chat chrome uses; the picked
 /// faces spring in one at a time. Calm motion swaps instead of sliding.
 class RoomPreviewCard extends StatelessWidget {
   const RoomPreviewCard({
     super.key,
-    required this.emoji,
     required this.name,
     required this.subtitle,
     required this.secret,
     this.people = const [],
     this.api,
+    this.picture,
+    this.avatarSeed = 'new-room',
+    this.onPictureTap,
+    this.onPictureClear,
+    this.pictureSemantic,
+    this.pictureClearSemantic,
   });
 
-  final String emoji;
+  /// The cropped picture picked for the room, or null for the default face.
+  final Uint8List? picture;
+
+  /// Seeds the default face's colour, so it stays put while the name is typed.
+  final String avatarSeed;
+
+  /// Tap the avatar (or its camera badge) to pick a photo.
+  final VoidCallback? onPictureTap;
+
+  /// Long-press the avatar or tap the small x to drop the picked photo.
+  final VoidCallback? onPictureClear;
+  final String? pictureSemantic;
+  final String? pictureClearSemantic;
 
   /// The typed name, or empty for the placeholder.
   final String name;
@@ -79,22 +102,17 @@ class RoomPreviewCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          KickGlyph(
-            kick: GlyphKick.pop,
-            trigger: emoji,
-            amplitude: 1.4,
-            child: Container(
-              width: 52,
-              height: 52,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: secret
-                    ? violet.withValues(alpha: 0.28)
-                    : quietFill(theme),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(emoji, style: const TextStyle(fontSize: 28, height: 1)),
-            ),
+          _PictureSlot(
+            picture: picture,
+            name: trimmed,
+            seed: avatarSeed,
+            secret: secret,
+            violet: violet,
+            ring: fill,
+            onTap: onPictureTap,
+            onClear: onPictureClear,
+            semantic: pictureSemantic,
+            clearSemantic: pictureClearSemantic,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -163,6 +181,110 @@ class RoomPreviewCard extends StatelessWidget {
             const SizedBox(width: 8),
             _FaceStack(users: shown, api: api, ring: fill),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The card's avatar: the picked photo or the default lettered face, a camera
+/// badge at the bottom right, and (once a photo is picked) a small x at the top
+/// left to drop it. A long-press drops it too.
+class _PictureSlot extends StatelessWidget {
+  const _PictureSlot({
+    required this.picture,
+    required this.name,
+    required this.seed,
+    required this.secret,
+    required this.violet,
+    required this.ring,
+    required this.onTap,
+    required this.onClear,
+    required this.semantic,
+    required this.clearSemantic,
+  });
+
+  final Uint8List? picture;
+  final String name;
+  final String seed;
+  final bool secret;
+  final Color violet;
+  final Color ring;
+  final VoidCallback? onTap;
+  final VoidCallback? onClear;
+  final String? semantic;
+  final String? clearSemantic;
+
+  static const _size = 52.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final pic = picture;
+    final face = pic != null
+        ? ClipOval(
+            child: Image.memory(
+              pic,
+              width: _size,
+              height: _size,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+            ),
+          )
+        : MonogramAvatar(label: name, seed: seed, size: _size);
+    Widget badge(IconData icon, Color fill, Color ink) => Container(
+          width: 20,
+          height: 20,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: fill,
+            shape: BoxShape.circle,
+            border: Border.all(color: ring, width: 2),
+          ),
+          child: Icon(icon, size: 10, color: ink),
+        );
+    return SizedBox(
+      width: _size,
+      height: _size,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: SpringPress(
+              onTap: onTap,
+              onLongPress: pic != null ? onClear : null,
+              semanticLabel: semantic,
+              focusRadius: _size / 2,
+              child: KickGlyph(
+                kick: GlyphKick.pop,
+                trigger: pic,
+                amplitude: 1.2,
+                child: face,
+              ),
+            ),
+          ),
+          Positioned(
+            right: -4,
+            bottom: -4,
+            child: IgnorePointer(
+              child: badge(CupertinoIcons.camera_fill,
+                  secret ? violet : theme.accent, theme.accentInk),
+            ),
+          ),
+          if (pic != null && onClear != null)
+            Positioned(
+              left: -6,
+              top: -6,
+              child: SpringPress(
+                onTap: onClear,
+                semanticLabel: clearSemantic,
+                focusRadius: 12,
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: badge(CupertinoIcons.xmark, theme.ink, ring),
+                ),
+              ),
+            ),
         ],
       ),
     );

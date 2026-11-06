@@ -33,8 +33,9 @@ class GroupCallApi {
     );
   }
 
-  /// Returns `{type, roomId}` of the joined call.
-  Future<({String type, String roomId})> join({
+  /// Returns `{type, roomId, kind}` of the joined call; `kind` is "huddle"
+  /// for a huddle and null otherwise (and from servers that predate it).
+  Future<({String type, String roomId, String? kind})> join({
     required String groupCallId,
     required String userId,
     String? deviceId,
@@ -48,6 +49,7 @@ class GroupCallApi {
     return (
       type: map['type'].toString(),
       roomId: map['roomId'].toString(),
+      kind: map['kind'] as String?,
     );
   }
 

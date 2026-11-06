@@ -2344,6 +2344,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                                                     callScreenUp: _callScreenUp,
                                                     floating: CallFloat
                                                         .instance.wanted,
+                                                    activeRoomId: () =>
+                                                        _repo.activeRoomId,
+                                                    roomChanges: _repo,
+                                                    onOpenRoom: (id) =>
+                                                        _openRoomFromPush(id),
                                                   ),
                                                 ],
                                               ),
@@ -2365,7 +2370,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                                           ),
                                           // Same job for group calls: pushes GroupCallScreen /
                                           // the group invite ringer. Invisible.
-                                          _GroupCallOverlay(
+                                          GroupCallOverlay(
                                             service: _groupCallService,
                                             api: _api,
                                             screenUp: _callScreenUp,
@@ -3089,8 +3094,9 @@ class _BootError extends StatelessWidget {
 /// joined from a banner, or joined from the ringer), and raises
 /// [IncomingGroupCallScreen] while a fresh invite is pending. Renders
 /// nothing itself — same pattern as [_CallOverlay] above.
-class _GroupCallOverlay extends StatefulWidget {
-  const _GroupCallOverlay({
+class GroupCallOverlay extends StatefulWidget {
+  const GroupCallOverlay({
+    super.key,
     required this.service,
     required this.api,
     required this.screenUp,
@@ -3101,10 +3107,10 @@ class _GroupCallOverlay extends StatefulWidget {
   /// See [_CallOverlay.screenUp].
   final ValueNotifier<bool> screenUp;
   @override
-  State<_GroupCallOverlay> createState() => _GroupCallOverlayState();
+  State<GroupCallOverlay> createState() => GroupCallOverlayState();
 }
 
-class _GroupCallOverlayState extends State<_GroupCallOverlay> {
+class GroupCallOverlayState extends State<GroupCallOverlay> {
   String? _pushedCallId;
   bool _ringerUp = false;
 
@@ -3137,11 +3143,36 @@ class _GroupCallOverlayState extends State<_GroupCallOverlay> {
     super.dispose();
   }
 
-  /// The in-call pill asked for the screen back.
+  /// The in-call pill (or the huddle bar) asked for the screen back.
   void _reopen() {
     if (widget.screenUp.value) return;
-    _pushedCallId = null;
-    _onChanged();
+    final svc = widget.service;
+    if (!svc.inCall) return;
+    _pushedCallId = svc.groupCallId;
+    _pushScreen();
+  }
+
+  void _pushScreen() {
+    // This overlay sits ABOVE the navigator (MaterialApp.builder), so
+    // Navigator.of(context) finds nothing — route through the root
+    // navigator key, same as _CallOverlay.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final nav = rootNavigatorKey.currentState;
+      if (nav == null) return;
+      widget.screenUp.value = true;
+      nav
+          .push(
+            CallScreenRoute<void>(
+              instant: CallFloat.instance.takeInstantPush(),
+              settings: const RouteSettings(name: kProtectedRouteName),
+              builder: (_) =>
+                  GroupCallScreen(service: widget.service, api: widget.api),
+            ),
+          )
+          .whenComplete(() => widget.screenUp.value = false);
+    });
+    // A reopen from an idle app has no frame coming to run the callback.
+    WidgetsBinding.instance.scheduleFrame();
   }
 
   void _onChanged() {
@@ -3149,24 +3180,9 @@ class _GroupCallOverlayState extends State<_GroupCallOverlay> {
     final svc = widget.service;
     if (svc.inCall && _pushedCallId != svc.groupCallId) {
       _pushedCallId = svc.groupCallId;
-      // This overlay sits ABOVE the navigator (MaterialApp.builder), so
-      // Navigator.of(context) finds nothing — route through the root
-      // navigator key, same as _CallOverlay.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final nav = rootNavigatorKey.currentState;
-        if (nav == null) return;
-        widget.screenUp.value = true;
-        nav
-            .push(
-              CallScreenRoute<void>(
-                instant: CallFloat.instance.takeInstantPush(),
-                settings: const RouteSettings(name: kProtectedRouteName),
-                builder: (_) =>
-                    GroupCallScreen(service: widget.service, api: widget.api),
-              ),
-            )
-            .whenComplete(() => widget.screenUp.value = false);
-      });
+      // A huddle never takes the screen: it is the chat's pill, and the
+      // pill (or the in-call banner elsewhere) opens the screen on demand.
+      if (!svc.isHuddle) _pushScreen();
       return;
     }
     if (!svc.inCall) _pushedCallId = null;

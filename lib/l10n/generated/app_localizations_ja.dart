@@ -14371,7 +14371,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get newRoomPreviewSecretBadge => 'シークレット';
 
   @override
-  String get newRoomPreviewAvatarSemantic => 'ルームの絵文字。タップして別の絵文字を選ぶ';
+  String get newRoomPictureSemantic => 'ルームの写真。タップして選ぶ';
+
+  @override
+  String get newRoomPictureRemoveSemantic => 'ルームの写真を削除';
 
   @override
   String get newRoomSectionPeople => 'メンバー';
@@ -14487,12 +14490,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get forkSubVanishOff => '消えるモードをオフ';
 
   @override
-  String get forkSlideToChoose => 'スライドして選ぶ';
-
-  @override
-  String get forkLetGoCancel => 'ここで離すとキャンセル';
-
-  @override
   String get forkReleaseTalk => '離して話す';
 
   @override
@@ -14508,9 +14505,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get forkDragDownCancel => '下にドラッグでキャンセル';
 
   @override
-  String get forkSlideBackCancel => '戻すとキャンセル';
-
-  @override
   String get forkChipVanish => '消える';
 
   @override
@@ -14521,25 +14515,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get forkChipJoin => '参加';
-
-  @override
-  String get forkChipVanishSub => 'メッセージが消える';
-
-  @override
-  String get forkChipTurnOffSub => 'メッセージが残る';
-
-  @override
-  String get forkChipTalkSub => '誰にも鳴らしません';
-
-  @override
-  String forkChipJoinSub(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count人が参加中',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get forkFailGeneric => 'できませんでした。もう一度お試しください。';
@@ -14693,34 +14668,51 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String vanishSysOn(String name, String timer) {
-    return '$nameが消えるモードをオンにしました。新しいメッセージは全員が見てから$timer後、遅くとも24時間以内に消えます。スクリーンショットはブロックされます。';
+    return '$nameが消えるモードをオンにしました · 見てから$timer後';
   }
 
   @override
   String vanishSysOnSelf(String timer) {
-    return '消えるモードをオンにしました。新しいメッセージは全員が見てから$timer後、遅くとも24時間以内に消えます。スクリーンショットはブロックされます。';
+    return '消えるモードをオンにしました · 見てから$timer後';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return '$nameが消えるモードを変更しました。新しいメッセージは全員が見てから$timer後に消えます。';
+    return '$nameが消えるモードを見てから$timer後に設定しました';
   }
 
   @override
   String vanishSysChangeSelf(String timer) {
-    return '消えるモードを変更しました。新しいメッセージは全員が見てから$timer後に消えます。';
+    return '消えるモードを見てから$timer後に設定しました';
   }
 
   @override
   String vanishSysOff(String name) {
-    return '$nameが消えるモードをオフにしました。オン中に送られたメッセージは、予定どおり消えます。';
+    return '$nameが消えるモードをオフにしました';
   }
 
   @override
-  String get vanishSysOffSelf => '消えるモードをオフにしました。オン中に送られたメッセージは、予定どおり消えます。';
+  String get vanishSysOffSelf => '消えるモードをオフにしました';
 
   @override
   String get vanishSysChangeAction => '変更';
+
+  @override
+  String get vanishExplainTitle => '消えるモード';
+
+  @override
+  String vanishExplainSeen(String timer) {
+    return 'メッセージは全員が見てから$timer後に消えます。';
+  }
+
+  @override
+  String get vanishExplain24h => '既読を共有していない人がいる場合、メッセージは24時間残ります。';
+
+  @override
+  String get vanishExplainShots => 'スクリーンショットはブロックされます。';
+
+  @override
+  String get vanishExplainApp => 'ウェブとLinuxでは、これらのメッセージはアプリでのみ開けます。';
 
   @override
   String get vanishTimerPickerTitle => '既読後に消える';

@@ -15184,8 +15184,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get newRoomPreviewSecretBadge => 'SECRETA';
 
   @override
-  String get newRoomPreviewAvatarSemantic =>
-      'Emoji de la sala. Toca para elegir otro';
+  String get newRoomPictureSemantic => 'Foto de la sala. Toca para elegir una';
+
+  @override
+  String get newRoomPictureRemoveSemantic => 'Quitar la foto de la sala';
 
   @override
   String get newRoomSectionPeople => 'Personas';
@@ -15306,12 +15308,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get forkSubVanishOff => 'para desactivar desaparición';
 
   @override
-  String get forkSlideToChoose => 'Desliza para elegir';
-
-  @override
-  String get forkLetGoCancel => 'suelta aquí para cancelar';
-
-  @override
   String get forkReleaseTalk => 'Suelta para hablar';
 
   @override
@@ -15327,9 +15323,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get forkDragDownCancel => 'arrastra hacia abajo para cancelar';
 
   @override
-  String get forkSlideBackCancel => 'desliza atrás para cancelar';
-
-  @override
   String get forkChipVanish => 'Desaparecer';
 
   @override
@@ -15340,26 +15333,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get forkChipJoin => 'Unirme';
-
-  @override
-  String get forkChipVanishSub => 'Los mensajes desaparecen';
-
-  @override
-  String get forkChipTurnOffSub => 'Los mensajes se quedan';
-
-  @override
-  String get forkChipTalkSub => 'No suena a nadie';
-
-  @override
-  String forkChipJoinSub(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count personas aquí',
-      one: '1 persona aquí',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get forkFailGeneric => 'No se pudo. Inténtalo de nuevo.';
@@ -15521,35 +15494,53 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String vanishSysOn(String name, String timer) {
-    return '$name activó el modo desaparición. Los mensajes nuevos desaparecen $timer después de que todos los hayan visto, o en 24 horas como máximo. Se bloquean las capturas de pantalla.';
+    return '$name activó el modo desaparición · $timer después de verse';
   }
 
   @override
   String vanishSysOnSelf(String timer) {
-    return 'Activaste el modo desaparición. Los mensajes nuevos desaparecen $timer después de que todos los hayan visto, o en 24 horas como máximo. Se bloquean las capturas de pantalla.';
+    return 'Activaste el modo desaparición · $timer después de verse';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return '$name cambió el modo desaparición. Los mensajes nuevos desaparecen $timer después de que todos los hayan visto.';
+    return '$name puso el modo desaparición en $timer después de verse';
   }
 
   @override
   String vanishSysChangeSelf(String timer) {
-    return 'Cambiaste el modo desaparición. Los mensajes nuevos desaparecen $timer después de que todos los hayan visto.';
+    return 'Pusiste el modo desaparición en $timer después de verse';
   }
 
   @override
   String vanishSysOff(String name) {
-    return '$name desactivó el modo desaparición. Los mensajes enviados mientras estaba activado siguen desapareciendo a tiempo.';
+    return '$name desactivó el modo desaparición';
   }
 
   @override
-  String get vanishSysOffSelf =>
-      'Desactivaste el modo desaparición. Los mensajes enviados mientras estaba activado siguen desapareciendo a tiempo.';
+  String get vanishSysOffSelf => 'Desactivaste el modo desaparición';
 
   @override
   String get vanishSysChangeAction => 'Cambiar';
+
+  @override
+  String get vanishExplainTitle => 'Modo desaparición';
+
+  @override
+  String vanishExplainSeen(String timer) {
+    return 'Los mensajes desaparecen $timer después de que todos los hayan visto.';
+  }
+
+  @override
+  String get vanishExplain24h =>
+      'Si alguien no comparte el visto, los mensajes duran 24 horas.';
+
+  @override
+  String get vanishExplainShots => 'Las capturas de pantalla están bloqueadas.';
+
+  @override
+  String get vanishExplainApp =>
+      'En la web y en Linux, estos mensajes solo se abren en la app.';
 
   @override
   String get vanishTimerPickerTitle => 'Desaparecer tras ver';

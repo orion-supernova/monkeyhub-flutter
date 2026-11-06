@@ -36,8 +36,9 @@ class LocalHuddleNotes extends ChangeNotifier {
     final id = 'local:huddle:$groupCallId';
     final list = _byRoom[roomId] ?? const <ChatMessage>[];
     if (list.any((m) => m.id == id)) return;
+    // Only the newest note per room: three empty huddles in a row would
+    // otherwise stack three identical rows. Replaces any earlier one.
     _byRoom[roomId] = [
-      ...list,
       ChatMessage(
         id: id,
         roomId: roomId,

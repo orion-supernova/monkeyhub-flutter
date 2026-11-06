@@ -24,7 +24,7 @@ import 'call_audio_devices.dart';
 import 'call_audio_sheet.dart';
 import 'call_media.dart';
 import 'call_options_sheet.dart';
-import 'call_screen.dart' show minimizeCallRoute;
+import 'call_screen.dart' show dismissCallRoute, minimizeCallRoute;
 import 'call_stats_monitor.dart';
 import 'draw/draw_canvas.dart';
 import 'draw/draw_model.dart';
@@ -467,7 +467,15 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     setControlsVisible(show);
   }
 
-  void _minimize() => unawaited(minimizeCallRoute(context));
+  void _minimize() {
+    // A huddle with no video or share goes back to its pill: just put the
+    // screen away (never a float, which has no picture to show anyway).
+    if (svc.presentsAsHuddle) {
+      dismissCallRoute(context);
+      return;
+    }
+    unawaited(minimizeCallRoute(context));
+  }
 
   Future<void> _onShareTap() async {
     final l10n = AppLocalizations.of(context);

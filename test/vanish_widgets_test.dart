@@ -67,9 +67,9 @@ void main() {
     await t.pumpWidget(lineHost(sys('vanish:on:10'),
         onChange: (_, current) => changed = current));
     expect(
-      find.textContaining('Murat turned on vanish mode. New messages disappear '
-          '10 seconds after everyone has seen them, or after 24 hours at most. '
-          'Screenshots are blocked.', findRichText: true),
+      // The last word is glued to "Change" with a no-break space.
+      find.textContaining('Murat turned on vanish mode · 10 seconds after\u00A0seen',
+          findRichText: true),
       findsOneWidget,
     );
     await t.tap(find.text('Change'));
@@ -80,15 +80,29 @@ void main() {
     await t.pumpWidget(lineHost(sys('vanish:on:60', sender: 'zeynep')));
     expect(find.textContaining('You turned on vanish mode', findRichText: true),
         findsOneWidget);
-    expect(find.textContaining('1 minute after everyone', findRichText: true),
+    expect(find.textContaining('1 minute after\u00A0seen', findRichText: true),
+        findsOneWidget);
+  });
+
+  testWidgets('tapping the line opens the short explainer', (t) async {
+    await t.pumpWidget(lineHost(sys('vanish:on:60')));
+    await t.tapAt(t.getCenter(find.byType(VanishSystemLine)) - const Offset(60, 0));
+    await t.pumpAndSettle();
+    expect(find.text('Vanish mode'), findsOneWidget);
+    expect(find.text('Messages vanish 1 minute after everyone has seen them.'),
+        findsOneWidget);
+    expect(find.text("If someone doesn't share Seen, messages last 24 hours."),
+        findsOneWidget);
+    expect(find.text('Screenshots are blocked.'), findsOneWidget);
+    expect(find.text('On web and Linux, these messages open only in the app.'),
         findsOneWidget);
   });
 
   testWidgets('"change" line, and no Change for someone who cannot', (t) async {
     await t.pumpWidget(lineHost(sys('vanish:change:3600'), canChange: false));
-    expect(find.textContaining('changed vanish mode', findRichText: true),
-        findsOneWidget);
-    expect(find.textContaining('1 hour after everyone', findRichText: true),
+    expect(
+        find.textContaining('Murat set vanish mode to 1 hour after seen',
+            findRichText: true),
         findsOneWidget);
     expect(find.text('Change'), findsNothing);
   });

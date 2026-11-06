@@ -15078,8 +15078,10 @@ class AppLocalizationsSv extends AppLocalizations {
   String get newRoomPreviewSecretBadge => 'HEMLIGT';
 
   @override
-  String get newRoomPreviewAvatarSemantic =>
-      'Rummets emoji. Tryck för att välja en annan';
+  String get newRoomPictureSemantic => 'Rummets bild. Tryck för att välja en';
+
+  @override
+  String get newRoomPictureRemoveSemantic => 'Ta bort rummets bild';
 
   @override
   String get newRoomSectionPeople => 'Personer';
@@ -15199,12 +15201,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get forkSubVanishOff => 'för att stänga av försvinnande';
 
   @override
-  String get forkSlideToChoose => 'Dra för att välja';
-
-  @override
-  String get forkLetGoCancel => 'släpp här för att avbryta';
-
-  @override
   String get forkReleaseTalk => 'Släpp för att prata';
 
   @override
@@ -15220,9 +15216,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get forkDragDownCancel => 'dra nedåt för att avbryta';
 
   @override
-  String get forkSlideBackCancel => 'dra tillbaka för att avbryta';
-
-  @override
   String get forkChipVanish => 'Försvinn';
 
   @override
@@ -15233,26 +15226,6 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get forkChipJoin => 'Gå med';
-
-  @override
-  String get forkChipVanishSub => 'Meddelanden försvinner';
-
-  @override
-  String get forkChipTurnOffSub => 'Meddelanden finns kvar';
-
-  @override
-  String get forkChipTalkSub => 'Ingen får samtal';
-
-  @override
-  String forkChipJoinSub(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count personer här',
-      one: '1 person här',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get forkFailGeneric => 'Det gick inte. Försök igen.';
@@ -15411,35 +15384,53 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String vanishSysOn(String name, String timer) {
-    return '$name slog på försvinnandeläge. Nya meddelanden försvinner $timer efter att alla har sett dem, eller efter 24 timmar som mest. Skärmdumpar blockeras.';
+    return '$name slog på försvinnandeläge · $timer efter sett';
   }
 
   @override
   String vanishSysOnSelf(String timer) {
-    return 'Du slog på försvinnandeläge. Nya meddelanden försvinner $timer efter att alla har sett dem, eller efter 24 timmar som mest. Skärmdumpar blockeras.';
+    return 'Du slog på försvinnandeläge · $timer efter sett';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return '$name ändrade försvinnandeläge. Nya meddelanden försvinner $timer efter att alla har sett dem.';
+    return '$name ställde in försvinnandeläge på $timer efter sett';
   }
 
   @override
   String vanishSysChangeSelf(String timer) {
-    return 'Du ändrade försvinnandeläge. Nya meddelanden försvinner $timer efter att alla har sett dem.';
+    return 'Du ställde in försvinnandeläge på $timer efter sett';
   }
 
   @override
   String vanishSysOff(String name) {
-    return '$name stängde av försvinnandeläge. Meddelanden som skickades medan det var på försvinner ändå i tid.';
+    return '$name stängde av försvinnandeläge';
   }
 
   @override
-  String get vanishSysOffSelf =>
-      'Du stängde av försvinnandeläge. Meddelanden som skickades medan det var på försvinner ändå i tid.';
+  String get vanishSysOffSelf => 'Du stängde av försvinnandeläge';
 
   @override
   String get vanishSysChangeAction => 'Ändra';
+
+  @override
+  String get vanishExplainTitle => 'Försvinnandeläge';
+
+  @override
+  String vanishExplainSeen(String timer) {
+    return 'Meddelanden försvinner $timer efter att alla har sett dem.';
+  }
+
+  @override
+  String get vanishExplain24h =>
+      'Om någon inte delar Sett varar meddelandena i 24 timmar.';
+
+  @override
+  String get vanishExplainShots => 'Skärmdumpar blockeras.';
+
+  @override
+  String get vanishExplainApp =>
+      'På webben och i Linux öppnas de här meddelandena bara i appen.';
 
   @override
   String get vanishTimerPickerTitle => 'Försvinn efter läst';

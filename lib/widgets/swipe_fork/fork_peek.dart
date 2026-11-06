@@ -1,24 +1,35 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../theme/theme_scope.dart';
-
-/// The swipe-up fork's discoverability peek: one small upward chevron that
-/// rises a few points and fades, just above the composer. Glyph only.
+/// The swipe-up's discoverability peek: the tops of the capsules rise 8pt out
+/// of the dock's edge, hold a beat and slide back. Colour only, no words.
 ///
 /// Plays once on mount (about a second) and calls [onDone]. The host decides
-/// whether it may be mounted at all (counters, platform, Reduce Motion).
+/// whether it may be mounted at all (counters, platform, Reduce Motion), and
+/// anchors it so its bottom edge is the dock's top edge.
 class ForkPeek extends StatefulWidget {
-  const ForkPeek({super.key, required this.semanticLabel, this.onDone});
+  const ForkPeek({
+    super.key,
+    required this.semanticLabel,
+    this.colors = const [Color(0xFF8E8E93)],
+    this.onDone,
+  });
 
   final String semanticLabel;
+
+  /// The capsules' fills, left to right on screen: one wide capsule or two.
+  final List<Color> colors;
+
   final VoidCallback? onDone;
 
   /// Total play time.
   static const Duration duration = Duration(milliseconds: 1000);
 
-  /// How far the chevron rises, in points.
-  static const double rise = 10;
+  /// How far the capsules peek out, in points.
+  static const double rise = 8;
+
+  /// Side margin and gap, the same as the capsules' own.
+  static const double margin = 12;
+  static const double gap = 6;
 
   @override
   State<ForkPeek> createState() => _ForkPeekState();
@@ -45,39 +56,54 @@ class _ForkPeekState extends State<ForkPeek>
     super.dispose();
   }
 
-  /// Fades in over the first quarter, out over the last half.
-  static double opacityAt(double t) {
-    if (t < 0.25) return Curves.easeOut.transform(t / 0.25);
-    if (t < 0.5) return 1;
-    return 1 - Curves.easeIn.transform((t - 0.5) / 0.5);
+  /// 0 hidden, 1 fully peeking: up over the first third, hold, back down over
+  /// the last third.
+  static double peekAt(double t) {
+    if (t < 0.33) return Curves.easeOutCubic.transform(t / 0.33);
+    if (t < 0.6) return 1;
+    return 1 - Curves.easeInCubic.transform((t - 0.6) / 0.4);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     return IgnorePointer(
       child: Semantics(
         label: widget.semanticLabel,
         child: ExcludeSemantics(
-          child: AnimatedBuilder(
-            animation: _c,
-            builder: (context, _) {
-              final t = _c.value;
-              return Opacity(
-                opacity: opacityAt(t) * 0.7,
-                child: Transform.translate(
-                  offset: Offset(
-                    0,
-                    -ForkPeek.rise * Curves.easeOutCubic.transform(t),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: ForkPeek.margin),
+            child: SizedBox(
+              height: ForkPeek.rise,
+              child: ClipRect(
+                child: AnimatedBuilder(
+                  animation: _c,
+                  builder: (context, child) => Transform.translate(
+                    offset: Offset(0, ForkPeek.rise * (1 - peekAt(_c.value))),
+                    child: child,
                   ),
-                  child: Icon(
-                    CupertinoIcons.chevron_up,
-                    size: 20,
-                    color: theme.inkSoft,
+                  child: OverflowBox(
+                    alignment: Alignment.topCenter,
+                    minHeight: 40,
+                    maxHeight: 40,
+                    child: Row(
+                      children: [
+                        for (var i = 0; i < widget.colors.length; i++) ...[
+                          if (i > 0) const SizedBox(width: ForkPeek.gap),
+                          Expanded(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: widget.colors[i],
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
-              );
-            },
+              ),
+            ),
           ),
         ),
       ),

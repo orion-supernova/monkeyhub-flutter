@@ -15189,8 +15189,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get newRoomPreviewSecretBadge => 'SECRETA';
 
   @override
-  String get newRoomPreviewAvatarSemantic =>
-      'Emoji da sala. Toca para escolher outro';
+  String get newRoomPictureSemantic => 'Foto da sala. Toca para escolher uma';
+
+  @override
+  String get newRoomPictureRemoveSemantic => 'Remover a foto da sala';
 
   @override
   String get newRoomSectionPeople => 'Pessoas';
@@ -15311,12 +15313,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get forkSubVanishOff => 'para desativar o desaparecer';
 
   @override
-  String get forkSlideToChoose => 'Desliza para escolher';
-
-  @override
-  String get forkLetGoCancel => 'larga aqui para cancelar';
-
-  @override
   String get forkReleaseTalk => 'Larga para falar';
 
   @override
@@ -15332,9 +15328,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get forkDragDownCancel => 'arrasta para baixo para cancelar';
 
   @override
-  String get forkSlideBackCancel => 'desliza para trás para cancelar';
-
-  @override
   String get forkChipVanish => 'Desaparecer';
 
   @override
@@ -15345,26 +15338,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get forkChipJoin => 'Entrar';
-
-  @override
-  String get forkChipVanishSub => 'As mensagens desaparecem';
-
-  @override
-  String get forkChipTurnOffSub => 'As mensagens ficam';
-
-  @override
-  String get forkChipTalkSub => 'Ninguém é chamado';
-
-  @override
-  String forkChipJoinSub(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count pessoas aqui',
-      one: '1 pessoa aqui',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get forkFailGeneric => 'Não foi possível. Tenta de novo.';
@@ -15524,35 +15497,53 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String vanishSysOn(String name, String timer) {
-    return '$name ativou o modo desaparecer. As novas mensagens desaparecem $timer depois de todos as verem, ou em 24 horas no máximo. As capturas de ecrã ficam bloqueadas.';
+    return '$name ativou o modo desaparecer · $timer depois de visto';
   }
 
   @override
   String vanishSysOnSelf(String timer) {
-    return 'Ativaste o modo desaparecer. As novas mensagens desaparecem $timer depois de todos as verem, ou em 24 horas no máximo. As capturas de ecrã ficam bloqueadas.';
+    return 'Ativaste o modo desaparecer · $timer depois de visto';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return '$name alterou o modo desaparecer. As novas mensagens desaparecem $timer depois de todos as verem.';
+    return '$name definiu o modo desaparecer para $timer depois de visto';
   }
 
   @override
   String vanishSysChangeSelf(String timer) {
-    return 'Alteraste o modo desaparecer. As novas mensagens desaparecem $timer depois de todos as verem.';
+    return 'Definiste o modo desaparecer para $timer depois de visto';
   }
 
   @override
   String vanishSysOff(String name) {
-    return '$name desativou o modo desaparecer. As mensagens enviadas enquanto estava ativo continuam a desaparecer a tempo.';
+    return '$name desativou o modo desaparecer';
   }
 
   @override
-  String get vanishSysOffSelf =>
-      'Desativaste o modo desaparecer. As mensagens enviadas enquanto estava ativo continuam a desaparecer a tempo.';
+  String get vanishSysOffSelf => 'Desativaste o modo desaparecer';
 
   @override
   String get vanishSysChangeAction => 'Alterar';
+
+  @override
+  String get vanishExplainTitle => 'Modo desaparecer';
+
+  @override
+  String vanishExplainSeen(String timer) {
+    return 'As mensagens desaparecem $timer depois de todos as verem.';
+  }
+
+  @override
+  String get vanishExplain24h =>
+      'Se alguém não partilha o visto, as mensagens duram 24 horas.';
+
+  @override
+  String get vanishExplainShots => 'As capturas de ecrã ficam bloqueadas.';
+
+  @override
+  String get vanishExplainApp =>
+      'Na web e no Linux, estas mensagens só abrem na app.';
 
   @override
   String get vanishTimerPickerTitle => 'Desaparecer depois de vista';
@@ -30775,8 +30766,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get newRoomPreviewSecretBadge => 'SECRETA';
 
   @override
-  String get newRoomPreviewAvatarSemantic =>
-      'Emoji da sala. Toque para escolher outro';
+  String get newRoomPictureSemantic => 'Foto da sala. Toque para escolher uma';
+
+  @override
+  String get newRoomPictureRemoveSemantic => 'Remover a foto da sala';
 
   @override
   String get newRoomSectionPeople => 'Pessoas';
@@ -30896,12 +30889,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get forkSubVanishOff => 'para desativar o sumir';
 
   @override
-  String get forkSlideToChoose => 'Deslize para escolher';
-
-  @override
-  String get forkLetGoCancel => 'solte aqui para cancelar';
-
-  @override
   String get forkReleaseTalk => 'Solte para falar';
 
   @override
@@ -30917,9 +30904,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get forkDragDownCancel => 'arraste para baixo para cancelar';
 
   @override
-  String get forkSlideBackCancel => 'deslize de volta para cancelar';
-
-  @override
   String get forkChipVanish => 'Sumir';
 
   @override
@@ -30930,26 +30914,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get forkChipJoin => 'Entrar';
-
-  @override
-  String get forkChipVanishSub => 'As mensagens somem';
-
-  @override
-  String get forkChipTurnOffSub => 'As mensagens ficam';
-
-  @override
-  String get forkChipTalkSub => 'Ninguém é chamado';
-
-  @override
-  String forkChipJoinSub(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count pessoas aqui',
-      one: '1 pessoa aqui',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get forkFailGeneric => 'Não deu certo. Tente de novo.';
@@ -31108,35 +31072,53 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String vanishSysOn(String name, String timer) {
-    return '$name ativou o modo sumir. As novas mensagens somem $timer depois de todos verem, ou em até 24 horas. As capturas de tela são bloqueadas.';
+    return '$name ativou o modo sumir · $timer depois de visto';
   }
 
   @override
   String vanishSysOnSelf(String timer) {
-    return 'Você ativou o modo sumir. As novas mensagens somem $timer depois de todos verem, ou em até 24 horas. As capturas de tela são bloqueadas.';
+    return 'Você ativou o modo sumir · $timer depois de visto';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return '$name mudou o modo sumir. As novas mensagens somem $timer depois de todos verem.';
+    return '$name definiu o modo sumir para $timer depois de visto';
   }
 
   @override
   String vanishSysChangeSelf(String timer) {
-    return 'Você mudou o modo sumir. As novas mensagens somem $timer depois de todos verem.';
+    return 'Você definiu o modo sumir para $timer depois de visto';
   }
 
   @override
   String vanishSysOff(String name) {
-    return '$name desativou o modo sumir. As mensagens enviadas enquanto estava ativo continuam sumindo no prazo.';
+    return '$name desativou o modo sumir';
   }
 
   @override
-  String get vanishSysOffSelf =>
-      'Você desativou o modo sumir. As mensagens enviadas enquanto estava ativo continuam sumindo no prazo.';
+  String get vanishSysOffSelf => 'Você desativou o modo sumir';
 
   @override
   String get vanishSysChangeAction => 'Alterar';
+
+  @override
+  String get vanishExplainTitle => 'Modo sumir';
+
+  @override
+  String vanishExplainSeen(String timer) {
+    return 'As mensagens somem $timer depois de todos verem.';
+  }
+
+  @override
+  String get vanishExplain24h =>
+      'Se alguém não compartilha o visto, as mensagens duram 24 horas.';
+
+  @override
+  String get vanishExplainShots => 'As capturas de tela são bloqueadas.';
+
+  @override
+  String get vanishExplainApp =>
+      'Na web e no Linux, essas mensagens só abrem no app.';
 
   @override
   String get vanishTimerPickerTitle => 'Sumir após ser vista';

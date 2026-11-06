@@ -251,9 +251,21 @@ class GroupCallService extends ChangeNotifier
   bool get isHuddle {
     final r = _roomId;
     if (r == null) return false;
+    // Known from the moment the call is entered (we started it as a huddle,
+    // or the live store already said so when we joined), before the live
+    // subscription has caught up with a call this device just created.
+    if (_huddleHint) return true;
     final live = LiveCallsStore.instance.forRoom(r);
     return live != null && live.isHuddle && live.groupCallId == _groupCallId;
   }
+
+  bool _huddleHint = false;
+
+  /// A huddle with nothing to look at: it lives as the chat's pill and never
+  /// takes the screen (nor floats). The moment anyone has video or a screen
+  /// on, it presents like any other call, because a pill cannot show a
+  /// picture; when the video stops it is a pill again.
+  bool get presentsAsHuddle => isHuddle && !hasAnyVideo;
 
   /// Whether [attach] has run, i.e. whether this service knows who it is.
   ///
@@ -571,7 +583,8 @@ class GroupCallService extends ChangeNotifier
       await joinCall(res.groupCallId);
       return;
     }
-    await _enterCall(res.groupCallId, roomId: roomId, kind: kind);
+    await _enterCall(res.groupCallId,
+        roomId: roomId, kind: kind, huddle: callKind == 'huddle');
     // A huddle nobody joins leaves nothing behind for others; the starter
     // gets a private, local-only "Nobody joined" note when it ends.
     if (callKind == 'huddle' && _groupCallId == res.groupCallId) {
@@ -605,6 +618,9 @@ class GroupCallService extends ChangeNotifier
         groupCallId,
         roomId: res.roomId,
         kind: CallMediaKindWire.parse(res.type),
+        // The server's word, so a join that beats the live-calls store (a
+        // cold-start push accept) still stays a pill.
+        huddle: res.kind == 'huddle',
       );
     } finally {
       _joiningGroupCallId = null;
@@ -615,15 +631,24 @@ class GroupCallService extends ChangeNotifier
     String groupCallId, {
     required String roomId,
     required CallMediaKind kind,
+    bool huddle = false,
   }) async {
     if (_groupCallId == groupCallId) return;
+    final liveNow = LiveCallsStore.instance.forRoom(roomId);
+    _huddleHint = huddle ||
+        (liveNow != null &&
+            liveNow.isHuddle &&
+            liveNow.groupCallId == groupCallId);
     // The single choke point both start and join funnel through, so one gate
     // covers every way into a mesh call. A group card answered natively has
     // already been through the plugin's foreground-service gate — decided at
     // ring time in `NativeCallHandler.showIncoming` — so this is not the
     // crash guard the 1:1 path needs; it is here so a missing grant produces
     // the same clear refusal instead of a raw getUserMedia throw below.
-    if (!await CallPermissions.ensure(kind)) return;
+    if (!await CallPermissions.ensure(kind)) {
+      _huddleHint = false;
+      return;
+    }
     final me = _userId!;
     _groupCallId = groupCallId;
     _roomId = roomId;
@@ -805,6 +830,7 @@ class GroupCallService extends ChangeNotifier
       await stopAndDisposeStream(ls);
     }
     _groupCallId = null;
+    _huddleHint = false;
     _roomId = null;
     _roomName = null;
     _roomAvatarStorageId = null;

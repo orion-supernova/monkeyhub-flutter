@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../backend/chat_api.dart';
+import '../media/image_raster.dart';
 import '../media/upload_service.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
@@ -16,24 +18,23 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/chrome_motion.dart';
-import '../widgets/emoji_avatar_image.dart';
 import '../widgets/invite_chips.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/message_life_picker.dart';
 import '../widgets/password_field.dart';
-import '../widgets/reaction_picker_sheet.dart';
 import '../widgets/room_kind_segment.dart';
 import '../widgets/room_preview_card.dart';
 import '../widgets/sheet_kit.dart';
 import '../l10n/text_case.dart';
 import '../backend/server_limits.dart';
+import 'image_crop_screen.dart';
 import 'room_screen.dart';
 
 /// The new-room sheet: one living card you shape.
 ///
 /// A preview of the room sits pinned at the top and reacts to every choice
-/// (name, emoji, who is invited, regular or secret, who can find it). Under it
+/// (name, picture, who is invited, regular or secret, who can find it). Under it
 /// are four short sections: Name, People, Room, Who can find it. The room kind
 /// is just Regular or Secret: a secret room's messages always disappear and
 /// screenshots are always blocked, and choosing it reveals the shared
@@ -43,9 +44,18 @@ import 'room_screen.dart';
 /// squashes, bounces and flies up as the sheet hands over to the room. Calm
 /// motion skips the flight.
 class CreateRoomSheet extends StatefulWidget {
-  const CreateRoomSheet({super.key, required this.repo, required this.api});
+  const CreateRoomSheet({
+    super.key,
+    required this.repo,
+    required this.api,
+    this.pickPicture,
+  });
   final ChatRepository repo;
   final ChatApi api;
+
+  /// Picks and crops a room picture. Null uses the real flow (library picker,
+  /// then the circle crop room info uses); tests inject a stand-in.
+  final Future<CroppedImage?> Function(BuildContext context)? pickPicture;
   @override
   State<CreateRoomSheet> createState() => _CreateRoomSheetState();
 }
@@ -56,11 +66,12 @@ class _CreateRoomSheetState extends State<CreateRoomSheet>
   final _desc = TextEditingController();
   final _password = TextEditingController();
 
-  /// Offered by the emoji button's picker; this is what the preview wears
-  /// until a different one is chosen.
-  static const _defaultEmoji = '🐒';
-  String _emoji = _defaultEmoji;
-  bool _emojiPicked = false;
+  /// The cropped room picture, or null while the card wears the default face.
+  CroppedImage? _picture;
+
+  /// Seeds the default face's colour for the life of the sheet, so typing a
+  /// name changes the letter but never the hue.
+  final String _avatarSeed = 'new-room-${DateTime.now().microsecondsSinceEpoch}';
 
   bool _isPrivate = true;
   bool _passwordOn = false;
@@ -117,13 +128,29 @@ class _CreateRoomSheetState extends State<CreateRoomSheet>
     return parts.join(' · ');
   }
 
-  Future<void> _pickEmoji() async {
-    final e = await showReactionPicker(context);
-    if (e == null || !mounted) return;
-    setState(() {
-      _emoji = e;
-      _emojiPicked = true;
-    });
+  /// Pick and crop a picture exactly like room info does (gallery, then the
+  /// circle crop). Nothing is uploaded until the room exists.
+  Future<void> _pickPicture() async {
+    final custom = widget.pickPicture;
+    CroppedImage? cropped;
+    if (custom != null) {
+      cropped = await custom(context);
+    } else {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: pickerImageQuality,
+      );
+      if (picked == null || !mounted) return;
+      final bytes = await picked.readAsBytes();
+      if (!mounted) return;
+      cropped = await ImageCropScreen.open(
+        context,
+        source: bytes,
+        shape: CropShape.circle,
+      );
+    }
+    if (cropped == null || !mounted) return;
+    setState(() => _picture = cropped);
   }
 
   void _setType(RoomType t) {
@@ -151,19 +178,19 @@ class _CreateRoomSheetState extends State<CreateRoomSheet>
     });
   }
 
-  Future<void> _setEmojiPicture(
-      String roomId, String emoji, List<Color> gradient) async {
+  Future<void> _uploadPicture(String roomId, CroppedImage picture) async {
     final me = widget.repo.userId;
     if (me == null) return;
     try {
-      final bytes = await renderEmojiAvatar(emoji, gradient);
-      final storageId = await UploadService(widget.api)
-          .uploadFile(bytes: bytes, contentType: 'image/png');
+      final storageId = await UploadService(widget.api).uploadFile(
+        bytes: picture.bytes,
+        contentType: picture.contentType,
+      );
       await widget.api.updateRoomAvatar(
           roomId: roomId, userId: me, storageId: storageId);
     } catch (e) {
       // The room already exists and works; it just keeps the default face.
-      debugPrint('new room: emoji picture failed: $e');
+      debugPrint('new room: picture upload failed: $e');
     }
   }
 
@@ -181,9 +208,7 @@ class _CreateRoomSheetState extends State<CreateRoomSheet>
     try {
       final secret = _type == RoomType.secret;
       final life = normalizeMessageLife(_life);
-      // Read before the first await: the theme's avatar palette for the emoji
-      // tile, and the toast host that outlives this sheet.
-      final gradient = ThemeScope.of(context).avatarGradient(n.hashCode);
+      // Read before the first await: the toast host that outlives this sheet.
       final toast = AppToast.onOverlay(
         Navigator.of(context, rootNavigator: true).overlay,
       );
@@ -198,11 +223,10 @@ class _CreateRoomSheetState extends State<CreateRoomSheet>
         messageLifetime: secret ? life.lifetime : null,
         messageClock: secret ? life.clock.name : null,
       );
-      // The emoji becomes the room's real picture (see renderEmojiAvatar),
-      // in the background: the room opens now, the picture lands a moment
-      // later. Only when somebody chose one; a default nobody picked is not a
-      // decision to put on the room.
-      if (_emojiPicked) unawaited(_setEmojiPicture(id, _emoji, gradient));
+      // The already-cropped picture is uploaded and set in the background:
+      // the room opens now, the picture lands a moment later.
+      final picture = _picture;
+      if (picture != null) unawaited(_uploadPicture(id, picture));
       // Invite everyone picked, all at once. One person failing (they turned
       // invitations off, say) must not stop the room from opening, but the
       // creator is told who wasn't invited rather than left to find out.
@@ -308,8 +332,13 @@ class _CreateRoomSheetState extends State<CreateRoomSheet>
     final secret = _type == RoomType.secret;
 
     Widget card = RoomPreviewCard(
-      emoji: _emoji,
       name: _name.text,
+      picture: _picture?.bytes,
+      avatarSeed: _avatarSeed,
+      onPictureTap: _pickPicture,
+      onPictureClear: () => setState(() => _picture = null),
+      pictureSemantic: l10n.newRoomPictureSemantic,
+      pictureClearSemantic: l10n.newRoomPictureRemoveSemantic,
       subtitle: _subtitle(l10n),
       secret: secret,
       people: _pickedUsers,
@@ -357,26 +386,12 @@ class _CreateRoomSheetState extends State<CreateRoomSheet>
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       GroupedHeader(l10n.createRoomSheetNameLabel),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          _EmojiButton(
-                            emoji: _emoji,
-                            semanticLabel: l10n.newRoomPreviewAvatarSemantic,
-                            onTap: _pickEmoji,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: ThemedInput(
-                              controller: _name,
-                              hint: l10n.createRoomSheetNameHint,
-                              textInputAction: TextInputAction.next,
-                              onChanged: (_) => setState(() {}),
-                              onSubmitted: (_) =>
-                                  FocusScope.of(context).nextFocus(),
-                            ),
-                          ),
-                        ],
+                      ThemedInput(
+                        controller: _name,
+                        hint: l10n.createRoomSheetNameHint,
+                        textInputAction: TextInputAction.next,
+                        onChanged: (_) => setState(() {}),
+                        onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                       ),
                       AnimatedSize(
                         duration: MotionScope.of(context)
@@ -535,44 +550,6 @@ class _CreateRoomSheetState extends State<CreateRoomSheet>
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The emoji button beside the name field: shows the room's emoji, kicks when
-/// it changes, opens the app's emoji picker on tap.
-class _EmojiButton extends StatelessWidget {
-  const _EmojiButton({
-    required this.emoji,
-    required this.onTap,
-    required this.semanticLabel,
-  });
-  final String emoji;
-  final VoidCallback onTap;
-  final String semanticLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
-      focusRadius: 14,
-      child: KickGlyph(
-        kick: GlyphKick.pop,
-        trigger: emoji,
-        amplitude: 1.3,
-        child: Container(
-          width: 50,
-          height: 50,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: quietFill(theme),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Text(emoji, style: const TextStyle(fontSize: 26, height: 1)),
         ),
       ),
     );

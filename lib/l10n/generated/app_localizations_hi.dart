@@ -15018,8 +15018,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get newRoomPreviewSecretBadge => 'सीक्रेट';
 
   @override
-  String get newRoomPreviewAvatarSemantic =>
-      'रूम का इमोजी। दूसरा चुनने के लिए टैप करो';
+  String get newRoomPictureSemantic => 'रूम की फ़ोटो। चुनने के लिए टैप करो';
+
+  @override
+  String get newRoomPictureRemoveSemantic => 'रूम की फ़ोटो हटाओ';
 
   @override
   String get newRoomSectionPeople => 'लोग';
@@ -15138,12 +15140,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get forkSubVanishOff => 'वैनिश बंद करने के लिए';
 
   @override
-  String get forkSlideToChoose => 'चुनने के लिए स्लाइड करो';
-
-  @override
-  String get forkLetGoCancel => 'रद्द करने के लिए यहाँ छोड़ो';
-
-  @override
   String get forkReleaseTalk => 'बात करने के लिए छोड़ो';
 
   @override
@@ -15159,9 +15155,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get forkDragDownCancel => 'रद्द करने के लिए नीचे खींचो';
 
   @override
-  String get forkSlideBackCancel => 'रद्द करने के लिए वापस स्लाइड करो';
-
-  @override
   String get forkChipVanish => 'वैनिश';
 
   @override
@@ -15172,26 +15165,6 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get forkChipJoin => 'जुड़ो';
-
-  @override
-  String get forkChipVanishSub => 'मैसेज गायब होते हैं';
-
-  @override
-  String get forkChipTurnOffSub => 'मैसेज बने रहते हैं';
-
-  @override
-  String get forkChipTalkSub => 'किसी को रिंग नहीं जाती';
-
-  @override
-  String forkChipJoinSub(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count लोग यहाँ',
-      one: '1 व्यक्ति यहाँ',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get forkFailGeneric => 'नहीं हो पाया। फिर कोशिश करो।';
@@ -15349,35 +15322,53 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String vanishSysOn(String name, String timer) {
-    return '$name ने वैनिश मोड चालू किया। नए मैसेज सबके देखने के $timer बाद, या ज़्यादा से ज़्यादा 24 घंटे में गायब हो जाते हैं। स्क्रीनशॉट ब्लॉक रहते हैं।';
+    return '$name ने वैनिश मोड चालू किया · देखे जाने के $timer बाद';
   }
 
   @override
   String vanishSysOnSelf(String timer) {
-    return 'आपने वैनिश मोड चालू किया। नए मैसेज सबके देखने के $timer बाद, या ज़्यादा से ज़्यादा 24 घंटे में गायब हो जाते हैं। स्क्रीनशॉट ब्लॉक रहते हैं।';
+    return 'आपने वैनिश मोड चालू किया · देखे जाने के $timer बाद';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return '$name ने वैनिश मोड बदला। नए मैसेज सबके देखने के $timer बाद गायब हो जाते हैं।';
+    return '$name ने वैनिश मोड देखे जाने के $timer बाद पर सेट किया';
   }
 
   @override
   String vanishSysChangeSelf(String timer) {
-    return 'आपने वैनिश मोड बदला। नए मैसेज सबके देखने के $timer बाद गायब हो जाते हैं।';
+    return 'आपने वैनिश मोड देखे जाने के $timer बाद पर सेट किया';
   }
 
   @override
   String vanishSysOff(String name) {
-    return '$name ने वैनिश मोड बंद किया। चालू रहने के दौरान भेजे गए मैसेज फिर भी समय पर गायब होंगे।';
+    return '$name ने वैनिश मोड बंद किया';
   }
 
   @override
-  String get vanishSysOffSelf =>
-      'आपने वैनिश मोड बंद किया। चालू रहने के दौरान भेजे गए मैसेज फिर भी समय पर गायब होंगे।';
+  String get vanishSysOffSelf => 'आपने वैनिश मोड बंद किया';
 
   @override
   String get vanishSysChangeAction => 'बदलो';
+
+  @override
+  String get vanishExplainTitle => 'वैनिश मोड';
+
+  @override
+  String vanishExplainSeen(String timer) {
+    return 'सबके देखने के $timer बाद मैसेज गायब हो जाते हैं।';
+  }
+
+  @override
+  String get vanishExplain24h =>
+      'अगर कोई Seen शेयर नहीं करता, तो मैसेज 24 घंटे तक रहते हैं।';
+
+  @override
+  String get vanishExplainShots => 'स्क्रीनशॉट ब्लॉक रहते हैं।';
+
+  @override
+  String get vanishExplainApp =>
+      'वेब और Linux पर ये मैसेज सिर्फ़ ऐप में खुलते हैं।';
 
   @override
   String get vanishTimerPickerTitle => 'देखे जाने के बाद वैनिश';

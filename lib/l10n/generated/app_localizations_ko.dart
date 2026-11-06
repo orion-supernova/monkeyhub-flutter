@@ -14404,7 +14404,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get newRoomPreviewSecretBadge => '시크릿';
 
   @override
-  String get newRoomPreviewAvatarSemantic => '방 이모지. 눌러서 다른 이모지 선택';
+  String get newRoomPictureSemantic => '방 사진. 눌러서 선택';
+
+  @override
+  String get newRoomPictureRemoveSemantic => '방 사진 지우기';
 
   @override
   String get newRoomSectionPeople => '사람';
@@ -14520,12 +14523,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get forkSubVanishOff => '사라지는 모드를 끄려면';
 
   @override
-  String get forkSlideToChoose => '밀어서 선택';
-
-  @override
-  String get forkLetGoCancel => '여기서 놓으면 취소';
-
-  @override
   String get forkReleaseTalk => '놓으면 대화 시작';
 
   @override
@@ -14541,9 +14538,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get forkDragDownCancel => '아래로 끌면 취소';
 
   @override
-  String get forkSlideBackCancel => '되돌리면 취소';
-
-  @override
   String get forkChipVanish => '사라짐';
 
   @override
@@ -14554,25 +14548,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get forkChipJoin => '참여';
-
-  @override
-  String get forkChipVanishSub => '메시지가 사라져요';
-
-  @override
-  String get forkChipTurnOffSub => '메시지가 남아요';
-
-  @override
-  String get forkChipTalkSub => '아무에게도 벨이 울리지 않아요';
-
-  @override
-  String forkChipJoinSub(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count명 참여 중',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get forkFailGeneric => '할 수 없었어요. 다시 시도해 주세요.';
@@ -14726,34 +14701,51 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String vanishSysOn(String name, String timer) {
-    return '$name님이 사라지는 모드를 켰어요. 새 메시지는 모두가 본 뒤 $timer 후, 늦어도 24시간 안에 사라져요. 스크린샷은 차단돼요.';
+    return '$name님이 사라지는 모드를 켰어요 · 본 뒤 $timer 후';
   }
 
   @override
   String vanishSysOnSelf(String timer) {
-    return '사라지는 모드를 켰어요. 새 메시지는 모두가 본 뒤 $timer 후, 늦어도 24시간 안에 사라져요. 스크린샷은 차단돼요.';
+    return '사라지는 모드를 켰어요 · 본 뒤 $timer 후';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return '$name님이 사라지는 모드를 바꿨어요. 새 메시지는 모두가 본 뒤 $timer 후에 사라져요.';
+    return '$name님이 사라지는 모드를 본 뒤 $timer 후로 설정했어요';
   }
 
   @override
   String vanishSysChangeSelf(String timer) {
-    return '사라지는 모드를 바꿨어요. 새 메시지는 모두가 본 뒤 $timer 후에 사라져요.';
+    return '사라지는 모드를 본 뒤 $timer 후로 설정했어요';
   }
 
   @override
   String vanishSysOff(String name) {
-    return '$name님이 사라지는 모드를 껐어요. 켜져 있는 동안 보낸 메시지는 그대로 제때 사라져요.';
+    return '$name님이 사라지는 모드를 껐어요';
   }
 
   @override
-  String get vanishSysOffSelf => '사라지는 모드를 껐어요. 켜져 있는 동안 보낸 메시지는 그대로 제때 사라져요.';
+  String get vanishSysOffSelf => '사라지는 모드를 껐어요';
 
   @override
   String get vanishSysChangeAction => '변경';
+
+  @override
+  String get vanishExplainTitle => '사라지는 모드';
+
+  @override
+  String vanishExplainSeen(String timer) {
+    return '메시지는 모두가 본 뒤 $timer 후에 사라져요.';
+  }
+
+  @override
+  String get vanishExplain24h => '읽음을 공유하지 않는 사람이 있으면 메시지는 24시간 동안 남아요.';
+
+  @override
+  String get vanishExplainShots => '스크린샷은 차단돼요.';
+
+  @override
+  String get vanishExplainApp => '웹과 Linux에서는 이 메시지를 앱에서만 열 수 있어요.';
 
   @override
   String get vanishTimerPickerTitle => '읽은 후 사라짐';

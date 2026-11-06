@@ -145,12 +145,12 @@ class _FakeGroupApi extends Fake implements GroupCallApi {
   void Function(Map<String, dynamic>? roster)? roster;
 
   @override
-  Future<({String type, String roomId})> join({
+  Future<({String type, String roomId, String? kind})> join({
     required String groupCallId,
     required String userId,
     String? deviceId,
   }) async =>
-      (type: 'audio', roomId: 'room1');
+      (type: 'audio', roomId: 'room1', kind: null);
   @override
   Future<void> leave({required String groupCallId, required String userId}) async {}
   @override

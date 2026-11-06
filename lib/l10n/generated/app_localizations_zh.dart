@@ -14238,7 +14238,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get newRoomPreviewSecretBadge => '秘密';
 
   @override
-  String get newRoomPreviewAvatarSemantic => '房间表情。点按可更换';
+  String get newRoomPictureSemantic => '房间图片。点按可选择';
+
+  @override
+  String get newRoomPictureRemoveSemantic => '移除房间图片';
 
   @override
   String get newRoomSectionPeople => '成员';
@@ -14353,12 +14356,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get forkSubVanishOff => '来关闭消失模式';
 
   @override
-  String get forkSlideToChoose => '滑动选择';
-
-  @override
-  String get forkLetGoCancel => '在此松手即可取消';
-
-  @override
   String get forkReleaseTalk => '松手开始语聊';
 
   @override
@@ -14374,9 +14371,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get forkDragDownCancel => '向下拖动取消';
 
   @override
-  String get forkSlideBackCancel => '滑回中间取消';
-
-  @override
   String get forkChipVanish => '消失';
 
   @override
@@ -14387,25 +14381,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get forkChipJoin => '加入';
-
-  @override
-  String get forkChipVanishSub => '消息会消失';
-
-  @override
-  String get forkChipTurnOffSub => '消息会保留';
-
-  @override
-  String get forkChipTalkSub => '不会响铃通知任何人';
-
-  @override
-  String forkChipJoinSub(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count 人在这里',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get forkFailGeneric => '没成功，请重试。';
@@ -14559,34 +14534,51 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String vanishSysOn(String name, String timer) {
-    return '$name开启了消失模式。新消息在所有人看过后 $timer 消失，最迟 24 小时内消失。截屏会被阻止。';
+    return '$name开启了消失模式 · 看过后 $timer';
   }
 
   @override
   String vanishSysOnSelf(String timer) {
-    return '你开启了消失模式。新消息在所有人看过后 $timer 消失，最迟 24 小时内消失。截屏会被阻止。';
+    return '你开启了消失模式 · 看过后 $timer';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return '$name更改了消失模式。新消息在所有人看过后 $timer 消失。';
+    return '$name将消失模式设为看过后 $timer';
   }
 
   @override
   String vanishSysChangeSelf(String timer) {
-    return '你更改了消失模式。新消息在所有人看过后 $timer 消失。';
+    return '你将消失模式设为看过后 $timer';
   }
 
   @override
   String vanishSysOff(String name) {
-    return '$name关闭了消失模式。开启期间发送的消息仍会按时消失。';
+    return '$name关闭了消失模式';
   }
 
   @override
-  String get vanishSysOffSelf => '你关闭了消失模式。开启期间发送的消息仍会按时消失。';
+  String get vanishSysOffSelf => '你关闭了消失模式';
 
   @override
   String get vanishSysChangeAction => '更改';
+
+  @override
+  String get vanishExplainTitle => '消失模式';
+
+  @override
+  String vanishExplainSeen(String timer) {
+    return '消息在所有人看过后 $timer 消失。';
+  }
+
+  @override
+  String get vanishExplain24h => '如果有人不分享已读，消息会保留 24 小时。';
+
+  @override
+  String get vanishExplainShots => '截屏会被阻止。';
+
+  @override
+  String get vanishExplainApp => '在网页和 Linux 上，这些消息只能在应用中打开。';
 
   @override
   String get vanishTimerPickerTitle => '已读后消失';

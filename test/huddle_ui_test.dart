@@ -123,7 +123,7 @@ void main() {
   group('local-only empty huddle row', () {
     setUp(LocalHuddleNotes.instance.clear);
 
-    test('is a non-persisted system row, once per huddle', () {
+    test('is a non-persisted system row, once per huddle, newest only', () {
       final notes = LocalHuddleNotes.instance;
       var pings = 0;
       notes.addListener(() => pings++);
@@ -131,7 +131,9 @@ void main() {
       notes.addAlone(roomId: 'r1', groupCallId: 'g1', userId: 'me');
       notes.addAlone(roomId: 'r1', groupCallId: 'g2', userId: 'me');
       final rows = notes.forRoom('r1');
-      expect(rows, hasLength(2));
+      // g2 replaced g1: three empty huddles must not stack three rows.
+      expect(rows, hasLength(1));
+      expect(rows.single.id, 'local:huddle:g2');
       expect(rows.first.type, MessageType.system);
       expect(rows.first.content, HuddleHistory.aloneContent);
       expect(rows.first.id, startsWith('local:'));

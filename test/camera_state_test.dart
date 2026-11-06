@@ -877,12 +877,12 @@ class _FakeGroupApi extends Fake implements GroupCallApi {
   Completer<void>? stateGate;
 
   @override
-  Future<({String type, String roomId})> join({
+  Future<({String type, String roomId, String? kind})> join({
     required String groupCallId,
     required String userId,
     String? deviceId,
   }) async =>
-      (type: type, roomId: 'room1');
+      (type: type, roomId: 'room1', kind: null);
 
   @override
   Future<void> leave({

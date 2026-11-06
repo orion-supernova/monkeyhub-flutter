@@ -848,7 +848,10 @@ export const join = mutation({
         excludeDeviceId: deviceId ?? null,
       });
     }
-    return { type: call.type, roomId: call.roomId };
+    // `kind` lets a client that joins before its live-calls subscription has
+    // seen this call (a push accepted from a cold start) still know it's a
+    // huddle and keep it in the room's pill instead of going full screen.
+    return { type: call.type, roomId: call.roomId, kind: call.kind ?? null };
   },
 });
 

@@ -15228,8 +15228,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get newRoomPreviewSecretBadge => 'سرية';
 
   @override
-  String get newRoomPreviewAvatarSemantic =>
-      'إيموجي الغرفة. اضغط لاختيار إيموجي آخر';
+  String get newRoomPictureSemantic => 'صورة الغرفة. اضغط لاختيار صورة';
+
+  @override
+  String get newRoomPictureRemoveSemantic => 'إزالة صورة الغرفة';
 
   @override
   String get newRoomSectionPeople => 'الأشخاص';
@@ -15348,12 +15350,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get forkSubVanishOff => 'لإيقاف الاختفاء';
 
   @override
-  String get forkSlideToChoose => 'اسحب للاختيار';
-
-  @override
-  String get forkLetGoCancel => 'اترك هنا للإلغاء';
-
-  @override
   String get forkReleaseTalk => 'اترك للتحدث';
 
   @override
@@ -15369,9 +15365,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get forkDragDownCancel => 'اسحب لأسفل للإلغاء';
 
   @override
-  String get forkSlideBackCancel => 'ارجع للمنتصف للإلغاء';
-
-  @override
   String get forkChipVanish => 'اختفاء';
 
   @override
@@ -15382,29 +15375,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get forkChipJoin => 'انضمام';
-
-  @override
-  String get forkChipVanishSub => 'تختفي الرسائل';
-
-  @override
-  String get forkChipTurnOffSub => 'تبقى الرسائل';
-
-  @override
-  String get forkChipTalkSub => 'لا أحد يتلقى رنينًا';
-
-  @override
-  String forkChipJoinSub(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count شخص هنا',
-      many: '$count شخصًا هنا',
-      few: '$count أشخاص هنا',
-      two: 'شخصان هنا',
-      one: 'شخص واحد هنا',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get forkFailGeneric => 'تعذّر ذلك. حاول مرة أخرى.';
@@ -15574,35 +15544,53 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String vanishSysOn(String name, String timer) {
-    return 'فعّل $name وضع الاختفاء. تختفي الرسائل الجديدة بعد $timer من مشاهدة الجميع لها، أو بعد 24 ساعة كحد أقصى. لقطات الشاشة محظورة.';
+    return 'فعّل $name وضع الاختفاء · بعد $timer من المشاهدة';
   }
 
   @override
   String vanishSysOnSelf(String timer) {
-    return 'فعّلتَ وضع الاختفاء. تختفي الرسائل الجديدة بعد $timer من مشاهدة الجميع لها، أو بعد 24 ساعة كحد أقصى. لقطات الشاشة محظورة.';
+    return 'فعّلتَ وضع الاختفاء · بعد $timer من المشاهدة';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return 'غيّر $name وضع الاختفاء. تختفي الرسائل الجديدة بعد $timer من مشاهدة الجميع لها.';
+    return 'ضبط $name وضع الاختفاء على $timer بعد المشاهدة';
   }
 
   @override
   String vanishSysChangeSelf(String timer) {
-    return 'غيّرتَ وضع الاختفاء. تختفي الرسائل الجديدة بعد $timer من مشاهدة الجميع لها.';
+    return 'ضبطتَ وضع الاختفاء على $timer بعد المشاهدة';
   }
 
   @override
   String vanishSysOff(String name) {
-    return 'أوقف $name وضع الاختفاء. الرسائل المرسلة أثناء تفعيله ستختفي في موعدها.';
+    return 'أوقف $name وضع الاختفاء';
   }
 
   @override
-  String get vanishSysOffSelf =>
-      'أوقفتَ وضع الاختفاء. الرسائل المرسلة أثناء تفعيله ستختفي في موعدها.';
+  String get vanishSysOffSelf => 'أوقفتَ وضع الاختفاء';
 
   @override
   String get vanishSysChangeAction => 'تغيير';
+
+  @override
+  String get vanishExplainTitle => 'وضع الاختفاء';
+
+  @override
+  String vanishExplainSeen(String timer) {
+    return 'تختفي الرسائل بعد $timer من مشاهدة الجميع لها.';
+  }
+
+  @override
+  String get vanishExplain24h =>
+      'إذا لم يشارك أحد حالة المشاهدة، تبقى الرسائل 24 ساعة.';
+
+  @override
+  String get vanishExplainShots => 'لقطات الشاشة محظورة.';
+
+  @override
+  String get vanishExplainApp =>
+      'على الويب وLinux، تُفتح هذه الرسائل في التطبيق فقط.';
 
   @override
   String get vanishTimerPickerTitle => 'الاختفاء بعد المشاهدة';

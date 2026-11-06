@@ -15046,8 +15046,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newRoomPreviewSecretBadge => 'SECRET';
 
   @override
-  String get newRoomPreviewAvatarSemantic =>
-      'Room emoji. Tap to choose another';
+  String get newRoomPictureSemantic => 'Room picture. Tap to choose one';
+
+  @override
+  String get newRoomPictureRemoveSemantic => 'Remove room picture';
 
   @override
   String get newRoomSectionPeople => 'People';
@@ -15165,12 +15167,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get forkSubVanishOff => 'to turn off vanish';
 
   @override
-  String get forkSlideToChoose => 'Slide to choose';
-
-  @override
-  String get forkLetGoCancel => 'let go here to cancel';
-
-  @override
   String get forkReleaseTalk => 'Release to talk';
 
   @override
@@ -15186,9 +15182,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get forkDragDownCancel => 'drag down to cancel';
 
   @override
-  String get forkSlideBackCancel => 'slide back to cancel';
-
-  @override
   String get forkChipVanish => 'Vanish';
 
   @override
@@ -15199,26 +15192,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get forkChipJoin => 'Join';
-
-  @override
-  String get forkChipVanishSub => 'Messages disappear';
-
-  @override
-  String get forkChipTurnOffSub => 'Messages stay';
-
-  @override
-  String get forkChipTalkSub => 'Nobody gets rung';
-
-  @override
-  String forkChipJoinSub(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count people here',
-      one: '1 person here',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get forkFailGeneric => 'Couldn\'t do that. Try again.';
@@ -15377,35 +15350,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String vanishSysOn(String name, String timer) {
-    return '$name turned on vanish mode. New messages disappear $timer after everyone has seen them, or after 24 hours at most. Screenshots are blocked.';
+    return '$name turned on vanish mode · $timer after seen';
   }
 
   @override
   String vanishSysOnSelf(String timer) {
-    return 'You turned on vanish mode. New messages disappear $timer after everyone has seen them, or after 24 hours at most. Screenshots are blocked.';
+    return 'You turned on vanish mode · $timer after seen';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return '$name changed vanish mode. New messages disappear $timer after everyone has seen them.';
+    return '$name set vanish mode to $timer after seen';
   }
 
   @override
   String vanishSysChangeSelf(String timer) {
-    return 'You changed vanish mode. New messages disappear $timer after everyone has seen them.';
+    return 'You set vanish mode to $timer after seen';
   }
 
   @override
   String vanishSysOff(String name) {
-    return '$name turned off vanish mode. Messages sent while it was on still disappear on time.';
+    return '$name turned off vanish mode';
   }
 
   @override
-  String get vanishSysOffSelf =>
-      'You turned off vanish mode. Messages sent while it was on still disappear on time.';
+  String get vanishSysOffSelf => 'You turned off vanish mode';
 
   @override
   String get vanishSysChangeAction => 'Change';
+
+  @override
+  String get vanishExplainTitle => 'Vanish mode';
+
+  @override
+  String vanishExplainSeen(String timer) {
+    return 'Messages vanish $timer after everyone has seen them.';
+  }
+
+  @override
+  String get vanishExplain24h =>
+      'If someone doesn\'t share Seen, messages last 24 hours.';
+
+  @override
+  String get vanishExplainShots => 'Screenshots are blocked.';
+
+  @override
+  String get vanishExplainApp =>
+      'On web and Linux, these messages open only in the app.';
 
   @override
   String get vanishTimerPickerTitle => 'Vanish after seen';
