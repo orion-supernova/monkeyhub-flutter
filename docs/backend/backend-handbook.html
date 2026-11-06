@@ -476,14 +476,15 @@ Merge the two send rate buckets into one document (−1 write per send).
 <div class="tbl"><table>
 <tr><th>Item</th><th>State</th></tr>
 <tr><td>A1 presence mirror off</td><td>Done in production</td></tr>
-<tr><td>A2 file reaper</td><td>Dry run clean (nothing to reap); <code>FILE_REFS_REAP=1</code> waits for the operator</td></tr>
+<tr><td>A2 file reaper</td><td>Live (<code>FILE_REFS_REAP=1</code>, 2026-11-07)</td></tr>
 <tr><td>A3 Cloudflare cache + purge</td><td>Code in <code>d2961c37</code>; needs the token, zone id and cache rule</td></tr>
 <tr><td>A4 home server</td><td>Retired; <code>deploy.sh</code> is VPS-only</td></tr>
-<tr><td>B1-B7, C2, C5, D2, D3</td><td>Code in <code>d2961c37</code> (wave 1); reviewed; not deployed</td></tr>
-<tr><td>C1, C4 server, D1 backend, D4</td><td>Code in <code>60c412fb</code> (wave 2, design in <code>c1-cursors-design.md</code>); reviewed; not deployed</td></tr>
+<tr><td>B1-B7, C2, C5, D2, D3</td><td>Live (wave 1, <code>d2961c37</code>); backfills done</td></tr>
+<tr><td>C1, C4 server, D1 backend, D4</td><td>Live (wave 2, <code>60c412fb</code>); shadow compare 115/115 exact; marker set; presence fields and profile copies stripped</td></tr>
+<tr><td>Instant @everyone, sticker emoji search, delivery retry</td><td>Live (<code>0d2356ce</code>)</td></tr>
 <tr><td>C4 app (archived split), D1 app fallbacks</td><td>Waiting: those screens are being reworked by other work</td></tr>
 <tr><td>C6 thumbnails</td><td>Not started: needs the media upload files other work is editing</td></tr>
-<tr><td>D5 container memory limit</td><td>Waits for the operator (remote write)</td></tr>
+<tr><td>D5 container memory limit</td><td>Live (8 GB)</td></tr>
 <tr><td>Schema field removals (users.status/lastSeen, profile copies, roomMembers cursors), 6Z</td><td>After the migrations below have finished (a later deploy)</td></tr>
 </table></div>
 
