@@ -15362,9 +15362,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vanishSealedSemantics => 'Vanishing message. Opens in the app';
 
   @override
-  String get vanishSysYou => 'You';
-
-  @override
   String get vanishAfterSeen10 => '10 seconds';
 
   @override
@@ -15384,14 +15381,28 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String vanishSysOnSelf(String timer) {
+    return 'You turned on vanish mode. New messages disappear $timer after everyone has seen them, or after 24 hours at most. Screenshots are blocked.';
+  }
+
+  @override
   String vanishSysChange(String name, String timer) {
     return '$name changed vanish mode. New messages disappear $timer after everyone has seen them.';
+  }
+
+  @override
+  String vanishSysChangeSelf(String timer) {
+    return 'You changed vanish mode. New messages disappear $timer after everyone has seen them.';
   }
 
   @override
   String vanishSysOff(String name) {
     return '$name turned off vanish mode. Messages sent while it was on still disappear on time.';
   }
+
+  @override
+  String get vanishSysOffSelf =>
+      'You turned off vanish mode. Messages sent while it was on still disappear on time.';
 
   @override
   String get vanishSysChangeAction => 'Change';

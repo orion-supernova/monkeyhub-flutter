@@ -21,18 +21,28 @@ String vanishTimerLabel(AppLocalizations l10n, int seconds) => switch (seconds) 
     };
 
 /// The sentence of a `vanish:` system line.
+///
+/// [name] is null when the reader did it themselves: "You turned on …" is its
+/// own sentence in every language rather than "You" dropped into a name slot,
+/// because most languages conjugate the verb for "you" (Turkish açtın, not
+/// açtı).
 String vanishLineText(
   AppLocalizations l10n,
   VanishLine line, {
-  required String name,
-}) =>
-    switch (line.kind) {
-      VanishLineKind.on => l10n.vanishSysOn(
-          name, vanishTimerLabel(l10n, line.seconds ?? 10)),
-      VanishLineKind.change => l10n.vanishSysChange(
-          name, vanishTimerLabel(l10n, line.seconds ?? 10)),
-      VanishLineKind.off => l10n.vanishSysOff(name),
-    };
+  required String? name,
+}) {
+  final timer = vanishTimerLabel(l10n, line.seconds ?? 10);
+  return switch (line.kind) {
+    VanishLineKind.on => name == null
+        ? l10n.vanishSysOnSelf(timer)
+        : l10n.vanishSysOn(name, timer),
+    VanishLineKind.change => name == null
+        ? l10n.vanishSysChangeSelf(timer)
+        : l10n.vanishSysChange(name, timer),
+    VanishLineKind.off =>
+      name == null ? l10n.vanishSysOffSelf : l10n.vanishSysOff(name),
+  };
+}
 
 /// The small picker behind "Change": 10 seconds, 1 minute or 1 hour after
 /// everyone has seen a message. Resolves with the pick, or null.
@@ -73,8 +83,8 @@ class VanishSystemLine extends StatelessWidget {
 
   final VanishLine line;
 
-  /// Who did it: their display name, or the localized "You".
-  final String name;
+  /// Who did it: their display name, or null when it was the reader.
+  final String? name;
 
   /// Null hides "Change".
   final VoidCallback? onChange;

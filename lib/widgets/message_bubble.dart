@@ -384,11 +384,11 @@ class MessageBubble extends StatelessWidget {
   }
 
   Widget _vanishLine(BuildContext context, VanishLine line) {
-    final l10n = AppLocalizations.of(context);
     final scope = VanishScope.maybeOf(context);
     final mine = message.senderId == currentUserId;
-    final name = mine
-        ? l10n.vanishSysYou
+    // Null for yourself: the line has its own "You …" sentence.
+    final String? name = mine
+        ? null
         : (author?.displayName.trim().isNotEmpty ?? false)
             ? author!.displayName
             : message.senderName.trim();

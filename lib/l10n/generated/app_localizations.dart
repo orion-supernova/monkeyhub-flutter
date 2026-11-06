@@ -25591,12 +25591,6 @@ abstract class AppLocalizations {
   /// **'Vanishing message. Opens in the app'**
   String get vanishSealedSemantics;
 
-  /// The name used for yourself in a vanish-mode system line, like 'You turned on vanish mode.'
-  ///
-  /// In en, this message translates to:
-  /// **'You'**
-  String get vanishSysYou;
-
   /// Vanish timer option: how long after everyone has seen a message it disappears.
   ///
   /// In en, this message translates to:
@@ -25621,23 +25615,41 @@ abstract class AppLocalizations {
   /// **'{count} seconds'**
   String vanishAfterSeenOther(int count);
 
-  /// System line in a chat when vanish mode is turned on. {name} is who did it (or 'You'), {timer} is like '10 seconds' or '1 hour'. A tappable 'Change' follows it.
+  /// System line in a chat when vanish mode is turned on. {name} is who did it (someone else; your own action uses vanishSysOnSelf so the verb can be conjugated for 'you'), {timer} is like '10 seconds' or '1 hour'. A tappable 'Change' follows it.
   ///
   /// In en, this message translates to:
   /// **'{name} turned on vanish mode. New messages disappear {timer} after everyone has seen them, or after 24 hours at most. Screenshots are blocked.'**
   String vanishSysOn(String name, String timer);
 
-  /// System line in a chat when the vanish timer is changed. {name} is who did it (or 'You'), {timer} is like '1 minute'.
+  /// Same as vanishSysOn when the reader turned it on themselves. {timer} is like '10 seconds' or '1 hour'.
+  ///
+  /// In en, this message translates to:
+  /// **'You turned on vanish mode. New messages disappear {timer} after everyone has seen them, or after 24 hours at most. Screenshots are blocked.'**
+  String vanishSysOnSelf(String timer);
+
+  /// System line in a chat when the vanish timer is changed. {name} is who did it (someone else; your own action uses vanishSysChangeSelf), {timer} is like '1 minute'.
   ///
   /// In en, this message translates to:
   /// **'{name} changed vanish mode. New messages disappear {timer} after everyone has seen them.'**
   String vanishSysChange(String name, String timer);
 
-  /// System line in a chat when vanish mode is turned off. {name} is who did it (or 'You').
+  /// Same as vanishSysChange when the reader changed it themselves. {timer} is like '1 minute'.
+  ///
+  /// In en, this message translates to:
+  /// **'You changed vanish mode. New messages disappear {timer} after everyone has seen them.'**
+  String vanishSysChangeSelf(String timer);
+
+  /// System line in a chat when vanish mode is turned off. {name} is who did it (someone else; your own action uses vanishSysOffSelf).
   ///
   /// In en, this message translates to:
   /// **'{name} turned off vanish mode. Messages sent while it was on still disappear on time.'**
   String vanishSysOff(String name);
+
+  /// Same as vanishSysOff when the reader turned it off themselves.
+  ///
+  /// In en, this message translates to:
+  /// **'You turned off vanish mode. Messages sent while it was on still disappear on time.'**
+  String get vanishSysOffSelf;
 
   /// Tappable word at the end of the vanish-mode system line; opens the timer picker.
   ///

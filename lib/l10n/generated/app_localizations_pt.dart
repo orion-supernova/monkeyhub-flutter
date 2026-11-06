@@ -15183,221 +15183,225 @@ class AppLocalizationsPt extends AppLocalizations {
   String get fightStageDeck => 'Convés ao luar';
 
   @override
-  String get newRoomPreviewUntitled => 'Untitled room';
+  String get newRoomPreviewUntitled => 'Sala sem nome';
 
   @override
-  String get newRoomPreviewSecretBadge => 'SECRET';
+  String get newRoomPreviewSecretBadge => 'SECRETA';
 
   @override
   String get newRoomPreviewAvatarSemantic =>
-      'Room emoji. Tap to choose another';
+      'Emoji da sala. Toca para escolher outro';
 
   @override
-  String get newRoomSectionPeople => 'People';
+  String get newRoomSectionPeople => 'Pessoas';
 
   @override
-  String get newRoomPeopleOnlyYou => 'only you so far';
+  String get newRoomPeopleOnlyYou => 'só tu, por agora';
 
   @override
   String newRoomPeopleYouPlus(int count) {
-    return 'you + $count';
+    return 'tu + $count';
   }
 
   @override
-  String get newRoomPeopleSearchHint => 'Search friends';
+  String get newRoomPeopleSearchHint => 'Pesquisar amigos';
 
   @override
-  String get newRoomPeopleNoFriends => 'Friends you add can be invited here.';
+  String get newRoomPeopleNoFriends =>
+      'Os amigos que adicionares podem ser convidados aqui.';
 
   @override
-  String get newRoomPeopleNoMatch => 'No friend matches';
+  String get newRoomPeopleNoMatch => 'Nenhum amigo corresponde';
 
   @override
-  String get newRoomSectionRoom => 'Room';
+  String get newRoomSectionRoom => 'Sala';
 
   @override
-  String get newRoomKindRegular => 'Regular';
+  String get newRoomKindRegular => 'Normal';
 
   @override
-  String get newRoomKindSecret => 'Secret';
+  String get newRoomKindSecret => 'Secreta';
 
   @override
-  String get newRoomKindRegularDesc => 'Messages stay.';
+  String get newRoomKindRegularDesc => 'As mensagens ficam.';
 
   @override
   String get newRoomKindSecretDesc =>
-      'Messages always disappear and screenshots are blocked. Once secret, always secret.';
+      'As mensagens desaparecem sempre e as capturas de ecrã ficam bloqueadas. Depois de secreta, é sempre secreta.';
 
   @override
-  String get newRoomSectionFind => 'Who can find it';
+  String get newRoomSectionFind => 'Quem a pode encontrar';
 
   @override
-  String get newRoomFindInviteOnly => 'Invite only';
+  String get newRoomFindInviteOnly => 'Só com convite';
 
   @override
-  String get newRoomFindFindable => 'Findable';
+  String get newRoomFindFindable => 'Visível';
 
   @override
-  String get newRoomPasswordSwitch => 'Lock with a password';
+  String get newRoomPasswordSwitch => 'Bloquear com palavra-passe';
 
   @override
-  String get newRoomAddDescription => '+ Add a description';
+  String get newRoomAddDescription => '+ Adicionar uma descrição';
 
   @override
-  String get newRoomSubRegular => 'regular';
+  String get newRoomSubRegular => 'normal';
 
   @override
   String newRoomSubSecretSent(String time) {
-    return 'secret · $time after sent';
+    return 'secreta · $time depois de enviada';
   }
 
   @override
   String newRoomSubSecretSeen(String time) {
-    return 'secret · $time after seen';
+    return 'secreta · $time depois de vista';
   }
 
   @override
-  String get newRoomSubLocked => 'locked';
+  String get newRoomSubLocked => 'bloqueada';
 
   @override
-  String get newRoomSubJustYou => 'just you';
+  String get newRoomSubJustYou => 'só tu';
 
   @override
   String get privacyVanishShareReadsTitle =>
-      'Share my reads in vanishing chats';
+      'Partilhar as minhas leituras em chats com modo desaparecer';
 
   @override
   String get privacyVanishShareReadsFootnote =>
-      'A vanishing message disappears 10 seconds after it\'s read, so the sender can tell you read it.';
+      'Uma mensagem que desaparece some 10 segundos depois de ser lida, por isso quem a enviou consegue saber que a leste.';
 
   @override
-  String get privacyVanishShareReadsAnytime => 'You can change this anytime.';
+  String get privacyVanishShareReadsAnytime =>
+      'Podes alterar isto quando quiseres.';
 
   @override
-  String get messageLifeAfterSeen => 'After seen';
+  String get messageLifeAfterSeen => 'Depois de vista';
 
   @override
-  String get messageLifeAfterSent => 'After sent';
+  String get messageLifeAfterSent => 'Depois de enviada';
 
   @override
   String get messageLifeCaptionSeen =>
-      'Gone within 24 hours at most, seen or not.';
+      'Desaparece em 24 horas no máximo, vista ou não.';
 
   @override
-  String get messageLifeCaptionSent => 'Counts from the moment it\'s sent.';
+  String get messageLifeCaptionSent =>
+      'Conta a partir do momento em que é enviada.';
 
   @override
-  String get messageLifeRulerLabel => 'Message timer';
+  String get messageLifeRulerLabel => 'Temporizador de mensagens';
 
   @override
-  String get forkHintSwipeUp => 'Swipe up';
+  String get forkHintSwipeUp => 'Desliza para cima';
 
   @override
-  String get forkSubChoose => 'to talk or vanish';
+  String get forkSubChoose => 'para falar ou desaparecer';
 
   @override
-  String get forkSubTalk => 'to talk';
+  String get forkSubTalk => 'para falar';
 
   @override
-  String get forkSubJoin => 'to join';
+  String get forkSubJoin => 'para entrar';
 
   @override
-  String get forkSubVanishOn => 'to turn on vanish';
+  String get forkSubVanishOn => 'para ativar o desaparecer';
 
   @override
-  String get forkSubVanishOff => 'to turn off vanish';
+  String get forkSubVanishOff => 'para desativar o desaparecer';
 
   @override
-  String get forkSlideToChoose => 'Slide to choose';
+  String get forkSlideToChoose => 'Desliza para escolher';
 
   @override
-  String get forkLetGoCancel => 'let go here to cancel';
+  String get forkLetGoCancel => 'larga aqui para cancelar';
 
   @override
-  String get forkReleaseTalk => 'Release to talk';
+  String get forkReleaseTalk => 'Larga para falar';
 
   @override
-  String get forkReleaseJoin => 'Release to join';
+  String get forkReleaseJoin => 'Larga para entrar';
 
   @override
-  String get forkReleaseVanishOn => 'Release to turn on vanish';
+  String get forkReleaseVanishOn => 'Larga para ativar o desaparecer';
 
   @override
-  String get forkReleaseVanishOff => 'Release to turn off vanish';
+  String get forkReleaseVanishOff => 'Larga para desativar o desaparecer';
 
   @override
-  String get forkDragDownCancel => 'drag down to cancel';
+  String get forkDragDownCancel => 'arrasta para baixo para cancelar';
 
   @override
-  String get forkSlideBackCancel => 'slide back to cancel';
+  String get forkSlideBackCancel => 'desliza para trás para cancelar';
 
   @override
-  String get forkChipVanish => 'Vanish';
+  String get forkChipVanish => 'Desaparecer';
 
   @override
-  String get forkChipTurnOff => 'Turn off';
+  String get forkChipTurnOff => 'Desativar';
 
   @override
-  String get forkChipTalk => 'Talk';
+  String get forkChipTalk => 'Falar';
 
   @override
-  String get forkChipJoin => 'Join';
+  String get forkChipJoin => 'Entrar';
 
   @override
-  String get forkChipVanishSub => 'Messages disappear';
+  String get forkChipVanishSub => 'As mensagens desaparecem';
 
   @override
-  String get forkChipTurnOffSub => 'Messages stay';
+  String get forkChipTurnOffSub => 'As mensagens ficam';
 
   @override
-  String get forkChipTalkSub => 'Nobody gets rung';
+  String get forkChipTalkSub => 'Ninguém é chamado';
 
   @override
   String forkChipJoinSub(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count people here',
-      one: '1 person here',
+      other: '$count pessoas aqui',
+      one: '1 pessoa aqui',
     );
     return '$_temp0';
   }
 
   @override
-  String get forkFailGeneric => 'Couldn\'t do that. Try again.';
+  String get forkFailGeneric => 'Não foi possível. Tenta de novo.';
 
   @override
-  String get forkFailCallFull => 'That huddle is full.';
+  String get forkFailCallFull => 'Essa conversa está cheia.';
 
   @override
-  String get forkActionStartHuddle => 'Start huddle';
+  String get forkActionStartHuddle => 'Iniciar conversa';
 
   @override
-  String get forkActionJoinHuddle => 'Join huddle';
+  String get forkActionJoinHuddle => 'Entrar na conversa';
 
   @override
-  String get forkActionVanishOn => 'Turn on vanish mode';
+  String get forkActionVanishOn => 'Ativar modo desaparecer';
 
   @override
-  String get forkActionVanishOff => 'Turn off vanish mode';
+  String get forkActionVanishOff => 'Desativar modo desaparecer';
 
   @override
-  String get forkToastVanishAlreadyOn => 'Vanish mode is already on';
+  String get forkToastVanishAlreadyOn => 'O modo desaparecer já está ativado';
 
   @override
-  String get forkToastVanishAlreadyOff => 'Vanish mode is already off';
+  String get forkToastVanishAlreadyOff =>
+      'O modo desaparecer já está desativado';
 
   @override
   String newRoomInviteFailed(String names) {
-    return 'Couldn\'t invite $names. You can invite them from the room.';
+    return 'Não foi possível convidar $names. Podes convidá-los a partir da sala.';
   }
 
   @override
-  String get huddleBarNobodyElse => 'Nobody else here yet';
+  String get huddleBarNobodyElse => 'Ainda não está cá mais ninguém';
 
   @override
   String huddleBarNamesTwo(String first, String second) {
-    return '$first and $second';
+    return '$first e $second';
   }
 
   @override
@@ -15405,35 +15409,35 @@ class AppLocalizationsPt extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count others',
-      one: '1 other',
+      other: 'mais $count',
+      one: 'mais 1',
     );
-    return '$name and $_temp0';
+    return '$name e $_temp0';
   }
 
   @override
   String huddleBarSemantics(String names) {
-    return 'Huddle. $names';
+    return 'Conversa. $names';
   }
 
   @override
-  String get huddleBarOpenSemantics => 'Open huddle';
+  String get huddleBarOpenSemantics => 'Abrir conversa';
 
   @override
-  String get huddleChipSemantics => 'Huddle is live';
+  String get huddleChipSemantics => 'A conversa está ativa';
 
   @override
-  String get huddleRingSomeone => 'Ring someone';
+  String get huddleRingSomeone => 'Chamar alguém';
 
   @override
-  String get huddleRingFailed => 'Couldn\'t ring them. Try again.';
+  String get huddleRingFailed => 'Não foi possível chamar. Tenta de novo.';
 
   @override
-  String get huddleAloneLine => 'You wanted to talk · Nobody joined';
+  String get huddleAloneLine => 'Querias falar · Ninguém entrou';
 
   @override
   String huddleHistoryLine(String duration, String people) {
-    return 'Huddle · $duration · $people';
+    return 'Conversa · $duration · $people';
   }
 
   @override
@@ -15441,14 +15445,14 @@ class AppLocalizationsPt extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count people',
-      one: '$count person',
+      other: '$count pessoas',
+      one: '$count pessoa',
     );
     return '$_temp0';
   }
 
   @override
-  String get huddleDurationUnderMinute => 'under a minute';
+  String get huddleDurationUnderMinute => 'menos de um minuto';
 
   @override
   String huddleDurationMinutes(int count) {
@@ -15461,30 +15465,30 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get liveCallChipHuddle => 'Huddle';
+  String get liveCallChipHuddle => 'Conversa';
 
   @override
-  String get vanishHeaderStatus => 'vanish on';
+  String get vanishHeaderStatus => 'desaparecer ativo';
 
   @override
-  String get vanishComposerHint => 'Vanishing message · keep it short';
+  String get vanishComposerHint => 'Mensagem que desaparece · sê breve';
 
   @override
   String get vanishLongHint =>
-      'Long messages may vanish before they\'re finished';
+      'Mensagens longas podem desaparecer antes de acabares';
 
   @override
-  String get vanishClockLabel => '24h';
+  String get vanishClockLabel => '24 h';
 
   @override
   String vanishLeftHours(int hours) {
     String _temp0 = intl.Intl.pluralLogic(
       hours,
       locale: localeName,
-      other: '$hours hours',
-      one: '1 hour',
+      other: '$hours horas',
+      one: '1 hora',
     );
-    return 'Vanishes in $_temp0';
+    return 'Desaparece em $_temp0';
   }
 
   @override
@@ -15492,104 +15496,116 @@ class AppLocalizationsPt extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       minutes,
       locale: localeName,
-      other: '$minutes minutes',
-      one: '1 minute',
+      other: '$minutes minutos',
+      one: '1 minuto',
     );
-    return 'Vanishes in $_temp0';
+    return 'Desaparece em $_temp0';
   }
 
   @override
-  String get vanishRingSemantics => 'Vanishing soon';
+  String get vanishRingSemantics => 'A desaparecer em breve';
 
   @override
-  String get vanishSealedSemantics => 'Vanishing message. Opens in the app';
+  String get vanishSealedSemantics => 'Mensagem que desaparece. Abre na app';
 
   @override
-  String get vanishSysYou => 'You';
+  String get vanishAfterSeen10 => '10 segundos';
 
   @override
-  String get vanishAfterSeen10 => '10 seconds';
+  String get vanishAfterSeen60 => '1 minuto';
 
   @override
-  String get vanishAfterSeen60 => '1 minute';
-
-  @override
-  String get vanishAfterSeen3600 => '1 hour';
+  String get vanishAfterSeen3600 => '1 hora';
 
   @override
   String vanishAfterSeenOther(int count) {
-    return '$count seconds';
+    return '$count segundos';
   }
 
   @override
   String vanishSysOn(String name, String timer) {
-    return '$name turned on vanish mode. New messages disappear $timer after everyone has seen them, or after 24 hours at most. Screenshots are blocked.';
+    return '$name ativou o modo desaparecer. As novas mensagens desaparecem $timer depois de todos as verem, ou em 24 horas no máximo. As capturas de ecrã ficam bloqueadas.';
+  }
+
+  @override
+  String vanishSysOnSelf(String timer) {
+    return 'Ativaste o modo desaparecer. As novas mensagens desaparecem $timer depois de todos as verem, ou em 24 horas no máximo. As capturas de ecrã ficam bloqueadas.';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return '$name changed vanish mode. New messages disappear $timer after everyone has seen them.';
+    return '$name alterou o modo desaparecer. As novas mensagens desaparecem $timer depois de todos as verem.';
+  }
+
+  @override
+  String vanishSysChangeSelf(String timer) {
+    return 'Alteraste o modo desaparecer. As novas mensagens desaparecem $timer depois de todos as verem.';
   }
 
   @override
   String vanishSysOff(String name) {
-    return '$name turned off vanish mode. Messages sent while it was on still disappear on time.';
+    return '$name desativou o modo desaparecer. As mensagens enviadas enquanto estava ativo continuam a desaparecer a tempo.';
   }
 
   @override
-  String get vanishSysChangeAction => 'Change';
+  String get vanishSysOffSelf =>
+      'Desativaste o modo desaparecer. As mensagens enviadas enquanto estava ativo continuam a desaparecer a tempo.';
 
   @override
-  String get vanishTimerPickerTitle => 'Vanish after seen';
+  String get vanishSysChangeAction => 'Alterar';
+
+  @override
+  String get vanishTimerPickerTitle => 'Desaparecer depois de vista';
 
   @override
   String vanishCardDm(String name, String timer) {
-    return 'You don\'t share Seen, so $name\'s messages to you last 24 hours. Yours still vanish $timer after $name sees them. Share your reads here so theirs vanish too?';
+    return 'Não partilhas o teu Visto, por isso as mensagens de $name para ti duram 24 horas. As tuas continuam a desaparecer $timer depois de $name as ver. Queres partilhar as tuas leituras aqui para que as dessa pessoa também desapareçam?';
   }
 
   @override
   String vanishCardGroup(String timer) {
-    return 'You don\'t share Seen, so messages sent to you here last 24 hours. Share your reads here so they vanish $timer after everyone has seen them?';
+    return 'Não partilhas o teu Visto, por isso as mensagens que te enviam aqui duram 24 horas. Queres partilhar as tuas leituras aqui para desaparecerem $timer depois de todos as verem?';
   }
 
   @override
   String get vanishSettingsNote =>
-      'You can change this anytime in Settings › Privacy.';
+      'Podes alterar isto quando quiseres em Definições › Privacidade.';
 
   @override
-  String get vanishCardShare => 'Share my reads here';
+  String get vanishCardShare => 'Partilhar as minhas leituras aqui';
 
   @override
-  String get vanishCardKeep => 'Don\'t share here';
+  String get vanishCardKeep => 'Não partilhar aqui';
 
   @override
-  String get vanishCardDismissSemantics => 'Don\'t share here';
+  String get vanishCardDismissSemantics => 'Não partilhar aqui';
 
   @override
   String vanishNoteShared(String timer) {
-    return 'You share your reads here, so messages vanish $timer after everyone has seen them.';
+    return 'Partilhas as tuas leituras aqui, por isso as mensagens desaparecem $timer depois de todos as verem.';
   }
 
   @override
   String get vanishNoteKept =>
-      'You don\'t share your reads here, so messages sent to you last 24 hours.';
+      'Não partilhas as tuas leituras aqui, por isso as mensagens que te enviam duram 24 horas.';
 
   @override
-  String get vanishedParent => 'Vanished';
+  String get vanishedParent => 'Desapareceu';
 
   @override
   String appOnlyVanishBody(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'web':
-          'Your browser can\'t block screenshots, so vanishing messages stay sealed here and never count as read. Open this chat in MonkeyHub on your phone, or on a Mac or Windows computer.',
+          'O teu navegador não consegue bloquear capturas de ecrã, por isso as mensagens que desaparecem ficam seladas aqui e nunca contam como lidas. Abre este chat no MonkeyHub do teu telemóvel, ou num computador Mac ou Windows.',
       'other':
-          'Linux can\'t block screenshots, so vanishing messages stay sealed here and never count as read. Open this chat in MonkeyHub on your phone, or on a Mac or Windows computer.',
+          'O Linux não consegue bloquear capturas de ecrã, por isso as mensagens que desaparecem ficam seladas aqui e nunca contam como lidas. Abre este chat no MonkeyHub do teu telemóvel, ou num computador Mac ou Windows.',
     });
     return '$_temp0';
   }
 
   @override
-  String get appOnlyVanishUnread => 'Sealed messages never count as read';
+  String get appOnlyVanishUnread =>
+      'As mensagens seladas nunca contam como lidas';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -30751,4 +30767,427 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get fightStageDeck => 'Convés ao luar';
+
+  @override
+  String get newRoomPreviewUntitled => 'Sala sem nome';
+
+  @override
+  String get newRoomPreviewSecretBadge => 'SECRETA';
+
+  @override
+  String get newRoomPreviewAvatarSemantic =>
+      'Emoji da sala. Toque para escolher outro';
+
+  @override
+  String get newRoomSectionPeople => 'Pessoas';
+
+  @override
+  String get newRoomPeopleOnlyYou => 'só você por enquanto';
+
+  @override
+  String newRoomPeopleYouPlus(int count) {
+    return 'você + $count';
+  }
+
+  @override
+  String get newRoomPeopleSearchHint => 'Buscar amigos';
+
+  @override
+  String get newRoomPeopleNoFriends =>
+      'Os amigos que você adicionar podem ser convidados aqui.';
+
+  @override
+  String get newRoomPeopleNoMatch => 'Nenhum amigo encontrado';
+
+  @override
+  String get newRoomSectionRoom => 'Sala';
+
+  @override
+  String get newRoomKindRegular => 'Normal';
+
+  @override
+  String get newRoomKindSecret => 'Secreta';
+
+  @override
+  String get newRoomKindRegularDesc => 'As mensagens ficam.';
+
+  @override
+  String get newRoomKindSecretDesc =>
+      'As mensagens sempre somem e as capturas de tela são bloqueadas. Depois de secreta, é sempre secreta.';
+
+  @override
+  String get newRoomSectionFind => 'Quem pode encontrar';
+
+  @override
+  String get newRoomFindInviteOnly => 'Só com convite';
+
+  @override
+  String get newRoomFindFindable => 'Visível';
+
+  @override
+  String get newRoomPasswordSwitch => 'Proteger com senha';
+
+  @override
+  String get newRoomAddDescription => '+ Adicionar uma descrição';
+
+  @override
+  String get newRoomSubRegular => 'normal';
+
+  @override
+  String newRoomSubSecretSent(String time) {
+    return 'secreta · $time após o envio';
+  }
+
+  @override
+  String newRoomSubSecretSeen(String time) {
+    return 'secreta · $time após ser vista';
+  }
+
+  @override
+  String get newRoomSubLocked => 'com senha';
+
+  @override
+  String get newRoomSubJustYou => 'só você';
+
+  @override
+  String get privacyVanishShareReadsTitle =>
+      'Compartilhar minhas leituras em chats no modo sumir';
+
+  @override
+  String get privacyVanishShareReadsFootnote =>
+      'Uma mensagem que some desaparece 10 segundos depois de ser lida, então quem enviou consegue saber que você leu.';
+
+  @override
+  String get privacyVanishShareReadsAnytime =>
+      'Você pode mudar isso quando quiser.';
+
+  @override
+  String get messageLifeAfterSeen => 'Após ser vista';
+
+  @override
+  String get messageLifeAfterSent => 'Após o envio';
+
+  @override
+  String get messageLifeCaptionSeen => 'Some em até 24 horas, vista ou não.';
+
+  @override
+  String get messageLifeCaptionSent =>
+      'Conta a partir do momento em que é enviada.';
+
+  @override
+  String get messageLifeRulerLabel => 'Temporizador de mensagens';
+
+  @override
+  String get forkHintSwipeUp => 'Deslize para cima';
+
+  @override
+  String get forkSubChoose => 'para falar ou sumir';
+
+  @override
+  String get forkSubTalk => 'para falar';
+
+  @override
+  String get forkSubJoin => 'para entrar';
+
+  @override
+  String get forkSubVanishOn => 'para ativar o sumir';
+
+  @override
+  String get forkSubVanishOff => 'para desativar o sumir';
+
+  @override
+  String get forkSlideToChoose => 'Deslize para escolher';
+
+  @override
+  String get forkLetGoCancel => 'solte aqui para cancelar';
+
+  @override
+  String get forkReleaseTalk => 'Solte para falar';
+
+  @override
+  String get forkReleaseJoin => 'Solte para entrar';
+
+  @override
+  String get forkReleaseVanishOn => 'Solte para ativar o sumir';
+
+  @override
+  String get forkReleaseVanishOff => 'Solte para desativar o sumir';
+
+  @override
+  String get forkDragDownCancel => 'arraste para baixo para cancelar';
+
+  @override
+  String get forkSlideBackCancel => 'deslize de volta para cancelar';
+
+  @override
+  String get forkChipVanish => 'Sumir';
+
+  @override
+  String get forkChipTurnOff => 'Desativar';
+
+  @override
+  String get forkChipTalk => 'Falar';
+
+  @override
+  String get forkChipJoin => 'Entrar';
+
+  @override
+  String get forkChipVanishSub => 'As mensagens somem';
+
+  @override
+  String get forkChipTurnOffSub => 'As mensagens ficam';
+
+  @override
+  String get forkChipTalkSub => 'Ninguém é chamado';
+
+  @override
+  String forkChipJoinSub(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pessoas aqui',
+      one: '1 pessoa aqui',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get forkFailGeneric => 'Não deu certo. Tente de novo.';
+
+  @override
+  String get forkFailCallFull => 'Esse papo está lotado.';
+
+  @override
+  String get forkActionStartHuddle => 'Iniciar papo';
+
+  @override
+  String get forkActionJoinHuddle => 'Entrar no papo';
+
+  @override
+  String get forkActionVanishOn => 'Ativar modo sumir';
+
+  @override
+  String get forkActionVanishOff => 'Desativar modo sumir';
+
+  @override
+  String get forkToastVanishAlreadyOn => 'O modo sumir já está ativado';
+
+  @override
+  String get forkToastVanishAlreadyOff => 'O modo sumir já está desativado';
+
+  @override
+  String newRoomInviteFailed(String names) {
+    return 'Não foi possível convidar $names. Você pode convidar pela sala.';
+  }
+
+  @override
+  String get huddleBarNobodyElse => 'Ainda não tem mais ninguém';
+
+  @override
+  String huddleBarNamesTwo(String first, String second) {
+    return '$first e $second';
+  }
+
+  @override
+  String huddleBarNamesMore(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'mais $count',
+      one: 'mais 1',
+    );
+    return '$name e $_temp0';
+  }
+
+  @override
+  String huddleBarSemantics(String names) {
+    return 'Papo. $names';
+  }
+
+  @override
+  String get huddleBarOpenSemantics => 'Abrir papo';
+
+  @override
+  String get huddleChipSemantics => 'O papo está ao vivo';
+
+  @override
+  String get huddleRingSomeone => 'Chamar alguém';
+
+  @override
+  String get huddleRingFailed => 'Não foi possível chamar. Tente de novo.';
+
+  @override
+  String get huddleAloneLine => 'Você queria falar · Ninguém entrou';
+
+  @override
+  String huddleHistoryLine(String duration, String people) {
+    return 'Papo · $duration · $people';
+  }
+
+  @override
+  String huddlePeopleCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pessoas',
+      one: '$count pessoa',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get huddleDurationUnderMinute => 'menos de um minuto';
+
+  @override
+  String huddleDurationMinutes(int count) {
+    return '$count min';
+  }
+
+  @override
+  String huddleDurationHours(int hours, String minutes) {
+    return '$hours h $minutes min';
+  }
+
+  @override
+  String get liveCallChipHuddle => 'Papo';
+
+  @override
+  String get vanishHeaderStatus => 'modo sumir ativo';
+
+  @override
+  String get vanishComposerHint => 'Mensagem que some · seja breve';
+
+  @override
+  String get vanishLongHint =>
+      'Mensagens longas podem sumir antes de você terminar';
+
+  @override
+  String get vanishClockLabel => '24 h';
+
+  @override
+  String vanishLeftHours(int hours) {
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours horas',
+      one: '1 hora',
+    );
+    return 'Some em $_temp0';
+  }
+
+  @override
+  String vanishLeftMinutes(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minutos',
+      one: '1 minuto',
+    );
+    return 'Some em $_temp0';
+  }
+
+  @override
+  String get vanishRingSemantics => 'Vai sumir em breve';
+
+  @override
+  String get vanishSealedSemantics => 'Mensagem que some. Abre no app';
+
+  @override
+  String get vanishAfterSeen10 => '10 segundos';
+
+  @override
+  String get vanishAfterSeen60 => '1 minuto';
+
+  @override
+  String get vanishAfterSeen3600 => '1 hora';
+
+  @override
+  String vanishAfterSeenOther(int count) {
+    return '$count segundos';
+  }
+
+  @override
+  String vanishSysOn(String name, String timer) {
+    return '$name ativou o modo sumir. As novas mensagens somem $timer depois de todos verem, ou em até 24 horas. As capturas de tela são bloqueadas.';
+  }
+
+  @override
+  String vanishSysOnSelf(String timer) {
+    return 'Você ativou o modo sumir. As novas mensagens somem $timer depois de todos verem, ou em até 24 horas. As capturas de tela são bloqueadas.';
+  }
+
+  @override
+  String vanishSysChange(String name, String timer) {
+    return '$name mudou o modo sumir. As novas mensagens somem $timer depois de todos verem.';
+  }
+
+  @override
+  String vanishSysChangeSelf(String timer) {
+    return 'Você mudou o modo sumir. As novas mensagens somem $timer depois de todos verem.';
+  }
+
+  @override
+  String vanishSysOff(String name) {
+    return '$name desativou o modo sumir. As mensagens enviadas enquanto estava ativo continuam sumindo no prazo.';
+  }
+
+  @override
+  String get vanishSysOffSelf =>
+      'Você desativou o modo sumir. As mensagens enviadas enquanto estava ativo continuam sumindo no prazo.';
+
+  @override
+  String get vanishSysChangeAction => 'Alterar';
+
+  @override
+  String get vanishTimerPickerTitle => 'Sumir após ser vista';
+
+  @override
+  String vanishCardDm(String name, String timer) {
+    return 'Você não compartilha seu Visto, então as mensagens de $name para você duram 24 horas. As suas continuam sumindo $timer depois que $name vê. Quer compartilhar suas leituras aqui para que as dessa pessoa também sumam?';
+  }
+
+  @override
+  String vanishCardGroup(String timer) {
+    return 'Você não compartilha seu Visto, então as mensagens enviadas para você aqui duram 24 horas. Quer compartilhar suas leituras aqui para que sumam $timer depois de todos verem?';
+  }
+
+  @override
+  String get vanishSettingsNote =>
+      'Você pode mudar isso quando quiser em Configurações › Privacidade.';
+
+  @override
+  String get vanishCardShare => 'Compartilhar minhas leituras aqui';
+
+  @override
+  String get vanishCardKeep => 'Não compartilhar aqui';
+
+  @override
+  String get vanishCardDismissSemantics => 'Não compartilhar aqui';
+
+  @override
+  String vanishNoteShared(String timer) {
+    return 'Você compartilha suas leituras aqui, então as mensagens somem $timer depois de todos verem.';
+  }
+
+  @override
+  String get vanishNoteKept =>
+      'Você não compartilha suas leituras aqui, então as mensagens enviadas para você duram 24 horas.';
+
+  @override
+  String get vanishedParent => 'Sumiu';
+
+  @override
+  String appOnlyVanishBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'Seu navegador não consegue bloquear capturas de tela, então mensagens que somem ficam lacradas aqui e nunca contam como lidas. Abra este chat no MonkeyHub do seu celular, ou em um computador Mac ou Windows.',
+      'other':
+          'O Linux não consegue bloquear capturas de tela, então mensagens que somem ficam lacradas aqui e nunca contam como lidas. Abra este chat no MonkeyHub do seu celular, ou em um computador Mac ou Windows.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlyVanishUnread =>
+      'Mensagens lacradas nunca contam como lidas';
 }

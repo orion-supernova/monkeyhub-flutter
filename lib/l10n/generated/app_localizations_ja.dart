@@ -14365,221 +14365,217 @@ class AppLocalizationsJa extends AppLocalizations {
   String get fightStageDeck => '月夜の甲板';
 
   @override
-  String get newRoomPreviewUntitled => 'Untitled room';
+  String get newRoomPreviewUntitled => '名前のないルーム';
 
   @override
-  String get newRoomPreviewSecretBadge => 'SECRET';
+  String get newRoomPreviewSecretBadge => 'シークレット';
 
   @override
-  String get newRoomPreviewAvatarSemantic =>
-      'Room emoji. Tap to choose another';
+  String get newRoomPreviewAvatarSemantic => 'ルームの絵文字。タップして別の絵文字を選ぶ';
 
   @override
-  String get newRoomSectionPeople => 'People';
+  String get newRoomSectionPeople => 'メンバー';
 
   @override
-  String get newRoomPeopleOnlyYou => 'only you so far';
+  String get newRoomPeopleOnlyYou => '今はあなただけ';
 
   @override
   String newRoomPeopleYouPlus(int count) {
-    return 'you + $count';
+    return 'あなた + $count人';
   }
 
   @override
-  String get newRoomPeopleSearchHint => 'Search friends';
+  String get newRoomPeopleSearchHint => '友だちを検索';
 
   @override
-  String get newRoomPeopleNoFriends => 'Friends you add can be invited here.';
+  String get newRoomPeopleNoFriends => '追加した友だちをここから招待できます。';
 
   @override
-  String get newRoomPeopleNoMatch => 'No friend matches';
+  String get newRoomPeopleNoMatch => '該当する友だちはいません';
 
   @override
-  String get newRoomSectionRoom => 'Room';
+  String get newRoomSectionRoom => 'ルーム';
 
   @override
-  String get newRoomKindRegular => 'Regular';
+  String get newRoomKindRegular => '通常';
 
   @override
-  String get newRoomKindSecret => 'Secret';
+  String get newRoomKindSecret => 'シークレット';
 
   @override
-  String get newRoomKindRegularDesc => 'Messages stay.';
+  String get newRoomKindRegularDesc => 'メッセージは残ります。';
 
   @override
   String get newRoomKindSecretDesc =>
-      'Messages always disappear and screenshots are blocked. Once secret, always secret.';
+      'メッセージは必ず消え、スクリーンショットはブロックされます。一度シークレットにしたら、ずっとシークレットです。';
 
   @override
-  String get newRoomSectionFind => 'Who can find it';
+  String get newRoomSectionFind => '見つけられる人';
 
   @override
-  String get newRoomFindInviteOnly => 'Invite only';
+  String get newRoomFindInviteOnly => '招待制';
 
   @override
-  String get newRoomFindFindable => 'Findable';
+  String get newRoomFindFindable => '検索可';
 
   @override
-  String get newRoomPasswordSwitch => 'Lock with a password';
+  String get newRoomPasswordSwitch => 'パスワードでロック';
 
   @override
-  String get newRoomAddDescription => '+ Add a description';
+  String get newRoomAddDescription => '+ 説明を追加';
 
   @override
-  String get newRoomSubRegular => 'regular';
+  String get newRoomSubRegular => '通常';
 
   @override
   String newRoomSubSecretSent(String time) {
-    return 'secret · $time after sent';
+    return 'シークレット・送信$time後';
   }
 
   @override
   String newRoomSubSecretSeen(String time) {
-    return 'secret · $time after seen';
+    return 'シークレット・既読$time後';
   }
 
   @override
-  String get newRoomSubLocked => 'locked';
+  String get newRoomSubLocked => 'ロック中';
 
   @override
-  String get newRoomSubJustYou => 'just you';
+  String get newRoomSubJustYou => 'あなただけ';
 
   @override
-  String get privacyVanishShareReadsTitle =>
-      'Share my reads in vanishing chats';
+  String get privacyVanishShareReadsTitle => '消えるモードのチャットで既読を共有';
 
   @override
   String get privacyVanishShareReadsFootnote =>
-      'A vanishing message disappears 10 seconds after it\'s read, so the sender can tell you read it.';
+      '消えるメッセージは読まれて10秒後に消えるため、送信者はあなたが読んだことがわかります。';
 
   @override
-  String get privacyVanishShareReadsAnytime => 'You can change this anytime.';
+  String get privacyVanishShareReadsAnytime => 'いつでも変更できます。';
 
   @override
-  String get messageLifeAfterSeen => 'After seen';
+  String get messageLifeAfterSeen => '既読後';
 
   @override
-  String get messageLifeAfterSent => 'After sent';
+  String get messageLifeAfterSent => '送信後';
 
   @override
-  String get messageLifeCaptionSeen =>
-      'Gone within 24 hours at most, seen or not.';
+  String get messageLifeCaptionSeen => '読まれなくても、遅くとも24時間以内に消えます。';
 
   @override
-  String get messageLifeCaptionSent => 'Counts from the moment it\'s sent.';
+  String get messageLifeCaptionSent => '送信した瞬間からカウントします。';
 
   @override
-  String get messageLifeRulerLabel => 'Message timer';
+  String get messageLifeRulerLabel => 'メッセージタイマー';
 
   @override
-  String get forkHintSwipeUp => 'Swipe up';
+  String get forkHintSwipeUp => '上にスワイプ';
 
   @override
-  String get forkSubChoose => 'to talk or vanish';
+  String get forkSubChoose => '話す・消えるモード';
 
   @override
-  String get forkSubTalk => 'to talk';
+  String get forkSubTalk => '話す';
 
   @override
-  String get forkSubJoin => 'to join';
+  String get forkSubJoin => '参加する';
 
   @override
-  String get forkSubVanishOn => 'to turn on vanish';
+  String get forkSubVanishOn => '消えるモードをオン';
 
   @override
-  String get forkSubVanishOff => 'to turn off vanish';
+  String get forkSubVanishOff => '消えるモードをオフ';
 
   @override
-  String get forkSlideToChoose => 'Slide to choose';
+  String get forkSlideToChoose => 'スライドして選ぶ';
 
   @override
-  String get forkLetGoCancel => 'let go here to cancel';
+  String get forkLetGoCancel => 'ここで離すとキャンセル';
 
   @override
-  String get forkReleaseTalk => 'Release to talk';
+  String get forkReleaseTalk => '離して話す';
 
   @override
-  String get forkReleaseJoin => 'Release to join';
+  String get forkReleaseJoin => '離して参加';
 
   @override
-  String get forkReleaseVanishOn => 'Release to turn on vanish';
+  String get forkReleaseVanishOn => '離して消えるモードをオン';
 
   @override
-  String get forkReleaseVanishOff => 'Release to turn off vanish';
+  String get forkReleaseVanishOff => '離して消えるモードをオフ';
 
   @override
-  String get forkDragDownCancel => 'drag down to cancel';
+  String get forkDragDownCancel => '下にドラッグでキャンセル';
 
   @override
-  String get forkSlideBackCancel => 'slide back to cancel';
+  String get forkSlideBackCancel => '戻すとキャンセル';
 
   @override
-  String get forkChipVanish => 'Vanish';
+  String get forkChipVanish => '消える';
 
   @override
-  String get forkChipTurnOff => 'Turn off';
+  String get forkChipTurnOff => 'オフ';
 
   @override
-  String get forkChipTalk => 'Talk';
+  String get forkChipTalk => '話す';
 
   @override
-  String get forkChipJoin => 'Join';
+  String get forkChipJoin => '参加';
 
   @override
-  String get forkChipVanishSub => 'Messages disappear';
+  String get forkChipVanishSub => 'メッセージが消える';
 
   @override
-  String get forkChipTurnOffSub => 'Messages stay';
+  String get forkChipTurnOffSub => 'メッセージが残る';
 
   @override
-  String get forkChipTalkSub => 'Nobody gets rung';
+  String get forkChipTalkSub => '誰にも鳴らしません';
 
   @override
   String forkChipJoinSub(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count people here',
-      one: '1 person here',
+      other: '$count人が参加中',
     );
     return '$_temp0';
   }
 
   @override
-  String get forkFailGeneric => 'Couldn\'t do that. Try again.';
+  String get forkFailGeneric => 'できませんでした。もう一度お試しください。';
 
   @override
-  String get forkFailCallFull => 'That huddle is full.';
+  String get forkFailCallFull => 'そのボイスチャットは満員です。';
 
   @override
-  String get forkActionStartHuddle => 'Start huddle';
+  String get forkActionStartHuddle => 'ボイスチャットを始める';
 
   @override
-  String get forkActionJoinHuddle => 'Join huddle';
+  String get forkActionJoinHuddle => 'ボイスチャットに参加';
 
   @override
-  String get forkActionVanishOn => 'Turn on vanish mode';
+  String get forkActionVanishOn => '消えるモードをオンにする';
 
   @override
-  String get forkActionVanishOff => 'Turn off vanish mode';
+  String get forkActionVanishOff => '消えるモードをオフにする';
 
   @override
-  String get forkToastVanishAlreadyOn => 'Vanish mode is already on';
+  String get forkToastVanishAlreadyOn => '消えるモードはすでにオンです';
 
   @override
-  String get forkToastVanishAlreadyOff => 'Vanish mode is already off';
+  String get forkToastVanishAlreadyOff => '消えるモードはすでにオフです';
 
   @override
   String newRoomInviteFailed(String names) {
-    return 'Couldn\'t invite $names. You can invite them from the room.';
+    return '$namesを招待できませんでした。ルームから招待できます。';
   }
 
   @override
-  String get huddleBarNobodyElse => 'Nobody else here yet';
+  String get huddleBarNobodyElse => 'まだ他に誰もいません';
 
   @override
   String huddleBarNamesTwo(String first, String second) {
-    return '$first and $second';
+    return '$firstさんと$secondさん';
   }
 
   @override
@@ -14587,35 +14583,34 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count others',
-      one: '1 other',
+      other: '$count人',
     );
-    return '$name and $_temp0';
+    return '$nameさん、ほか$_temp0';
   }
 
   @override
   String huddleBarSemantics(String names) {
-    return 'Huddle. $names';
+    return 'ボイスチャット。$names';
   }
 
   @override
-  String get huddleBarOpenSemantics => 'Open huddle';
+  String get huddleBarOpenSemantics => 'ボイスチャットを開く';
 
   @override
-  String get huddleChipSemantics => 'Huddle is live';
+  String get huddleChipSemantics => 'ボイスチャット中';
 
   @override
-  String get huddleRingSomeone => 'Ring someone';
+  String get huddleRingSomeone => '誰かを呼び出す';
 
   @override
-  String get huddleRingFailed => 'Couldn\'t ring them. Try again.';
+  String get huddleRingFailed => '呼び出せませんでした。もう一度お試しください。';
 
   @override
-  String get huddleAloneLine => 'You wanted to talk · Nobody joined';
+  String get huddleAloneLine => '話したかった・誰も参加しませんでした';
 
   @override
   String huddleHistoryLine(String duration, String people) {
-    return 'Huddle · $duration · $people';
+    return 'ボイスチャット・$duration・$people';
   }
 
   @override
@@ -14623,50 +14618,47 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count people',
-      one: '$count person',
+      other: '$count人',
     );
     return '$_temp0';
   }
 
   @override
-  String get huddleDurationUnderMinute => 'under a minute';
+  String get huddleDurationUnderMinute => '1分未満';
 
   @override
   String huddleDurationMinutes(int count) {
-    return '$count min';
+    return '$count分';
   }
 
   @override
   String huddleDurationHours(int hours, String minutes) {
-    return '$hours h $minutes min';
+    return '$hours時間$minutes分';
   }
 
   @override
-  String get liveCallChipHuddle => 'Huddle';
+  String get liveCallChipHuddle => 'ボイスチャット';
 
   @override
-  String get vanishHeaderStatus => 'vanish on';
+  String get vanishHeaderStatus => '消えるモード オン';
 
   @override
-  String get vanishComposerHint => 'Vanishing message · keep it short';
+  String get vanishComposerHint => '消えるメッセージ・短めに';
 
   @override
-  String get vanishLongHint =>
-      'Long messages may vanish before they\'re finished';
+  String get vanishLongHint => '長いメッセージは書き終える前に消えることがあります';
 
   @override
-  String get vanishClockLabel => '24h';
+  String get vanishClockLabel => '24時間';
 
   @override
   String vanishLeftHours(int hours) {
     String _temp0 = intl.Intl.pluralLogic(
       hours,
       locale: localeName,
-      other: '$hours hours',
-      one: '1 hour',
+      other: '$hours時間',
     );
-    return 'Vanishes in $_temp0';
+    return 'あと$_temp0で消えます';
   }
 
   @override
@@ -14674,102 +14666,109 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       minutes,
       locale: localeName,
-      other: '$minutes minutes',
-      one: '1 minute',
+      other: '$minutes分',
     );
-    return 'Vanishes in $_temp0';
+    return 'あと$_temp0で消えます';
   }
 
   @override
-  String get vanishRingSemantics => 'Vanishing soon';
+  String get vanishRingSemantics => 'まもなく消えます';
 
   @override
-  String get vanishSealedSemantics => 'Vanishing message. Opens in the app';
+  String get vanishSealedSemantics => '消えるメッセージ。アプリで開けます';
 
   @override
-  String get vanishSysYou => 'You';
+  String get vanishAfterSeen10 => '10秒';
 
   @override
-  String get vanishAfterSeen10 => '10 seconds';
+  String get vanishAfterSeen60 => '1分';
 
   @override
-  String get vanishAfterSeen60 => '1 minute';
-
-  @override
-  String get vanishAfterSeen3600 => '1 hour';
+  String get vanishAfterSeen3600 => '1時間';
 
   @override
   String vanishAfterSeenOther(int count) {
-    return '$count seconds';
+    return '$count秒';
   }
 
   @override
   String vanishSysOn(String name, String timer) {
-    return '$name turned on vanish mode. New messages disappear $timer after everyone has seen them, or after 24 hours at most. Screenshots are blocked.';
+    return '$nameが消えるモードをオンにしました。新しいメッセージは全員が見てから$timer後、遅くとも24時間以内に消えます。スクリーンショットはブロックされます。';
+  }
+
+  @override
+  String vanishSysOnSelf(String timer) {
+    return '消えるモードをオンにしました。新しいメッセージは全員が見てから$timer後、遅くとも24時間以内に消えます。スクリーンショットはブロックされます。';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return '$name changed vanish mode. New messages disappear $timer after everyone has seen them.';
+    return '$nameが消えるモードを変更しました。新しいメッセージは全員が見てから$timer後に消えます。';
+  }
+
+  @override
+  String vanishSysChangeSelf(String timer) {
+    return '消えるモードを変更しました。新しいメッセージは全員が見てから$timer後に消えます。';
   }
 
   @override
   String vanishSysOff(String name) {
-    return '$name turned off vanish mode. Messages sent while it was on still disappear on time.';
+    return '$nameが消えるモードをオフにしました。オン中に送られたメッセージは、予定どおり消えます。';
   }
 
   @override
-  String get vanishSysChangeAction => 'Change';
+  String get vanishSysOffSelf => '消えるモードをオフにしました。オン中に送られたメッセージは、予定どおり消えます。';
 
   @override
-  String get vanishTimerPickerTitle => 'Vanish after seen';
+  String get vanishSysChangeAction => '変更';
+
+  @override
+  String get vanishTimerPickerTitle => '既読後に消える';
 
   @override
   String vanishCardDm(String name, String timer) {
-    return 'You don\'t share Seen, so $name\'s messages to you last 24 hours. Yours still vanish $timer after $name sees them. Share your reads here so theirs vanish too?';
+    return 'あなたは既読を共有していないため、$nameさんからのメッセージは24時間残ります。あなたのメッセージは、$nameさんが見てから$timer後に消えます。相手のメッセージも消えるように、ここで既読を共有しますか？';
   }
 
   @override
   String vanishCardGroup(String timer) {
-    return 'You don\'t share Seen, so messages sent to you here last 24 hours. Share your reads here so they vanish $timer after everyone has seen them?';
+    return 'あなたは既読を共有していないため、ここで届くメッセージは24時間残ります。全員が見てから$timer後に消えるように、ここで既読を共有しますか？';
   }
 
   @override
-  String get vanishSettingsNote =>
-      'You can change this anytime in Settings › Privacy.';
+  String get vanishSettingsNote => '設定 › プライバシーでいつでも変更できます。';
 
   @override
-  String get vanishCardShare => 'Share my reads here';
+  String get vanishCardShare => 'ここで既読を共有';
 
   @override
-  String get vanishCardKeep => 'Don\'t share here';
+  String get vanishCardKeep => 'ここでは共有しない';
 
   @override
-  String get vanishCardDismissSemantics => 'Don\'t share here';
+  String get vanishCardDismissSemantics => 'ここでは共有しない';
 
   @override
   String vanishNoteShared(String timer) {
-    return 'You share your reads here, so messages vanish $timer after everyone has seen them.';
+    return 'ここで既読を共有しているため、メッセージは全員が見てから$timer後に消えます。';
   }
 
   @override
-  String get vanishNoteKept =>
-      'You don\'t share your reads here, so messages sent to you last 24 hours.';
+  String get vanishNoteKept => 'ここでは既読を共有していないため、届くメッセージは24時間残ります。';
 
   @override
-  String get vanishedParent => 'Vanished';
+  String get vanishedParent => '消えました';
 
   @override
   String appOnlyVanishBody(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'web':
-          'Your browser can\'t block screenshots, so vanishing messages stay sealed here and never count as read. Open this chat in MonkeyHub on your phone, or on a Mac or Windows computer.',
+          'ブラウザではスクリーンショットを防げないため、消えるメッセージはここでは封をしたままで、既読にもなりません。スマートフォンのMonkeyHub、またはMacかWindowsのパソコンでこのチャットを開いてください。',
       'other':
-          'Linux can\'t block screenshots, so vanishing messages stay sealed here and never count as read. Open this chat in MonkeyHub on your phone, or on a Mac or Windows computer.',
+          'Linuxではスクリーンショットを防げないため、消えるメッセージはここでは封をしたままで、既読にもなりません。スマートフォンのMonkeyHub、またはMacかWindowsのパソコンでこのチャットを開いてください。',
     });
     return '$_temp0';
   }
 
   @override
-  String get appOnlyVanishUnread => 'Sealed messages never count as read';
+  String get appOnlyVanishUnread => '封をしたメッセージは既読になりません';
 }

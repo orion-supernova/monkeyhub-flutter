@@ -14232,221 +14232,216 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fightStageDeck => '月夜甲板';
 
   @override
-  String get newRoomPreviewUntitled => 'Untitled room';
+  String get newRoomPreviewUntitled => '未命名房间';
 
   @override
-  String get newRoomPreviewSecretBadge => 'SECRET';
+  String get newRoomPreviewSecretBadge => '秘密';
 
   @override
-  String get newRoomPreviewAvatarSemantic =>
-      'Room emoji. Tap to choose another';
+  String get newRoomPreviewAvatarSemantic => '房间表情。点按可更换';
 
   @override
-  String get newRoomSectionPeople => 'People';
+  String get newRoomSectionPeople => '成员';
 
   @override
-  String get newRoomPeopleOnlyYou => 'only you so far';
+  String get newRoomPeopleOnlyYou => '暂时只有你';
 
   @override
   String newRoomPeopleYouPlus(int count) {
-    return 'you + $count';
+    return '你 + $count';
   }
 
   @override
-  String get newRoomPeopleSearchHint => 'Search friends';
+  String get newRoomPeopleSearchHint => '搜索好友';
 
   @override
-  String get newRoomPeopleNoFriends => 'Friends you add can be invited here.';
+  String get newRoomPeopleNoFriends => '你添加的好友可以在这里邀请。';
 
   @override
-  String get newRoomPeopleNoMatch => 'No friend matches';
+  String get newRoomPeopleNoMatch => '没有匹配的好友';
 
   @override
-  String get newRoomSectionRoom => 'Room';
+  String get newRoomSectionRoom => '房间';
 
   @override
-  String get newRoomKindRegular => 'Regular';
+  String get newRoomKindRegular => '普通';
 
   @override
-  String get newRoomKindSecret => 'Secret';
+  String get newRoomKindSecret => '秘密';
 
   @override
-  String get newRoomKindRegularDesc => 'Messages stay.';
+  String get newRoomKindRegularDesc => '消息会保留。';
 
   @override
-  String get newRoomKindSecretDesc =>
-      'Messages always disappear and screenshots are blocked. Once secret, always secret.';
+  String get newRoomKindSecretDesc => '消息一定会消失，并且会阻止截屏。一旦设为秘密，就永远是秘密。';
 
   @override
-  String get newRoomSectionFind => 'Who can find it';
+  String get newRoomSectionFind => '谁能找到';
 
   @override
-  String get newRoomFindInviteOnly => 'Invite only';
+  String get newRoomFindInviteOnly => '仅限邀请';
 
   @override
-  String get newRoomFindFindable => 'Findable';
+  String get newRoomFindFindable => '可被找到';
 
   @override
-  String get newRoomPasswordSwitch => 'Lock with a password';
+  String get newRoomPasswordSwitch => '用密码锁定';
 
   @override
-  String get newRoomAddDescription => '+ Add a description';
+  String get newRoomAddDescription => '+ 添加描述';
 
   @override
-  String get newRoomSubRegular => 'regular';
+  String get newRoomSubRegular => '普通';
 
   @override
   String newRoomSubSecretSent(String time) {
-    return 'secret · $time after sent';
+    return '秘密 · 发送后 $time';
   }
 
   @override
   String newRoomSubSecretSeen(String time) {
-    return 'secret · $time after seen';
+    return '秘密 · 已读后 $time';
   }
 
   @override
-  String get newRoomSubLocked => 'locked';
+  String get newRoomSubLocked => '已锁定';
 
   @override
-  String get newRoomSubJustYou => 'just you';
+  String get newRoomSubJustYou => '只有你';
 
   @override
-  String get privacyVanishShareReadsTitle =>
-      'Share my reads in vanishing chats';
+  String get privacyVanishShareReadsTitle => '在消失模式聊天中分享我的已读';
 
   @override
   String get privacyVanishShareReadsFootnote =>
-      'A vanishing message disappears 10 seconds after it\'s read, so the sender can tell you read it.';
+      '消失的消息会在被读后 10 秒消失，所以发送者能知道你已经读过。';
 
   @override
-  String get privacyVanishShareReadsAnytime => 'You can change this anytime.';
+  String get privacyVanishShareReadsAnytime => '你可以随时更改。';
 
   @override
-  String get messageLifeAfterSeen => 'After seen';
+  String get messageLifeAfterSeen => '已读后';
 
   @override
-  String get messageLifeAfterSent => 'After sent';
+  String get messageLifeAfterSent => '发送后';
 
   @override
-  String get messageLifeCaptionSeen =>
-      'Gone within 24 hours at most, seen or not.';
+  String get messageLifeCaptionSeen => '无论是否被读，最迟 24 小时内消失。';
 
   @override
-  String get messageLifeCaptionSent => 'Counts from the moment it\'s sent.';
+  String get messageLifeCaptionSent => '从发送那一刻开始计时。';
 
   @override
-  String get messageLifeRulerLabel => 'Message timer';
+  String get messageLifeRulerLabel => '消息定时';
 
   @override
-  String get forkHintSwipeUp => 'Swipe up';
+  String get forkHintSwipeUp => '向上滑动';
 
   @override
-  String get forkSubChoose => 'to talk or vanish';
+  String get forkSubChoose => '来语聊或让消息消失';
 
   @override
-  String get forkSubTalk => 'to talk';
+  String get forkSubTalk => '来语聊';
 
   @override
-  String get forkSubJoin => 'to join';
+  String get forkSubJoin => '来加入';
 
   @override
-  String get forkSubVanishOn => 'to turn on vanish';
+  String get forkSubVanishOn => '来开启消失模式';
 
   @override
-  String get forkSubVanishOff => 'to turn off vanish';
+  String get forkSubVanishOff => '来关闭消失模式';
 
   @override
-  String get forkSlideToChoose => 'Slide to choose';
+  String get forkSlideToChoose => '滑动选择';
 
   @override
-  String get forkLetGoCancel => 'let go here to cancel';
+  String get forkLetGoCancel => '在此松手即可取消';
 
   @override
-  String get forkReleaseTalk => 'Release to talk';
+  String get forkReleaseTalk => '松手开始语聊';
 
   @override
-  String get forkReleaseJoin => 'Release to join';
+  String get forkReleaseJoin => '松手加入';
 
   @override
-  String get forkReleaseVanishOn => 'Release to turn on vanish';
+  String get forkReleaseVanishOn => '松手开启消失模式';
 
   @override
-  String get forkReleaseVanishOff => 'Release to turn off vanish';
+  String get forkReleaseVanishOff => '松手关闭消失模式';
 
   @override
-  String get forkDragDownCancel => 'drag down to cancel';
+  String get forkDragDownCancel => '向下拖动取消';
 
   @override
-  String get forkSlideBackCancel => 'slide back to cancel';
+  String get forkSlideBackCancel => '滑回中间取消';
 
   @override
-  String get forkChipVanish => 'Vanish';
+  String get forkChipVanish => '消失';
 
   @override
-  String get forkChipTurnOff => 'Turn off';
+  String get forkChipTurnOff => '关闭';
 
   @override
-  String get forkChipTalk => 'Talk';
+  String get forkChipTalk => '语聊';
 
   @override
-  String get forkChipJoin => 'Join';
+  String get forkChipJoin => '加入';
 
   @override
-  String get forkChipVanishSub => 'Messages disappear';
+  String get forkChipVanishSub => '消息会消失';
 
   @override
-  String get forkChipTurnOffSub => 'Messages stay';
+  String get forkChipTurnOffSub => '消息会保留';
 
   @override
-  String get forkChipTalkSub => 'Nobody gets rung';
+  String get forkChipTalkSub => '不会响铃通知任何人';
 
   @override
   String forkChipJoinSub(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count people here',
-      one: '1 person here',
+      other: '$count 人在这里',
     );
     return '$_temp0';
   }
 
   @override
-  String get forkFailGeneric => 'Couldn\'t do that. Try again.';
+  String get forkFailGeneric => '没成功，请重试。';
 
   @override
-  String get forkFailCallFull => 'That huddle is full.';
+  String get forkFailCallFull => '这个语音聊天已满。';
 
   @override
-  String get forkActionStartHuddle => 'Start huddle';
+  String get forkActionStartHuddle => '开始语音聊天';
 
   @override
-  String get forkActionJoinHuddle => 'Join huddle';
+  String get forkActionJoinHuddle => '加入语音聊天';
 
   @override
-  String get forkActionVanishOn => 'Turn on vanish mode';
+  String get forkActionVanishOn => '开启消失模式';
 
   @override
-  String get forkActionVanishOff => 'Turn off vanish mode';
+  String get forkActionVanishOff => '关闭消失模式';
 
   @override
-  String get forkToastVanishAlreadyOn => 'Vanish mode is already on';
+  String get forkToastVanishAlreadyOn => '消失模式已经开启';
 
   @override
-  String get forkToastVanishAlreadyOff => 'Vanish mode is already off';
+  String get forkToastVanishAlreadyOff => '消失模式已经关闭';
 
   @override
   String newRoomInviteFailed(String names) {
-    return 'Couldn\'t invite $names. You can invite them from the room.';
+    return '无法邀请 $names。你可以在房间里邀请他们。';
   }
 
   @override
-  String get huddleBarNobodyElse => 'Nobody else here yet';
+  String get huddleBarNobodyElse => '还没有其他人';
 
   @override
   String huddleBarNamesTwo(String first, String second) {
-    return '$first and $second';
+    return '$first 和 $second';
   }
 
   @override
@@ -14454,35 +14449,34 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count others',
-      one: '1 other',
+      other: '$count 人',
     );
-    return '$name and $_temp0';
+    return '$name 等 $_temp0';
   }
 
   @override
   String huddleBarSemantics(String names) {
-    return 'Huddle. $names';
+    return '语音聊天。$names';
   }
 
   @override
-  String get huddleBarOpenSemantics => 'Open huddle';
+  String get huddleBarOpenSemantics => '打开语音聊天';
 
   @override
-  String get huddleChipSemantics => 'Huddle is live';
+  String get huddleChipSemantics => '语音聊天进行中';
 
   @override
-  String get huddleRingSomeone => 'Ring someone';
+  String get huddleRingSomeone => '呼叫某人';
 
   @override
-  String get huddleRingFailed => 'Couldn\'t ring them. Try again.';
+  String get huddleRingFailed => '无法呼叫，请重试。';
 
   @override
-  String get huddleAloneLine => 'You wanted to talk · Nobody joined';
+  String get huddleAloneLine => '你想聊聊 · 没有人加入';
 
   @override
   String huddleHistoryLine(String duration, String people) {
-    return 'Huddle · $duration · $people';
+    return '语音聊天 · $duration · $people';
   }
 
   @override
@@ -14490,50 +14484,47 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count people',
-      one: '$count person',
+      other: '$count 人',
     );
     return '$_temp0';
   }
 
   @override
-  String get huddleDurationUnderMinute => 'under a minute';
+  String get huddleDurationUnderMinute => '不到一分钟';
 
   @override
   String huddleDurationMinutes(int count) {
-    return '$count min';
+    return '$count 分钟';
   }
 
   @override
   String huddleDurationHours(int hours, String minutes) {
-    return '$hours h $minutes min';
+    return '$hours 小时 $minutes 分钟';
   }
 
   @override
-  String get liveCallChipHuddle => 'Huddle';
+  String get liveCallChipHuddle => '语音聊天';
 
   @override
-  String get vanishHeaderStatus => 'vanish on';
+  String get vanishHeaderStatus => '消失模式已开启';
 
   @override
-  String get vanishComposerHint => 'Vanishing message · keep it short';
+  String get vanishComposerHint => '会消失的消息 · 简短些';
 
   @override
-  String get vanishLongHint =>
-      'Long messages may vanish before they\'re finished';
+  String get vanishLongHint => '较长的消息可能在你写完前就消失';
 
   @override
-  String get vanishClockLabel => '24h';
+  String get vanishClockLabel => '24 小时';
 
   @override
   String vanishLeftHours(int hours) {
     String _temp0 = intl.Intl.pluralLogic(
       hours,
       locale: localeName,
-      other: '$hours hours',
-      one: '1 hour',
+      other: '$hours 小时',
     );
-    return 'Vanishes in $_temp0';
+    return '$_temp0后消失';
   }
 
   @override
@@ -14541,102 +14532,109 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       minutes,
       locale: localeName,
-      other: '$minutes minutes',
-      one: '1 minute',
+      other: '$minutes 分钟',
     );
-    return 'Vanishes in $_temp0';
+    return '$_temp0后消失';
   }
 
   @override
-  String get vanishRingSemantics => 'Vanishing soon';
+  String get vanishRingSemantics => '即将消失';
 
   @override
-  String get vanishSealedSemantics => 'Vanishing message. Opens in the app';
+  String get vanishSealedSemantics => '会消失的消息。在应用中打开';
 
   @override
-  String get vanishSysYou => 'You';
+  String get vanishAfterSeen10 => '10 秒';
 
   @override
-  String get vanishAfterSeen10 => '10 seconds';
+  String get vanishAfterSeen60 => '1 分钟';
 
   @override
-  String get vanishAfterSeen60 => '1 minute';
-
-  @override
-  String get vanishAfterSeen3600 => '1 hour';
+  String get vanishAfterSeen3600 => '1 小时';
 
   @override
   String vanishAfterSeenOther(int count) {
-    return '$count seconds';
+    return '$count 秒';
   }
 
   @override
   String vanishSysOn(String name, String timer) {
-    return '$name turned on vanish mode. New messages disappear $timer after everyone has seen them, or after 24 hours at most. Screenshots are blocked.';
+    return '$name开启了消失模式。新消息在所有人看过后 $timer 消失，最迟 24 小时内消失。截屏会被阻止。';
+  }
+
+  @override
+  String vanishSysOnSelf(String timer) {
+    return '你开启了消失模式。新消息在所有人看过后 $timer 消失，最迟 24 小时内消失。截屏会被阻止。';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return '$name changed vanish mode. New messages disappear $timer after everyone has seen them.';
+    return '$name更改了消失模式。新消息在所有人看过后 $timer 消失。';
+  }
+
+  @override
+  String vanishSysChangeSelf(String timer) {
+    return '你更改了消失模式。新消息在所有人看过后 $timer 消失。';
   }
 
   @override
   String vanishSysOff(String name) {
-    return '$name turned off vanish mode. Messages sent while it was on still disappear on time.';
+    return '$name关闭了消失模式。开启期间发送的消息仍会按时消失。';
   }
 
   @override
-  String get vanishSysChangeAction => 'Change';
+  String get vanishSysOffSelf => '你关闭了消失模式。开启期间发送的消息仍会按时消失。';
 
   @override
-  String get vanishTimerPickerTitle => 'Vanish after seen';
+  String get vanishSysChangeAction => '更改';
+
+  @override
+  String get vanishTimerPickerTitle => '已读后消失';
 
   @override
   String vanishCardDm(String name, String timer) {
-    return 'You don\'t share Seen, so $name\'s messages to you last 24 hours. Yours still vanish $timer after $name sees them. Share your reads here so theirs vanish too?';
+    return '你没有分享已读，所以$name发给你的消息会保留 24 小时。你的消息仍会在$name看过后 $timer 消失。要在这里分享你的已读，让对方的消息也消失吗？';
   }
 
   @override
   String vanishCardGroup(String timer) {
-    return 'You don\'t share Seen, so messages sent to you here last 24 hours. Share your reads here so they vanish $timer after everyone has seen them?';
+    return '你没有分享已读，所以这里发给你的消息会保留 24 小时。要在这里分享你的已读，让消息在所有人看过后 $timer 消失吗？';
   }
 
   @override
-  String get vanishSettingsNote =>
-      'You can change this anytime in Settings › Privacy.';
+  String get vanishSettingsNote => '你可以随时在“设置 › 隐私”中更改。';
 
   @override
-  String get vanishCardShare => 'Share my reads here';
+  String get vanishCardShare => '在这里分享我的已读';
 
   @override
-  String get vanishCardKeep => 'Don\'t share here';
+  String get vanishCardKeep => '不在这里分享';
 
   @override
-  String get vanishCardDismissSemantics => 'Don\'t share here';
+  String get vanishCardDismissSemantics => '不在这里分享';
 
   @override
   String vanishNoteShared(String timer) {
-    return 'You share your reads here, so messages vanish $timer after everyone has seen them.';
+    return '你在这里分享已读，所以消息会在所有人看过后 $timer 消失。';
   }
 
   @override
-  String get vanishNoteKept =>
-      'You don\'t share your reads here, so messages sent to you last 24 hours.';
+  String get vanishNoteKept => '你在这里没有分享已读，所以发给你的消息会保留 24 小时。';
 
   @override
-  String get vanishedParent => 'Vanished';
+  String get vanishedParent => '已消失';
 
   @override
   String appOnlyVanishBody(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'web':
-          'Your browser can\'t block screenshots, so vanishing messages stay sealed here and never count as read. Open this chat in MonkeyHub on your phone, or on a Mac or Windows computer.',
+          '浏览器无法阻止截屏，所以会消失的消息在这里保持密封，也不会算作已读。请在手机上的 MonkeyHub 中打开此聊天，或在 Mac 或 Windows 电脑上打开。',
       'other':
-          'Linux can\'t block screenshots, so vanishing messages stay sealed here and never count as read. Open this chat in MonkeyHub on your phone, or on a Mac or Windows computer.',
+          'Linux 无法阻止截屏，所以会消失的消息在这里保持密封，也不会算作已读。请在手机上的 MonkeyHub 中打开此聊天，或在 Mac 或 Windows 电脑上打开。',
     });
     return '$_temp0';
   }
 
   @override
-  String get appOnlyVanishUnread => 'Sealed messages never count as read';
+  String get appOnlyVanishUnread => '密封的消息不会算作已读';
 }

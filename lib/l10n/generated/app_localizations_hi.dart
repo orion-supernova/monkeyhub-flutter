@@ -15012,221 +15012,222 @@ class AppLocalizationsHi extends AppLocalizations {
   String get fightStageDeck => 'चाँदनी में जहाज़ का डेक';
 
   @override
-  String get newRoomPreviewUntitled => 'Untitled room';
+  String get newRoomPreviewUntitled => 'बिना नाम का रूम';
 
   @override
-  String get newRoomPreviewSecretBadge => 'SECRET';
+  String get newRoomPreviewSecretBadge => 'सीक्रेट';
 
   @override
   String get newRoomPreviewAvatarSemantic =>
-      'Room emoji. Tap to choose another';
+      'रूम का इमोजी। दूसरा चुनने के लिए टैप करो';
 
   @override
-  String get newRoomSectionPeople => 'People';
+  String get newRoomSectionPeople => 'लोग';
 
   @override
-  String get newRoomPeopleOnlyYou => 'only you so far';
+  String get newRoomPeopleOnlyYou => 'अभी सिर्फ़ तुम';
 
   @override
   String newRoomPeopleYouPlus(int count) {
-    return 'you + $count';
+    return 'तुम + $count';
   }
 
   @override
-  String get newRoomPeopleSearchHint => 'Search friends';
+  String get newRoomPeopleSearchHint => 'दोस्त खोजो';
 
   @override
-  String get newRoomPeopleNoFriends => 'Friends you add can be invited here.';
+  String get newRoomPeopleNoFriends =>
+      'जिन दोस्तों को तुम जोड़ोगे, उन्हें यहाँ से बुला सकोगे।';
 
   @override
-  String get newRoomPeopleNoMatch => 'No friend matches';
+  String get newRoomPeopleNoMatch => 'कोई दोस्त नहीं मिला';
 
   @override
-  String get newRoomSectionRoom => 'Room';
+  String get newRoomSectionRoom => 'रूम';
 
   @override
-  String get newRoomKindRegular => 'Regular';
+  String get newRoomKindRegular => 'आम';
 
   @override
-  String get newRoomKindSecret => 'Secret';
+  String get newRoomKindSecret => 'सीक्रेट';
 
   @override
-  String get newRoomKindRegularDesc => 'Messages stay.';
+  String get newRoomKindRegularDesc => 'मैसेज बने रहते हैं।';
 
   @override
   String get newRoomKindSecretDesc =>
-      'Messages always disappear and screenshots are blocked. Once secret, always secret.';
+      'मैसेज हमेशा गायब हो जाते हैं और स्क्रीनशॉट ब्लॉक रहते हैं। एक बार सीक्रेट, तो हमेशा सीक्रेट।';
 
   @override
-  String get newRoomSectionFind => 'Who can find it';
+  String get newRoomSectionFind => 'इसे कौन ढूँढ सकता है';
 
   @override
-  String get newRoomFindInviteOnly => 'Invite only';
+  String get newRoomFindInviteOnly => 'सिर्फ़ इनवाइट से';
 
   @override
-  String get newRoomFindFindable => 'Findable';
+  String get newRoomFindFindable => 'खोजा जा सकता है';
 
   @override
-  String get newRoomPasswordSwitch => 'Lock with a password';
+  String get newRoomPasswordSwitch => 'पासवर्ड से लॉक करो';
 
   @override
-  String get newRoomAddDescription => '+ Add a description';
+  String get newRoomAddDescription => '+ विवरण जोड़ो';
 
   @override
-  String get newRoomSubRegular => 'regular';
+  String get newRoomSubRegular => 'आम';
 
   @override
   String newRoomSubSecretSent(String time) {
-    return 'secret · $time after sent';
+    return 'सीक्रेट · भेजने के $time बाद';
   }
 
   @override
   String newRoomSubSecretSeen(String time) {
-    return 'secret · $time after seen';
+    return 'सीक्रेट · देखे जाने के $time बाद';
   }
 
   @override
-  String get newRoomSubLocked => 'locked';
+  String get newRoomSubLocked => 'लॉक्ड';
 
   @override
-  String get newRoomSubJustYou => 'just you';
+  String get newRoomSubJustYou => 'सिर्फ़ तुम';
 
   @override
   String get privacyVanishShareReadsTitle =>
-      'Share my reads in vanishing chats';
+      'वैनिश चैट में मेरा पढ़ना शेयर करो';
 
   @override
   String get privacyVanishShareReadsFootnote =>
-      'A vanishing message disappears 10 seconds after it\'s read, so the sender can tell you read it.';
+      'वैनिश मैसेज पढ़े जाने के 10 सेकंड बाद गायब हो जाता है, इसलिए भेजने वाला जान सकता है कि तुमने उसे पढ़ लिया।';
 
   @override
-  String get privacyVanishShareReadsAnytime => 'You can change this anytime.';
+  String get privacyVanishShareReadsAnytime => 'इसे तुम कभी भी बदल सकते हो।';
 
   @override
-  String get messageLifeAfterSeen => 'After seen';
+  String get messageLifeAfterSeen => 'देखे जाने के बाद';
 
   @override
-  String get messageLifeAfterSent => 'After sent';
+  String get messageLifeAfterSent => 'भेजने के बाद';
 
   @override
   String get messageLifeCaptionSeen =>
-      'Gone within 24 hours at most, seen or not.';
+      'देखा जाए या नहीं, ज़्यादा से ज़्यादा 24 घंटे में गायब।';
 
   @override
-  String get messageLifeCaptionSent => 'Counts from the moment it\'s sent.';
+  String get messageLifeCaptionSent => 'भेजने के पल से गिनती शुरू होती है।';
 
   @override
-  String get messageLifeRulerLabel => 'Message timer';
+  String get messageLifeRulerLabel => 'मैसेज टाइमर';
 
   @override
-  String get forkHintSwipeUp => 'Swipe up';
+  String get forkHintSwipeUp => 'ऊपर स्वाइप करो';
 
   @override
-  String get forkSubChoose => 'to talk or vanish';
+  String get forkSubChoose => 'बात करने या वैनिश करने के लिए';
 
   @override
-  String get forkSubTalk => 'to talk';
+  String get forkSubTalk => 'बात करने के लिए';
 
   @override
-  String get forkSubJoin => 'to join';
+  String get forkSubJoin => 'जुड़ने के लिए';
 
   @override
-  String get forkSubVanishOn => 'to turn on vanish';
+  String get forkSubVanishOn => 'वैनिश चालू करने के लिए';
 
   @override
-  String get forkSubVanishOff => 'to turn off vanish';
+  String get forkSubVanishOff => 'वैनिश बंद करने के लिए';
 
   @override
-  String get forkSlideToChoose => 'Slide to choose';
+  String get forkSlideToChoose => 'चुनने के लिए स्लाइड करो';
 
   @override
-  String get forkLetGoCancel => 'let go here to cancel';
+  String get forkLetGoCancel => 'रद्द करने के लिए यहाँ छोड़ो';
 
   @override
-  String get forkReleaseTalk => 'Release to talk';
+  String get forkReleaseTalk => 'बात करने के लिए छोड़ो';
 
   @override
-  String get forkReleaseJoin => 'Release to join';
+  String get forkReleaseJoin => 'जुड़ने के लिए छोड़ो';
 
   @override
-  String get forkReleaseVanishOn => 'Release to turn on vanish';
+  String get forkReleaseVanishOn => 'वैनिश चालू करने के लिए छोड़ो';
 
   @override
-  String get forkReleaseVanishOff => 'Release to turn off vanish';
+  String get forkReleaseVanishOff => 'वैनिश बंद करने के लिए छोड़ो';
 
   @override
-  String get forkDragDownCancel => 'drag down to cancel';
+  String get forkDragDownCancel => 'रद्द करने के लिए नीचे खींचो';
 
   @override
-  String get forkSlideBackCancel => 'slide back to cancel';
+  String get forkSlideBackCancel => 'रद्द करने के लिए वापस स्लाइड करो';
 
   @override
-  String get forkChipVanish => 'Vanish';
+  String get forkChipVanish => 'वैनिश';
 
   @override
-  String get forkChipTurnOff => 'Turn off';
+  String get forkChipTurnOff => 'बंद करो';
 
   @override
-  String get forkChipTalk => 'Talk';
+  String get forkChipTalk => 'बात करो';
 
   @override
-  String get forkChipJoin => 'Join';
+  String get forkChipJoin => 'जुड़ो';
 
   @override
-  String get forkChipVanishSub => 'Messages disappear';
+  String get forkChipVanishSub => 'मैसेज गायब होते हैं';
 
   @override
-  String get forkChipTurnOffSub => 'Messages stay';
+  String get forkChipTurnOffSub => 'मैसेज बने रहते हैं';
 
   @override
-  String get forkChipTalkSub => 'Nobody gets rung';
+  String get forkChipTalkSub => 'किसी को रिंग नहीं जाती';
 
   @override
   String forkChipJoinSub(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count people here',
-      one: '1 person here',
+      other: '$count लोग यहाँ',
+      one: '1 व्यक्ति यहाँ',
     );
     return '$_temp0';
   }
 
   @override
-  String get forkFailGeneric => 'Couldn\'t do that. Try again.';
+  String get forkFailGeneric => 'नहीं हो पाया। फिर कोशिश करो।';
 
   @override
-  String get forkFailCallFull => 'That huddle is full.';
+  String get forkFailCallFull => 'यह वॉइस चैट भर चुकी है।';
 
   @override
-  String get forkActionStartHuddle => 'Start huddle';
+  String get forkActionStartHuddle => 'वॉइस चैट शुरू करो';
 
   @override
-  String get forkActionJoinHuddle => 'Join huddle';
+  String get forkActionJoinHuddle => 'वॉइस चैट से जुड़ो';
 
   @override
-  String get forkActionVanishOn => 'Turn on vanish mode';
+  String get forkActionVanishOn => 'वैनिश मोड चालू करो';
 
   @override
-  String get forkActionVanishOff => 'Turn off vanish mode';
+  String get forkActionVanishOff => 'वैनिश मोड बंद करो';
 
   @override
-  String get forkToastVanishAlreadyOn => 'Vanish mode is already on';
+  String get forkToastVanishAlreadyOn => 'वैनिश मोड पहले से चालू है';
 
   @override
-  String get forkToastVanishAlreadyOff => 'Vanish mode is already off';
+  String get forkToastVanishAlreadyOff => 'वैनिश मोड पहले से बंद है';
 
   @override
   String newRoomInviteFailed(String names) {
-    return 'Couldn\'t invite $names. You can invite them from the room.';
+    return '$names को इनवाइट नहीं कर पाए। तुम उन्हें रूम से इनवाइट कर सकते हो।';
   }
 
   @override
-  String get huddleBarNobodyElse => 'Nobody else here yet';
+  String get huddleBarNobodyElse => 'अभी यहाँ कोई और नहीं है';
 
   @override
   String huddleBarNamesTwo(String first, String second) {
-    return '$first and $second';
+    return '$first और $second';
   }
 
   @override
@@ -15234,35 +15235,35 @@ class AppLocalizationsHi extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count others',
-      one: '1 other',
+      other: '$count और',
+      one: '1 और',
     );
-    return '$name and $_temp0';
+    return '$name और $_temp0';
   }
 
   @override
   String huddleBarSemantics(String names) {
-    return 'Huddle. $names';
+    return 'वॉइस चैट। $names';
   }
 
   @override
-  String get huddleBarOpenSemantics => 'Open huddle';
+  String get huddleBarOpenSemantics => 'वॉइस चैट खोलो';
 
   @override
-  String get huddleChipSemantics => 'Huddle is live';
+  String get huddleChipSemantics => 'वॉइस चैट चालू है';
 
   @override
-  String get huddleRingSomeone => 'Ring someone';
+  String get huddleRingSomeone => 'किसी को रिंग करो';
 
   @override
-  String get huddleRingFailed => 'Couldn\'t ring them. Try again.';
+  String get huddleRingFailed => 'रिंग नहीं हो पाई। फिर कोशिश करो।';
 
   @override
-  String get huddleAloneLine => 'You wanted to talk · Nobody joined';
+  String get huddleAloneLine => 'तुम बात करना चाहते थे · कोई नहीं जुड़ा';
 
   @override
   String huddleHistoryLine(String duration, String people) {
-    return 'Huddle · $duration · $people';
+    return 'वॉइस चैट · $duration · $people';
   }
 
   @override
@@ -15270,50 +15271,49 @@ class AppLocalizationsHi extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count people',
-      one: '$count person',
+      other: '$count लोग',
+      one: '$count व्यक्ति',
     );
     return '$_temp0';
   }
 
   @override
-  String get huddleDurationUnderMinute => 'under a minute';
+  String get huddleDurationUnderMinute => 'एक मिनट से कम';
 
   @override
   String huddleDurationMinutes(int count) {
-    return '$count min';
+    return '$count मिनट';
   }
 
   @override
   String huddleDurationHours(int hours, String minutes) {
-    return '$hours h $minutes min';
+    return '$hours घंटे $minutes मिनट';
   }
 
   @override
-  String get liveCallChipHuddle => 'Huddle';
+  String get liveCallChipHuddle => 'वॉइस चैट';
 
   @override
-  String get vanishHeaderStatus => 'vanish on';
+  String get vanishHeaderStatus => 'वैनिश चालू';
 
   @override
-  String get vanishComposerHint => 'Vanishing message · keep it short';
+  String get vanishComposerHint => 'वैनिश मैसेज · छोटा रखो';
 
   @override
-  String get vanishLongHint =>
-      'Long messages may vanish before they\'re finished';
+  String get vanishLongHint => 'लंबे मैसेज पूरे होने से पहले गायब हो सकते हैं';
 
   @override
-  String get vanishClockLabel => '24h';
+  String get vanishClockLabel => '24 घं';
 
   @override
   String vanishLeftHours(int hours) {
     String _temp0 = intl.Intl.pluralLogic(
       hours,
       locale: localeName,
-      other: '$hours hours',
-      one: '1 hour',
+      other: '$hours घंटे',
+      one: '1 घंटे',
     );
-    return 'Vanishes in $_temp0';
+    return '$_temp0 में गायब होगा';
   }
 
   @override
@@ -15321,102 +15321,113 @@ class AppLocalizationsHi extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       minutes,
       locale: localeName,
-      other: '$minutes minutes',
-      one: '1 minute',
+      other: '$minutes मिनट',
+      one: '1 मिनट',
     );
-    return 'Vanishes in $_temp0';
+    return '$_temp0 में गायब होगा';
   }
 
   @override
-  String get vanishRingSemantics => 'Vanishing soon';
+  String get vanishRingSemantics => 'जल्द गायब होगा';
 
   @override
-  String get vanishSealedSemantics => 'Vanishing message. Opens in the app';
+  String get vanishSealedSemantics => 'वैनिश मैसेज। ऐप में खुलता है';
 
   @override
-  String get vanishSysYou => 'You';
+  String get vanishAfterSeen10 => '10 सेकंड';
 
   @override
-  String get vanishAfterSeen10 => '10 seconds';
+  String get vanishAfterSeen60 => '1 मिनट';
 
   @override
-  String get vanishAfterSeen60 => '1 minute';
-
-  @override
-  String get vanishAfterSeen3600 => '1 hour';
+  String get vanishAfterSeen3600 => '1 घंटा';
 
   @override
   String vanishAfterSeenOther(int count) {
-    return '$count seconds';
+    return '$count सेकंड';
   }
 
   @override
   String vanishSysOn(String name, String timer) {
-    return '$name turned on vanish mode. New messages disappear $timer after everyone has seen them, or after 24 hours at most. Screenshots are blocked.';
+    return '$name ने वैनिश मोड चालू किया। नए मैसेज सबके देखने के $timer बाद, या ज़्यादा से ज़्यादा 24 घंटे में गायब हो जाते हैं। स्क्रीनशॉट ब्लॉक रहते हैं।';
+  }
+
+  @override
+  String vanishSysOnSelf(String timer) {
+    return 'आपने वैनिश मोड चालू किया। नए मैसेज सबके देखने के $timer बाद, या ज़्यादा से ज़्यादा 24 घंटे में गायब हो जाते हैं। स्क्रीनशॉट ब्लॉक रहते हैं।';
   }
 
   @override
   String vanishSysChange(String name, String timer) {
-    return '$name changed vanish mode. New messages disappear $timer after everyone has seen them.';
+    return '$name ने वैनिश मोड बदला। नए मैसेज सबके देखने के $timer बाद गायब हो जाते हैं।';
+  }
+
+  @override
+  String vanishSysChangeSelf(String timer) {
+    return 'आपने वैनिश मोड बदला। नए मैसेज सबके देखने के $timer बाद गायब हो जाते हैं।';
   }
 
   @override
   String vanishSysOff(String name) {
-    return '$name turned off vanish mode. Messages sent while it was on still disappear on time.';
+    return '$name ने वैनिश मोड बंद किया। चालू रहने के दौरान भेजे गए मैसेज फिर भी समय पर गायब होंगे।';
   }
 
   @override
-  String get vanishSysChangeAction => 'Change';
+  String get vanishSysOffSelf =>
+      'आपने वैनिश मोड बंद किया। चालू रहने के दौरान भेजे गए मैसेज फिर भी समय पर गायब होंगे।';
 
   @override
-  String get vanishTimerPickerTitle => 'Vanish after seen';
+  String get vanishSysChangeAction => 'बदलो';
+
+  @override
+  String get vanishTimerPickerTitle => 'देखे जाने के बाद वैनिश';
 
   @override
   String vanishCardDm(String name, String timer) {
-    return 'You don\'t share Seen, so $name\'s messages to you last 24 hours. Yours still vanish $timer after $name sees them. Share your reads here so theirs vanish too?';
+    return 'तुम सीन शेयर नहीं करते, इसलिए $name के तुम्हें भेजे मैसेज 24 घंटे रहते हैं। तुम्हारे मैसेज $name के देखने के $timer बाद अब भी गायब होते हैं। क्या यहाँ अपना पढ़ना शेयर करोगे ताकि उनके मैसेज भी गायब हों?';
   }
 
   @override
   String vanishCardGroup(String timer) {
-    return 'You don\'t share Seen, so messages sent to you here last 24 hours. Share your reads here so they vanish $timer after everyone has seen them?';
+    return 'तुम सीन शेयर नहीं करते, इसलिए यहाँ तुम्हें भेजे मैसेज 24 घंटे रहते हैं। क्या यहाँ अपना पढ़ना शेयर करोगे ताकि वे सबके देखने के $timer बाद गायब हो जाएँ?';
   }
 
   @override
   String get vanishSettingsNote =>
-      'You can change this anytime in Settings › Privacy.';
+      'इसे तुम कभी भी सेटिंग्स › गोपनीयता में बदल सकते हो।';
 
   @override
-  String get vanishCardShare => 'Share my reads here';
+  String get vanishCardShare => 'यहाँ मेरा पढ़ना शेयर करो';
 
   @override
-  String get vanishCardKeep => 'Don\'t share here';
+  String get vanishCardKeep => 'यहाँ शेयर मत करो';
 
   @override
-  String get vanishCardDismissSemantics => 'Don\'t share here';
+  String get vanishCardDismissSemantics => 'यहाँ शेयर मत करो';
 
   @override
   String vanishNoteShared(String timer) {
-    return 'You share your reads here, so messages vanish $timer after everyone has seen them.';
+    return 'तुम यहाँ अपना पढ़ना शेयर करते हो, इसलिए मैसेज सबके देखने के $timer बाद गायब हो जाते हैं।';
   }
 
   @override
   String get vanishNoteKept =>
-      'You don\'t share your reads here, so messages sent to you last 24 hours.';
+      'तुम यहाँ अपना पढ़ना शेयर नहीं करते, इसलिए तुम्हें भेजे मैसेज 24 घंटे रहते हैं।';
 
   @override
-  String get vanishedParent => 'Vanished';
+  String get vanishedParent => 'गायब हो गया';
 
   @override
   String appOnlyVanishBody(String platform) {
     String _temp0 = intl.Intl.selectLogic(platform, {
       'web':
-          'Your browser can\'t block screenshots, so vanishing messages stay sealed here and never count as read. Open this chat in MonkeyHub on your phone, or on a Mac or Windows computer.',
+          'आपका ब्राउज़र स्क्रीनशॉट नहीं रोक सकता, इसलिए वैनिश मैसेज यहाँ सील रहते हैं और कभी पढ़े हुए नहीं गिने जाते। इस चैट को अपने फ़ोन पर MonkeyHub में, या किसी Mac या Windows कंप्यूटर पर खोलें।',
       'other':
-          'Linux can\'t block screenshots, so vanishing messages stay sealed here and never count as read. Open this chat in MonkeyHub on your phone, or on a Mac or Windows computer.',
+          'Linux स्क्रीनशॉट नहीं रोक सकता, इसलिए वैनिश मैसेज यहाँ सील रहते हैं और कभी पढ़े हुए नहीं गिने जाते। इस चैट को अपने फ़ोन पर MonkeyHub में, या किसी Mac या Windows कंप्यूटर पर खोलें।',
     });
     return '$_temp0';
   }
 
   @override
-  String get appOnlyVanishUnread => 'Sealed messages never count as read';
+  String get appOnlyVanishUnread => 'सील किए मैसेज कभी पढ़े हुए नहीं गिने जाते';
 }

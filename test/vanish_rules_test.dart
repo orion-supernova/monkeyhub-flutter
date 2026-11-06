@@ -290,17 +290,29 @@ void main() {
       expect(VanishLine.parse('joined'), isNull);
     });
 
+    test('Turkish conjugates for you, not a name in a slot', () async {
+      final tr = await AppLocalizations.delegate.load(const Locale('tr'));
+      expect(vanishLineText(tr, VanishLine.parse('vanish:on:10')!, name: null),
+          startsWith('Kaybolma modunu açtın.'));
+      expect(vanishLineText(tr, VanishLine.parse('vanish:off')!, name: 'Zeynep'),
+          startsWith('Zeynep kaybolma modunu kapattı.'));
+    });
+
     test('text', () async {
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-      String text(String c, [String who = 'Murat']) =>
+      String text(String c, [String? who = 'Murat']) =>
           vanishLineText(l10n, VanishLine.parse(c)!, name: who);
       expect(
         text('vanish:on:10'),
         'Murat turned on vanish mode. New messages disappear 10 seconds after '
         'everyone has seen them, or after 24 hours at most. Screenshots are blocked.',
       );
-      expect(text('vanish:on:60', 'You'), contains('You turned on vanish mode'));
+      expect(text('vanish:on:60', null), contains('You turned on vanish mode'));
+      expect(text('vanish:off', null),
+          'You turned off vanish mode. Messages sent while it was on still disappear on time.');
       expect(text('vanish:on:60'), contains('1 minute after everyone'));
+      expect(text('vanish:change:3600', null),
+          'You changed vanish mode. New messages disappear 1 hour after everyone has seen them.');
       expect(text('vanish:change:3600'),
           'Murat changed vanish mode. New messages disappear 1 hour after everyone has seen them.');
       expect(text('vanish:off'), startsWith('Murat turned off vanish mode.'));
