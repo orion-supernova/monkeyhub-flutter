@@ -279,7 +279,7 @@ describe("moderator actions", () => {
     const { ada, report } = await filed(t);
     await expect(
       t.mutation(api.moderation.act, {
-        ...as(ada),
+        ...tok(ada),
         reportId: report._id,
         action: "dismiss",
       } as any),
@@ -290,7 +290,7 @@ describe("moderator actions", () => {
     const t = convexTest(schema);
     const { staff, bad, report } = await filed(t);
     await t.mutation(api.moderation.act, {
-      ...as(staff),
+      ...tok(staff),
       reportId: report._id,
       action: "removeMessage",
     } as any);
@@ -308,7 +308,7 @@ describe("moderator actions", () => {
     const t = convexTest(schema);
     const { staff, bob, roomId, report } = await filed(t);
     await t.mutation(api.moderation.act, {
-      ...as(staff),
+      ...tok(staff),
       reportId: report._id,
       action: "ban",
     } as any);
@@ -345,7 +345,7 @@ describe("moderator actions", () => {
     expect((await card())!.moderationCard!.userBanned).toBe(true);
 
     await t.mutation(api.moderation.act, {
-      ...as(staff),
+      ...tok(staff),
       reportId: report._id,
       action: "unban",
     } as any);
@@ -373,7 +373,7 @@ describe("moderator actions", () => {
     const report = await t.run(async (ctx) => (await ctx.db.query("reports").collect())[0]);
     await expect(
       t.mutation(api.moderation.act, {
-        ...as(staff),
+        ...tok(staff),
         reportId: report._id,
         action: "ban",
       } as any),
@@ -480,16 +480,16 @@ describe("terms acceptance", () => {
   test("a sign-up with the box ticked is stamped", async () => {
     const t = convexTest(schema);
     const ada = await signUp(t, "ada", { termsVersion: TERMS_VERSION });
-    const status = await t.query(api.terms.status, as(ada) as any);
+    const status = await t.query(api.terms.status, tok(ada) as any);
     expect(status.accepted).toBe(true);
   });
 
   test("an old client is let in unaccepted, and accepts later", async () => {
     const t = convexTest(schema);
     const ada = await signUp(t, "ada");
-    expect((await t.query(api.terms.status, as(ada) as any)).accepted).toBe(false);
-    await t.mutation(api.terms.accept, { ...as(ada), version: TERMS_VERSION } as any);
-    expect((await t.query(api.terms.status, as(ada) as any)).accepted).toBe(true);
+    expect((await t.query(api.terms.status, tok(ada) as any)).accepted).toBe(false);
+    await t.mutation(api.terms.accept, { ...tok(ada), version: TERMS_VERSION } as any);
+    expect((await t.query(api.terms.status, tok(ada) as any)).accepted).toBe(true);
   });
 
   test("a stale version is refused", async () => {

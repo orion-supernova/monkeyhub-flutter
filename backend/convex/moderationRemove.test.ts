@@ -62,7 +62,7 @@ async function scene() {
     return reports.find((r: any) => r.targetType === targetType && r.targetId === targetId)! as any;
   };
   const act = (who: any, reportId: any, action = "removeContent") =>
-    t.mutation(api.moderation.act, { ...as(who), reportId, action } as any);
+    t.mutation(api.moderation.act, { sessionToken: who.token, reportId, action } as any);
   return { t, staff, author, reporter, media, momentId, rootId, replyId, file, act };
 }
 

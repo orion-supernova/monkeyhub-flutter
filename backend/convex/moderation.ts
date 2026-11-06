@@ -201,8 +201,10 @@ async function syncCardContentState(
  * cannot be forgotten by whichever action is added fifth.
  */
 export const act = mutation({
+  // Identity from the session (the auth wrapper injects `userId`); the app
+  // sends only reportId + action, and declaring `userId` here made every
+  // staff action fail validation.
   args: {
-    userId: v.id("users"),
     reportId: v.id("reports"),
     action: v.union(
       v.literal("removeMessage"),

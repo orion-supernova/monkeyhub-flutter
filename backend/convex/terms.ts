@@ -51,7 +51,11 @@ export function termsStamp(version: number | undefined): {
 
 /** Whether the caller has accepted the current terms. One `get` by id. */
 export const status = query({
-  args: { userId: v.id("users") },
+  // No `userId` arg: the caller's identity comes from the session (the auth
+  // wrapper injects it). Declaring it made the app's `{}` call fail
+  // validation, and the app reads a failure as "unknown", so the Terms check
+  // never ran (2026-10-15 to 2026-11-07).
+  args: {},
   returns: v.object({
     accepted: v.boolean(),
     currentVersion: v.number(),
@@ -67,7 +71,8 @@ export const status = query({
 
 /** Records the caller's acceptance of [version]. Idempotent. */
 export const accept = mutation({
-  args: { userId: v.id("users"), version: v.number() },
+  // Identity from the session, as for `status`: the app sends only `version`.
+  args: { version: v.number() },
   returns: v.null(),
   handler: async (ctx, { userId, version }) => {
     if (!(version >= TERMS_VERSION)) throw new Error(ERR_TERMS_NOT_ACCEPTED);
