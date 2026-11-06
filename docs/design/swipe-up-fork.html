@@ -1,0 +1,1208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Swipe-Up Fork</title>
+<style>
+:root{
+  --bg:#0b0c0f; --panel:#13151a; --panel2:#1a1d24; --line:#262a33; --ink:#eceef2; --ink2:#a4aab6; --ink3:#6b7280;
+  --talk:#34d27b; --talk-ink:#05200f; --vanish:#8b7cff; --warn:#ffb547; --bad:#ff6b6b;
+  --chat-bg:#0e1013; --bubble-in:#22252c; --bubble-out:#1f5c45;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--vanish)}
+.wrap{max-width:1120px;margin:0 auto;padding:48px 24px 120px}
+h1{font-size:40px;line-height:1.1;letter-spacing:-.02em;margin:0 0 12px}
+h2{font-size:26px;letter-spacing:-.01em;margin:72px 0 14px;padding-top:8px}
+h3{font-size:17px;margin:28px 0 8px;color:var(--ink)}
+p,li{color:var(--ink2)} strong,b{color:var(--ink)}
+.lede{font-size:18px;color:var(--ink2);max-width:780px}
+.kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0 0}
+.toc a{font-size:13px;color:var(--ink2);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+.toc a:hover{color:var(--ink);border-color:#3a404c}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px 22px}
+.card h3:first-child{margin-top:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}}
+.verdict{border-left:3px solid var(--talk);background:linear-gradient(90deg,rgba(52,210,123,.08),transparent 60%);padding:16px 22px;border-radius:0 14px 14px 0;margin:18px 0}
+.verdict p{margin:.3em 0;color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--ink3);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+td{color:var(--ink2)}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--panel2);padding:1px 6px;border-radius:6px;color:#cfd5df}
+.tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;padding:2px 8px;border-radius:999px;margin-right:6px;white-space:nowrap}
+.tag.t{background:rgba(52,210,123,.15);color:var(--talk)} .tag.v{background:rgba(139,124,255,.16);color:var(--vanish)} .tag.w{background:rgba(255,181,71,.14);color:var(--warn)} .tag.n{background:#232730;color:var(--ink2)} .tag.x{background:rgba(255,107,107,.13);color:var(--bad)}
+.q{border:1px dashed #3a404c;border-radius:14px;padding:14px 18px;margin:10px 0}
+ol li,ul li{margin:4px 0}
+.done td:first-child{white-space:nowrap}
+
+/* ---------- prototype ---------- */
+.proto{display:grid;grid-template-columns:auto 1fr;gap:36px;align-items:start;margin-top:20px}
+@media(max-width:900px){.proto{grid-template-columns:1fr;justify-items:center}}
+.phone{width:360px;height:740px;border-radius:52px;background:#000;padding:12px;box-shadow:0 0 0 1px #2a2e36,0 40px 80px rgba(0,0,0,.6);position:relative;flex-shrink:0}
+.screen{position:absolute;inset:12px;border-radius:42px;overflow:hidden;background:var(--chat-bg);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.screen:active{cursor:grabbing}
+.vtint{position:absolute;inset:0;background:radial-gradient(circle at var(--rx,50%) var(--ry,80%),#1b1640 0%,#0f0c24 60%,#0a0818 100%);clip-path:circle(0% at var(--rx,50%) var(--ry,80%));pointer-events:none}
+.screen.vanish .vtint{clip-path:circle(150% at var(--rx,50%) var(--ry,80%));transition:clip-path .9s cubic-bezier(.2,.8,.2,1)}
+.screen.vanish-off .vtint{transition:clip-path .6s cubic-bezier(.4,0,.2,1)}
+.status{position:absolute;top:0;left:0;right:0;height:44px;display:flex;justify-content:space-between;padding:14px 28px 0;font-size:14px;font-weight:600;z-index:5}
+.island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:30px;background:#000;border-radius:20px;z-index:6}
+.hdr{position:absolute;top:44px;left:0;right:0;height:58px;display:flex;align-items:center;gap:10px;padding:0 14px;z-index:5;background:linear-gradient(#0e1013 60%,rgba(14,16,19,0))}
+.screen.vanish .hdr{background:linear-gradient(#0f0c24 60%,rgba(15,12,36,0))}
+.back{width:34px;height:34px;border-radius:50%;background:#1d2027;display:grid;place-items:center;color:#cfd5df;font-size:18px}
+.av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#f6a5c0,#8a6cf0);flex-shrink:0}
+.av.g{background:linear-gradient(135deg,#ffcf6b,#ff7a59)}
+.hname{font-weight:600;font-size:15px;line-height:1.1}
+.hsub{font-size:12px;color:var(--ink3)}
+.hsub .vdot{color:var(--vanish);display:none}
+.screen.vanish .hsub .vdot{display:inline}
+.callbtn{margin-left:auto;width:34px;height:34px;border-radius:50%;background:#1d2027;display:grid;place-items:center}
+.msgs{position:absolute;left:0;right:0;top:102px;bottom:76px;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;padding:0 12px 10px;transition:transform .45s cubic-bezier(.2,.9,.25,1),bottom .3s cubic-bezier(.2,.9,.25,1)}
+.b{max-width:76%;padding:8px 12px;border-radius:18px;font-size:14.5px;line-height:1.35;background:var(--bubble-in);align-self:flex-start;position:relative;transition:opacity .6s,filter .6s,transform .6s}
+.b.o{background:var(--bubble-out);align-self:flex-end}
+.b small{display:block;font-size:10.5px;color:rgba(255,255,255,.5);text-align:right;margin-top:1px}
+.b .nm{font-size:12px;font-weight:600;color:#7fb6ff;display:block}
+.b.vm{background:#4a3fb3}
+.b.gone{opacity:0;filter:blur(6px);transform:scale(.9)}
+.b .cd{position:absolute;left:-22px;top:50%;margin-top:-8px;width:16px;height:16px}
+.sys{align-self:center;font-size:11.5px;color:var(--ink2);text-align:center;max-width:86%;padding:6px 12px;border-radius:12px;background:rgba(255,255,255,.05);line-height:1.4}
+.sys a{color:var(--vanish);font-weight:600;text-decoration:none}
+.huddleMsg{align-self:flex-end;display:flex;align-items:center;gap:10px;background:#183d2e;border-radius:18px;padding:10px 14px}
+.huddleMsg .w{width:34px;height:34px;border-radius:50%;background:#0f2b1f;display:grid;place-items:center}
+.huddleMsg b{display:block;font-size:14px;color:#fff}.huddleMsg span{font-size:12px;color:#9fd6b9}
+.scrim{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:7}
+
+/* the dock: one measured box, lanes in fixed order */
+.dock{position:absolute;left:0;right:0;bottom:0;z-index:8;display:flex;flex-direction:column;gap:6px;padding:0 0 22px;transition:opacity .2s,transform .3s cubic-bezier(.2,.9,.25,1)}
+.lane{padding:0 12px}
+.shelf{display:flex;gap:8px;align-items:center;justify-content:center}
+.shelf:empty,.ctxlane:empty{display:none}
+.spill{height:34px;border-radius:17px;background:#1d2027;border:1px solid #2b2f38;display:flex;align-items:center;gap:6px;padding:0 12px;font-size:12.5px;color:#cfd5df;white-space:nowrap;cursor:pointer;animation:pop .35s cubic-bezier(.25,1.5,.45,1)}
+.spill.compact{width:44px;height:44px;border-radius:22px;padding:0;justify-content:center;font-size:12px;flex-shrink:0}
+.spill .n{font-weight:700;font-size:11px}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+.hbar{flex:1;height:44px;border-radius:22px;background:#1a2e24;border:1px solid #2a5a40;display:flex;align-items:center;gap:8px;padding:0 4px;animation:pop .45s cubic-bezier(.25,1.4,.4,1)}
+.hbar .m{width:36px;height:36px;border-radius:50%;background:#26473a;display:grid;place-items:center;font-size:14px}
+.hbar .mid{flex:1;text-align:center;font-size:11.5px;color:#9fd6b9;line-height:1.25}
+.hbar .mid b{display:block;color:#fff;font-size:12.5px}
+.hbar .x{width:36px;height:36px;border-radius:50%;background:#e5484d;display:grid;place-items:center;cursor:pointer;color:#fff;font-size:13px}
+.wave i{display:inline-block;width:3px;margin:0 1px;border-radius:2px;background:var(--talk);animation:wv 1s ease-in-out infinite;vertical-align:middle}
+.wave i:nth-child(2){animation-delay:.15s}.wave i:nth-child(3){animation-delay:.3s}.wave i:nth-child(4){animation-delay:.45s}
+@keyframes wv{0%,100%{height:4px}50%{height:12px}}
+.join{display:flex;align-items:center;gap:8px;background:#1d2027;border-radius:24px;padding:5px 5px 5px 7px;animation:pop .35s cubic-bezier(.25,1.5,.45,1)}
+.join .st{display:flex}.join .st span{width:26px;height:26px;border-radius:50%;border:2px solid #1d2027;margin-left:-8px}
+.join .st span:first-child{margin-left:0}
+.join .j{background:var(--talk);color:var(--talk-ink);font-weight:700;font-size:13px;border-radius:20px;padding:6px 14px}
+.ctx{display:flex;align-items:center;gap:10px;background:#181b21;border-radius:16px;padding:8px 10px 8px 12px;border-left:3px solid #7fb6ff;font-size:12.5px;animation:pop .3s ease-out}
+.ctx div{flex:1;min-width:0}.ctx b{display:block;color:#7fb6ff;font-size:12px}.ctx span{color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.ctx .cx{color:var(--ink3);cursor:pointer}
+.composer{display:flex;align-items:center;gap:8px;padding:0 12px}
+.composer .plus{width:34px;height:34px;display:grid;place-items:center;color:#cfd5df;font-size:24px}
+.composer .field{flex:1;min-height:38px;border-radius:19px;background:#1d2027;display:flex;align-items:center;padding:0 14px;color:var(--ink3);font-size:14px;cursor:text}
+.screen.vanish .composer .field{background:#211b4a;color:#a99dff}
+.composer .mic{width:38px;height:38px;border-radius:50%;background:var(--talk);display:grid;place-items:center}
+.floatL{position:absolute;left:0;right:0;height:0;z-index:8;pointer-events:none;transition:bottom .3s cubic-bezier(.2,.9,.25,1),opacity .2s}
+.center{position:absolute;left:56px;right:56px;bottom:0;display:flex;justify-content:center}
+.sync{background:#1d2027;border-radius:16px;padding:6px 12px;font-size:12px;color:var(--ink2);animation:pop .3s ease-out}
+.fab{position:absolute;right:12px;bottom:0;width:40px;height:40px;border-radius:50%;background:#1d2027;border:1px solid #2b2f38;display:grid;place-items:center;color:#cfd5df;animation:pop .3s ease-out}
+.fab .badge{position:absolute;top:-5px;right:-3px;background:var(--talk);color:var(--talk-ink);font-size:10px;font-weight:700;border-radius:9px;padding:0 5px}
+.hint{position:absolute;left:0;right:0;bottom:30px;text-align:center;font-size:13px;font-weight:600;color:var(--ink);opacity:0;z-index:9;pointer-events:none;transition:opacity .15s}
+.hint .sub{display:block;font-weight:500;font-size:11.5px;color:var(--ink3)}
+.toast{position:absolute;left:50%;top:110px;transform:translateX(-50%);background:#2a2e38;color:#fff;font-size:12px;padding:6px 12px;border-radius:12px;z-index:12;opacity:0;transition:opacity .2s;white-space:nowrap;pointer-events:none}
+
+/* orb */
+.orb{position:absolute;left:0;top:0;width:68px;height:68px;margin:-34px 0 0 -34px;z-index:11;pointer-events:none;opacity:0;will-change:transform}
+.orb .core{position:absolute;inset:6px;border-radius:50%;background:radial-gradient(circle at 35% 28%,#3b4150 0%,#23262f 55%,#191b22 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 30px rgba(0,0,0,.5);display:grid;place-items:center;transition:background .25s}
+.orb svg.ring{position:absolute;inset:0;transform:rotate(-90deg)}
+.orb .glyph{width:26px;height:26px}
+.orb .glyph path{transition:d .35s cubic-bezier(.3,1.4,.5,1)}
+.orb.armT .core{background:radial-gradient(circle at 35% 28%,#5ff0a0 0%,#2fbf6e 60%,#1e8f50 100%)}
+.orb.armV .core{background:radial-gradient(circle at 35% 28%,#b3a8ff 0%,#7c6cf5 60%,#5747d6 100%)}
+.orb.pulse::after{content:"";position:absolute;inset:6px;border-radius:50%;border:2px solid rgba(255,255,255,.5);animation:pulse .5s ease-out forwards}
+@keyframes pulse{from{transform:scale(1);opacity:.9}to{transform:scale(2.1);opacity:0}}
+.chip{position:absolute;top:0;left:0;z-index:10;pointer-events:none;width:132px;margin-left:-66px;margin-top:-44px;opacity:0;will-change:transform,opacity}
+.chip .inner{border-radius:24px;padding:12px 12px 10px;background:#1b1e25;border:1px solid #2c303a;text-align:center;transition:background .2s,border-color .2s,transform .28s cubic-bezier(.3,1.5,.5,1),opacity .2s}
+.chip .ic{width:40px;height:40px;border-radius:50%;margin:0 auto 6px;display:grid;place-items:center;background:#262a33;transition:background .2s}
+.chip .lb{font-size:13.5px;font-weight:700;color:#fff;line-height:1.15}
+.chip .sl{font-size:11px;color:var(--ink3);line-height:1.25;margin-top:2px}
+.chip.on .inner{transform:scale(1.1)}
+.chip.t.on .inner{background:#123d27;border-color:var(--talk)} .chip.t.on .ic{background:var(--talk)}
+.chip.v.on .inner{background:#221b52;border-color:var(--vanish)} .chip.v.on .ic{background:var(--vanish)}
+.chip.dim .inner{opacity:.5;transform:scale(.94)}
+.tether{position:absolute;inset:0;z-index:9;pointer-events:none;overflow:visible}
+.tether path{fill:none;stroke-width:2.5;stroke-linecap:round}
+
+.panel h4{margin:0 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.seg button{font:inherit;font-size:13px;color:var(--ink2);background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer}
+.seg button.on{color:#fff;border-color:#4b5262;background:#2a2e38}
+.readout{font:12.5px ui-monospace,Menlo,monospace;color:var(--ink2);background:#0d0f13;border:1px solid var(--line);border-radius:12px;padding:12px 14px;white-space:pre-wrap;min-height:96px}
+.howto{font-size:14px}.howto li{margin:5px 0}
+.hmeter{height:46px;display:flex;align-items:flex-end;gap:3px;background:#0d0f13;border:1px solid var(--line);border-radius:12px;padding:6px 10px;margin-bottom:16px;overflow:hidden}
+.hmeter span{width:6px;flex-shrink:0;border-radius:2px;background:#cfd5df;animation:hfade 2.4s ease-out forwards}
+.hmeter span.notch{background:var(--warn)} .hmeter span.arm,.hmeter span.commit{background:var(--talk)} .hmeter span.down{background:#6b7280}
+@keyframes hfade{0%{opacity:1}100%{opacity:.25}}
+.resetbtn{font:inherit;font-size:13px;background:none;color:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:6px 12px;cursor:pointer;margin-top:10px}
+
+/* diagrams */
+.timeline{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
+@media(max-width:820px){.timeline{grid-template-columns:1fr 1fr}}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}
+.step .n{font:600 11px ui-monospace,Menlo,monospace;color:var(--ink3)}
+.step b{display:block;margin:4px 0;font-size:14px}
+.step p{font-size:13px;margin:0}
+.stack{display:flex;flex-direction:column;gap:6px;max-width:420px}
+.stack div{border-radius:12px;padding:9px 14px;font-size:13px;border:1px solid var(--line);background:var(--panel)}
+.stack .fl{border-style:dashed;background:transparent}
+.stack .me{border-color:#3d5a4b;background:#14231c}
+.stack small{color:var(--ink3);display:block;font-size:11.5px}
+.vt{display:flex;gap:8px;align-items:center;margin:14px 0;flex-wrap:wrap}
+.vt div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px}
+.vt .arr{background:none;border:none;color:var(--ink3);padding:0}
+
+/* ---------- new room sheet ---------- */
+.rs-dim{position:absolute;inset:0;background:linear-gradient(#1a1d24,#0e1013);transition:opacity .4s}
+.rs{position:absolute;left:0;right:0;top:44px;bottom:0;background:#15171c;border-radius:28px 28px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;transition:transform .55s cubic-bezier(.3,.9,.3,1),opacity .4s}
+.rs.gone{transform:translateY(105%);opacity:.6}
+.rs-grab{width:36px;height:5px;border-radius:3px;background:#2e323c;margin:8px auto 2px}
+.rs-top{display:flex;align-items:center;height:44px;padding:0 14px;position:relative}
+.rs-x{width:34px;height:34px;border-radius:50%;border:none;background:#22262e;color:#cfd5df;display:grid;place-items:center;cursor:pointer}
+.rs-x path{stroke-dasharray:18;stroke-dashoffset:18;animation:draw .35s ease-out forwards}.rs-x .xs2{animation-delay:.1s}
+@keyframes draw{to{stroke-dashoffset:0}}
+.rs-title{position:absolute;left:0;right:0;text-align:center;font-weight:700;font-size:15px;pointer-events:none}
+.rs-body{flex:1;overflow-y:auto;padding:4px 16px 12px;scrollbar-width:none}
+.rs-body::-webkit-scrollbar{display:none}
+.rs-card{position:relative;display:flex;align-items:center;gap:12px;padding:14px;border-radius:22px;background:#1d2027;border:1.5px solid #2c303a;margin-bottom:14px;transition:background .45s,border-color .45s,transform .6s cubic-bezier(.3,1.2,.4,1),box-shadow .45s}
+.rs-card.vanish{background:#211b4a;border-color:#6d5ff0;border-style:dashed}
+.rs-card.secret{background:#17142e;border-color:#8b7cff;box-shadow:0 0 0 4px rgba(139,124,255,.12)}
+.rs-av{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#ffcf6b,#ff7a59);display:grid;place-items:center;font-size:28px;flex-shrink:0}
+.rs-meta{flex:1;min-width:0}
+.rs-nm{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rs-nm.ph{color:var(--ink3)}
+.rs-sub{font-size:12px;color:var(--ink2);height:18px;overflow:hidden;position:relative}
+.rs-sub span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:44px;transition:transform .32s cubic-bezier(.3,1.2,.4,1),opacity .25s}
+.rs-stack{display:flex;position:absolute;right:12px;bottom:-10px}
+.rs-stack i{width:24px;height:24px;border-radius:50%;border:2px solid #15171c;margin-left:-8px;animation:pop .4s cubic-bezier(.25,1.6,.45,1)}
+.rs-badge{position:absolute;top:-8px;right:12px;font-size:10.5px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:10px;background:#8b7cff;color:#120b33;transform:scale(0);transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+.rs-badge.on{transform:scale(1)}
+.rs-sec{margin:0 0 16px}
+.rs-lbl{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:0 0 7px 4px;display:flex;justify-content:space-between}
+.rs-lbl span{text-transform:none;letter-spacing:0;color:var(--ink2);display:inline-block}
+.rs-lbl span.bump{animation:bump .35s cubic-bezier(.3,1.8,.5,1)}
+@keyframes bump{50%{transform:scale(1.18)}}
+.rs-name{display:flex;gap:8px;align-items:center;background:#1d2027;border-radius:16px;padding:5px}
+.rs-emo{width:40px;height:40px;border-radius:12px;border:none;background:#262a33;font-size:21px;cursor:pointer}
+.rs-emo.kick{animation:kick .45s cubic-bezier(.3,1.8,.5,1)}
+@keyframes kick{40%{transform:scale(1.25) rotate(-12deg)}}
+.rs-name input,.rs-pwin{flex:1;background:none;border:none;outline:none;color:var(--ink);font:inherit;font-size:15px}
+.rs-people{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 4px}
+.rs-p{flex-shrink:0;width:54px;text-align:center;cursor:pointer;font-size:11px;color:var(--ink2)}
+.rs-p .a{width:46px;height:46px;border-radius:50%;margin:0 auto 4px;position:relative;transition:transform .3s cubic-bezier(.3,1.6,.5,1)}
+.rs-p .a::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:2px solid var(--talk);transform:scale(.8);opacity:0;transition:all .3s cubic-bezier(.3,1.6,.5,1)}
+.rs-p .ck{position:absolute;right:-2px;bottom:-2px;width:18px;height:18px;border-radius:50%;background:var(--talk);display:grid;place-items:center;transform:scale(0);transition:transform .3s cubic-bezier(.3,1.8,.5,1)}
+.rs-p.on .a{transform:scale(.92)} .rs-p.on .a::after{opacity:1;transform:scale(1)} .rs-p.on .ck{transform:scale(1)} .rs-p.on{color:#fff}
+.rs-seg{position:relative;display:grid;grid-template-columns:repeat(3,1fr);background:#1d2027;border-radius:16px;padding:4px}
+.rs-seg2{grid-template-columns:1fr 1fr}
+.rs-seg button{position:relative;z-index:1;border:none;background:none;color:var(--ink2);font:inherit;font-size:13.5px;font-weight:600;padding:9px 4px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:color .25s}
+.rs-seg button.on{color:#fff}
+.rs-seg svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.rs-ind{position:absolute;top:4px;bottom:4px;left:4px;border-radius:12px;background:#2c313b;transition:transform .45s cubic-bezier(.3,1.25,.4,1),background .3s}
+.lg-c{transition:stroke-dasharray .45s} .lg-lock{opacity:0;transform:translateY(3px);transition:opacity .3s,transform .35s cubic-bezier(.3,1.6,.5,1)}
+button[data-v="vanish"] .lg-c,button[data-v="secret"] .lg-c{stroke-dasharray:2.2 2.6}
+button[data-v="secret"] .lg-lock{opacity:1;transform:none}
+button[data-v="secret"] .lg-c{transform-origin:center}
+.rs-desc{font-size:12.5px;color:var(--ink2);margin:8px 4px 0;min-height:36px;line-height:1.45}
+.rs-desc.swap{animation:swap .35s cubic-bezier(.3,1.2,.4,1)}
+@keyframes swap{from{transform:translateY(8px);opacity:0}}
+.rs-clock{overflow:hidden;max-height:0;opacity:0;transition:max-height .45s cubic-bezier(.3,1,.4,1),opacity .3s,margin .3s}
+.rs-clock.on{max-height:200px;opacity:1;margin-top:10px}
+.rs-ruler{position:relative;height:58px;margin:10px 4px 0;background:#1d2027;border-radius:16px;cursor:ew-resize;touch-action:none}
+.rs-ticks{position:absolute;left:24px;right:24px;top:0;bottom:0}
+.rs-ticks b{position:absolute;bottom:10px;width:2px;height:12px;margin-left:-1px;background:#3a3f4a;border-radius:1px}
+.rs-ticks b em{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-style:normal;font-size:10px;color:var(--ink3);white-space:nowrap}
+.rs-ticks b.on{background:var(--vanish)} .rs-ticks b.on em{color:#fff}
+.rs-knob{position:absolute;top:8px;width:56px;height:24px;margin-left:-28px;border-radius:12px;background:var(--vanish);color:#120b33;font-weight:800;font-size:12px;display:grid;place-items:center;transition:left .3s cubic-bezier(.3,1.4,.5,1);pointer-events:none}
+.rs-ruler.drag .rs-knob{transition:none;transform:scale(1.08)}
+.rs-cap{font-size:11.5px;color:var(--ink3);margin:8px 4px 0}
+.rs-pw{display:flex;justify-content:space-between;align-items:center;margin:10px 4px 0;font-size:13.5px;color:var(--ink2);cursor:pointer}
+.rs-sw{width:44px;height:26px;border-radius:13px;background:#2c313b;position:relative;transition:background .25s}
+.rs-sw i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .35s cubic-bezier(.3,1.5,.5,1)}
+.rs-sw.on{background:var(--talk)} .rs-sw.on i{transform:translateX(18px)}
+.rs-pwin{display:block;width:100%;background:#1d2027;border-radius:14px;padding:0 14px;margin-top:0;max-height:0;opacity:0;transition:max-height .35s cubic-bezier(.3,1,.4,1),opacity .25s,margin .3s,padding .3s}
+.rs-pwin.on{max-height:44px;opacity:1;margin-top:10px;padding:11px 14px}
+.rs-more{font-size:13.5px;color:var(--vanish);font-weight:600;margin:2px 4px 0;cursor:pointer}
+.rs-go{margin:8px 16px 26px;height:50px;border-radius:25px;border:none;background:var(--talk);color:var(--talk-ink);font:inherit;font-weight:800;font-size:15.5px;cursor:pointer;transition:transform .2s,opacity .25s}
+.rs-go:active{transform:scale(.96)}
+.rs-go:disabled{opacity:.35}
+.rs-done{position:absolute;left:0;right:0;top:44px;height:64px;display:flex;align-items:center;gap:10px;padding:0 16px;opacity:0;transition:opacity .3s;pointer-events:none}
+.rs-done.on{opacity:1}
+.inl{align-self:stretch;margin:2px 8px;background:#1a1736;border:1px solid #3b3380;border-radius:16px;padding:10px 12px;font-size:12px;color:#cfc9ff;line-height:1.4;animation:pop .35s ease-out}
+.inl .bt{display:flex;gap:8px;margin-top:8px}
+.inl .bt span{flex:1;text-align:center;padding:7px;border-radius:12px;background:#2a2466;color:#fff;font-weight:600;cursor:pointer}
+.inl .bt span.p{background:var(--vanish);color:#120b33}
+.fx{position:absolute;inset:0;pointer-events:none;z-index:20;width:100%;height:100%}
+.rs-card.land{animation:land .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes land{30%{transform:scale(1.06,.92)}60%{transform:scale(.97,1.04)}}
+.rs-av.kick{animation:kick .45s cubic-bezier(.3,1.8,.5,1)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="kicker">MonkeyHub · design plan v2 · 2026-11-06 · mobile layouts only</div>
+<h1>Swipe up from the bottom of a chat</h1>
+<p class="lede">One gesture, two outcomes: <strong>start a huddle</strong> or <strong>turn on vanish mode</strong>. Pull up, it forks, slide left or right, let go. v4: every vanishing message gets <strong>24 hours by default, 10 seconds only when everyone shares their reads</strong>; a <strong>cleanup system that can't leak</strong>; the room sheet is just <strong>Regular or Secret</strong>; and a proposal for <strong>Telegram/Duolingo-level motion</strong>. Ships as <strong>one release</strong>.</p>
+<div class="toc">
+  <a href="#decided">Decided</a><a href="#proto">Live prototype</a><a href="#rules">Room rules</a><a href="#vanish">Vanish mode</a><a href="#capture">Screenshots & platforms</a><a href="#notify">Huddle notifications</a><a href="#budget">Backend budget</a><a href="#sheet">New room sheet</a><a href="#motion">Motion</a><a href="#reuse">Reuse map</a><a href="#dock">The bottom dock</a><a href="#spec">Gesture spec</a><a href="#haptics">Haptics</a><a href="#edges">Edge cases</a><a href="#build">Build & release</a><a href="#open">Open questions</a>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="decided">Decided</h2>
+<table class="done">
+  <tr><th>#</th><th>Decision</th><th>What it means</th></tr>
+  <tr><td><b>Huddles</b></td><td>A huddle is a group call that rings no one, in every room type including DMs</td><td>Same call stack and call screen. "Ring someone" inside a huddle opens the existing ring picker.</td></tr>
+  <tr><td><b>Sides</b></td><td>Vanish left, Talk right</td><td>Mirrored in RTL languages.</td></tr>
+  <tr><td><b>Timer</b></td><td>A message vanishes <b>10 seconds after everyone has seen it</b></td><td>Keep-it-short guidance in the composer. Not heavier on the server than 1 hour; see <a href="#vanish">why</a>.</td></tr>
+  <tr><td><b>Screenshots</b></td><td><b>Blocked</b>, not logged</td><td>The same <code>CaptureProtection</code> scope view-once photos use. Platforms that can't block get sealed bubbles, exactly like view once.</td></tr>
+  <tr><td><b>Secret rooms</b></td><td>No vanish mode</td><td>Already self-destructing. The swipe there is Talk only.</td></tr>
+  <tr><td><b>No vanish on vanish</b></td><td>When vanish is on, the left option is <b>Turn off</b></td><td>Never a second "turn on". Hidden entirely for people who can't change settings.</td></tr>
+  <tr><td><b>Layout</b></td><td>Everything near the composer goes through one dock with fixed lanes</td><td>Also fixes today's reply + scheduled bug. See <a href="#dock">the dock</a>.</td></tr>
+  <tr><td><b>Haptics</b></td><td>Continuous and two-way, like Instagram</td><td>Builds as you pull toward a commit and fades as you back off, on both the upward pull and the sideways slide. Steps down for low power and cheap motors. See <a href="#haptics">haptics</a>.</td></tr>
+  <tr><td><b>Hidden "seen"</b></td><td><b>24 hours by default.</b> 10 seconds only once everyone shares their reads</td><td>Nothing disappears early. Whoever hides "seen" gets a card to share in that chat, and can always change it in Settings. See <a href="#hidden">hidden seen</a>.</td></tr>
+  <tr><td><b>24 hours</b></td><td>The default life of every vanishing message, counted from send</td><td>Seen or not. One cleanup system enforces it; see <a href="#cleanup">cleanup</a>.</td></tr>
+  <tr><td><b>Secret rooms</b></td><td>Once secret, always secret. Timer: <b>after seen</b> or <b>after sent</b></td><td>Chosen when the room is made; only the timer can change later. See <a href="#sheet">the room sheet</a>.</td></tr>
+  <tr><td><b>New room sheet</b></td><td>Redesigned around a live preview card</td><td>Name · People · Room (<b>Regular</b> / <b>Secret</b>) · Who can find it.</td></tr>
+  <tr><td><b>Release</b></td><td>One update, every platform, when it's all done</td><td>Built in a risk order on <code>dev</code>; one forced-minimum release. See <a href="#build">build & release</a>.</td></tr>
+  <tr><td><b>Share-reads switch</b></td><td><b>Off</b> by default</td><td>Nothing you receive can disappear before you choose. Your own sent messages never wait for you.</td></tr>
+  <tr><td><b>Motion</b></td><td>Big moments get bold motion; chrome stays crisp</td><td>Written into <code>chat-chrome-language.md</code> as a "Moments" section. See <a href="#motion">motion</a>.</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="proto">Live prototype</h2>
+<p>Drag up on the chat. Past the line it forks; slide sideways and let go. Use the toggles to pile up scheduled messages, a reply, a huddle and scroll state, and watch the dock keep everything apart. With vanish on, <b>tap the message field</b> to send one and watch the 10-second countdown start once it's seen.</p>
+
+<div class="proto">
+  <div class="phone">
+    <div class="screen" id="scr">
+      <div class="vtint"></div>
+      <div class="island"></div>
+      <div class="status"><span>11:51</span><span>●●● 66</span></div>
+      <div class="hdr">
+        <div class="back">‹</div><div class="av" id="hav"></div>
+        <div><div class="hname" id="hname">Zeynep</div><div class="hsub"><span id="hsub">online</span><span class="vdot"> · vanish on</span></div></div>
+        <div class="callbtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cfd5df" stroke-width="2" stroke-linecap="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg></div>
+      </div>
+      <div class="msgs" id="msgs"></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="floatL" id="floatL"><div class="center" id="center"></div><div id="fabSlot"></div></div>
+      <div class="dock" id="dock">
+        <div class="lane shelf" id="shelf"></div>
+        <div class="lane ctxlane" id="ctxlane"></div>
+        <div class="composer"><div class="plus">+</div><div class="field" id="field">Message</div><div class="mic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#05200f" stroke-width="2.4" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></div></div>
+      </div>
+      <div class="hint" id="hint"></div>
+      <div class="toast" id="toast"></div>
+      <svg class="tether" id="tether"><path id="tpath" d=""/></svg>
+      <div class="chip v" id="chipV"><div class="inner"><div class="ic" id="icV"></div><div class="lb" id="lbV"></div><div class="sl" id="slV"></div></div></div>
+      <div class="chip t" id="chipT"><div class="inner"><div class="ic" id="icT"></div><div class="lb" id="lbT"></div><div class="sl" id="slT"></div></div></div>
+      <div class="orb" id="orb">
+        <svg class="ring" viewBox="0 0 68 68"><circle cx="34" cy="34" r="31" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/><circle id="arc" cx="34" cy="34" r="31" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray="194.8" stroke-dashoffset="194.8"/></svg>
+        <div class="core"><svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path id="gpath" d="M12 19 L12 5 M6 11 L12 5 L18 11"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h4>Room</h4>
+    <div class="seg" id="segRoom">
+      <button data-v="dm" class="on">DM</button><button data-v="group">Group</button><button data-v="secret">Secret room</button><button data-v="locked">Group, can't edit settings</button>
+    </div>
+    <h4>Huddle</h4>
+    <div class="seg" id="segLive">
+      <button data-v="none" class="on">Nothing live</button><button data-v="others">Others are in one</button>
+    </div>
+    <h4>Seen sharing</h4>
+    <div class="seg" id="segSeen">
+      <button data-v="all" class="on">Everyone shares</button><button data-v="me">I hide mine</button><button data-v="they">Others hide theirs</button>
+    </div>
+    <h4>Pile it up (dock stress test)</h4>
+    <div class="seg" id="segStack">
+      <button data-v="sched">2 scheduled</button><button data-v="reply">Replying</button><button data-v="scrolled">Scrolled up</button><button data-v="sync">Syncing</button>
+    </div>
+    <h4>Haptics</h4>
+    <div class="seg" id="segHap">
+      <button data-v="full" class="on">Full ramp</button><button data-v="land">Low power / cheap motor</button>
+    </div>
+    <div class="hmeter" id="hmeter"></div>
+    <h4>Readout</h4>
+    <div class="readout" id="readout">idle</div>
+    <button class="resetbtn" id="reset">Reset chat</button>
+    <h3>Things to try</h3>
+    <ul class="howto">
+      <li>Turn on <b>2 scheduled</b> + <b>Replying</b>. The reply card stays glued to the field, and the scheduled pill moves up to the shelf. (Today the scheduled pill sits <em>between</em> them.)</li>
+      <li>Start a huddle with scheduled messages pending: the huddle bar takes the shelf and scheduled <b>shrinks to a clock chip</b> beside it. Nothing stacks, nothing hides.</li>
+      <li><b>Scrolled up</b>: the swipe can't arm (you're not at the newest message), and the chevron sits in its own thumb column.</li>
+      <li><b>Syncing</b> + <b>Others are in one</b>: the sync pill floats in the center lane and the Join pill stays on the shelf, so they never compete for the same spot.</li>
+      <li>Turn vanish on, then swipe again: the left side says <b>Turn off</b>. Switch to <b>Secret room</b>: only Talk, with no fork.</li>
+      <li>With <b>Replying</b> on, the swipe is disabled. The reply card owns that space.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="rules">Room rules: who gets which option</h2>
+<p>The fork appears only when there are two real choices. With one choice it's a single "release to ..." pull. With none, the list just bounces.</p>
+<table>
+  <tr><th>Room / state</th><th>Left</th><th>Right</th><th>Gesture</th></tr>
+  <tr><td><b>DM or group</b>, vanish off</td><td><span class="tag v">Vanish</span>Turn on</td><td><span class="tag t">Talk</span>Start huddle</td><td>Fork</td></tr>
+  <tr><td>Vanish already on</td><td><span class="tag v">Turn off</span></td><td><span class="tag t">Talk</span></td><td>Fork (never "turn on" twice)</td></tr>
+  <tr><td>Others are in a huddle here</td><td><span class="tag v">Vanish</span>(on/off as above)</td><td><span class="tag t">Join</span>with their faces</td><td>Fork</td></tr>
+  <tr><td><b>Secret room</b></td><td><span class="tag n">none</span>already self-destructs</td><td><span class="tag t">Talk</span></td><td>Single pull</td></tr>
+  <tr><td>Group, you can't edit settings</td><td><span class="tag n">none</span></td><td><span class="tag t">Talk</span></td><td>Single pull</td></tr>
+  <tr><td>You're already in any call</td><td><span class="tag v">Vanish</span></td><td><span class="tag n">none</span></td><td>Single pull</td></tr>
+  <tr><td>Secret room and already in a call</td><td colspan="2"><span class="tag n">none</span></td><td>Bounce only</td></tr>
+  <tr><td>Read-only / system rooms, blocked user, pending request</td><td colspan="2"><span class="tag n">none</span></td><td>Bounce only</td></tr>
+  <tr><td>Web / desktop / split-shell layouts</td><td colspan="3">No gesture. Room info has the vanish toggle, and the call sheet has "Huddle (don't ring anyone)".</td></tr>
+</table>
+<div class="verdict"><p><b>Huddles in secret rooms: yes.</b> A huddle is live audio. Nothing is stored, so there's nothing for the secret room to protect. The only thing a huddle leaves behind is its history bubble ("Huddle · 4 min"), and in a secret room that bubble follows the room's own timer like every other message. Leaving huddles out of secret rooms would just be a missing feature.</p></div>
+
+<!-- ============================================================ -->
+<h2 id="vanish">Vanish mode: 10 seconds after everyone has seen it</h2>
+<h3>Is 10s seen-based too heavy? No, and 1 hour wouldn't be any lighter.</h3>
+<p>Load doesn't come from the duration. It comes from knowing <em>when everyone has seen a message</em>. Once you know that, a 10-second timer and a 1-hour timer are the same single scheduled job. So the question is only how to detect "seen by everyone" cheaply, and we already have the right primitive:</p>
+<div class="vt"><div>Every member has a read cursor<br><small style="color:var(--ink3)">roomMembers.lastReadAt</small></div><div class="arr">→</div><div><b>Seen floor</b> = the lowest cursor among the other members (someone who doesn't share counts as never)</div><div class="arr">→</div><div>Floor moves up: everything below it gets <b>one</b> burn job at now + 10s</div></div>
+<ul>
+  <li><b>DMs, the common case, need zero extra reads.</b> In a DM, "everyone else" is one person, so their read cursor <em>is</em> the seen point for your messages. The new value is already in hand inside <code>markRoomRead</code>.</li>
+  <li><b>Groups read one tiny doc.</b> <code>vanishState</code> (one row per vanish room, nothing for normal rooms) stores the seen floor and <em>who</em> the slowest reader is. A read by anyone else costs 1 read and no recompute. Only the slowest reader's read rescans the members (one indexed range read), which is the only moment the floor can move.</li>
+  <li><b>Zero cost for normal rooms.</b> The client says whether the room is in vanish mode when it calls <code>markRoomRead</code>, so normal rooms never touch <code>vanishState</code> and the <code>rooms</code> row is never read (that's the OCC fix we already shipped). A client that lies can't burn anything early: the floor still comes from real cursors.</li>
+  <li><b>One burn job per floor move, not per message.</b> It deletes the range <code>(oldFloor, newFloor]</code> through the room's time index in one pass. Secret rooms today schedule one <code>expireMessage</code> <em>per message</em>; vanish mode is cheaper than that.</li>
+  <li><b>Sending costs nothing extra.</b> There's no <code>expiresAt</code>, no per-message scheduler, and no new index on <code>messages</code>.</li>
+  <li><b>The 24-hour deadline is one self-rescheduling job per room, not a cron.</b> Details in <a href="#cleanup">cleanup that can't leak</a>.</li>
+  <li><b>The countdown is free.</b> Clients draw the 10s ring from <code>burnAt</code> on <code>vanishState</code>. Only screens open on that room subscribe to it, and the <code>rooms</code> row (which fans out to every member's chat list) is never patched for a burn.</li>
+</ul>
+
+<h3 id="cleanup">Cleanup that can't leak</h3>
+<p>Two ways a vanishing message dies: <b>early</b> (10s after everyone has seen it) or <b>at its 24-hour deadline</b>. Whichever comes first wins, the other must not linger, and nothing may outlive its promise even if a job fails.</p>
+<table>
+  <tr><th>Piece</th><th>How it works</th></tr>
+  <tr><td><b>Stamped at send</b></td><td>Each vanishing message gets <code>vanishUntil = sentAt + 24h</code>. Turning vanish off later never changes messages already sent; they keep their promise.</td></tr>
+  <tr><td><b>One index for both deaths</b></td><td><code>messages.by_room_vanish ["roomId", "vanishUntil"]</code>. Since <code>vanishUntil</code> moves in step with <code>sentAt</code>, "seen up to time T" and "deadline passed" are both just a range on this one index. Every range is bounded below by <code>gt(0)</code>: an unset field sorts lowest, and an unbounded <code>lt</code> would match every normal message in the room (the incident from October).</td></tr>
+  <tr><td><b>Exactly one deadline job per room</b></td><td><code>vanishState.deadlineJobId</code>. The job deletes everything past its deadline, then looks at the oldest survivor and schedules itself for that message's <code>vanishUntil</code>, cancelling any other job id it finds first. If nothing is left and vanish is off, it deletes <code>vanishState</code> and stops for good. So when messages die early from "seen", the deadline job finds nothing at its time and either moves on or ends; there's never a job waiting for a message that's already gone.</td></tr>
+  <tr><td><b>At most one burn job per room</b></td><td><code>vanishState</code> holds <code>burnAt / burnUpTo</code> plus one queued <code>nextUpTo</code>. A newer "seen" while a burn is pending only updates <code>nextUpTo</code>; the running job finishes its range, then reschedules itself for <code>nextUpTo</code> 10 seconds after that point was reached. Every message still gets its full 10 seconds, and there's never more than one job.</td></tr>
+  <tr><td><b>Idempotent everywhere</b></td><td>Jobs re-read state, delete by range and tolerate "already gone". A retried or duplicated job is harmless.</td></tr>
+  <tr><td><b>Deletes the whole message</b></td><td>Through the existing message-deletion path: storage blobs, reactions, mention inbox rows, and lock-screen pushes (<code>revokeMessagePushes</code>). Nothing is orphaned for the retention sweeps to find months later.</td></tr>
+  <tr><td><b>Never shown past its deadline</b></td><td>The timeline query and the client both hide any message past <code>vanishUntil</code>. If the box is down for an hour, expired messages still never render; they're just deleted late.</td></tr>
+  <tr><td><b>Backstop, no new cron</b></td><td>The existing daily retention run gets one more bounded range (<code>vanishUntil</code> between 0 and now minus 1h, capped batch) for anything a lost job left behind. It's normally empty: one small read a day.</td></tr>
+  <tr><td><b>Teardown</b></td><td>Room deletion and account deletion plans gain <code>vanishState</code> (cancel both job ids, delete the row). The existing test that every table has a deletion step covers the new table.</td></tr>
+  <tr><td><b>Membership changes</b></td><td>A joiner's vanish cursor starts at their join time, so they never hold older messages alive. A leaver stops counting immediately; if they were the slowest, the floor is recomputed in the same mutation.</td></tr>
+  <tr><td><b>Sharing turned on later</b></td><td>The person's vanish cursor jumps to what they've actually read at that moment (they just agreed to share it), the floor is recomputed once, and a burn is scheduled if it moved.</td></tr>
+</table>
+<p>Tests cover each row, including "message burned early, deadline job then finds nothing and stops" and "job killed mid-run, backstop cleans up".</p>
+
+<h3>Rules</h3>
+<table>
+  <tr><th>Topic</th><th>Rule</th></tr>
+  <tr><td><b>"Everyone"</b></td><td>Every member at send time except the sender. People who join later don't hold messages alive (same as view once's <code>countsToward</code>).</td></tr>
+  <tr><td><b>Seen</b></td><td>Only a device that can block screenshots counts as seeing a vanish message. On web and Linux it's sealed, so it can't be "seen" there (see <a href="#capture">below</a>). Under the hood: a separate <code>vanishSeenAt</code> cursor that only protecting clients advance (written in the same patch as the normal cursor, so it costs nothing extra). Old builds never advance it, so their users fall back to the 24h cap, which is safe for compatibility.</td></tr>
+  <tr><td><b>Hidden "seen"</b></td><td>Messages keep the 24-hour clock until everyone shares their reads. See <a href="#hidden">below</a>.</td></tr>
+  <tr><td><b>Long messages</b></td><td>The placeholder reads "Vanishing message · keep it short". Past ~160 characters, a quiet line appears above the field: "Long messages may vanish before they're finished". It's advice, not a block.</td></tr>
+  <tr><td><b>The 10s ring</b></td><td>Once everyone has seen a message, a small ring next to it drains over 10s on every screen. Then it dissolves (in Flutter a particle/shader dissolve, not an animated blur).</td></tr>
+  <tr><td><b>Media</b></td><td>Same rule. A photo counts as seen when it's opened full screen, not when its thumbnail scrolls past. The thumbnail is blurred until opened, like view once.</td></tr>
+  <tr><td><b>Copy, forward, save, quote</b></td><td>Off for vanish messages (the same <code>SOURCE_IS_EPHEMERAL</code> guard). A reply to a vanished message shows "Vanished".</td></tr>
+  <tr><td><b>Push previews</b></td><td>"Vanishing message", with no text and no thumbnail. A lock-screen banner is a screenshot nobody can block. This reuses the secret-room preview path.</td></tr>
+  <tr><td><b>Turning it on/off</b></td><td>Anyone in a DM; in groups, whoever can edit settings. A system line is posted. Only messages sent after the change are affected, and the line says so.</td></tr>
+  <tr><td><b>Change</b></td><td>The system line's "Change" offers 10s · 1m · 1h after seen. Default 10s.</td></tr>
+</table>
+<p>System line copy: <i>"Murat turned on vanish mode. New messages disappear 10 seconds after everyone has seen them, or after 24 hours at most. Screenshots are blocked. Change"</i></p>
+
+<h3 id="hidden">Hidden "seen": 24 hours by default, faster only if everyone shares</h3>
+<p>One simple rule, and nothing ever disappears early because someone hasn't answered a question:</p>
+<div class="verdict v"><p><b>Every vanishing message starts on a 24-hour clock from when it's sent.</b> It switches to "10 seconds after seen" only once <em>everyone</em> in the chat shares their reads. If someone starts sharing during those 24 hours, the switch happens then.</p></div>
+<table>
+  <tr><th>Example</th><th>What happens</th></tr>
+  <tr><td><b>You and Zeynep both share "seen"</b></td><td>She reads your message, and it vanishes 10 seconds later.</td></tr>
+  <tr><td><b>Zeynep hides "seen"</b></td><td>Your message stays for 24 hours, read or not. You see a small "24h" clock on the bubble, never "Seen", so you can't tell whether she read it.</td></tr>
+  <tr><td><b>Zeynep starts sharing 3 hours later</b></td><td>Anything she has already read vanishes 10 seconds after she shares; the rest waits for her read. Nothing she hasn't read disappears.</td></tr>
+  <tr><td><b>Group of 5, Alp hides "seen"</b></td><td>Everyone's messages there last 24 hours. Nobody can tell whether Alp hides "seen" or just hasn't read yet.</td></tr>
+</table>
+<h3>What the person who hides "seen" sees</h3>
+<p>The first time they open a vanishing chat, a card inside the chat (not a popup, and it never blocks anything) says:</p>
+<div class="card" style="max-width:520px;margin:10px 0 14px;border-color:#3b3380;background:#1a1736">
+  <p style="margin:0;color:#cfc9ff"><b>DM:</b> You don't share Seen, so Zeynep's messages to you last 24 hours. Yours still vanish 10 seconds after she sees them. Share your reads here so hers vanish too?<br><b>Group:</b> You don't share Seen, so messages sent to you here last 24 hours. Share your reads here so they vanish 10 seconds after everyone has seen them?<br><span style="color:#9d95e8">You can change this anytime in Settings › Privacy.</span></p>
+  <p style="margin:10px 0 0"><span class="tag v" style="font-size:12.5px;padding:5px 12px">Share my reads here</span> <span class="tag n" style="font-size:12.5px;padding:5px 12px">Don't share here</span></p>
+</div>
+<ul>
+  <li>Either answer posts a short note that ends with "You can change this anytime in Settings › Privacy." That line is always there.</li>
+  <li><b>Settings › Privacy › Seen</b>: when it's set to "Nobody", a switch appears below it: <b>"Share my reads in vanishing chats"</b> (off by default, decided). Below that is a list of the chats where you said "Share my reads here", each removable.</li>
+  <li>Dismissing the card is the same as "Don't share here": messages keep the 24-hour clock.</li>
+  <li><b>Your own messages never wait for you.</b> A message waits only for the people it was sent to, so hiding your "seen" never slows down the messages you send.</li>
+  <li><b>The switch starts off</b>, so nothing you receive can disappear because you read it before you've chosen.</li>
+</ul>
+<p><b>Cost:</b> zero extra reads. The client tells <code>markRoomRead</code> whether this read counts. A per-chat choice is one optional field on your own <code>roomMembers</code> row, which <code>markRoomRead</code> already loads, so the server enforces it for free. A modified client can only expose its own user's reads.</p>
+
+<!-- ============================================================ -->
+<h2 id="capture">Screenshots and platforms: exactly like view once</h2>
+<p>An open vanish-mode room pushes a <code>CaptureProtection</code> scope, the same mechanism secret rooms and view-once photos use (<code>lib/privacy/capture_protection.dart</code>). There's no new native code.</p>
+<table>
+  <tr><th>Platform</th><th>Mechanism</th><th>Vanish messages</th></tr>
+  <tr><td><b>iOS</b></td><td>Secure-canvas window (CaptureGuard) + <code>isCaptured</code> overlay fallback</td><td><span class="tag t">Readable</span>screenshots come out blank</td></tr>
+  <tr><td><b>Android</b></td><td><code>FLAG_SECURE</code></td><td><span class="tag t">Readable</span></td></tr>
+  <tr><td><b>macOS</b></td><td><code>sharingType = .none</code></td><td><span class="tag t">Readable</span></td></tr>
+  <tr><td><b>Windows</b></td><td><code>WDA_EXCLUDEFROMCAPTURE</code></td><td><span class="tag t">Readable</span></td></tr>
+  <tr><td><b>Web</b></td><td>Can't block</td><td><span class="tag x">Sealed</span>"Opens in the app" bubble, view-once style</td></tr>
+  <tr><td><b>Linux</b></td><td>Can't block (X11/Wayland)</td><td><span class="tag x">Sealed</span>same</td></tr>
+</table>
+<p>Unlike a secret room, a vanish-mode room <b>still opens on web and Linux</b>. Older, normal messages read fine. Only the vanish ones are sealed, one bubble at a time, with the existing "Opens in the app" panel copy. A sealed bubble never counts as seen, so a web tab can't start someone's 10-second clock. Sending from web is allowed, since your own words aren't a capture risk.</p>
+<p>Screen sharing: as today, protection is suspended while <em>you</em> share your screen, and the share flow already warns when a protected scope is open.</p>
+
+<!-- ============================================================ -->
+<h2 id="notify">Huddle notifications: the psychology</h2>
+<p>A ring <b>summons</b>: someone wants you, now, and ignoring it is a small rejection. A huddle should <b>invite</b>: join if you feel like it, and not joining is invisible. If nobody hears about it, though, huddles die empty (that's WhatsApp's "No one else joined"). So people should <em>know</em>, but it should feel like noticing friends at a table, not a tap on the shoulder.</p>
+<div class="verdict">
+  <p><b>Recommendation: one soft push, invitation copy, quietly withdrawn when it ends, and the starter never learns who ignored it.</b></p>
+</div>
+<div class="grid2">
+  <div class="card"><h3>What gets sent</h3>
+    <ul>
+      <li><b>Softer than a chat push.</b> iOS <code>interruption-level: passive</code> (no sound, no screen wake; it waits in Notification Center). Android: a low-importance "Huddles" channel people can switch off on its own.</li>
+      <li><b>Invitation copy:</b> "Murat is hanging out in Didimke · Drop in". In DMs: "Zeynep is free to talk". Never "is calling" or "wants to talk to you".</li>
+      <li><b>At most once per room per 2 hours</b>, so stop-start huddles don't nag. The cooldown comes from the previous huddle's <code>pushedAt</code> (one indexed read), so there are no per-person cooldown rows to write.</li>
+      <li>Muted room: no push (the Join pill still shows in the room).</li>
+      <li>Groups over 20 members: in-app only, to keep fan-out and noise down. The Join pill and chat-list wave reuse the existing <code>activeForRoom</code> / <code>liveInMyRooms</code> queries, so there are no new subscriptions and no <code>rooms</code> patch.</li>
+    </ul></div>
+  <div class="card"><h3>What protects people</h3>
+    <ul>
+      <li><b>Withdrawn when the huddle ends.</b> The push is removed from the lock screen through the existing dismiss path, so nobody wakes up to a dead invite and the guilt that comes with it.</li>
+      <li><b>No "seen" or "declined" for huddles.</b> The starter never learns who got notified or who ignored it.</li>
+      <li><b>An empty huddle leaves no trace for others.</b> "You wanted to talk · nobody joined" is a <em>local-only</em> bubble on the starter's device, so it costs zero writes. A real message is written only if someone actually joined.</li>
+      <li><b>Leaving is silent.</b> No "Alp left" toast inside the huddle. The avatars just change.</li>
+      <li>Alone for 3 minutes: the huddle ends itself, with no "nobody came" moment.</li>
+    </ul></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="dock">The bottom dock: one layout system for everything near the composer</h2>
+<h3>What goes wrong today</h3>
+<ul>
+  <li>The composer column in <code>room_screen.dart</code> stacks, bottom to top: field → media strip → stickers → <b>scheduled pill</b> → mention picker → <b>reply card</b>. With a scheduled message pending, the pill wedges <em>between</em> the reply card and the field it belongs to. That's the reply + scheduled bug.</li>
+  <li>The sync pill (center) and the scroll buttons (right) live in a <em>separate</em> floating stack with its own offset. Nothing stops a new center item (a Join pill, a toast) from landing on the sync pill.</li>
+  <li>Each element decides its own position. Every new one needs someone to remember all the others.</li>
+</ul>
+<h3>The model: lanes with owners and priorities</h3>
+<div class="grid2">
+  <div>
+    <div class="stack">
+      <div class="fl"><b>Float · right column</b> (not measured)<small>Jump-back, @ mentions, chevron to latest. Thumb column, fixed 56pt wide.</small></div>
+      <div class="fl"><b>Float · center slot</b> (not measured, 1 item)<small>Transient only: syncing, "new messages", errors. A priority queue; never wider than the screen minus both thumb columns.</small></div>
+      <div><b>Lane 3 · Shelf</b> (measured, 1 row)<small>Persistent room state: huddle bar / Join, scheduled. Items merge into one row and the lower priority collapses to a chip.</small></div>
+      <div><b>Lane 2 · Context</b> (measured, 1 card)<small>edit &gt; reply. Always directly on top of the field.</small></div>
+      <div class="me"><b>Lane 1 · Input</b> (measured)<small>Mention picker / sticker suggestions / media strip, then the field.</small></div>
+    </div>
+  </div>
+  <div>
+    <table>
+      <tr><th>Rule</th><th>Effect</th></tr>
+      <tr><td><b>One owner per lane</b></td><td>Nothing outside the dock positions itself near the composer. New UI registers into a lane through <code>ChatDock</code>.</td></tr>
+      <tr><td><b>Fixed lane order</b></td><td>Context is always touching Input. Shelf is always above Context. Today's bug can't happen.</td></tr>
+      <tr><td><b>Shelf merges, never stacks</b></td><td>Priority: in-huddle bar &gt; Join &gt; scheduled (failed) &gt; scheduled. The top item gets the width; the rest become 44pt chips in the same row.</td></tr>
+      <tr><td><b>Takeovers</b></td><td>Mention picker open: the shelf hides. Selection mode: the selection bar replaces the whole dock. Voice recording: shelf and context hide. Swipe gesture: the whole dock fades and the floats hide.</td></tr>
+      <tr><td><b>One measured box</b></td><td>Lanes 1–3 are inside <code>MeasureChatBottomInset</code>, so the transcript and floats sit above whatever the dock is, every frame.</td></tr>
+      <tr><td><b>Center is transient only</b></td><td>Anything that persists (a huddle) goes on the shelf, not the center slot. Things that persist can't collide with things that come and go.</td></tr>
+    </table>
+  </div>
+</div>
+<h3>Collision table</h3>
+<table>
+  <tr><th>Combination</th><th>Result</th></tr>
+  <tr><td>Reply + scheduled</td><td>Reply card on the field; scheduled pill on the shelf above it.</td></tr>
+  <tr><td>Huddle + scheduled + reply</td><td>Shelf: [huddle bar ··· 🕓2]. Context: reply. Input: field.</td></tr>
+  <tr><td>Join + syncing + scrolled up</td><td>Shelf: Join. Center: syncing. Right column: chevron with count. Three separate lanes.</td></tr>
+  <tr><td>Mention picker + huddle</td><td>The picker covers the shelf while open; the huddle bar comes back when it closes. The call itself keeps running.</td></tr>
+  <tr><td>Keyboard up + everything</td><td>The dock rides the keyboard as one unit, so nothing separates from the field.</td></tr>
+  <tr><td>Edit + reply</td><td>Can't happen (edit wins, as today), now enforced by the lane's capacity of 1.</td></tr>
+</table>
+<p><b>Migration:</b> <code>ScheduledPill</code>, <code>ComposerReplyCard</code>/<code>ComposerEditCard</code>, <code>MentionPicker</code>, <code>_TimelineSyncPill</code> and the FAB column move into <code>ChatDock</code> as-is, with no visual redesign. Both chat styles (classic column and liquid float) render the same lanes. A golden PNG per collision row locks it in.</p>
+
+<!-- ============================================================ -->
+<h2 id="budget">Backend budget: built for the free Ampere box</h2>
+<p>Same rules as the recent cleanup work: side tables over fat rows, never patch <code>rooms</code> or <code>roomMembers</code> for something only a few screens need, no per-message timers, no new crons, and nothing that costs anything in rooms that don't use the feature. Every action below is counted against what the app does today.</p>
+<table>
+  <tr><th>Action</th><th>Extra reads</th><th>Extra writes</th><th>Notes</th></tr>
+  <tr><td><b>Anything in a normal room</b></td><td>0</td><td>0</td><td>Vanish code is gated on the client's flag; huddles reuse the call queries.</td></tr>
+  <tr><td>Turn vanish on / off</td><td>1</td><td>3</td><td>Room patch (once, rare) + system message + <code>vanishState</code> insert/delete. Plus the 24h cap job.</td></tr>
+  <tr><td>Send in a vanish room</td><td>0</td><td>0</td><td>Cheaper than a secret room (no per-message <code>runAt</code>).</td></tr>
+  <tr><td>Read, vanish DM</td><td>0</td><td>1 job</td><td>The cursor patch already happens; <code>vanishSeenAt</code> rides in the same patch. One burn job, only when the cursor actually moves past the other person's messages.</td></tr>
+  <tr><td>Read, vanish group, not the slowest</td><td>1</td><td>0</td><td>Reads <code>vanishState</code>, sees it's not the floor holder, stops.</td></tr>
+  <tr><td>Read, vanish group, slowest reader</td><td>1 range</td><td>1 + 1 job</td><td>One members range read, <code>vanishState</code> patch, one burn job.</td></tr>
+  <tr><td>Burn</td><td>1 range</td><td>k deletes</td><td>Deleting the messages is the feature; nothing else is written.</td></tr>
+  <tr><td>Idle vanish room</td><td>~1/day</td><td>~1 job/day</td><td>The 24h cap chain; it stops once vanish is off and nothing is left.</td></tr>
+  <tr><td>Start huddle</td><td>≤N+1</td><td>2</td><td>Call row + your participant row. <b>Fewer</b> than a ringing call: no invitee rows, no <code>callSignals</code>, no VoIP pushes. The N member reads only happen for the passive push, and only in rooms of 20 or fewer.</td></tr>
+  <tr><td>Join / leave huddle</td><td>0</td><td>same as a call</td><td>Existing group-call path.</td></tr>
+  <tr><td>End huddle</td><td>0</td><td>0–1</td><td>One history message only if someone joined. The push withdrawal is outbound HTTP only. The 3-minute alone timeout is one job, scheduled only when you're left alone.</td></tr>
+  <tr><td>Answer the hidden-seen card</td><td>0</td><td>1, once</td><td>One field on your own <code>roomMembers</code> row; <code>markRoomRead</code> already loads it, so it's enforced for free.</td></tr>
+  <tr><td>Secret room, after-seen timer</td><td colspan="2">same as vanish mode</td><td>After-sent stays exactly as today.</td></tr>
+  <tr><td>New room sheet</td><td>0</td><td>same as today</td><td>Adding people at creation uses the existing invite mutation, batched into the create call.</td></tr>
+  <tr><td>Dock, gesture, haptics, screenshot block, sealed bubbles</td><td>0</td><td>0</td><td>All client-side.</td></tr>
+</table>
+<p><b>Rejected because they're too heavy:</b> per-message "seen by" rows (O(messages × members) writes); a <code>vanish</code> flag copied onto every <code>roomMembers</code> row (a toggle would rebuild every member's read state); a per-person huddle cooldown table; a global sweep cron for vanish rooms; a <code>rooms.activeHuddle</code> field (two room-wide fan-outs per huddle when the call index already answers it).</p>
+
+<!-- ============================================================ -->
+<h2 id="sheet">The new room sheet, redesigned</h2>
+<p>Today's sheet is a form: Name, Description, Visibility, Type, Message life, Password, all always visible. The redesign is <b>one living card you shape</b>: a preview of the room at the top reacts to every choice. Four short sections. For messages there are just two kinds of room:</p>
+<div class="grid2">
+  <div class="card"><span class="tag n">Regular room</span><p style="margin:.4em 0 0">Messages stay.</p></div>
+  <div class="card" style="border-color:#3b3380"><span class="tag v">Secret room</span><p style="margin:.4em 0 0">Messages always disappear and screenshots are always blocked. <b>Once secret, always secret.</b> You choose when messages go: <b>after seen</b> (10s · 1m · 1h) or <b>after sent</b> (10s · 30s · 1m · 5m · 1h). After-seen messages follow the same 24-hour rule as everything else.</p></div>
+</div>
+
+<div class="proto">
+  <div class="phone">
+    <div class="screen" id="rsScr" style="cursor:default">
+      <div class="rs-dim"></div>
+      <div class="rs" id="rs">
+        <div class="rs-grab"></div>
+        <div class="rs-top">
+          <button class="rs-x" id="rsX" aria-label="Close"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path class="xs1" d="M6 6 L18 18"/><path class="xs2" d="M18 6 L6 18"/></svg></button>
+          <div class="rs-title">New room</div>
+        </div>
+        <div class="rs-body" id="rsBody">
+          <div class="rs-card" id="rsCard">
+            <div class="rs-av" id="rsAv">🐒</div>
+            <div class="rs-meta"><div class="rs-nm" id="rsNm">Untitled room</div><div class="rs-sub" id="rsSub"></div></div>
+            <div class="rs-stack" id="rsStack"></div>
+            <div class="rs-badge" id="rsBadge">SECRET</div>
+          </div>
+          <div class="rs-sec"><div class="rs-lbl">Name</div>
+            <div class="rs-name"><button class="rs-emo" id="rsEmoji" title="Tap for another">🐒</button><input id="rsInput" placeholder="Name it something honest" maxlength="32" autocomplete="off"></div>
+          </div>
+          <div class="rs-sec"><div class="rs-lbl">People <span id="rsCount">only you so far</span></div>
+            <div class="rs-people" id="rsPeople"></div>
+          </div>
+          <div class="rs-sec"><div class="rs-lbl">Room</div>
+            <div class="rs-seg rs-seg2" id="rsLife"><div class="rs-ind"></div>
+              <button data-v="regular"><svg viewBox="0 0 24 24"><circle class="lg-c" cx="12" cy="12" r="7"/><path class="lg-lock" d="M9 11 V9 a3 3 0 0 1 6 0 V11"/></svg>Regular</button>
+              <button data-v="secret"><svg viewBox="0 0 24 24"><circle class="lg-c" cx="12" cy="12" r="7"/><path class="lg-lock" d="M9 11 V9 a3 3 0 0 1 6 0 V11"/></svg>Secret</button>
+            </div>
+            <div class="rs-desc" id="rsDesc"></div>
+            <div class="rs-clock" id="rsClock">
+              <div class="rs-seg rs-seg2" id="rsWhen"><div class="rs-ind"></div><button data-v="seen">After seen</button><button data-v="sent">After sent</button></div>
+              <div class="rs-ruler" id="rsRuler"><div class="rs-ticks" id="rsTicks"></div><div class="rs-knob" id="rsKnob"><span id="rsVal">10s</span></div></div>
+              <div class="rs-cap" id="rsCap"></div>
+            </div>
+          </div>
+          <div class="rs-sec"><div class="rs-lbl">Who can find it</div>
+            <div class="rs-seg rs-seg2" id="rsAccess"><div class="rs-ind"></div><button data-v="private">Invite only</button><button data-v="public">Findable</button></div>
+            <div class="rs-pw" id="rsPw"><span>Lock with a password</span><div class="rs-sw" id="rsSw"><i></i></div></div>
+            <input class="rs-pwin" id="rsPwIn" placeholder="Passphrase" type="password">
+          </div>
+          <div class="rs-more" id="rsMore">+ Add a description</div>
+          <input class="rs-pwin" id="rsDescIn" placeholder="One line about the room">
+        </div>
+        <button class="rs-go" id="rsGo">Open the room</button>
+      </div>
+      <div class="rs-done" id="rsDone"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h3 style="margin-top:0">What to look at</h3>
+    <ul class="howto">
+      <li><b>Type a name</b> and tap the emoji: the card updates live, and the emoji pops with a squash-and-stretch kick.</li>
+      <li><b>Tap people</b>: each one bounces into the card's avatar stack, and the count reads "you + 2".</li>
+      <li><b>Regular → Secret</b>: the indicator glides, the ring turns dotted and a padlock drops in, and the card goes deep violet with a SECRET badge.</li>
+      <li><b>The timer ruler</b> (secret only): drag it. It snaps with haptic detents.</li>
+      <li><b>Open the room</b>: the card squashes, bounces, and flies up to become the room as the sheet falls away.</li>
+    </ul>
+  </div>
+</div>
+
+<h3>The four sections</h3>
+<table>
+  <tr><th>Section</th><th>Was</th><th>Now</th></tr>
+  <tr><td><b>Name</b></td><td>Name + a separate description field</td><td>Emoji avatar + name on one line. The description hides behind "+ Add a description".</td></tr>
+  <tr><td><b>People</b></td><td>Not in the sheet</td><td>Recent friends as avatar chips, plus search. Optional. Reuses the existing invite picker.</td></tr>
+  <tr><td><b>Room</b></td><td>Standard / Ephemeral + lifetime row</td><td><b>Regular / Secret</b>. The timer appears only for Secret: after seen or after sent.</td></tr>
+  <tr><td><b>Who can find it</b></td><td>Public / Private + always-visible password</td><td>Invite only / Findable. The password is a switch that grows its field in.</td></tr>
+</table>
+<p>One shared component, <code>MessageLifePicker</code>, renders the secret timer here, in a secret room's info screen (where only the timer can change, never back to regular) and in the DM request draft.</p>
+
+<!-- ============================================================ -->
+<h2 id="motion">Motion: Telegram and Duolingo energy</h2>
+<p>Our current chat-chrome rules (<code>docs/design/chat-chrome-language.md</code>) are deliberately quiet: small "kicks" that go out and home, no colour flashes, no loops. That's right for buttons you tap a hundred times a day. But you want impact, so I propose <b>two layers</b>:</p>
+<div class="grid2">
+  <div class="card"><span class="tag n">Chrome: stays crisp</span><p>Buttons, pills, the dock, headers. Fast spring presses and glyph kicks, as today. Things you touch constantly shouldn't perform every time.</p></div>
+  <div class="card" style="border-color:#3d5a4b"><span class="tag t">Moments: go big</span><p>Rare, meaningful events get full motion graphics: particles, squash and stretch, overshoot, colour waves, a beat of celebration, always synced with haptics.</p></div>
+</div>
+<table>
+  <tr><th>Moment</th><th>Motion</th><th>Reference</th></tr>
+  <tr><td><b>A vanish message disappears</b></td><td>The existing delete effect (<code>DustDissolve</code>): the bubble breaks into dust and blows away, exactly like deleting a message. Try a rough stand-in: turn vanish on and send one.</td><td>Telegram's delete (already ours)</td></tr>
+  <tr><td><b>Vanish mode turns on</b></td><td>The violet wave sweeps out from your finger, then a ring of dots bursts from the orb.</td><td>Telegram theme switch</td></tr>
+  <tr><td><b>Huddle starts</b></td><td>The orb squashes as it lands and stretches into the huddle bar, and sound rings pulse out twice.</td><td>Duolingo button land</td></tr>
+  <tr><td><b>Fork blooms</b></td><td>Chips spring out with elastic overshoot and a little stretch along their path.</td><td>Telegram reactions</td></tr>
+  <tr><td><b>Room created</b></td><td>The preview card squashes, bounces and flies up to become the room.</td><td>Telegram hero flight</td></tr>
+  <tr><td><b>Counts</b></td><td>Digits roll instead of swapping.</td><td>Telegram counters</td></tr>
+</table>
+<p><b>Guardrails that don't move:</b> 60fps on the low-end Android in profile mode; never animate a blur; Reduce Motion and low power get short crossfades; moment animations never block input (you can keep typing while they play); one moment at a time.</p>
+<p><b>Decided:</b> a "Moments" section goes into <code>chat-chrome-language.md</code> as part of this work, so future features use the same vocabulary.</p>
+
+<!-- ============================================================ -->
+<h2 id="reuse">Reuse map: build on what we have, refactor where two things do one job</h2>
+<p>Nearly every piece of this feature already exists in some form. The rule: <b>reuse it as-is, extend it with a parameter, or merge two siblings into one</b>. No second copy of anything.</p>
+<h3>The vanish exit is the delete effect</h3>
+<ul>
+  <li>A vanishing message leaves through <b><code>DustDissolve</code></b>, the same Telegram-style dust as deleting a message. The prototype's dust above is only a rough stand-in.</li>
+  <li><b>The trigger already exists.</b> A burn is a server-side delete, and <code>ChatRepository.serverRemovals</code> already turns rows the server stopped sending into dust through <code>MessageDeletions</code>. Burned messages get the delete effect without new wiring: only rows on screen dissolve, and scrolled-away ones just go.</li>
+  <li><b>Refactor:</b> <code>MessageDeletions</code> (delete → <code>DustDissolve</code>) and <code>MessageDepartures</code> (secret-room expiry → <code>DepartingRow</code>) are siblings doing the same job: hold the row, splice it back into the list, play the exit, close its height, then drop it. That's about 800 lines across two ledgers. Merge them into one <b><code>MessageExits</code></b> ledger keyed by reason. Deleted and vanished use <code>DustDissolve</code>; a secret room keeps its own <code>DepartingRow</code> exit. One lifecycle, one set of tests.</li>
+  <li>All of it already draws through the shared particle core, <code>widgets/dust/dust_kit.dart</code> (<code>DustAtlas</code>, sine table, sprite). Nothing new is added there.</li>
+</ul>
+<table>
+  <tr><th>Need</th><th>Reuse</th><th>Change</th></tr>
+  <tr><td>10-second ring on a bubble</td><td>The ring in <code>hold_ring_button.dart</code></td><td>Extract one <code>ProgressRing</code>, shared by the hold-to-send ring, the vanish ring and the huddle bar.</td></tr>
+  <tr><td>Continuous haptics</td><td><code>HapticRamp</code></td><td>Add a two-way mode + an intensity hook. The send button keeps working unchanged.</td></tr>
+  <tr><td>Screenshot blocking</td><td><code>CaptureProtection</code> scopes</td><td>None: vanish rooms push a scope like secret rooms and view once.</td></tr>
+  <tr><td>Sealed bubbles on web/Linux</td><td><code>app_only.dart</code> view-once sealed panel</td><td>Generalize to "sealed message" for view once + vanish.</td></tr>
+  <tr><td>Hidden push previews</td><td>The secret-room path in <code>message_alerts.dart</code></td><td>One "private preview" flag that both set.</td></tr>
+  <tr><td>No copy/forward</td><td><code>SOURCE_IS_EPHEMERAL</code> guard</td><td>Covers vanishing messages too.</td></tr>
+  <tr><td>Message timer picker</td><td>Three copies today: the create sheet's <code>_ttls</code>, room info, the DM request draft</td><td>One <code>MessageLifePicker</code> replaces all three.</td></tr>
+  <tr><td>Huddle</td><td>Group call stack, call screen, ring picker, <code>activeForRoom</code> / <code>liveInMyRooms</code></td><td>A <code>kind</code> on the call; no new queries.</td></tr>
+  <tr><td>Dock</td><td><code>MeasureChatBottomInset</code>, existing pill and card widgets</td><td>Move them into <code>ChatDock</code> lanes, unchanged visually.</td></tr>
+  <tr><td>Room sheet</td><td><code>LiquidGlass</code>, <code>GlassReveal</code>, <code>SpringPress</code>, <code>KickGlyph</code>, <code>SlideSwap</code>, <code>CountBump</code>, <code>DrawnCloseGlyph</code>, the invite picker</td><td>Compose them; nothing per-screen.</td></tr>
+  <tr><td>Backend deletes</td><td>Message deletion core, <code>revokeMessagePushes</code>, deletion plans, the daily retention run, the <code>markRoomRead</code> cursor patch</td><td>Burns and deadline jobs call the same delete core; the backstop is one range in the existing daily run.</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="spec">Gesture spec</h2>
+<div class="timeline">
+  <div class="step"><div class="n">0 · ARM</div><b>Drag starts at the bottom</b><p>The list must already be at the newest message when the finger goes down. A fling that arrives at the bottom never triggers it.</p></div>
+  <div class="step"><div class="n">1 · PULL</div><b>0 → 96pt</b><p>Orb rises, 1:1 with a rubber band. Ring fills. The dock fades and drops 12pt. Plain scrim, no blur.</p></div>
+  <div class="step"><div class="n">2 · FORK</div><b>Cross 96pt</b><p><code>selectionClick</code>. The arrow morphs into a fork. Chips bloom out of the orb with a spring.</p></div>
+  <div class="step"><div class="n">3 · CHOOSE</div><b>Slide ±40pt</b><p>Arm at 40, disarm under 22. <code>lightImpact</code> on arm. Orb leans, tether drawn.</p></div>
+  <div class="step"><div class="n">4 · RELEASE</div><b>Commit or cancel</b><p>Armed: <code>mediumImpact</code> + commit flight. Otherwise, or under 72pt: calm collapse.</p></div>
+</div>
+<table>
+  <tr><th>Parameter</th><th>Value</th><th>Why</th></tr>
+  <tr><td><b>Fork / un-fork</b></td><td>96pt / 72pt</td><td>24pt of hysteresis so a shaky thumb doesn't bloom and unbloom.</td></tr>
+  <tr><td><b>Arm / disarm</b></td><td>|dx| ≥ 40 / &lt; 22 from the thumb's position at bloom</td><td>The middle is the cancel target. Measured from the thumb, so the right edge works.</td></tr>
+  <tr><td><b>Placement</b></td><td>Orb and chips are centered on screen, chips ±92pt</td><td>Never clipped at the edges, never overlapping.</td></tr>
+  <tr><td><b>Flick</b></td><td>&gt;600pt/s sideways past the line arms that side on release</td><td>Fast users don't need to stop and aim.</td></tr>
+  <tr><td><b>Springs</b></td><td>Bloom 420/26, commit 300/30, cancel 520/40</td><td>Bloom feels alive, cancel feels calm.</td></tr>
+  <tr><td><b>Reduce Motion</b></td><td>Crossfades, no tether, 150ms commit</td><td></td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="haptics">Haptics: a continuous, two-way ramp</h2>
+<p>As in Instagram, the vibration is part of the gesture itself, not a few separate clicks. It's a stream of ticks laid along the pull: sparse and soft at the start, closer and firmer toward the line. <b>Pull back and it fades the same way</b>: each detent you cross on the way down plays at its own (lower) strength, so retreating feels like the tension letting go. The sideways slide gets its own ramp toward each option. In the prototype, the meter under the readout shows every tick (and Android Chrome actually vibrates).</p>
+<div class="grid2">
+  <div class="card"><h3>The ramp</h3>
+    <table>
+      <tr><th>Phase</th><th>Ticks</th></tr>
+      <tr><td><b>Pull</b> 0 → 96pt</td><td>12 detents at <code>((i+1)/13)^0.6</code> of the way: gaps shrink from ~14pt to ~5pt, strength 0.15 → 0.75. Crossed in either direction; strength follows position, not direction.</td></tr>
+      <tr><td><b>Fork line</b></td><td>One distinct <b>notch</b> (rigid, 0.9). It feels like a click into place.</td></tr>
+      <tr><td><b>Slide</b> 0 → 40pt</td><td>6 detents toward the side you're moving, 0.2 → 0.7. Crossing the middle resets them, so switching sides ramps the new side from zero.</td></tr>
+      <tr><td><b>Armed</b></td><td>Firm tick (0.85). Disarming plays a soft one (0.3).</td></tr>
+      <tr><td><b>Commit / cancel</b></td><td>Commit: medium impact. Cancel: a single soft tick. Silence after both.</td></tr>
+    </table>
+    <p>At most one tick per frame: if a fast flick crosses three detents in one frame, it plays the strongest once. The ramp runs off the same value that draws the ring, so the two can never get out of step, and letting go stops it instantly.</p>
+  </div>
+  <div class="card"><h3>How it's played</h3>
+    <ul>
+      <li><b>Not plain <code>HapticFeedback</code>.</b> That has only 4 fixed strengths, which is why <code>HapticRamp</code> steps selection → light → medium. A smooth ramp needs <em>intensity</em>, so we add <code>tick(intensity)</code> to the existing <code>monkeyhub/haptics</code> channel.</li>
+      <li><b>iOS:</b> <code>UIImpactFeedbackGenerator(.light).impactOccurred(intensity:)</code>, <code>.prepare()</code>d on touch-down so the first tick has no lag. The notch uses <code>.rigid</code>.</li>
+      <li><b>Android 11+ with primitives:</b> <code>VibrationEffect.Composition</code> <code>PRIMITIVE_LOW_TICK</code> / <code>TICK</code> with a scale, the crisp Pixel/Samsung-flagship feel.</li>
+      <li><b>Android with amplitude control:</b> 8ms one-shots with amplitude = intensity.</li>
+      <li><b>Generalize, don't fork:</b> <code>HapticRamp</code> gains a two-way mode and an intensity callback; the send button's hold ring keeps working as it does today.</li>
+    </ul>
+  </div>
+</div>
+<h3>Guards</h3>
+<table>
+  <tr><th>Condition</th><th>What changes</th><th>Why</th></tr>
+  <tr><td><b>Low power</b> (<code>LowPowerMode.active</code>: iOS Low Power, Battery Saver, or ≤20% and not charging)</td><td><b>Landmarks only:</b> fork notch, arm, commit. No continuous ramp.</td><td>The app already goes calm in these modes (motion off). The vibration motor is one of the hungrier parts of a phone, and the user asked the phone to save power. Landmarks keep the gesture readable.</td></tr>
+  <tr><td><b>Cheap vibration motor</b> (Android without <code>hasAmplitudeControl()</code>)</td><td>Landmarks only.</td><td>These motors can't do short, light ticks; a fast ramp turns into a mushy buzz that feels broken. Better 3 clean bumps than a rattle.</td></tr>
+  <tr><td><b>Amplitude but no primitives</b></td><td>Ramp thinned to 6 detents, ≥40ms apart.</td><td>One-shots below ~40ms apart blur on mid-range motors.</td></tr>
+  <tr><td><b>User turned off touch feedback</b> (Android <code>HAPTIC_FEEDBACK_ENABLED</code> = 0)</td><td>Silent.</td><td>Calling <code>Vibrator</code> directly <em>bypasses</em> that setting (<code>performHapticFeedback</code> respects it, raw vibrations don't), so we check it ourselves. iOS "System Haptics" off already silences the generator.</td></tr>
+  <tr><td><b>In a call</b> (only vanish is offered then)</td><td>Landmarks only.</td><td>On many Androids the motor's buzz leaks into the microphone.</td></tr>
+  <tr><td><b>Janky frames</b></td><td>Nothing extra: one tick per frame, driven by progress.</td><td>A slow phone gets fewer ticks, never a burst of catch-up ticks.</td></tr>
+  <tr><td>User's own choice</td><td>An explicit "Full motion" setting does <b>not</b> force the ramp under low power.</td><td>Motion and power are different promises; haptics follow the power one.</td></tr>
+</table>
+<p>The tier is decided once per gesture at touch-down (one cached native query for the motor's capabilities at launch), so nothing is re-checked per tick.</p>
+
+<!-- ============================================================ -->
+<h2 id="edges">Edge cases</h2>
+<table>
+  <tr><th>Case</th><th>Behaviour</th></tr>
+  <tr><td>Keyboard up, context card open, recording, selection mode, mention picker open</td><td>Gesture off.</td></tr>
+  <tr><td>A new message arrives mid-pull</td><td>The list is pinned during the gesture; the message inserts after release.</td></tr>
+  <tr><td>Vanish turned on by someone else while you're mid-gesture</td><td>Options are captured at touch-down. Committing "Turn on" when it's already on is a no-op with a toast ("Already on"), never a second system line.</td></tr>
+  <tr><td>Commit fails (offline, call full)</td><td>The orb shakes once, the reason shows, then it collapses.</td></tr>
+  <tr><td>Someone turns vanish off while a 10s ring is draining</td><td>Messages already counting down still vanish (the promise was made when they were sent). New messages stay.</td></tr>
+  <tr><td>VoiceOver / TalkBack</td><td>The composer exposes "Start huddle" and "Turn on/off vanish mode" as custom actions.</td></tr>
+  <tr><td>Discoverability</td><td>The first 3 times you land at the bottom of a chat, a one-second chevron peeks above the composer. After you've used the gesture, never again.</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="build">Build and release: one update, everywhere</h2>
+<p>Agreed: it ships as one release on every platform, not in pieces. The build order inside that is about risk, not release: each step is built on the one before it and stays on <code>dev</code> until the whole set is done.</p>
+<div class="grid3">
+  <div class="card"><span class="tag w">1 · Foundations</span><h3>Things everything else stands on</h3>
+    <ul>
+      <li><code>ChatDock</code> (lanes, priorities, takeovers); the existing pills move in unchanged. The reply/scheduled bug dies here.</li>
+      <li>Two-way <code>HapticRamp</code> + <code>tick(intensity)</code> on the haptics channel, with the power/motor/call guards.</li>
+      <li><code>MessageLifePicker</code> + <code>DetentRuler</code>, shared by every surface; <code>MessageExits</code> merging deletions and departures; a shared <code>ProgressRing</code>.</li>
+    </ul></div>
+  <div class="card"><span class="tag v">2 · Backend</span><h3>Vanish + huddle, on the budget</h3>
+    <ul>
+      <li><code>vanishState</code>, <code>vanishSeenAt</code>, range burns, the 24h chain job, the per-chat "count my reads" field.</li>
+      <li>Secret rooms: <code>messageClock: "seen" | "sent"</code>.</li>
+      <li>Huddle kind on <code>groupCalls</code>, passive push + withdraw, alone timeout.</li>
+      <li>Tests for every row of the budget table (no extra reads in normal rooms is asserted, not assumed).</li>
+    </ul></div>
+  <div class="card"><span class="tag t">3 · Surfaces</span><h3>What people touch</h3>
+    <ul>
+      <li>Swipe fork, huddle bar/Join, vanish theming, rings, sealed bubbles, hidden previews, the hidden-seen card.</li>
+      <li>The new room sheet; room info and the DM draft on the shared picker.</li>
+      <li>Settings › Privacy › Seen switch. All 12 languages.</li>
+    </ul></div>
+</div>
+<h3>Release</h3>
+<ol>
+  <li><b>Backend first</b>, purely additive (new optional fields, new functions). Old builds keep working in normal rooms.</li>
+  <li><b>Raise the minimum supported version with this release.</b> An old build in a vanish room wouldn't block screenshots or hide previews, which breaks the promise. The store-driven update row already supports a forced minimum, and this matches the plan to make the next release a forced minimum anyway. Backend and app go out the same day, so the gap where an old build could sit in a vanish room is the hours before the forced update lands.</li>
+  <li><b>All platforms together</b>: iOS, Android, macOS, Windows, web, Linux. Web and Linux get sealed bubbles and the room-info toggle, but no gesture.</li>
+  <li>Before you upload: on-device pass in profile mode on a high-end and a low-end Android plus an iPhone (haptic tiers, dock collisions, burn timing), then the VoIP-style two-phone test for huddles.</li>
+</ol>
+<p><b>Tests:</b> controller thresholds and hysteresis; floor math (slowest reader, hider excluded, late joiner, leaver, old client); burn idempotency; 24h chain; huddle never writes a ring signal; 200-member push fan-out; goldens for the dock collision rows, the room sheet in every theme, and the fork states.</p>
+
+<!-- ============================================================ -->
+<h2 id="open">Open questions</h2>
+<p>None. Every decision is made; the plan is ready to build.</p>
+
+<p style="margin-top:60px;color:var(--ink3);font-size:13px">Grounded in: your recordings and screenshot; <code>capture_protection.dart</code>, <code>app_only.dart</code>, <code>chat_bottom_inset.dart</code>, <code>room_screen.dart</code> (composer column and floating pill stack), <code>scheduled_pill.dart</code>; backend <code>groupCalls.ts</code> (<code>inviteeIds</code>), <code>messages.ts</code> (<code>markRoomRead</code>, view-once burn, <code>expiresAt</code>), <code>schema.ts</code> (<code>roomMembers.lastReadAt</code>, <code>viewOnceViews.countsToward</code>).</p>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const scr=$('scr'),orb=$('orb'),arc=$('arc'),gpath=$('gpath'),scrim=$('scrim'),dock=$('dock'),hint=$('hint'),
+  chipV=$('chipV'),chipT=$('chipT'),tpath=$('tpath'),readout=$('readout'),msgs=$('msgs'),shelf=$('shelf'),ctxlane=$('ctxlane'),
+  floatL=$('floatL'),center=$('center'),fabSlot=$('fabSlot'),field=$('field'),toast=$('toast');
+const FORK=96,UNFORK=72,ARM=40,DISARM=22,SPREAD=104,CIRC=194.8;
+let room='dm',live='none',vanish=false,inHuddle=false,seenMode='all',sharesHere=false;
+const stack={sched:false,reply:false,scrolled:false,sync:false};
+const P={ARROW:'M12 19 L12 5 M6 11 L12 5 L18 11',FORK:'M12 21 L12 12 M5 4 L12 12 L19 4',CHECK:'M12 12 L12 12 M5 12 L10 17 L19 7'};
+const ICON={
+ talk:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg>',
+ vanish:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="2.5 3.2"><circle cx="12" cy="12" r="8"/></svg>',
+ vanishOff:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M8 12h8"/></svg>'
+};
+function canEdit(){return room==='dm'||room==='group';}
+function options(){
+  const L=(room==='secret'||!canEdit())?null:
+    (vanish?{k:'v',lb:'Turn off',sl:'Messages stay',ic:ICON.vanishOff}:{k:'v',lb:'Vanish',sl:'Gone 10s after seen',ic:ICON.vanish});
+  const R=inHuddle?null:(live==='others'?{k:'t',lb:'Join',sl:'Alp, Burak talking',ic:ICON.talk}:{k:'t',lb:'Talk',sl:'Nobody gets rung',ic:ICON.talk});
+  return {L,R};
+}
+function placeholder(){field.textContent=vanish?'Vanishing message · keep it short':'Message';}
+
+/* ---------- dock rendering ---------- */
+function renderDock(){
+  shelf.innerHTML='';ctxlane.innerHTML='';center.innerHTML='';fabSlot.innerHTML='';
+  if(inHuddle){
+    const h=document.createElement('div');h.className='hbar';
+    h.innerHTML='<div class="m">🎙</div><div class="mid"><b><span class="wave"><i></i><i></i><i></i><i></i></span> Huddle</b>'+(live==='others'?'Alp and Burak are here':'Nobody else here yet')+'</div><div class="x" id="hleave">✕</div>';
+    shelf.appendChild(h);
+    h.querySelector('#hleave').addEventListener('pointerdown',e=>{e.stopPropagation();leaveHuddle();});
+  } else if(live==='others'){
+    const j=document.createElement('div');j.className='join';
+    j.innerHTML='<div class="st"><span style="background:linear-gradient(135deg,#ffcf6b,#ff7a59)"></span><span style="background:linear-gradient(135deg,#7fd3ff,#3a7bd5)"></span></div><div class="j">🔊 Join</div>';
+    shelf.appendChild(j);
+  }
+  if(stack.sched){
+    const s=document.createElement('div');
+    const crowded=shelf.children.length>0;
+    s.className='spill'+(crowded?' compact':'');
+    s.innerHTML=crowded?'🕓<span class="n">2</span>':'🕓 2 scheduled · tomorrow 09:00 ›';
+    shelf.appendChild(s);
+  }
+  if(stack.reply){
+    const c=document.createElement('div');c.className='ctx';
+    c.innerHTML='<div><b>Replying to '+(room==='dm'?'Zeynep':'Alp')+'</b><span>'+(room==='dm'?'gelir misin?':'var mısınız')+'</span></div><span class="cx">✕</span>';
+    ctxlane.appendChild(c);
+  }
+  if(stack.sync){const s=document.createElement('div');s.className='sync';s.textContent='Updating…';center.appendChild(s);}
+  if(stack.scrolled){const f=document.createElement('div');f.className='fab';f.innerHTML='⌄<span class="badge">3</span>';fabSlot.appendChild(f);}
+  requestAnimationFrame(layout);
+}
+function layout(){
+  const h=dock.offsetHeight;
+  msgs.style.bottom=(h+4)+'px';
+  floatL.style.bottom=(h+8)+'px';
+}
+
+function seed(){
+  const dm=room==='dm';
+  $('hname').textContent=dm?'Zeynep':(room==='secret'?'Night owls':'Didimke');
+  $('hsub').textContent=dm?'online':(room==='secret'?'secret · 30s':'Alp, Burak, You');
+  $('hav').className='av'+(dm?'':' g');
+  msgs.innerHTML='';
+  const rows=dm?[['i','reels izleme etkinliği var pazar 🎬'],['i','gelir misin?'],['o','olabilir, saat kaçta'],['i','14:00'],['o','tamam bakarım']]
+    :[['i','eğer ikiniz de gelecekseniz görüntülü yapıcaz','Alp'],['i','var mısınız','Alp'],['i','Evett','Burak'],['o','Bi daha yapsana'],['o','Çok hızlı oldu']];
+  rows.forEach(r=>addBubble(r[0],r[1],r[2]));
+  placeholder();renderDock();
+}
+function addBubble(side,text,name,cls){
+  const d=document.createElement('div');d.className='b'+(side==='o'?' o':'')+(cls?' '+cls:'');
+  d.innerHTML=(name?'<span class="nm">'+name+'</span>':'')+'<span class="tx">'+text+'</span><small>11:5'+(Math.random()*9|0)+(side==='o'?' <span class="rc">✓✓</span>':'')+'</small>';
+  msgs.appendChild(d);trim();return d;
+}
+function addSys(html){const d=document.createElement('div');d.className='sys';d.innerHTML=html;msgs.appendChild(d);trim();}
+function trim(){while(msgs.children.length>9)msgs.removeChild(msgs.firstChild);}
+function showToast(t){toast.textContent=t;toast.style.opacity=1;clearTimeout(showToast._t);showToast._t=setTimeout(()=>toast.style.opacity=0,1600);}
+
+/* send a vanish message: delivered → seen by everyone → 10s ring → dissolve */
+const SAMPLES=['ok see you there','pazar 14:00 👍','geliyorum','haha tamam'];
+function sendSample(){
+  const d=addBubble('o',SAMPLES[Math.random()*SAMPLES.length|0],null,vanish?'vm':'');
+  if(!vanish)return;
+  const rc=d.querySelector('.rc');rc.textContent='✓';
+  const counting=seenMode==='all'||(seenMode==='me'&&sharesHere);
+  if(!counting){setTimeout(()=>{rc.textContent='🕓 24h';},900);return;}
+  setTimeout(()=>{
+    rc.textContent='seen by everyone';
+    const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 16 16');s.classList.add('cd');
+    s.innerHTML='<circle cx="8" cy="8" r="6" fill="none" stroke="rgba(139,124,255,.25)" stroke-width="2"/><circle cx="8" cy="8" r="6" fill="none" stroke="#8b7cff" stroke-width="2" stroke-dasharray="37.7" stroke-dashoffset="0" transform="rotate(-90 8 8)" style="transition:stroke-dashoffset 10s linear"/>';
+    d.appendChild(s);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>s.lastChild.style.strokeDashoffset='37.7'));
+    setTimeout(()=>dust(d),10000);
+  },1400);
+}
+
+/* ---------- haptics: two-way ramp ---------- */
+const hmeter=$('hmeter');let hapMode='full',pullIdx=0,slideIdx=0,slideSign=0,lastTickFrame=-1;
+const PULL_N=12,SLIDE_N=6;
+const pullMarks=[...Array(PULL_N)].map((_,i)=>Math.pow((i+1)/(PULL_N+1),0.6));
+function tick(intensity,kind){
+  const f=Math.floor(performance.now()/16.7);
+  if(kind!=='notch'&&kind!=='arm'&&kind!=='commit'&&f===lastTickFrame)return; // one ramp tick per frame
+  lastTickFrame=f;
+  const s=document.createElement('span');s.className=kind||'';s.style.height=Math.max(8,intensity*100)+'%';
+  hmeter.appendChild(s);while(hmeter.children.length>48)hmeter.removeChild(hmeter.firstChild);
+  try{navigator.vibrate&&navigator.vibrate(Math.round(4+intensity*16));}catch(_){}
+}
+function rampPull(p){
+  let idx=0;while(idx<PULL_N&&p>=pullMarks[idx])idx++;
+  if(idx===pullIdx)return;
+  const up=idx>pullIdx;pullIdx=idx;
+  if(hapMode!=='full')return;
+  const pos=up?idx:idx+1; // strength follows the detent crossed, either direction
+  tick(0.15+0.6*(pos/PULL_N),up?'':'down');
+}
+function rampSlide(dx){
+  const sign=Math.sign(dx),t=Math.min(1,Math.abs(dx)/ARM);
+  if(sign!==slideSign){slideSign=sign;slideIdx=0;}
+  const idx=Math.floor(t*SLIDE_N+1e-6);
+  if(idx===slideIdx)return;
+  const up=idx>slideIdx;slideIdx=idx;
+  if(hapMode!=='full'||idx>=SLIDE_N)return; // the arm tick owns the end
+  tick(0.2+0.5*((up?idx:idx+1)/SLIDE_N),up?'':'down');
+}
+
+/* ---------- gesture ---------- */
+let st='idle',sx=0,sy=0,bx=0,armed=null,lastX=0,lastT=0,vx=0,opts=null,cur={x:0,y:0};
+const rect=()=>scr.getBoundingClientRect();
+const rubber=d=>d<=0?0:(d<FORK?d:FORK+(d-FORK)*0.35);
+
+scr.addEventListener('pointerdown',e=>{
+  if(st!=='idle')return;
+  if(e.target.closest('#field')){sendSample();return;}
+  if(e.target.closest('.dock .spill,.ctx .cx,.join,.inl')){return;}
+  if(stack.scrolled){showToast('Not at the newest message: swipe disabled');return;}
+  if(stack.reply){showToast('Reply card open: swipe disabled');return;}
+  opts=options();
+  if(!opts.L&&!opts.R){showToast('No swipe-up actions here');return;}
+  try{scr.setPointerCapture(e.pointerId);}catch(_){}
+  const r=rect();sx=e.clientX-r.left;sy=e.clientY-r.top;lastX=sx;lastT=performance.now();vx=0;
+  st='pull';armed=null;pullIdx=0;slideIdx=0;slideSign=0;orb.style.transition='none';prepChips();update(sx,sy);
+});
+scr.addEventListener('pointermove',e=>{
+  if(st==='idle'||st==='anim')return;
+  const r=rect();const x=e.clientX-r.left,y=e.clientY-r.top;
+  const t=performance.now();const dt=Math.max(1,t-lastT);vx=0.8*vx+0.2*((x-lastX)/dt*1000);lastX=x;lastT=t;
+  update(x,y);
+});
+scr.addEventListener('pointerup',()=>{
+  if(st==='idle'||st==='anim')return;
+  const single=!(opts.L&&opts.R);let pick=armed;
+  if(st==='fork'&&!pick&&!single&&Math.abs(vx)>600)pick=vx<0?'L':'R';
+  if(st==='fork'&&single)pick=opts.L?'L':'R';
+  pick?commit(pick):cancel();
+});
+scr.addEventListener('pointercancel',()=>{if(st!=='idle'&&st!=='anim')cancel();});
+
+function prepChips(){
+  [[chipV,opts.L,'V'],[chipT,opts.R,'T']].forEach(([c,o,s])=>{
+    c.style.display=o?'block':'none';
+    if(o){$('lb'+s).textContent=o.lb;$('sl'+s).textContent=o.sl;$('ic'+s).innerHTML=o.ic;}
+    c.classList.remove('on','dim');c.style.transition='none';c.style.opacity=0;
+  });
+  tpath.setAttribute('d','');
+}
+function update(x,y){
+  const W=scr.clientWidth,H=scr.clientHeight,dy=sy-y,d=rubber(dy),p=Math.min(1,Math.max(0,dy)/FORK);
+  const single=!(opts.L&&opts.R),baseY=H-58;
+  if(st==='pull'&&dy>=FORK){
+    st='fork';bx=x;tick(0.9,'notch');
+    orb.classList.remove('pulse');void orb.offsetWidth;orb.classList.add('pulse');
+    gpath.setAttribute('d',single?P.ARROW:P.FORK);bloom(true,W);
+  } else if(st==='fork'&&dy<UNFORK){
+    st='pull';gpath.setAttribute('d',P.ARROW);bloom(false,W);setArm(null);
+  }
+  rampPull(p);
+  let ox=W/2;
+  if(st==='fork'&&!single){
+    const dx=x-bx;
+    rampSlide(dx);
+    if(!armed&&Math.abs(dx)>=ARM)setArm(dx<0?'L':'R');
+    else if(armed&&Math.abs(dx)<DISARM)setArm(null);
+    else if(armed==='L'&&dx>=ARM)setArm('R');
+    else if(armed==='R'&&dx<=-ARM)setArm('L');
+    ox=W/2+Math.max(-SPREAD,Math.min(SPREAD,dx))*0.35;
+  }
+  const oy=baseY-d;cur={x:ox,y:oy};
+  orb.style.opacity=Math.min(1,p*2.2);
+  orb.style.transform=`translate(${ox}px,${oy}px) scale(${0.55+0.45*p})`;
+  arc.setAttribute('stroke-dashoffset',CIRC*(1-p));
+  arc.setAttribute('stroke',p>=1&&single?(opts.R?'#34d27b':'#8b7cff'):'#fff');
+  scrim.style.opacity=0.45*p;
+  dock.style.opacity=1-p;dock.style.transform=`translateY(${12*p}px)`;floatL.style.opacity=1-p;
+  msgs.style.transition='bottom .3s';msgs.style.transform=`translateY(${-Math.min(d,FORK)*0.25}px)`;
+  setHint(p,single);drawTether();
+  readout.textContent=
+`state   ${st}${armed?' · armed '+(armed==='L'?'LEFT ('+opts.L.lb+')':'RIGHT ('+opts.R.lb+')'):''}
+pull    ${Math.max(0,dy).toFixed(0)}pt / fork ${FORK}, unfork ${UNFORK}
+dx      ${st==='fork'?(x-bx).toFixed(0)+'pt  arm ±'+ARM+' / disarm ±'+DISARM:'n/a'}
+options ${opts.L?opts.L.lb:'none'}  |  ${opts.R?opts.R.lb:'none'}${single?'  (single pull)':''}`;
+}
+function setHint(p,single){
+  if(p<0.05){hint.style.opacity=0;return;}
+  hint.style.opacity=1;
+  const vlabel=vanish?'turn off vanish mode':'turn on vanish mode';
+  if(st==='pull')hint.innerHTML='Swipe up<span class="sub">'+(single?(opts.R?'to '+opts.R.lb.toLowerCase():'to '+vlabel):'to talk or vanish')+'</span>';
+  else if(single)hint.innerHTML='Release to '+(opts.R?opts.R.lb.toLowerCase():vlabel)+'<span class="sub">drag down to cancel</span>';
+  else if(!armed)hint.innerHTML='Slide to choose<span class="sub">let go here to cancel</span>';
+  else hint.innerHTML='Release to '+(armed==='L'?vlabel:opts.R.lb.toLowerCase())+'<span class="sub">slide back to cancel</span>';
+}
+function bloom(on,W){
+  const single=!(opts.L&&opts.R);
+  if(single){orb.classList.toggle(opts.R?'armT':'armV',on);return;}
+  const cy=scr.clientHeight-58-FORK-150;
+  [[chipV,W/2-92,0],[chipT,W/2+92,40]].forEach(([c,cx,delay])=>{
+    if(on){
+      c.style.transition='none';c.style.transform=`translate(${W/2}px,${cy+60}px) scale(.3)`;c.style.opacity=0;void c.offsetWidth;
+      c.style.transition=`transform .5s cubic-bezier(.25,1.55,.45,1) ${delay}ms, opacity .2s ${delay}ms`;
+      c.style.transform=`translate(${cx}px,${cy}px) scale(1)`;c.style.opacity=1;
+    } else {
+      c.style.transition='transform .25s cubic-bezier(.4,0,.2,1), opacity .15s';
+      c.style.transform=`translate(${W/2}px,${cy+60}px) scale(.3)`;c.style.opacity=0;
+    }
+    c.dataset.cx=cx;c.dataset.cy=cy;
+  });
+}
+function setArm(a){
+  if(a===armed)return;
+  if(a)tick(0.85,'arm');else if(armed&&st==='fork')tick(0.3,'down');
+  armed=a;
+  chipV.classList.toggle('on',a==='L');chipT.classList.toggle('on',a==='R');
+  chipV.classList.toggle('dim',a==='R');chipT.classList.toggle('dim',a==='L');
+  orb.classList.toggle('armT',a==='R');orb.classList.toggle('armV',a==='L');
+  if(a){orb.classList.remove('pulse');void orb.offsetWidth;orb.classList.add('pulse');}
+}
+function drawTether(){
+  if(st!=='fork'||!armed){tpath.setAttribute('d','');return;}
+  const c=armed==='L'?chipV:chipT,cx=+c.dataset.cx,cy=+c.dataset.cy+40;
+  tpath.setAttribute('d',`M${cur.x} ${cur.y-30} Q${(cur.x+cx)/2} ${Math.min(cur.y,cy)-30} ${cx} ${cy}`);
+  tpath.style.stroke=armed==='L'?'#8b7cff':'#34d27b';
+}
+function resetChrome(ms){
+  scrim.style.transition=dock.style.transition=floatL.style.transition=`opacity ${ms}ms, transform ${ms}ms, bottom .3s`;
+  msgs.style.transition='transform .45s cubic-bezier(.2,.9,.25,1), bottom .3s';msgs.style.transform='';
+  scrim.style.opacity=0;dock.style.opacity=1;dock.style.transform='';floatL.style.opacity=1;hint.style.opacity=0;
+  [chipV,chipT].forEach(c=>{c.style.transition='opacity .18s';c.style.opacity=0;});
+  tpath.setAttribute('d','');
+  setTimeout(()=>{orb.className='orb';gpath.setAttribute('d',P.ARROW);st='idle';},ms+20);
+}
+function cancel(){
+  tick(0.25,'down');
+  st='anim';
+  orb.style.transition='transform .32s cubic-bezier(.4,0,.2,1), opacity .25s';
+  orb.style.transform=`translate(${cur.x}px,${scr.clientHeight-58}px) scale(.4)`;orb.style.opacity=0;
+  resetChrome(300);readout.textContent='state   cancelled · nothing happened';
+}
+function commit(side){
+  tick(1,'commit');
+  st='anim';const o=side==='L'?opts.L:opts.R,H=scr.clientHeight,W=scr.clientWidth;
+  gpath.setAttribute('d',P.CHECK);
+  if(o.k==='t'){
+    orb.style.transition='transform .45s cubic-bezier(.3,1.2,.4,1), opacity .3s .25s';
+    orb.style.transform=`translate(${W/2}px,${H-110}px) scale(.6)`;orb.style.opacity=0;
+    setTimeout(()=>{inHuddle=true;renderDock();},200);
+    resetChrome(380);
+    readout.textContent='state   committed · '+(o.lb==='Join'?'joined the huddle':'started a huddle')+'\n        nobody was rung';
+  } else {
+    scr.style.setProperty('--rx',(cur.x/W*100)+'%');scr.style.setProperty('--ry',(cur.y/H*100)+'%');
+    orb.style.transition='transform .4s cubic-bezier(.3,1.4,.4,1), opacity .4s .2s';
+    orb.style.transform=`translate(${cur.x}px,${cur.y}px) scale(1.5)`;orb.style.opacity=0;
+    vanish=!vanish;
+    scr.classList.toggle('vanish-off',!vanish);scr.classList.toggle('vanish',vanish);placeholder();
+    setTimeout(()=>addSys(vanish
+      ?'You turned on vanish mode. New messages disappear 10 seconds after they’re seen, and always within 24 hours. Screenshots are blocked. <a>Change</a>'
+      :'You turned off vanish mode. New messages stay.'),380);
+    if(vanish&&seenMode==='me')setTimeout(hiddenCard,700);
+    resetChrome(420);
+    readout.textContent='state   committed · vanish mode '+(vanish?'ON\n        tap the message field to send one':'OFF');
+  }
+}
+function leaveHuddle(){
+  inHuddle=false;
+  if(live==='others'){
+    const d=document.createElement('div');d.className='huddleMsg';
+    d.innerHTML='<div class="w">🎧</div><div><b>Huddle · 2 min</b><span>Alp, Burak, You</span></div>';msgs.appendChild(d);
+  } else addSys('You wanted to talk · nobody joined<br><span style="color:#6b7280">only you see this</span>');
+  trim();renderDock();
+}
+
+function seg(id,fn,multi){$(id).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  if(multi){b.classList.toggle('on');fn(b.dataset.v,b.classList.contains('on'));}
+  else{[...$(id).children].forEach(x=>x.classList.toggle('on',x===b));fn(b.dataset.v);}});}
+seg('segRoom',v=>{room=v;fullReset();});
+seg('segLive',v=>{live=v;inHuddle=false;renderDock();});
+seg('segSeen',v=>{seenMode=v;sharesHere=false;fullReset();});
+/* Telegram-style dust: the bubble breaks into particles that drift up and fade */
+function dust(el){
+  let cv=scr.querySelector('canvas.fx');if(!cv){cv=document.createElement('canvas');cv.className='fx';scr.appendChild(cv);}
+  const W=cv.width=scr.clientWidth,H=cv.height=scr.clientHeight,c=cv.getContext('2d');
+  const sr=scr.getBoundingClientRect(),r=el.getBoundingClientRect(),col=getComputedStyle(el).backgroundColor;
+  const ps=[];const step=3;
+  for(let y=0;y<r.height;y+=step)for(let x=0;x<r.width;x+=step){
+    ps.push({x:r.left-sr.left+x,y:r.top-sr.top+y,vx:.4+Math.random()*1.4,vy:-(.3+Math.random()*1.2),d:(x/r.width)*380+Math.random()*120,a:1});}
+  el.style.transition='none';el.style.visibility='hidden';
+  const t0=performance.now();
+  (function f(t){const e=t-t0;c.clearRect(0,0,W,H);let alive=0;c.fillStyle=col;
+    for(const p of ps){if(e<p.d){c.globalAlpha=1;c.fillRect(p.x,p.y,step,step);alive++;continue;}
+      const k=(e-p.d)/700;if(k>=1)continue;alive++;p.x+=p.vx;p.y+=p.vy;p.vy-=.02;c.globalAlpha=1-k;c.fillRect(p.x,p.y,step*(1-k*.5),step*(1-k*.5));}
+    if(alive)requestAnimationFrame(f);else{c.clearRect(0,0,W,H);el.remove();}})(t0);
+}
+function hiddenCard(){
+  const c=document.createElement('div');c.className='inl';
+  c.innerHTML=(room==='dm'?'You don’t share Seen, so Zeynep’s messages to you last 24 hours. Yours still vanish 10 seconds after she sees them. Share your reads here so hers vanish too?':'You don’t share Seen, so messages sent to you here last 24 hours. Share your reads here so they vanish 10 seconds after everyone has seen them?')+'<br><span style="color:#9d95e8">You can change this anytime in Settings › Privacy.</span><div class="bt"><span class="p">Share my reads here</span><span>Don’t share here</span></div>';
+  const [yes,no]=c.querySelectorAll('.bt span');
+  const settle=(t,s)=>{sharesHere=s;c.remove();addSys(t+' You can change this anytime in Settings › Privacy.');};
+  yes.onclick=()=>settle('You share your reads in this chat.',true);
+  no.onclick=()=>settle('You don’t share your reads here, so messages last 24 hours.',false);
+  msgs.appendChild(c);trim();
+}
+seg('segStack',(v,on)=>{stack[v]=on;renderDock();},true);
+seg('segHap',v=>{hapMode=v;});
+function fullReset(){vanish=false;inHuddle=false;scr.classList.remove('vanish','vanish-off');seed();readout.textContent='idle';}
+$('reset').onclick=fullReset;
+seed();
+})();
+
+/* ---------- new room sheet prototype ---------- */
+(()=>{
+const $=id=>document.getElementById(id);
+const rs=$('rs'),card=$('rsCard'),nm=$('rsNm'),sub=$('rsSub'),stackEl=$('rsStack'),badge=$('rsBadge'),
+  input=$('rsInput'),emo=$('rsEmoji'),av=$('rsAv'),people=$('rsPeople'),count=$('rsCount'),desc=$('rsDesc'),
+  clock=$('rsClock'),ruler=$('rsRuler'),ticks=$('rsTicks'),knob=$('rsKnob'),val=$('rsVal'),cap=$('rsCap'),
+  sw=$('rsSw'),pwIn=$('rsPwIn'),more=$('rsMore'),descIn=$('rsDescIn'),go=$('rsGo'),done=$('rsDone'),scr=$('rsScr');
+const EMOJI=['🐒','🍕','🌙','🎧','🏖️','🔥','🎲','🌿','🎬','☕️'];
+const FRIENDS=[['Zeynep','#f6a5c0,#8a6cf0'],['Alp','#7fd3ff,#3a7bd5'],['Burak','#ffcf6b,#ff7a59'],['Deniz','#9ef0c0,#2fbf6e'],['Ece','#ffd1e8,#ff6fa8'],['Mert','#c7b8ff,#6d5ff0'],['Selin','#ffe29a,#ffb547']];
+const CLOCKS={seen:['10s','1m','1h'],sent:['10s','30s','1m','5m','1h']};
+const DESC={regular:'Messages stay.',secret:'Messages always disappear and screenshots are blocked. Once secret, always secret.'};
+let ei=0,sel=new Set(),life='regular',when='seen',ti=0,access='private',pw=false;
+
+function buzz(i){try{navigator.vibrate&&navigator.vibrate(Math.round(4+i*14));}catch(_){}}
+FRIENDS.forEach(([n,g],i)=>{
+  const d=document.createElement('div');d.className='rs-p';
+  d.innerHTML=`<div class="a" style="background:linear-gradient(135deg,${g})"><div class="ck"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#05200f" stroke-width="4" stroke-linecap="round"><path d="M5 12l5 5 9-10"/></svg></div></div>${n}`;
+  d.onclick=()=>{sel.has(i)?sel.delete(i):sel.add(i);d.classList.toggle('on');buzz(.5);refresh(true);};
+  people.appendChild(d);
+});
+function seg(el,cur,fn){
+  const btns=[...el.querySelectorAll('button')],ind=el.querySelector('.rs-ind');
+  const place=()=>{const i=btns.findIndex(b=>b.dataset.v===cur());btns.forEach((b,j)=>b.classList.toggle('on',j===i));
+    ind.style.width=`calc(${100/btns.length}% - ${8/btns.length}px)`;ind.style.transform=`translateX(${i*100}%)`;};
+  btns.forEach(b=>b.onclick=()=>{fn(b.dataset.v);place();buzz(.4);});
+  place();return place;
+}
+seg($('rsLife'),()=>life,v=>{life=v;ti=0;buildRuler();refresh();swapDesc();});
+seg($('rsWhen'),()=>when,v=>{when=v;ti=0;buildRuler();refresh();});
+seg($('rsAccess'),()=>access,v=>{access=v;refresh();});
+function swapDesc(){desc.textContent=DESC[life];desc.classList.remove('swap');void desc.offsetWidth;desc.classList.add('swap');}
+
+function buildRuler(){
+  const opts=CLOCKS[when];ticks.innerHTML='';
+  opts.forEach((o,i)=>{const b=document.createElement('b');b.style.left=(i/(opts.length-1)*100)+'%';b.innerHTML=`<em>${o}</em>`;ticks.appendChild(b);});
+  cap.textContent=when==='seen'?'Gone within 24 hours at most, seen or not.':'Counts from the moment it’s sent.';
+  setTick(ti,false);
+}
+function setTick(i,haptic){
+  const opts=CLOCKS[when];i=Math.max(0,Math.min(opts.length-1,i));
+  if(haptic&&i!==ti)buzz(.25+.5*i/(opts.length-1));
+  ti=i;[...ticks.children].forEach((b,j)=>b.classList.toggle('on',j===i));
+  const w=ruler.clientWidth-48;knob.style.left=(24+w*i/(opts.length-1))+'px';val.textContent=opts[i];refresh();
+}
+let dragging=false;
+function fromX(e){const r=ruler.getBoundingClientRect(),opts=CLOCKS[when];const t=(e.clientX-r.left-24)/(r.width-48);return Math.round(Math.max(0,Math.min(1,t))*(opts.length-1));}
+ruler.addEventListener('pointerdown',e=>{dragging=true;ruler.classList.add('drag');try{ruler.setPointerCapture(e.pointerId);}catch(_){}setTick(fromX(e),true);});
+ruler.addEventListener('pointermove',e=>{if(dragging)setTick(fromX(e),true);});
+ruler.addEventListener('pointerup',()=>{dragging=false;ruler.classList.remove('drag');});
+
+emo.onclick=()=>{ei=(ei+1)%EMOJI.length;emo.textContent=av.textContent=EMOJI[ei];
+  [emo,av].forEach(x=>{x.classList.remove('kick');void x.offsetWidth;x.classList.add('kick');});buzz(.3);};
+input.addEventListener('input',()=>refresh());
+$('rsPw').onclick=()=>{pw=!pw;sw.classList.toggle('on',pw);pwIn.classList.toggle('on',pw);buzz(.4);refresh();};
+more.onclick=()=>{descIn.classList.add('on');more.style.display='none';descIn.focus();};
+
+let lastSub='';
+function refresh(bumpCount){
+  const n=input.value.trim();nm.textContent=n||'Untitled room';nm.classList.toggle('ph',!n);
+  const secret=life==='secret';
+  card.classList.toggle('secret',secret);badge.classList.toggle('on',secret);clock.classList.toggle('on',secret);
+  const ppl=sel.size?`you + ${sel.size}`:'just you';
+  const lifeTxt=secret?`secret · ${CLOCKS[when][ti]} after ${when}`:'regular';
+  const s=`${access==='private'?'Invite only':'Findable'}${pw?' · locked':''} · ${ppl} · ${lifeTxt}`;
+  if(s!==lastSub){
+    while(sub.children.length>1)sub.firstChild.remove();
+    const old=sub.lastChild;const sp=document.createElement('span');sp.textContent=s;sp.style.transform='translateY(100%)';sp.style.position='absolute';sp.style.left=0;sp.style.right=0;
+    sub.appendChild(sp);requestAnimationFrame(()=>{sp.style.transform='';if(old){old.style.transform='translateY(-100%)';old.style.opacity=0;setTimeout(()=>{if(old.parentNode&&old!==sub.lastChild)old.remove();},320);}});
+    lastSub=s;
+  }
+  count.textContent=sel.size?`you + ${sel.size}`:'only you so far';
+  if(bumpCount){count.classList.remove('bump');void count.offsetWidth;count.classList.add('bump');}
+  stackEl.innerHTML='';[...sel].slice(0,4).forEach(i=>{const e=document.createElement('i');e.style.background=`linear-gradient(135deg,${FRIENDS[i][1]})`;stackEl.appendChild(e);});
+  go.disabled=!n;
+}
+
+go.onclick=()=>{
+  buzz(1);
+  const r=card.getBoundingClientRect(),sr=scr.getBoundingClientRect();
+  card.classList.remove('land');void card.offsetWidth;card.classList.add('land');
+  setTimeout(()=>{
+    card.style.transform=`translateY(${(sr.top+52)-r.top}px) scale(.92)`;rs.classList.add('gone');
+  },260);
+  setTimeout(()=>{
+    done.innerHTML=`<div class="rs-av" style="width:40px;height:40px;font-size:22px;border-radius:12px">${av.textContent}</div><div><div style="font-weight:700">${nm.textContent}</div><div style="font-size:12px;color:var(--ink3)">${sub.lastChild?sub.lastChild.textContent:''}</div></div>`;
+    done.classList.add('on');
+  },680);
+  setTimeout(()=>{done.classList.remove('on');rs.classList.remove('gone');card.style.transform='';card.classList.remove('land');},3000);
+};
+swapDesc();buildRuler();refresh();
+window.addEventListener('resize',()=>setTick(ti,false));
+})();
+</script>
+</body>
+</html>
