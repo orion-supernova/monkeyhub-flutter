@@ -14764,6 +14764,8 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get appOnlyVanishUnread => '封をしたメッセージは既読になりません';
 
+  @override
+  String get holdMenuReleaseToCancel => '指を離すとキャンセル';
 
   @override
   String get forkSlideToChoose => 'スライドして選ぶ';

@@ -15598,6 +15598,8 @@ class AppLocalizationsPt extends AppLocalizations {
   String get appOnlyVanishUnread =>
       'As mensagens seladas nunca contam como lidas';
 
+  @override
+  String get holdMenuReleaseToCancel => 'Largue para cancelar';
 
   @override
   String get forkSlideToChoose => 'Desliza para escolher';
@@ -31203,6 +31205,8 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get appOnlyVanishUnread =>
       'Mensagens lacradas nunca contam como lidas';
 
+  @override
+  String get holdMenuReleaseToCancel => 'Solte para cancelar';
 
   @override
   String get forkSlideToChoose => 'Deslize para escolher';

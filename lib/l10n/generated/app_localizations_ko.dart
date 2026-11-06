@@ -14797,6 +14797,8 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get appOnlyVanishUnread => '봉인된 메시지는 읽음으로 처리되지 않아요';
 
+  @override
+  String get holdMenuReleaseToCancel => '손을 떼면 취소';
 
   @override
   String get forkSlideToChoose => '밀어서 선택';

@@ -15381,6 +15381,8 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get appOnlyVanishUnread => 'Mühürlü mesajlar okundu sayılmaz';
 
+  @override
+  String get holdMenuReleaseToCancel => 'İptal etmek için bırakın';
 
   @override
   String get forkSlideToChoose => 'Seçmek için kaydır';

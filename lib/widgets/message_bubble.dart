@@ -75,6 +75,7 @@ import '../privacy/vanish_rules.dart';
 import '../models/huddle_history.dart';
 import 'huddle_bar.dart' show HuddleHistoryLine;
 import 'vanish_card.dart';
+import 'hold_scrub.dart';
 import 'vanish_scope.dart';
 import 'vanish_sealed.dart';
 import 'vanish_stamp.dart';
@@ -1235,6 +1236,12 @@ class _BubbleGestureDetector extends StatelessWidget {
       if (k != PointerDeviceKind.mouse) k,
   };
 
+  static void _holdStart(LongPressStartDetails _) => HoldScrub.start();
+  static void _holdMove(LongPressMoveUpdateDetails d) =>
+      HoldScrub.move(d.globalPosition, d.offsetFromOrigin);
+  static void _holdEnd(LongPressEndDetails d) =>
+      HoldScrub.end(d.globalPosition);
+
   @override
   Widget build(BuildContext context) {
     final onDoubleTap = isPhysicalKeyboardPlatform ? null : this.onDoubleTap;
@@ -1247,7 +1254,17 @@ class _BubbleGestureDetector extends StatelessWidget {
             duration: kActionMenuLongPress,
             supportedDevices: isWebOrDesktop ? _notMouse : null,
           ),
-          (instance) => instance.onLongPress = onLongPress,
+          // The finger stays live after the menu opens: its moves and its
+          // release go to the menu through [HoldScrub], which is how a
+          // slide across the quick reactions picks one. See hold_scrub.dart.
+          (instance) {
+            final live = onLongPress != null;
+            instance
+              ..onLongPress = onLongPress
+              ..onLongPressStart = live ? _holdStart : null
+              ..onLongPressMoveUpdate = live ? _holdMove : null
+              ..onLongPressEnd = live ? _holdEnd : null;
+          },
         ),
         if (onDoubleTap != null)
           DoubleTapGestureRecognizer:
@@ -1270,7 +1287,9 @@ class _BubbleGestureDetector extends StatelessWidget {
             (instance) => instance.onSecondaryTap = onLongPress,
           ),
       },
-      child: child,
+      // Eases the bubble down while the hold builds, so the menu announces
+      // itself instead of arriving out of nowhere at 400ms.
+      child: HoldPressFeedback(enabled: onLongPress != null, child: child),
     );
     return MessageHoverRegion(target: hover, child: detector);
   }

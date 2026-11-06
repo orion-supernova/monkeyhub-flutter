@@ -18269,6 +18269,8 @@
   "@appOnlyVanishBody": {"description": "Body of the sheet shown when someone taps a sealed vanishing message in a browser or on Linux.", "placeholders": {"platform": {"type": "String"}}},
   "appOnlyVanishUnread": "Sealed messages never count as read",
   "@appOnlyVanishUnread": {"description": "Row on that sheet: a sealed vanishing message cannot start anyone's disappearing timer."},
+  "holdMenuReleaseToCancel": "Release to cancel",
+  "@holdMenuReleaseToCancel": {"description": "Hint on the long-press message menu while a finger that was sliding across the quick reactions has moved off them: lifting it now picks no reaction. The menu stays open."},
   "forkSlideToChoose": "Slide to choose",
   "@forkSlideToChoose": {"description": "Hint while the swipe-up fork is open and no choice is selected: slide the finger left or right."},
   "forkLetGoCancel": "let go here to cancel",

@@ -4261,6 +4261,7 @@
   "vanishedParent": "消えました",
   "appOnlyVanishBody": "{platform, select, web{ブラウザではスクリーンショットを防げないため、消えるメッセージはここでは封をしたままで、既読にもなりません。スマートフォンのMonkeyHub、またはMacかWindowsのパソコンでこのチャットを開いてください。} other{Linuxではスクリーンショットを防げないため、消えるメッセージはここでは封をしたままで、既読にもなりません。スマートフォンのMonkeyHub、またはMacかWindowsのパソコンでこのチャットを開いてください。}}",
   "appOnlyVanishUnread": "封をしたメッセージは既読になりません",
+  "holdMenuReleaseToCancel": "指を離すとキャンセル",
   "forkSlideToChoose": "スライドして選ぶ",
   "forkLetGoCancel": "ここで離すとキャンセル",
   "forkSlideBackCancel": "戻すとキャンセル",

@@ -15450,6 +15450,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get appOnlyVanishUnread => 'Sealed messages never count as read';
 
+  @override
+  String get holdMenuReleaseToCancel => 'Release to cancel';
 
   @override
   String get forkSlideToChoose => 'Slide to choose';

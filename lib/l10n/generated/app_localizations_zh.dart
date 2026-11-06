@@ -14630,6 +14630,8 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get appOnlyVanishUnread => '密封的消息不会算作已读';
 
+  @override
+  String get holdMenuReleaseToCancel => '松开以取消';
 
   @override
   String get forkSlideToChoose => '滑动选择';

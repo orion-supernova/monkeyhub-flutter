@@ -15595,6 +15595,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appOnlyVanishUnread =>
       'Los mensajes sellados nunca cuentan como leídos';
 
+  @override
+  String get holdMenuReleaseToCancel => 'Suelta para cancelar';
 
   @override
   String get forkSlideToChoose => 'Desliza para elegir';

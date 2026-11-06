@@ -4261,6 +4261,7 @@
   "vanishedParent": "Disparu",
   "appOnlyVanishBody": "{platform, select, web{Ton navigateur ne peut pas bloquer les captures d'écran, donc les messages éphémères restent scellés ici et ne comptent jamais comme lus. Ouvre ce chat dans MonkeyHub sur ton téléphone, ou sur un ordinateur Mac ou Windows.} other{Linux ne peut pas bloquer les captures d'écran, donc les messages éphémères restent scellés ici et ne comptent jamais comme lus. Ouvre ce chat dans MonkeyHub sur ton téléphone, ou sur un ordinateur Mac ou Windows.}}",
   "appOnlyVanishUnread": "Les messages scellés ne comptent jamais comme lus",
+  "holdMenuReleaseToCancel": "Relâchez pour annuler",
   "forkSlideToChoose": "Glisse pour choisir",
   "forkLetGoCancel": "relâche ici pour annuler",
   "forkSlideBackCancel": "reviens au centre pour annuler",

@@ -4261,6 +4261,7 @@
   "vanishedParent": "Sumiu",
   "appOnlyVanishBody": "{platform, select, web{Seu navegador não consegue bloquear capturas de tela, então mensagens que somem ficam lacradas aqui e nunca contam como lidas. Abra este chat no MonkeyHub do seu celular, ou em um computador Mac ou Windows.} other{O Linux não consegue bloquear capturas de tela, então mensagens que somem ficam lacradas aqui e nunca contam como lidas. Abra este chat no MonkeyHub do seu celular, ou em um computador Mac ou Windows.}}",
   "appOnlyVanishUnread": "Mensagens lacradas nunca contam como lidas",
+  "holdMenuReleaseToCancel": "Solte para cancelar",
   "forkSlideToChoose": "Deslize para escolher",
   "forkLetGoCancel": "solte aqui para cancelar",
   "forkSlideBackCancel": "deslize de volta para cancelar",

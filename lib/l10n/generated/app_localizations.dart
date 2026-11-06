@@ -25723,6 +25723,11 @@ abstract class AppLocalizations {
   /// **'Sealed messages never count as read'**
   String get appOnlyVanishUnread;
 
+  /// Hint on the long-press message menu while a finger that was sliding across the quick reactions has moved off them: lifting it now picks no reaction. The menu stays open.
+  ///
+  /// In en, this message translates to:
+  /// **'Release to cancel'**
+  String get holdMenuReleaseToCancel;
 
   /// Hint while the swipe-up fork is open and no choice is selected: slide the finger left or right.
   ///

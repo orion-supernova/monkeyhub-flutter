@@ -15422,6 +15422,8 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get appOnlyVanishUnread => 'सील किए मैसेज कभी पढ़े हुए नहीं गिने जाते';
 
+  @override
+  String get holdMenuReleaseToCancel => 'रद्द करने के लिए छोड़ें';
 
   @override
   String get forkSlideToChoose => 'चुनने के लिए स्लाइड करो';

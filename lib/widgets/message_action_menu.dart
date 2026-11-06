@@ -6,12 +6,15 @@ import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
+import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter/services.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../models/message_capabilities.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
+import '../theme/motion.dart';
+import '../theme/spring.dart';
 import '../keyboard/focusable_tap.dart';
 import '../keyboard/overlay_modal_scope.dart';
 import '../l10n/text_case.dart';
@@ -19,6 +22,7 @@ import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
 import 'glass_reveal.dart';
 import 'glass_surface.dart';
+import 'hold_scrub.dart';
 import 'segmented_control.dart';
 import 'translation_slab.dart' show FrozenBubble;
 import 'teardown_safe.dart';
@@ -170,10 +174,13 @@ class MessageMenuAlbum {
 const List<String> _kQuickReactions = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
 /// Long-press context menu for a chat bubble. Inserts a root-overlay entry
-/// that blurs the chat behind, lifts the tapped bubble at its original
-/// position, and floats a reaction pill + action list anchored to the
-/// bubble's leading edge. Returns when the user picks something or
-/// dismisses via the scrim.
+/// that blurs the chat behind, lifts the tapped bubble, and floats a reaction
+/// pill above it and an action list below it, anchored to the bubble's leading
+/// edge. Always that order: when there is no room the bubble moves or shrinks
+/// instead (see [holdMenuPlacement]). The finger that opened it stays live, so
+/// sliding across the pill and releasing reacts (see [HoldScrub]); rows always
+/// need a tap. Returns when the user picks something or dismisses via the
+/// scrim.
 Future<MessageActionResult?> showMessageActionMenu({
   required BuildContext context,
   required GlobalKey anchorKey,
@@ -335,9 +342,37 @@ class _MessageActionMenuOverlay extends StatefulWidget {
 }
 
 class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin
+    implements HoldScrubTarget {
   late final AnimationController _ctrl;
   bool _closing = false;
+
+  // ── the held finger (see [HoldScrub]) ──
+
+  /// The reaction pill, measured for the scrub's hit test.
+  final GlobalKey _pillKey = GlobalKey();
+
+  /// The emoji the pill is showing, in order; `+` follows them. Kept from the
+  /// last build so a release can say which one it landed on.
+  List<String> _pillEmojis = const [];
+
+  /// The finger that opened the menu is still down.
+  bool _held = false;
+
+  /// It has travelled past [HoldScrub.slop]: a release now means something.
+  bool _sliding = false;
+
+  /// Index under the finger: `0 ..< _pillEmojis.length` is an emoji,
+  /// `_pillEmojis.length` is the `+`. Null when the finger is off the pill.
+  int? _focus;
+
+  /// The finger has been on the pill and left it: lifting now picks nothing,
+  /// and the hint says so.
+  bool _offPill = false;
+
+  /// Set once an emoji is picked: where the magnified glyph flies to as the
+  /// menu closes, so the reaction visibly lands on the message.
+  Offset? _flyTo;
 
   /// The album switch's side: true acts on the whole album. Starts there
   /// whenever there is an album to act on.
@@ -346,24 +381,125 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
   @override
   void initState() {
     super.initState();
+    // Long enough for the jelly to ring (see [JellyCurve]): most of the
+    // move is done in the first third, the rest is the wobble settling.
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 240),
-      reverseDuration: const Duration(milliseconds: 160),
+      duration: const Duration(milliseconds: 560),
+      reverseDuration: const Duration(milliseconds: 200),
     );
     _ctrl.forward();
+    _held = HoldScrub.isHeld && widget.capabilities.canReact;
+    if (_held) HoldScrub.attach(this);
   }
 
   @override
   void dispose() {
+    HoldScrub.detach(this);
     _ctrl.dispose();
     super.dispose();
   }
 
-  Future<void> _resolve(MessageActionResult? result) async {
+  /// Which pill slot [global] is over, or null when it is off the pill.
+  ///
+  /// The band is generous (40 above, 28 below, 20 past each end) because a
+  /// finger sliding sideways drifts, and dropping the focus every time it
+  /// wandered a few points off a 50pt pill would make the scrub feel broken.
+  /// Inside the band only x matters.
+  int? _slotAt(Offset global) {
+    final box = _pillKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached || _pillEmojis.isEmpty) return null;
+    final local = box.globalToLocal(global);
+    final size = box.size;
+    if (local.dy < -40 || local.dy > size.height + 28) return null;
+    if (local.dx < -20 || local.dx > size.width + 20) return null;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    final x = (rtl ? size.width - local.dx : local.dx) - _ReactionPill.padding;
+    return (x / _PillEmoji.size)
+        .floor()
+        .clamp(0, _pillEmojis.length)
+        .toInt();
+  }
+
+  @override
+  void holdMove(Offset globalPosition, Offset fromOrigin) {
+    if (!_held || _closing || !mounted) return;
+    if (!_sliding) {
+      if (fromOrigin.distance < HoldScrub.slop) return;
+      _sliding = true;
+    }
+    final slot = _slotAt(globalPosition);
+    final offPill = slot == null && (_focus != null || _offPill);
+    if (slot == _focus && offPill == _offPill) return;
+    if (slot != null) HapticFeedback.selectionClick();
+    setState(() {
+      _focus = slot;
+      _offPill = offPill;
+    });
+  }
+
+  @override
+  void holdEnd(Offset globalPosition) {
+    if (!_held || _closing || !mounted) return;
+    _held = false;
+    HoldScrub.detach(this);
+    final slot = _sliding ? _focus : null;
+    // Anything but an emoji leaves the menu open for tapping, exactly as a
+    // release did before there was a scrub. Rows are never committed by a
+    // release: a wrong reaction is one tap to undo, a wrong Forward is not.
+    if (slot == null) {
+      setState(() {
+        _focus = null;
+        _offPill = false;
+      });
+      return;
+    }
+    final whole = _whole && widget.album != null;
+    if (slot < _pillEmojis.length) {
+      _pickEmoji(_pillEmojis[slot], whole);
+    } else {
+      _pickMore(whole);
+    }
+  }
+
+  void _pickEmoji(String e, bool whole) {
+    if (_closing) return;
+    HapticFeedback.lightImpact();
+    // Picked by a tap or by a release, the glyph does the same thing: rises
+    // out of its slot and drops onto the message as everything else closes.
+    final i = _pillEmojis.indexOf(e);
+    final r = widget.bubbleRect;
+    setState(() {
+      if (i >= 0) _focus = i;
+      _offPill = false;
+      _flyTo = Offset(
+        widget.isMine ? r.right - 22 : r.left + 22,
+        r.bottom - 6,
+      );
+    });
+    _resolve(
+      MessageActionResult.emoji(e, album: whole),
+      linger: _ScrubMagnifier.flight,
+    );
+  }
+
+  void _pickMore(bool whole) {
+    HapticFeedback.selectionClick();
+    _resolve(MessageActionResult.fullPicker(album: whole));
+  }
+
+  Future<void> _resolve(
+    MessageActionResult? result, {
+    Duration linger = Duration.zero,
+  }) async {
     if (_closing) return;
     _closing = true;
-    await _ctrl.reverse();
+    // [linger] keeps the entry up past the close for a flight that is still
+    // landing; the menu itself closes on its usual beat either way.
+    await Future.wait([
+      _ctrl.reverse(),
+      if (linger > Duration.zero) Future<void>.delayed(linger),
+    ]);
     if (!mounted) return;
     widget.onResolve(result);
   }
@@ -428,7 +564,12 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final curved = CurvedAnimation(parent: _ctrl, curve: theme.motionEntrance);
+    final calm = MotionScope.of(context).calm;
+    final curved = CurvedAnimation(
+      parent: _ctrl,
+      curve: calm ? theme.motionEntrance : const JellyCurve(overshoot: 0.06),
+      reverseCurve: Curves.easeInCubic,
+    );
     final media = MediaQuery.of(context);
     final screen = media.size;
 
@@ -448,18 +589,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
       hasFileName: !whole && widget.fileName != null,
     );
 
-    // The rect the preview SETTLES in, which is what the menu is laid out
-    // around: the pressed bubble scaled toward its own edge (see
-    // `previewMaxHeight`). The preview itself is still built at the pressed size
-    // and scaled, so it starts exactly over the bubble.
     final pressed = widget.bubbleRect;
-    final k = widget.previewScale;
-    final bubble = Rect.fromLTWH(
-      widget.isMine ? pressed.right - pressed.width * k : pressed.left,
-      pressed.center.dy - pressed.height * k / 2,
-      pressed.width * k,
-      pressed.height * k,
-    );
     const gap = 8.0;
     const pillH = 50.0;
     const rowH = 48.0;
@@ -475,92 +605,46 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     // is the larger of the two, never their sum.
     final bottomSafe =
         math.max(media.viewInsets.bottom, media.viewPadding.bottom) + 12;
-
-    // The band the menu is allowed to live in, and the ceiling that follows
-    // from it: pill, menu, and the gaps between them all have to come out of
-    // the same height.
     final bandTop = topSafe;
     final bandBottom = math.max(topSafe, screen.height - bottomSafe);
-    final maxMenuH = math.max(0.0, (bandBottom - bandTop) - pillH - gap * 2);
 
-    // What the list WANTS. It gets [menuH], which is that clamped to the band —
-    // and when the clamp bites, `_ActionList` scrolls inside it rather than
-    // running off the screen.
+    // What the list WANTS. When the band cannot hold it beside a readable
+    // preview, `_ActionList` scrolls inside the height it is given rather
+    // than running off the screen.
     final wantedMenuH =
         (specs.length * rowH) + 12 + _headerHeight(context, theme);
-    final menuH = math.min(wantedMenuH, maxMenuH);
+
+    // Pill above, preview in the middle, list below: ALWAYS, wherever the
+    // bubble was pressed. The old layout picked between three shapes (split,
+    // stacked under, stacked over), so the pill jumped around with the
+    // bubble's position and a hand could never learn where it was. Now only
+    // the preview moves: it glides the least distance that clears both, and
+    // shrinks toward its own edge when it is too tall for what is left. The
+    // pill's space is kept even where reactions are refused, so the list lands
+    // where it always does.
+    final place = holdMenuPlacement(
+      pressed: pressed,
+      bandTop: bandTop,
+      bandBottom: bandBottom,
+      pillHeight: pillH,
+      wantedMenuHeight: wantedMenuH,
+      gap: gap,
+      maxScale: widget.previewScale,
+    );
+    final k = place.previewScale;
+    final pillTop = place.pillTop;
+    final menuTop = place.menuTop;
+    final menuH = place.menuHeight;
     final menuScrolls = menuH < wantedMenuH;
+    final liftDy = place.liftDy;
 
-    // The bubble is where it is — it can be half under the island, or half
-    // under the keyboard, and the transcript is free to leave it there. The
-    // menu is not. Everything below anchors to the bubble CLAMPED INTO THE
-    // BAND, so a bubble hanging outside it pulls the menu only as far as the
-    // edge and no further; measuring against the raw rect is how a menu ends up
-    // arguing with the safe area and losing.
-    final anchorTop = bubble.top.clamp(bandTop, bandBottom);
-    final anchorBottom = bubble.bottom.clamp(bandTop, bandBottom);
-
-    final spaceAbove = anchorTop - bandTop;
-    final spaceBelow = bandBottom - anchorBottom;
-
-    // Preferred: the bubble sits BETWEEN them — reactions above it, actions
-    // below — which is what makes the lifted bubble read as the thing both are
-    // acting on. Taken only when both land inside the band untouched.
-    final splitPillTop = anchorTop - gap - pillH;
-    final splitMenuTop = anchorBottom + gap;
-    final split = splitPillTop >= bandTop && splitMenuTop + menuH <= bandBottom;
-
-    final double pillTop;
-    final double menuTop;
-    if (split) {
-      pillTop = splitPillTop;
-      menuTop = splitMenuTop;
-    } else {
-      // One stack, placed and clamped as a UNIT. Clamping the two separately is
-      // what put the menu on top of the reaction pill: each was individually
-      // inside the band and they were both pushed to the same end of it, so the
-      // quick reactions became unreachable. Moved together they cannot collide,
-      // and `maxMenuH` above guarantees the pair fits the band by construction.
-      //
-      // Pill leads, because it is the shorter of the two and the one you reach
-      // for without reading.
-      final groupH = pillH + gap + menuH;
-      final double wanted = spaceBelow >= spaceAbove
-          ? anchorBottom + gap
-          : anchorTop - gap - groupH;
-      final groupTop = wanted
-          .clamp(bandTop, math.max(bandTop, bandBottom - groupH))
-          .toDouble();
-      pillTop = groupTop;
-      menuTop = groupTop + pillH + gap;
-    }
-
-    // When the stack had to be clamped over the bubble — a long menu on a
-    // phone — the message being acted on vanished under it. iOS moves the
-    // preview instead: the lifted bubble glides clear of the stack, to
-    // whichever side has more room, and glides back on dismiss. A bubble
-    // taller than that room still yields as far as it can.
-    var liftDy = 0.0;
-    if (!split) {
-      final groupTop = pillTop;
-      final groupBottom = menuTop + menuH;
-      if (bubble.top < groupBottom && bubble.bottom > groupTop) {
-        final roomAbove = groupTop - gap - bandTop;
-        final roomBelow = bandBottom - (groupBottom + gap);
-        if (roomAbove >= roomBelow) {
-          final top = math.max(bandTop, groupTop - gap - bubble.height);
-          liftDy = top - bubble.top;
-        } else {
-          liftDy = (groupBottom + gap) - bubble.top;
-        }
-      }
-    }
-
-    // Both entries slide in from the bubble's side, so each reads as growing
-    // out of the message rather than arriving from off-screen. Derived from
-    // where they actually landed, not from where they were asked to go.
-    final pillBelowBubble = pillTop >= bubble.top;
-    final menuBelowBubble = menuTop >= bubble.top;
+    // The settled preview's rect, which the chrome anchors to sideways.
+    final bubble = Rect.fromLTWH(
+      widget.isMine ? pressed.right - pressed.width * k : pressed.left,
+      place.previewTop,
+      pressed.width * k,
+      pressed.height * k,
+    );
 
     // Pill / menu align to the bubble's leading edge, held off the SIDE safe
     // area the same way they are held off the top one — in landscape on a
@@ -647,19 +731,38 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
           right: edgeRight,
           child: _AnimatedEntry(
             t: curved,
-            fromAbove: pillBelowBubble,
+            fromAbove: false,
             alignment: widget.isMine ? Alignment.centerRight : Alignment.centerLeft,
             child: _ReactionPill(
+              key: _pillKey,
               isMine: widget.isMine,
+              emojis: _pillEmojis = quickPillEmojis(
+                whole ? album.myReactions : widget.myReactions,
+              ),
               selected: whole ? album.myReactions : widget.myReactions,
-              onEmoji: (e) {
-                HapticFeedback.lightImpact();
-                _resolve(MessageActionResult.emoji(e, album: whole));
-              },
-              onMore: () {
-                HapticFeedback.selectionClick();
-                _resolve(MessageActionResult.fullPicker(album: whole));
-              },
+              focus: _focus,
+              onEmoji: (e) => _pickEmoji(e, whole),
+              onMore: () => _pickMore(whole),
+            ),
+          ),
+        ),
+        // The emoji under a sliding finger, magnified and lifted clear of the
+        // pill. Drawn here rather than scaled inside the pill because the
+        // pill's glass clips its contents to the capsule.
+        Positioned(
+          top: pillTop - 36 >= media.viewPadding.top + 4
+              ? pillTop - 36
+              : menuTop + menuH + gap,
+          left: edgeLeft,
+          right: edgeRight,
+          child: _CancelHint(
+            visible: _offPill,
+            alignment: widget.isMine
+                ? Alignment.bottomRight
+                : Alignment.bottomLeft,
+            child: Text(
+              AppLocalizations.of(context).holdMenuReleaseToCancel,
+              style: theme.caption,
             ),
           ),
         ),
@@ -669,7 +772,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
           right: edgeRight,
           child: _AnimatedEntry(
             t: curved,
-            fromAbove: menuBelowBubble,
+            fromAbove: true,
             delay: 0.08,
             alignment: widget.isMine ? Alignment.topRight : Alignment.topLeft,
             child: _ActionList(
@@ -700,6 +803,19 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
               },
             ),
           ),
+        ),
+        // The emoji under a sliding finger, magnified and lifted clear of the
+        // pill (the pill's glass clips its contents, so it cannot grow in
+        // place). One glyph that glides from slot to slot rather than one per
+        // slot, and that flies down onto the message once picked. Last in the
+        // stack so the flight passes over the bubble, not under it.
+        _ScrubMagnifier(
+          pillKey: _pillKey,
+          emojis: _pillEmojis,
+          index: _focus != null && _focus! < _pillEmojis.length
+              ? _focus
+              : null,
+          flyTo: _flyTo,
         ),
         ],
         ),
@@ -909,14 +1025,22 @@ class _AnimatedEntry extends StatelessWidget {
     return AnimatedBuilder(
       animation: t,
       builder: (_, c) {
-        final v = ((t.value - delay) / (1 - delay)).clamp(0.0, 1.0);
+        final raw = (t.value - delay) / (1 - delay);
+        final v = raw.clamp(0.0, 1.0);
+        // The jelly's overshoot, which the reveal below cannot show (it
+        // clamps): the glass swells past full size and rings back.
+        final swell = raw > 1 ? 1 + (raw - 1) * 0.5 : 1.0;
         final dy = (fromAbove ? -6 : 6) * (1 - v);
         // Grown, not faded: the pill and the action list are glass, and a
         // fading layer leaves glass blurring an empty buffer, a flat white
         // flash on every open and close. See [GlassReveal].
         return Transform.translate(
           offset: Offset(0, dy),
-          child: GlassReveal(t: v, alignment: alignment, from: 0.6, child: c!),
+          child: Transform.scale(
+            scale: swell,
+            alignment: alignment,
+            child: GlassReveal(t: v, alignment: alignment, from: 0.6, child: c!),
+          ),
         );
       },
       child: child,
@@ -957,33 +1081,357 @@ List<String> quickPillEmojis(Set<String> selected) {
 
 class _ReactionPill extends StatelessWidget {
   const _ReactionPill({
+    super.key,
     required this.isMine,
+    required this.emojis,
     required this.selected,
     required this.onEmoji,
     required this.onMore,
+    this.focus,
   });
   final bool isMine;
+
+  /// What the pill shows, from [quickPillEmojis].
+  final List<String> emojis;
   final Set<String> selected;
   final ValueChanged<String> onEmoji;
   final VoidCallback onMore;
 
+  /// The slot under a sliding finger (`emojis.length` is the `+`). The
+  /// focused emoji is drawn magnified ABOVE the pill by the overlay, so here
+  /// it steps aside; its neighbours swell a little toward it.
+  final int? focus;
+
+  /// Horizontal inset of the glass around the first and last slot. The
+  /// scrub's hit test reads it, so it is the one number for both.
+  static const double padding = 6;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final f = focus;
+    double scaleOf(int i) {
+      if (f == null) return 1;
+      if (i == f) return i == emojis.length ? 1.1 : 0;
+      if ((i - f).abs() == 1) return 1.06;
+      return 1;
+    }
+
     return GlassSurface(
       radius: 999,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: padding, vertical: 6),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (final e in quickPillEmojis(selected))
+          for (final (i, e) in emojis.indexed)
             _PillEmoji(
               emoji: e,
               selected: selected.contains(e),
+              scrubScale: scaleOf(i),
               onTap: () => onEmoji(e),
             ),
-          _PillMore(onTap: onMore, theme: theme),
+          _PillMore(
+            onTap: onMore,
+            theme: theme,
+            scrubScale: scaleOf(emojis.length),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+/// The emoji under a sliding finger, drawn large over its slot in the pill:
+/// the keyboard key-popup, so the finger never covers what it is choosing.
+///
+/// Everything about it moves rather than cuts: it grows out of the pill when
+/// the finger arrives, glides sideways from slot to slot, swaps its glyph with
+/// a quick scale, sinks back into the pill when the finger leaves, and, when
+/// [flyTo] is set, arcs down onto the message and shrinks into it.
+class _ScrubMagnifier extends StatefulWidget {
+  const _ScrubMagnifier({
+    required this.pillKey,
+    required this.emojis,
+    required this.index,
+    required this.flyTo,
+  });
+  final GlobalKey pillKey;
+  final List<String> emojis;
+
+  /// The focused EMOJI slot (never the `+`), or null.
+  final int? index;
+  final Offset? flyTo;
+
+  static const Duration flight = Duration(milliseconds: 460);
+
+  @override
+  State<_ScrubMagnifier> createState() => _ScrubMagnifierState();
+}
+
+/// Driven by retargetable springs ([Spring]) rather than fixed tweens, so a
+/// finger that changes its mind mid-glide bends the motion instead of
+/// restarting it, and the glyph lags, overshoots and rings like jelly:
+///
+///  * [_x] chases the focused slot, a little loose, so it swings past and
+///    settles back.
+///  * [_grow] blows it up out of the pill and lets it wobble at full size.
+///  * its own speed squashes and stretches it along the direction of travel,
+///    and tilts it into the turn.
+class _ScrubMagnifierState extends State<_ScrubMagnifier>
+    with TickerProviderStateMixin {
+  static const double _box = 48;
+
+  final Spring _x = Spring(response: 0.26, ratio: 0.72);
+  final Spring _grow = Spring(response: 0.32, ratio: 0.62);
+  late final Ticker _ticker = createTicker(_onTick);
+  Duration _last = Duration.zero;
+
+  late final AnimationController _fly = AnimationController(
+    vsync: this,
+    duration: _ScrubMagnifier.flight,
+  )..addListener(() => setState(() {}));
+
+  String _glyph = '';
+  double _y = 0;
+
+  /// Where the glyph sits over [index]'s slot, in window coordinates (the
+  /// overlay fills the window).
+  Offset? _slotCenter(int index) {
+    final box = widget.pillKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached) return null;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    final x = _ReactionPill.padding + _PillEmoji.size * (index + 0.5);
+    // Centered on the pill's top edge: lifted just clear of the finger,
+    // still reading as the slot's own emoji rather than a separate bubble.
+    return box.localToGlobal(Offset(rtl ? box.size.width - x : x, 0));
+  }
+
+  bool get _calm => MotionScope.of(context).calm;
+
+  void _kick() {
+    if (_calm) {
+      _x.snap(_x.target);
+      _grow.snap(_grow.target);
+      setState(() {});
+      return;
+    }
+    if (!_ticker.isActive) {
+      _last = Duration.zero;
+      _ticker.start();
+    }
+  }
+
+  void _onTick(Duration now) {
+    final dt = _last == Duration.zero
+        ? 1 / 60
+        : (now - _last).inMicroseconds / 1e6;
+    _last = now;
+    _x.tick(dt);
+    _grow.tick(dt);
+    setState(() {});
+    if (_x.atRest && _grow.atRest) _ticker.stop();
+  }
+
+  void _aim(int i) {
+    final at = _slotCenter(i);
+    if (at == null) return;
+    _glyph = widget.emojis[i];
+    _y = at.dy;
+    if (_grow.value < 0.05 && _grow.target == 0) {
+      // Arriving from nothing: appear over the slot, then blow up.
+      _x.snap(at.dx);
+    } else {
+      _x.retarget(at.dx);
+    }
+    _grow.retarget(1, response: 0.32, ratio: 0.62);
+    _kick();
+  }
+
+  @override
+  void didUpdateWidget(_ScrubMagnifier old) {
+    super.didUpdateWidget(old);
+    final i = widget.index;
+    if (widget.flyTo != null) {
+      if (old.flyTo == null) {
+        if (i != null && (_grow.target == 0 || _glyph != widget.emojis[i])) {
+          _aim(i);
+        }
+        _calm ? _fly.value = 1 : _fly.forward();
+      }
+      return;
+    }
+    if (i == null) {
+      if (_grow.target != 0) {
+        // Critically damped on the way OUT: a wobbly spring would swing
+        // through zero and back, and the glyph would blink up again.
+        _grow.retarget(0, response: 0.22, ratio: 1);
+        _kick();
+      }
+      return;
+    }
+    if (i != old.index || _grow.target == 0) _aim(i);
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    _fly.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Never below zero: an underdamped spring heading to 0 swings past it,
+    // and a negative scale draws a mirrored glyph (the trace this replaced).
+    final g = math.max(0.0, _grow.value);
+    final f = _fly.value;
+    if (g < 0.01 && f == 0) {
+      return const Positioned(left: 0, top: 0, child: SizedBox.shrink());
+    }
+    var c = Offset(_x.value, _y);
+    var scale = g;
+    var opacity = 1.0;
+
+    // Jelly: squash and stretch along the direction of travel, lean into it.
+    final v = _x.velocity;
+    final stretch = (v.abs() / 6000).clamp(0.0, 0.1);
+    var sx = 1 + stretch;
+    var sy = 1 - stretch * 0.6;
+    var tilt = (v / 14000).clamp(-0.08, 0.08);
+
+    final target = widget.flyTo;
+    if (target != null && f > 0) {
+      // An arc onto the message: up and over, then down, shrinking toward
+      // chip size, rolling forward as it goes, and a soft squash as it lands.
+      final p = Curves.easeInOutCubic.transform(f);
+      c = Offset.lerp(c, target, p)! -
+          Offset(0, 22 * math.sin(math.pi * f));
+      scale *= 1 - 0.55 * Curves.easeIn.transform(f);
+      tilt += 0.12 * math.sin(math.pi * f) * (target.dx < c.dx ? -1 : 1);
+      final land = ((f - 0.78) / 0.22).clamp(0.0, 1.0);
+      final squash = math.sin(math.pi * land) * 0.08;
+      sx *= 1 + squash;
+      sy *= 1 - squash;
+      opacity = f > 0.86 ? (1 - (f - 0.86) / 0.14).clamp(0.0, 1.0) : 1;
+    }
+
+    return Positioned(
+      left: c.dx - _box / 2,
+      top: c.dy - _box / 2,
+      width: _box,
+      height: _box,
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: opacity,
+          child: Transform(
+            alignment: Alignment.bottomCenter,
+            transform: Matrix4.identity()
+              ..rotateZ(tilt)
+              ..scaleByDouble(scale * sx, scale * sy, 1, 1),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 380),
+              switchInCurve: const JellyCurve(overshoot: 0.08),
+              switchOutCurve: Curves.easeInCubic,
+              // `t` is already jelly-curved and runs past 1, so nothing here
+              // may feed it into another Curve (they assert 0..1; chaining an
+              // Interval threw on every overshoot frame). Plain math instead.
+              transitionBuilder: (child, t) => AnimatedBuilder(
+                animation: t,
+                builder: (_, c) => Opacity(
+                  opacity: (t.value / 0.3).clamp(0.0, 1.0),
+                  child: Transform.scale(
+                    scale: math.max(0.0, t.value),
+                    child: c,
+                  ),
+                ),
+                child: child,
+              ),
+              layoutBuilder: (current, previous) => Stack(
+                alignment: Alignment.center,
+                children: [...previous, ?current],
+              ),
+              child: Center(
+                key: ValueKey(_glyph),
+                child: Text(_glyph, style: const TextStyle(fontSize: 32)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Release to cancel": grows out of the pill when a sliding finger leaves
+/// it and sinks back when it returns. Grown, not faded, for the reason
+/// [_AnimatedEntry] gives: a fading glass layer flashes.
+class _CancelHint extends StatefulWidget {
+  const _CancelHint({
+    required this.visible,
+    required this.alignment,
+    required this.child,
+  });
+  final bool visible;
+  final Alignment alignment;
+  final Widget child;
+
+  @override
+  State<_CancelHint> createState() => _CancelHintState();
+}
+
+class _CancelHintState extends State<_CancelHint>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 480),
+    reverseDuration: const Duration(milliseconds: 160),
+    value: widget.visible ? 1 : 0,
+  );
+
+  @override
+  void didUpdateWidget(_CancelHint old) {
+    super.didUpdateWidget(old);
+    if (widget.visible != old.visible) {
+      widget.visible ? _c.forward() : _c.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (_, child) {
+          if (_c.value == 0) return const SizedBox.shrink();
+          final v = _c.status == AnimationStatus.reverse
+              ? Curves.easeInCubic.transform(_c.value)
+              : const JellyCurve(overshoot: 0.06).transform(_c.value);
+          return Align(
+            alignment: widget.alignment,
+            widthFactor: 1,
+            heightFactor: 1,
+            child: Transform.translate(
+              offset: Offset(0, 6 * (1 - v)),
+              child: GlassReveal(
+                t: v,
+                alignment: widget.alignment,
+                from: 0.6,
+                child: child!,
+              ),
+            ),
+          );
+        },
+        child: GlassSurface(
+          radius: 999,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: widget.child,
+        ),
       ),
     );
   }
@@ -994,9 +1442,17 @@ class _PillEmoji extends StatefulWidget {
     required this.emoji,
     required this.onTap,
     this.selected = false,
+    this.scrubScale = 1,
   });
   final String emoji;
   final VoidCallback onTap;
+
+  /// Width of one slot. The scrub's hit test divides by it.
+  static const double size = 38;
+
+  /// Set by a sliding finger: 0 when this one is magnified above the pill,
+  /// a little over 1 beside it. See [_ReactionPill.focus].
+  final double scrubScale;
 
   /// Already one of the viewer's reactions — tapping it takes it back.
   final bool selected;
@@ -1025,16 +1481,30 @@ class _PillEmojiState extends State<_PillEmoji>
         onTapCancel: () => setState(() => _pressed = false),
         onTapUp: (_) => setState(() => _pressed = false),
         onTap: widget.onTap,
-        child: AnimatedScale(
-          scale: _pressed ? 1.22 : 1.0,
-          duration: const Duration(milliseconds: 140),
-          curve: Curves.easeOutBack,
+        // Leaving for the magnifier, the glyph is gone from its slot in the
+        // SAME frame the magnifier starts growing out of it: a hand-off, not
+        // two glyphs. It used to shrink to 0 on easeOutBack, which swings
+        // below zero and drew a tiny mirrored copy for a few frames; a quick
+        // fade instead still left a ghost. Everything else (swelling beside
+        // the finger, popping back in when the finger leaves) rings like
+        // jelly.
+        child: AnimatedOpacity(
+          opacity: widget.scrubScale == 0 ? 0 : 1,
+          duration: widget.scrubScale == 0
+              ? Duration.zero
+              : const Duration(milliseconds: 160),
+          child: AnimatedScale(
+          scale: _pressed ? 1.22 : math.max(widget.scrubScale, 0.35),
+          duration: widget.scrubScale == 0
+              ? Duration.zero
+              : const Duration(milliseconds: 480),
+          curve: const JellyCurve(overshoot: 0.08),
           // The selected disc is the iMessage tapback's: a soft accent wash
           // behind the glyph, no outline — the glass pill already has an
           // edge, and a ring inside it read as a second border.
           child: Container(
-            width: 38,
-            height: 38,
+            width: _PillEmoji.size,
+            height: _PillEmoji.size,
             alignment: Alignment.center,
             decoration: widget.selected
                 ? BoxDecoration(
@@ -1045,15 +1515,23 @@ class _PillEmojiState extends State<_PillEmoji>
             child: Text(widget.emoji, style: const TextStyle(fontSize: 22)),
           ),
         ),
+        ),
       ),
     );
   }
 }
 
 class _PillMore extends StatefulWidget {
-  const _PillMore({required this.onTap, required this.theme});
+  const _PillMore({
+    required this.onTap,
+    required this.theme,
+    this.scrubScale = 1,
+  });
   final VoidCallback onTap;
   final AppTheme theme;
+
+  /// See [_PillEmoji.scrubScale].
+  final double scrubScale;
 
   @override
   State<_PillMore> createState() => _PillMoreState();
@@ -1078,7 +1556,7 @@ class _PillMoreState extends State<_PillMore>
         onTapUp: (_) => setState(() => _pressed = false),
         onTap: widget.onTap,
         child: AnimatedScale(
-          scale: _pressed ? 1.15 : 1.0,
+          scale: _pressed ? 1.15 : widget.scrubScale,
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOutBack,
           child: Container(

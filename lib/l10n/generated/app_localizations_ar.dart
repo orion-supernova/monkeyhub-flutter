@@ -15644,6 +15644,8 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get appOnlyVanishUnread => 'الرسائل المختومة لا تُحتسب أبدًا كمقروءة';
 
+  @override
+  String get holdMenuReleaseToCancel => 'أفلِت للإلغاء';
 
   @override
   String get forkSlideToChoose => 'اسحب للاختيار';

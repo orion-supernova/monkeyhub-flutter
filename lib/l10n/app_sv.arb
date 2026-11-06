@@ -4261,6 +4261,7 @@
   "vanishedParent": "Försvunnet",
   "appOnlyVanishBody": "{platform, select, web{Din webbläsare kan inte blockera skärmdumpar, så försvinnande meddelanden förblir förseglade här och räknas aldrig som lästa. Öppna den här chatten i MonkeyHub på telefonen, eller på en Mac- eller Windows-dator.} other{Linux kan inte blockera skärmdumpar, så försvinnande meddelanden förblir förseglade här och räknas aldrig som lästa. Öppna den här chatten i MonkeyHub på telefonen, eller på en Mac- eller Windows-dator.}}",
   "appOnlyVanishUnread": "Förseglade meddelanden räknas aldrig som lästa",
+  "holdMenuReleaseToCancel": "Släpp för att avbryta",
   "forkSlideToChoose": "Dra för att välja",
   "forkLetGoCancel": "släpp här för att avbryta",
   "forkSlideBackCancel": "dra tillbaka för att avbryta",

@@ -15664,6 +15664,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appOnlyVanishUnread =>
       'Les messages scellés ne comptent jamais comme lus';
 
+  @override
+  String get holdMenuReleaseToCancel => 'Relâchez pour annuler';
 
   @override
   String get forkSlideToChoose => 'Glisse pour choisir';

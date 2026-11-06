@@ -4261,6 +4261,7 @@
   "vanishedParent": "Desapareceu",
   "appOnlyVanishBody": "{platform, select, web{O teu navegador não consegue bloquear capturas de ecrã, por isso as mensagens que desaparecem ficam seladas aqui e nunca contam como lidas. Abre este chat no MonkeyHub do teu telemóvel, ou num computador Mac ou Windows.} other{O Linux não consegue bloquear capturas de ecrã, por isso as mensagens que desaparecem ficam seladas aqui e nunca contam como lidas. Abre este chat no MonkeyHub do teu telemóvel, ou num computador Mac ou Windows.}}",
   "appOnlyVanishUnread": "As mensagens seladas nunca contam como lidas",
+  "holdMenuReleaseToCancel": "Largue para cancelar",
   "forkSlideToChoose": "Desliza para escolher",
   "forkLetGoCancel": "larga aqui para cancelar",
   "forkSlideBackCancel": "desliza para trás para cancelar",

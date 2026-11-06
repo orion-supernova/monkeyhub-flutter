@@ -15485,6 +15485,8 @@ class AppLocalizationsSv extends AppLocalizations {
   String get appOnlyVanishUnread =>
       'Förseglade meddelanden räknas aldrig som lästa';
 
+  @override
+  String get holdMenuReleaseToCancel => 'Släpp för att avbryta';
 
   @override
   String get forkSlideToChoose => 'Dra för att välja';
