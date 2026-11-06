@@ -21,6 +21,10 @@ class LogoScreen extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final ios = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+    // Android swaps the launcher icon as the app is left, never while it is
+    // on screen (LauncherIconService._deferAndroid), so say when it lands.
+    final android =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
     final footnote = groupedFooterStyle(theme);
     return AnimatedBuilder(
       animation: SettingsStore.instance,
@@ -45,6 +49,10 @@ class LogoScreen extends StatelessWidget {
                   if (ios) ...[
                     const SizedBox(height: 8),
                     Text(l10n.onboardingIconIosNote, style: footnote),
+                  ],
+                  if (android) ...[
+                    const SizedBox(height: 8),
+                    Text(l10n.appIconAndroidNote, style: footnote),
                   ],
                 ],
               ),

@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart'
     show kIsWeb, debugPrint, visibleForTesting;
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart'
+    show AppLifecycleListener, AppLifecycleState, WidgetsBinding;
 
 import '../data/settings_store.dart';
 import '../theme/app_theme.dart';
@@ -25,7 +27,8 @@ import 'linux_launcher_icon.dart';
 /// it means passing `iconName: null` (clears any active alternate).
 ///
 /// On Android, swapping activity-aliases is done via PackageManager with
-/// DONT_KILL_APP so the foreground process survives. iOS will pop a system
+/// DONT_KILL_APP, and only as the app goes to the background (see
+/// [_deferAndroid]). iOS will pop a system
 /// alert the first time per app version unless suppressed.
 ///
 /// Backed by `monkeyhub/launcher_icon` — wired in:
@@ -47,6 +50,48 @@ class LauncherIconService {
       );
     }
     final iconName = _platformIconName(activeTheme);
+    if (Platform.isAndroid && !_androidMayApplyNow()) {
+      _deferAndroid(iconName);
+      return;
+    }
+    return _applyNative(iconName);
+  }
+
+  // ── Android: swap on the way out ──────────────────────────────────────────
+  //
+  // Swapping turns MainActivity (or an alias) off while it is the component
+  // on screen. DONT_KILL_APP keeps the process, but several launchers (One UI
+  // first among them) still close the task of an activity whose launcher
+  // entry was just disabled, so a launch that reconciled the icon could shut
+  // the app in the person's face. So on Android the swap waits until the app
+  // is left: the selection is remembered, and applied as the app goes to the
+  // background. Open and close it once, and the home screen shows the icon.
+  static String? _androidPending;
+  static bool _androidHasPending = false;
+  static AppLifecycleListener? _androidListener;
+
+  static bool _androidMayApplyNow() {
+    final state = WidgetsBinding.instance.lifecycleState;
+    // Already in the background (a reconcile from a resume that never got to
+    // the front, say): nothing is on screen to close.
+    return state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached;
+  }
+
+  static void _deferAndroid(String? iconName) {
+    _androidPending = iconName;
+    _androidHasPending = true;
+    _androidListener ??= AppLifecycleListener(onHide: _flushAndroid);
+  }
+
+  static void _flushAndroid() {
+    if (!_androidHasPending) return;
+    _androidHasPending = false;
+    unawaited(_applyNative(_androidPending));
+  }
+
+  static Future<void> _applyNative(String? iconName) async {
     try {
       final supports =
           await _channel.invokeMethod<bool>('supportsAlternateIcons') ?? false;
