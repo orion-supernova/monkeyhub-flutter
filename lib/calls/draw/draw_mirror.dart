@@ -1,5 +1,4 @@
 import 'dart:convert' show utf8;
-import 'dart:io' show Platform;
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
@@ -9,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'draw_channel.dart';
 import 'draw_model.dart';
 import 'draw_wire.dart';
+import '../../ui/foundation/caps.dart';
 
 /// The drawing, carried past the edge of the app while this device shares
 /// its screen.
@@ -53,7 +53,7 @@ class DrawMirror with WidgetsBindingObserver {
     required this.channels,
     @visibleForTesting bool? supported,
   }) : supported = supported ??
-            (!kIsWeb && (Platform.isAndroid || Platform.isIOS));
+            Caps.mobileCalls;
 
   final DrawModel model;
   final DrawChannels channels;
@@ -97,7 +97,7 @@ class DrawMirror with WidgetsBindingObserver {
         'trackId': trackId,
         'idleText': idleText,
       });
-      if (_running && !kIsWeb && Platform.isAndroid) overlayAllowed.value = r;
+      if (_running && Caps.android) overlayAllowed.value = r;
     } catch (e) {
       debugPrint('DrawMirror.arm: $e');
     }
@@ -136,7 +136,7 @@ class DrawMirror with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!_running) return;
     _sync(state);
-    if (state == AppLifecycleState.resumed && Platform.isAndroid) {
+    if (state == AppLifecycleState.resumed && Caps.android) {
       _refreshPermission();
     }
   }

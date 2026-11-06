@@ -132,6 +132,15 @@ class ProfileVisibility {
       );
 }
 
+/// The one letter shown in an avatar for [s]: its first grapheme, upper-cased,
+/// or `?` when there is nothing to show. Grapheme-safe, so an emoji or a
+/// combining sequence is never cut in half.
+String initialOf(String s) {
+  final n = s.trim();
+  if (n.isEmpty) return '?';
+  return n.characters.first.toUpperCase();
+}
+
 class ChatUser {
   ChatUser({
     required this.id,
@@ -261,11 +270,7 @@ class ChatUser {
   bool get isChild => accountType == AccountType.child;
 
   String get displayName => name.trim().isNotEmpty ? name : username;
-  String get displayInitial {
-    final n = displayName.trim();
-    if (n.isEmpty) return '?';
-    return n.characters.first.toUpperCase();
-  }
+  String get displayInitial => initialOf(displayName);
 
   factory ChatUser.fromJson(Map<String, dynamic> j) {
     final ls = j['lastSeen'];

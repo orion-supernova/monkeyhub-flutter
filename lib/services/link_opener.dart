@@ -79,6 +79,15 @@ class LinkOpener {
     }
   }
 
+  /// Hands [url] straight to the OS (the browser app, or the store app for a
+  /// store scheme) instead of an in-app tab. True when something took it; a
+  /// scheme with no handler, a bad URL and a thrown error all mean false.
+  static Future<bool> openExternal(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return false;
+    return _launchExternally(uri);
+  }
+
   /// Dismiss the browser surface, if one is up.
   ///
   /// For the "open in app" button a web page shows: following it hands control

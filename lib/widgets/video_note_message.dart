@@ -1678,7 +1678,7 @@ class _AutoAdvanceToggleState extends State<_AutoAdvanceToggle>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _calm = MediaQuery.disableAnimationsOf(context);
+    _calm = MotionScope.of(context).calm;
   }
 
   @override
@@ -2315,7 +2315,7 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
     if (burn &&
         widget.once &&
         widget.animation.status == AnimationStatus.completed &&
-        !MediaQuery.disableAnimationsOf(context)) {
+        !MotionScope.of(context).calm) {
       _startBurn();
       return;
     }
@@ -2790,9 +2790,8 @@ class _VideoNoteFocusState extends State<VideoNoteFocus>
         Expanded(
           child: Align(
             alignment: Alignment.centerRight,
-            child: GlassIconButton(
+            child: GlassCloseButton(
               tone: GlassTone.media,
-              icon: CupertinoIcons.xmark,
               semanticLabel: l10n.photoChromeCloseSemanticLabel,
               onTap: _close,
             ),
@@ -2912,11 +2911,16 @@ class OutboundVideoNote extends StatelessWidget {
               child: SizedBox(
                 width: 32,
                 height: 32,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  value: progress,
-                  color: Colors.white,
-                ),
+                child: progress == null
+                    ? const CupertinoActivityIndicator(
+                        color: Colors.white,
+                        radius: 16,
+                      )
+                    : CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        value: progress,
+                        color: Colors.white,
+                      ),
               ),
             )
           else

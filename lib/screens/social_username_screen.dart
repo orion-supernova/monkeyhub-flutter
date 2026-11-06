@@ -7,7 +7,7 @@ import '../auth/social_sign_in.dart';
 import '../data/username_availability_controller.dart';
 import '../keyboard/dismiss_keyboard_on_tap.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/labeled_field.dart';
@@ -262,7 +262,8 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                                 hint: '',
                                 autocorrect: false,
                                 enableSuggestions: false,
-                                autofocus: isPhysicalKeyboardPlatform,
+                                autofillHints: const [AutofillHints.username],
+                                autofocus: Caps.physicalKeyboard,
                                 textInputAction: TextInputAction.next,
                                 onChanged:
                                     creating ? _availability.onChanged : null,
@@ -291,6 +292,7 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                                   label: AppLocalizations.of(context)
                                       .audioMessagePasswordHint,
                                   hint: '',
+                                  autofillHints: const [AutofillHints.password],
                                   textInputAction: TextInputAction.done,
                                   onSubmitted: (_) => _submit(),
                                 ),
@@ -318,17 +320,30 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                                 ),
                               ],
                               const SizedBox(height: 20),
-                              _Cta(
+                              SheetActionButton(
                                 busy: _busy,
+                                // The one big commit on the screen: the
+                                // heavier haptic, played here instead of the
+                                // default selection tick.
+                                haptic: false,
                                 label: creating
                                     ? AppLocalizations.of(context)
                                         .audioMessageCreateAccountButton
                                     : AppLocalizations.of(context)
                                         .socialSignInLinkIos(_provider),
-                                onTap: _submit,
+                                onTap: () {
+                                  HapticFeedback.mediumImpact();
+                                  _submit();
+                                },
                               ),
                               const SizedBox(height: 12),
-                              _SecondaryCta(
+                              SheetActionButton(
+                                // Tinted, not filled: impossible to miss, and
+                                // never mistaken for the primary action. Null
+                                // while a request is in flight: the switch
+                                // rebuilds the whole form under a submit
+                                // already on the wire.
+                                tonal: true,
                                 label: creating
                                     ? AppLocalizations.of(context)
                                         .audioMessageSwitchToLinkModeLink
@@ -354,61 +369,4 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
       ),
     );
   }
-}
-
-/// The primary action: the app's filled capsule.
-class _Cta extends StatelessWidget {
-  const _Cta({required this.busy, required this.label, required this.onTap});
-  final bool busy;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => SheetActionButton(
-        label: label,
-        busy: busy,
-        // The one big commit on the screen: the heavier haptic, played here
-        // instead of the default selection tick.
-        haptic: false,
-        onTap: () {
-          HapticFeedback.mediumImpact();
-          onTap();
-        },
-      );
-}
-
-/// The OTHER mode, as a button rather than a footnote.
-///
-/// This was a small underlined line at the very bottom of the screen, and it
-/// was missed. The class doc above already says the most common first tap of a
-/// provider button is by someone who ALREADY has an account of months'
-/// standing — and what that person met was a hero reading "almost there." over
-/// a CREATE ACCOUNT button, with the door they actually wanted set in caption
-/// type below the fold. Three consecutive attempts on one real account ended
-/// with the person backing out of this screen rather than finding it, and then
-/// reporting that sign-in was broken. It was not; the way through was
-/// invisible.
-///
-/// So it sits directly under the primary action, at the same width and weight,
-/// where the two modes read as the pair they are.
-///
-/// OUTLINED, not filled, and that is the whole point of the widget: it has to
-/// be impossible to miss without becoming impossible to tell apart from the
-/// primary action. Someone who genuinely IS new must still see at a glance
-/// which of the two is theirs, so only ever one of them is solid.
-class _SecondaryCta extends StatelessWidget {
-  const _SecondaryCta({required this.label, required this.onTap});
-
-  final String label;
-
-  /// Null while a request is in flight: the switch rebuilds the whole form,
-  /// and doing that under a submit already on the wire is how the answer comes
-  /// back to a screen that has moved on.
-  final VoidCallback? onTap;
-
-  // TINTED, not filled: impossible to miss, and still never mistaken for the
-  // primary action — only one of the pair is ever solid.
-  @override
-  Widget build(BuildContext context) =>
-      SheetActionButton(label: label, onTap: onTap, tonal: true);
 }

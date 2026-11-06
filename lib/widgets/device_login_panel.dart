@@ -8,11 +8,12 @@ import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/device_login_link.dart';
 import '../backend/convex_client.dart' show Subscription;
+import '../format/duration_format.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../push/device_identity.dart';
 import '../theme/theme_scope.dart';
 import 'app_brand_mark.dart';
-import 'glass_progress_dialog.dart' show ProgressRing;
+import 'progress_ring.dart' show ProgressRing;
 import 'ios_kit.dart';
 import 'labeled_field.dart' show FormErrorBanner;
 
@@ -174,12 +175,6 @@ class _DeviceLoginPanelState extends State<DeviceLoginPanel> {
         fallback: AppLocalizations.of(context).deviceLoginScreenGenericError,
       );
 
-  static String _fmt(Duration d) {
-    final m = d.inMinutes;
-    final s = d.inSeconds % 60;
-    return '$m:${s.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -216,7 +211,7 @@ class _DeviceLoginPanelState extends State<DeviceLoginPanel> {
                   (_phase == _Phase.minting ||
                       _phase == _Phase.waiting ||
                       _phase == _Phase.exchanging)) ...[
-                const ProgressRing(size: 16, strokeWidth: 2),
+                const ProgressRing.spinner(size: 16, strokeWidth: 2),
                 const SizedBox(width: 8),
               ],
               Flexible(
@@ -266,7 +261,7 @@ class _DeviceLoginPanelState extends State<DeviceLoginPanel> {
       case _Phase.minting:
         return l10n.deviceLoginScreenWaiting;
       case _Phase.waiting:
-        return l10n.destructiveSheetPairingExpiresIn(_fmt(_remaining));
+        return l10n.destructiveSheetPairingExpiresIn(formatClock(_remaining));
       case _Phase.exchanging:
         return l10n.deviceLoginScreenApproved;
       case _Phase.denied:

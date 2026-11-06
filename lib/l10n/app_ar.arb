@@ -4388,5 +4388,8 @@
   "uiKitAutoBody": "يختار أفضل نمط لهذا الجهاز. الآن: {style}",
   "uiKitLiteTitle": "خفيف",
   "uiKitLiteBody": "أسطح مصمتة بلا ضبابية. الأكثر سلاسة على الهواتف الأقدم وأخف على البطارية.",
-  "uiKitLiteFooter": "النمط الخفيف لا يرسم زجاجًا، لذا لا يوجد ما يُضبط. اختر «مُصنفَر» لتشكيل الزجاج بنفسك."
+  "uiKitLiteFooter": "النمط الخفيف لا يرسم زجاجًا، لذا لا يوجد ما يُضبط. اختر «مُصنفَر» لتشكيل الزجاج بنفسك.",
+  "bulkForwardedToChats": "{count, plural, =1{تمت إعادة التوجيه} other{تمت إعادة التوجيه إلى {count} محادثات}}",
+  "bulkSavedToPhotos": "{count, plural, =1{تم الحفظ في الصور} other{تم حفظ {count} في الصور}}",
+  "bulkDeletedMessages": "{count, plural, =1{تم الحذف} other{تم حذف {count}}}"
 }

@@ -316,9 +316,8 @@ class _Transcript extends StatelessWidget {
 // ── hosts ─────────────────────────────────────────────────────────────────
 
 class _Page extends StatefulWidget {
-  const _Page({this.open, this.child});
+  const _Page({this.open});
   final void Function(BuildContext context)? open;
-  final Widget? child;
   @override
   State<_Page> createState() => _PageState();
 }
@@ -338,8 +337,7 @@ class _PageState extends State<_Page> {
     final theme = ThemeScope.of(context);
     return Scaffold(
       backgroundColor: theme.background,
-      body: widget.child ??
-          ListView(
+      body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 110, 20, 0),
             children: [
               Text('Settings', style: theme.displayLarge),

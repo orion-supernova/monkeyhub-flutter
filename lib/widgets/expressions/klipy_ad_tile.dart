@@ -1,17 +1,17 @@
+import 'dart:async' show unawaited;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../services/link_opener.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../expressions/klipy.dart';
+import '../../ui/foundation/caps.dart';
 
 /// Whether this platform can show KLIPY's ads at all. KLIPY serves them to
 /// mobile only, and they are HTML that needs a platform web view.
 bool get klipyAdsSupported =>
-    !kIsWeb &&
-    (defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.android);
+    Caps.nativeMobile;
 
 /// Learns the platform web view's own User-Agent, once, for [KlipyClient].
 ///
@@ -79,7 +79,7 @@ class _KlipyAdTileState extends State<KlipyAdTile> {
           }
           if (_recentlyTouched && (uri.scheme == 'https' || uri.scheme == 'http')) {
             _lastTouch = null;
-            launchUrl(uri, mode: LaunchMode.externalApplication);
+            unawaited(LinkOpener.openExternal(uri.toString()));
           }
           return NavigationDecision.prevent;
         },

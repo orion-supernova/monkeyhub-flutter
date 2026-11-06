@@ -115,15 +115,22 @@ class _CallGlyphButton extends StatelessWidget {
         onTap: onTap,
         scale: 0.88,
         focusShape: FocusRingShape.circle,
-        child: Container(
-          width: 38,
-          height: 38,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: theme.accent.withValues(alpha: 0.14),
-            shape: BoxShape.circle,
+        // Drawn 38pt, tappable 44pt.
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Center(
+            child: Container(
+              width: 38,
+              height: 38,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: theme.accent.withValues(alpha: 0.14),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 18, color: theme.accent),
+            ),
           ),
-          child: Icon(icon, size: 18, color: theme.accent),
         ),
       ),
     );

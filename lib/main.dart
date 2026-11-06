@@ -1,10 +1,5 @@
 import 'package:flutter/foundation.dart'
-    show
-        defaultTargetPlatform,
-        kIsWeb,
-        LicenseEntryWithLineBreaks,
-        LicenseRegistry,
-        TargetPlatform;
+    show kIsWeb, LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show BrowserContextMenu, SystemChrome, SystemUiMode;
@@ -33,6 +28,7 @@ import 'transcripts/apple_builtin_speech.dart';
 import 'transcripts/voice_transcriber.dart';
 import 'transcripts/whisper_engine.dart';
 import 'screens/navigation/native_tab_bar.dart' show NativeChrome;
+import 'ui/foundation/caps.dart';
 
 /// Root navigator key — exposed so non-widget code (push handlers, native
 /// callbacks) can push routes without a BuildContext.
@@ -178,9 +174,7 @@ Future<void> main() async {
   // Apple's own recognizer goes first where it already has the language.
   final speech = createWhisperEngine();
   if (speech != null) {
-    final apple = !kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.iOS ||
-            defaultTargetPlatform == TargetPlatform.macOS);
+    final apple = Caps.nativeApple;
     VoiceTranscriber.install(
       speech,
       builtIn: apple ? AppleBuiltInSpeech() : null,

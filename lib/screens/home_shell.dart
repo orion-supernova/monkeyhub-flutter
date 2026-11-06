@@ -17,6 +17,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
 import '../update/update_availability.dart';
 import '../widgets/count_badge.dart';
 import '../widgets/radial_floating_menu.dart';
@@ -633,12 +634,15 @@ class _SideRail extends StatelessWidget {
     return RepaintBoundary(
       child: ClipRect(
         child: BackdropFilter(
+          enabled: UiKit.of(context).blurs,
           filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
           child: Container(
             width: 84,
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
             decoration: BoxDecoration(
-              color: theme.surface.withValues(alpha: 0.72),
+              color: UiKit.of(context).blurs
+                  ? theme.surface.withValues(alpha: 0.72)
+                  : theme.surface,
               border: Border(
                 right: BorderSide(color: theme.divider, width: 0.5),
               ),

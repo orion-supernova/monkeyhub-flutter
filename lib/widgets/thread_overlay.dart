@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 // ScrollCacheExtent lives in rendering/, not re-exported by material.dart.
@@ -27,6 +26,8 @@ import '../screens/room_items.dart';
 import '../keyboard/overlay_modal_scope.dart';
 import '../theme/theme_scope.dart';
 import 'app_toast.dart';
+import '../services/clipboard_actions.dart';
+import 'blur_scrim.dart';
 import 'anchored_scroll.dart';
 import '../composer/capture_machine.dart';
 import '../composer/capture_recorder.dart';
@@ -103,10 +104,13 @@ Future<void> showThreadOverlay({
 }) async {
   final theme = ThemeScope.of(context);
   final overlay = Overlay.of(context, rootOverlay: true);
+  // The page behind, blurred once now; see [BlurSnapshot].
+  final backdrop = BlurSnapshot.capture(context);
   final completer = Completer<void>();
   late OverlayEntry entry;
   entry = OverlayEntry(
     builder: (_) => _ThreadSheet(
+      backdrop: backdrop,
       api: api,
       repo: repo,
       roomId: roomId,
@@ -129,6 +133,7 @@ Future<void> showThreadOverlay({
 
 class _ThreadSheet extends StatefulWidget {
   const _ThreadSheet({
+    required this.backdrop,
     required this.api,
     required this.repo,
     required this.roomId,
@@ -140,6 +145,7 @@ class _ThreadSheet extends StatefulWidget {
     this.onChildGate,
   });
 
+  final BlurSnapshot? backdrop;
   final ChatApi api;
   final ChatRepository repo;
   final String roomId;
@@ -1042,24 +1048,31 @@ class _ThreadSheetState extends State<_ThreadSheet>
         _armReply(m);
         break;
       case MessageAction.copy:
-        await Clipboard.setData(ClipboardData(text: m.content));
-        if (!context.mounted) return;
-        _showToast(AppLocalizations.of(context).threadOverlayCopiedToast);
+        await copyText(
+          context,
+          m.content,
+          toast: AppLocalizations.of(context).threadOverlayCopiedToast,
+          tone: ToastTone.neutral,
+        );
         break;
       case MessageAction.copyName:
-        await Clipboard.setData(ClipboardData(text: m.fileName ?? ''));
-        if (!context.mounted) return;
-        _showToast(AppLocalizations.of(context).threadOverlayNameCopiedToast);
+        await copyText(
+          context,
+          m.fileName ?? '',
+          toast: AppLocalizations.of(context).threadOverlayNameCopiedToast,
+          tone: ToastTone.neutral,
+        );
         break;
       case MessageAction.copyCoordinates:
         final share = m.locationShare;
         if (share != null) {
-          await Clipboard.setData(ClipboardData(
-              text: formatCoordinates(share.latitude, share.longitude)));
+          await copyText(
+            context,
+            formatCoordinates(share.latitude, share.longitude),
+            toast: AppLocalizations.of(context).threadOverlayCoordinatesCopiedToast,
+            tone: ToastTone.neutral,
+          );
         }
-        if (!context.mounted) return;
-        _showToast(
-            AppLocalizations.of(context).threadOverlayCoordinatesCopiedToast);
         break;
       case MessageAction.info:
         // Never offered here: the thread has no receipts screen to open, and
@@ -1081,7 +1094,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
       case MessageAction.pin:
         final err = await widget.repo.pinMessage(widget.roomId, m.id);
         if (err == null) break;
-        if (!context.mounted) return;
+        if (!mounted) return;
         _showToast(
           err == 'PIN_LIMIT_REACHED'
               ? AppLocalizations.of(context).threadOverlayPinLimitToast
@@ -1094,7 +1107,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
       case MessageAction.save:
         final saveErr = await widget.repo.saveMessage(widget.roomId, m.id);
         if (saveErr == null) break;
-        if (!context.mounted) return;
+        if (!mounted) return;
         _showToast(
           saveErr == 'SAVE_LIMIT_REACHED'
               ? AppLocalizations.of(context).threadOverlaySaveLimitToast
@@ -1350,43 +1363,17 @@ class _ThreadSheetState extends State<_ThreadSheet>
           children: [
             // Frosted scrim. Tap to dismiss — after the expression panel, if
             // it is up, by the same first-tap rule as `_tapTranscript`.
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  if (_expressions.isOpen) {
-                    _expressions.hide();
-                    return;
-                  }
-                  unawaited(_dismiss());
-                },
-                child: AnimatedBuilder(
-                  animation: curved,
-                  builder: (_, _) {
-                    final t = curved.value;
-                    return Stack(
-                      children: [
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(
-                                sigmaX: 22 * t,
-                                sigmaY: 22 * t,
-                              ),
-                              child: const SizedBox.expand(),
-                            ),
-                          ),
-                        ),
-                        Positioned.fill(
-                          child: ColoredBox(
-                            color: Colors.black.withValues(alpha: 0.32 * t),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
+            BlurScrim(
+              t: curved,
+              backdrop: widget.backdrop,
+              dim: Colors.black.withValues(alpha: 0.32),
+              onTap: () {
+                if (_expressions.isOpen) {
+                  _expressions.hide();
+                  return;
+                }
+                unawaited(_dismiss());
+              },
             ),
             // Scrolling sheet of full-size bubbles + composer. The sheet is
             // transparent (no card surface) so the scrim shows through.

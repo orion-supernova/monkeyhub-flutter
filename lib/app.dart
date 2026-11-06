@@ -5,7 +5,7 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'dart:async';
 import 'dart:ui' show PlatformDispatcher;
 
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show HapticFeedback, MethodChannel, SystemUiOverlayStyle;
@@ -104,7 +104,6 @@ import 'push/web_presence.dart';
 import 'data/ui_selection_store.dart';
 import 'drop/drop_controller.dart';
 import 'widgets/drop/drop_chrome.dart';
-import 'platform.dart';
 import 'screens/home_shell.dart';
 import 'screens/games/match_screen.dart';
 import 'screens/room_screen.dart';
@@ -131,6 +130,7 @@ import 'widgets/sheet_kit.dart' show SheetActionButton;
 import 'web/web_tab_title.dart';
 import 'web/web_url_sync.dart';
 import 'widgets/route_depth.dart';
+import 'ui/foundation/caps.dart';
 
 /// The presence status a lifecycle state implies, or null for "says nothing —
 /// don't write".
@@ -449,7 +449,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
 
   /// Whether web/desktop alert sounds + web banners apply on this platform.
   /// Mobile gets OS notifications from APNs/FCM and needs none of this.
-  static bool get _alertsEnabled => isWebOrDesktop;
+  static bool get _alertsEnabled => Caps.inAppAlerts;
 
   void _primeAlerts() {
     if (_alertsPrimed || !_alertsEnabled) return;
@@ -1453,7 +1453,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // falls through to the tick-gap check, which measures a freeze from our own
     // timer rather than from anything the OS says — see [setForeground].
     _health.setForeground(
-      isWebOrDesktop ||
+      Caps.inAppAlerts ||
           state == AppLifecycleState.resumed ||
           state == AppLifecycleState.inactive,
     );
@@ -2704,13 +2704,7 @@ class _CallOverlayState extends State<_CallOverlay> {
   /// remains for platforms without a native ringer: iOS simulator and
   /// desktop.
   bool get _nativeRinger {
-    if (kIsWeb) return false;
-    final p = defaultTargetPlatform;
-    if (p == TargetPlatform.android) return true;
-    if (p == TargetPlatform.iOS) {
-      return !NativeCallHandler.instance.isIosSimulator;
-    }
-    return false;
+    return _ringsNatively();
   }
 
   /// Start/stop the in-app ringtone (and, on web, the call banner) from the
@@ -3136,13 +3130,7 @@ class GroupCallOverlayState extends State<GroupCallOverlay> {
   /// that shows CallKit for one and an in-app sheet for the other is a device
   /// whose user cannot learn what answering a call looks like.
   bool get _nativeRinger {
-    if (kIsWeb) return false;
-    final p = defaultTargetPlatform;
-    if (p == TargetPlatform.android) return true;
-    if (p == TargetPlatform.iOS) {
-      return !NativeCallHandler.instance.isIosSimulator;
-    }
-    return false;
+    return _ringsNatively();
   }
 
   @override
@@ -3396,4 +3384,14 @@ class _AppHomeState extends State<_AppHome> {
       ),
     );
   }
+}
+
+/// Whether this process rings an incoming call through the OS (CallKit /
+/// ConnectionService) instead of an in-app sheet. Shared by the 1:1 and group
+/// overlays so a device never shows a native card for one and a sheet for the
+/// other. The iOS simulator has no CallKit ringer.
+bool _ringsNatively() {
+  if (Caps.android) return true;
+  if (Caps.iOS) return !NativeCallHandler.instance.isIosSimulator;
+  return false;
 }

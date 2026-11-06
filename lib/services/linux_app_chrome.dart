@@ -8,6 +8,8 @@ import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../main.dart' show rootNavigatorKey;
 import '../widgets/destructive_sheet.dart' show showConfirmSheetChoice;
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// What the Linux window's close button does, and the tray it may hide to.
 /// The macOS counterpart for its own chrome is [MacAppChrome].
@@ -27,10 +29,10 @@ class LinuxAppChrome extends ChangeNotifier {
   LinuxAppChrome._();
   static final LinuxAppChrome instance = LinuxAppChrome._();
 
-  static const _ch = MethodChannel('monkeyhub/window');
+  static const _ch = Channels.window;
 
   static bool get isSupported =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.linux;
+      Caps.linux;
 
   bool? _trayShown;
 

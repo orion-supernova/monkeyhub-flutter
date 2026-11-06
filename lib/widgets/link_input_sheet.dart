@@ -1,11 +1,9 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'ios_kit.dart';
 import 'sheet_kit.dart';
 import '../l10n/text_case.dart';
 
@@ -90,39 +88,18 @@ class _LinkInputSheetState extends State<_LinkInputSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: sheetGroupFill(theme),
-              borderRadius: BorderRadius.circular(groupedRadius(theme)),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-            child: Row(
-              children: [
-                Icon(CupertinoIcons.link, size: 18, color: theme.inkMuted),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _url,
-                    autofocus: true,
-                    keyboardType: TextInputType.url,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    textInputAction: TextInputAction.done,
-                    style: theme.body.copyWith(color: theme.ink, fontSize: 17),
-                    cursorColor: theme.accent,
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      hintText: l10n.linkInputSheetHint,
-                      hintStyle: theme.body.copyWith(
-                        color: theme.inkMuted,
-                        fontSize: 17,
-                      ),
-                    ),
-                    onSubmitted: (_) => _apply(),
-                  ),
-                ),
-              ],
-            ),
+          SheetTextField(
+            controller: _url,
+            hint: l10n.linkInputSheetHint,
+            leadingIcon: CupertinoIcons.link,
+            fill: sheetGroupFill(theme),
+            autofocus: true,
+            keyboardType: TextInputType.url,
+            textCapitalization: TextCapitalization.none,
+            autocorrect: false,
+            enableSuggestions: false,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _apply(),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),

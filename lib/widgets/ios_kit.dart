@@ -11,6 +11,7 @@ import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'action_buttons.dart';
+import 'count_badge.dart' show CountBadge;
 import 'glass_buttons.dart';
 import 'spring_press.dart';
 import 'sunlit_surface.dart';
@@ -719,7 +720,8 @@ class GroupedRow extends StatefulWidget {
     Key? key,
     required String title,
     required bool value,
-    required ValueChanged<bool> onChanged,
+    // Null is a read-only switch: dimmed, silent and inert, row included.
+    required ValueChanged<bool>? onChanged,
     IconData? icon,
     TileTone tone = TileTone.accent,
     String? subtitle,
@@ -734,10 +736,12 @@ class GroupedRow extends StatefulWidget {
         // The switch's own tap clicks on iOS; a tap on the row around it has
         // to click the same, or the bigger target feels dead. (A handler that
         // also clicks is collapsed into this one; see AppBinding.)
-        onTap: () {
-          HapticFeedback.lightImpact();
-          onChanged(!value);
-        },
+        onTap: onChanged == null
+            ? null
+            : () {
+                HapticFeedback.lightImpact();
+                onChanged(!value);
+              },
         trailing: RowSwitch(value: value, onChanged: onChanged),
       );
 
@@ -898,17 +902,27 @@ class _GroupedRowState extends State<GroupedRow>
 /// THE switch of a settings row ([GroupedRow.toggle] draws it). Public for
 /// the rare row that is not a [GroupedRow] — never a raw `Switch.adaptive`,
 /// whose off-track all but vanishes on a cream or white page.
+///
+/// Owns the tap haptic (`Switch.adaptive` is silent even on iOS, where the
+/// real UISwitch always ticks): callers never add their own.
 class RowSwitch extends StatelessWidget {
   const RowSwitch({super.key, required this.value, required this.onChanged});
   final bool value;
-  final ValueChanged<bool> onChanged;
+
+  /// Null disables the switch (read-only): no haptic, no change.
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Switch.adaptive(
       value: value,
-      onChanged: onChanged,
+      onChanged: onChanged == null
+          ? null
+          : (v) {
+              HapticFeedback.lightImpact();
+              onChanged!(v);
+            },
       activeTrackColor: theme.success,
       activeThumbColor: Colors.white,
       // The off track in the theme's own ink: the platform grey disappears
@@ -1065,32 +1079,7 @@ class RowBadge extends StatelessWidget {
   final int max;
 
   @override
-  Widget build(BuildContext context) {
-    if (count <= 0) return const SizedBox.shrink();
-    final theme = ThemeScope.of(context);
-    return Container(
-      constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
-      padding: const EdgeInsets.symmetric(horizontal: 7),
-
-      decoration: BoxDecoration(
-        color: theme.danger,
-        borderRadius: BorderRadius.circular(11),
-      ),
-      child: Center(
-        widthFactor: 1,
-        heightFactor: 1,
-        child: Text(
-          count > max ? '$max+' : '$count',
-          style: groupedMetaStyle(theme).copyWith(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-            height: 1.1,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => CountBadge.row(count: count, max: max);
 }
 
 /// One line that scrolls sideways when it does not fit, its overflowing

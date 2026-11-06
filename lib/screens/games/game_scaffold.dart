@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -27,6 +26,8 @@ import '../../widgets/score_row.dart';
 import '../../widgets/sheet_kit.dart';
 import '../../l10n/text_case.dart';
 import 'result_sheet.dart';
+import '../../ui/foundation/caps.dart';
+import '../../services/clipboard_actions.dart';
 
 /// The chrome every daily game wears: the back arrow, the running clock, the
 /// pause cover, the tool row, the result card and today's times.
@@ -323,7 +324,7 @@ class _GameScaffoldState extends State<GameScaffold> {
             return KeyEventResult.ignored;
           }
           final keys = HardwareKeyboard.instance;
-          final chord = defaultTargetPlatform == TargetPlatform.macOS
+          final chord = Caps.appleLook
               ? keys.isMetaPressed
               : keys.isControlPressed;
           if (!chord || keys.isShiftPressed) return KeyEventResult.ignored;
@@ -1114,20 +1115,15 @@ Future<void> copyGameResult(
   required int? durationMs,
 }) async {
   final l10n = AppLocalizations.of(context);
-  final toast = AppToast.of(context);
-  await Clipboard.setData(
-    ClipboardData(
-      text: l10n.gameShareLine(
-        name,
-        '${FeedStore.instance.edition}',
-        solved ? formatGameTime(durationMs) : l10n.gameStatusGaveUp,
-      ),
+  await copyText(
+    context,
+    l10n.gameShareLine(
+      name,
+      '${FeedStore.instance.edition}',
+      solved ? formatGameTime(durationMs) : l10n.gameStatusGaveUp,
     ),
-  );
-  HapticFeedback.lightImpact();
-  toast.show(
-    l10n.gameShareCopied,
-    tone: ToastTone.success,
+    toast: l10n.gameShareCopied,
+    haptic: CopyHaptic.light,
   );
 }
 

@@ -31,6 +31,7 @@ import 'expressions/expression_media.dart' show StickerArt;
 import 'expressions/expression_panel.dart';
 import 'moment_reactions.dart';
 import 'reaction_bubble.dart' show ReactionRow;
+import 'meta_text.dart' show relativeAgo;
 import 'reaction_limit_notice.dart';
 import 'reaction_picker_sheet.dart';
 import 'sheet_kit.dart';
@@ -1202,10 +1203,9 @@ class _CommentRow extends StatelessWidget {
 
   static String _ago(BuildContext context, DateTime at) {
     final l10n = AppLocalizations.of(context);
-    final d = DateTime.now().difference(at);
-    if (d.inMinutes < 1) return l10n.momentActivityJustNow;
-    if (d.inHours < 1) return l10n.momentActivityMinutesAgo(d.inMinutes);
-    if (d.inHours < 24) return l10n.momentActivityHoursAgo(d.inHours);
+    if (DateTime.now().difference(at).inHours < 24) {
+      return relativeAgo(l10n, at);
+    }
     // Your own archive keeps highlights forever, and their conversations.
     return MaterialLocalizations.of(context).formatShortMonthDay(at);
   }

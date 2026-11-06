@@ -11,6 +11,7 @@ import '../widgets/liquid_glass.dart';
 import '../widgets/media_spoiler.dart';
 import '../l10n/text_case.dart';
 import '../widgets/viewer_chrome.dart';
+import '../theme/motion.dart';
 
 /// Fullscreen viewer for a view-once photo.
 ///
@@ -132,7 +133,7 @@ class _ViewOnceViewerState extends State<ViewOnceViewer>
   void _close({bool burn = true}) {
     if (_closing || !mounted) return;
     _closing = true;
-    if (burn && !MediaQuery.disableAnimationsOf(context)) {
+    if (burn && !MotionScope.of(context).calm) {
       setState(() => _burning = true);
       _lift.forward();
       widget.onBurn?.call();

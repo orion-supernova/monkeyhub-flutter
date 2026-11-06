@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../format/duration_format.dart' as fmt;
 
 /// 1:1 call or a ringing group call (a huddle never gets one: nobody was
 /// called).
@@ -176,8 +177,8 @@ class CallEvent {
       if (answeredAt != null) 'a': answeredAt!.millisecondsSinceEpoch,
       if (endedAt != null) 'e': endedAt!.millisecondsSinceEpoch,
       if (duration != null) 'd': duration!.inMilliseconds,
-      if (people != null) 'n': people!,
-      if (answeredOn != null) 'o': answeredOn!,
+      'n': ?people,
+      'o': ?answeredOn,
       if (quality != null) 'q': quality!.name,
     };
     return '$prefix${jsonEncode(m)}';
@@ -218,13 +219,5 @@ class CallEvent {
       status == CallEventStatus.missed || status == CallEventStatus.cancelled;
 
   /// "12:41", or "1:02:03" past an hour.
-  static String formatClock(Duration d) {
-    final s = d.inSeconds < 0 ? 0 : d.inSeconds;
-    final h = s ~/ 3600;
-    final m = (s % 3600) ~/ 60;
-    final sec = s % 60;
-    final ss = sec.toString().padLeft(2, '0');
-    if (h > 0) return '$h:${m.toString().padLeft(2, '0')}:$ss';
-    return '$m:$ss';
-  }
+  static String formatClock(Duration d) => fmt.formatClock(d);
 }

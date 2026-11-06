@@ -19,6 +19,7 @@ import '../../models/chat_room.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../theme/layout.dart';
+import '../../widgets/chat_list_parts.dart' show roomTitleOf;
 import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/chat_list_row.dart' show ChatRoomAvatar;
 import '../../widgets/drag_select.dart';
@@ -392,16 +393,8 @@ class _UsageCategoryRowState extends State<UsageCategoryRow>
 }
 
 /// A room's name as the chat list prints it.
-String roomTitle(AppLocalizations l10n, ChatRepository repo, ChatRoom room) {
-  if (room.isSavedMessages) return l10n.savedMessagesTitle;
-  if (room.isDm) {
-    final me = repo.userId;
-    final other = me == null ? null : room.otherParticipantId(me);
-    final user = other == null ? null : repo.userById(other);
-    if (user != null) return user.displayName;
-  }
-  return room.name;
-}
+String roomTitle(AppLocalizations l10n, ChatRepository repo, ChatRoom room) =>
+    roomTitleOf(l10n, room, repo.otherUserFor(room));
 
 final Map<String, String?> _removedNames = {};
 
@@ -478,7 +471,6 @@ class StorageChatRow extends StatelessWidget implements GroupedInsetRow {
     final l10n = AppLocalizations.of(context);
     final room = repo.roomById(usage.roomId);
     final me = repo.userId;
-    final otherId = room == null || me == null ? null : room.otherParticipantId(me);
     final title = room == null
         ? removedChatTitle(
             l10n, StorageService.instance.report, usage.roomId, me)
@@ -496,7 +488,7 @@ class StorageChatRow extends StatelessWidget implements GroupedInsetRow {
           : ChatRoomAvatar(
               room: room,
               size: kPersonRowAvatar,
-              dmUser: otherId == null ? null : repo.userById(otherId),
+              dmUser: repo.otherUserFor(room),
               api: api,
             ),
       title: title,

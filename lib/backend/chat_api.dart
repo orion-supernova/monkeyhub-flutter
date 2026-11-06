@@ -853,7 +853,7 @@ class ChatApi {
     final res = await _cv.mutation('vanish:setVanishMode', {
       'roomId': roomId,
       'on': on,
-      if (afterSeen != null) 'afterSeen': afterSeen,
+      'afterSeen': ?afterSeen,
     });
     return res is Map && res['changed'] == true;
   }

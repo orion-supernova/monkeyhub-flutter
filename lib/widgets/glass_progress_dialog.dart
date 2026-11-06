@@ -1,10 +1,9 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'glass_hud.dart';
+import 'progress_ring.dart';
 
 /// A running progress dialog. Obtain from [showGlassProgress].
 class GlassProgressHandle {
@@ -108,7 +107,7 @@ class _GlassProgressCard extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ProgressRing(value: state.progress),
+                ProgressRing.spinner(value: state.progress),
                 const SizedBox(height: 16),
                 Text(
                   state.title,
@@ -159,132 +158,4 @@ class _GlassProgressCard extends StatelessWidget {
       ),
     );
   }
-}
-
-/// A thin circular progress ring. [value] null spins (a static quarter arc
-/// under calm motion); otherwise the arc animates smoothly to [value].
-class ProgressRing extends StatefulWidget {
-  const ProgressRing({
-    super.key,
-    this.value,
-    this.size = 44,
-    this.strokeWidth = 3,
-    this.color,
-  });
-
-  final double? value;
-  final double size;
-  final double strokeWidth;
-  final Color? color;
-
-  @override
-  State<ProgressRing> createState() => _ProgressRingState();
-}
-
-class _ProgressRingState extends State<ProgressRing>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _spin = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1000),
-  );
-
-  void _sync(bool calm) {
-    if (widget.value == null && !calm) {
-      if (!_spin.isAnimating) _spin.repeat();
-    } else {
-      _spin.stop();
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _sync(MotionScope.of(context).calm);
-  }
-
-  @override
-  void didUpdateWidget(ProgressRing old) {
-    super.didUpdateWidget(old);
-    _sync(MotionScope.of(context).calm);
-  }
-
-  @override
-  void dispose() {
-    _spin.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final color = widget.color ?? theme.accent;
-    final track = theme.ink.withValues(alpha: 0.14);
-    final calm = MotionScope.of(context).calm;
-    final v = widget.value;
-    Widget paint(double sweep, double rotation) => CustomPaint(
-          size: Size.square(widget.size),
-          painter: _RingPainter(
-            sweep: sweep,
-            rotation: rotation,
-            color: color,
-            track: track,
-            stroke: widget.strokeWidth,
-          ),
-        );
-    if (v == null) {
-      return AnimatedBuilder(
-        animation: _spin,
-        builder: (_, _) => paint(0.28, _spin.value * 2 * math.pi),
-      );
-    }
-    return TweenAnimationBuilder<double>(
-      tween: Tween(end: v),
-      duration: calm ? Duration.zero : const Duration(milliseconds: 350),
-      curve: Curves.easeOutCubic,
-      builder: (_, value, _) => paint(value, 0),
-    );
-  }
-}
-
-class _RingPainter extends CustomPainter {
-  _RingPainter({
-    required this.sweep,
-    required this.rotation,
-    required this.color,
-    required this.track,
-    required this.stroke,
-  });
-
-  final double sweep;
-  final double rotation;
-  final Color color;
-  final Color track;
-  final double stroke;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = (Offset.zero & size).deflate(stroke / 2);
-    final p = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(rect, 0, 2 * math.pi, false, p..color = track);
-    if (sweep > 0) {
-      canvas.drawArc(
-        rect,
-        -math.pi / 2 + rotation,
-        2 * math.pi * sweep.clamp(0.0, 1.0),
-        false,
-        p..color = color,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter o) =>
-      o.sweep != sweep ||
-      o.rotation != rotation ||
-      o.color != color ||
-      o.track != track ||
-      o.stroke != stroke;
 }

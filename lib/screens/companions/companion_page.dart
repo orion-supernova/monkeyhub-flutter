@@ -20,6 +20,7 @@ import '../../transcripts/voice_transcriber.dart';
 import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/text_case.dart';
+import '../../media/file_meta.dart' show formatFileSize;
 import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/account_kit.dart';
@@ -192,13 +193,7 @@ class _CompanionStorageLineState extends State<CompanionStorageLine> {
 /// file. Shared because four surfaces print it — the storage line, the download
 /// strip, the status line and [BrainSpec.sizeLabel] — and four roundings are
 /// how the same download comes to be 328 MB in one place and 344 MB in another.
-String companionByteLabel(int bytes) {
-  const mib = 1024 * 1024;
-  if (bytes >= 1024 * mib) {
-    return '${(bytes / (1024 * mib)).toStringAsFixed(1)} GB';
-  }
-  return '${(bytes / mib).round()} MB';
-}
+String companionByteLabel(int bytes) => formatFileSize(bytes, wholeUnits: true);
 
 /// The one line that says what a companion is currently doing, or what is
 /// stopping it.
@@ -579,7 +574,7 @@ class BrainRow extends StatelessWidget {
 }
 
 /// Whole binary megabytes, matching every OS storage screen.
-String _mib(int bytes) => '${(bytes / (1024 * 1024)).round()} MB';
+String _mib(int bytes) => formatFileSize(bytes, wholeUnits: true);
 
 class _Trailing extends StatelessWidget {
   const _Trailing({

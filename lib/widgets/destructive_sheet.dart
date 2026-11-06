@@ -8,8 +8,8 @@ import '../models/chat_room.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
+import 'chat_list_row.dart' show ChatRoomAvatar;
 import 'ios_kit.dart';
-import 'remote_image.dart';
 import 'sheet_kit.dart';
 import '../l10n/text_case.dart';
 
@@ -268,28 +268,7 @@ class SharedRoomRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          if (room.avatarStorageId != null)
-            ClipOval(
-              child: RemoteImage(
-                storageId: room.avatarStorageId!,
-                api: api,
-                width: 22,
-                height: 22,
-                borderRadius: BorderRadius.circular(11),
-              ),
-            )
-          else
-            Container(
-              width: 22,
-              height: 22,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: theme.surface,
-                shape: BoxShape.circle,
-                border: Border.all(color: theme.divider),
-              ),
-              child: Icon(CupertinoIcons.number, size: 12, color: theme.inkSoft),
-            ),
+          ChatRoomAvatar(room: room, api: api, size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

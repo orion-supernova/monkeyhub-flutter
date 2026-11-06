@@ -26,12 +26,12 @@
 /// way to connect to a model they never chose.
 library;
 
-import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 
 import 'brain_spec.dart';
+import '../ui/foundation/caps.dart';
 
 class DeviceCapability {
   DeviceCapability._();
@@ -75,14 +75,14 @@ class DeviceCapability {
     final info = DeviceInfoPlugin();
     const mib = 1024 * 1024;
 
-    if (Platform.isAndroid) return (await info.androidInfo).physicalRamSize;
-    if (Platform.isIOS) return (await info.iosInfo).physicalRamSize;
+    if (Caps.android) return (await info.androidInfo).physicalRamSize;
+    if (Caps.iOS) return (await info.iosInfo).physicalRamSize;
     // Desktop reports bytes rather than megabytes, except Windows which reports
     // megabytes already. Named per-platform rather than guessed at, because a
     // unit mistake here reads as a device with a thousand times the memory it
     // has, and this value gates whether a 1.5 GB model gets loaded.
-    if (Platform.isMacOS) return (await info.macOsInfo).memorySize ~/ mib;
-    if (Platform.isWindows) {
+    if (Caps.macOS) return (await info.macOsInfo).memorySize ~/ mib;
+    if (Caps.windows) {
       return (await info.windowsInfo).systemMemoryInMegabytes;
     }
     // Linux exposes no memory figure through this plugin. Unknown, which means

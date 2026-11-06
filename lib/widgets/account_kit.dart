@@ -409,35 +409,6 @@ class ProfileActionBar extends StatelessWidget {
   Widget build(BuildContext context) => QuickTileRow(tiles: tiles);
 }
 
-/// The full-width buttons of a sheet or dialog — now a thin alias of
-/// [SheetActionButton]: [filled] is the accent capsule, otherwise tonal.
-/// New code uses [SheetActionButton] directly.
-class SheetButton extends StatelessWidget {
-  const SheetButton({
-    super.key,
-    required this.label,
-    required this.onTap,
-    this.filled = false,
-    this.danger = false,
-    this.busy = false,
-  });
-
-  final String label;
-  final VoidCallback? onTap;
-  final bool filled;
-  final bool danger;
-  final bool busy;
-
-  @override
-  Widget build(BuildContext context) => SheetActionButton(
-        label: label,
-        onTap: onTap,
-        tonal: !filled,
-        destructive: danger,
-        busy: busy,
-      );
-}
-
 /// A small status line under a hero name: a coloured dot and a word.
 class StatusDotLine extends StatelessWidget {
   const StatusDotLine({super.key, required this.color, required this.label});

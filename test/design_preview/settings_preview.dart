@@ -5,7 +5,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/auth/auth_service.dart';
-import 'package:monkeyhub/auth/session_store.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/data/chat_repository.dart';
 import 'package:monkeyhub/family/family_service.dart';

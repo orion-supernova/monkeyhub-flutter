@@ -1,19 +1,19 @@
+import 'dart:async' show unawaited;
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../auth/auth_errors.dart';
 import '../auth/recovery_phrase.dart';
 import '../keyboard/dismiss_keyboard_on_tap.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/ios_kit.dart';
-import '../widgets/app_toast.dart';
 import '../widgets/labeled_field.dart' show FormErrorBanner;
 import '../widgets/password_field.dart';
+import '../services/clipboard_actions.dart';
 
 /// Why this screen is being shown, which decides where it starts and what the
 /// user is allowed to do to get out of it.
@@ -130,13 +130,12 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
   void _copy() {
     // The canonical form IS what is displayed, so a paste of this on the reset
     // screen hashes identically. See RecoveryPhrase.canonical.
-    Clipboard.setData(ClipboardData(text: widget.phrase.canonical));
-    HapticFeedback.lightImpact();
-    showAppToast(
+    unawaited(copyText(
       context,
-      AppLocalizations.of(context).recoveryPhraseScreenCopiedSnackbar,
-      tone: ToastTone.success,
-    );
+      widget.phrase.canonical,
+      toast: AppLocalizations.of(context).recoveryPhraseScreenCopiedSnackbar,
+      haptic: CopyHaptic.light,
+    ));
   }
 
   /// Takes "I saved them" at its word and moves on.
@@ -273,7 +272,8 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
       PasswordField(
         controller: _password,
         hint: l10n.recoveryPhraseScreenPasswordHint,
-        autofocus: isPhysicalKeyboardPlatform,
+        autofocus: Caps.physicalKeyboard,
+        autofillHints: const [AutofillHints.password],
         textInputAction: TextInputAction.done,
         onSubmitted: (_) => _submitPassword(),
       ),
@@ -384,7 +384,7 @@ class _PhraseGrid extends StatelessWidget {
         // to spare and keeps every phone from the SE up on two columns — at
         // 340, a 393pt phone with 28pt gutters (337pt of content) fell to one
         // column of twelve rows with the CTA under the fold.
-        final twoUp = constraints.maxWidth >= 300;
+        final twoUp = constraints.maxWidth >= Breakpoints.recoveryTwoUp;
         if (!twoUp) {
           return Column(
             children: [

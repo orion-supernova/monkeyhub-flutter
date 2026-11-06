@@ -4,7 +4,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/auth/auth_service.dart';
-import 'package:monkeyhub/auth/session_store.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';

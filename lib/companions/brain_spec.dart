@@ -19,6 +19,7 @@
 library;
 
 import 'companion.dart';
+import '../media/file_meta.dart' show formatFileSize;
 
 /// One downloadable model, described in the terms the UI actually needs.
 ///
@@ -147,13 +148,7 @@ class BrainSpec {
 
   /// `328 MB`. Binary megabytes, matching what every OS storage screen shows,
   /// so "328 MB" here and "328 MB" in iOS Settings are the same number.
-  String get sizeLabel {
-    const mib = 1024 * 1024;
-    if (sizeBytes >= 1024 * mib) {
-      return '${(sizeBytes / (1024 * mib)).toStringAsFixed(1)} GB';
-    }
-    return '${(sizeBytes / mib).round()} MB';
-  }
+  String get sizeLabel => formatFileSize(sizeBytes, wholeUnits: true);
 }
 
 /// Which chat template and which quirks.

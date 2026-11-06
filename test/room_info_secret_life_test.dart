@@ -154,7 +154,7 @@ Map<String, dynamic> _secretWire({String? clock}) => {
       'memberCount': 3,
       'type': 'secret',
       'messageLifetime': 30,
-      if (clock != null) 'messageClock': clock,
+      'messageClock': ?clock,
       'participantIds': ['me', 'someone', 'third'],
     };
 

@@ -35,7 +35,7 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
 import 'liquid_glass.dart';
-import 'teardown_safe.dart';
+import 'spring_press.dart';
 
 /// Total height of a visible strip.
 ///
@@ -406,47 +406,35 @@ class _Action extends StatefulWidget {
   State<_Action> createState() => _ActionState();
 }
 
-class _ActionState extends State<_Action>
-    with TeardownSafe<_Action> {
-  bool _pressed = false;
-
+class _ActionState extends State<_Action> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return FocusableTap(
+    return SpringPress(
       onTap: widget.onTap,
-      radius: theme.radiusSm,
+      scale: 0.94,
+      haptic: false,
+      hover: HoverEffect.none,
+      focusRadius: theme.radiusSm,
       semanticLabel: widget.label,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTapUp: (_) => setState(() => _pressed = false),
-        child: AnimatedScale(
-          scale: _pressed ? 0.94 : 1.0,
-          duration: theme.motionFast,
-          curve: theme.motionCurve,
-          child: Container(
-            // Fills the row's height, so the target is 40pt tall even though
-            // the pill drawn inside it is not.
-            height: _kRowHeight,
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: quietFill(theme),
-                borderRadius: BorderRadius.circular(theme.radiusSm),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: Text(
-                  widget.label,
-                  style: theme.caption.copyWith(
-                    color: theme.accent,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+      child: Container(
+        // Fills the row's height, so the target is 40pt tall even though
+        // the pill drawn inside it is not.
+        height: _kRowHeight,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: quietFill(theme),
+            borderRadius: BorderRadius.circular(theme.radiusSm),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            child: Text(
+              widget.label,
+              style: theme.caption.copyWith(
+                color: theme.accent,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../ui/foundation/caps.dart';
 
 /// The keychain [SettingsStore] persists through.
 ///
@@ -75,7 +76,7 @@ class SettingsKeychain {
   final Map<String, String?> _unflushed = {};
 
   static bool get _hasLegacyClass =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+      Caps.iOS;
 
   /// Every stored preference.
   ///

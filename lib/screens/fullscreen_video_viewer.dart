@@ -10,7 +10,7 @@ import '../media/file_url_cache.dart';
 import '../media/native_gallery.dart';
 import '../media/native_video_player.dart';
 import '../media/video_file_cache.dart';
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import '../privacy/capture_protection.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/remote_image.dart';
@@ -401,7 +401,7 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer>
         ),
       ),
     );
-    if (!isWebOrDesktop) return scaffold;
+    if (!Caps.physicalKeyboard) return scaffold;
     // A desk's player keys. ← → scrub here rather than page: this viewer is
     // one video with nothing either side of it, and every desktop player
     // (QuickTime, a browser's) gives the arrows to time.

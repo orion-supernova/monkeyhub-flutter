@@ -226,8 +226,13 @@ void main() {
         .widgetList<MosaicTile>(find.byType(MosaicTile))
         .where((t) => t.message.id == id)
         .firstOrNull;
+    // The deck's own detector: the one carrying its swipe recognizer (the
+    // swipe is heard over the label as well as the cards, see PhotoDeck).
     final deck = find.ancestor(
-        of: find.byWidget(tile('m0')!), matching: find.byType(GestureDetector)).last;
+        of: find.byWidget(tile('m0')!),
+        matching: find.byWidgetPredicate((w) =>
+            w is RawGestureDetector &&
+            w.gestures.keys.any((t) => '$t' == '_DeckDragRecognizer'))).first;
     await tester.drag(deck, const Offset(-200, 0));
     // Right after the swipe, as a person does it: the glide has visibly
     // landed but its spring has not formally finished.

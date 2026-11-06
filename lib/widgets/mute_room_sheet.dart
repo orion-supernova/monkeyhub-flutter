@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../data/chat_repository.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -192,11 +191,8 @@ class _MuteRoomSheetState extends State<_MuteRoomSheet> {
     final deadline = _anythingPicked
         ? muteDeadlineSentence(context, until: _previewUntil)
         : null;
-    // With the tap a native switch gives; `Switch.adaptive` has none.
-    void flip(void Function() apply) {
-      HapticFeedback.lightImpact();
-      setState(apply);
-    }
+    // The switch's own tap haptic lives in RowSwitch.
+    void flip(void Function() apply) => setState(apply);
 
     // The iOS settings sheet: what goes quiet as a grouped pair of switches,
     // for how long as a segmented control, the running sentence as the

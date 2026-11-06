@@ -9,6 +9,8 @@ import '../backend/server_store.dart';
 import '../data/settings_store.dart';
 import '../push/device_identity.dart';
 import '../update/release_channel.dart';
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// The snapshot printed at the top of every export and as line one of every
 /// session file.
@@ -27,7 +29,7 @@ import '../update/release_channel.dart';
 class DeviceReport {
   const DeviceReport._();
 
-  static const MethodChannel _device = MethodChannel('monkeyhub/device');
+  static const MethodChannel _device = Channels.device;
 
   static Map<String, Object?>? _cached;
 
@@ -91,7 +93,7 @@ class DeviceReport {
     // not exist and the miss would be a thrown MissingPluginException per
     // launch.
     try {
-      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      if (Caps.nativeMobile) {
         final build = await _device.invokeMapMethod<String, Object?>(
           'getBuildInfo',
         );
@@ -161,7 +163,7 @@ class DeviceReport {
   /// the version alone answers. The three parts disagree in exactly the case
   /// that is hardest to spot from the outside: an iOS build installed on an
   /// Apple silicon Mac reports `ios · ios-testflight` here while the window,
-  /// the Dock icon and the app name all say Mac — and every `isWebOrDesktop`
+  /// the Dock icon and the app name all say Mac — and every `Caps.hover`
   /// gate in the app quietly takes the mobile branch. `platform` is the part
   /// that decides behaviour, because it reads the same `dart:io` answer
   /// `lib/platform.dart` gates on; `channel` is the part that says how it got

@@ -4388,5 +4388,8 @@
   "uiKitAutoBody": "Escolhe o melhor estilo para este dispositivo. Agora: {style}",
   "uiKitLiteTitle": "Leve",
   "uiKitLiteBody": "Superfícies sólidas, sem desfoque. Mais fluido em telemóveis antigos e poupa bateria.",
-  "uiKitLiteFooter": "Leve não desenha vidro, por isso não há nada para ajustar. Escolha Fosco para moldar o vidro você mesmo."
+  "uiKitLiteFooter": "Leve não desenha vidro, por isso não há nada para ajustar. Escolha Fosco para moldar o vidro você mesmo.",
+  "bulkForwardedToChats": "{count, plural, =1{encaminhado} other{encaminhado para {count} conversas}}",
+  "bulkSavedToPhotos": "{count, plural, =1{guardado nas fotos} other{{count} guardados nas fotos}}",
+  "bulkDeletedMessages": "{count, plural, =1{apagado} other{{count} apagados}}"
 }

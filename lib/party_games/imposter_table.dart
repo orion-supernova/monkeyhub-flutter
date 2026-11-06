@@ -17,7 +17,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../games/game_canvas.dart' show digitOfKey;
 import '../models/chat_match.dart';
-import '../platform.dart' show isPhysicalKeyboardPlatform;
+import '../ui/foundation/caps.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../turn_games/board/seat_palette.dart';
@@ -165,7 +165,7 @@ class _ImposterTableState extends State<ImposterTable> {
     final table = _table(context);
     if (!widget.stage) return table;
     return Focus(
-      autofocus: isPhysicalKeyboardPlatform,
+      autofocus: Caps.physicalKeyboard,
       onKeyEvent: _onKey,
       child: PartyStageBody(child: table),
     );
@@ -239,7 +239,7 @@ class _ImposterTableState extends State<ImposterTable> {
           controller: widget.controller,
           myVote: _pendingVote ?? secret?.myVote,
           enabled: widget.enabled,
-          keys: widget.stage && isPhysicalKeyboardPlatform,
+          keys: widget.stage && Caps.physicalKeyboard,
           onVote: (target) => _send(target < 0 ? 'vote:skip' : 'vote:$target'),
         ));
       case 'guess':

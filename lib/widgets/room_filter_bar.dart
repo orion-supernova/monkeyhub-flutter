@@ -14,6 +14,7 @@ import '../theme/theme_scope.dart';
 import '../l10n/text_case.dart';
 import 'filter_capsule.dart';
 import 'desktop_scroll.dart';
+import '../theme/motion.dart';
 
 /// The always-visible control for [FilterStyle.chips].
 ///
@@ -260,7 +261,7 @@ class _SegmentGroupState extends State<SegmentGroup>
   void didUpdateWidget(SegmentGroup old) {
     super.didUpdateWidget(old);
     _syncControllers();
-    final calm = MediaQuery.disableAnimationsOf(context);
+    final calm = MotionScope.of(context).calm;
     for (var i = 0; i < widget.segments.length; i++) {
       final target = widget.segments[i].selected ? 1.0 : 0.0;
       final c = _on[i];

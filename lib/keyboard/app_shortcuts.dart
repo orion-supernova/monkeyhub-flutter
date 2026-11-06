@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../ui/foundation/caps.dart';
 
 /// Every keyboard shortcut the app has, in one place.
 ///
@@ -59,8 +60,7 @@ class KeyCombo {
   /// Whether ⌘ (rather than Ctrl) is this platform's primary modifier.
   /// Web follows the browser's OS: Chrome on a Mac reports macOS here.
   static bool get appleModifiers =>
-      defaultTargetPlatform == TargetPlatform.macOS ||
-      defaultTargetPlatform == TargetPlatform.iOS;
+      Caps.appleLook;
 
   SingleActivator get activator {
     final apple = appleModifiers;

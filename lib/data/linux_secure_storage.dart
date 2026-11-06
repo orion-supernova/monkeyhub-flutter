@@ -5,4 +5,4 @@
 // can't import, so web gets a no-op stub. Same conditional-export pattern as
 // update/linux_self_update.dart.
 export 'linux_secure_storage_io.dart'
-    if (dart.library.html) 'linux_secure_storage_web.dart';
+    if (dart.library.js_interop) 'linux_secure_storage_web.dart';

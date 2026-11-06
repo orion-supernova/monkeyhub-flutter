@@ -4388,5 +4388,8 @@
   "uiKitAutoBody": "このデバイスに最適なスタイルを選びます。現在: {style}",
   "uiKitLiteTitle": "ライト",
   "uiKitLiteBody": "ぼかしのない不透明な面。古いスマホでも最も滑らかで、バッテリーにも優しい。",
-  "uiKitLiteFooter": "ライトはガラスを描画しないため、調整する項目はありません。ガラスを自分で調整するには「すりガラス」を選んでください。"
+  "uiKitLiteFooter": "ライトはガラスを描画しないため、調整する項目はありません。ガラスを自分で調整するには「すりガラス」を選んでください。",
+  "bulkForwardedToChats": "{count, plural, =1{転送しました} other{{count}件のチャットに転送しました}}",
+  "bulkSavedToPhotos": "{count, plural, =1{写真に保存しました} other{{count}件を写真に保存しました}}",
+  "bulkDeletedMessages": "{count, plural, =1{削除しました} other{{count}件を削除しました}}"
 }

@@ -22,6 +22,7 @@ import 'sheet_kit.dart';
 import 'filter_capsule.dart';
 import 'ios_kit.dart';
 import '../l10n/text_case.dart';
+import '../services/clipboard_actions.dart';
 
 /// The admin's invite-link sheet: the room's one live link, the limits on it,
 /// and the two switches that decide what it does.
@@ -270,10 +271,12 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
   /// WHICH thing was copied — the link and the code sit two taps apart and are
   /// easy to mix up.
   Future<void> _copy(String value, String toast) async {
-    await Clipboard.setData(ClipboardData(text: value));
-    await HapticFeedback.selectionClick();
-    if (!mounted) return;
-    _toast(toast);
+    await copyText(
+      context,
+      value,
+      toast: toast,
+      haptic: CopyHaptic.selection,
+    );
   }
 
   /// Hand the link to the system share sheet.
@@ -428,7 +431,6 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
                     subtitle: l10n.roomInviteMembersCanInviteSub,
                     value: _membersCanInvite,
                     onChanged: (v) {
-                      HapticFeedback.lightImpact();
                       _setPolicy(membersCanInvite: v);
                     },
                   ),
@@ -437,7 +439,6 @@ class _RoomInviteSheetState extends State<_RoomInviteSheet> {
                     subtitle: l10n.roomInviteApprovalSub,
                     value: _joinPolicy == RoomJoinPolicy.approval,
                     onChanged: (v) {
-                      HapticFeedback.lightImpact();
                       _setPolicy(
                         policy:
                             v ? RoomJoinPolicy.approval : RoomJoinPolicy.open,

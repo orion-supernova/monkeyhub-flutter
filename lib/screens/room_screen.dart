@@ -89,16 +89,18 @@ import '../models/room_content_item.dart';
 import '../models/room_pin.dart';
 import '../models/reaction_limits.dart';
 import '../data/ui_selection_store.dart';
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../widgets/app_toast.dart';
+import '../services/clipboard_actions.dart';
 import '../widgets/sheet_kit.dart' show IosSheetAction, showIosActionSheet;
 import 'message_receipts_screen.dart';
 import 'room_items.dart';
 import 'view_once_viewer.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
 import '../widgets/anchored_scroll.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
@@ -149,9 +151,9 @@ import '../widgets/scroll_to_latest.dart';
 import '../widgets/selection_check.dart';
 import '../widgets/skeleton_rows.dart';
 import '../widgets/speaker_scope.dart';
-import '../widgets/chat_list_row.dart' show MonogramAvatar, monogramGradient;
+import '../widgets/chat_list_row.dart' show ChatRoomAvatar;
+import '../widgets/chat_list_parts.dart' show roomTitleOf;
 import '../widgets/typing_indicator.dart';
-import '../widgets/remote_image.dart';
 import '../widgets/room_gallery_scope.dart';
 import '../widgets/video_note_message.dart' show VideoNoteRef;
 import '../widgets/steady_hero.dart';
@@ -780,7 +782,7 @@ class _RoomScreenState extends State<_RoomView>
     // is the keyboard coming back, which puts the panel away.
     _expressions.addListener(_onExpressionsChanged);
     _composerFocus.addListener(_onComposerFocusChanged);
-    if (!isPhysicalKeyboardPlatform) {
+    if (!Caps.physicalKeyboard) {
       _lifecycle = AppLifecycleListener(onResume: _restoreComposerFocus);
     } else {
       _focusComposerOnOpen();
@@ -2402,7 +2404,7 @@ class _RoomScreenState extends State<_RoomView>
   /// typing. Desktop only — on mobile the send button is the affordance and
   /// re-focusing would re-open the soft keyboard the user may have dismissed.
   void _keepComposerFocus() {
-    if (!isPhysicalKeyboardPlatform || !mounted) return;
+    if (!Caps.physicalKeyboard || !mounted) return;
     if (!_composerFocus.hasFocus) _composerFocus.requestFocus();
   }
 
@@ -3296,7 +3298,7 @@ class _RoomScreenState extends State<_RoomView>
   bool _forkCanArm() {
     final room = _room;
     if (!mounted || room == null) return false;
-    if (isWebOrDesktop || context.usesSplitShell || widget.inShellPane) {
+    if (Caps.hover || context.usesSplitShell || widget.inShellPane) {
       return false;
     }
     if (room.isSystemRoom || room.isSavedMessages) return false;
@@ -4369,12 +4371,12 @@ class _RoomScreenState extends State<_RoomView>
   /// user thinks they are aiming at.
   String _dropTargetLabel(ChatRoom room) {
     final l10n = AppLocalizations.of(context);
-    if (room.isSavedMessages) return l10n.savedMessagesTitle;
-    if (room.isDm) {
-      return widget.repo.otherUserFor(room)?.displayName ??
-          l10n.approvalsScreenForwardDirectMessageFallback;
-    }
-    return room.name;
+    return roomTitleOf(
+      l10n,
+      room,
+      widget.repo.otherUserFor(room),
+      dmFallback: l10n.approvalsScreenForwardDirectMessageFallback,
+    );
   }
 
 
@@ -6267,7 +6269,7 @@ class _RoomScreenState extends State<_RoomView>
     // over the app-wide ones for as long as it is open.
     return ShortcutBindings(
       bindings: _roomShortcuts(room),
-      child: isWebOrDesktop
+      child: Caps.hover
           ? MessageHoverScope(controller: _hover, child: screen)
           : screen,
     );
@@ -6963,12 +6965,12 @@ class _RoomScreenState extends State<_RoomView>
       // stealing focus there would silently break Enter-to-send after any
       // click in the conversation, so a desktop click only ever closes the
       // panel.
-      onTap: isPhysicalKeyboardPlatform && !_expressions.isOpen
+      onTap: Caps.physicalKeyboard && !_expressions.isOpen
           ? null
           : () {
               _expressions.hide();
               _picker.close();
-              if (!isPhysicalKeyboardPlatform) dismissSoftKeyboard();
+              if (!Caps.physicalKeyboard) dismissSoftKeyboard();
             },
       child: messages.isEmpty
           ? Stack(
@@ -7512,17 +7514,23 @@ class _RoomScreenState extends State<_RoomView>
                       await _openThread(target);
                       break;
                     case MessageAction.copy:
-                      await Clipboard.setData(ClipboardData(text: target.content));
                       if (!context.mounted) return;
-                      toast.show(AppLocalizations.of(context)
-                              .roomScreenCopiedSnack);
+                      await copyText(
+                        context,
+                        target.content,
+                        toast: AppLocalizations.of(context).roomScreenCopiedSnack,
+                        tone: ToastTone.neutral,
+                      );
                       break;
                     case MessageAction.copyName:
-                      await Clipboard.setData(
-                          ClipboardData(text: target.fileName ?? ''));
                       if (!context.mounted) return;
-                      toast.show(AppLocalizations.of(context)
-                              .roomScreenNameCopiedSnack);
+                      await copyText(
+                        context,
+                        target.fileName ?? '',
+                        toast:
+                            AppLocalizations.of(context).roomScreenNameCopiedSnack,
+                        tone: ToastTone.neutral,
+                      );
                       break;
                     case MessageAction.copyCoordinates:
                       // `capabilitiesForMessage` already refused this row
@@ -7532,13 +7540,15 @@ class _RoomScreenState extends State<_RoomView>
                       // formatting of a null value instead of just no-op'ing.
                       final share = target.locationShare;
                       if (share != null) {
-                        await Clipboard.setData(ClipboardData(
-                            text: formatCoordinates(
-                                share.latitude, share.longitude)));
+                        if (!context.mounted) return;
+                        await copyText(
+                          context,
+                          formatCoordinates(share.latitude, share.longitude),
+                          toast: AppLocalizations.of(context)
+                              .locationBubbleCoordinatesCopied,
+                          tone: ToastTone.neutral,
+                        );
                       }
-                      if (!context.mounted) return;
-                      toast.show(AppLocalizations.of(context)
-                              .locationBubbleCoordinatesCopied);
                       break;
                     case MessageAction.translate:
                       await _translateMessage(target, toast);
@@ -7640,7 +7650,7 @@ class _RoomScreenState extends State<_RoomView>
                 // the pointer, and the hover strip beside the bubble. Both
                 // null on a pending send, exactly like the long-press.
                 void onContextMenu(Offset at) => longPressOn(m, at: at);
-                final hover = isWebOrDesktop && !isPending && !selecting
+                final hover = Caps.hover && !isPending && !selecting
                     ? MessageHoverTarget(
                         id: m.id,
                         isMine: isMine,
@@ -8266,8 +8276,8 @@ class _TimelineSyncIndicator extends StatelessWidget {
               SizedBox(
                 width: 12,
                 height: 12,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
+                child: CupertinoActivityIndicator(
+                  radius: 6,
                   color: theme.accent,
                 ),
               ),
@@ -8470,7 +8480,12 @@ class _Header extends StatelessWidget {
                   ),
                 )
               else
-                _RoomAvatar(room: room, api: api, size: 36),
+                ChatRoomAvatar(
+                  room: room,
+                  api: api,
+                  size: 36,
+                  ephemeralGlyph: true,
+                ),
               const SizedBox(width: 10),
               Expanded(
                 child: FocusableTap(
@@ -8903,12 +8918,18 @@ class _SecretSpaceWelcome extends StatelessWidget {
                   // Frosted glass disc — v02's `key.shield` over `.ultraThinMaterial`.
                   ClipOval(
                     child: BackdropFilter(
+                      enabled: UiKit.of(context).blurs,
                       filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
                       child: Container(
                         width: 100,
                         height: 100,
                         alignment: Alignment.center,
-                        decoration: BoxDecoration(shape: BoxShape.circle, color: theme.accent.withValues(alpha: 0.06)),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: UiKit.of(context).blurs
+                              ? theme.accent.withValues(alpha: 0.06)
+                              : Color.alphaBlend(theme.accent.withValues(alpha: 0.06), plateFill(theme)),
+                        ),
                         child: Icon(CupertinoIcons.lock_shield, size: 40, color: theme.accent.withValues(alpha: 0.75)),
                       ),
                     ),
@@ -9044,12 +9065,13 @@ class _PrivateFeatureCard extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
+        enabled: UiKit.of(context).blurs,
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           constraints: BoxConstraints(minHeight: isFullWidth ? 0 : 118),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: quietFill(theme),
+            color: UiKit.of(context).blurs ? quietFill(theme) : plateFill(theme),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: theme.divider),
           ),
@@ -9431,7 +9453,12 @@ class _LiquidHeader extends StatelessWidget {
           )
         : dmUser != null
         ? UserAvatar(user: dmUser!, size: _avatarSize, api: api)
-        : _RoomAvatar(room: room, api: api, size: _avatarSize);
+        : ChatRoomAvatar(
+            room: room,
+            api: api,
+            size: _avatarSize,
+            ephemeralGlyph: true,
+          );
     if (_avatarStorageId == null) return avatar;
     return FocusableTap(
       onTap: () => _openAvatarFullscreen(context),
@@ -9556,48 +9583,6 @@ class _LiquidHeader extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _RoomAvatar extends StatelessWidget {
-  const _RoomAvatar({required this.room, required this.api, this.size = 32});
-  final ChatRoom room;
-  final ChatApi? api;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final hasRemote = api != null &&
-        room.avatarStorageId != null &&
-        room.avatarStorageId!.isNotEmpty;
-    if (hasRemote) {
-      return ClipOval(
-        child: RemoteImage(
-          storageId: room.avatarStorageId!,
-          api: api!,
-          width: size,
-          height: size,
-          borderRadius: BorderRadius.circular(size / 2),
-        ),
-      );
-    }
-    // The same lettered face the chat list gives this room, so the header
-    // and the row it was opened from show one identity. A secret room keeps
-    // its hourglass — that is the one thing worth knowing at a glance.
-    if (room.isEphemeral) {
-      return Container(
-        width: size,
-        height: size,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: monogramGradient(theme, room.id.hashCode),
-        ),
-        child: theme.hourglassIcon(size: size * 0.5, color: Colors.white),
-      );
-    }
-    return MonogramAvatar(label: room.name, seed: room.id, size: size);
   }
 }
 

@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -18,6 +17,7 @@ import 'data_prefs.dart';
 import 'media_image_cache.dart';
 import 'media_ledger.dart';
 import 'storage_kinds.dart';
+import '../../ui/foundation/channels.dart';
 
 /// Which store a file lives in, so it can be deleted from the right one.
 /// `loose` is a file no store indexes by id (a GIF, a link preview, a chat
@@ -230,7 +230,7 @@ class StorageService extends ChangeNotifier {
   StorageService._();
   static final StorageService instance = StorageService._();
 
-  static const _device = MethodChannel('monkeyhub/device');
+  static const _device = Channels.device;
 
   StorageReport _report = StorageReport.empty;
   bool _scanning = false;

@@ -452,7 +452,7 @@ class _ThemeTile extends StatelessWidget {
                           ? l10n.themePageLightBadge
                           : l10n.themePageDarkBadge,
                     )
-                  : RadioCheck(selected: active, size: 20),
+                  : SelectionCheck.radio(picked: active, size: 20),
             ),
           ],
         ),

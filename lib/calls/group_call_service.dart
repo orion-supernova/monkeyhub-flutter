@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -29,6 +28,7 @@ import 'native_call_handler.dart';
 import 'renegotiation.dart';
 import 'screen_share.dart';
 import 'video_quality_governor.dart';
+import '../ui/foundation/caps.dart';
 
 /// Per-peer video bitrate cap for a mesh call: every phone runs one encoder
 /// per remote peer, so the budget shrinks as the call grows. [baseline] is
@@ -208,7 +208,7 @@ class GroupCallService extends ChangeNotifier
   /// [_endNativeCard]. A seam, so a test host can exercise that path.
   @visibleForTesting
   bool nativeCardsEnabled =
-      !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+      Caps.mobileCalls;
 
   /// Ends the native card for a group call id. Seam for tests; the real one
   /// resolves the card through the plugin's own records and the derived id
@@ -2537,7 +2537,7 @@ class GroupCallService extends ChangeNotifier
   /// Front/back — see `CallService.switchCamera`.
   Future<void> switchCamera() => _camSerial(() async {
         final t = _camTrack;
-        if (t == null || !localCamActive || !isMobileCallPlatform) return;
+        if (t == null || !localCamActive || !Caps.mobileCalls) return;
         try {
           final front =
               await switchCameraFn(t).timeout(const Duration(seconds: 3));

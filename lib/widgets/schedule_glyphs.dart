@@ -4,6 +4,7 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/widgets.dart';
 
 import 'capture_glyphs.dart' show TrashGlyph, captureGlyphStroke;
+import '../theme/motion.dart';
 
 // Drawn line glyphs for scheduling a message: the scheduler sheet's quick
 // choices, its running sentence, and the queued list.
@@ -63,7 +64,7 @@ mixin _Kick<T extends StatefulWidget> on State<T>, TickerProviderStateMixin<T> {
     duration: kickDuration,
   );
 
-  bool get calm => MediaQuery.disableAnimationsOf(context);
+  bool get calm => MotionScope.of(context).calm;
 
   void fire() {
     if (calm) return;
@@ -583,7 +584,7 @@ class _ScheduleCheckGlyphState extends State<ScheduleCheckGlyph>
   void didUpdateWidget(ScheduleCheckGlyph old) {
     super.didUpdateWidget(old);
     if (old.on == widget.on) return;
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (MotionScope.of(context).calm) {
       _draw.value = widget.on ? 1 : 0;
     } else if (widget.on) {
       _draw.forward();

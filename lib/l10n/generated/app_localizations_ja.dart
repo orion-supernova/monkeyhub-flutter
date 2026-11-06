@@ -15337,4 +15337,37 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get uiKitLiteFooter =>
       'ライトはガラスを描画しないため、調整する項目はありません。ガラスを自分で調整するには「すりガラス」を選んでください。';
+
+  @override
+  String bulkForwardedToChats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のチャットに転送しました',
+      one: '転送しました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkSavedToPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件を写真に保存しました',
+      one: '写真に保存しました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkDeletedMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件を削除しました',
+      one: '削除しました',
+    );
+    return '$_temp0';
+  }
 }

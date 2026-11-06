@@ -171,7 +171,12 @@ void main() {
       expect(float.takeInstantPush(), isFalse);
       screenUp.value = true;
       // The screen has no feed of this stream here: a beat, then it lands.
-      await Future<void>.delayed(const Duration(milliseconds: 400));
+      // Polled, not a fixed wait: under a loaded full-suite run the beat's
+      // timer can fire late, and a fixed 400 ms made this test flaky.
+      final deadline = DateTime.now().add(const Duration(seconds: 3));
+      while (!float.handoffLanded && DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
       expect(float.handoffLanded, isTrue);
       float.endHandoff();
       expect(float.visible, isFalse);

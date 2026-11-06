@@ -13,6 +13,7 @@ import '../push/device_identity.dart';
 import '../screens/calls/calls_format.dart' show platformName;
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
+import 'count_badge.dart';
 import 'message_stamp.dart';
 import 'spring_press.dart';
 
@@ -587,7 +588,7 @@ class _CallBody extends StatelessWidget {
             final hasStarted = event.answeredAt != null;
             final text = [
               if (hasStarted) clock else l.callBubbleRinging,
-              if (people != null) people,
+              ?people,
             ].join(' · ');
             return Text(text, style: detailStyle);
           },
@@ -595,9 +596,9 @@ class _CallBody extends StatelessWidget {
       }
       // One sentence, one separator: "Incoming · 12:41 · Answered on Mac".
       final text = [
-        if (sub != null) sub,
+        ?sub,
         if (people != null && runCount == null) people,
-        if (answeredOn != null) answeredOn,
+        ?answeredOn,
       ].join(' · ');
       return Text(text, style: detailStyle);
     }
@@ -610,7 +611,7 @@ class _CallBody extends StatelessWidget {
       runSpacing: 3,
       children: [
         if (hasSubText) timerOrSub(),
-        if (wave != null) wave!,
+        ?wave,
         if (qualityLabel != null)
           _Chip(
             label: qualityLabel,
@@ -641,10 +642,12 @@ class _CallBody extends StatelessWidget {
         ),
         if (runCount != null) ...[
           const SizedBox(width: 8),
-          _CountBadge(
+          CountBadge.label(
             text: l.callBubbleRunBadge(runCount!),
-            mine: isMine,
-            theme: theme,
+            fill: isMine
+                ? theme.accentInk.withValues(alpha: 0.24)
+                : theme.danger,
+            ink: isMine ? theme.accentInk : Colors.white,
             onTap: onBadge,
           ),
         ],
@@ -677,7 +680,7 @@ class _CallBody extends StatelessWidget {
               ),
             ],
           ),
-          if (joinPill != null) joinPill,
+          ?joinPill,
         ],
       ),
     );
@@ -711,8 +714,8 @@ class _CallBody extends StatelessWidget {
     }
     final spoken = [
       title,
-      if (sub != null) sub,
-      if (people != null) people,
+      ?sub,
+      ?people,
     ].join(', ');
     return Semantics(
       container: true,
@@ -732,48 +735,6 @@ class _CallBody extends StatelessWidget {
     return out
         ? l.callBubbleOutgoingDuration(clock)
         : l.callBubbleIncomingDuration(clock);
-  }
-}
-
-class _CountBadge extends StatelessWidget {
-  const _CountBadge({
-    required this.text,
-    required this.mine,
-    required this.theme,
-    required this.onTap,
-  });
-
-  final String text;
-  final bool mine;
-  final AppTheme theme;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final pill = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
-      decoration: ShapeDecoration(
-        shape: const StadiumBorder(),
-        color: mine ? theme.accentInk.withValues(alpha: 0.24) : theme.danger,
-      ),
-      child: Text(
-        text,
-        style: theme.caption.copyWith(
-          fontSize: 11.5,
-          height: 1.2,
-          fontWeight: FontWeight.w700,
-          color: mine ? theme.accentInk : Colors.white,
-          decoration: TextDecoration.none,
-        ),
-      ),
-    );
-    if (onTap == null) return pill;
-    return SpringPress(
-      onTap: onTap,
-      scale: PressSpec.scaleSmall,
-      hover: HoverEffect.none,
-      child: pill,
-    );
   }
 }
 

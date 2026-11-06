@@ -18,7 +18,6 @@ import 'package:monkeyhub/widgets/game_result_actions.dart';
 import 'package:monkeyhub/widgets/ios_kit.dart';
 import 'package:monkeyhub/widgets/liquid_glass.dart' show GlassTone;
 import 'package:monkeyhub/widgets/photo_chrome.dart';
-import 'package:monkeyhub/widgets/prominent_button.dart';
 import 'package:monkeyhub/widgets/search_field.dart';
 import 'package:monkeyhub/widgets/sheet_kit.dart';
 import 'package:monkeyhub/widgets/skeleton_rows.dart';
@@ -46,7 +45,7 @@ class _Buttons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = (String en, String tr) => _t(context, en, tr);
+    String t(String en, String tr) => _t(context, en, tr);
     return IosPage(
       title: t('Buttons', 'Düğmeler'),
       showBack: false,
@@ -94,9 +93,7 @@ class _Buttons extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        ProminentButton(label: t('Sign in', 'Giriş yap'), onTap: () {}),
-        const SizedBox(height: 10),
-        const SheetButton(label: 'SheetButton (alias)', onTap: null),
+        SheetActionButton(label: t('Sign in', 'Giriş yap'), onTap: () {}),
         const SizedBox(height: 18),
         GameResultActions(actions: [
           GameResultAction(
@@ -153,7 +150,7 @@ class _ControlsState extends State<_Controls> {
 
   @override
   Widget build(BuildContext context) {
-    final t = (String en, String tr) => _t(context, en, tr);
+    String t(String en, String tr) => _t(context, en, tr);
     return IosPage(
       title: t('Controls', 'Kontroller'),
       showBack: false,
@@ -268,7 +265,7 @@ class _Lists extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = (String en, String tr) => _t(context, en, tr);
+    String t(String en, String tr) => _t(context, en, tr);
     return IosPage(
       title: t('Lists', 'Listeler'),
       showBack: false,
@@ -361,7 +358,7 @@ class _Media extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = (String en, String tr) => _t(context, en, tr);
+    String t(String en, String tr) => _t(context, en, tr);
     // A stand-in photograph: bright sky over a dark field, the worst case
     // for marks that must read on both.
     return Stack(
@@ -487,7 +484,7 @@ class _Round2State extends State<_Round2> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final t = (String en, String tr) => _t(context, en, tr);
+    String t(String en, String tr) => _t(context, en, tr);
     Widget label(String s) => Padding(
           padding: const EdgeInsets.only(top: 6),
           child: Text(s, style: groupedMetaStyle(theme)),

@@ -18,6 +18,7 @@ import '../widgets/sheet_kit.dart';
 import 'game_art_state.dart';
 import 'match_copy.dart';
 import 'play_style.dart';
+import '../theme/layout.dart';
 
 /// How a chat game should be played, as the start sheet chose it.
 enum ChatGameMode { live, turns }
@@ -301,9 +302,9 @@ class _Shelf extends StatelessWidget {
         LayoutBuilder(
           builder: (context, box) {
             const gap = 10.0;
-            final across = box.maxWidth >= 560
+            final across = box.maxWidth >= Breakpoints.gameStartFourUp
                 ? 4
-                : box.maxWidth >= 420
+                : box.maxWidth >= Breakpoints.gameStartThreeUp
                 ? 3
                 : 2;
             final w = (box.maxWidth - gap * (across - 1)) / across;

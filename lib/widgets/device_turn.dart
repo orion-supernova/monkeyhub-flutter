@@ -1,6 +1,8 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import '../theme/layout.dart';
+import '../ui/foundation/caps.dart';
+import '../theme/motion.dart';
 
 /// A screen that holds still while the phone turns, the way WhatsApp's and
 /// the system camera do: the layout stays portrait, and only the things that
@@ -55,10 +57,8 @@ Offset unturnNormalised(Offset p, int quarterTurns) {
 /// phone. A tablet has room for a real landscape layout and keeps it; desktop
 /// and web windows are not held a way up at all.
 bool holdsPortrait(BuildContext context) {
-  if (kIsWeb) return false;
-  final mobile = defaultTargetPlatform == TargetPlatform.iOS ||
-      defaultTargetPlatform == TargetPlatform.android;
-  return mobile && MediaQuery.sizeOf(context).shortestSide < 600;
+  return Caps.nativeMobile &&
+      MediaQuery.sizeOf(context).shortestSide < Breakpoints.medium;
 }
 
 /// The quarter turns [TurnWithDevice] reads. Absent means upright.
@@ -118,7 +118,7 @@ class _TurnWithDeviceState extends State<TurnWithDevice> {
   Widget build(BuildContext context) {
     return AnimatedRotation(
       turns: _turns ?? 0,
-      duration: MediaQuery.disableAnimationsOf(context)
+      duration: MotionScope.of(context).calm
           ? Duration.zero
           : const Duration(milliseconds: 260),
       curve: Curves.easeOutCubic,

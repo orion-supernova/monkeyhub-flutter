@@ -13,6 +13,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import '../theme/motion.dart';
 import 'adaptive_sheet.dart';
+import 'glass_buttons.dart';
 import 'search_field.dart';
 import 'sheet_kit.dart';
 import '../l10n/text_case.dart';
@@ -477,24 +478,10 @@ class EmojiSearchViewState extends SearchViewState<EmojiSearchView> {
               padding: EdgeInsets.fromLTRB(4, 4, 10, 4 + widget.bottomSafe),
               child: Row(
                 children: [
-                  FocusableTap(
+                  GlassBackButton(
                     onTap: widget.showEmojiView,
                     semanticLabel: loc.reactionBubbleSearchBackSemanticLabel,
-                    shape: FocusRingShape.circle,
-                    radius: 18,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: widget.showEmojiView,
-                      child: SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: Icon(
-                          CupertinoIcons.chevron_left,
-                          size: 18,
-                          color: theme.inkMuted,
-                        ),
-                      ),
-                    ),
+                    still: true,
                   ),
                   // THE search bar, with its clear button — not a second
                   // hand-rolled pill at a different glyph size.

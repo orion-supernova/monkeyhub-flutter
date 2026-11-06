@@ -8,7 +8,8 @@ import 'package:flutter/services.dart';
 
 import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../../keyboard/focusable_tap.dart' show FocusRingShape;
+import '../../widgets/glass_buttons.dart';
+import '../../widgets/liquid_glass.dart' show GlassTone;
 import '../../widgets/spring_press.dart';
 import '../core/bot.dart' as fb;
 import '../core/core.dart';
@@ -20,6 +21,7 @@ import 'fight_audio_toggles.dart';
 import 'fight_controls.dart';
 import 'fight_quality.dart';
 import 'fight_renderer.dart';
+import '../../ui/foundation/caps.dart';
 
 FightLook fightLookOf(String wire) => switch (wire) {
   'painted' => FightLook.painted,
@@ -317,10 +319,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
     );
   }
 
-  bool get _touchFirst => switch (defaultTargetPlatform) {
-    TargetPlatform.iOS || TargetPlatform.android => true,
-    _ => false,
-  };
+  bool get _touchFirst => Caps.touchFirst;
 
   @override
   Widget build(BuildContext context) {
@@ -409,14 +408,14 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
                       Positioned(
                         top: pad.top + 8,
                         left: pad.left + 12,
-                        child: _RoundIconButton(icon: CupertinoIcons.pause_fill, onTap: () => _setPaused(true)),
+                        child: GlassIconButton(tone: GlassTone.media, still: true, icon: CupertinoIcons.pause_fill, iconSize: 18, onTap: () => _setPaused(true)),
                       )
                     else
                       Positioned(
                         top: pad.top + box.maxHeight * 0.13,
                         left: 0,
                         right: 0,
-                        child: Center(child: _RoundIconButton(icon: CupertinoIcons.pause_fill, onTap: () => _setPaused(true))),
+                        child: Center(child: GlassIconButton(tone: GlassTone.media, still: true, icon: CupertinoIcons.pause_fill, iconSize: 18, onTap: () => _setPaused(true))),
                       ),
                     Positioned(
                       left: 0,
@@ -483,12 +482,12 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
         Positioned(
           top: pad.top + 6,
           left: pad.left + 12,
-          child: _RoundIconButton(icon: CupertinoIcons.xmark, onTap: _d.offline ? _exit : () => _setPaused(true)),
+          child: GlassCloseButton(tone: GlassTone.media, still: true, onTap: _d.offline ? _exit : () => _setPaused(true)),
         ),
         Positioned(
           top: pad.top + 6,
           right: pad.right + 12,
-          child: _RoundIconButton(icon: CupertinoIcons.pause_fill, onTap: () => _setPaused(true)),
+          child: GlassIconButton(tone: GlassTone.media, still: true, icon: CupertinoIcons.pause_fill, iconSize: 18, onTap: () => _setPaused(true)),
         ),
         Positioned(
           left: 0,
@@ -673,26 +672,6 @@ class _MenuButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(label, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: primary ? const Color(0xff1b0d02) : Colors.white)),
-      ),
-    );
-  }
-}
-
-class _RoundIconButton extends StatelessWidget {
-  const _RoundIconButton({required this.icon, required this.onTap});
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SpringPress(
-      onTap: onTap,
-      focusShape: FocusRingShape.circle,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: const BoxDecoration(color: Color(0x66000000), shape: BoxShape.circle),
-        child: Icon(icon, size: 18, color: Colors.white),
       ),
     );
   }

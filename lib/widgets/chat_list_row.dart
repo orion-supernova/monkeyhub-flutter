@@ -193,6 +193,7 @@ class ChatRoomAvatar extends StatelessWidget {
     required this.size,
     this.dmUser,
     this.api,
+    this.ephemeralGlyph = false,
   });
 
   final ChatRoom room;
@@ -200,38 +201,22 @@ class ChatRoomAvatar extends StatelessWidget {
   final ChatUser? dmUser;
   final ChatApi? api;
 
+  /// A picture-less secret room wears an hourglass on its lettered face — the
+  /// one thing worth knowing at a glance in a header.
+  final bool ephemeralGlyph;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final api = this.api;
-    if (room.isSavedMessages) {
-      return Container(
-        width: size,
-        height: size,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.lerp(theme.accent, Colors.white, 0.18)!,
-              theme.accent,
-            ],
-          ),
-        ),
-        child: Icon(
-          CupertinoIcons.bookmark_fill,
-          size: size * 0.4,
-          color: theme.accentInk,
-        ),
-      );
-    }
+    if (room.isSavedMessages) return SavedMessagesFace(size: size);
     final dm = dmUser;
     if (dm != null) {
       return UserAvatar(user: dm, size: size, api: api);
     }
-    if (room.avatarStorageId != null && api != null) {
+    if (room.avatarStorageId != null &&
+        room.avatarStorageId!.isNotEmpty &&
+        api != null) {
       return ClipOval(
         child: RemoteImage(
           storageId: room.avatarStorageId!,
@@ -242,7 +227,52 @@ class ChatRoomAvatar extends StatelessWidget {
         ),
       );
     }
+    if (ephemeralGlyph && room.isEphemeral) {
+      return Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: monogramGradient(theme, room.id.hashCode),
+        ),
+        child: theme.hourglassIcon(size: size * 0.5, color: Colors.white),
+      );
+    }
     return MonogramAvatar(label: room.name, seed: room.id, size: size);
+  }
+}
+
+/// The Saved Messages disc: the accent lit from above with a bookmark on it.
+/// One drawing for the chat list, the headers and the room-info hero.
+class SavedMessagesFace extends StatelessWidget {
+  const SavedMessagesFace({super.key, required this.size});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color.lerp(theme.accent, Colors.white, 0.18)!,
+            theme.accent,
+          ],
+        ),
+      ),
+      child: Icon(
+        CupertinoIcons.bookmark_fill,
+        size: size * 0.4,
+        color: theme.accentInk,
+      ),
+    );
   }
 }
 

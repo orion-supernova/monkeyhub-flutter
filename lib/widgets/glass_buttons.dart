@@ -11,6 +11,7 @@ import '../theme/density.dart';
 import '../theme/layout.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
 import 'hover_hint.dart';
 import 'liquid_glass.dart';
 import 'route_depth.dart';
@@ -209,7 +210,7 @@ class ChromeDisc extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final light = theme.isLight;
     final t = tint;
-    final live = !still && t == null;
+    final live = !still && t == null && UiKit.of(context).blurs;
     final fill = t ?? chromeDiscFill(theme);
     return SizedBox(
       width: size,
@@ -367,7 +368,15 @@ class GlassCloseButton extends StatelessWidget {
     this.enabled = true,
     this.still = false,
     this.shortcut,
+    this.size,
+    this.iconSize = 17,
   });
+
+  /// Null follows [GlassIconButton.size].
+  final double? size;
+
+  /// The × as drawn on a 44pt disc; shrink it with a smaller [size].
+  final double iconSize;
 
   /// Defaults to popping the route.
   final VoidCallback? onTap;
@@ -388,7 +397,8 @@ class GlassCloseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GlassIconButton(
         icon: CupertinoIcons.xmark,
-        iconSize: 17,
+        iconSize: iconSize,
+        size: size,
         tone: tone,
         still: still,
         shortcut: shortcut ?? (onTap == null ? AppShortcuts.back : null),

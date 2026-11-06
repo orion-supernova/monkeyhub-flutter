@@ -6,6 +6,7 @@ import 'capture_glyphs.dart' show TrashGlyph;
 import 'liquid_glass.dart';
 import 'spring_press.dart';
 import 'desktop_scroll.dart';
+import '../theme/motion.dart';
 
 /// The rail of thumbnails that sits under a full-bleed picture.
 ///
@@ -295,7 +296,7 @@ class _MediaFilmstripState extends State<MediaFilmstrip> {
                   }
                   return _Tile(
                     selected: i == widget.index,
-                    calm: MediaQuery.disableAnimationsOf(context),
+                    calm: MotionScope.of(context).calm,
                     semanticLabel:
                         widget.tileSemanticLabel?.call(i + 1, widget.count),
                     onTap: () => widget.onTap(i),
@@ -533,7 +534,7 @@ class _TrayStripState extends State<_TrayStrip>
 
   void _remove(int i) {
     if (_leaving != null) return;
-    final calm = MediaQuery.disableAnimationsOf(context);
+    final calm = MotionScope.of(context).calm;
     if (calm) {
       widget.strip.onRemove?.call(i);
       return;
@@ -554,7 +555,7 @@ class _TrayStripState extends State<_TrayStrip>
   @override
   Widget build(BuildContext context) {
     final strip = widget.strip;
-    final calm = MediaQuery.disableAnimationsOf(context);
+    final calm = MotionScope.of(context).calm;
     const tile = MediaFilmstrip.tileSize;
     final extent = strip._extent;
     final slots = strip.count + (strip.trailing == null ? 0 : 1);

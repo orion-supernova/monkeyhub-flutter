@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 
 /// Responsive layout foundation.
 ///
@@ -40,6 +40,34 @@ class Breakpoints {
   /// >= [expanded] px → [WindowClass.expanded] (two-pane desktop shell).
   static const double expanded = 1024;
 
+  // ---- Surface-specific widths. Each names the width at which ONE screen
+  // changes shape; they are not window classes, only values that used to be
+  // bare numbers at the call site.
+
+  /// Fight lobby: from here the fighter roster sits beside the details.
+  static const double fightLobbyWide = 860;
+
+  /// Fight training room: below this the move list drops its second column.
+  static const double fightTrainingNarrow = 460;
+
+  /// Media pager: from here the desktop gallery shows its edge chevrons.
+  static const double mediaPagerWide = 700;
+
+  /// Game start sheet: game tiles go four across from here...
+  static const double gameStartFourUp = 560;
+
+  /// ...and three across from here (two below).
+  static const double gameStartThreeUp = 420;
+
+  /// Bot hub: from here the hub lays out wide.
+  static const double botHubWide = 700;
+
+  /// Bot hub: bot cards go three across from here (two below).
+  static const double botHubThreeUp = 480;
+
+  /// Recovery phrase grid: two words per row from here (one below).
+  static const double recoveryTwoUp = 300;
+
   static WindowClass classOf(double width) => width >= expanded
       ? WindowClass.expanded
       : width >= medium
@@ -71,11 +99,11 @@ class Breakpoints {
 /// Pointer-first platforms, where the split shell starts at
 /// [Breakpoints.split] instead of [Breakpoints.expanded].
 ///
-/// Exactly [isPhysicalKeyboardPlatform]: on web it follows the browser's user
+/// Exactly [Caps.physicalKeyboard]: on web it follows the browser's user
 /// agent, so a desktop browser opts in and a phone or Android tablet stays
 /// out. A getter, not a const, so a test can flip it with
 /// `debugDefaultTargetPlatformOverride`.
-bool get prefersSplitShellPlatform => isPhysicalKeyboardPlatform;
+bool get prefersSplitShellPlatform => Caps.physicalKeyboard;
 
 /// Bottom padding for the scroller on a screen that runs edge to edge.
 ///

@@ -1,7 +1,7 @@
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import '../ui/foundation/caps.dart';
 
 /// Hands a video URL to the operating system's own player — `AVPlayerViewController`
 /// on iOS, a full-screen ExoPlayer activity on Android.
@@ -23,17 +23,14 @@ class NativeVideoPlayer {
   static const _channel = MethodChannel('monkeyhub/video');
 
   /// Forces [supported] either way, so the handoff decision can be exercised
-  /// under `flutter test` — which reports neither iOS nor Android, and would
-  /// otherwise send every test down the unsupported branch. Null asks the
+  /// under `flutter test`, where [Caps] reports android. Null asks the
   /// platform, which is what every non-test caller gets.
   @visibleForTesting
   static bool? debugSupportedOverride;
 
-  /// kIsWeb is const, so the `&&` short-circuits before `Platform` (dart:io),
-  /// which throws on web. Same guard `CaptureProtection` uses.
+  /// A native phone app ([Caps.nativeMobile]); never web.
   static bool get supported =>
-      debugSupportedOverride ??
-      (!kIsWeb && (Platform.isIOS || Platform.isAndroid));
+      debugSupportedOverride ?? Caps.nativeMobile;
 
   /// Presents the OS player over the app and resolves once it is on screen —
   /// NOT when the user closes it. The native surface owns its own dismissal

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -183,59 +182,7 @@ class _ChoiceTile<T> extends StatelessWidget {
             style: groupedSubtitleStyle(theme).copyWith(color: theme.ink),
           ),
           const SizedBox(height: 8),
-          RadioCheck(selected: selected),
-        ],
-      ),
-    );
-  }
-}
-
-/// The round check iOS draws under a picker tile: an empty ring, or a filled
-/// accent disc with a tick that springs in.
-class RadioCheck extends StatelessWidget {
-  const RadioCheck({super.key, required this.selected, this.size = 22});
-
-  final bool selected;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final motion = MotionScope.of(context);
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: theme.inkMuted.withValues(alpha: 0.5),
-                width: 1.5,
-              ),
-            ),
-          ),
-          AnimatedScale(
-            scale: selected ? 1 : 0,
-            duration: motion.d(const Duration(milliseconds: 420)),
-            curve: selected ? Curves.elasticOut : Curves.easeIn,
-            child: Container(
-              width: size,
-              height: size,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: theme.accent,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                CupertinoIcons.checkmark_alt,
-                size: size * 0.66,
-                color: theme.accentInk,
-              ),
-            ),
-          ),
+          SelectionCheck.radio(picked: selected),
         ],
       ),
     );

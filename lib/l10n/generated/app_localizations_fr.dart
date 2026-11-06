@@ -16255,4 +16255,37 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get uiKitLiteFooter =>
       'Léger ne dessine pas de verre, il n\'y a donc rien à régler. Choisissez Givré pour façonner le verre vous-même.';
+
+  @override
+  String bulkForwardedToChats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'transféré à $count discussions',
+      one: 'transféré',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkSavedToPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count enregistrés dans Photos',
+      one: 'enregistré dans Photos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkDeletedMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count supprimés',
+      one: 'supprimé',
+    );
+    return '$_temp0';
+  }
 }

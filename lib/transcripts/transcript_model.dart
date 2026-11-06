@@ -26,6 +26,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../companions/brain_download.dart';
+import '../media/file_meta.dart' show formatFileSize;
 
 class TranscriptModel {
   const TranscriptModel._({
@@ -61,7 +62,7 @@ class TranscriptModel {
 
   /// `181 MB`, in the binary megabytes every OS storage screen uses — the same
   /// convention as [BrainSpec.sizeLabel].
-  String get sizeLabel => '${(sizeBytes / (1024 * 1024)).round()} MB';
+  String get sizeLabel => formatFileSize(sizeBytes, wholeUnits: true);
 
   DownloadTarget get target => DownloadTarget(
         url: url,

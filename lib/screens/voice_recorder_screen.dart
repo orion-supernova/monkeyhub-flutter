@@ -17,6 +17,7 @@ import '../widgets/ios_kit.dart'
 import '../widgets/sheet_kit.dart' show sheetTitleStyle;
 
 import '../l10n/text_case.dart';
+import '../theme/motion.dart';
 
 /// The MIME for what [VoiceRecorderScreen] produces: AAC-LC in an ISO-BMFF
 /// (MP4) container.
@@ -119,6 +120,7 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
     final p = await _rec.stop();
     _ticker?.cancel();
     _ampSub?.cancel();
+    if (!mounted) return;
     setState(() {
       _recording = false;
       _recorded = p != null;
@@ -345,7 +347,7 @@ class _RecordButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final calm = MediaQuery.disableAnimationsOf(context);
+    final calm = MotionScope.of(context).calm;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [

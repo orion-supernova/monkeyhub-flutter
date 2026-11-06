@@ -23,6 +23,7 @@ import 'spoiler_veil.dart'
         kSpoilerHoldMaxMs,
         kSpoilerRevealIn;
 import 'still_blur.dart';
+import '../theme/motion.dart';
 
 /// How long the wavefront takes to open a spoiler picture. A little longer
 /// than a line of text's (`kSpoilerRevealIn`), for a disc that has a whole
@@ -630,7 +631,7 @@ class _MediaSpoilerCoverState extends State<MediaSpoilerCover>
 
   @override
   Widget build(BuildContext context) {
-    _calm = MediaQuery.disableAnimationsOf(context);
+    _calm = MotionScope.of(context).calm;
     final sealed = (widget.sealed || _lifting) && !_open;
     final revealing = sealed && _origin != null;
     final gathering = sealed && _gathering;

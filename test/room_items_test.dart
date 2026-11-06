@@ -582,10 +582,10 @@ void main() {
       expect(formatClockDuration(Duration.zero), '0:00');
     });
 
-    test('runs past an hour rather than growing a third field', () {
+    test('rolls into hours past an hour', () {
       expect(
         formatClockDuration(const Duration(minutes: 62, seconds: 3)),
-        '62:03',
+        '1:02:03',
       );
     });
 

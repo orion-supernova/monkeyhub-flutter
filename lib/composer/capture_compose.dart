@@ -7,6 +7,7 @@ import 'package:video_thumbnail/video_thumbnail.dart';
 
 import '../media/video_poster.dart';
 import 'capture_recorder.dart';
+import '../ui/foundation/caps.dart';
 
 /// Joining, trimming and previewing a paused-and-resumed recording.
 ///
@@ -33,7 +34,7 @@ const _channel = MethodChannel('monkeyhub/media_compose');
 /// where the UI should offer neither pause nor trim — the single-take path
 /// still works there.
 bool get captureComposeSupported =>
-    !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+    Caps.mobileCalls;
 
 /// The wall-clock length of all [segments] laid end to end — the timeline the
 /// review strip draws and `trimStart`/`trimEnd` are measured on.

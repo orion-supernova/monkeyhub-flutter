@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +8,8 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'call_media.dart';
 import 'widgets/call_chrome.dart'
     show CallAudioGlyphRoute, CallGlyphs, CallTrayGlyph;
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// Where a call's sound goes, and the picker that moves it.
 ///
@@ -325,8 +326,8 @@ class CallAudioDevices extends ChangeNotifier {
 
   static final CallAudioDevices instance = CallAudioDevices._();
 
-  static const _voip = MethodChannel('monkeyhub/voip');
-  static const _callWindow = MethodChannel('monkeyhub/call_window');
+  static const _voip = Channels.voip;
+  static const _callWindow = Channels.callWindow;
 
   // ── Phones ───────────────────────────────────────────────────────────────
 
@@ -379,11 +380,11 @@ class CallAudioDevices extends ChangeNotifier {
   StreamSubscription<CallAudioRoute>? _routeSub;
   Timer? _refreshTimer;
 
-  static bool get _ios => !kIsWeb && Platform.isIOS;
-  static bool get _android => !kIsWeb && Platform.isAndroid;
+  static bool get _ios => Caps.iOS;
+  static bool get _android => Caps.android;
 
   /// Desktop or web: the device picker, not the phone route sheet.
-  static bool get isDevicePickerPlatform => !isMobileCallPlatform;
+  static bool get isDevicePickerPlatform => !Caps.mobileCalls;
 
   void attach() {
     if (_attached++ > 0) return;

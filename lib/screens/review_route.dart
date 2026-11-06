@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart' show Curves, MaterialPageRoute;
 import 'package:flutter/widgets.dart';
+import '../ui/foundation/caps.dart';
 
 /// A route that swaps in over the camera with no transition at all.
 ///
@@ -27,12 +27,7 @@ Route<T> reviewRoute<T>(Widget child) {
 /// shoving sideways for what is really a dialog over the chat, so there the
 /// page fades in with a slight settle instead, and fades out the same way.
 Route<T> editorRoute<T>(Widget child) {
-  final desktop = switch (defaultTargetPlatform) {
-    TargetPlatform.macOS ||
-    TargetPlatform.windows ||
-    TargetPlatform.linux => true,
-    _ => false,
-  };
+  final desktop = Caps.desktopLook;
   if (!desktop) return MaterialPageRoute<T>(builder: (_) => child);
   return PageRouteBuilder<T>(
     transitionDuration: const Duration(milliseconds: 220),

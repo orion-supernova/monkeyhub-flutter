@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../data/chat_repository.dart';
 import '../family/family_service.dart';
 import 'web_badge.dart';
+import '../ui/foundation/caps.dart';
 
 /// Computes a single "needs attention" number for this user and pushes it to
 /// the platform app icon. The number aggregates:
@@ -164,10 +164,7 @@ class BadgeManager extends ChangeNotifier {
     // Native desktop/mobile app-icon badge via the shared `monkeyhub/badge`
     // channel. Each runner (iOS/macOS/Windows/Linux) implements `set`; an
     // unregistered handler throws MissingPluginException, swallowed below.
-    if (Platform.isIOS ||
-        Platform.isMacOS ||
-        Platform.isWindows ||
-        Platform.isLinux) {
+    if (Caps.iOS || Caps.nativeDesktop) {
       try {
         await _ch.invokeMethod('set', {'count': n});
       } catch (e) {

@@ -38,13 +38,14 @@ import 'package:flutter/services.dart';
 import '../companions/translation/language.dart';
 import '../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../l10n/generated/app_localizations.dart';
+import '../media/file_meta.dart' show formatFileSize;
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../transcripts/transcript.dart';
 import '../transcripts/transcript_subject.dart';
 import '../transcripts/voice_transcriber.dart';
-import 'app_toast.dart';
+import '../services/clipboard_actions.dart';
 import 'spring_press.dart';
 import 'translation_slab.dart' show FrozenBubble;
 
@@ -632,9 +633,12 @@ class TranscriptSlab extends StatelessWidget {
         final builtIn = t.source == TranscriptSource.builtIn;
         final languageName = lang == null ? null : autonymFor(lang);
         void copy() {
-          HapticFeedback.selectionClick();
-          unawaited(Clipboard.setData(ClipboardData(text: t.text)));
-          AppToast.of(context).success(l10n.voiceTranscriptCopied);
+          unawaited(copyText(
+            context,
+            t.text,
+            toast: l10n.voiceTranscriptCopied,
+            haptic: CopyHaptic.selection,
+          ));
         }
 
         return Column(
@@ -722,7 +726,7 @@ class TranscriptSlab extends StatelessWidget {
   /// Folds the slab, for the card's own "Hide" link.
   void _fold() => VoiceTranscriber.instance.setOpen(handle.storageId, false);
 
-  static String _mb(int bytes) => '${(bytes / (1024 * 1024)).round()} MB';
+  static String _mb(int bytes) => formatFileSize(bytes, wholeUnits: true);
 }
 
 /// The wrapper a video or a round note puts around its picture: the button on

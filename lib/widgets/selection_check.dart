@@ -32,9 +32,21 @@ class SelectionCheck extends StatefulWidget {
     this.media = false,
     this.enabled = true,
     this.color,
-  });
+  }) : radio = false;
+
+  /// The round check iOS draws under a picker tile (theme / wallpaper
+  /// choosers): an empty muted ring, or a filled accent disc whose tick
+  /// scales in on a spring. Not the stroke-drawn tick of the list circle.
+  const SelectionCheck.radio({super.key, required this.picked, this.size = 22})
+      : media = false,
+        enabled = true,
+        color = null,
+        radio = true;
 
   final bool picked;
+
+  /// The [SelectionCheck.radio] look.
+  final bool radio;
   final double size;
 
   /// Over a photo: a white ring on a dark wash, legible on any picture.
@@ -97,8 +109,52 @@ class _SelectionCheckState extends State<SelectionCheck>
     super.dispose();
   }
 
+  Widget _radio(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
+    final size = widget.size;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: theme.inkMuted.withValues(alpha: 0.5),
+                width: 1.5,
+              ),
+            ),
+          ),
+          AnimatedScale(
+            scale: widget.picked ? 1 : 0,
+            duration: motion.d(const Duration(milliseconds: 420)),
+            curve: widget.picked ? Curves.elasticOut : Curves.easeIn,
+            child: Container(
+              width: size,
+              height: size,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: theme.accent,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                CupertinoIcons.checkmark_alt,
+                size: size * 0.66,
+                color: theme.accentInk,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.radio) return _radio(context);
     final w = widget;
     final theme = ThemeScope.of(context);
     final Color ring;

@@ -28,7 +28,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/account_kit.dart';
 import '../widgets/app_toast.dart';
-import '../widgets/chat_list_row.dart' show MonogramAvatar;
+import '../widgets/chat_list_row.dart' show MonogramAvatar, SavedMessagesFace;
 import '../widgets/companion_install_sheet.dart';
 import '../widgets/editable_info_row.dart';
 import '../widgets/ios_kit.dart';
@@ -893,7 +893,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       body: AppLocalizations.of(context).roomInfoScreenLeaveConfirmBody,
       confirm: AppLocalizations.of(context).roomInfoScreenLeaveConfirmButton,
     );
-    if (!ok) return;
+    if (!ok || !mounted) return;
     setState(() {
       _leaving = true;
       _error = null;
@@ -935,7 +935,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             confirm: l10n.roomInfoScreenDeleteConfirmButton,
             destructive: true,
           );
-    if (!ok) return;
+    if (!ok || !mounted) return;
     setState(() {
       _deleting = true;
       _error = null;
@@ -1195,18 +1195,18 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                       Row(children: [
                         if (r.hasPassword) ...[
                           Expanded(
-                            child: SheetButton(
+                            child: SheetActionButton(
                               label: l10n.riRemovePassword,
-                              danger: true,
+                              tonal: true,
+                              destructive: true,
                               onTap: busy ? null : _clearPassword,
                             ),
                           ),
                           const SizedBox(width: 10),
                         ],
                         Expanded(
-                          child: SheetButton(
+                          child: SheetActionButton(
                             label: l10n.riSetPassword,
-                            filled: true,
                             // Dead until there is something to set — the one
                             // commit on this page, so it must never fire on an
                             // empty field.
@@ -1531,23 +1531,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     const size = _avatarSize;
     if (r.isSavedMessages) {
       return Center(
-        child: _dockingAvatar(Container(
-          width: size,
-          height: size,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color.lerp(theme.accent, Colors.white, 0.18)!,
-                theme.accent,
-              ],
-            ),
-          ),
-          child: Icon(CupertinoIcons.bookmark_fill, size: size * 0.40, color: theme.accentInk),
-        )),
+        child: _dockingAvatar(SavedMessagesFace(size: size)),
       );
     }
     // A DM shows the other person's avatar, and it isn't editable — you can't

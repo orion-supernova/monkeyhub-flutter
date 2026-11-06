@@ -3,7 +3,6 @@ import 'dart:math' as math;
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -26,11 +25,11 @@ import 'klipy_ad_tile.dart';
 import 'klipy_attribution.dart';
 import 'sticker_pack_store.dart';
 import 'sticker_search.dart';
-import '../teardown_safe.dart';
 import '../ios_kit.dart';
-import '../sheet_kit.dart' show SheetCloseButton, SheetHandle;
 import '../skeleton_rows.dart' show SkeletonBox, SkeletonSweep;
+import '../sheet_kit.dart' show SheetCloseButton, SheetHandle;
 import '../desktop_scroll.dart';
+import '../../ui/foundation/caps.dart';
 
 /// The composer's expression panel — emoji, GIFs and stickers — shown in place
 /// of the keyboard.
@@ -1066,36 +1065,24 @@ class _PressableTile extends StatefulWidget {
   State<_PressableTile> createState() => _PressableTileState();
 }
 
-class _PressableTileState extends State<_PressableTile>
-    with TeardownSafe<_PressableTile> {
-  bool _down = false;
-
+class _PressableTileState extends State<_PressableTile> {
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
       label: widget.semanticLabel,
       onLongPressHint: AppLocalizations.of(context).expressionOptionsHint,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => setState(() => _down = true),
-        onTapCancel: () => setState(() => _down = false),
-        onTapUp: (_) => setState(() => _down = false),
+      // A quick dip and an overshooting return — the tile visibly lands.
+      child: SpringPress(
         onTap: widget.onTap,
         onLongPress: () {
           HapticFeedback.mediumImpact();
-          setState(() => _down = false);
           widget.onLongPress();
         },
-        // A quick dip and an overshooting return — the tile visibly lands.
-        child: AnimatedScale(
-          scale: _down ? 0.9 : 1,
-          duration: MotionScope.of(context).d(
-            _down ? PressSpec.down : PressSpec.release,
-          ),
-          curve: _down ? PressSpec.downCurve : PressSpec.releaseCurve,
-          child: widget.child,
-        ),
+        scale: 0.9,
+        haptic: false,
+        hover: HoverEffect.none,
+        child: widget.child,
       ),
     );
   }
@@ -1935,9 +1922,7 @@ class ExpressionPanelController extends ChangeNotifier {
   /// Only phones and tablets have a keyboard that slides up to take the
   /// panel's place; on a desktop there is nothing to wait for.
   static bool get _softKeyboard =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android);
+      Caps.nativeMobile;
 
   void _handOver() {
     _searching = false;

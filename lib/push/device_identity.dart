@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../data/any_class_keychain.dart';
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// Persistent per-device identifier used to scope push tokens. Generated
 /// once on first launch (RFC-4122 UUIDv4 via `Random.secure`), stashed in
@@ -124,19 +126,19 @@ class DeviceIdentity {
   /// no deviceName is captured.
   static String platformTag() {
     if (kIsWeb) return 'web';
-    if (Platform.isIOS) {
+    if (Caps.iOS) {
       return Platform.resolvedExecutable.contains('/CoreSimulator/')
           ? 'ios-simulator'
           : 'ios';
     }
-    if (Platform.isAndroid) return 'android';
-    if (Platform.isMacOS) return 'macos';
-    if (Platform.isWindows) return 'windows';
-    if (Platform.isLinux) return 'linux';
+    if (Caps.android) return 'android';
+    if (Caps.macOS) return 'macos';
+    if (Caps.windows) return 'windows';
+    if (Caps.linux) return 'linux';
     return Platform.operatingSystem;
   }
 
-  static const MethodChannel _deviceChannel = MethodChannel('monkeyhub/device');
+  static const MethodChannel _deviceChannel = Channels.device;
 
   /// Friendly fallback label used when no OS-provided deviceName is
   /// available — keeps the pill readable on every platform.
@@ -184,9 +186,9 @@ class DeviceIdentity {
     try {
       if (kIsWeb) {
         raw = null; // no native device-name channel on web → 'Browser'
-      } else if (Platform.isIOS || Platform.isAndroid || Platform.isMacOS) {
+      } else if (Caps.iOS || Caps.android || Caps.macOS) {
         raw = await _deviceChannel.invokeMethod<String>('getDisplayName');
-      } else if (Platform.isWindows || Platform.isLinux) {
+      } else if (Caps.windows || Caps.linux) {
         raw = Platform.localHostname;
       }
     } catch (_) {

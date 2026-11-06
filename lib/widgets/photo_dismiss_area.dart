@@ -5,7 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart' show HardwareKeyboard, SystemMouseCursors;
 import 'package:flutter/widgets.dart';
 
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 
 /// Shared zoom and gesture layer for full-screen photos and story slides:
 /// pinch zoom and edge-clamped panning, with optional double-tap zoom and
@@ -246,7 +246,7 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
     _xform
       ..addListener(_clampToPicture)
       ..addListener(_report);
-    if (isWebOrDesktop) _xform.addListener(_scheduleSettled);
+    if (Caps.hover) _xform.addListener(_scheduleSettled);
     widget.zoom?._attach(this);
   }
 
@@ -277,7 +277,7 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
   /// moved let a pinch whose fingers drifted sideways turn into a page swipe.
   void _report() {
     final zoomed = _zoomed;
-    if (zoomed != _zoomedUi && isWebOrDesktop && mounted) {
+    if (zoomed != _zoomedUi && Caps.hover && mounted) {
       setState(() => _zoomedUi = zoomed);
     }
     final now = zoomed || _pointers >= 2;
@@ -303,7 +303,7 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
       _zoomCtrl.stop();
     }
     _pointers++;
-    _mouse = isWebOrDesktop && e.kind == PointerDeviceKind.mouse;
+    _mouse = Caps.hover && e.kind == PointerDeviceKind.mouse;
     if (_mouse && _zoomed && !_grabbing) setState(() => _grabbing = true);
     _report();
   }
@@ -418,7 +418,7 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
   }
 
   void _onSignal(PointerSignalEvent e) {
-    if (!isWebOrDesktop || e is! PointerScrollEvent) return;
+    if (!Caps.hover || e is! PointerScrollEvent) return;
     // Claimed, so the pager behind does not scroll a fraction of a page on
     // the same event. Registration is first come, and this sits inside it.
     GestureBinding.instance.pointerSignalResolver.register(e, (event) {
@@ -474,7 +474,7 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
   /// A click with a mouse: on the black around the picture it closes; on the
   /// picture it does nothing. Touch toggles the chrome, as it always has.
   void _onTapUp(TapUpDetails d) {
-    if (isWebOrDesktop && d.kind == PointerDeviceKind.mouse) {
+    if (Caps.hover && d.kind == PointerDeviceKind.mouse) {
       final click = widget.onBackdropClick;
       if (click != null) {
         final picture = _pictureOnScreen();
@@ -538,7 +538,7 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
 
   Future<void> _handleDoubleTap(TapDownDetails d) async {
     if (widget.maxScale <= 1) return;
-    if (isWebOrDesktop && d.kind == PointerDeviceKind.mouse) {
+    if (Caps.hover && d.kind == PointerDeviceKind.mouse) {
       if (_zoomed) {
         _animateTo(Matrix4.identity());
         return;
@@ -701,7 +701,7 @@ class _PhotoDismissAreaState extends State<PhotoDismissArea>
 
   @override
   Widget build(BuildContext context) {
-    final desktop = isWebOrDesktop;
+    final desktop = Caps.hover;
     final Widget area = Listener(
       onPointerDown: _onPointerDown,
       onPointerUp: _onPointerGone,
@@ -867,7 +867,7 @@ class PhotoSharpOnZoom extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isWebOrDesktop) return child;
+    if (!Caps.hover) return child;
     final scale = PhotoDismissArea.settledScaleOf(context);
     final bucket = scale <= 2 ? 2 : 4;
     final dpr = MediaQuery.devicePixelRatioOf(context);

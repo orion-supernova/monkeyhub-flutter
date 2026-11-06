@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../format/duration_format.dart';
 import '../models/call_history.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
@@ -72,17 +73,13 @@ String transcriptDay(BuildContext context, DateTime at) {
       : material.formatMediumDate(day);
 }
 
-/// A playing time as `m:ss` — `0:07`, `3:42`, `12:05`.
-///
-/// Minutes are not zero-padded and do not roll into hours: nothing this app
-/// carries (a voice note, a video, a call timer) runs long enough for `1:02:03`
-/// to be worth the width, and `62:03` stays readable if one ever does.
+/// A playing time as `m:ss` — `0:07`, `3:42`, `12:05`, and `1:02:03` past an
+/// hour. Thin wrapper over [formatClock].
 ///
 /// Not to be confused with `formatClockTime` in `message_stamp.dart`, which
 /// formats a time of day.
 String formatClockDuration(Duration d) {
-  final s = d.inSeconds;
-  return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
+  return formatClock(d);
 }
 
 // ───────────────────────── list item model ─────────────────────────

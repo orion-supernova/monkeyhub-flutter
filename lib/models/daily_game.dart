@@ -19,6 +19,7 @@
 library;
 
 import '../games/ranking.dart';
+import '../format/duration_format.dart';
 
 /// The games that exist. Wire names mirror `GAMES` in backend/convex/games.ts.
 enum DailyGame {
@@ -873,12 +874,7 @@ class GameStreak {
 String formatGameTime(int? ms) {
   // An en dash, never an em dash: em dashes are banned from the UI.
   if (ms == null) return '–';
-  final total = ms ~/ 1000;
-  final seconds = (total % 60).toString().padLeft(2, '0');
-  final minutes = total ~/ 60;
-  if (minutes < 60) return '$minutes:$seconds';
-  final mm = (minutes % 60).toString().padLeft(2, '0');
-  return '${minutes ~/ 60}:$mm:$seconds';
+  return formatClock(Duration(seconds: ms ~/ 1000));
 }
 
 List<int> _ints(dynamic raw) => [

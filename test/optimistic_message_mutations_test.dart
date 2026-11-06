@@ -9,6 +9,8 @@ import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/message_formatting.dart';
 import 'package:monkeyhub/push/push_manager.dart';
 
+import 'flutter_test_config.dart' show emptyPushInbox;
+
 /// Delete, react and edit render locally before the server has answered.
 ///
 /// All three used to be server-first. Delete and react had no local step at
@@ -350,7 +352,7 @@ void main() {
       };
     });
 
-    tearDown(() => PushManager.debugInboxReader = null);
+    tearDown(() => PushManager.debugInboxReader = emptyPushInbox);
 
     Map<String, String> push(
       String id, {

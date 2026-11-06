@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import '../ui/foundation/caps.dart';
 
 /// The macOS menu-bar item's on/off switch, as seen from Dart.
 ///
@@ -24,7 +25,7 @@ class MacAppChrome extends ChangeNotifier {
   /// derived from the user agent, so Safari on a Mac reports `macOS` — and
   /// there is no menu bar to put anything in.
   static bool get isSupported =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
+      Caps.macOS;
 
   bool? _visible;
 

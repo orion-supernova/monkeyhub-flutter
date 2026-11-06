@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../data/glass_config.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
+import '../models/chat_user.dart' show initialOf;
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -1281,7 +1282,7 @@ class _Row extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Text(
-              name.characters.first.toUpperCase(),
+              initialOf(name),
               style: groupedMetaStyle(theme).copyWith(
                 fontWeight: FontWeight.w600,
                 color: group ? theme.accentInk : theme.accent,

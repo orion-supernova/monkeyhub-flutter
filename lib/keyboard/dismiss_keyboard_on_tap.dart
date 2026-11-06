@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 
 /// Drops the soft keyboard when the user taps a part of the screen that isn't
 /// itself interactive.
@@ -33,7 +33,7 @@ class DismissKeyboardOnTap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isPhysicalKeyboardPlatform) return child;
+    if (Caps.physicalKeyboard) return child;
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       // Not a control, and announcing one here would put a full-screen
@@ -59,6 +59,6 @@ class DismissKeyboardOnTap extends StatelessWidget {
 /// The explicit hide is a no-op when the keyboard is already going.
 void dismissSoftKeyboard() {
   FocusManager.instance.primaryFocus?.unfocus();
-  if (isPhysicalKeyboardPlatform) return;
+  if (Caps.physicalKeyboard) return;
   SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
 }

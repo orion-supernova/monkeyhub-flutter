@@ -295,6 +295,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
               _roomType == RoomType.secret ? _life.clock.name : null,
           initialMessage: text.isEmpty ? null : text,
         );
+        if (!mounted) return;
         setState(() => _newRequestId = id);
         // Only now does the sender have a request to watch: the draft thread
         // and the accept/decline that ends it.
@@ -307,7 +308,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
       }
     } catch (e) {
       // Re-fill composer so user doesn't lose what they typed.
-      if (text.isNotEmpty) _composer.text = text;
+      if (mounted && text.isNotEmpty) _composer.text = text;
       // Privacy-preserving error mapping. Block stays under generic
       // "couldn't send" — it must never reveal it's a block.
       final s = e.toString();

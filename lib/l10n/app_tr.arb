@@ -4388,5 +4388,8 @@
   "uiKitAutoBody": "Bu cihaz için en iyi stili seçer. Şu an: {style}",
   "uiKitLiteTitle": "Hafif",
   "uiKitLiteBody": "Düz yüzeyler, bulanıklık yok. Eski telefonlarda en akıcısı ve pili yormaz.",
-  "uiKitLiteFooter": "Hafif stil cam çizmez, bu yüzden ayarlanacak bir şey yok. Camı kendin şekillendirmek için Buzlu'yu seç."
+  "uiKitLiteFooter": "Hafif stil cam çizmez, bu yüzden ayarlanacak bir şey yok. Camı kendin şekillendirmek için Buzlu'yu seç.",
+  "bulkForwardedToChats": "{count, plural, =1{iletildi} other{{count} sohbete iletildi}}",
+  "bulkSavedToPhotos": "{count, plural, =1{fotoğraflara kaydedildi} other{{count} öğe fotoğraflara kaydedildi}}",
+  "bulkDeletedMessages": "{count, plural, =1{silindi} other{{count} öğe silindi}}"
 }

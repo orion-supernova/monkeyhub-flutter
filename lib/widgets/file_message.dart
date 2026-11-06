@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
+import 'spring_press.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/document_preview.dart';
 import '../media/document_saver.dart';
@@ -74,7 +75,6 @@ class FileMessage extends StatefulWidget {
 class _FileMessageState extends State<FileMessage>
     with TeardownSafe<FileMessage> {
   bool _busy = false;
-  bool _pressed = false;
 
   /// Measured off this row rather than the whole screen, because
   /// `sharePositionOrigin` is what an iPad anchors the share popover's arrow
@@ -270,32 +270,20 @@ class _FileMessageState extends State<FileMessage>
       ],
     );
 
-    // `FocusableTap` registers no gesture recognizer of its own, so the bare
-    // `GestureDetector` inside is what actually receives the pointer. Both
-    // carry the handler; wrapping alone would render a row that does nothing.
+    // SpringPress owns the one tap path, the keyboard route and the dip.
     // Never an InkWell — this app draws no ink anywhere.
-    return FocusableTap(
+    return SpringPress(
       onTap: enabled ? _open : null,
-      enabled: enabled,
+      scale: 0.97,
+      haptic: false,
+      hover: HoverEffect.none,
       semanticLabel: _viewable
           ? l10n.fileMessageViewSemanticLabel(name)
           : l10n.fileMessageSaveSemanticLabel(name),
-      radius: 12,
-      child: GestureDetector(
-        onTap: enabled ? _open : null,
-        onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
-        onTapUp: enabled ? (_) => setState(() => _pressed = false) : null,
-        onTapCancel: enabled ? () => setState(() => _pressed = false) : null,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedScale(
-          scale: _pressed ? 0.97 : 1.0,
-          duration: const Duration(milliseconds: 90),
-          curve: Curves.easeOut,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: widget.maxWidth ?? 260),
-            child: row,
-          ),
-        ),
+      focusRadius: 12,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: widget.maxWidth ?? 260),
+        child: row,
       ),
     );
   }

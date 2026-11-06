@@ -18,6 +18,7 @@ import 'bot_match_screen.dart';
 import 'game_start_sheet.dart' show ChatGameArt;
 import 'match_copy.dart';
 import 'monkey_avatar.dart';
+import '../theme/layout.dart';
 
 /// The board games you can play against the app's own bot.
 ///
@@ -147,7 +148,7 @@ class _BotHubPanelState extends State<BotHubPanel> {
           key: const ValueKey('bot_fight_banner'),
           title: l10n.fightTitle,
           subtitle: l10n.fightHubSubtitle,
-          wide: box.maxWidth >= 700,
+          wide: box.maxWidth >= Breakpoints.botHubWide,
           onTap: _playFight,
         ),
         const SizedBox(height: 26),
@@ -155,7 +156,7 @@ class _BotHubPanelState extends State<BotHubPanel> {
         LayoutBuilder(
           builder: (context, box) {
             const gap = 12.0;
-            final across = box.maxWidth >= 480 ? 3 : 2;
+            final across = box.maxWidth >= Breakpoints.botHubThreeUp ? 3 : 2;
             final w = (box.maxWidth - gap * (across - 1)) / across;
             return Wrap(
               spacing: gap,

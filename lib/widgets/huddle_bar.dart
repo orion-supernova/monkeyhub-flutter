@@ -586,12 +586,19 @@ class _RoundButton extends StatelessWidget {
       onTap: onTap,
       semanticLabel: semanticLabel,
       focusShape: FocusRingShape.circle,
-      child: Container(
-        width: _kBarButton,
-        height: _kBarButton,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: fill),
-        child: glyph,
+      // Drawn 37pt, tappable 44pt.
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: Center(
+          child: Container(
+            width: _kBarButton,
+            height: _kBarButton,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: fill),
+            child: glyph,
+          ),
+        ),
       ),
     );
   }

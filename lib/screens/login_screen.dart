@@ -15,7 +15,7 @@ import '../keyboard/dismiss_keyboard_on_tap.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../legal_links.dart';
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import '../services/link_opener.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
@@ -140,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
   late bool _pairing = SessionStore.instance.isChildDevice;
 
   /// Whether the QR/short-code device-login screen is showing instead of the
-  /// sign-in form. Desktop/web only — see `isWebOrDesktop` where the footer
+  /// sign-in form. Desktop/web only — see `Caps.hover` where the footer
   /// link that sets this is offered. Unlike [_pairing] there is no sticky
   /// marker to seed from: every desktop/web launch starts on the password
   /// form, and this is purely a deliberate, reversible detour off it.
@@ -427,6 +427,7 @@ class _LoginScreenState extends State<LoginScreen> {
           );
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         if (_mode == _AuthMode.signIn) _offerSuspendedDelete(e);
         _error = _humanize(e);
@@ -514,7 +515,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // it. Below the breakpoint the row would either overflow or
                   // squeeze the form uncomfortably narrow, so `_footer` offers
                   // the link to the full-screen fallback instead.
-                  final showPhonePanel = isWebOrDesktop &&
+                  final showPhonePanel = Caps.hover &&
                       _mode == _AuthMode.signIn &&
                       outer.maxWidth >= _phonePanelBreakpoint;
                   return Center(
@@ -570,7 +571,10 @@ class _LoginScreenState extends State<LoginScreen> {
       slivers: [
         SliverFillRemaining(
           hasScrollBody: false,
-          child: Column(
+          // One autofill context for the form, so the OS pairs the username
+          // with the password and offers to save the pair on submit.
+          child: AutofillGroup(
+           child: Column(
             children: [
               Expanded(
                 child: Padding(
@@ -631,6 +635,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               _footer(showPhoneLink: showPhoneLink),
             ],
+           ),
           ),
         ),
       ],
@@ -657,7 +662,8 @@ class _LoginScreenState extends State<LoginScreen> {
         hint: l10n.loginUsernameField,
         autocorrect: false,
         enableSuggestions: false,
-        autofocus: isPhysicalKeyboardPlatform,
+        autofillHints: const [AutofillHints.username],
+        autofocus: Caps.physicalKeyboard,
         textInputAction: TextInputAction.next,
         onChanged: _mode == _AuthMode.signUp ? _availability.onChanged : null,
         onSubmitted: (_) => _next(),
@@ -673,6 +679,11 @@ class _LoginScreenState extends State<LoginScreen> {
         PasswordField(
           controller: _password,
           hint: l10n.loginPasswordField,
+          autofillHints: [
+            _mode == _AuthMode.signIn
+                ? AutofillHints.password
+                : AutofillHints.newPassword,
+          ],
           textInputAction: passwordIsLast
               ? TextInputAction.done
               : TextInputAction.next,
@@ -687,6 +698,7 @@ class _LoginScreenState extends State<LoginScreen> {
         PasswordField(
           controller: _confirmPassword,
           hint: l10n.loginConfirmPasswordField,
+          autofillHints: const [AutofillHints.newPassword],
           textInputAction: TextInputAction.next,
           onSubmitted: (_) => _next(),
         ),
@@ -737,6 +749,7 @@ class _LoginScreenState extends State<LoginScreen> {
         PasswordField(
           controller: _newPassword,
           hint: l10n.loginNewPasswordField,
+          autofillHints: const [AutofillHints.newPassword],
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _submit(),
         ),
@@ -784,7 +797,7 @@ class _LoginScreenState extends State<LoginScreen> {
               // than replacing it: not every self-hosted deployment's users
               // will have a paired phone to scan with. Suppressed when the
               // panel itself is already showing beside the form (`build`).
-              if (isWebOrDesktop && showPhoneLink) ...[
+              if (Caps.hover && showPhoneLink) ...[
                 TextLinkButton(
                   label: l10n.loginWithPhone,
                   onTap: () => setState(() => _deviceLogin = true),

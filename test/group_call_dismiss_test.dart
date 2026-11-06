@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:fake_async/fake_async.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/backend/group_call_api.dart';
@@ -151,6 +153,11 @@ GroupCallService _newService(_FakeGroupApi api, List<String> ended) {
 }
 
 void main() {
+  // flutter_test defaults to Android, where the mobile call paths (channels,
+  // permission pre-flight) apply; these tests drive the desktop shape.
+  setUpAll(() => debugDefaultTargetPlatformOverride = TargetPlatform.macOS);
+  tearDownAll(() => debugDefaultTargetPlatformOverride = null);
+
   // The mic belt `leaveCall` runs (`stopDarwinMicCapture`) reaches the
   // plugin's channel; without a binding that is a synchronous throw the
   // zone reports as uncaught, with one it is a MissingPluginException the

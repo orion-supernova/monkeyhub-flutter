@@ -17,6 +17,7 @@ import 'art/stages/stages.dart';
 import 'fight_screen.dart';
 import 'fight_stage_picker.dart';
 import 'fight_training_screen.dart';
+import '../../theme/layout.dart';
 
 /// Jungle Fist's setup page, opened from Play the bot: a live bot-vs-bot
 /// demo up top, the fighter, and the three looks, each previewed live.
@@ -201,7 +202,7 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
 
     return LayoutBuilder(
       builder: (context, box) {
-        final wide = box.maxWidth >= 860;
+        final wide = box.maxWidth >= Breakpoints.fightLobbyWide;
         if (!wide) {
           return IosPage(
             title: l10n.fightTitle,

@@ -12,6 +12,8 @@ import 'call_models.dart';
 import 'call_permissions.dart';
 import 'call_service.dart';
 import 'group_call_service.dart';
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// Bridges flutter_callkit_incoming (native iOS CallKit / Android
 /// ConnectionService) into [CallService]. Single global subscription
@@ -89,7 +91,7 @@ class NativeCallHandler {
           _voipChannel.invokeMethod<Object?>(method, {'callId': callId});
 
   bool get _iosNative =>
-      _nativeCallUi && (iosNativeOverride ?? (!kIsWeb && Platform.isIOS));
+      _nativeCallUi && (iosNativeOverride ?? (Caps.iOS));
 
   // ── cards this process is ending itself ──
   //
@@ -172,12 +174,12 @@ class NativeCallHandler {
   /// unreliable. Those platforms use the in-app IncomingCallScreen instead.
   bool get _nativeCallUi =>
       nativeCallUiOverride ??
-      (!kIsWeb && (Platform.isAndroid || Platform.isIOS) && !_isIosSimulator);
+      (Caps.mobileCalls && !_isIosSimulator);
 
   static bool _detectIosSimulator() {
     // kIsWeb first: it's a const, so Platform.* (dart:io) is never touched on
     // web, where evaluating it throws.
-    if (kIsWeb || !Platform.isIOS) return false;
+    if (!Caps.iOS) return false;
     return Platform.resolvedExecutable.contains('/CoreSimulator/');
   }
 
@@ -1033,7 +1035,7 @@ class NativeCallHandler {
     if (groupCallId != null) _rememberGroupCall(groupCallId);
     // A new ring is a new card: see [markConnected].
     _connectedUuidByCallId.remove(callId);
-    if (kIsWeb || !Platform.isAndroid) return;
+    if (!Caps.android) return;
     try {
       final active = (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
       final already = active.any((c) =>
@@ -1147,7 +1149,7 @@ class NativeCallHandler {
             // dropped, or Android's activeCalls() only reporting the last
             // call.
             await endCallFn(known);
-          } else if (Platform.isAndroid) {
+          } else if (Caps.android) {
             // No UUID we ourselves issued. Android can still reliably
             // derive one — both ring paths derive the id from the callId —
             // but the equivalent guess on iOS risks handing CallKit a UUID
@@ -1255,10 +1257,10 @@ class NativeCallHandler {
   // AppDelegate's last-resort fallback ringer lives on a CXProvider the
   // flutter_callkit_incoming plugin doesn't know about, so the plugin's
   // endAllCalls can't dismiss it — ask AppDelegate directly.
-  static const MethodChannel _voipChannel = MethodChannel('monkeyhub/voip');
+  static const MethodChannel _voipChannel = Channels.voip;
 
   Future<void> _endIosFallbackCalls() async {
-    if (kIsWeb || !Platform.isIOS) return;
+    if (!Caps.iOS) return;
     try {
       await _voipChannel.invokeMethod('endFallbackCalls');
     } catch (_) {}
@@ -1292,7 +1294,7 @@ class NativeCallHandler {
   /// release naming another call than the one audio was last applied for is
   /// ignored: this belt repeats for seconds and must not take down a redial.
   Future<void> deactivateIosAudioSession({String? callId}) async {
-    if (!(iosNativeOverride ?? (!kIsWeb && Platform.isIOS))) return;
+    if (!(iosNativeOverride ?? (Caps.iOS))) return;
     if (groupCallActiveProbe()) return;
     try {
       // An empty id is "unnamed" natively (an older caller).
@@ -1311,7 +1313,7 @@ class NativeCallHandler {
   /// call that starts inside the window is untouched, and every pass names
   /// [callId] so one that lands after a redial applied is ignored natively.
   Future<void> deactivateIosAudioSessionSettled({String? callId}) async {
-    if (kIsWeb || !Platform.isIOS) return;
+    if (!Caps.iOS) return;
     for (final gap in const [0, 500, 1000, 1500]) {
       if (gap > 0) await Future.delayed(Duration(milliseconds: gap));
       await deactivateIosAudioSession(callId: callId);
@@ -1323,7 +1325,7 @@ class NativeCallHandler {
   /// Also flips AppDelegate to direct delivery for future ones. Runs at the
   /// top of [replayColdStartCalls]; idempotent (the native queue empties).
   Future<void> _drainPendingFallbackEvents() async {
-    if (kIsWeb || !Platform.isIOS || _isIosSimulator) return;
+    if (!Caps.iOS || _isIosSimulator) return;
     List<dynamic> events;
     try {
       events =

@@ -1,11 +1,10 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
-import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/widgets.dart';
 
 import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../theme/layout.dart';
+import '../../ui/foundation/caps.dart';
 
 /// One destination in the shell's navigation, in nav order.
 ///
@@ -96,7 +95,7 @@ const double kGestureInsetMax = 32;
 /// on top of back/home/recents, so there the whole inset is spoken for.
 double navBottomKeepOut(double inset) {
   if (inset <= 0) return 0;
-  final buttons = defaultTargetPlatform == TargetPlatform.android &&
+  final buttons = Caps.android &&
       inset > kGestureInsetMax;
   return buttons ? inset : kIndicatorKeepOut;
 }

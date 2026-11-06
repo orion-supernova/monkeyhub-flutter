@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../family/family_service.dart';
@@ -554,13 +553,6 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
     }
   }
 
-  /// A switch flip with the tap a native switch gives; `Switch.adaptive` has
-  /// none.
-  ValueChanged<bool> _flip(void Function(bool) apply) => (v) {
-        HapticFeedback.lightImpact();
-        apply(v);
-      };
-
   String _stateLabel(ChildContact c, AppLocalizations l10n) =>
       switch (c.state) {
         ChildContactState.allowedTalking =>
@@ -601,7 +593,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
                   ? l10n.childPolicyScreenAskToAddOnDesc
                   : l10n.childPolicyScreenAskToAddOffDesc,
               value: _policy.canRequestContacts,
-              onChanged: _flip((v) => _set(canRequestContacts: v)),
+              onChanged: (v) => _set(canRequestContacts: v),
             ),
             GroupedRow.toggle(
               title: l10n.childPolicyScreenCallsLabel,
@@ -609,7 +601,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
                   ? l10n.childPolicyScreenCallsOnDesc
                   : l10n.childPolicyScreenCallsOffDesc,
               value: _policy.callsEnabled,
-              onChanged: _flip((v) => _set(callsEnabled: v)),
+              onChanged: (v) => _set(callsEnabled: v),
             ),
             GroupedRow.toggle(
               title: l10n.childPolicyScreenMediaLabel,
@@ -617,7 +609,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
                   ? l10n.childPolicyScreenMediaOnDesc
                   : l10n.childPolicyScreenMediaOffDesc,
               value: _policy.mediaEnabled,
-              onChanged: _flip((v) => _set(mediaEnabled: v)),
+              onChanged: (v) => _set(mediaEnabled: v),
             ),
             GroupedRow.toggle(
               title: l10n.childPolicyScreenCreateRoomsLabel,
@@ -625,7 +617,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
                   ? l10n.childPolicyScreenCreateRoomsOnDesc
                   : l10n.childPolicyScreenCreateRoomsOffDesc,
               value: _policy.canCreateRooms,
-              onChanged: _flip((v) => _set(canCreateRooms: v)),
+              onChanged: (v) => _set(canCreateRooms: v),
             ),
             // The only switch on this screen that starts OFF, and its own
             // switch rather than part of MEDIA — see `LOCATION_POLICY_FLAG`
@@ -637,7 +629,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
                   ? l10n.childPolicyScreenLocationOnDesc
                   : l10n.childPolicyScreenLocationOffDesc,
               value: _policy.locationSharingEnabled,
-              onChanged: _flip((v) => _set(locationSharingEnabled: v)),
+              onChanged: (v) => _set(locationSharingEnabled: v),
             ),
           ],
         ),
@@ -894,7 +886,9 @@ class _AddContactSheetState extends State<_AddContactSheet> {
             controller: _username,
             hint: l10n.childPolicyScreenUsernameHint,
             autofocus: true,
-            keyboardType: TextInputType.visiblePassword,
+            keyboardType: TextInputType.text,
+            autocorrect: false,
+            enableSuggestions: false,
             textCapitalization: TextCapitalization.none,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _submit(),
@@ -909,7 +903,6 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                     : l10n.childPolicyScreenSendNowOffDesc,
                 value: _sendNow,
                 onChanged: (v) {
-                  HapticFeedback.lightImpact();
                   setState(() => _sendNow = v);
                 },
               ),
@@ -1005,7 +998,9 @@ class _PromptSheetState extends State<_PromptSheet> {
               controller: _value,
               hint: widget.hint,
               autofocus: true,
-              keyboardType: TextInputType.visiblePassword,
+              keyboardType: TextInputType.text,
+              autocorrect: false,
+              enableSuggestions: false,
               textCapitalization: TextCapitalization.none,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _submit(),

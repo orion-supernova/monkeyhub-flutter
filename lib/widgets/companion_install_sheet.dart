@@ -33,6 +33,7 @@ import 'package:flutter/material.dart';
 import '../companions/brain_manager.dart';
 import '../companions/brain_spec.dart';
 import '../companions/companion.dart';
+import '../media/file_meta.dart' show formatFileSize;
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../theme/app_theme.dart';
@@ -393,7 +394,7 @@ class _CompanionInstallPanelState extends State<CompanionInstallPanel> {
       };
 
   /// Whole binary megabytes, to match what every OS storage screen reports.
-  static String _mib(int bytes) => '${(bytes / (1024 * 1024)).round()} MB';
+  static String _mib(int bytes) => formatFileSize(bytes, wholeUnits: true);
 }
 
 /// The settings screen's stand-in for the hero ring.

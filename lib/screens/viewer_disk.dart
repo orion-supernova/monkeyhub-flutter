@@ -22,7 +22,7 @@ import '../media/file_url_cache.dart';
 import '../media/image_raster.dart' show imageBytesSize;
 import '../models/chat_message.dart';
 import '../models/enums.dart';
-import 'viewer_disk_io.dart' if (dart.library.html) 'viewer_disk_web.dart'
+import 'viewer_disk_io.dart' if (dart.library.js_interop) 'viewer_disk_web.dart'
     as platform;
 
 /// Where a save landed. [path] is null on the web, where the browser owns

@@ -1,10 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart'
-    show TargetPlatform, debugPrint, defaultTargetPlatform, kIsWeb;
+    show debugPrint;
 import 'package:flutter/services.dart';
 
 import 'live_location_permission.dart';
+import '../ui/foundation/caps.dart';
 
 /// The native half of background live sharing: everything `geolocator` does not
 /// expose.
@@ -74,9 +75,7 @@ class LiveLocationPlatform {
   /// Android reports `android` and would otherwise claim a foreground service
   /// this build has no way to start.
   static bool get _isMobile =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android);
+      Caps.nativeMobile;
 
   /// Starts listening for native → Dart calls. Idempotent.
   ///

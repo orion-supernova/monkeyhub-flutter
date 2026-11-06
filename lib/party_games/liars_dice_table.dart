@@ -13,7 +13,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../games/game_canvas.dart' show digitOfKey;
 import '../models/chat_match.dart';
-import '../platform.dart' show isPhysicalKeyboardPlatform;
+import '../ui/foundation/caps.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../turn_games/board/seat_palette.dart';
@@ -258,7 +258,7 @@ class _LiarsDiceTableState extends State<LiarsDiceTable> {
     final table = _table(context);
     if (!widget.stage) return table;
     return Focus(
-      autofocus: isPhysicalKeyboardPlatform,
+      autofocus: Caps.physicalKeyboard,
       onKeyEvent: _onKey,
       child: PartyStageBody(child: table),
     );
@@ -377,7 +377,7 @@ class _LiarsDiceTableState extends State<LiarsDiceTable> {
                     widget.controller.act('liar');
                   },
           ),
-          if (widget.stage && isPhysicalKeyboardPlatform) ...[
+          if (widget.stage && Caps.physicalKeyboard) ...[
             const SizedBox(height: 10),
             PartyCaption(l10n.partyLdKeys),
           ],
@@ -634,15 +634,22 @@ class _StepButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final on = onTap != null;
-    final disc = Container(
-      width: 40,
-      height: 40,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: theme.ink.withValues(alpha: on ? 0.09 : 0.04),
+    // Drawn 40pt, tappable 44pt.
+    final disc = SizedBox(
+      width: 44,
+      height: 44,
+      child: Center(
+        child: Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: theme.ink.withValues(alpha: on ? 0.09 : 0.04),
+          ),
+          child: Icon(icon, size: 18, color: on ? theme.ink : theme.inkMuted),
+        ),
       ),
-      child: Icon(icon, size: 18, color: on ? theme.ink : theme.inkMuted),
     );
     return Semantics(
       button: true,

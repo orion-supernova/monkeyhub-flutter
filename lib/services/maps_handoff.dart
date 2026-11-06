@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart' as launcher;
+import '../ui/foundation/caps.dart';
 
 @immutable
 class MapApp {
@@ -23,7 +24,7 @@ class MapsHandoff {
 
   static Future<List<MapApp>> availableApps() async {
     final apps = <MapApp>[];
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    if (Caps.android) {
       try {
         final rows = await _channel.invokeListMethod<dynamic>('available');
         for (final row in rows ?? []) {
@@ -34,11 +35,9 @@ class MapsHandoff {
       } catch (_) {
         /* Browser remains available if native discovery fails. */
       }
-    } else if (!kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.iOS ||
-            defaultTargetPlatform == TargetPlatform.macOS)) {
+    } else if (Caps.nativeApple) {
       for (final app in _iosApps) {
-        if (defaultTargetPlatform == TargetPlatform.macOS &&
+        if (Caps.macOS &&
             app.id != 'apple') {
           continue;
         }
@@ -142,7 +141,7 @@ class MapsHandoff {
   }) {
     final web = appUri('browser', latitude: latitude, longitude: longitude);
     if (kIsWeb) return [web];
-    if (defaultTargetPlatform == TargetPlatform.android) {
+    if (Caps.android) {
       final lat = latitude.toStringAsFixed(6),
           lng = longitude.toStringAsFixed(6);
       final q = (label ?? '').trim().isEmpty
@@ -153,8 +152,7 @@ class MapsHandoff {
         web,
       ];
     }
-    if (defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.macOS) {
+    if (Caps.nativeApple) {
       return [
         appUri('apple', latitude: latitude, longitude: longitude, label: label),
         web,

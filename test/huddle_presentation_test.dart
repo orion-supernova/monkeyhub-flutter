@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/calls/call_permissions.dart';
 import 'package:monkeyhub/app.dart' show GroupCallOverlay;
 import 'package:monkeyhub/backend/call_api.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
@@ -117,6 +118,11 @@ class _Pushes extends NavigatorObserver {
 }
 
 void main() {
+  // flutter_test defaults to Android; keep the permission pre-flight (an
+  // Android-only channel call) out of these desktop-shaped tests.
+  setUp(() => CallPermissions.debugForceApplies = false);
+  tearDown(() => CallPermissions.debugForceApplies = null);
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   tearDown(() => LiveCallsStore.instance.debugShow(const []));

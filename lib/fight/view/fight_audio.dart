@@ -10,6 +10,7 @@ import '../core/core.dart';
 import 'fight_audio_plan.dart';
 
 export 'fight_audio_plan.dart' show Sfx, SoundCue;
+import '../../ui/foundation/caps.dart';
 
 /// UI sounds for the fight menus and lobby.
 enum FightUiSound { tick, confirm }
@@ -94,8 +95,7 @@ class FightAudio implements SoundSink {
       final so = SoLoud.instance;
       if (!so.isInitialized) {
         // Small buffer = low latency. Android and web underrun more easily.
-        final apple = defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS;
-        await so.init(bufferSize: apple && !kIsWeb ? 512 : 1024);
+        await so.init(bufferSize: Caps.nativeApple ? 512 : 1024);
         so.setMaxActiveVoiceCount(24);
       }
       await Future.wait([

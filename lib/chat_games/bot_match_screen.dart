@@ -9,7 +9,7 @@ import '../games/how_to/chat_guides.dart';
 import '../games/how_to/how_to_play.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import '../screens/games/game_scaffold.dart' show GameTool;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -445,7 +445,7 @@ class _BotMatchScreenState extends State<BotMatchScreen> {
       const SizedBox(height: 24),
     ];
 
-    final keyboard = isPhysicalKeyboardPlatform;
+    final keyboard = Caps.physicalKeyboard;
     final panel = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

@@ -1,15 +1,14 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../../diagnostics/diag_event.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
-import '../../widgets/app_toast.dart';
 import '../../widgets/ios_kit.dart'
     show groupedFill, groupedMetaStyle, groupedRadius, groupedSubtitleStyle;
+import '../../services/clipboard_actions.dart';
 import 'diag_collapse.dart';
 import 'diag_palette.dart';
 import 'json_highlight.dart';
@@ -297,12 +296,10 @@ class _Detail extends StatelessWidget {
   }
 
   static Future<void> _copy(BuildContext context, DiagEvent e) async {
-    await Clipboard.setData(ClipboardData(text: e.toNdjsonLine()));
-    if (!context.mounted) return;
-    showAppToast(
+    await copyText(
       context,
-      AppLocalizations.of(context).diagEventCopied,
-      tone: ToastTone.success,
+      e.toNdjsonLine(),
+      toast: AppLocalizations.of(context).diagEventCopied,
     );
   }
 }

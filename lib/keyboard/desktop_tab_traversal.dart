@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 
 /// Rebinds Tab / Shift+Tab so desktop focus traversal reports the key as
 /// *handled* even when it moves focus out of a text field.
@@ -58,10 +58,10 @@ class DesktopTabTraversal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // `isPhysicalKeyboardPlatform` deliberately does not short-circuit on web
+    // `Caps.physicalKeyboard` deliberately does not short-circuit on web
     // (see platform.dart), so the `kIsWeb` guard here is doing real work: it is
     // what keeps Flutter-web-on-a-Mac out.
-    if (kIsWeb || !isPhysicalKeyboardPlatform) return child;
+    if (kIsWeb || !Caps.physicalKeyboard) return child;
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         // Bare Tab only. `SingleActivator` requires the unlisted modifiers to

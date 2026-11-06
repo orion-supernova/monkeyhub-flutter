@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../data/settings_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
 import 'ios_kit.dart' show quietFill;
 import 'count_badge.dart';
 import 'liquid_glass.dart' show GlassShadow;
@@ -458,6 +459,7 @@ class _Slice extends StatelessWidget {
       shadows: shadow,
       child: ClipOval(
       child: BackdropFilter(
+        enabled: UiKit.of(context).blurs,
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -467,7 +469,10 @@ class _Slice extends StatelessWidget {
           transform: Matrix4.identity()..scaleByDouble(scale, scale, scale, 1),
           transformAlignment: Alignment.center,
           decoration: BoxDecoration(
-            color: fill,
+            // Lite: the same tint laid on the page colour, opaque.
+            color: UiKit.of(context).blurs
+                ? fill
+                : Color.alphaBlend(fill, theme.surface),
             shape: BoxShape.circle,
             border: borderColor == null
                 ? null

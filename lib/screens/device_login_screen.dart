@@ -10,7 +10,7 @@ import '../widgets/glass_buttons.dart';
 /// shows [DeviceLoginPanel] in place of the password form.
 ///
 /// Only reached on a window too narrow for `LoginScreen`'s side-by-side
-/// layout — see `isWebOrDesktop` there for the width this yields to.
+/// layout — see `Caps.hover` there for the width this yields to.
 class DeviceLoginScreen extends StatelessWidget {
   const DeviceLoginScreen({super.key, required this.auth, required this.onCancel});
 

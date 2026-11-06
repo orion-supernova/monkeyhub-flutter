@@ -173,7 +173,7 @@ class GroupCallApi {
   }) {
     return _cv.subscribe(
       'groupCalls:signalsForUser',
-      {'userId': userId, if (deviceId != null) 'deviceId': deviceId},
+      {'userId': userId, 'deviceId': ?deviceId},
       onData: (raw) {
         final list = (raw as List?) ?? const [];
         onSignals(list

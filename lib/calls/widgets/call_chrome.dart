@@ -16,6 +16,7 @@ import '../../models/chat_user.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
+import '../../ui/foundation/ui_kit.dart';
 import '../../widgets/capture_bloom.dart' show VoiceBlobPainter;
 import '../../widgets/fit_label.dart';
 import '../../widgets/glass_buttons.dart';
@@ -140,7 +141,6 @@ class _CallMinimizeButtonState extends State<CallMinimizeButton> {
   Widget build(BuildContext context) => GlassIconButton(
         tone: GlassTone.media,
         still: true,
-        size: 40,
         semanticLabel: widget.semanticLabel,
         glyph: AnimatedCallGlyph(
           glyph: const CallTrayGlyph(CallGlyphKind.minimize),
@@ -190,7 +190,10 @@ class GlassTray extends StatelessWidget {
     return _RouteSettled(
       builder: (context, settled) => _build(
         context,
-        blur && settled && ControlsFade.allowsBlur(context),
+        blur &&
+            settled &&
+            UiKit.of(context).blurs &&
+            ControlsFade.allowsBlur(context),
       ),
     );
   }
@@ -988,7 +991,7 @@ class ParticipantOrb extends StatelessWidget {
       level: level,
       accent: accent,
       size: size,
-      child: ClipOval(child: avatar),
+      child: avatar,
     );
     if (ghost) {
       face = Opacity(
@@ -1005,7 +1008,7 @@ class ParticipantOrb extends StatelessWidget {
           ),
           child: Padding(
             padding: const EdgeInsets.all(2),
-            child: ClipOval(child: avatar),
+            child: avatar,
           ),
         ),
       );
@@ -1614,12 +1617,13 @@ class _CallBannerButton extends StatelessWidget {
     if (action.onTap == null) {
       return ExcludeSemantics(child: body);
     }
+    // Drawn 40pt, tappable 44pt: the target pads out around the pill.
     return SpringPress(
       onTap: action.onTap,
       semanticLabel: action.semanticLabel,
       focusShape: label == null ? FocusRingShape.circle : FocusRingShape.capsule,
       focusRadius: 20,
-      child: body,
+      child: SizedBox(height: 44, child: Center(child: body)),
     );
   }
 }

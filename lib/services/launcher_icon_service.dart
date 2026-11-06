@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart'
     show kIsWeb, debugPrint, visibleForTesting;
@@ -16,6 +15,7 @@ import '../widgets/monkey_collection.dart';
 import 'launcher_icon_names.dart';
 import 'launcher_icon_renderer.dart';
 import 'linux_launcher_icon.dart';
+import '../ui/foundation/caps.dart';
 
 /// Resolves the user's logo selection to a native alternate-icon name and
 /// swaps the home-screen launcher icon via a method channel.
@@ -50,7 +50,7 @@ class LauncherIconService {
       );
     }
     final iconName = _platformIconName(activeTheme);
-    if (Platform.isAndroid && !_androidMayApplyNow()) {
+    if (Caps.android && !_androidMayApplyNow()) {
       _deferAndroid(iconName);
       return;
     }
@@ -158,11 +158,11 @@ class LauncherIconService {
 
   static bool get _supportedPlatform =>
       !kIsWeb &&
-      (Platform.isIOS ||
-          Platform.isAndroid ||
-          Platform.isMacOS ||
-          Platform.isLinux ||
-          Platform.isWindows);
+      (Caps.iOS ||
+          Caps.android ||
+          Caps.macOS ||
+          Caps.linux ||
+          Caps.windows);
 
   // ── Desktop ───────────────────────────────────────────────────────────────
   //
@@ -177,9 +177,9 @@ class LauncherIconService {
     final probe = debugDesktopOs;
     if (probe != null) return probe();
     if (kIsWeb) return null;
-    if (Platform.isMacOS) return DesktopOs.macos;
-    if (Platform.isLinux) return DesktopOs.linux;
-    if (Platform.isWindows) return DesktopOs.windows;
+    if (Caps.macOS) return DesktopOs.macos;
+    if (Caps.linux) return DesktopOs.linux;
+    if (Caps.windows) return DesktopOs.windows;
     return null;
   }
 

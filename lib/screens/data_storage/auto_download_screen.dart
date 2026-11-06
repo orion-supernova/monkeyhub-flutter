@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -120,7 +119,6 @@ class AutoDownloadScreen extends StatelessWidget {
                   title: l10n.autoDownloadMaster,
                   value: p.enabled,
                   onChanged: (v) {
-                    HapticFeedback.lightImpact();
                     _save(net, p.copyWith(enabled: v));
                   },
                 ),
@@ -197,7 +195,6 @@ class MediaRuleScreen extends StatelessWidget {
                     title: chatClassLabel(l10n, c),
                     value: rule.chats.contains(c),
                     onChanged: (v) {
-                      HapticFeedback.lightImpact();
                       save(rule.copyWith(
                         chats: v
                             ? {...rule.chats, c}

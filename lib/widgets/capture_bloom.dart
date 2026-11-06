@@ -12,6 +12,7 @@ import 'capture_glyphs.dart';
 import 'glass_buttons.dart' show chromeDiscFill;
 import 'glyph_tip.dart';
 import 'liquid_glass.dart' show SpecularRim;
+import '../theme/motion.dart';
 
 /// How the bloom goes away once the recording is over.
 enum CaptureBloomExit {
@@ -190,7 +191,7 @@ class _CaptureBloomState extends State<CaptureBloom> with SingleTickerProviderSt
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _calm = MediaQuery.disableAnimationsOf(context);
+    _calm = MotionScope.of(context).calm;
   }
 
   @override

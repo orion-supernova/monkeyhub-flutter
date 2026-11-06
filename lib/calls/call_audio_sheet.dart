@@ -9,7 +9,7 @@ import '../widgets/ios_kit.dart';
 import '../widgets/settings_pickers.dart' show GroupedFooter;
 import '../widgets/sheet_kit.dart';
 import 'call_audio_devices.dart';
-import 'call_media.dart' show isMobileCallPlatform;
+import '../ui/foundation/caps.dart';
 import 'widgets/call_chrome.dart';
 
 /// The audio control in both call trays, and the sheets behind it.
@@ -33,7 +33,7 @@ CallTrayAction callAudioTrayAction(
 }) {
   final l10n = AppLocalizations.of(context);
   final devices = CallAudioDevices.instance;
-  if (!isMobileCallPlatform) {
+  if (!Caps.mobileCalls) {
     return CallTrayAction(
       key: key,
       icon: CallGlyphs.audioDevices,

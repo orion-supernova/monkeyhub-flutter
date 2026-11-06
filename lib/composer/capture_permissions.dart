@@ -1,9 +1,10 @@
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart'
     show debugPrint, kIsWeb, visibleForTesting;
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// What a microphone or camera grant is currently worth.
 ///
@@ -42,7 +43,7 @@ enum CaptureDevice { microphone, camera }
 class CapturePermissions {
   CapturePermissions._();
 
-  static const MethodChannel _device = MethodChannel('monkeyhub/device');
+  static const MethodChannel _device = Channels.device;
 
   /// Forces the Android branch on a VM test host, where `Platform.isAndroid` is
   /// false and every method would short-circuit. Null in production. Mirrors
@@ -51,7 +52,7 @@ class CapturePermissions {
   static bool? debugForceAndroid;
 
   static bool get _isAndroid =>
-      debugForceAndroid ?? (!kIsWeb && Platform.isAndroid);
+      debugForceAndroid ?? (Caps.android);
 
   /// Pure check, no prompting. Android only — everywhere else the answer is
   /// only knowable by trying, so this optimistically reports granted and the

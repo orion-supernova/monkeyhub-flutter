@@ -1,10 +1,10 @@
+import 'dart:async' show unawaited;
 import 'dart:math' as math;
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show SelectedContent;
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
@@ -20,7 +20,7 @@ import '../media/media_aspect_cache.dart';
 import '../media/storage/auto_download.dart';
 import '../media/storage/media_ledger.dart';
 import '../media/view_once_fetch.dart' show ViewOnceOpener;
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/interaction.dart';
@@ -74,6 +74,7 @@ import '../theme/vanish_palette.dart';
 import '../privacy/vanish_rules.dart';
 import '../models/call_history.dart';
 import '../models/huddle_history.dart';
+import '../services/clipboard_actions.dart';
 import 'call_bubble.dart';
 import 'huddle_bar.dart' show HuddleHistoryLine;
 import 'vanish_card.dart';
@@ -1271,7 +1272,7 @@ class _BubbleGestureDetector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onDoubleTap = isPhysicalKeyboardPlatform ? null : this.onDoubleTap;
+    final onDoubleTap = Caps.physicalKeyboard ? null : this.onDoubleTap;
     final onContextMenu = this.onContextMenu;
     final detector = RawGestureDetector(
       gestures: {
@@ -1279,7 +1280,7 @@ class _BubbleGestureDetector extends StatelessWidget {
             GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
           () => LongPressGestureRecognizer(
             duration: kActionMenuLongPress,
-            supportedDevices: isWebOrDesktop ? _notMouse : null,
+            supportedDevices: Caps.hover ? _notMouse : null,
           ),
           // The finger stays live after the menu opens: its moves and its
           // release go to the menu through [HoldScrub], which is how a
@@ -4066,13 +4067,13 @@ class _LinkAwareBubble extends StatelessWidget {
 
   /// [body] made drag-selectable when this bubble and this platform allow
   /// it, and returned untouched otherwise. Gated on
-  /// [isPhysicalKeyboardPlatform] rather than [isWebOrDesktop]: on a phone
+  /// [Caps.physicalKeyboard] rather than [Caps.inAppAlerts]: on a phone
   /// browser a long-press must still open the message menu, and a
   /// [SelectionArea] would take that press for itself. A spoiler anywhere in
   /// the text refuses the whole bubble: a selection paints straight through
   /// the veil, and copies what is under it.
   Widget _selectableOr(BuildContext context, Widget body) {
-    if (!selectable || !isPhysicalKeyboardPlatform) return body;
+    if (!selectable || !Caps.physicalKeyboard) return body;
     // A vanishing message cannot be copied out, by menu or by dragging.
     if (message.vanishUntil != null) return body;
     if (message.formatting.any((f) => f.type == FormattingType.spoiler)) {
@@ -4226,7 +4227,7 @@ class _SelectableMessageTextState extends State<_SelectableMessageText> {
     CopySelectionTextIntent: CallbackAction<CopySelectionTextIntent>(
       onInvoke: (_) {
         final text = plainSelectionText(_selected?.plainText ?? '');
-        if (text.isNotEmpty) Clipboard.setData(ClipboardData(text: text));
+        if (text.isNotEmpty) unawaited(copyText(context, text));
         return null;
       },
     ),

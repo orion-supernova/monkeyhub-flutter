@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -226,14 +227,17 @@ class _Palette {
       px[i * 4 + 2] = c & 0xff;
       px[i * 4 + 3] = 0xff;
     }
-    final buffer = await ui.ImmutableBuffer.fromUint8List(px);
-    final desc = ui.ImageDescriptor.raw(buffer, width: 64, height: 1, pixelFormat: ui.PixelFormat.rgba8888);
-    final codec = await desc.instantiateCodec();
-    final frame = await codec.getNextFrame();
-    codec.dispose();
-    desc.dispose();
-    buffer.dispose();
-    return _Palette(frame.image, colors.length);
+    // decodeImageFromPixels, not ImageDescriptor.raw: the descriptor throws
+    // on web (see web_safe_apis_test), and the fight ships there too.
+    final done = Completer<ui.Image>();
+    ui.decodeImageFromPixels(
+      px,
+      64,
+      1,
+      ui.PixelFormat.rgba8888,
+      done.complete,
+    );
+    return _Palette(await done.future, colors.length);
   }
 }
 

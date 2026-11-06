@@ -16190,6 +16190,39 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get uiKitLiteFooter =>
       'Leve não desenha vidro, por isso não há nada para ajustar. Escolha Fosco para moldar o vidro você mesmo.';
+
+  @override
+  String bulkForwardedToChats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'encaminhado para $count conversas',
+      one: 'encaminhado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkSavedToPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count guardados nas fotos',
+      one: 'guardado nas fotos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkDeletedMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count apagados',
+      one: 'apagado',
+    );
+    return '$_temp0';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -32357,4 +32390,37 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get uiKitLiteFooter =>
       'Leve não desenha vidro, então não há nada para ajustar. Escolha Fosco para moldar o vidro você mesmo.';
+
+  @override
+  String bulkForwardedToChats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'encaminhado para $count conversas',
+      one: 'encaminhado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkSavedToPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count salvos nas fotos',
+      one: 'salvo nas fotos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkDeletedMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count apagados',
+      one: 'apagado',
+    );
+    return '$_temp0';
+  }
 }

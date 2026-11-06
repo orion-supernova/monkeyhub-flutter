@@ -17,6 +17,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../media/file_meta.dart';
 import '../media/file_url_cache.dart';
 import '../models/chat_message.dart';
@@ -43,6 +44,7 @@ Future<BulkResult> forwardMessages({
   required String sourceRoomId,
   required List<String> targets,
   required List<ChatMessage> messages,
+  AppLocalizations? l10n,
 }) async {
   final me = repo.userId;
   if (me == null) {
@@ -81,13 +83,14 @@ Future<BulkResult> forwardMessages({
   }
 
   return BulkResult(
-    summary: _forwardSummary(ok: ok, failed: failed, error: firstError),
+    summary: _forwardSummary(l10n, ok: ok, failed: failed, error: firstError),
     ok: ok,
     failed: failed,
   );
 }
 
-String _forwardSummary({required int ok, required int failed, String? error}) {
+String _forwardSummary(AppLocalizations? l10n,
+    {required int ok, required int failed, String? error}) {
   if (ok == 0) {
     // The refusals worth naming, because each has something the user can do
     // about it. Everything else is a generic failure.
@@ -102,7 +105,10 @@ String _forwardSummary({required int ok, required int failed, String? error}) {
     }
     return "couldn't forward that";
   }
-  if (failed == 0) return ok == 1 ? 'forwarded' : 'forwarded to $ok chats';
+  if (failed == 0) {
+    return l10n?.bulkForwardedToChats(ok) ??
+        (ok == 1 ? 'forwarded' : 'forwarded to $ok chats');
+  }
   return 'forwarded to $ok, $failed failed';
 }
 
@@ -118,6 +124,7 @@ String _forwardSummary({required int ok, required int failed, String? error}) {
 Future<BulkResult> saveMessagesToDevice({
   required ChatApi api,
   required List<ChatMessage> messages,
+  AppLocalizations? l10n,
 }) async {
   if (kIsWeb) {
     return const BulkResult(summary: 'not available here', ok: 0, failed: 0);
@@ -183,7 +190,8 @@ Future<BulkResult> saveMessagesToDevice({
     summary: ok == 0
         ? "couldn't save those"
         : failed == 0
-            ? (ok == 1 ? 'saved to photos' : 'saved $ok to photos')
+            ? (l10n?.bulkSavedToPhotos(ok) ??
+                (ok == 1 ? 'saved to photos' : 'saved $ok to photos'))
             : 'saved $ok, $failed failed',
     ok: ok,
     failed: failed,
@@ -236,6 +244,7 @@ Future<BulkResult> deleteMessages({
   required ChatApi api,
   required ChatRepository repo,
   required List<String> messageIds,
+  AppLocalizations? l10n,
 }) async {
   final me = repo.userId;
   if (me == null) {
@@ -246,7 +255,8 @@ Future<BulkResult> deleteMessages({
     return BulkResult(
       summary: res.refused > 0
           ? 'deleted ${res.deleted}, ${res.refused} not yours'
-          : (res.deleted == 1 ? 'deleted' : 'deleted ${res.deleted}'),
+          : (l10n?.bulkDeletedMessages(res.deleted) ??
+              (res.deleted == 1 ? 'deleted' : 'deleted ${res.deleted}')),
       ok: res.deleted,
       failed: res.refused,
     );

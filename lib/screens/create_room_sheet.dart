@@ -162,7 +162,7 @@ class _CreateRoomSheetState extends State<CreateRoomSheet>
         MotionScope.of(context).d(const Duration(milliseconds: 320));
     Future<void>.delayed(const Duration(milliseconds: 320), () {
       final c = _lifeKey.currentContext;
-      if (!mounted || c == null) return;
+      if (!mounted || c == null || !c.mounted) return;
       Scrollable.ensureVisible(
         c,
         alignment: 0.6,

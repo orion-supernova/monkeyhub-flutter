@@ -16012,4 +16012,37 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get uiKitLiteFooter =>
       'लाइट कोई ग्लास नहीं बनाता, इसलिए कुछ ट्यून करने को नहीं है। ग्लास खुद आकार देने के लिए फ़्रॉस्टेड चुनें।';
+
+  @override
+  String bulkForwardedToChats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count चैट में फ़ॉरवर्ड किया गया',
+      one: 'फ़ॉरवर्ड किया गया',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkSavedToPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count आइटम फ़ोटो में सहेजे गए',
+      one: 'फ़ोटो में सहेजा गया',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkDeletedMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count हटाए गए',
+      one: 'हटाया गया',
+    );
+    return '$_temp0';
+  }
 }

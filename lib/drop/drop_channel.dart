@@ -14,7 +14,7 @@
 //
 // `dart.library.js_interop` rather than `dart.library.html`, deliberately: the
 // web deploy is `flutter build web --wasm` and dart2wasm ships no `dart:html`,
-// so an `if (dart.library.html)` condition silently resolves to the stub there
+// so an `if (dart.library.js_interop)` condition silently resolves to the stub there
 // — see the note on `lib/media/blob_url.dart`, which still has that bug.
 //
 // Every other platform gets `DropChannel.isSupported == false` from the io

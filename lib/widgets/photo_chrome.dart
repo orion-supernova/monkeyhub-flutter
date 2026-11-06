@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart' show CircularProgressIndicator;
 
 import '../keyboard/focusable_tap.dart';
+import '../format/duration_format.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/density.dart';
 import '../theme/theme_scope.dart';
@@ -359,12 +360,7 @@ class MediaDurationBadge extends StatelessWidget {
   /// A leading glyph — `CupertinoIcons.video_camera_solid` on a grid tile.
   final IconData? icon;
 
-  static String format(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60);
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return h > 0 ? '$h:${m.toString().padLeft(2, '0')}:$s' : '$m:$s';
-  }
+  static String format(Duration d) => formatClock(d);
 
   @override
   Widget build(BuildContext context) {

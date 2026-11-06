@@ -8,17 +8,16 @@ import '../auth/auth_service.dart';
 import '../auth/device_login_link.dart';
 import '../keyboard/dismiss_keyboard_on_tap.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/code_field.dart';
 import '../widgets/glass_hud.dart';
-import '../widgets/glass_progress_dialog.dart' show ProgressRing;
+import '../widgets/progress_ring.dart' show ProgressRing;
 import '../widgets/ios_kit.dart';
 import '../widgets/liquid_glass.dart' show GlassTone;
-import '../widgets/prominent_button.dart';
 import '../widgets/scan_frame_overlay.dart';
 import '../widgets/sheet_kit.dart';
 
@@ -95,12 +94,12 @@ class _DeviceLoginScanScreenState extends State<DeviceLoginScanScreen> {
   /// already in flight — mirrors `ChildPairScreen._consumed`.
   bool _consumed = false;
 
-  bool get _cameraOn => (widget.cameraSupported ?? !isWebOrDesktop) && !_cameraFailed;
+  bool get _cameraOn => (widget.cameraSupported ?? Caps.nativeMobile) && !_cameraFailed;
 
   @override
   void initState() {
     super.initState();
-    final supported = widget.cameraSupported ?? !isWebOrDesktop;
+    final supported = widget.cameraSupported ?? Caps.nativeMobile;
     // No camera to offer: the typed code is the whole screen.
     _codeMode = widget.startWithCode || !supported;
     if (supported && widget.cameraBuilder == null) {
@@ -476,7 +475,7 @@ class _BottomCard extends StatelessWidget {
               ),
               if (busy) ...[
                 const SizedBox(height: 14),
-                const Center(child: ProgressRing(size: 24, strokeWidth: 2.5)),
+                const Center(child: ProgressRing.spinner(size: 24, strokeWidth: 2.5)),
               ],
               if (error != null) ...[
                 const SizedBox(height: 12),
@@ -630,10 +629,16 @@ class _FinishLinkingSheetState extends State<FinishLinkingSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            ProminentButton(
+            SheetActionButton(
               label: l10n.deviceLoginScanScreenApproveButton,
               busy: _pending == true,
-              onTap: busy ? null : () => _go(true),
+              haptic: false,
+              onTap: busy
+                  ? null
+                  : () {
+                      HapticFeedback.mediumImpact();
+                      _go(true);
+                    },
             ),
             const SizedBox(height: 10),
             SheetActionButton(

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/generated/app_localizations.dart';
+import '../../widgets/adaptive_sheet.dart';
+import '../../widgets/sheet_drag.dart' show SheetScrollBody;
+import '../../widgets/sheet_kit.dart' show SheetFrame;
 import '../../widgets/spring_press.dart';
 import '../core/core.dart';
 import 'art/art_common.dart' show FightLook;
@@ -183,31 +186,17 @@ class _Card extends StatelessWidget {
 
 /// A sheet with the grid; resolves to the picked id (null if dismissed).
 Future<int?> showFightCharacterPicker(BuildContext context, {required int current, FightLook look = FightLook.cartoon}) {
-  return showModalBottomSheet<int>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: const Color(0xff16121f),
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+  return showAdaptiveSheet<int>(
+    context,
     builder: (context) {
       final l10n = AppLocalizations.of(context);
-      return SafeArea(
-        top: false,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .86),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  l10n.fightPickFighter,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, decoration: TextDecoration.none),
-                ),
-                const SizedBox(height: 14),
-                FightCharacterGrid(selected: current, look: look, onPick: (id) => Navigator.of(context).pop(id)),
-              ],
-            ),
-          ),
+      return SheetFrame(
+        title: l10n.fightPickFighter,
+        maxHeightFraction: .86,
+        padding: EdgeInsets.zero,
+        child: SheetScrollBody(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          child: FightCharacterGrid(selected: current, look: look, onPick: (id) => Navigator.of(context).pop(id)),
         ),
       );
     },

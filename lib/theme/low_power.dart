@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../data/settings_store.dart';
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// Whether the phone is in Low Power Mode (iOS) or Battery Saver (Android), or
 /// its battery is low ([kLowBatteryPercent] or less, not charging).
@@ -38,7 +38,7 @@ class LowPowerMode extends ValueNotifier<bool> {
         PowerSaving.auto => instance.value,
       };
 
-  static const MethodChannel _device = MethodChannel('monkeyhub/device');
+  static const MethodChannel _device = Channels.device;
 
   /// Battery level at which the app saves power by itself, whatever the
   /// phone's own mode. iOS only OFFERS Low Power Mode here, and Battery
@@ -65,7 +65,7 @@ class LowPowerMode extends ValueNotifier<bool> {
   /// there is no such channel, and on any failure: not knowing is "normal
   /// power".
   Future<void> refresh() async {
-    if (kIsWeb || !(Platform.isIOS || Platform.isAndroid)) return;
+    if (!Caps.nativeMobile) return;
     _watch ??= _changes.receiveBroadcastStream().listen(
       (event) {
         if (event is Map) apply(event.cast<String, Object?>());

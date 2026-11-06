@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
@@ -202,6 +204,11 @@ Future<FakePeerConnection> _linked(
 }
 
 void main() {
+  // flutter_test defaults to Android, where the mobile call paths (channels,
+  // permission pre-flight) apply; these tests drive the desktop shape.
+  setUpAll(() => debugDefaultTargetPlatformOverride = TargetPlatform.macOS);
+  tearDownAll(() => debugDefaultTargetPlatformOverride = null);
+
   TestWidgetsFlutterBinding.ensureInitialized();
   // The share flow talks to the platform through this seam; nothing here
   // needs an Android service or a real capture.

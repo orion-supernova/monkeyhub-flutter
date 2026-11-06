@@ -9,7 +9,7 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'chrome_motion.dart';
 import 'liquid_glass.dart';
-import 'teardown_safe.dart';
+import 'spring_press.dart';
 
 /// Height of the banner's content row, excluding the divider.
 ///
@@ -473,30 +473,17 @@ class _TapTarget extends StatefulWidget {
   State<_TapTarget> createState() => _TapTargetState();
 }
 
-class _TapTargetState extends State<_TapTarget>
-    with TeardownSafe<_TapTarget> {
-  bool _pressed = false;
-
+class _TapTargetState extends State<_TapTarget> {
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
+    return SpringPress(
       onTap: widget.onTap,
-      radius: widget.radius,
+      scale: 0.97,
+      haptic: false,
+      hover: HoverEffect.none,
+      focusRadius: widget.radius,
       semanticLabel: widget.semanticLabel,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTapUp: (_) => setState(() => _pressed = false),
-        child: AnimatedScale(
-          scale: _pressed ? 0.97 : 1.0,
-          duration: theme.motionFast,
-          curve: theme.motionCurve,
-          child: widget.child,
-        ),
-      ),
+      child: widget.child,
     );
   }
 }

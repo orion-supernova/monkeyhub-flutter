@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../privacy/capture_protection.dart';
+import '../ui/foundation/caps.dart';
 
 /// Which of this device's screen is on offer.
 ///
@@ -87,7 +87,7 @@ class ScreenShare {
   /// [awaitPlatformStart], resolved by [reportPlatformStart] when
   /// AppDelegate relays `iOS_BroadcastStarted`.
   static bool get needsStartHandshake =>
-      startHandshakeOverride ?? (!kIsWeb && Platform.isIOS);
+      startHandshakeOverride ?? (Caps.iOS);
 
   /// Seam for tests: forces [needsStartHandshake] either way.
   @visibleForTesting
@@ -138,10 +138,10 @@ class ScreenShare {
   /// Whether this device can share at all. Cheap after the first call.
   static Future<bool> supported() async {
     if (kIsWeb) return true;
-    if (Platform.isAndroid || Platform.isMacOS || Platform.isWindows) {
+    if (Caps.android || Caps.macOS || Caps.windows) {
       return true;
     }
-    if (Platform.isIOS) {
+    if (Caps.iOS) {
       final known = _iosSupported;
       if (known != null) return known;
       try {
@@ -160,10 +160,10 @@ class ScreenShare {
   /// share button a frame later.
   static bool? get knownSupported {
     if (kIsWeb) return true;
-    if (Platform.isAndroid || Platform.isMacOS || Platform.isWindows) {
+    if (Caps.android || Caps.macOS || Caps.windows) {
       return true;
     }
-    if (Platform.isIOS) return _iosSupported;
+    if (Caps.iOS) return _iosSupported;
     return false;
   }
 
@@ -176,7 +176,7 @@ class ScreenShare {
 
   /// Desktop only: what can be shared. Empty elsewhere.
   static Future<List<ScreenShareSource>> sources() async {
-    if (kIsWeb || !(Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {
+    if (kIsWeb || !(Caps.macOS || Caps.windows || Caps.linux)) {
       return const [];
     }
     try {
@@ -207,7 +207,7 @@ class ScreenShare {
     required String notificationStop,
   }) async {
     _installHandler();
-    if (!kIsWeb && Platform.isAndroid) {
+    if (Caps.android) {
       // Consent first — the plugin keeps the granted intent and reuses it
       // inside getDisplayMedia — then the typed service, in that order.
       final granted = await Helper.requestCapturePermission();
@@ -224,7 +224,7 @@ class ScreenShare {
   /// The capture itself. [source] is the desktop pick; ignored on mobile.
   static Future<MediaStream> capture({ScreenShareSource? source}) async {
     final Map<String, dynamic> constraints;
-    if (!kIsWeb && Platform.isIOS) {
+    if (Caps.iOS) {
       constraints = {
         'video': {'deviceId': 'broadcast'},
         'audio': false,
@@ -251,7 +251,7 @@ class ScreenShare {
   /// services call this first; [release] calls it too. No-op elsewhere,
   /// and harmless when no broadcast is running.
   static Future<void> endPlatformBroadcast() async {
-    if (kIsWeb || !Platform.isIOS) return;
+    if (!Caps.iOS) return;
     try {
       await invokeFn('endBroadcast');
     } catch (e) {
@@ -263,7 +263,7 @@ class ScreenShare {
   static Future<void> release() async {
     CaptureProtection.instance.resume();
     await endPlatformBroadcast();
-    if (!kIsWeb && Platform.isAndroid) {
+    if (Caps.android) {
       try {
         await invokeFn('stop');
       } catch (e) {

@@ -13,6 +13,8 @@ import '../env.dart';
 import 'device_identity.dart';
 import 'permission_latch.dart';
 import 'web_push.dart';
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// This device's side of push notifications.
 ///
@@ -68,7 +70,7 @@ class PushManager {
   // iOS PushKit channel — installed in ios/Runner/AppDelegate.swift. Dart
   // calls `getToken` after login; the channel also pushes `onTokenUpdated`
   // when iOS rotates the token.
-  static const MethodChannel _voipChannel = MethodChannel('monkeyhub/voip');
+  static const MethodChannel _voipChannel = Channels.voip;
   // Android FCM channel — installed in MainActivity.kt. Mirrors the iOS
   // PushKit channel; Dart calls `getToken` after login. No rotation
   // callback — the next login picks up a refreshed token.
@@ -98,7 +100,7 @@ class PushManager {
   ///
   /// `kIsWeb` is a compile-time const, so on web the `&&` short-circuits
   /// before `Platform.*` (dart:io) is touched — evaluating it on web throws.
-  bool get _pushSupported => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+  bool get _pushSupported => Caps.nativeMobile;
 
   /// macOS: an APNs ALERT token on the `monkeyhub/notifications` channel
   /// (macos/Runner/AppDelegate.swift). No PushKit; the Notification Service
@@ -108,7 +110,7 @@ class PushManager {
   /// one also gates the inbox paths, and because `flutter test` runs on a macOS
   /// host: widening it would send every test's room open down a channel that
   /// isn't there.
-  bool get _isMacPush => !kIsWeb && Platform.isMacOS;
+  bool get _isMacPush => Caps.macOS;
 
   /// Whether a Notification Service Extension parks pushes for the app to
   /// take ([takePushInbox]): the phones, and a Mac since it got the iPhone's
@@ -447,7 +449,7 @@ class PushManager {
     // it just won't be woken; the next resume retries.
     // kIsWeb first so Platform.* (dart:io) is never evaluated on web, where it
     // throws — web falls through to the no-push registration path.
-    if (!kIsWeb && (Platform.isIOS || Platform.isAndroid)) {
+    if (Caps.nativeMobile) {
       await refreshTokens();
     } else if (_isMacPush) {
       // The plain device row first, exactly as before this Mac had push, so a
@@ -665,7 +667,7 @@ class PushManager {
     // because the app wasn't foregrounded, retry it now (resume path).
     // No-op once permission is determined — the OS shows the prompt only once.
     unawaited(_maybeRequestNotificationPermission());
-    if (Platform.isIOS) {
+    if (Caps.iOS) {
       // Two independent tokens. A failure to read one must not skip the other:
       // losing the alert token silences chat, losing the PushKit token stops
       // the phone ringing, and they fail for different reasons.
@@ -712,7 +714,7 @@ class PushManager {
           await _uploadApnsToken(_pendingApnsToken);
         }
       }
-    } else if (Platform.isAndroid) {
+    } else if (Caps.android) {
       // One token covers both ringing and banners on Android.
       try {
         final token = await _fcmChannel.invokeMethod<String>('getToken');

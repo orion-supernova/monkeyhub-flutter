@@ -9,7 +9,6 @@ import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
-import 'count_bump.dart';
 import 'live_call_row.dart';
 import 'room_identity.dart';
 import 'typing_indicator.dart';
@@ -31,9 +30,23 @@ import 'typing_indicator.dart';
 
 /// The name a room goes by in the list.
 String chatListTitleOf(BuildContext context, ChatRoom room, ChatUser? dmUser) =>
-    room.isSavedMessages
-    ? AppLocalizations.of(context).savedMessagesTitle
-    : (dmUser?.displayName ?? room.name);
+    roomTitleOf(AppLocalizations.of(context), room, dmUser);
+
+/// [chatListTitleOf] for callers that hold an [AppLocalizations] and no
+/// context. Saved Messages, then the DM peer's name, then the room's own name.
+/// [dmFallback] replaces the raw room name for a DM whose peer is unresolved
+/// (a DM's own name is `dm:regular:<id>:<id>`, which nobody should read).
+String roomTitleOf(
+  AppLocalizations l10n,
+  ChatRoom room,
+  ChatUser? dmUser, {
+  String? dmFallback,
+}) {
+  if (room.isSavedMessages) return l10n.savedMessagesTitle;
+  if (dmUser != null) return dmUser.displayName;
+  if (room.isDm && dmFallback != null) return dmFallback;
+  return room.name;
+}
 
 /// Whether the room has something unread that it is allowed to show. The
 /// mute-resolved getters, so a room silenced down to its counts goes quiet
@@ -298,45 +311,6 @@ class ChatUnreadBadge extends StatelessWidget {
   final bool quiet;
 
   @override
-  Widget build(BuildContext context) {
-    if (count <= 0 && !unread) return const SizedBox.shrink();
-    final theme = ThemeScope.of(context);
-    final fill = quiet ? theme.inkMuted.withValues(alpha: 0.45) : theme.badge;
-    final numbered = count > 0;
-    final label = count > 99 ? '99+' : '$count';
-    return Semantics(
-      label: numbered
-          ? label
-          : AppLocalizations.of(context).roomFacetLabelUnread,
-      excludeSemantics: true,
-      child: CountBump(
-        count: count,
-        child: Container(
-          constraints: BoxConstraints(
-            minWidth: numbered ? 22 : 12,
-            minHeight: numbered ? 22 : 12,
-          ),
-          padding: EdgeInsets.symmetric(horizontal: numbered ? 7 : 0),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: fill,
-            borderRadius: BorderRadius.circular(11),
-          ),
-          child: numbered
-              ? Text(
-                  label,
-                  maxLines: 1,
-                  style: theme.bodyEmph.copyWith(
-                    fontSize: 13,
-                    height: 1,
-                    fontWeight: FontWeight.w700,
-                    color: quiet ? theme.surface : const Color(0xFFFFFFFF),
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                )
-              : null,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      CountBadge.chat(count: count, unread: unread, quiet: quiet);
 }

@@ -16279,4 +16279,37 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get uiKitLiteFooter =>
       'النمط الخفيف لا يرسم زجاجًا، لذا لا يوجد ما يُضبط. اختر «مُصنفَر» لتشكيل الزجاج بنفسك.';
+
+  @override
+  String bulkForwardedToChats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'تمت إعادة التوجيه إلى $count محادثات',
+      one: 'تمت إعادة التوجيه',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkSavedToPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'تم حفظ $count في الصور',
+      one: 'تم الحفظ في الصور',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkDeletedMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'تم حذف $count',
+      one: 'تم الحذف',
+    );
+    return '$_temp0';
+  }
 }

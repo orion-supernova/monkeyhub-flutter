@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 
@@ -17,7 +16,6 @@ import '../media/storage/media_ledger.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../models/room_content_item.dart' show RoomContentPage;
-import '../platform.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/destructive_sheet.dart' show showConfirmSheet;
@@ -36,6 +34,8 @@ import 'fullscreen_video_viewer.dart';
 import 'room_content_actions.dart';
 import 'viewer_disk.dart';
 import '../widgets/viewer_chrome.dart';
+import '../ui/foundation/caps.dart';
+import '../theme/layout.dart';
 
 /// What the gallery's bottom toolbar can do with the picture on screen.
 ///
@@ -454,7 +454,7 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
   /// A desk's gallery: chrome that stays while zoomed and leaves on its own
   /// when the mouse is still, a click outside the picture to close, the
   /// wheel and the edge chevrons to page, ⌘= ⌘− ⌘0 to zoom.
-  final bool _desktop = isWebOrDesktop;
+  final bool _desktop = Caps.hover;
 
   /// Hands ⌘= ⌘− ⌘0 to the page on screen.
   final PhotoZoomController _zoom = PhotoZoomController();
@@ -630,7 +630,7 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
           toast.show(l10n.viewerDownloaded, tone: ToastTone.success);
           return;
         }
-        final mac = defaultTargetPlatform == TargetPlatform.macOS;
+        final mac = Caps.macOS;
         toast.show(
           l10n.viewerSavedToDownloads,
           tone: ToastTone.success,
@@ -789,7 +789,7 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
     final tools = _toolbar(current);
     // A wide desk window keeps its filmstrip: there is room for it under the
     // picture, and it is how a mouse finds the photo three along.
-    final wide = _desktop && screen.width >= 700;
+    final wide = _desktop && screen.width >= Breakpoints.mediaPagerWide;
     final rtl = Directionality.of(context) == TextDirection.rtl;
     // Left and right as the reader sees them, like the arrow keys.
     final canBack = _index > 0;
@@ -1704,7 +1704,7 @@ class _TopBar extends StatelessWidget {
           ViewerChromeButton(
             icon: CupertinoIcons.chat_bubble,
             semanticLabel: l10n.photoChromeShowInChatSemanticLabel,
-            tooltip: isWebOrDesktop
+            tooltip: Caps.hover
                 ? l10n.photoChromeShowInChatSemanticLabel
                 : null,
             onTap: onShowInChat,

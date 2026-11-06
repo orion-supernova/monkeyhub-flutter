@@ -5,4 +5,4 @@
 // real implementation off-web and a stub on web. Same conditional-export
 // pattern as web_reload.dart.
 export 'linux_self_update_io.dart'
-    if (dart.library.html) 'linux_self_update_web.dart';
+    if (dart.library.js_interop) 'linux_self_update_web.dart';

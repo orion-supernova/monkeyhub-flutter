@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
@@ -34,7 +35,7 @@ void main() {
   testWidgets('shows a spinner', (tester) async {
     await tester.pumpWidget(host(onUnderneath: () {}));
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
   });
 
   testWidgets('swallows a tap meant for what is underneath it', (tester) async {

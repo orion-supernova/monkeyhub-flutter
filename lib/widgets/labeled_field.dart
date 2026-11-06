@@ -47,6 +47,7 @@ class FieldLabel extends StatelessWidget {
 ///
 /// Wraps the `theme.inputDecoration()` shell plus the borderless [TextField]
 /// styling every screen shares, so the per-theme look stays in one place.
+/// The page preset of [_TextBox]: 17pt, 14pt vertical and 16pt side padding.
 class ThemedInput extends StatelessWidget {
   const ThemedInput({
     super.key,
@@ -64,6 +65,11 @@ class ThemedInput extends StatelessWidget {
     this.trailing,
     this.focusNode,
     this.textInputAction,
+    this.autofillHints,
+    this.textCapitalization = TextCapitalization.none,
+    this.enabled = true,
+    this.maxLength,
+    this.keyboardAppearance,
   });
 
   final TextEditingController controller;
@@ -93,38 +99,44 @@ class ThemedInput extends StatelessWidget {
   /// password visibility toggle.
   final Widget? trailing;
 
+  /// Lets the OS offer (and save) credentials: [AutofillHints.username],
+  /// [AutofillHints.password], [AutofillHints.newPassword]…
+  final Iterable<String>? autofillHints;
+  final TextCapitalization textCapitalization;
+  final bool enabled;
+  final int? maxLength;
+
+  /// Null follows the theme (light theme, light keyboard).
+  final Brightness? keyboardAppearance;
+
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final field = TextField(
+    return _TextBox(
       controller: controller,
-      focusNode: focusNode,
-      textInputAction: textInputAction,
-      obscureText: obscure,
+      hint: hint,
+      obscure: obscure,
       autofocus: autofocus,
       keyboardType: keyboardType,
       minLines: minLines,
-      maxLines: obscure ? 1 : maxLines,
+      maxLines: maxLines,
       autocorrect: autocorrect,
       enableSuggestions: enableSuggestions,
-      style: theme.body.copyWith(color: theme.ink, fontSize: 17),
-      cursorColor: theme.accent,
-      decoration: InputDecoration(
-        isCollapsed: true,
-        border: InputBorder.none,
-        hintText: _hintText(context, hint),
-        hintStyle: theme.body.copyWith(color: theme.inkMuted, fontSize: 17),
-        contentPadding: const EdgeInsets.symmetric(vertical: 14),
-      ),
       onChanged: onChanged,
       onSubmitted: onSubmitted,
-    );
-    return Container(
-      decoration: fieldDecoration(theme),
-      padding: EdgeInsets.only(left: 16, right: trailing == null ? 16 : 6),
-      child: trailing == null
-          ? field
-          : Row(children: [Expanded(child: field), trailing!]),
+      trailing: trailing,
+      focusNode: focusNode,
+      textInputAction: textInputAction,
+      autofillHints: autofillHints,
+      textCapitalization: textCapitalization,
+      enabled: enabled,
+      maxLength: maxLength,
+      keyboardAppearance: keyboardAppearance,
+      textHeight: null,
+      vertical: 14,
+      left: 16,
+      right: 16,
+      rightWithTrailing: 6,
+      bottomAlignMultiline: false,
     );
   }
 }
@@ -148,6 +160,7 @@ class LabeledField extends StatelessWidget {
     this.trailing,
     this.focusNode,
     this.textInputAction,
+    this.autofillHints,
   });
 
   final String label;
@@ -165,6 +178,7 @@ class LabeledField extends StatelessWidget {
   final Widget? trailing;
   final FocusNode? focusNode;
   final TextInputAction? textInputAction;
+  final Iterable<String>? autofillHints;
 
   @override
   Widget build(BuildContext context) {
@@ -187,6 +201,7 @@ class LabeledField extends StatelessWidget {
           trailing: trailing,
           focusNode: focusNode,
           textInputAction: textInputAction,
+          autofillHints: autofillHints,
         ),
       ],
     );
@@ -232,6 +247,10 @@ class SheetTextField extends StatelessWidget {
     this.leadingIcon,
     this.trailing,
     this.fill,
+    this.autocorrect = true,
+    this.enableSuggestions = true,
+    this.autofillHints,
+    this.keyboardAppearance,
   });
 
   final TextEditingController controller;
@@ -262,10 +281,123 @@ class SheetTextField extends StatelessWidget {
 
   /// Overrides the field's fill (rare: a field on a photo).
   final Color? fill;
+  final bool autocorrect;
+  final bool enableSuggestions;
+  final Iterable<String>? autofillHints;
+
+  /// Null follows the theme (light theme, light keyboard).
+  final Brightness? keyboardAppearance;
+
+  @override
+  Widget build(BuildContext context) {
+    return _TextBox(
+      controller: controller,
+      hint: hint,
+      focusNode: focusNode,
+      autofocus: autofocus,
+      obscure: obscure,
+      minLines: minLines,
+      maxLines: maxLines,
+      maxLength: maxLength,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      textCapitalization: textCapitalization,
+      enabled: enabled,
+      onChanged: onChanged,
+      onSubmitted: onSubmitted,
+      leadingIcon: leadingIcon,
+      trailing: trailing,
+      fill: fill,
+      autocorrect: autocorrect,
+      enableSuggestions: enableSuggestions,
+      autofillHints: autofillHints,
+      keyboardAppearance: keyboardAppearance,
+      textHeight: 1.3,
+      vertical: 13,
+      left: 14,
+      leftWithLeading: 11,
+      right: 14,
+      rightWithTrailing: 6,
+      bottomAlignMultiline: true,
+    );
+  }
+}
+
+/// THE text-field implementation behind [ThemedInput] (page preset) and
+/// [SheetTextField] (sheet preset): the soft filled shell, the borderless
+/// [TextField], the hint, the optional leading glyph and trailing widget.
+/// The presets differ only in metrics, which they pass in.
+class _TextBox extends StatelessWidget {
+  const _TextBox({
+    required this.controller,
+    required this.textHeight,
+    required this.vertical,
+    required this.left,
+    required this.right,
+    required this.rightWithTrailing,
+    required this.bottomAlignMultiline,
+    this.leftWithLeading,
+    this.hint,
+    this.focusNode,
+    this.autofocus = false,
+    this.obscure = false,
+    this.minLines,
+    this.maxLines = 1,
+    this.maxLength,
+    this.keyboardType,
+    this.textInputAction,
+    this.textCapitalization = TextCapitalization.none,
+    this.enabled = true,
+    this.onChanged,
+    this.onSubmitted,
+    this.leadingIcon,
+    this.trailing,
+    this.fill,
+    this.autocorrect = true,
+    this.enableSuggestions = true,
+    this.autofillHints,
+    this.keyboardAppearance,
+  });
+
+  final TextEditingController controller;
+  final String? hint;
+  final FocusNode? focusNode;
+  final bool autofocus;
+  final bool obscure;
+  final int? minLines;
+  final int? maxLines;
+  final int? maxLength;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final TextCapitalization textCapitalization;
+  final bool enabled;
+  final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
+  final IconData? leadingIcon;
+  final Widget? trailing;
+  final Color? fill;
+  final bool autocorrect;
+  final bool enableSuggestions;
+  final Iterable<String>? autofillHints;
+  final Brightness? keyboardAppearance;
+
+  // Preset metrics.
+  final double? textHeight;
+  final double vertical;
+  final double left;
+  final double? leftWithLeading;
+  final double right;
+  final double rightWithTrailing;
+  final bool bottomAlignMultiline;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final style = theme.body.copyWith(
+      color: theme.ink,
+      fontSize: 17,
+      height: textHeight,
+    );
     final field = TextField(
       controller: controller,
       focusNode: focusNode,
@@ -278,39 +410,44 @@ class SheetTextField extends StatelessWidget {
       keyboardType: keyboardType,
       textInputAction: textInputAction,
       textCapitalization: textCapitalization,
+      autocorrect: autocorrect,
+      enableSuggestions: enableSuggestions,
+      autofillHints: autofillHints,
+      keyboardAppearance:
+          keyboardAppearance ??
+          (theme.isLight ? Brightness.light : Brightness.dark),
       enabled: enabled,
-      style: theme.body.copyWith(color: theme.ink, fontSize: 17, height: 1.3),
+      style: style,
       cursorColor: theme.accent,
       decoration: InputDecoration(
         isCollapsed: true,
         border: InputBorder.none,
         counterText: '',
         hintText: hint == null ? null : _hintText(context, hint!),
-        hintStyle: _hintStyle(theme),
-        contentPadding: const EdgeInsets.symmetric(vertical: 13),
+        hintStyle: style.copyWith(color: theme.inkMuted),
+        contentPadding: EdgeInsets.symmetric(vertical: vertical),
       ),
       onChanged: onChanged,
       onSubmitted: onSubmitted,
     );
     final deco = fieldDecoration(theme);
+    final multi = (maxLines ?? 2) > 1;
     return Material(
       type: MaterialType.transparency,
       child: Container(
         decoration: fill == null ? deco : deco.copyWith(color: fill),
         padding: EdgeInsets.only(
-          left: leadingIcon == null ? 14 : 11,
-          right: trailing == null ? 14 : 6,
+          left: leadingIcon == null ? left : (leftWithLeading ?? left),
+          right: trailing == null ? right : rightWithTrailing,
         ),
         child: Row(
-          crossAxisAlignment: (maxLines ?? 2) > 1
+          crossAxisAlignment: bottomAlignMultiline && multi
               ? CrossAxisAlignment.end
               : CrossAxisAlignment.center,
           children: [
             if (leadingIcon != null) ...[
               Padding(
-                padding: EdgeInsets.only(
-                  bottom: (maxLines ?? 2) > 1 ? 13 : 0,
-                ),
+                padding: EdgeInsets.only(bottom: multi ? vertical : 0),
                 child: Icon(leadingIcon, size: 18, color: theme.inkMuted),
               ),
               const SizedBox(width: 8),
@@ -323,11 +460,6 @@ class SheetTextField extends StatelessWidget {
     );
   }
 }
-
-/// The hint of a [SheetTextField]: the muted subtitle ink at the field's own
-/// 17pt, so the placeholder sits exactly where the text will.
-TextStyle _hintStyle(AppTheme theme) =>
-    theme.body.copyWith(fontSize: 17, height: 1.3, color: theme.inkMuted);
 
 /// How [FormErrorBanner] is tinted: an error, or a confirmation that reuses
 /// the same layout (for example "your account is being deleted").

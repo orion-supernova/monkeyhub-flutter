@@ -183,7 +183,7 @@ void main() {
       id: 'huddle',
       priority: DockShelfPriority.huddle,
       height: 86,
-      expanded: (_) => Container(key: kDummyBarKey, height: 74, width: 240),
+      expanded: (_) => const SizedBox(key: kDummyBarKey, height: 74, width: 240),
       chip: (_) => const SizedBox.shrink(),
     );
     await t.pumpWidget(buildScene(shelf: [scheduledItem(), tall]));

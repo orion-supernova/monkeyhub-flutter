@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../data/vanish_controller.dart';
 import '../keyboard/focusable_tap.dart';
+import 'spring_press.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../privacy/vanish_rules.dart';
 import '../theme/theme_scope.dart';
@@ -379,29 +380,27 @@ class _CardButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final fg = filled ? VanishPalette.onColor(violet) : theme.ink;
-    return FocusableTap(
+    return SpringPress(
       onTap: onTap,
+      haptic: false,
+      hover: HoverEffect.none,
       semanticLabel: label,
-      radius: 12,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: filled ? violet : violet.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            style: theme.body.copyWith(
-              color: fg,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
+      focusRadius: 12,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: filled ? violet : violet.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          style: theme.body.copyWith(
+            color: fg,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

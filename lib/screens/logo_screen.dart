@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
@@ -6,6 +5,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_icon_picker.dart';
 import '../widgets/ios_kit.dart';
+import '../ui/foundation/caps.dart';
 
 /// Settings › App Icon: the same home-screen grid the first-run icon step
 /// shows, so the icon picked on day one is found in exactly the same place
@@ -20,11 +20,11 @@ class LogoScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final ios = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+    final ios = Caps.iOS;
     // Android swaps the launcher icon as the app is left, never while it is
     // on screen (LauncherIconService._deferAndroid), so say when it lands.
     final android =
-        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+        Caps.android;
     final footnote = groupedFooterStyle(theme);
     return AnimatedBuilder(
       animation: SettingsStore.instance,

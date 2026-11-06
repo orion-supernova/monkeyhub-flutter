@@ -6,4 +6,4 @@
 // (exactly when you most need it). An <audio> element keeps playing across tab
 // switches and can start playback from a hidden tab once unlocked by a gesture.
 // Off-web this resolves to a no-op stub (native/desktop use just_audio).
-export 'web_audio_io.dart' if (dart.library.html) 'web_audio_web.dart';
+export 'web_audio_io.dart' if (dart.library.js_interop) 'web_audio_web.dart';

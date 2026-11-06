@@ -12,7 +12,7 @@ import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/code_field.dart';
 import '../widgets/ios_kit.dart' show groupedRadius, quietFill;
-import '../widgets/prominent_button.dart';
+import '../widgets/action_buttons.dart';
 import '../widgets/spring_press.dart';
 import '../l10n/text_case.dart';
 
@@ -216,16 +216,20 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
                           ),
                         ],
                         const SizedBox(height: 22),
-                        ProminentButton(
+                        SheetActionButton(
                           label: sentenceCaseOf(
                             context,
                             AppLocalizations.of(context)
                                 .childPairScreenSubmitButtonLabel,
                           ),
                           busy: _busy,
+                          haptic: false,
                           onTap: _busy
                               ? null
-                              : () => _submit(_manual.text.trim()),
+                              : () {
+                                  HapticFeedback.mediumImpact();
+                                  _submit(_manual.text.trim());
+                                },
                         ),
                         if (widget.onCancel != null) ...[
                           const SizedBox(height: 16),

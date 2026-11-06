@@ -4388,5 +4388,8 @@
   "uiKitAutoBody": "Choisit le meilleur style pour cet appareil. Actuellement : {style}",
   "uiKitLiteTitle": "Léger",
   "uiKitLiteBody": "Surfaces pleines, sans flou. Le plus fluide sur les anciens téléphones et économe en batterie.",
-  "uiKitLiteFooter": "Léger ne dessine pas de verre, il n'y a donc rien à régler. Choisissez Givré pour façonner le verre vous-même."
+  "uiKitLiteFooter": "Léger ne dessine pas de verre, il n'y a donc rien à régler. Choisissez Givré pour façonner le verre vous-même.",
+  "bulkForwardedToChats": "{count, plural, =1{transféré} other{transféré à {count} discussions}}",
+  "bulkSavedToPhotos": "{count, plural, =1{enregistré dans Photos} other{{count} enregistrés dans Photos}}",
+  "bulkDeletedMessages": "{count, plural, =1{supprimé} other{{count} supprimés}}"
 }

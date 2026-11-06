@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 
 import 'capture_glyphs.dart' show GlyphGridPainter, glyphSpan;
+import '../theme/motion.dart';
 
 // Drawn line glyphs for the photo preview's tools: rotate, crop, undo and
 // redo. Same 24-unit grid and stroke as `capture_glyphs.dart`, so they sit
@@ -41,7 +42,7 @@ class _GlyphKickState extends State<GlyphKick>
   void didUpdateWidget(GlyphKick old) {
     super.didUpdateWidget(old);
     if (old.trigger != widget.trigger &&
-        !MediaQuery.disableAnimationsOf(context)) {
+        !MotionScope.of(context).calm) {
       _kick.forward(from: 0);
     }
   }

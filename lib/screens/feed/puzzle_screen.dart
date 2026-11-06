@@ -29,6 +29,7 @@ import '../../widgets/score_row.dart';
 import '../../widgets/labeled_field.dart' show FormErrorBanner;
 import '../../widgets/puzzle_symbol.dart';
 import '../../l10n/text_case.dart';
+import '../../services/clipboard_actions.dart';
 
 /// Today's puzzle, full screen.
 ///
@@ -218,14 +219,11 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       store.edition,
       attempt.solved ? '${attempt.guesses.length}' : 'X',
     );
-    await Clipboard.setData(
-      ClipboardData(text: '$header\n${attempt.shareGrid}'),
-    );
-    if (!mounted) return;
-    HapticFeedback.lightImpact();
-    showAppToast(
-      context, l10n.puzzleShareCopied,
-      tone: ToastTone.success,
+    await copyText(
+      context,
+      '$header\n${attempt.shareGrid}',
+      toast: l10n.puzzleShareCopied,
+      haptic: CopyHaptic.light,
     );
   }
 

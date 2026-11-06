@@ -7,6 +7,7 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart';
@@ -362,6 +363,7 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
       cursorWidth: 2,
       textInputAction: TextInputAction.search,
       autocorrect: false,
+      keyboardAppearance: theme.isLight ? Brightness.light : Brightness.dark,
       decoration: InputDecoration(
         isCollapsed: true,
         border: InputBorder.none,

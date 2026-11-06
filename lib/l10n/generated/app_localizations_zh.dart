@@ -15201,4 +15201,37 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get uiKitLiteFooter => '轻量样式不绘制玻璃，因此无需调节。选择磨砂即可自行调整玻璃。';
+
+  @override
+  String bulkForwardedToChats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已转发到 $count 个聊天',
+      one: '已转发',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkSavedToPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已将 $count 项存入照片',
+      one: '已存入照片',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkDeletedMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已删除 $count 条',
+      one: '已删除',
+    );
+    return '$_temp0';
+  }
 }

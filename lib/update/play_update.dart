@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:in_app_update/in_app_update.dart';
+import '../ui/foundation/caps.dart';
 
 /// Google Play's own answer to "is there an update for this install?".
 ///
@@ -14,7 +15,7 @@ import 'package:in_app_update/in_app_update.dart';
 /// no Play services), it reports no update: an update prompt that sends
 /// someone to a store with nothing for them is worse than no prompt.
 Future<bool> playHasUpdate() async {
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
+  if (!Caps.android) return false;
   try {
     final info = await InAppUpdate.checkForUpdate();
     return info.updateAvailability == UpdateAvailability.updateAvailable ||
@@ -30,7 +31,7 @@ Future<bool> playHasUpdate() async {
 /// user going anywhere. True when Play ran it; false means "fall back to
 /// opening the listing".
 Future<bool> startPlayUpdate() async {
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
+  if (!Caps.android) return false;
   try {
     final info = await InAppUpdate.checkForUpdate();
     if (!info.immediateUpdateAllowed) return false;

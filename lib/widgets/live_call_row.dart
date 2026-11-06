@@ -16,6 +16,7 @@ import '../theme/theme_scope.dart';
 import 'app_toast.dart';
 import 'huddle_bar.dart' show HuddleWaveGlyph;
 import 'spring_press.dart';
+import '../theme/motion.dart';
 
 // A call going on in a room, as the chat list shows it in every layout: a
 // green halo that breathes around the room's face with a live equalizer
@@ -87,7 +88,7 @@ class _LiveCallHaloState extends State<LiveCallHalo>
       return;
     }
     final loop = _ensureLoop();
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (MotionScope.of(context).calm) {
       loop.stop();
     } else if (!loop.isAnimating) {
       loop.repeat();
@@ -555,7 +556,7 @@ class _LiveCallGlyphState extends State<LiveCallGlyph>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _calm = MediaQuery.disableAnimationsOf(context);
+    _calm = MotionScope.of(context).calm;
     if (_calm) {
       _flow
         ..stop()

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:ui' show AppExitType;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -14,6 +13,7 @@ import '../widgets/shortcuts/command_palette.dart';
 import '../widgets/shortcuts/shortcut_peek.dart';
 import '../widgets/shortcuts/shortcuts_panel.dart';
 import 'app_shortcuts.dart';
+import '../ui/foundation/caps.dart';
 
 /// Where keyboard shortcuts are heard, and the shortcuts that belong to the
 /// whole app rather than to any one screen (⌘K, ⌘/, ⌘,).
@@ -107,9 +107,7 @@ class _ShortcutHostState extends State<ShortcutHost> {
     }
     // ⌘Q is the Mac menu's. Windows and Linux have no owner for Ctrl+Q, so
     // it is ours there.
-    if (!kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.windows ||
-            defaultTargetPlatform == TargetPlatform.linux)) {
+    if (Caps.windows || Caps.linux) {
       _tokens.add(reg.bind(AppShortcuts.quit, _quit, always));
     }
     HardwareKeyboard.instance.addHandler(_watchHold);

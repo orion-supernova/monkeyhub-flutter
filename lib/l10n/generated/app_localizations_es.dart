@@ -16186,4 +16186,37 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get uiKitLiteFooter =>
       'Ligero no dibuja vidrio, así que no hay nada que ajustar. Elige Esmerilado para dar forma al vidrio tú mismo.';
+
+  @override
+  String bulkForwardedToChats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'reenviado a $count chats',
+      one: 'reenviado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkSavedToPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count guardados en Fotos',
+      one: 'guardado en Fotos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkDeletedMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count eliminados',
+      one: 'eliminado',
+    );
+    return '$_temp0';
+  }
 }

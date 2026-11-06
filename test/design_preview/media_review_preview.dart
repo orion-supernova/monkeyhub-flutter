@@ -4,7 +4,6 @@
 // failed state, and the desktop drop cards.
 //
 //   flutter test test/design_preview/media_review_preview.dart
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';

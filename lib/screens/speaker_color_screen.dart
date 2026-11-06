@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../models/chat_user.dart' show initialOf;
 import '../theme/app_theme.dart';
 import '../theme/speaker_colors.dart';
 import '../theme/theme_scope.dart';
@@ -168,7 +169,7 @@ class _Preview extends StatelessWidget {
                 : Border.all(color: mark, width: 1.5),
           ),
           child: Text(
-            name.characters.first.toUpperCase(),
+            initialOf(name),
             style: theme.monoTiny.copyWith(color: theme.inkSoft, height: 1.0),
           ),
         ),

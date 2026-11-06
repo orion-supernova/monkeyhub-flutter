@@ -12,7 +12,6 @@ library;
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../companions/brain_manager.dart';
 import '../../companions/brain_spec.dart';
@@ -194,8 +193,6 @@ class _SebastianScreenState extends State<SebastianScreen> {
                 subtitle: l10n.sebastianEnableDetail,
                 value: _sebastian.isEnabled,
                 onChanged: (v) {
-                  // The tap a native switch gives.
-                  HapticFeedback.lightImpact();
                   _setEnabled(v);
                 },
               ),

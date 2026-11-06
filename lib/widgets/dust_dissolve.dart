@@ -9,6 +9,7 @@ import 'package:flutter/widgets.dart';
 
 import '../theme/perf_tier.dart';
 import 'dust/dust_kit.dart';
+import '../theme/motion.dart';
 
 /// Telegram's disintegration: the child turns to dust and blows away.
 ///
@@ -197,7 +198,7 @@ class _DustDissolveState extends State<DustDissolve>
   /// child for the last time, so the capture waits for its end.
   void _start(BuildContext context) {
     _phase = _Phase.pending;
-    final calm = MediaQuery.disableAnimationsOf(context);
+    final calm = MotionScope.of(context).calm;
     final run = ++_run;
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (!mounted || run != _run) return;

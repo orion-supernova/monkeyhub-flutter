@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/backend/group_call_api.dart';
@@ -199,6 +201,11 @@ Future<FakePeerConnection> _linked(
 // and a broadcast ended from the status bar left the app "sharing" forever.
 
 void main() {
+  // flutter_test defaults to Android, where the mobile call paths (channels,
+  // permission pre-flight) apply; these tests drive the desktop shape.
+  setUpAll(() => debugDefaultTargetPlatformOverride = TargetPlatform.macOS);
+  tearDownAll(() => debugDefaultTargetPlatformOverride = null);
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {

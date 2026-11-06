@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' show WidgetsBinding;
+import '../ui/foundation/caps.dart';
 
 /// Wraps the native side of screen-capture protection.
 ///
@@ -86,7 +86,7 @@ class CaptureProtection extends ChangeNotifier {
   static bool get platformProtects =>
       debugPlatformProtectsOverride ??
       (!kIsWeb &&
-          (Platform.isIOS || Platform.isAndroid || Platform.isMacOS || Platform.isWindows));
+          (Caps.iOS || Caps.android || Caps.macOS || Caps.windows));
 
   /// Tests run on a desktop host; this lets one stand in for the browser.
   @visibleForTesting
@@ -95,7 +95,7 @@ class CaptureProtection extends ChangeNotifier {
   /// Subscribe to native capture events. Safe to call multiple times.
   Future<void> ensureListening() async {
     if (_sub != null || !_supported) return;
-    if (!Platform.isIOS) return; // Android event stream is a stub.
+    if (!Caps.iOS) return; // Android event stream is a stub.
     _sub = _events.receiveBroadcastStream().listen(
       (event) {
         final next = event == true;

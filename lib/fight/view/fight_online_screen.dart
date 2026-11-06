@@ -5,11 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../data/matches_store.dart';
-import '../../keyboard/focusable_tap.dart' show FocusRingShape;
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/chat_match.dart';
 import '../../push/device_identity.dart';
 import '../../data/settings_store.dart';
+import '../../widgets/glass_buttons.dart';
+import '../../widgets/liquid_glass.dart' show GlassTone;
 import '../../widgets/spring_press.dart';
 import '../core/core.dart';
 import '../net/fight_link.dart';
@@ -487,16 +488,11 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
               Positioned(
                 top: pad.top + 8,
                 left: pad.left + 12,
-                child: SpringPress(
+                child: GlassCloseButton(
+                  tone: GlassTone.media,
+                  still: true,
                   onTap: _leave,
-                  focusShape: FocusRingShape.circle,
                   semanticLabel: l10n.fightQuit,
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(color: Color(0x55000000), shape: BoxShape.circle),
-                    child: const Icon(CupertinoIcons.xmark, size: 18, color: Colors.white),
-                  ),
                 ),
               ),
             ],

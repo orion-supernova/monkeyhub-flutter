@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +7,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'call_models.dart';
 import 'call_service.dart';
 import 'group_call_service.dart';
+import '../ui/foundation/caps.dart';
 
 /// What the call's Picture in Picture window shows: one remote picture, or
 /// a name card while that picture is off.
@@ -200,7 +200,7 @@ class CallPip {
   bool supportedOverride = false;
 
   bool get _supported =>
-      supportedOverride || (!kIsWeb && (Platform.isIOS || Platform.isAndroid));
+      supportedOverride || Caps.mobileCalls;
 
   /// Starts following both call stacks. Idempotent.
   void attach({required CallService call, required GroupCallService group}) {
@@ -308,7 +308,7 @@ class CallPip {
   bool? presentingFeedsBoardOverride;
 
   bool get presentingFeedsBoard =>
-      presentingFeedsBoardOverride ?? (!kIsWeb && Platform.isIOS);
+      presentingFeedsBoardOverride ?? (Caps.iOS);
 
   void _invoke(String method, Object? args) {
     unawaited(_channel.invokeMethod<void>(method, args).catchError((Object e) {

@@ -144,8 +144,10 @@ void main() {
       expect(node.value, '5');
       expect(node.increasedValue, '6');
       expect(node.decreasedValue, '4');
-      t.binding.pipelineOwner.semanticsOwner!
-          .performAction(node.id, SemanticsAction.increase);
+      t.semantics.performAction(
+        find.semantics.byValue('5'),
+        SemanticsAction.increase,
+      );
       await t.pump();
       expect(changes, [6]);
       handle.dispose();

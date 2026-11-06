@@ -3,10 +3,10 @@ import 'dart:io';
 
 import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 
 import 'banner_avatar_files_io.dart';
 import 'banner_composer.dart';
+import '../ui/foundation/channels.dart';
 
 /// Desktop notifications for the Linux build, through the desktop's own
 /// notification daemon (org.freedesktop.Notifications — GNOME Shell, KDE
@@ -27,7 +27,7 @@ class LinuxNotifier implements DesktopBannerSink {
   static final LinuxNotifier instance = LinuxNotifier._();
 
   static const _iface = 'org.freedesktop.Notifications';
-  static const _window = MethodChannel('monkeyhub/window');
+  static const _window = Channels.window;
 
   static bool get supported =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.linux;

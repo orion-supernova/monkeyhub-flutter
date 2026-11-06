@@ -1,14 +1,16 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../auth/session_store.dart';
 import '../backend/server_store.dart';
 import '../data/chat_repository.dart';
+import '../models/chat_user.dart' show initialOf;
 import '../media/file_url_cache.dart';
 import '../models/chat_room.dart';
 import '../theme/app_theme.dart';
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// One person or group the OS may offer directly in the share sheet's top row.
 ///
@@ -112,9 +114,9 @@ class ShareTargets {
   ShareTargets._();
   static final ShareTargets instance = ShareTargets._();
 
-  static const MethodChannel _channel = MethodChannel('monkeyhub/share');
+  static const MethodChannel _channel = Channels.share;
 
-  bool get _supported => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+  bool get _supported => Caps.nativeMobile;
 
   /// What was last successfully published, so an unchanged room list costs no
   /// platform round trip. The rooms subscription re-fires on every message in
@@ -357,13 +359,7 @@ int _seedOf(String id) {
 String _initialOf(String title) {
   final t = title.trim();
   if (t.isEmpty) return '';
-  // `characters` would be the correct grapheme split, but an initial is one
-  // code point in every script this renders and pulling in the package for a
-  // fallback glyph is not worth it. An emoji title falls back to the surrogate
-  // pair's first half rendering as nothing, which is exactly the empty-initial
-  // case native already handles.
-  final first = t.runes.first;
-  return String.fromCharCode(first).toUpperCase();
+  return initialOf(t);
 }
 
 int _argb(Color c) =>

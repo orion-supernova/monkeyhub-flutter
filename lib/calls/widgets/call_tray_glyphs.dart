@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 
 import '../../widgets/capture_glyphs.dart';
+import '../../theme/motion.dart';
 
 // The call tray's drawn glyphs.
 //
@@ -167,7 +168,7 @@ class _AnimatedCallGlyphState extends State<AnimatedCallGlyph>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _calm = MediaQuery.disableAnimationsOf(context);
+    _calm = MotionScope.of(context).calm;
   }
 
   @override
@@ -888,7 +889,7 @@ class _CallSignalGlyphState extends State<CallSignalGlyph>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _calm = MediaQuery.disableAnimationsOf(context);
+    _calm = MotionScope.of(context).calm;
     _sync(initial: true);
   }
 
@@ -1068,7 +1069,7 @@ class _CallMuteBadgeState extends State<CallMuteBadge>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _calm = MediaQuery.disableAnimationsOf(context);
+    _calm = MotionScope.of(context).calm;
     if (_calm) {
       _beat?.cancel();
       _show.value = widget.muted ? 1 : 0;

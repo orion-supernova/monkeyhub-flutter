@@ -5,4 +5,4 @@
 // `WebNotifier.*` unconditionally without dragging web libraries
 // (`dart:js_interop`, `package:web`) into mobile/desktop builds. Mirrors the
 // pattern in `web_badge.dart`.
-export 'web_notifier_io.dart' if (dart.library.html) 'web_notifier_web.dart';
+export 'web_notifier_io.dart' if (dart.library.js_interop) 'web_notifier_web.dart';

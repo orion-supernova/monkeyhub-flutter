@@ -1,7 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../data/settings_store.dart';
+import '../ui/foundation/caps.dart';
 
 /// How tightly the app's rows and chrome buttons are set: phone size, or the
 /// compact metrics a mouse can afford.
@@ -93,9 +93,7 @@ class Density {
   /// native or in a browser. Phones and tablets never are; on web this reads
   /// the browser's OS, so Chrome on Android stays regular.
   static bool get platformOffersCompact =>
-      defaultTargetPlatform == TargetPlatform.macOS ||
-      defaultTargetPlatform == TargetPlatform.windows ||
-      defaultTargetPlatform == TargetPlatform.linux;
+      Caps.desktopLook;
 
   /// The density the settings ask for, read without subscribing.
   static Density get current =>

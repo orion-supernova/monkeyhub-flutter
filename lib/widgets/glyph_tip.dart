@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import '../theme/motion.dart';
 
 // The playful tooltip a toggle says once when it turns on: a dark bubble
 // that pops out of the button with an overshoot, a living glyph (the flame
@@ -174,7 +175,7 @@ class _GlyphTipAnchorState extends State<GlyphTipAnchor>
   /// the toggle where there is room, and slid along (growing out of the
   /// toggle's side of it) where there is not.
   Widget _bubble(BuildContext context) {
-    final calm = MediaQuery.disableAnimationsOf(context);
+    final calm = MotionScope.of(context).calm;
     return ValueListenableBuilder<double>(
       valueListenable: _age,
       builder: (context, age, _) {

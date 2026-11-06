@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import '../keyboard/app_shortcuts.dart' show KeyCombo;
 import '../models/message_formatting.dart';
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import 'mention_text_controller.dart';
 
 /// The composer's own keyboard: the keys that only mean something while the
@@ -124,7 +124,7 @@ class ComposerKeys extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isPhysicalKeyboardPlatform) return child;
+    if (!Caps.physicalKeyboard) return child;
     return Focus(
       canRequestFocus: false,
       skipTraversal: true,

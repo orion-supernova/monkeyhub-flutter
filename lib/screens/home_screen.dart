@@ -243,9 +243,7 @@ class _HomeScreenState extends State<HomeScreen>
   /// would ever type.
   bool _matchesSearch(ChatRoom r, String query) {
     final needle = query.toLowerCase();
-    final label = r.isSavedMessages
-        ? AppLocalizations.of(context).savedMessagesTitle
-        : (widget.repo.otherUserFor(r)?.displayName ?? r.name);
+    final label = chatListTitleOf(context, r, widget.repo.otherUserFor(r));
     return label.toLowerCase().contains(needle);
   }
 
@@ -1417,9 +1415,7 @@ class _RoomsPanelState extends State<_RoomsPanel> {
   /// The name the verdict chip gives this row. Exactly what the row itself
   /// shows, so "to Alice" names the face the pointer is over.
   String _dropLabel(ChatRoom room) {
-    final l10n = AppLocalizations.of(context);
-    if (room.isSavedMessages) return l10n.savedMessagesTitle;
-    return widget.repo.otherUserFor(room)?.displayName ?? room.name;
+    return chatListTitleOf(context, room, widget.repo.otherUserFor(room));
   }
 
   Widget _row(

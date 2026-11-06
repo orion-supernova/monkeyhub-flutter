@@ -2,13 +2,16 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../widgets/adaptive_sheet.dart';
+import '../../widgets/glass_buttons.dart';
+import '../../widgets/liquid_glass.dart' show GlassTone;
+import '../../widgets/sheet_kit.dart' show SheetFrame;
 import '../../widgets/spring_press.dart';
 import '../core/core.dart';
 import 'art/fight_art.dart';
@@ -19,6 +22,8 @@ import 'art/stages/stages.dart';
 import 'fight_stage_picker.dart';
 import 'fight_screen.dart' show FightLookPicker, fightHudText, fightLookOf, fightLookWire;
 import 'fight_training_moves.dart';
+import '../../ui/foundation/caps.dart';
+import '../../theme/layout.dart';
 
 /// Opens the training room for [charId] (default: the fighter picked in the
 /// lobby).
@@ -97,10 +102,7 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
     return !m.move.grab && m.group != TrainGroup.counters;
   }
 
-  bool get _touchFirst => switch (defaultTargetPlatform) {
-    TargetPlatform.iOS || TargetPlatform.android => true,
-    _ => false,
-  };
+  bool get _touchFirst => Caps.touchFirst;
 
   @override
   void initState() {
@@ -226,24 +228,11 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
 
   Future<void> _changeStage() async {
     final l10n = AppLocalizations.of(context);
-    final id = await showModalBottomSheet<int>(
-      context: context,
-      backgroundColor: const Color(0xff16121f),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(l10n.fightStageTitle, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, decoration: TextDecoration.none)),
-              const SizedBox(height: 14),
-              FightStagePicker(selected: _stage, allowRandom: false, onPick: (id) => Navigator.of(context).pop(id)),
-            ],
-          ),
-        ),
+    final id = await showAdaptiveSheet<int>(
+      context,
+      builder: (context) => SheetFrame(
+        title: l10n.fightStageTitle,
+        child: FightStagePicker(selected: _stage, allowRandom: false, onPick: (id) => Navigator.of(context).pop(id)),
       ),
     );
     if (!mounted) return;
@@ -502,15 +491,16 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
 
   Widget _header(AppLocalizations l10n, EdgeInsets pad) {
     // Two chips need the room on a phone; the title gives way there.
-    final narrow = MediaQuery.sizeOf(context).width < 460;
+    final narrow = MediaQuery.sizeOf(context).width < Breakpoints.fightTrainingNarrow;
     return Padding(
       padding: EdgeInsets.fromLTRB(12 + pad.left, pad.top + 6, 12 + pad.right, 6),
       child: Row(
         children: [
-          _IconBtn(
+          GlassCloseButton(
             key: const ValueKey('training_close'),
-            icon: CupertinoIcons.xmark,
-            semantic: MaterialLocalizations.of(context).closeButtonTooltip,
+            tone: GlassTone.media,
+            still: true,
+            semanticLabel: MaterialLocalizations.of(context).closeButtonTooltip,
             onTap: () => Navigator.of(context).maybePop(),
           ),
           const SizedBox(width: 12),
@@ -769,27 +759,6 @@ void paintTrainingBoxes(Canvas canvas, FightCamera cam, FightState s) {
 }
 
 // ------------------------------------------------------------------ widgets
-
-class _IconBtn extends StatelessWidget {
-  const _IconBtn({super.key, required this.icon, required this.onTap, this.semantic});
-  final IconData icon;
-  final VoidCallback onTap;
-  final String? semantic;
-
-  @override
-  Widget build(BuildContext context) {
-    return SpringPress(
-      onTap: onTap,
-      semanticLabel: semantic,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: const BoxDecoration(color: Color(0x33ffffff), shape: BoxShape.circle),
-        child: Icon(icon, size: 18, color: Colors.white),
-      ),
-    );
-  }
-}
 
 class _Chip extends StatelessWidget {
   const _Chip({super.key, this.label, this.icon, this.semantic, this.selected = false, this.enabled = true, required this.onTap});

@@ -1,5 +1,4 @@
 import 'dart:async' show StreamController, Timer, unawaited;
-import 'dart:io' show Platform;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -9,18 +8,13 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../data/settings_store.dart';
 import '../media/storage/network_kind.dart';
 import 'call_models.dart';
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// Shared media plumbing for both the 1:1 [CallService] and the group-call
 /// mesh — capture constraints, encoder tuning, codec preference, and audio
 /// session/routing. One place, so every call path behaves identically on
 /// every platform.
-
-/// Real mobile hardware, where flutter_webrtc's native `Helper` audio APIs
-/// (setSpeakerphoneOn, switchCamera) exist. On web/desktop those channels
-/// have no implementation and throw MissingPluginException — the browser/OS
-/// manages audio routing itself, so we simply skip them there.
-bool get isMobileCallPlatform =>
-    !kIsWeb && (Platform.isIOS || Platform.isAndroid);
 
 /// Resolution ceiling + encoder cap for one [VideoQualityTier]. No capability
 /// probing backs this (nothing in this codebase enumerates camera formats) —
@@ -179,7 +173,7 @@ Future<void> stopAndDisposeStream(
 /// provided no OTHER call is still live in the process, which is the
 /// caller's check ([CallService] and [GroupCallService] share one module).
 Future<void> stopDarwinMicCapture() async {
-  if (kIsWeb || !(Platform.isIOS || Platform.isMacOS)) return;
+  if (!Caps.nativeApple) return;
   try {
     await NativeAudioManagement.stopLocalRecording()
         .timeout(const Duration(seconds: 2));
@@ -255,7 +249,7 @@ Future<MediaStreamTrack> getCallVideoOnlyTrack(
 
 /// Whether flutter_webrtc's Darwin plugin (iOS and macOS share it) is the
 /// one behind the tracks.
-bool get _darwinWebrtc => !kIsWeb && (Platform.isIOS || Platform.isMacOS);
+bool get _darwinWebrtc => Caps.nativeApple;
 
 /// Takes a camera [track] out of the call's [stream] and releases the
 /// camera behind it.
@@ -537,7 +531,7 @@ Future<void> applyIosCallAudioConfig(
   CallMediaKind kind, {
   required bool speakerOn,
 }) async {
-  if (kIsWeb || !Platform.isIOS) return;
+  if (!Caps.iOS) return;
   try {
     await Helper.setAppleAudioConfiguration(AppleAudioConfiguration(
       appleAudioCategory: AppleAudioCategory.playAndRecord,
@@ -570,15 +564,15 @@ Future<void> applyCallAudio(
   CallMediaKind kind, {
   required bool speakerOn,
 }) async {
-  if (!isMobileCallPlatform) return;
-  if (Platform.isAndroid) {
+  if (!Caps.mobileCalls) return;
+  if (Caps.android) {
     await applyAndroidCallRoute(
       speakerOn: speakerOn,
       video: kind == CallMediaKind.video,
     );
     return;
   }
-  if (Platform.isIOS) {
+  if (Caps.iOS) {
     try {
       await _voipChannel.invokeMethod<void>('applyCallAudio', {
         'video': kind == CallMediaKind.video,
@@ -600,7 +594,7 @@ Future<void> applyCallAudio(
   await applyCallAudioRoute(speaker: speakerOn);
 }
 
-const _voipChannel = MethodChannel('monkeyhub/voip');
+const _voipChannel = Channels.voip;
 
 /// [applyCallAudio], answering the speaker side that actually took: on iOS
 /// a connected headset wins over a speaker that is only a default
@@ -623,7 +617,7 @@ Future<bool?> applyCallAudioResolved(
   required bool headsetWins,
   String? callId,
 }) async {
-  if (!kIsWeb && Platform.isAndroid) {
+  if (Caps.android) {
     await applyAndroidCallRoute(
       speakerOn: speakerOn,
       video: kind == CallMediaKind.video,
@@ -631,7 +625,7 @@ Future<bool?> applyCallAudioResolved(
     );
     return null;
   }
-  if (kIsWeb || !Platform.isIOS) {
+  if (!Caps.iOS) {
     await applyCallAudio(kind, speakerOn: speakerOn);
     return null;
   }
@@ -829,7 +823,7 @@ void _listenForCallAudioRoutes() {
 /// silent ringback leaves (was the session the call's, and where did the
 /// sound go?). A no-op anywhere else.
 Future<void> logCallAudioState(String why) async {
-  if (kIsWeb || !Platform.isIOS) return;
+  if (!Caps.iOS) return;
   try {
     final state = await _voipChannel.invokeMethod<Object?>('callAudioState');
     debugPrint('call audio [$why]: $state');
@@ -1032,7 +1026,7 @@ Future<void> Function(({bool keepScreenOn, bool proximity}) state)
   );
 };
 
-const _callWindowChannel = MethodChannel('monkeyhub/call_window');
+const _callWindowChannel = Channels.callWindow;
 
 bool _callWindowResetListening = false;
 
@@ -1070,7 +1064,7 @@ bool? debugReleasePeerConnectionsOverride;
 
 bool get _releasesPeerConnections =>
     debugReleasePeerConnectionsOverride ??
-    (!kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isMacOS));
+    (!kIsWeb && (Caps.android || Caps.iOS || Caps.macOS));
 
 /// How long [releasePeerConnection] lets the screen settle before it
 /// disposes.
@@ -1169,7 +1163,7 @@ Future<void> flushPeerConnectionReleases() async {
 
 /// Loudspeaker/earpiece toggle — mobile only (web/desktop route themselves).
 Future<void> applyCallAudioRoute({required bool speaker}) async {
-  if (!isMobileCallPlatform) return;
+  if (!Caps.mobileCalls) return;
   try {
     await Helper.setSpeakerphoneOn(speaker);
   } catch (e) {

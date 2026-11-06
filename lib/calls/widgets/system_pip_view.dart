@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../call_pip.dart';
+import '../../models/chat_user.dart' show initialOf;
 
 /// What the app shows while Android has it in the system Picture in
 /// Picture window: the call's one picture, full-bleed, or the name card
@@ -142,7 +143,7 @@ class CallPipNameCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = title.trim();
-    final initial = t.isEmpty ? '' : t.characters.first.toUpperCase();
+    final initial = t.isEmpty ? '' : initialOf(t);
     return LayoutBuilder(
       builder: (context, box) {
         final d = (box.biggest.shortestSide * 0.42).clamp(24.0, 96.0);

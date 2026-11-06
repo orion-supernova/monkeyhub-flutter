@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:fake_async/fake_async.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:monkeyhub/backend/call_api.dart';
@@ -124,6 +126,11 @@ CallService _newService(_FakeCallApi api) {
 }
 
 void main() {
+  // flutter_test defaults to Android, where the mobile call paths (channels,
+  // permission pre-flight) apply; these tests drive the desktop shape.
+  setUpAll(() => debugDefaultTargetPlatformOverride = TargetPlatform.macOS);
+  tearDownAll(() => debugDefaultTargetPlatformOverride = null);
+
   // flutter_webrtc's NativeLogsListener singleton wires an EventChannel the
   // first time the plugin's top-level helpers run (preferH264Codec) — it
   // needs a binary messenger even though the platform call itself just

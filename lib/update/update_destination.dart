@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../services/link_opener.dart';
 
 import 'release_channel.dart';
 import 'store_updates.dart';
@@ -107,13 +107,7 @@ List<String> _defaultsFor(ReleaseChannel channel) {
 /// (the fallback path in `services/link_opener.dart`) and is what hands a store
 /// scheme to the store app rather than to a browser surface.
 Future<bool> _tryLaunch(String url) async {
-  try {
-    final uri = Uri.tryParse(url);
-    if (uri == null) return false;
-    return await launchUrl(uri, mode: LaunchMode.externalApplication);
-  } catch (_) {
-    // A scheme with no handler throws on some platforms and returns false on
-    // others. Both mean "try the next candidate".
-    return false;
-  }
+  // A scheme with no handler throws on some platforms and returns false on
+  // others. Both mean "try the next candidate".
+  return LinkOpener.openExternal(url);
 }

@@ -11,6 +11,7 @@ import 'capture_glyphs.dart';
 import 'glass_buttons.dart';
 import 'glyph_tip.dart';
 import 'liquid_glass.dart' show MediaGlass;
+import '../theme/motion.dart';
 
 /// The switches every picture send offers, as one shared set: the pen (a
 /// tool, offered where the screen can draw), view once, spoiler and HD.
@@ -176,7 +177,7 @@ class _SendSwitchGlyphState extends State<SendSwitchGlyph>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _calm = MediaQuery.disableAnimationsOf(context);
+    _calm = MotionScope.of(context).calm;
   }
 
   @override

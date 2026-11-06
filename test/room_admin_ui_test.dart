@@ -70,7 +70,7 @@ void main() {
 
     testWidgets('opens for a plain member with the contact rows', (t) async {
       await open(t, RoomPermissions.none);
-      expect(tester_exception(), isNull,
+      expect(testerException(), isNull,
           reason: 'the sheet must build without throwing');
       // Everyone gets these — the sheet is not admin-only.
       expect(find.byIcon(CupertinoIcons.chat_bubble_fill), findsOneWidget);
@@ -96,7 +96,7 @@ void main() {
         membersCanInvite: true,
         linkJoinPolicy: RoomJoinPolicy.open,
       ));
-      expect(tester_exception(), isNull);
+      expect(testerException(), isNull);
       expect(find.byIcon(CupertinoIcons.shield_lefthalf_fill), findsOneWidget);
       expect(find.byIcon(CupertinoIcons.person_badge_minus_fill), findsOneWidget);
     });
@@ -110,7 +110,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 80));
       await gesture.up();
       await t.pumpAndSettle();
-      expect(tester_exception(), isNull);
+      expect(testerException(), isNull);
     });
   });
 
@@ -118,7 +118,7 @@ void main() {
     testWidgets('builds without exploding, at the requested count', (t) async {
       await t.pumpWidget(_host(const SkeletonRows(count: 5)));
       await t.pump(const Duration(milliseconds: 200));
-      expect(tester_exception(), isNull);
+      expect(testerException(), isNull);
       // Five rows, each an avatar plus two lines.
       expect(find.byType(Container), findsWidgets);
     });
@@ -127,7 +127,7 @@ void main() {
       await t.pumpWidget(_host(const SkeletonRows(count: 3)));
       await t.pump(const Duration(milliseconds: 700));
       await t.pump(const Duration(milliseconds: 700));
-      expect(tester_exception(), isNull);
+      expect(testerException(), isNull);
     });
   });
 
@@ -254,7 +254,7 @@ void main() {
 }
 
 /// Surfaces an exception captured by the framework during a pump, if any.
-Object? tester_exception() {
+Object? testerException() {
   final e = TestWidgetsFlutterBinding.instance.takeException();
   return e;
 }

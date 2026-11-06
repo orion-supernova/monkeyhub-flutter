@@ -69,11 +69,11 @@ class _NullKeychain extends FlutterSecureStoragePlatform {
 }
 
 class _Health extends ChangeNotifier implements ConnectionHealth {
-  _Health(this.phase, {this.isRetrying = false});
+  _Health(this.phase);
   @override
   final ConnectionPhase phase;
   @override
-  final bool isRetrying;
+  bool get isRetrying => false;
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
 }

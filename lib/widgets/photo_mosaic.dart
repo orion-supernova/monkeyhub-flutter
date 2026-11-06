@@ -9,7 +9,7 @@ import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../models/pending_upload.dart';
 import '../screens/fullscreen_image_viewer.dart' show thumbnailDecodeWidth;
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import '../theme/app_theme.dart';
 import '../theme/interaction.dart';
 import '../theme/theme_scope.dart';
@@ -545,7 +545,7 @@ class MosaicTile extends StatelessWidget {
               () => LongPressGestureRecognizer(
                 duration: kActionMenuLongPress,
                 // As on the row: holding a mouse button is a drag, not a menu.
-                supportedDevices: isWebOrDesktop ? _notMouse : null,
+                supportedDevices: Caps.hover ? _notMouse : null,
               ),
               (r) => r.onLongPress = onLongPress,
             ),

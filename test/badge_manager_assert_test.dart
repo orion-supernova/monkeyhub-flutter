@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
@@ -102,6 +104,11 @@ void main() {
   late _FakeApi api;
   late ChatRepository repo;
   late List<int> written;
+
+  // The badge writes only where a runner implements it; flutter_test defaults
+  // to Android, which writes nothing.
+  setUpAll(() => debugDefaultTargetPlatformOverride = TargetPlatform.macOS);
+  tearDownAll(() => debugDefaultTargetPlatformOverride = null);
 
   setUp(() async {
     cv = _FakeCv();

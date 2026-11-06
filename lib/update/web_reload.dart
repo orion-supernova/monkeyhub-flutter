@@ -5,4 +5,4 @@
 // Neither exists off-web, so this resolves to the interop implementation on web
 // and a no-op stub everywhere else. Mirror of the web_push / web_badge
 // conditional-import pattern.
-export 'web_reload_io.dart' if (dart.library.html) 'web_reload_web.dart';
+export 'web_reload_io.dart' if (dart.library.js_interop) 'web_reload_web.dart';

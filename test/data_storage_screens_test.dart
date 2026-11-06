@@ -39,6 +39,9 @@ class _FakeRepo extends ChangeNotifier implements ChatRepository {
   ChatUser? userById(String id) => null;
 
   @override
+  ChatUser? otherUserFor(ChatRoom room) => null;
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 

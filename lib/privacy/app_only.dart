@@ -21,7 +21,7 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../services/link_opener.dart';
 
 import '../data/ui_selection_store.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -196,14 +196,8 @@ class AppOnlyPanel extends StatelessWidget {
   }
 
   static Future<void> _openDownloads() async {
-    try {
-      await launchUrl(
-        Uri.parse(kDownloadPageUrl),
-        mode: LaunchMode.externalApplication,
-      );
-    } catch (e) {
-      debugPrint('app only: downloads page did not open: $e');
-    }
+    final opened = await LinkOpener.openExternal(kDownloadPageUrl);
+    if (!opened) debugPrint('app only: downloads page did not open');
   }
 }
 

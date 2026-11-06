@@ -26490,6 +26490,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Lite draws no glass, so there is nothing to tune. Choose Frosted to shape the glass yourself.'**
   String get uiKitLiteFooter;
+
+  /// Toast after forwarding messages from the shared-content browser; {count} is how many chats received them (1 = a single chat, say just that it was forwarded).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{forwarded} other{forwarded to {count} chats}}'**
+  String bulkForwardedToChats(int count);
+
+  /// Toast after saving photos and videos from the shared-content browser to the device photo library; {count} is how many items were saved.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{saved to photos} other{saved {count} to photos}}'**
+  String bulkSavedToPhotos(int count);
+
+  /// Toast after deleting messages from the shared-content browser; {count} is how many were deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{deleted} other{deleted {count}}}'**
+  String bulkDeletedMessages(int count);
 }
 
 class _AppLocalizationsDelegate

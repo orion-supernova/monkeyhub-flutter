@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../backend/chat_api.dart';
 import 'document_saver.dart';
 import 'file_meta.dart';
+import '../ui/foundation/caps.dart';
 
 /// How a received document can be looked at without leaving the app.
 enum DocumentPreviewKind {
@@ -63,9 +64,7 @@ class DocumentPreview {
   /// so the getter is safe to evaluate on web, where `dart:io` is a stub that
   /// throws.
   static bool get nativeAvailable =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.macOS);
+      Caps.nativeApple;
 
   /// What a tap on this document should do.
   static DocumentPreviewKind kindFor({

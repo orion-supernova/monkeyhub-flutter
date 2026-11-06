@@ -34,6 +34,7 @@ import '../widgets/media_grid_tile.dart';
 import '../widgets/message_stamp.dart' show formatClockTime;
 import '../widgets/media_spoiler.dart';
 import '../widgets/remote_image.dart';
+import '../services/clipboard_actions.dart';
 import 'fullscreen_video_viewer.dart';
 import 'media_pager_screen.dart';
 import 'room_content_actions.dart';
@@ -467,6 +468,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       sourceRoomId: widget.roomId,
       targets: [for (final t in targets) t.id],
       messages: picked,
+      l10n: AppLocalizations.of(context),
     );
     if (!mounted) return;
 
@@ -483,6 +485,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     final result = await saveMessagesToDevice(
       api: widget.api,
       messages: picked,
+      l10n: AppLocalizations.of(context),
     );
     if (!mounted) return;
     toast.show(result.summary);
@@ -511,15 +514,14 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     ];
     if (urls.isEmpty) return;
     final l10n = AppLocalizations.of(context);
-    final toast = AppToast.of(context);
-    await Clipboard.setData(ClipboardData(text: urls.join('\n')));
+    await copyText(
+      context,
+      urls.join('\n'),
+      toast: l10n.roomContentScreenLinksCopied(urls.length),
+      haptic: CopyHaptic.light,
+    );
     if (!mounted) return;
     _selection.clear();
-    HapticFeedback.lightImpact();
-    toast.show(
-      l10n.roomContentScreenLinksCopied(urls.length),
-      tone: ToastTone.success,
-    );
   }
 
   Future<void> _deleteSelected() async {
@@ -544,6 +546,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       api: widget.api,
       repo: widget.repo,
       messageIds: ids,
+      l10n: AppLocalizations.of(context),
     );
     if (!mounted) return;
 

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
@@ -31,6 +30,7 @@ import 'ios_kit.dart' show groupedMetaStyle;
 
 import 'teardown_safe.dart';
 import '../l10n/text_case.dart';
+import 'blur_scrim.dart';
 
 enum ChatRowAction {
   pin,
@@ -164,6 +164,9 @@ Future<ChatRowAction?> showChatRowActionMenu({
   final screenSize = MediaQuery.sizeOf(context);
   final safeInsets = MediaQuery.paddingOf(context);
 
+  // The page behind, blurred once now instead of a live blur faded in.
+  final backdrop = BlurSnapshot.capture(anchorCtx, sigma: 18);
+
   final completer = Completer<ChatRowAction?>();
   // The native tab bar draws over every Flutter pixel, this menu's dimmed
   // backdrop included; out of the way until the menu resolves.
@@ -172,6 +175,7 @@ Future<ChatRowAction?> showChatRowActionMenu({
   entry = OverlayEntry(
     builder: (_) => _ChatRowActionMenuOverlay(
       anchorRect: anchorRect,
+      backdrop: backdrop,
       previewBuilder: previewBuilder,
       screenSize: screenSize,
       safeInsets: safeInsets,
@@ -195,6 +199,7 @@ Future<ChatRowAction?> showChatRowActionMenu({
 class _ChatRowActionMenuOverlay extends StatefulWidget {
   const _ChatRowActionMenuOverlay({
     required this.anchorRect,
+    required this.backdrop,
     required this.previewBuilder,
     required this.screenSize,
     required this.safeInsets,
@@ -206,6 +211,9 @@ class _ChatRowActionMenuOverlay extends StatefulWidget {
   });
 
   final Rect anchorRect;
+
+  /// The chat list behind, pre-blurred; null when it could not be captured.
+  final BlurSnapshot? backdrop;
   final WidgetBuilder previewBuilder;
   final Size screenSize;
   final EdgeInsets safeInsets;
@@ -221,6 +229,9 @@ class _ChatRowActionMenuOverlay extends StatefulWidget {
 
 class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> with TickerProviderStateMixin {
   late final AnimationController _ctrl;
+
+  /// The scrim's fade: over the first part of the entrance only.
+  late final CurvedAnimation _scrimFade;
   bool _closing = false;
 
   /// Built exactly once, on first use, and reused for the rest of this
@@ -248,15 +259,21 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> wi
     _ctrl = AnimationController(
       vsync: this,
       // Long enough for the lift's overshoot to read; the fade itself is
-      // over in the first third of it (see [_Scrim]).
+      // over in the first third of it (see [BlurScrim]).
       duration: const Duration(milliseconds: 420),
       reverseDuration: const Duration(milliseconds: 180),
+    );
+    _scrimFade = CurvedAnimation(
+      parent: _ctrl,
+      curve: const Interval(0, 0.4, curve: Curves.easeOut),
+      reverseCurve: Curves.easeIn,
     );
     _ctrl.forward();
   }
 
   @override
   void dispose() {
+    _scrimFade.dispose();
     _ctrl.dispose();
     super.dispose();
   }
@@ -345,7 +362,13 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> wi
           builder: (context, child) {
             return Stack(
               children: [
-                _Scrim(t: _ctrl, onTap: () => _resolve(null)),
+                BlurScrim(
+                  t: _scrimFade,
+                  backdrop: widget.backdrop,
+                  sigma: 18,
+                  dim: Colors.black.withValues(alpha: 0.28),
+                  onTap: () => _resolve(null),
+                ),
                 _LiftedRow(
                   t: _ctrl,
                   rect: previewRect,
@@ -437,60 +460,11 @@ double _springOrEase(Animation<double> t) =>
         ? Curves.easeIn.transform(t.value)
         : const ElasticOutCurve(0.9).transform(t.value);
 
-// ───────────────────────── scrim ─────────────────────────
-
-/// Blurs and dims everything behind the menu — the same treatment
-/// `message_action_menu.dart`'s `_Scrim` gives a long-pressed message bubble,
-/// so a long-pressed chat row reads as the same gesture with the same weight.
-class _Scrim extends StatelessWidget {
-  const _Scrim({required this.t, required this.onTap});
-  final Animation<double> t;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        // The blur is drawn at ONE fixed strength and only its layer's
-        // opacity follows the animation — the filter itself never changes,
-        // so the engine is not asked to re-derive a blur at a new radius on
-        // every frame. The dim fades over the first part of the entrance.
-        child: FadeTransition(
-          opacity: CurvedAnimation(
-            parent: t,
-            curve: const Interval(0, 0.4, curve: Curves.easeOut),
-            reverseCurve: Curves.easeIn,
-          ),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                    child: const SizedBox.expand(),
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: ColoredBox(
-                  color: Colors.black.withValues(alpha: 0.28),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ───────────────────────── lifted row ─────────────────────────
 
 /// Positions [child] at [rect] and lifts it with a scale + shadow — the
 /// chat-row counterpart of `message_action_menu.dart`'s `_LiftedBubble`. Sits
-/// above [_Scrim] in the stack, so it alone stays in sharp focus while
+/// above [BlurScrim] in the stack, so it alone stays in sharp focus while
 /// everything else blurs.
 ///
 /// Unlike the lifted bubble — NOT `IgnorePointer`-wrapped:

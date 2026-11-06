@@ -414,37 +414,30 @@ class SheetBackCloseButton extends StatelessWidget {
     final m = MaterialLocalizations.of(context);
     final label = back ? m.backButtonTooltip : m.closeButtonLabel;
     final rtl = Directionality.of(context) == TextDirection.rtl;
-    return HoverHint(
-      label: label,
-      child: Semantics(
-        button: true,
-        label: label,
-        child: ChromeDisc(
-          size: density.iconButton,
-          still: true,
-          onTap: onTap ?? () => Navigator.of(context).maybePop(),
-          child: AnimatedSwitcher(
-            duration: motion.d(theme.motionMed),
-            switchInCurve: Curves.easeOutBack,
-            switchOutCurve: Curves.easeIn,
-            transitionBuilder: (child, anim) => RotationTransition(
-              turns: Tween(begin: back ? -0.25 : 0.25, end: 0.0).animate(anim),
-              child: ScaleTransition(
-                scale: anim,
-                child: FadeTransition(opacity: anim, child: child),
-              ),
-            ),
-            child: Icon(
-              back
-                  ? (rtl
-                        ? CupertinoIcons.chevron_right
-                        : CupertinoIcons.chevron_left)
-                  : CupertinoIcons.xmark,
-              key: ValueKey(back),
-              size: density.iconGlyph(back ? 19 : 17),
-              color: theme.ink,
-            ),
+    return GlassIconButton(
+      still: true,
+      semanticLabel: label,
+      onTap: onTap ?? () => Navigator.of(context).maybePop(),
+      glyph: AnimatedSwitcher(
+        duration: motion.d(theme.motionMed),
+        switchInCurve: Curves.easeOutBack,
+        switchOutCurve: Curves.easeIn,
+        transitionBuilder: (child, anim) => RotationTransition(
+          turns: Tween(begin: back ? -0.25 : 0.25, end: 0.0).animate(anim),
+          child: ScaleTransition(
+            scale: anim,
+            child: FadeTransition(opacity: anim, child: child),
           ),
+        ),
+        child: Icon(
+          back
+              ? (rtl
+                    ? CupertinoIcons.chevron_right
+                    : CupertinoIcons.chevron_left)
+              : CupertinoIcons.xmark,
+          key: ValueKey(back),
+          size: density.iconGlyph(back ? 19 : 17),
+          color: theme.ink,
         ),
       ),
     );

@@ -232,10 +232,14 @@ void main() {
     expect(find.byKey(ephemeralSignatureKey), findsOneWidget);
     expect(washOpacity(tester), 1.0, reason: 'the warning is at full strength');
     expectUntouched(tester);
+    // HoldPressFeedback keeps an identity Transform around every bubble at
+    // rest (so a press never remounts it); only a real lift or shrink counts.
     expect(
       find.ancestor(
         of: find.byType(HighlightPulse),
-        matching: find.byType(Transform),
+        matching: find.byWidgetPredicate(
+          (w) => w is Transform && !w.transform.isIdentity(),
+        ),
       ),
       findsNothing,
       reason: 'and nothing lifts or shrinks it off the glass',

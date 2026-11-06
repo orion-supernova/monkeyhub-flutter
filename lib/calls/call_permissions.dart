@@ -1,12 +1,13 @@
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart'
-    show debugPrint, kIsWeb, visibleForTesting;
+    show debugPrint, visibleForTesting;
 import 'package:flutter/services.dart';
 
 import '../main.dart' show rootNavigatorKey;
 import '../widgets/destructive_sheet.dart';
 import 'call_models.dart';
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// Mic/camera grants, checked *before* a call is allowed to exist.
 ///
@@ -33,7 +34,7 @@ import 'call_models.dart';
 class CallPermissions {
   CallPermissions._();
 
-  static const MethodChannel _device = MethodChannel('monkeyhub/device');
+  static const MethodChannel _device = Channels.device;
 
   /// Forces the Android branch on a VM test host, where `Platform.isAndroid` is
   /// false and every method would otherwise short-circuit to "granted" and
@@ -43,7 +44,7 @@ class CallPermissions {
 
   /// Whether this platform needs (and can answer) a permission pre-flight.
   static bool get _applies =>
-      debugForceApplies ?? (!kIsWeb && Platform.isAndroid);
+      debugForceApplies ?? (Caps.android);
 
   /// Pure check, no prompting and no UI. Used at ring time to decide whether
   /// the native call UI may safely bring up its foreground service.

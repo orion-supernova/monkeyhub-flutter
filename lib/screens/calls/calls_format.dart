@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/generated/app_localizations.dart';
+import '../../format/duration_format.dart';
 import 'call_log_models.dart';
 
 /// `m:ss`, or `h:mm:ss` from an hour up: the clock a call is read off.
 String clockDuration(int ms) {
-  final total = (ms / 1000).round();
-  final h = total ~/ 3600;
-  final m = (total % 3600) ~/ 60;
-  final s = total % 60;
-  final ss = s.toString().padLeft(2, '0');
-  if (h > 0) return '$h:${m.toString().padLeft(2, '0')}:$ss';
-  return '$m:$ss';
+  return formatClock(Duration(seconds: (ms / 1000).round()));
 }
 
 /// Talk time for a header: "3h 20m", "12m", "40s".

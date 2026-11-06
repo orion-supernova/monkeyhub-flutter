@@ -300,7 +300,7 @@ class ViewerChromeButton extends StatelessWidget {
   /// phone, which has no hover to show it on.
   final String? tooltip;
 
-  static const double size = 40;
+  static const double size = 44;
 
   @override
   Widget build(BuildContext context) {

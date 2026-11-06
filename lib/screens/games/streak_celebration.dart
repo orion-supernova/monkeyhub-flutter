@@ -8,6 +8,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/text_case.dart';
 import '../../main.dart' show rootNavigatorKey;
 import '../../widgets/capture_glyphs.dart';
+import '../../theme/motion.dart';
 
 /// How big a streak is, for how loud the celebration is. The tiers are the
 /// design: each one adds something the one below does not have, so reaching the
@@ -220,7 +221,7 @@ class _StreakCelebrationViewState extends State<StreakCelebrationView>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final calm = MediaQuery.disableAnimationsOf(context);
+    final calm = MotionScope.of(context).calm;
     final size = MediaQuery.sizeOf(context);
     final flameSize = math.min(size.width * 0.5, 210.0);
     return Material(

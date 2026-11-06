@@ -1,7 +1,6 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../auth/auth_service.dart';
@@ -19,7 +18,7 @@ import 'navigation/scroll_memory.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import '../keyboard/app_shortcuts.dart' show KeyCombo;
 import '../widgets/shortcuts/shortcuts_panel.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -78,6 +77,7 @@ import 'server_screen.dart';
 import 'theme_screen.dart';
 import 'video_quality_screen.dart';
 import '../widgets/teardown_safe.dart';
+import '../theme/motion.dart';
 
 /// The gap under every hub section: 32, the one Feed and Discover keep
 /// between theirs. The hub is a tab root, so its sections wear the tab-root
@@ -378,7 +378,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       case MotionLevel.calm:
         return l10n.settingsScreenValueMotionCalm;
       case null:
-        return MediaQuery.disableAnimationsOf(context)
+        return MotionScope.of(context).calm
             ? l10n.settingsScreenValueMotionSystemCalm
             : l10n.settingsScreenValueMotionSystemFull;
     }
@@ -628,7 +628,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 stickersToggle(),
                 // Where someone who has never pressed ⌘/ finds the shortcuts.
                 // Desktop and web only: a phone has no keyboard to ask about.
-                if (isWebOrDesktop) ...[
+                if (Caps.physicalKeyboard) ...[
                   _HubRow(
                     icon: CupertinoIcons.keyboard,
                     tone: TileTone.gray,
@@ -687,7 +687,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                 // Each renders as no rows at all when there is nothing to show.
                 ..._CallDeliveryRows.rows(context, _callDelivery),
                 if (_menuBarVisible != null)
-                  _IconLed(_HubToggle(
+                  _IconLed(GroupedRow.toggle(
                     icon: CupertinoIcons.device_laptop,
                     tone: TileTone.gray,
                     title: l10n.settingsHubMenuBar,
@@ -1663,41 +1663,9 @@ class _IconLedState extends State<GroupedRow> {
   Widget build(BuildContext context) => (widget as _IconLed).child;
 }
 
-/// A switch row with its tap haptic. `Switch.adaptive` is silent even on iOS,
-/// where the real UISwitch always ticks.
-class _HubToggle extends StatelessWidget {
-  const _HubToggle({
-    required this.icon,
-    required this.tone,
-    required this.title,
-    required this.value,
-    required this.onChanged,
-    this.subtitle,
-  });
-
-  final IconData icon;
-  final TileTone tone;
-  final String title;
-  final String? subtitle;
-  final bool value;
-  final Future<void> Function(bool) onChanged;
-
-  @override
-  Widget build(BuildContext context) => GroupedRow.toggle(
-        icon: icon,
-        tone: tone,
-        title: title,
-        subtitle: subtitle,
-        value: value,
-        onChanged: (v) {
-          HapticFeedback.lightImpact();
-          onChanged(v);
-        },
-      );
-}
-
-/// A [_HubToggle] over a [SettingsStore] value. The hub rebuilds on every
-/// store change, so this reads the value fresh each build.
+/// A switch row over a [SettingsStore] value. The hub rebuilds on every
+/// store change, so this reads the value fresh each build. (The tap haptic
+/// lives in [RowSwitch].)
 class _StoreToggle extends StatelessWidget {
   const _StoreToggle({
     required this.icon,
@@ -1716,7 +1684,7 @@ class _StoreToggle extends StatelessWidget {
   final Future<void> Function(bool) onChanged;
 
   @override
-  Widget build(BuildContext context) => _HubToggle(
+  Widget build(BuildContext context) => GroupedRow.toggle(
         icon: icon,
         tone: tone,
         title: title,
@@ -1956,9 +1924,9 @@ class _CheckForUpdatesRowState extends State<_CheckForUpdatesRow> {
               ? SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator.adaptive(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(theme.inkMuted),
+                  child: CupertinoActivityIndicator(
+                    radius: 8,
+                    color: theme.inkMuted,
                   ),
                 )
               : (available

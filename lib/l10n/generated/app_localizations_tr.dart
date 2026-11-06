@@ -15968,4 +15968,37 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get uiKitLiteFooter =>
       'Hafif stil cam çizmez, bu yüzden ayarlanacak bir şey yok. Camı kendin şekillendirmek için Buzlu\'yu seç.';
+
+  @override
+  String bulkForwardedToChats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sohbete iletildi',
+      one: 'iletildi',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkSavedToPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count öğe fotoğraflara kaydedildi',
+      one: 'fotoğraflara kaydedildi',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkDeletedMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count öğe silindi',
+      one: 'silindi',
+    );
+    return '$_temp0';
+  }
 }

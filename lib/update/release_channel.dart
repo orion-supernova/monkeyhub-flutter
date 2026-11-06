@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// How this copy of the app was distributed — which decides both *what* counts
 /// as "the latest version" and *where* the update button has to send the user.
@@ -78,8 +79,7 @@ Future<ReleaseChannel> resolveChannel() async {
   // store install would read the TestFlight row and be told about versions
   // the store doesn't have yet.
   if (defined == ReleaseChannel.macosTestflight &&
-      !kIsWeb &&
-      defaultTargetPlatform == TargetPlatform.macOS) {
+      Caps.macOS) {
     return await _macInstallerEnvironment() == 'production'
         ? ReleaseChannel.macosAppstore
         : ReleaseChannel.macosTestflight;
@@ -139,7 +139,7 @@ Future<ReleaseChannel> resolveChannel() async {
 /// `macos/Runner/InstallerEnvironment.swift`.
 Future<String?> _macInstallerEnvironment() async {
   try {
-    return await const MethodChannel('monkeyhub/installer')
+    return await Channels.installer
         .invokeMethod<String>('environment');
   } catch (_) {
     return null;

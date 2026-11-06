@@ -4388,5 +4388,8 @@
   "uiKitAutoBody": "Elige el mejor estilo para este dispositivo. Ahora: {style}",
   "uiKitLiteTitle": "Ligero",
   "uiKitLiteBody": "Superficies sólidas, sin desenfoque. Lo más fluido en teléfonos antiguos y cuida la batería.",
-  "uiKitLiteFooter": "Ligero no dibuja vidrio, así que no hay nada que ajustar. Elige Esmerilado para dar forma al vidrio tú mismo."
+  "uiKitLiteFooter": "Ligero no dibuja vidrio, así que no hay nada que ajustar. Elige Esmerilado para dar forma al vidrio tú mismo.",
+  "bulkForwardedToChats": "{count, plural, =1{reenviado} other{reenviado a {count} chats}}",
+  "bulkSavedToPhotos": "{count, plural, =1{guardado en Fotos} other{{count} guardados en Fotos}}",
+  "bulkDeletedMessages": "{count, plural, =1{eliminado} other{{count} eliminados}}"
 }

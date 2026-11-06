@@ -181,11 +181,10 @@ class _ReleaseDeviceScreenState extends State<ReleaseDeviceScreen> {
                 onSubmitted: (_) => _submitPassword(),
               ),
               const SizedBox(height: 18),
-              SheetButton(
+              SheetActionButton(
                 label: _busy
                     ? l10n.linkedAccountsScreenStatusChecking
                     : l10n.rdSignOut(childName),
-                filled: true,
                 onTap: _busy ? null : _submitPassword,
               ),
               if (_error != null) ...[

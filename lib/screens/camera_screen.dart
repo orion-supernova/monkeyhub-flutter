@@ -7,7 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:photo_manager/photo_manager.dart' show AssetEntity, ThumbnailSize;
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import 'package:flutter/foundation.dart'
-    show TargetPlatform, ValueListenable, defaultTargetPlatform, kIsWeb;
+    show ValueListenable, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -25,6 +25,8 @@ import 'room_items.dart' show formatClockDuration;
 import '../widgets/teardown_safe.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/glass_buttons.dart';
+import '../ui/foundation/caps.dart';
+import '../theme/motion.dart';
 
 /// In-app camera. Shutter → the photo, immediately.
 ///
@@ -292,9 +294,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   ///
   /// Desktop is out too: `camera_desktop` has no flash and no zoom beyond 1x.
   static final _lensControls =
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android);
+      Caps.nativeMobile;
 
   /// Memoized because the answer cannot change while the app is running, and
   /// the round-trip is otherwise paid on every single open.
@@ -431,7 +431,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   /// pointed the way the phone is held only for the shot itself, behind a
   /// blink. Android's preview is display-relative already and never turned.
   bool get _pinsFrames =>
-      _holdPortrait == true && defaultTargetPlatform == TargetPlatform.iOS;
+      _holdPortrait == true && Caps.iOS;
 
   @override
   void initState() {
@@ -1161,7 +1161,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
     // turned with it. Held portrait it did not, so hand it the point as that
     // turned layout would have seen it. Android measures against the display,
     // which is what is on screen, and needs nothing.
-    if (_holdPortrait == true && defaultTargetPlatform == TargetPlatform.iOS) {
+    if (_holdPortrait == true && Caps.iOS) {
       final p = unturnNormalised(
         Offset(nx, ny),
         quarterTurnsFor(controller.value.deviceOrientation),
@@ -1214,6 +1214,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
         await controller.stopImageStream();
       } catch (_) {}
       _metering = false;
+      if (!mounted) return;
     }
 
     final screenFlash = _usesScreenFlash && _flashWillFire;
@@ -1862,27 +1863,24 @@ class _ShutterButton extends StatefulWidget {
 
 class _ShutterButtonState extends State<_ShutterButton>
     with TeardownSafe<_ShutterButton> {
-  bool _pressed = false;
-
   @override
   Widget build(BuildContext context) {
-    final enabled = widget.onTap != null;
     final l10n = AppLocalizations.of(context);
-    return FocusableTap(
+    // SpringPress owns the one tap path and the keyboard route; scale 1 because
+    // the disc inside is what dips (and morphs), not the whole button.
+    return SpringPress(
       onTap: widget.onTap,
+      scale: 1,
+      haptic: false,
+      hover: HoverEffect.none,
+      focusShape: FocusRingShape.circle,
+      focusRadius: 39,
       semanticLabel: !widget.video
           ? l10n.cameraScreenTakePhotoLabel
           : widget.recording
           ? l10n.cameraScreenStopRecordingLabel
           : l10n.cameraScreenStartRecordingLabel,
-      shape: FocusRingShape.circle,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
-        onTapUp: enabled ? (_) => setState(() => _pressed = false) : null,
-        onTapCancel: enabled ? () => setState(() => _pressed = false) : null,
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
+      builder: (context, pressed) => SizedBox(
           width: 78,
           height: 78,
           child: Center(
@@ -1902,13 +1900,13 @@ class _ShutterButtonState extends State<_ShutterButton>
                   // the disc and the stop square: one rounded rectangle whose
                   // radius animates, where a BoxShape switch could only snap.
                   duration: Duration(
-                    milliseconds: _pressed
+                    milliseconds: pressed
                         ? 90
-                        : (MediaQuery.disableAnimationsOf(context) ? 0 : 340),
+                        : (MotionScope.of(context).calm ? 0 : 340),
                   ),
-                  curve: _pressed ? Curves.easeOut : Curves.easeOutBack,
-                  width: widget.recording ? 30 : (_pressed ? 50 : 58),
-                  height: widget.recording ? 30 : (_pressed ? 50 : 58),
+                  curve: pressed ? Curves.easeOut : Curves.easeOutBack,
+                  width: widget.recording ? 30 : (pressed ? 50 : 58),
+                  height: widget.recording ? 30 : (pressed ? 50 : 58),
                   decoration: BoxDecoration(
                     // A circle everywhere except mid-recording, where the
                     // rounded square is the stop glyph every camera has used
@@ -1926,7 +1924,6 @@ class _ShutterButtonState extends State<_ShutterButton>
             ),
           ),
         ),
-      ),
     );
   }
 }

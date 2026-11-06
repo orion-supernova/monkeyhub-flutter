@@ -5,14 +5,14 @@ import '../backend/convex_client.dart';
 import '../data/games_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
+import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
-import 'chat_list_row.dart' show MonogramAvatar;
 import 'ios_kit.dart';
 import 'medal_disc.dart';
 import 'moment_rail.dart' show MomentUnseenDot;
-import 'remote_image.dart';
 import 'streak_badge.dart';
+import 'user_avatar.dart';
 
 /// THE row of every scoreboard: the leaderboard under its podium, a game's
 /// "today's times", the code's scoreboard. One shape everywhere, so a person
@@ -179,22 +179,17 @@ class PlayerFace extends StatelessWidget {
   Widget build(BuildContext context) {
     final storageId =
         this.storageId ?? GamesStore.instance.standings.avatars[userId];
-    final monogram = MonogramAvatar(label: label, seed: userId, size: size);
-    final face = storageId == null
-        ? monogram
-        : Stack(
-            fit: StackFit.expand,
-            children: [
-              monogram,
-              RemoteImage(
-                storageId: storageId,
-                api: _api,
-                width: size,
-                height: size,
-                borderRadius: BorderRadius.circular(size),
-              ),
-            ],
-          );
+    final face = UserAvatar(
+      user: ChatUser(
+        id: userId,
+        username: '',
+        name: label,
+        avatarStorageId: storageId,
+      ),
+      size: size,
+      api: _api,
+      showStatus: false,
+    );
     final mark = badge;
     if (mark == null && !dot) {
       return SizedBox.square(dimension: size, child: face);

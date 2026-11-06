@@ -19,7 +19,7 @@ import 'audio_level_monitor.dart';
 import 'call_audio_devices.dart';
 import 'call_audio_sheet.dart';
 import 'call_float.dart';
-import 'call_media.dart';
+import '../ui/foundation/caps.dart';
 import 'call_models.dart';
 import 'call_options_sheet.dart';
 import 'call_service.dart';
@@ -309,7 +309,7 @@ class _CallScreenState extends State<CallScreen>
     // Our own share, previewed only where the preview is not a mirror
     // tunnel — a desktop window, not the whole phone screen.
     final ownScreen =
-        svc.localScreenSharing && !isMobileCallPlatform ? svc.screenStream : null;
+        svc.localScreenSharing && !Caps.mobileCalls ? svc.screenStream : null;
     if (_localScreenRenderer.srcObject != ownScreen ||
         _boundLocalScreenTick != svc.localScreenStreamTick) {
       _localScreenRenderer.srcObject = ownScreen;
@@ -466,7 +466,7 @@ class _CallScreenState extends State<CallScreen>
       return;
     }
     ScreenShareSource? source;
-    if (!isMobileCallPlatform) {
+    if (!Caps.mobileCalls) {
       source = await showSharePickerSheet(context);
       if (source == null || !mounted) return;
     }
@@ -566,7 +566,7 @@ class _CallScreenState extends State<CallScreen>
         // Lit while live; a headset badge while a headset's mic hears you.
         glyph: CallTrayGlyph.mic(
           on: !s.localMuted,
-          headset: isMobileCallPlatform &&
+          headset: Caps.mobileCalls &&
               CallAudioDevices.instance.micOnHeadset,
           route: callHeadsetGlyphRoute(
             CallAudioDevices.instance.output,
@@ -625,7 +625,7 @@ class _CallScreenState extends State<CallScreen>
           onTap: () => svc.drawArmed.value = !svc.drawArmed.value,
           label: l10n.callScreenControlDraw,
         ),
-      if (svc.localCamActive && isMobileCallPlatform)
+      if (svc.localCamActive && Caps.mobileCalls)
         CallTrayAction(
           icon: CallGlyphs.flip,
           glyph: const CallTrayGlyph(CallGlyphKind.flip),
@@ -1201,7 +1201,7 @@ class _ShareStage extends StatelessWidget {
         ? l10n.groupCallScreenYouAreSharing
         : l10n.groupCallScreenSharingBy(session.peerName);
     final Widget surface;
-    if (mine && isMobileCallPlatform) {
+    if (mine && Caps.mobileCalls) {
       surface = Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1241,7 +1241,7 @@ class _ShareStage extends StatelessWidget {
         surface,
         // The presenter's own placeholder already says so; only the viewer
         // needs telling whose screen this is.
-        if (!mine || !isMobileCallPlatform)
+        if (!mine || !Caps.mobileCalls)
           Positioned(
             left: 16,
             top: topInset,

@@ -148,9 +148,6 @@ class _ChatStorageState extends State<_ChatStorage> with StorageSelection {
     final theme = ThemeScope.of(context);
     final usage = _usage;
     final room = widget.repo.roomById(widget.roomId);
-    final me = widget.repo.userId;
-    final otherId =
-        room == null || me == null ? null : room.otherParticipantId(me);
     final cacheTotal = _service.report.total;
     return UsageHero(
       segments: [
@@ -168,7 +165,7 @@ class _ChatStorageState extends State<_ChatStorage> with StorageSelection {
           : ChatRoomAvatar(
               room: room,
               size: 112,
-              dmUser: otherId == null ? null : widget.repo.userById(otherId),
+              dmUser: widget.repo.otherUserFor(room),
               api: widget.api,
             ),
       // The page's large title already names the chat.

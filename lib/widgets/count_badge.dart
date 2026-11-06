@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../keyboard/focusable_tap.dart' show HoverEffect;
 import 'count_bump.dart';
 import 'odometer_number.dart';
+import 'spring_press.dart';
 import 'ios_kit.dart' show groupedMetaStyle, quietFill;
+
+enum _BadgeKind { pill, tab, row, chat, label }
 
 double _badgeContrast(Color a, Color b) {
   final la = a.computeLuminance();
@@ -15,7 +19,7 @@ double _badgeContrast(Color a, Color b) {
 
 /// The small accent pill that carries a pending count.
 ///
-/// Matches the badge treatment already used inside [PillNav] — that one stays
+/// Matches the badge treatment already used in the bottom nav — that one stays
 /// hand-rolled because its colours animate with the sliding active indicator,
 /// which this doesn't need. Everywhere else should use this so the shape and
 /// weight stay identical across the app.
@@ -29,7 +33,13 @@ class CountBadge extends StatelessWidget {
     this.onAccent = false,
     this.max = 99,
     this.mention = false,
-  }) : tab = false;
+  })  : _kind = _BadgeKind.pill,
+        unread = false,
+        quiet = false,
+        text = null,
+        fill = null,
+        ink = null,
+        onTap = null;
 
   /// THE tab-bar badge: a solid [AppThemeBadge.badge] capsule, white 13/w600 tabular digits
   /// in the system face whatever the theme — the iOS tab badge, which reads
@@ -37,12 +47,75 @@ class CountBadge extends StatelessWidget {
   const CountBadge.tab({super.key, required this.count, this.max = 99})
     : onAccent = false,
       mention = false,
-      tab = true;
+      _kind = _BadgeKind.tab,
+      unread = false,
+      quiet = false,
+      text = null,
+      fill = null,
+      ink = null,
+      onTap = null;
+
+  /// THE red count pill of a grouped row ([RowBadge]): solid danger, white
+  /// 13/w600 tabular figures, a 22pt capsule. No bump.
+  const CountBadge.row({super.key, required this.count, this.max = 99})
+    : onAccent = false,
+      mention = false,
+      _kind = _BadgeKind.row,
+      unread = false,
+      quiet = false,
+      text = null,
+      fill = null,
+      ink = null,
+      onTap = null;
+
+  /// THE chat-list unread marker ([ChatUnreadBadge]): a solid
+  /// [AppThemeBadge.badge] capsule (circle for one digit) with bold white
+  /// digits; a bare dot when only [unread] is known. [quiet] (a muted room)
+  /// goes grey rather than silent.
+  const CountBadge.chat({
+    super.key,
+    this.count = 0,
+    this.unread = false,
+    this.quiet = false,
+  })  : onAccent = false,
+        mention = false,
+        max = 99,
+        _kind = _BadgeKind.chat,
+        text = null,
+        fill = null,
+        ink = null,
+        onTap = null;
+
+  /// A pill carrying free text instead of a number (a call bubble's "x3"
+  /// run badge), in the caller's [fill] and [ink], optionally tappable.
+  const CountBadge.label({
+    super.key,
+    required String this.text,
+    required Color this.fill,
+    required Color this.ink,
+    this.onTap,
+  })  : count = 1,
+        max = 99,
+        onAccent = false,
+        mention = false,
+        _kind = _BadgeKind.label,
+        unread = false,
+        quiet = false;
 
   final int count;
+  final _BadgeKind _kind;
 
-  /// The tab-bar style (see [CountBadge.tab]).
-  final bool tab;
+  /// [CountBadge.chat]: an unread room with no count shows a dot.
+  final bool unread;
+
+  /// [CountBadge.chat]: a muted room.
+  final bool quiet;
+
+  /// [CountBadge.label] only.
+  final String? text;
+  final Color? fill;
+  final Color? ink;
+  final VoidCallback? onTap;
 
   /// True when at least one of the counted messages named this user with an
   /// `@`. The pill fills in and grows an `@` in front of the number.
@@ -62,14 +135,115 @@ class CountBadge extends StatelessWidget {
   final int max;
 
   @override
-  Widget build(BuildContext context) =>
-      CountBump(count: count, child: _badge(context));
+  Widget build(BuildContext context) => switch (_kind) {
+        _BadgeKind.row => _row(context),
+        _BadgeKind.chat => _chat(context),
+        _BadgeKind.label => _label(context),
+        _ => CountBump(count: count, child: _badge(context)),
+      };
+
+  Widget _row(BuildContext context) {
+    if (count <= 0) return const SizedBox.shrink();
+    final theme = ThemeScope.of(context);
+    return Container(
+      constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 7),
+      decoration: BoxDecoration(
+        color: theme.danger,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Center(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Text(
+          count > max ? '$max+' : '$count',
+          style: groupedMetaStyle(theme).copyWith(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            height: 1.1,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _chat(BuildContext context) {
+    if (count <= 0 && !unread) return const SizedBox.shrink();
+    final theme = ThemeScope.of(context);
+    final fillColor =
+        quiet ? theme.inkMuted.withValues(alpha: 0.45) : theme.badge;
+    final numbered = count > 0;
+    final label = count > 99 ? '99+' : '$count';
+    return Semantics(
+      label: numbered
+          ? label
+          : AppLocalizations.of(context).roomFacetLabelUnread,
+      excludeSemantics: true,
+      child: CountBump(
+        count: count,
+        child: Container(
+          constraints: BoxConstraints(
+            minWidth: numbered ? 22 : 12,
+            minHeight: numbered ? 22 : 12,
+          ),
+          padding: EdgeInsets.symmetric(horizontal: numbered ? 7 : 0),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: fillColor,
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: numbered
+              ? Text(
+                  label,
+                  maxLines: 1,
+                  style: theme.bodyEmph.copyWith(
+                    fontSize: 13,
+                    height: 1,
+                    fontWeight: FontWeight.w700,
+                    color: quiet ? theme.surface : const Color(0xFFFFFFFF),
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+
+  Widget _label(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final pill = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
+      decoration: ShapeDecoration(
+        shape: const StadiumBorder(),
+        color: fill,
+      ),
+      child: Text(
+        text!,
+        style: theme.caption.copyWith(
+          fontSize: 11.5,
+          height: 1.2,
+          fontWeight: FontWeight.w700,
+          color: ink,
+          decoration: TextDecoration.none,
+        ),
+      ),
+    );
+    if (onTap == null) return pill;
+    return SpringPress(
+      onTap: onTap,
+      scale: PressSpec.scaleSmall,
+      hover: HoverEffect.none,
+      child: pill,
+    );
+  }
 
   Widget _badge(BuildContext context) {
     if (count <= 0) return const SizedBox.shrink();
     final theme = ThemeScope.of(context);
     final digits = count > max ? '$max+' : '$count';
-    if (tab) {
+    if (_kind == _BadgeKind.tab) {
       return Container(
         constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
         padding: const EdgeInsets.symmetric(horizontal: 6),

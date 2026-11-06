@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../backend/hashing.dart';
 import '../models/expression_item.dart';
+import '../ui/foundation/caps.dart';
 
 /// The KLIPY API — GIF and sticker search, trending, categories, per-user
 /// recents, and the share/report calls its terms ask for.
@@ -73,9 +74,7 @@ class KlipyClient {
 
   /// Ads are a mobile-only product on KLIPY's side.
   static bool get _adPlatform =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android);
+      Caps.nativeMobile;
 
   bool get _wantsAds => adsEnabled && !childSafe && _adPlatform;
 
@@ -105,7 +104,7 @@ class KlipyClient {
       'ad-max-width': adMaxWidth.floor().toString(),
       'ad-min-height': '50',
       'ad-max-height': '250',
-      'ad-os': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
+      'ad-os': Caps.iOS ? 'ios' : 'android',
       'ad-language': PlatformDispatcher.instance.locale.languageCode,
       if (size != null) 'ad-device-w': size.width.round().toString(),
       if (size != null) 'ad-device-h': size.height.round().toString(),

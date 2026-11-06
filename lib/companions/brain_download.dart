@@ -168,7 +168,6 @@ class BrainDownload {
   static const Duration _headerTimeout = Duration(seconds: 30);
 
   HttpClient? _client;
-  IOSink? _sink;
   StreamSubscription<List<int>>? _sub;
 
   /// Completed when the body stream is finished with, one way or another.
@@ -309,7 +308,7 @@ class BrainDownload {
         url: target.url,
       ).save(target);
 
-      final sink = _sink = part.openWrite(mode: FileMode.append);
+      final sink = part.openWrite(mode: FileMode.append);
       final done = _done = Completer<void>();
       var written = received;
 
@@ -342,7 +341,6 @@ class BrainDownload {
         // disk before anyone reads the file's length.
         await sink.flush();
         await sink.close();
-        _sink = null;
         _done = null;
       }
 

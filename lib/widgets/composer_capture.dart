@@ -17,6 +17,7 @@ import '../composer/capture_recorder.dart';
 import '../composer/recording_haptics.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
+import 'spring_press.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../screens/room_items.dart' show formatClockDuration;
@@ -1793,7 +1794,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           alignment: Alignment.center,
           transform: Matrix4.identity()
             ..setEntry(0, 1, totalSkew)
-            ..scale(totalScaleX, totalScaleY, 1.0),
+            ..scaleByDouble(totalScaleX, totalScaleY, 1.0, 1.0),
           child: child,
         );
       },
@@ -1977,15 +1978,12 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         Positioned(
           top: 12,
           left: 0,
-          child: ChromeDisc(
+          child: GlassCloseButton(
             size: 26,
+            iconSize: 13,
             still: true,
             onTap: _closeIdlePreview,
-            child: Semantics(
-              label: l10n.photoChromeCloseSemanticLabel,
-              button: true,
-              child: Icon(Icons.close_rounded, size: 15, color: theme.ink),
-            ),
+            semanticLabel: l10n.photoChromeCloseSemanticLabel,
           ),
         ),
         Positioned(
@@ -2251,35 +2249,31 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
                     child: Row(
                       children: [
                         if (video.canFlip)
-                          ChromeDisc(
+                          GlassIconButton(
                             size: 36,
                             still: true,
                             onTap: () => unawaited(_flipCamera()),
-                            child: Semantics(
-                              label: l10n.cameraScreenSwitchCameraLabel,
-                              child: TweenAnimationBuilder<double>(
-                                tween: Tween(end: _flips.toDouble()),
-                                duration: MotionScope.of(context).d(const Duration(milliseconds: 360)),
-                                curve: Curves.easeInOutCubic,
-                                builder: (context, spin, _) => FlipCameraGlyph(color: theme.ink, spin: spin, size: 22),
-                              ),
+                            semanticLabel: l10n.cameraScreenSwitchCameraLabel,
+                            glyph: TweenAnimationBuilder<double>(
+                              tween: Tween(end: _flips.toDouble()),
+                              duration: MotionScope.of(context).d(const Duration(milliseconds: 360)),
+                              curve: Curves.easeInOutCubic,
+                              builder: (context, spin, _) => FlipCameraGlyph(color: theme.ink, spin: spin, size: 22),
                             ),
                           ),
                         if (video.frontFacing || video.hasTorch) ...[
                           const SizedBox(width: 10),
-                          ChromeDisc(
-                            size: 36,
-                            still: true,
-                            tint: (video.frontFacing ? _screenFlash : video.torchOn) ? const Color(0xFFFFD60A) : null,
-                            onTap: () => unawaited(_toggleFlash()),
-                            child: Semantics(
-                              label: l10n.composerCaptureFlashLabel,
-                              toggled: video.frontFacing ? _screenFlash : video.torchOn,
-                              child: Icon(
-                                (video.frontFacing ? _screenFlash : video.torchOn) ? Icons.flash_on_rounded : Icons.flash_off_rounded,
-                                size: 18,
-                                color: (video.frontFacing ? _screenFlash : video.torchOn) ? Colors.black : theme.ink,
-                              ),
+                          Semantics(
+                            toggled: video.frontFacing ? _screenFlash : video.torchOn,
+                            child: GlassIconButton(
+                              size: 36,
+                              still: true,
+                              tint: (video.frontFacing ? _screenFlash : video.torchOn) ? const Color(0xFFFFD60A) : null,
+                              onTap: () => unawaited(_toggleFlash()),
+                              semanticLabel: l10n.composerCaptureFlashLabel,
+                              icon: (video.frontFacing ? _screenFlash : video.torchOn) ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                              iconSize: 18,
+                              color: (video.frontFacing ? _screenFlash : video.torchOn) ? Colors.black : theme.ink,
                             ),
                           ),
                         ],
@@ -2296,18 +2290,13 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
                   top: pad.top + 8,
                   child: Opacity(
                     opacity: controlsOpacity,
-                    child: ChromeDisc(
-                      size: 44,
+                    child: GlassCloseButton(
                       still: true,
                       onTap: () {
                         HapticFeedback.selectionClick();
                         _unstage();
                       },
-                      child: Semantics(
-                        label: l10n.photoChromeCloseSemanticLabel,
-                        button: true,
-                        child: Icon(Icons.close_rounded, size: 22, color: theme.ink),
-                      ),
+                      semanticLabel: l10n.photoChromeCloseSemanticLabel,
                     ),
                   ),
                 ),
@@ -3054,28 +3043,25 @@ class _CancelTextButton extends StatefulWidget {
 }
 
 class _CancelTextButtonState extends State<_CancelTextButton> {
-  bool _down = false;
-
   @override
   Widget build(BuildContext context) {
-    return FocusableTap(
+    // Dims rather than dips: scale 1 keeps SpringPress's tap and keyboard
+    // path without moving the text.
+    return SpringPress(
       onTap: widget.onTap,
+      scale: 1,
+      haptic: false,
+      hover: HoverEffect.none,
       semanticLabel: widget.label,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => setState(() => _down = true),
-        onTapCancel: () => setState(() => _down = false),
-        onTapUp: (_) => setState(() => _down = false),
-        onTap: widget.onTap,
-        // Height factor 1: a bare Center in the strip's row would take every
-        // pixel of height it is offered and blow the strip up to the screen.
-        child: Center(
-          heightFactor: 1,
-          child: AnimatedOpacity(
-            opacity: _down ? 0.5 : 1,
-            duration: const Duration(milliseconds: 90),
-            child: Text(widget.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: widget.style),
-          ),
+      builder: (context, down) =>
+          // Height factor 1: a bare Center in the strip's row would take every
+          // pixel of height it is offered and blow the strip up to the screen.
+          Center(
+        heightFactor: 1,
+        child: AnimatedOpacity(
+          opacity: down ? 0.5 : 1,
+          duration: const Duration(milliseconds: 90),
+          child: Text(widget.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: widget.style),
         ),
       ),
     );
@@ -3124,7 +3110,7 @@ class _SlidingCancelHintState extends State<_SlidingCancelHint> with SingleTicke
   /// The nudge only while the finger is still: a loop that keeps going under
   /// a moving finger fights it.
   void _sync() {
-    final idle = widget.cancelProgress < 0.05 && !MediaQuery.disableAnimationsOf(context);
+    final idle = widget.cancelProgress < 0.05 && !MotionScope.of(context).calm;
     if (idle && !_nudge.isAnimating) {
       _nudge.repeat();
     } else if (!idle && _nudge.isAnimating) {

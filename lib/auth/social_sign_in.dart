@@ -25,6 +25,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../backend/hashing.dart';
 import '../env.dart';
+import '../ui/foundation/caps.dart';
 
 enum SocialProvider {
   apple('apple'),
@@ -147,9 +148,7 @@ class SocialSignIn {
   /// single piece of this feature that would be domain-bound. Android users get
   /// Google instead.
   static bool get appleAvailable =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.macOS);
+      Caps.nativeApple;
 
   /// Needs the client ids AND a platform google_sign_in implements: Android,
   /// iOS, macOS and the web. Windows and Linux have no implementation at all —
@@ -157,10 +156,7 @@ class SocialSignIn {
   /// `initialize()` — so a button there could only ever end in an error.
   static bool get googleAvailable =>
       Env.googleSignInConfigured &&
-      (kIsWeb ||
-          defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.macOS);
+      (Caps.web || Caps.nativeMobile || Caps.macOS);
 
   /// Whether a Google sign-in has to START on Google's own rendered button.
   ///

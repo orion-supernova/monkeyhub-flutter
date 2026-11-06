@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart' show VoidCallback, visibleForTesting;
 
 import '../audio/alert_sounds.dart';
 import '../l10n/app_labels.dart';
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import '../data/chat_repository.dart';
 import '../media/file_url_cache.dart';
 import '../models/chat_room.dart';
@@ -53,7 +53,7 @@ class MessageAlerts {
   /// Web (autoplay + Notification API) and desktop (no native push) need this;
   /// mobile is served by the OS notification the backend pushes directly
   /// (backend/convex/push.ts → APNs / FCM).
-  static bool get _enabled => isWebOrDesktop;
+  static bool get _enabled => Caps.inAppAlerts;
 
   /// Replaces the sound under `flutter test`, so the alert rules can be
   /// asserted without an audio player.

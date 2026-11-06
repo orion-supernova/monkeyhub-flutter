@@ -12,6 +12,7 @@ import 'package:monkeyhub/media/video_file_cache.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/screens/fullscreen_video_viewer.dart';
 import 'package:monkeyhub/widgets/video_message.dart';
+import 'package:monkeyhub/media/native_video_player.dart';
 
 /// What this pins: **the pre-ready states of `VideoPlayerSurface` fill the
 /// screen, and the spinner inside them stays 32 points wide.**
@@ -41,6 +42,12 @@ class _StalledApi extends Fake implements ChatApi {
 }
 
 void main() {
+  // Platform identity follows defaultTargetPlatform (android under
+  // flutter_test), so name the path these tests are about: no OS player, the
+  // exact path a web build takes.
+  setUp(() => NativeVideoPlayer.debugSupportedOverride = false);
+  tearDown(() => NativeVideoPlayer.debugSupportedOverride = null);
+
   const viewport = Size(400, 800);
 
   late Directory cacheDir;
@@ -152,8 +159,8 @@ void main() {
   testWidgets('the viewer falls back to the Flutter player, not an error', (
     tester,
   ) async {
-    // The test VM is neither iOS nor Android, so `NativeVideoPlayer.supported`
-    // is false — which makes this the exact path a web build takes. A viewer
+    // `NativeVideoPlayer.supported` is pinned false above, which makes this
+    // the exact path a web build takes. A viewer
     // that treated "no OS player here" as a failure would leave every web user
     // looking at an error where a working player belongs.
     tester.view.physicalSize = viewport;

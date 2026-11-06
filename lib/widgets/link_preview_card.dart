@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
+import 'spring_press.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
@@ -66,7 +67,6 @@ class _LinkPreviewCardState extends State<LinkPreviewCard>
   LinkPreview? _preview;
   bool _loading = false;
   bool _failed = false;
-  bool _pressed = false;
 
   @override
   void initState() {
@@ -199,32 +199,13 @@ class _LinkPreviewCardState extends State<LinkPreviewCard>
           )
         : focusable;
 
-    return _PressScale(
-      pressed: _pressed,
+    return SpringPress.passive(
+      scale: 0.985,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTapUp: (_) => setState(() => _pressed = false),
         onTap: () => widget.onTap(widget.url),
         child: outer,
       ),
-    );
-  }
-}
-
-class _PressScale extends StatelessWidget {
-  const _PressScale({required this.pressed, required this.child});
-  final bool pressed;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: pressed ? 0.985 : 1,
-      duration: const Duration(milliseconds: 110),
-      curve: Curves.easeOut,
-      child: child,
     );
   }
 }

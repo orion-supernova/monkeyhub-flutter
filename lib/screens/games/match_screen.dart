@@ -21,7 +21,7 @@ import '../../fight/view/fight_online_screen.dart';
 import '../../l10n/text_case.dart';
 import '../../models/chat_match.dart';
 import '../../party_games/party_table.dart';
-import '../../platform.dart';
+import '../../ui/foundation/caps.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../turn_games/board/turn_board.dart';
@@ -754,7 +754,7 @@ class _MatchScreenState extends State<MatchScreen> {
                   line: line,
                   viewPly: _viewPly,
                   onView: _view,
-                  keyboardHint: isPhysicalKeyboardPlatform,
+                  keyboardHint: Caps.physicalKeyboard,
                 ),
         ),
         if (bottom >= 0) ...[const SizedBox(height: 8), _plateFor(m, bottom)],

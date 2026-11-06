@@ -22,7 +22,7 @@ import '../widgets/user_avatar.dart';
 import 'audio_level_monitor.dart';
 import 'call_audio_devices.dart';
 import 'call_audio_sheet.dart';
-import 'call_media.dart';
+import '../ui/foundation/caps.dart';
 import 'call_options_sheet.dart';
 import 'call_screen.dart' show dismissCallRoute, minimizeCallRoute;
 import 'call_stats_monitor.dart';
@@ -337,7 +337,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     // Our own share, previewed only where the preview is not a mirror
     // tunnel — a desktop window, not the whole phone screen.
     final ss = svc.screenStream;
-    if (svc.localScreenSharing && ss != null && !isMobileCallPlatform) {
+    if (svc.localScreenSharing && ss != null && !Caps.mobileCalls) {
       var r = _localScreenRenderer;
       if (r == null) {
         r = GroupCallScreen.rendererFactory();
@@ -494,7 +494,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
       return;
     }
     ScreenShareSource? source;
-    if (!isMobileCallPlatform) {
+    if (!Caps.mobileCalls) {
       source = await showSharePickerSheet(context);
       if (source == null || !mounted) return;
     }
@@ -805,7 +805,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
         // Lit while live; a headset badge while a headset's mic hears you.
         glyph: CallTrayGlyph.mic(
           on: !svc.localMuted,
-          headset: isMobileCallPlatform &&
+          headset: Caps.mobileCalls &&
               CallAudioDevices.instance.micOnHeadset,
           route: callHeadsetGlyphRoute(
             CallAudioDevices.instance.output,
@@ -882,7 +882,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
           onTap: () => svc.drawArmed.value = !svc.drawArmed.value,
           label: l10n.groupCallScreenDrawLabel,
         ),
-      if (svc.localCamActive && isMobileCallPlatform)
+      if (svc.localCamActive && Caps.mobileCalls)
         CallTrayAction(
           icon: CallGlyphs.flip,
           glyph: const CallTrayGlyph(CallGlyphKind.flip),
@@ -1511,13 +1511,11 @@ class _Tile extends StatelessWidget {
                       level: level,
                       accent: accent,
                       size: size,
-                      child: ClipOval(
-                        child: UserAvatar(
-                          user: user,
-                          api: api,
-                          size: size - 6,
-                          showStatus: false,
-                        ),
+                      child: UserAvatar(
+                        user: user,
+                        api: api,
+                        size: size - 6,
+                        showStatus: false,
                       ),
                     );
                     final note = cameraNote;

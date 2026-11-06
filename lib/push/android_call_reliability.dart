@@ -1,8 +1,9 @@
-import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart' show MethodChannel;
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// The two Android-only OS settings that decide whether a call actually reaches
 /// the user, exposed as a read-and-fix surface rather than a prompt.
@@ -32,11 +33,11 @@ class AndroidCallReliability {
   AndroidCallReliability._();
   static final AndroidCallReliability instance = AndroidCallReliability._();
 
-  static const MethodChannel _device = MethodChannel('monkeyhub/device');
+  static const MethodChannel _device = Channels.device;
 
   /// Whether any of this applies. Everything below is a no-op elsewhere, so
   /// callers can use this to decide whether to render the UI at all.
-  static bool get supported => !kIsWeb && Platform.isAndroid;
+  static bool get supported => Caps.android;
 
   /// Android 14+ only grants USE_FULL_SCREEN_INTENT at install to apps Play
   /// classifies as calling apps. That covers this app on the Play track, so the

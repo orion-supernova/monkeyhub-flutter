@@ -168,8 +168,13 @@ room titles come from the shared modules in <a href="#logic">§7</a>, never a pr
 <h2 id="caps">3. Platform seam: <code>Caps</code></h2>
 
 <p><code>lib/ui/foundation/caps.dart</code>. Every platform question is a getter named for what the caller wants.
-<code>lib/platform.dart</code> keeps the two legacy names (<code>isWebOrDesktop</code>,
-<code>isPhysicalKeyboardPlatform</code>) as aliases until the last caller moves.</p>
+The legacy <code>lib/platform.dart</code> (<code>isWebOrDesktop</code>, <code>isPhysicalKeyboardPlatform</code>) is gone; every
+caller moved. Platform channel names live once in <code>lib/ui/foundation/channels.dart</code> (<code>Channels.device</code>,
+<code>voip</code>, <code>haptics</code>, <code>installer</code>, <code>callWindow</code>, <code>window</code>, <code>share</code>).</p>
+<p><strong>Testing note:</strong> <code>Caps</code> reads <code>defaultTargetPlatform</code>, which is android under
+<code>flutter_test</code> (the old <code>Platform.isX</code> read the Mac host). Mobile-only native paths are therefore live in tests:
+<code>test/flutter_test_config.dart</code> stubs the push inbox, and a test about desktop behaviour sets
+<code>debugDefaultTargetPlatformOverride</code>.</p>
 
 <div class="tbl"><table>
 <tr><th>Getter</th><th>Means</th><th>Web</th><th>Use for</th></tr>
@@ -291,53 +296,54 @@ structure (Material's filled tonal button, a native UISwitch).</p>
 <td>fight <code>_RoundIconButton</code>/<code>_IconBtn</code>/quit-X, <code>huddle_bar _RoundButton</code>, <code>new_call_sheet _CallGlyphButton</code>, <code>liars_dice _StepButton</code>, 4× <code>_PlayDisc</code>/<code>_GlyphDisc</code>/<code>_Disc</code></td></tr>
 <tr><td>Back</td><td><code>GlassBackButton</code></td><td>glass_buttons.dart</td><td><code>reaction_picker_sheet</code> hand-built chevron</td></tr>
 <tr><td>Close (×)</td><td><code>GlassCloseButton</code> (<code>SheetCloseButton</code> on sheets)</td><td>glass_buttons.dart, sheet_kit.dart</td>
-<td>~15 <code>GlassIconButton(icon: xmark)</code> sites, <code>composer_capture</code> ChromeDisc × ×4, fight closes</td></tr>
+<td><code>gallery_tray</code>/<code>video_note</code> xmark discs, <code>composer_capture</code> ChromeDisc ×, fight closes. Takes <code>size</code>/<code>iconSize</code>.</td></tr>
 <tr><td>Back that turns into ×</td><td><code>SheetBackCloseButton</code> (composes <code>GlassIconButton</code>)</td><td>sheet_kit.dart</td><td>its own ChromeDisc/Semantics/HoverHint fork</td></tr>
 <tr><td>Full-width primary / tonal / destructive</td><td><code>SheetActionButton</code></td><td>widgets/action_buttons.dart</td>
-<td><code>SheetPrimaryButton</code>, <code>SheetSecondaryButton</code> (dead), <code>SheetButton</code>, <code>ProminentButton</code>, <code>_Cta</code>/<code>_SecondaryCta</code>, <code>_BigButton</code>, <code>_MenuButton</code>, <code>_CardButton</code></td></tr>
+<td>deleted: <code>SheetPrimaryButton</code>, <code>SheetSecondaryButton</code>, <code>SheetButton</code>, <code>ProminentButton</code>, <code>_Cta</code>/<code>_SecondaryCta</code>. Open: fight <code>_BigButton</code>, <code>_MenuButton</code></td></tr>
 <tr><td>Glass capsule button</td><td><code>GlassPillButton</code></td><td>glass_buttons.dart</td><td></td></tr>
 <tr><td>Compact row pill</td><td><code>RowPillButton</code></td><td>action_buttons.dart</td><td><code>StripPill</code> styling</td></tr>
 <tr><td>Text / link button</td><td><code>TextLinkButton</code></td><td>action_buttons.dart</td><td><code>SectionActionButton</code> styling, <code>_HeaderAction</code>, <code>_CancelTextButton</code></td></tr>
 <tr><td>Grouped buttons</td><td><code>GlassButtonGroup</code></td><td>glass_buttons.dart</td><td></td></tr>
 <tr><td>Brand sign-in</td><td><code>SocialSignInButtons</code></td><td>widgets/social_sign_in_buttons.dart</td><td>(vendor-spec'd, own role)</td></tr>
-<tr><td>Press feedback</td><td><code>SpringPress</code> (builder for pressed state)</td><td>widgets/spring_press.dart</td><td>~20 hand-rolled <code>_pressed</code> + <code>AnimatedScale</code></td></tr>
+<tr><td>Press feedback</td><td><code>SpringPress</code> (builder for pressed state)</td><td>widgets/spring_press.dart</td><td>pinned banner, companion strip, link preview, file bubble, expression tile, vanish card, capture cancel, shutter. Open: <code>message_action_menu _PillEmoji/_PillMore</code> (pressed drives a fill)</td></tr>
 </table></div>
 
 <h3>Inputs and controls</h3>
 <div class="tbl"><table>
 <tr><th>Role</th><th>Use</th><th>File</th><th>Absorbs</th></tr>
-<tr><td>Form field (single/multi-line)</td><td><code>SheetTextField</code> (<code>ThemedInput</code> = preset)</td><td>widgets/labeled_field.dart</td><td><code>link_input_sheet</code>, <code>interaction_compose_sheet</code> option rows</td></tr>
+<tr><td>Form field (single/multi-line)</td><td><code>SheetTextField</code> / <code>ThemedInput</code> (both presets over one private <code>_TextBox</code>; autofill, keyboard appearance from theme)</td><td>widgets/labeled_field.dart</td><td><code>link_input_sheet</code>. Open: <code>interaction_compose_sheet</code> option rows</td></tr>
 <tr><td>Labelled field</td><td><code>LabeledField</code></td><td>labeled_field.dart</td><td></td></tr>
 <tr><td>Password</td><td><code>PasswordField</code></td><td>widgets/password_field.dart</td><td></td></tr>
 <tr><td>Code / OTP</td><td><code>CodeField</code></td><td>widgets/code_field.dart</td><td></td></tr>
-<tr><td>Search</td><td><code>SearchField</code> (+ door mode, <code>SearchFieldHero</code>)</td><td>widgets/search_field.dart</td><td>command palette field, sticker search doors</td></tr>
-<tr><td>Switch</td><td><code>RowSwitch</code> (haptic built in)</td><td>widgets/ios_kit.dart</td><td><code>_HubToggle</code>, <code>_StoreToggle</code>, child_policy/mute_room flip haptics</td></tr>
-<tr><td>Selection ring / radio</td><td><code>SelectionCheck</code></td><td>widgets/selection_check.dart</td><td><code>RadioCheck</code></td></tr>
+<tr><td>Search</td><td><code>SearchField</code> (+ door mode, <code>SearchFieldHero</code>)</td><td>widgets/search_field.dart</td><td>Open: command palette header (needs a bare mode)</td></tr>
+<tr><td>Switch</td><td><code>RowSwitch</code> / <code>GroupedRow.toggle</code> (haptic built in; null <code>onChanged</code> = read-only)</td><td>widgets/ios_kit.dart</td><td><code>_HubToggle</code>, ~12 duplicate switch haptics</td></tr>
+<tr><td>Selection ring / radio</td><td><code>SelectionCheck</code> / <code>SelectionCheck.radio</code></td><td>widgets/selection_check.dart</td><td><code>RadioCheck</code> (deleted)</td></tr>
 <tr><td>Segmented</td><td><code>IosSegmentedControl</code></td><td>widgets/segmented_control.dart</td><td></td></tr>
 <tr><td>Slider</td><td><code>ValueSlider</code> / <code>SteppedSlider</code></td><td>widgets/value_slider.dart</td><td>camera editor <code>_WidthSlider</code></td></tr>
 <tr><td>Stepper</td><td><code>NumberStepper</code></td><td>widgets/number_stepper.dart</td><td></td></tr>
 <tr><td>Filter / choice chip</td><td><code>FilterCapsule</code></td><td>widgets/filter_capsule.dart</td><td><code>expression_panel _Chip</code>, <code>camera_editor _Chip</code></td></tr>
-<tr><td>Count badge</td><td><code>CountBadge</code></td><td>widgets/count_badge.dart</td><td><code>ChatUnreadBadge</code>, <code>RowBadge</code>, <code>call_bubble _CountBadge</code></td></tr>
+<tr><td>Count badge</td><td><code>CountBadge</code> (<code>.tab</code>, <code>.row</code>, <code>.chat</code>, <code>.label</code>)</td><td>widgets/count_badge.dart</td><td><code>ChatUnreadBadge</code>, <code>RowBadge</code> (now presets), <code>call_bubble _CountBadge</code> (deleted)</td></tr>
 <tr><td>Status pill (read-only)</td><td><code>PinnedBadge</code> / <code>MutedBadge</code> family</td><td>widgets/pinned_badge.dart</td><td>(target: one <code>StatusPill</code> with tone, §8)</td></tr>
 </table></div>
 
 <h3>Surfaces, pages, identity</h3>
 <div class="tbl"><table>
 <tr><th>Role</th><th>Use</th><th>File</th><th>Absorbs</th></tr>
-<tr><td>Glass surface</td><td><code>LiquidGlass</code></td><td>widgets/liquid_glass.dart</td><td>one-off <code>BackdropFilter</code>s must respect the kit</td></tr>
+<tr><td>Glass surface</td><td><code>LiquidGlass</code></td><td>widgets/liquid_glass.dart</td><td>every remaining <code>BackdropFilter</code> is kit-aware (call chrome, side rail, room header, discs, capture shield, reply indicator, radial menu)</td></tr>
+<tr><td>Blurred scrim behind a menu</td><td><code>BlurScrim</code> + <code>BlurSnapshot.capture</code></td><td>widgets/blur_scrim.dart</td><td>three menus' private scrims (message, chat row, thread)</td></tr>
 <tr><td>Pushed page</td><td><code>IosPage</code></td><td>widgets/ios_kit.dart</td><td>hand-rolled <code>_Header</code>s (search, friend request, receipts…)</td></tr>
 <tr><td>Profile-style page</td><td><code>HeroPage</code></td><td>widgets/account_kit.dart</td><td></td></tr>
 <tr><td>Tab root header</td><td><code>TabRootBar</code></td><td>widgets/tab_root_bar.dart</td><td></td></tr>
 <tr><td>Grouped list</td><td><code>GroupedSection</code> / <code>GroupedRow</code> / <code>GroupedCard</code></td><td>ios_kit.dart</td><td></td></tr>
-<tr><td>Sheet</td><td><code>SheetFrame</code> via <code>showAdaptiveSheet</code></td><td>sheet_kit.dart, adaptive_sheet.dart</td><td>fight <code>showModalBottomSheet</code>s</td></tr>
+<tr><td>Sheet</td><td><code>SheetFrame</code> via <code>showAdaptiveSheet</code></td><td>sheet_kit.dart, adaptive_sheet.dart</td><td>fight <code>showModalBottomSheet</code>s; deleted <code>SheetSurface</code>, <code>PillNav</code></td></tr>
 <tr><td>Confirm</td><td><code>showConfirmSheet</code></td><td>widgets/destructive_sheet.dart</td><td><code>showIosActionSheet&lt;bool&gt;</code> confirms</td></tr>
 <tr><td>Action sheet</td><td><code>showIosActionSheet</code></td><td>sheet_kit.dart</td><td></td></tr>
 <tr><td>Toast</td><td><code>showAppToast</code></td><td>widgets/app_toast.dart</td><td>(snackbars are banned)</td></tr>
-<tr><td>Person avatar</td><td><code>UserAvatar</code></td><td>widgets/user_avatar.dart</td><td><code>score_row</code> monogram stack</td></tr>
-<tr><td>Room avatar</td><td><code>ChatRoomAvatar</code></td><td>widgets/chat_list_row.dart</td><td><code>room_screen _RoomAvatar</code>, <code>destructive_sheet</code> ClipOval, <code>room_info</code> saved disc</td></tr>
+<tr><td>Person avatar</td><td><code>UserAvatar</code></td><td>widgets/user_avatar.dart</td><td><code>score_row</code> monogram stack, redundant <code>ClipOval</code>s in calls</td></tr>
+<tr><td>Room avatar</td><td><code>ChatRoomAvatar</code></td><td>widgets/chat_list_row.dart</td><td><code>room_screen _RoomAvatar</code> (<code>ephemeralGlyph</code>), <code>destructive_sheet</code> ClipOval, <code>room_info</code> saved disc (<code>SavedMessagesFace</code>)</td></tr>
 <tr><td>Empty state</td><td><code>EmptyState</code> / <code>EmptyLine</code></td><td>widgets/empty_state.dart</td><td>~11 private <code>_EmptyState</code>/<code>_Empty</code></td></tr>
 <tr><td>Skeleton</td><td><code>SkeletonBox</code> family</td><td>widgets/skeleton_rows.dart</td><td>~9 private shimmers</td></tr>
-<tr><td>Progress ring</td><td><code>ProgressRing</code></td><td>widgets/progress_ring.dart</td><td>the same-named class in glass_progress_dialog.dart</td></tr>
+<tr><td>Progress ring</td><td><code>ProgressRing</code> (+ <code>.spinner</code>)</td><td>widgets/progress_ring.dart</td><td>the same-named class in glass_progress_dialog.dart</td></tr>
 <tr><td>Spinner</td><td><code>CupertinoActivityIndicator</code></td><td></td><td>8 Material spinners</td></tr>
 </table></div>
 
@@ -366,17 +372,17 @@ for ephemeral rooms and the delete exit for deleted messages.</p>
 <h2 id="logic">7. Shared logic modules</h2>
 <div class="tbl"><table>
 <tr><th>Concern</th><th>Canonical</th><th>Notes</th></tr>
-<tr><td>Clock durations (m:ss, h:mm:ss)</td><td><code>formatClock(Duration)</code> in <code>lib/format/duration_format.dart</code></td><td>9 copies found; <code>formatPartyClock</code> stays (rounds up, bare seconds by design)</td></tr>
+<tr><td>Clock durations (m:ss, h:mm:ss)</td><td><code>formatClock(Duration)</code> in <code>lib/format/duration_format.dart</code></td><td>7 copies folded; <code>formatPartyClock</code> and <code>formatHuddleDuration</code> stay (different by design)</td></tr>
 <tr><td>Relative time</td><td><code>roomTimeAgo</code> / <code>relativeAgo</code></td><td>moment viewer and comments copies call these</td></tr>
-<tr><td>Byte sizes</td><td><code>formatFileSize</code> (media/file_meta.dart)</td><td></td></tr>
-<tr><td>Initials</td><td><code>initialOf(String)</code> next to <code>ChatUser.displayInitial</code></td><td>grapheme-safe</td></tr>
-<tr><td>Room title</td><td><code>chatListTitleOf</code></td><td>saved messages, then DM peer, then name</td></tr>
+<tr><td>Byte sizes</td><td><code>formatFileSize(bytes, wholeUnits:)</code> (media/file_meta.dart)</td><td>companion, transcript, brain sizes folded</td></tr>
+<tr><td>Initials</td><td><code>initialOf(String)</code> in models/chat_user.dart</td><td>grapheme-safe; 5 copies folded</td></tr>
+<tr><td>Room title</td><td><code>roomTitleOf</code> / <code>chatListTitleOf</code> (widgets/chat_list_parts.dart)</td><td>saved messages, then DM peer, then name; <code>dmFallback</code> param</td></tr>
 <tr><td>DM peer</td><td><code>ChatRepository.otherUserFor</code></td><td></td></tr>
 <tr><td>Avatar storage id</td><td><code>ProfileCache.avatarFor</code></td><td>respects tombstones</td></tr>
 <tr><td>Message preview</td><td><code>messagePreviewLine</code></td><td></td></tr>
 <tr><td>Error text</td><td><code>humanizeAuthError</code> / <code>friendlyServerError</code></td><td></td></tr>
-<tr><td>Copy to clipboard</td><td><code>copyText(context, text)</code></td><td>toast + haptic in one place</td></tr>
-<tr><td>Open a URL</td><td><code>LinkOpener</code></td><td></td></tr>
+<tr><td>Copy to clipboard</td><td><code>copyText(context, text, toast:, haptic:)</code> (services/clipboard_actions.dart)</td><td>16 sites; never toasts "copied" on a failed write</td></tr>
+<tr><td>Open a URL</td><td><code>LinkOpener</code> / <code>LinkOpener.openExternal</code></td><td>klipy ad, app-only panel, update page moved over</td></tr>
 <tr><td>Haptics</td><td><code>HapticTick</code> / <code>HapticFeedback.*</code> through <code>AppBinding</code></td><td>a global on/off hooks into both (not built)</td></tr>
 <tr><td>Subscriptions</td><td>stores over <code>ConvexBackend.subscribe</code></td><td>never subscribe from a widget (see backend handbook)</td></tr>
 </table></div>
@@ -391,14 +397,14 @@ for ephemeral rooms and the delete exit for deleted messages.</p>
 <tr><td>0</td><td>Audit + this handbook</td><td>5 parallel audits: buttons, inputs, surfaces, platform, logic</td><td><span class="pill ok">done</span></td></tr>
 <tr><td>1</td><td>Foundation</td><td><code>Caps</code>, <code>UiKit</code>/<code>UiKits</code>/<code>UiKitScope</code>/<code>KitSwitch</code>/<code>kitValue</code>,
 settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass</code>, kit chooser, <code>NativeChrome</code> on <code>Caps</code></td><td><span class="pill ok">done</span></td></tr>
-<tr><td>2a</td><td>Buttons</td><td>Merge per catalog; × call sites; dead aliases; hand-rolled press → <code>SpringPress</code>; 44pt targets; double tap handlers</td><td><span class="pill warn">in progress</span></td></tr>
-<tr><td>2b</td><td>Inputs</td><td>Field merge, autofill hints, keyboard appearance, switch haptic, selection check, search doors, badges</td><td><span class="pill warn">in progress</span></td></tr>
-<tr><td>2c</td><td>Surfaces</td><td>Avatars, ProgressRing clash, dead code, fight sheets, blur bugs, every <code>BackdropFilter</code> kit-aware, empty states</td><td><span class="pill warn">in progress</span></td></tr>
-<tr><td>2d</td><td>Platform</td><td>Caps migration, hover fix, channel bridges, js_interop barrels, MotionScope bypasses</td><td><span class="pill warn">in progress</span></td></tr>
-<tr><td>2e</td><td>Logic</td><td>Format module, room titles, mounted bugs, clipboard, links, localized plurals</td><td><span class="pill warn">in progress</span></td></tr>
-<tr><td>3</td><td>Pages</td><td>Hand-rolled headers onto <code>IosPage</code>; viewer top bars onto <code>ViewerTopBar</code>; menu row/scrim shared by the four menus</td><td><span class="pill">planned</span></td></tr>
+<tr><td>2a</td><td>Buttons</td><td>Merge per catalog; × call sites; dead aliases; hand-rolled press → <code>SpringPress</code>; 44pt targets; double tap handlers</td><td><span class="pill ok">done</span></td></tr>
+<tr><td>2b</td><td>Inputs</td><td>Field merge, autofill hints, keyboard appearance, switch haptic, selection check, search doors, badges</td><td><span class="pill ok">done</span></td></tr>
+<tr><td>2c</td><td>Surfaces</td><td>Avatars, ProgressRing clash, dead code, fight sheets, blur bugs, every <code>BackdropFilter</code> kit-aware, empty states</td><td><span class="pill ok">done</span></td></tr>
+<tr><td>2d</td><td>Platform</td><td>Caps migration, hover fix, channel bridges, js_interop barrels, MotionScope bypasses</td><td><span class="pill ok">done</span></td></tr>
+<tr><td>2e</td><td>Logic</td><td>Format module, room titles, mounted bugs, clipboard, links, localized plurals</td><td><span class="pill ok">done</span></td></tr>
+<tr><td>3</td><td>Pages</td><td>Hand-rolled headers onto <code>IosPage</code> (search, friend request, receipts, theme, room content); viewer top bars onto <code>ViewerTopBar</code>; one menu row for the four menus (the scrim is already shared); <code>showConfirmSheet</code> vs <code>showIosActionSheet&lt;bool&gt;</code></td><td><span class="pill">planned</span></td></tr>
 <tr><td>4</td><td>StatusPill + Notice</td><td>One read-only pill with tone; one inline banner with tone (absorbs <code>SoftNote</code>, <code>FormErrorBanner</code>, …)</td><td><span class="pill">planned</span></td></tr>
-<tr><td>5</td><td>Composer</td><td>Merge <code>chat_composer</code> classic/liquid field (documented "kept in step by hand")</td><td><span class="pill">planned</span></td></tr>
+<tr><td>5</td><td>Composer</td><td>Merge <code>chat_composer</code> classic/liquid field (documented "kept in step by hand"); command palette search field; leftover relative-time families (<code>roomTimeAgo</code>, <code>requestAgo</code>, devices, family, remove-contact)</td><td><span class="pill">planned</span></td></tr>
 <tr><td>6</td><td>Material kit</td><td>Pick the Android library; skins for the core set; flip <code>materialReady</code></td><td><span class="pill">planned</span></td></tr>
 <tr><td>7</td><td>Native iOS 26 controls</td><td>Sibling-view native controls where it pays (switch, segmented on static screens); matched glass elsewhere</td><td><span class="pill">planned</span></td></tr>
 <tr><td>8</td><td>Haptics setting</td><td>Global on/off wired into <code>AppBinding.send</code> and <code>HapticTick.current()</code></td><td><span class="pill">planned</span></td></tr>
@@ -408,15 +414,21 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
 <h2 id="bugs">9. Bugs found along the way</h2>
 <div class="tbl"><table>
 <tr><th>Where</th><th>Bug</th><th>Status</th></tr>
-<tr><td>login_screen, PasswordField</td><td>No <code>autofillHints</code>: password managers can't fill or save</td><td><span class="pill warn">phase 2b</span></td></tr>
-<tr><td>thread_overlay.dart</td><td>Animates a blur sigma per frame (breaks R6, jank)</td><td><span class="pill warn">phase 2c</span></td></tr>
-<tr><td>chat_row_action_menu.dart</td><td>Live <code>BackdropFilter</code> inside a <code>FadeTransition</code> (flicker case)</td><td><span class="pill warn">phase 2c</span></td></tr>
-<tr><td>voice_recorder, login, friend_request_draft, room_info, camera</td><td><code>setState</code> after <code>await</code> without <code>mounted</code></td><td><span class="pill warn">phase 2e</span></td></tr>
-<tr><td>room_content_actions.dart</td><td>English-only hand-built plurals</td><td><span class="pill warn">phase 2e</span></td></tr>
-<tr><td>~30 sites</td><td>Phone browsers treated as hover devices (<code>isWebOrDesktop</code>)</td><td><span class="pill warn">phase 2d</span></td></tr>
-<tr><td>42 sites</td><td>Raw <code>disableAnimations</code> reads ignore the in-app motion override</td><td><span class="pill warn">phase 2d</span></td></tr>
-<tr><td>Several buttons</td><td>Tap targets of 37–40pt</td><td><span class="pill warn">phase 2a</span></td></tr>
-<tr><td>5 controls</td><td><code>FocusableTap(onTap)</code> around <code>GestureDetector(onTap)</code>: double handlers</td><td><span class="pill warn">phase 2a</span></td></tr>
+<tr><td>login_screen, PasswordField</td><td>No <code>autofillHints</code>: password managers can't fill or save</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>thread_overlay.dart</td><td>Animates a blur sigma per frame (breaks R6, jank)</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>chat_row_action_menu.dart</td><td>Live <code>BackdropFilter</code> inside a <code>FadeTransition</code> (flicker case)</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>voice_recorder, login, friend_request_draft, room_info, camera</td><td><code>setState</code> after <code>await</code> without <code>mounted</code></td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>room_content_actions.dart</td><td>English-only hand-built plurals</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>~30 sites</td><td>Phone browsers treated as hover devices (<code>isWebOrDesktop</code>)</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>42 sites</td><td>Raw <code>disableAnimations</code> reads ignore the in-app motion override</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>Several buttons</td><td>Tap targets of 37–40pt</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>5 controls</td><td><code>FocusableTap(onTap)</code> around <code>GestureDetector(onTap)</code>: double handlers</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>fight_renderer.dart</td><td>Palette built with <code>ImageDescriptor</code>, which throws on web (failing <code>web_safe_apis_test</code>)</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>Unguarded <code>Platform.*</code></td><td>draw_mirror, launcher_icon_service, push_manager reachable on web</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>14 import barrels</td><td><code>dart.library.html</code> picks the io twin under WASM</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>child_policy_screen</td><td><code>visiblePassword</code> keyboard used as a no-suggestions hack for usernames</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>voice_transcript, klipy_ad_tile</td><td>Unawaited clipboard / launch: errors dropped</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>Analyzer</td><td>47–50 lint infos/warnings (unused field, deprecated APIs, async-gap context)</td><td><span class="pill ok">0 issues</span></td></tr>
 <tr><td>liquid_glass.dart</td><td>Kit read outside the settings listener left a mounted button on the old recipe (caught by test while building phase 1)</td><td><span class="pill ok">fixed</span></td></tr>
 </table></div>
 
@@ -452,6 +464,10 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
   The catalog is the index.</li>
   <li><strong>2026-11-06</strong> Both message leave animations stay: vanish burn for ephemeral rooms, delete exit
   for deletes.</li>
+  <li><strong>2026-11-07</strong> <code>formatClockDuration</code> shows <code>1:02:03</code> past an hour (was <code>62:03</code>); companion
+  and transcript downloads of 1 GB or more read "2.4 GB" (was "2457 MB").</li>
+  <li><strong>2026-11-07</strong> Viewer and hover chrome follow <code>Caps.hover</code>: phone browsers get the touch chrome.</li>
+  <li><strong>2026-11-07</strong> Fight sheets and buttons follow the app theme and the shared buttons (44pt), no longer a fixed dark panel.</li>
   <li><strong>2026-10-02</strong> Native glass is a sibling <code>UITabBar</code>, never a platform view in Flutter
   content (performance).</li>
 </ul>

@@ -13,9 +13,9 @@ import '../widgets/app_toast.dart';
 import '../widgets/destructive_sheet.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/linked_devices_illustration.dart';
-import '../widgets/prominent_button.dart';
 import '../widgets/sheet_kit.dart' show IosSheetAction, showIosActionSheet;
 import 'device_login_scan_screen.dart';
+import 'package:flutter/services.dart';
 
 /// Every device this account has signed in on.
 ///
@@ -309,7 +309,14 @@ class _HeroCard extends StatelessWidget {
               style: theme.bodySoft.copyWith(fontSize: 14),
             ),
             const SizedBox(height: 16),
-            ProminentButton(label: l10n.devicesLinkNew, onTap: onLink),
+            SheetActionButton(
+              label: l10n.devicesLinkNew,
+              haptic: false,
+              onTap: () {
+                HapticFeedback.mediumImpact();
+                onLink();
+              },
+            ),
           ],
         ),
       ),

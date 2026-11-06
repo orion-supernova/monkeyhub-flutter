@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 
 /// Makes a bare Enter submit a multi-line [TextField], while Shift+Enter keeps
 /// its normal "insert a newline" meaning.
@@ -82,7 +82,7 @@ class SubmitOnEnter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!enabled || !isPhysicalKeyboardPlatform) return child;
+    if (!enabled || !Caps.physicalKeyboard) return child;
     return Focus(
       // Not a focus stop of its own — the field below owns the focus, this node
       // only listens on the way up.

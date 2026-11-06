@@ -16076,4 +16076,37 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get uiKitLiteFooter =>
       'Lätt ritar inget glas, så det finns inget att justera. Välj Frostat för att forma glaset själv.';
+
+  @override
+  String bulkForwardedToChats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'vidarebefordrat till $count chattar',
+      one: 'vidarebefordrat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkSavedToPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sparade i bilder',
+      one: 'sparat i bilder',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkDeletedMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count raderade',
+      one: 'raderat',
+    );
+    return '$_temp0';
+  }
 }

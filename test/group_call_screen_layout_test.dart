@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:monkeyhub/calls/call_permissions.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/backend/group_call_api.dart';
 import 'package:monkeyhub/calls/call_models.dart';
@@ -195,6 +196,11 @@ Future<(GroupCallService, _FakeGroupApi, FakePeerConnection)> _call(
 }
 
 void main() {
+  // flutter_test defaults to Android; keep the permission pre-flight (an
+  // Android-only channel call) out of these desktop-shaped tests.
+  setUp(() => CallPermissions.debugForceApplies = false);
+  tearDown(() => CallPermissions.debugForceApplies = null);
+
   setUp(() {
     GroupCallScreen.rendererFactory = FakeVideoRenderer.new;
     ScreenShare.invokeFn = (m, [a]) async => null;

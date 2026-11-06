@@ -245,9 +245,8 @@ Widget _app(
 
 /// A host page that opens something on its first frame.
 class _Opener extends StatefulWidget {
-  const _Opener({required this.open, this.under});
+  const _Opener({required this.open});
   final void Function(BuildContext context) open;
-  final Widget? under;
   @override
   State<_Opener> createState() => _OpenerState();
 }
@@ -262,8 +261,7 @@ class _OpenerState extends State<_Opener> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return widget.under ??
-        Scaffold(
+    return         Scaffold(
           backgroundColor: theme.background,
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 80, 20, 0),

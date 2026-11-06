@@ -4,8 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'
-    show Clipboard, ClipboardData, HapticFeedback;
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../data/settings_store.dart';
 import '../diagnostics/device_report.dart';
@@ -26,6 +25,7 @@ import 'diagnostics/diag_filter_sheet.dart';
 import 'diagnostics/diag_palette.dart';
 import '../widgets/filter_capsule.dart';
 import '../widgets/desktop_scroll.dart';
+import '../services/clipboard_actions.dart';
 
 /// The captured timeline.
 ///
@@ -164,12 +164,11 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
       events: DiagBuffer.instance.snapshot(),
       dropped: DiagBuffer.instance.dropped,
     );
-    await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
-    showAppToast(
+    await copyText(
       context,
-      AppLocalizations.of(context).diagSummaryCopied,
-      tone: ToastTone.success,
+      text,
+      toast: AppLocalizations.of(context).diagSummaryCopied,
     );
   }
 

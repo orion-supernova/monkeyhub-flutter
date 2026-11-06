@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -25,6 +24,8 @@ import 'dust/spoiler_dust.dart' show SpoilerDust;
 import 'media_spoiler.dart';
 import 'photo_chrome.dart' show MediaDurationBadge;
 import 'spring_press.dart';
+import '../ui/foundation/caps.dart';
+import '../theme/motion.dart';
 
 /// One photo or video picked in the inline picker, in pick order. [edited]
 /// is set once it has been through the editor, and is what gets sent.
@@ -246,9 +247,7 @@ class InlinePhotoPicker extends StatefulWidget {
   final VoidCallback? onFull;
 
   static bool get supported =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android);
+      Caps.nativeMobile;
 
   @override
   State<InlinePhotoPicker> createState() => _InlinePhotoPickerState();
@@ -1231,7 +1230,7 @@ class _PickedMediaStripState extends State<PickedMediaStrip> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scroll.hasClients) return;
       final end = _scroll.position.maxScrollExtent;
-      if (MediaQuery.disableAnimationsOf(context)) {
+      if (MotionScope.of(context).calm) {
         _scroll.jumpTo(end);
       } else {
         _scroll.animateTo(

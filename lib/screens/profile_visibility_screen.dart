@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart'
     show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
@@ -222,7 +221,6 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                     subtitle: l10n.pvShowReceiptsDesc,
                     value: SettingsStore.instance.viewReadReceipts,
                     onChanged: (v) {
-                      HapticFeedback.lightImpact();
                       SettingsStore.instance.setViewReadReceipts(v);
                     },
                   ),
@@ -246,9 +244,8 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                             title: l10n.privacyVanishShareReadsTitle,
                             value: _vis.vanishShareReads,
                             onChanged: ro
-                                ? (_) {}
+                                ? null
                                 : (v) {
-                                    HapticFeedback.lightImpact();
                                     _patch(vanishShareReads: v);
                                   },
                           ),

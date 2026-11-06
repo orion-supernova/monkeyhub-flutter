@@ -13,7 +13,6 @@ import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/data/chat_repository.dart';
 import 'package:monkeyhub/family/family_service.dart';
 import 'package:monkeyhub/models/chat_user.dart';
-import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/models/family.dart';
 import 'package:monkeyhub/models/friend_request.dart';
 import 'package:monkeyhub/models/user_device.dart';
@@ -95,8 +94,6 @@ class _Api extends Fake implements ChatApi {
       [RoomBrief(id: 'r', name: 'Minecraft Crew', memberCount: 12)];
   @override
   Future<String?> getFileUrl(String storageId) async => null;
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _Repo extends ChangeNotifier implements ChatRepository {

@@ -28,6 +28,7 @@ import '../../widgets/app_toast.dart';
 import '../../widgets/desktop_scroll.dart';
 import '../../widgets/destructive_sheet.dart';
 import '../../widgets/moment_rail.dart';
+import '../../widgets/meta_text.dart' show relativeAgo;
 import '../../widgets/moment_reactions.dart';
 import '../../widgets/photo_backdrop.dart' show photoFillsScreen;
 import '../../widgets/photo_dismiss_area.dart';
@@ -50,7 +51,7 @@ import '../../widgets/reaction_picker_sheet.dart' show pickReaction;
 import '../../widgets/reaction_limit_notice.dart';
 import '../../widgets/moment_comments_sheet.dart';
 import '../../models/reaction_limits.dart';
-import '../../platform.dart';
+import '../../ui/foundation/caps.dart';
 import '../../l10n/text_case.dart';
 import '../../widgets/liquid_glass.dart';
 
@@ -1066,7 +1067,7 @@ class _MomentStageState extends State<_MomentStage>
     // [ViewerKeys]) rather than up to the route, where ← → would no
     // longer reach it.
     _commentFocus.unfocus(
-      disposition: isWebOrDesktop
+      disposition: Caps.physicalKeyboard
           ? UnfocusDisposition.previouslyFocusedChild
           : UnfocusDisposition.scope,
     );
@@ -1684,7 +1685,7 @@ class _MomentStageState extends State<_MomentStage>
         ),
       ),
     );
-    if (!isWebOrDesktop) return stage;
+    if (!Caps.physicalKeyboard) return stage;
     // A desk's keys: ← → a story back and on, Space to hold one still. Not
     // while the reply panel is up: its field has the focus and the arrows
     // move its caret (Space it types, and the registry already knows that).
@@ -2734,7 +2735,7 @@ class _StageTopBar extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                _ago(l10n, moment.createdAt),
+                relativeAgo(l10n, moment.createdAt),
                 style: theme.caption.copyWith(
                   fontSize: 12,
                   height: 1.2,
@@ -2794,14 +2795,6 @@ class _StageTopBar extends StatelessWidget {
     );
   }
 
-  /// Compact relative time, matching the activity river's: everything on this
-  /// board is from today, so it never needs a date.
-  static String _ago(AppLocalizations l10n, DateTime at) {
-    final d = DateTime.now().difference(at);
-    if (d.inMinutes < 1) return l10n.momentActivityJustNow;
-    if (d.inHours < 1) return l10n.momentActivityMinutesAgo(d.inMinutes);
-    return l10n.momentActivityHoursAgo(d.inHours);
-  }
 }
 
 /// A plain white glyph over the story on a soft shadow: the top bar's
@@ -2857,7 +2850,7 @@ class _AuthorDot extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final id = moment.avatarIn(context);
     final shown = moment.nameIn(context);
-    final initial = shown.isEmpty ? '?' : shown.characters.first.toUpperCase();
+    final initial = initialOf(shown);
 
     return Container(
       width: _size,
@@ -3878,7 +3871,7 @@ class _MomentCardViewerState extends State<_MomentCardViewer>
             title: m.mine
                 ? sentenceCaseOf(context, l10n.momentRailYouLabel)
                 : m.nameIn(context),
-            subtitle: _StageTopBar._ago(l10n, m.createdAt),
+            subtitle: relativeAgo(l10n, m.createdAt),
             leading: SheetCloseButton(
               onTap: () => Navigator.of(context).maybePop(),
             ),

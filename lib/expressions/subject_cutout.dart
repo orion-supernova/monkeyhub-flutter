@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import '../ui/foundation/caps.dart';
 
 /// The platform's "lift subject from background" — Apple's Vision foreground
 /// mask on iOS 17+ and macOS 14+ (see `SubjectCutout.swift`). Everywhere else
@@ -10,9 +11,7 @@ class SubjectCutout {
   static const _channel = MethodChannel('monkeyhub/cutout');
 
   static bool get _applePlatform =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.macOS);
+      Caps.nativeApple;
 
   static bool? _supported;
 

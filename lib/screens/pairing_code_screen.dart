@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../backend/chat_api.dart';
+import '../format/duration_format.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/layout.dart';
@@ -182,7 +183,7 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
                           : AppLocalizations.of(
                               context,
                             ).destructiveSheetPairingExpiresIn(
-                              _fmt(_remaining),
+                              formatClock(_remaining),
                             ),
                       style: groupedFooterStyle(theme).copyWith(
                         fontFeatures: const [
@@ -224,12 +225,6 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
         ),
       ],
     );
-  }
-
-  static String _fmt(Duration d) {
-    final m = d.inMinutes;
-    final s = d.inSeconds % 60;
-    return '$m:${s.toString().padLeft(2, '0')}';
   }
 }
 

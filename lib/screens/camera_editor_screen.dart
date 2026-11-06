@@ -9,7 +9,7 @@ import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../keyboard/submit_on_enter.dart';
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../media/editor_geometry.dart';
@@ -37,6 +37,7 @@ import '../widgets/photo_send_flight.dart';
 import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import '../widgets/capture_glyphs.dart'
     show HdGlyph, SpoilerGlyph, ViewOnceGlyph;
+import '../theme/motion.dart';
 
 /// Post-capture composer: draw on a photo, frame it, caption it, send it — or
 /// several of them at once.
@@ -904,7 +905,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   }
 
   void _animateZoomTo(Matrix4 target) {
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (MotionScope.of(context).calm) {
       _zoom.value = target;
       return;
     }
@@ -1164,7 +1165,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
       }
     });
     _committedRev.value++;
-    if (_turnFrom != null && !MediaQuery.disableAnimationsOf(context)) {
+    if (_turnFrom != null && !MotionScope.of(context).calm) {
       _turn.forward(from: 0);
     }
   }
@@ -1802,7 +1803,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   /// (the field's own handler runs first and decides), while a send is under
   /// way, and for any modifier, which belong to somebody else.
   Widget _enterSends(Widget page) {
-    if (!isPhysicalKeyboardPlatform) return page;
+    if (!Caps.physicalKeyboard) return page;
     return Focus(
       autofocus: true,
       onKeyEvent: (node, event) {
@@ -1948,7 +1949,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     _swipeCtrl
       ..value = 0
       ..duration = Duration(
-        milliseconds: MediaQuery.disableAnimationsOf(context) ? 0 : 280,
+        milliseconds: MotionScope.of(context).calm ? 0 : 280,
       );
     _swipeCtrl.forward().whenCompleteOrCancel(() {
       tween.removeListener(tick);
@@ -2614,7 +2615,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
         padding: const EdgeInsets.only(bottom: 10),
         child: MediaNoteCapsule(
           glyph: TweenAnimationBuilder<double>(
-            tween: Tween(begin: MediaQuery.disableAnimationsOf(context) ? 1 : 0, end: 1),
+            tween: Tween(begin: MotionScope.of(context).calm ? 1 : 0, end: 1),
             duration: const Duration(milliseconds: 520),
             curve: Curves.easeOutBack,
             builder: (_, on, _) => RepaintBoundary(
@@ -2631,7 +2632,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
         ),
       );
     }
-    final calm = MediaQuery.disableAnimationsOf(context);
+    final calm = MotionScope.of(context).calm;
     return AnimatedSwitcher(
       duration: calm ? Duration.zero : const Duration(milliseconds: 320),
       reverseDuration: calm ? Duration.zero : const Duration(milliseconds: 180),

@@ -10,7 +10,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../media/media_aspect_cache.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/media_filmstrip.dart' show MediaScrim;
 import '../widgets/media_flight.dart';
@@ -299,12 +299,12 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
           onZoomChanged: (z) => setState(() => _zoomed = z),
           zoom: _zoom,
           onBackdropClick:
-              isWebOrDesktop ? () => Navigator.of(context).maybePop() : null,
+              Caps.hover ? () => Navigator.of(context).maybePop() : null,
           child: _maybeHero(image),
         ),
       ),
     );
-    if (!isWebOrDesktop) return scaffold;
+    if (!Caps.physicalKeyboard) return scaffold;
     return ShortcutBindings(
       bindings: {
         AppShortcuts.zoomIn: _zoom.zoomIn,
@@ -331,7 +331,7 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
         ),
       );
 
-  bool get _away => !_chrome || (_zoomed && !isWebOrDesktop);
+  bool get _away => !_chrome || (_zoomed && !Caps.hover);
 
   bool _busy = false;
 

@@ -164,7 +164,17 @@ const List<String> _sizeUnits = ['B', 'KB', 'MB', 'GB', 'TB'];
 ///
 /// Bytes are never fractional — `1.0 B` is nonsense — and anything at or above
 /// a kilobyte gets exactly one decimal, so the column width is stable.
-String formatFileSize(int bytes) {
+///
+/// [wholeUnits] is the storage-screen reading for model downloads: whole
+/// megabytes (`328 MB`), and one-decimal gigabytes from 1 GB up (`2.4 GB`).
+String formatFileSize(int bytes, {bool wholeUnits = false}) {
+  if (wholeUnits) {
+    const mib = 1024 * 1024;
+    if (bytes >= 1024 * mib) {
+      return '${(bytes / (1024 * mib)).toStringAsFixed(1)} GB';
+    }
+    return '${(bytes / mib).round()} MB';
+  }
   if (bytes <= 0) return '0 B';
   var value = bytes.toDouble();
   var unit = 0;

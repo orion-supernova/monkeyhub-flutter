@@ -1,10 +1,12 @@
 import 'dart:async' show unawaited;
-import 'dart:io' show File, Platform;
+import 'dart:io' show File;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'shared_payload.dart';
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// This device's side of "share into MonkeyHub".
 ///
@@ -41,7 +43,7 @@ class ShareIntake extends ChangeNotifier {
   ShareIntake._();
   static final ShareIntake instance = ShareIntake._();
 
-  static const MethodChannel _channel = MethodChannel('monkeyhub/share');
+  static const MethodChannel _channel = Channels.share;
 
   bool _started = false;
 
@@ -62,7 +64,7 @@ class ShareIntake extends ChangeNotifier {
   /// API needs a service-worker manifest entry rather than a channel, and
   /// desktop has no equivalent at all — [start] is a no-op there rather than a
   /// `MissingPluginException` at launch.
-  bool get isSupported => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+  bool get isSupported => Caps.nativeMobile;
 
   /// Installs the handler and drains anything native has been holding.
   ///

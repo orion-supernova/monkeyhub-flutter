@@ -11,8 +11,8 @@ import '../widgets/labeled_field.dart';
 import '../widgets/username_status_label.dart';
 import 'pairing_code_screen.dart';
 import '../widgets/ios_kit.dart';
-import '../widgets/prominent_button.dart';
 import '../l10n/text_case.dart';
+import 'package:flutter/services.dart';
 
 /// Creates a child account, then goes straight to pairing.
 ///
@@ -190,13 +190,19 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
                           ),
                         ],
                         const SizedBox(height: 24),
-                        ProminentButton(
+                        SheetActionButton(
                           label: sentenceCaseOf(
                             context,
                             l10n.childSetupScreenCreateButton,
                           ),
                           busy: _busy,
-                          onTap: _busy ? null : _create,
+                          haptic: false,
+                          onTap: _busy
+                              ? null
+                              : () {
+                                  HapticFeedback.mediumImpact();
+                                  _create();
+                                },
                         ),
                       ],
                     ),

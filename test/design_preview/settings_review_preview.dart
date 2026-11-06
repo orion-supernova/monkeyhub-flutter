@@ -192,8 +192,6 @@ class _FakeApi extends Fake implements ChatApi {
   @override
   Future<String?> getFileUrl(String storageId) async => null;
 
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _FakeRepo extends ChangeNotifier implements ChatRepository {

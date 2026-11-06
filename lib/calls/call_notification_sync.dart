@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../l10n/app_labels.dart';
 import 'call_models.dart';
 import 'call_service.dart';
+import '../ui/foundation/caps.dart';
 
 /// What the 1:1 call tells Android's ongoing-call notification, as a value:
 /// the native side hears only what changes.
@@ -126,7 +126,7 @@ class CallNotificationSync {
   CallNotificationState? _sent;
 
   void attach(CallService call) {
-    if (kIsWeb || !Platform.isAndroid) return;
+    if (!Caps.android) return;
     if (identical(_call, call)) return;
     _call?.removeListener(_sync);
     _call = call..addListener(_sync);

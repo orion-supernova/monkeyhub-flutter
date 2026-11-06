@@ -23,6 +23,8 @@ import 'liquid_glass.dart';
 import 'photo_chrome.dart';
 import 'spring_press.dart';
 import 'desktop_scroll.dart';
+import '../ui/foundation/caps.dart';
+import '../theme/motion.dart';
 
 /// Where the tray rests.
 ///
@@ -98,9 +100,7 @@ class GalleryTray extends StatefulWidget {
   /// `photo_manager`'s macOS build needs entitlements this app does not
   /// carry, and the browser has no photo library at all.
   static bool get supported =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android);
+      Caps.nativeMobile;
 
   final GalleryTrayController controller;
 
@@ -508,7 +508,7 @@ class _GalleryTrayState extends State<GalleryTray>
       _setFull(false);
     }
     final target = _yFor(stop, g);
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (MotionScope.of(context).calm) {
       _y.value = target;
       if (stop == GalleryTrayStop.full) _setFull(true);
       return;
@@ -822,9 +822,8 @@ class _GalleryTrayState extends State<GalleryTray>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              GlassIconButton(
+              GlassCloseButton(
                 tone: GlassTone.media,
-                icon: CupertinoIcons.xmark,
                 size: _barHeight,
                 semanticLabel: l10n.galleryTrayCancelSelectionLabel,
                 // It rides the sheet's drag; a moving blur is never drawn.

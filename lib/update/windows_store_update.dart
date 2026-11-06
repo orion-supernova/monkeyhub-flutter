@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'store_answer.dart';
+import '../ui/foundation/caps.dart';
 
 /// The Microsoft Store's own answer for a Store install, and its in-place
 /// installer — Windows' counterpart to `play_update.dart`.
@@ -19,7 +20,7 @@ const _channel = MethodChannel('monkeyhub/store_update');
 
 /// Whether the Store has a newer package for this install, and which.
 Future<StoreAnswer> windowsStoreAnswer() async {
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.windows) {
+  if (!Caps.windows) {
     return StoreAnswer.noAnswer;
   }
   try {
@@ -40,7 +41,7 @@ Future<StoreAnswer> windowsStoreAnswer() async {
 /// the user going anywhere; Windows restarts the app to finish. True when the
 /// Store took it; false means "fall back to opening the listing".
 Future<bool> startWindowsStoreUpdate() async {
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.windows) return false;
+  if (!Caps.windows) return false;
   try {
     return await _channel.invokeMethod<bool>('install') ?? false;
   } catch (e) {

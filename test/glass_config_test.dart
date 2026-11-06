@@ -9,6 +9,7 @@ import 'package:monkeyhub/keyboard/focusable_tap.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations_en.dart';
 import 'package:monkeyhub/screens/glass_screen.dart';
+import 'package:monkeyhub/widgets/ios_kit.dart' show GroupedSection;
 import 'package:monkeyhub/screens/navigation/destinations.dart';
 import 'package:monkeyhub/screens/navigation/pill_bottom_nav.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
@@ -469,6 +470,19 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
+      // The Style chooser leads the page on every platform now. Start each test
+      // just past it, so the page sits where these tests were measured: with
+      // the chooser on screen the pinned preview parks under the page's centre,
+      // where every scroll drag starts, and its own list takes the drags.
+      final style = find.ancestor(
+        of: find.text('Style'),
+        matching: find.byType(GroupedSection),
+      );
+      final pos = tester
+          .state<ScrollableState>(find.byType(Scrollable).first)
+          .position;
+      pos.jumpTo(tester.getRect(style).bottom - tester.getTopLeft(find.text('Glass').first).dy);
       await tester.pumpAndSettle();
     }
 

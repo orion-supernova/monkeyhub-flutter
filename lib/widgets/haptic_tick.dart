@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../calls/phone_call_activity.dart';
 import '../data/settings_store.dart';
 import '../theme/low_power.dart';
+import '../ui/foundation/channels.dart';
 
 /// What a single haptic means, which decides its feel on every platform.
 ///
@@ -85,7 +86,7 @@ class HapticCapabilities {
 class HapticTick {
   HapticTick._();
 
-  static const MethodChannel _channel = MethodChannel('monkeyhub/haptics');
+  static const MethodChannel _channel = Channels.haptics;
 
   /// Detents a [HapticTier.thinned] ramp plays.
   static const int thinnedDetents = 6;

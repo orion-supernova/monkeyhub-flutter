@@ -15369,4 +15369,37 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get uiKitLiteFooter =>
       '라이트는 유리를 그리지 않으므로 조정할 것이 없습니다. 유리를 직접 다듬으려면 프로스티드를 선택하세요.';
+
+  @override
+  String bulkForwardedToChats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '채팅 $count개에 전달했어요',
+      one: '전달했어요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkSavedToPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개를 사진에 저장했어요',
+      one: '사진에 저장했어요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkDeletedMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개를 삭제했어요',
+      one: '삭제했어요',
+    );
+    return '$_temp0';
+  }
 }

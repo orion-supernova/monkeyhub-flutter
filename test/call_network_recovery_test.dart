@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:monkeyhub/backend/call_api.dart';
@@ -148,6 +150,11 @@ CallService _service(
 }
 
 void main() {
+  // flutter_test defaults to Android, where the mobile call paths (channels,
+  // permission pre-flight) apply; these tests drive the desktop shape.
+  setUpAll(() => debugDefaultTargetPlatformOverride = TargetPlatform.macOS);
+  tearDownAll(() => debugDefaultTargetPlatformOverride = null);
+
   TestWidgetsFlutterBinding.ensureInitialized();
   ScreenShare.invokeFn = (m, [a]) async => null;
 

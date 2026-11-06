@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 
@@ -15,6 +14,7 @@ import '../widgets/app_brand_mark.dart' show canonicalLogoId;
 import '../widgets/app_icon_picker.dart';
 import '../widgets/appearance_picker.dart';
 import '../widgets/ios_kit.dart';
+import '../ui/foundation/caps.dart';
 
 /// The first thing a new install shows, before sign-in: how the app should
 /// look, then which icon it should wear on the home screen.
@@ -52,7 +52,7 @@ class _ThemeOnboardingScreenState extends State<ThemeOnboardingScreen> {
   late String _iconChoice = _currentIcon;
 
   bool get _showsIosNote =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+      Caps.iOS;
 
   Future<void> _finish() async {
     final store = SettingsStore.instance;

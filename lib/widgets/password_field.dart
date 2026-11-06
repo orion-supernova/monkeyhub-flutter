@@ -28,6 +28,7 @@ class PasswordField extends StatefulWidget {
     this.onSubmitted,
     this.focusNode,
     this.textInputAction,
+    this.autofillHints,
   });
 
   final TextEditingController controller;
@@ -41,6 +42,9 @@ class PasswordField extends StatefulWidget {
   final ValueChanged<String>? onSubmitted;
   final FocusNode? focusNode;
   final TextInputAction? textInputAction;
+
+  /// [AutofillHints.password] to sign in, [AutofillHints.newPassword] to set one.
+  final Iterable<String>? autofillHints;
 
   @override
   State<PasswordField> createState() => _PasswordFieldState();
@@ -64,6 +68,7 @@ class _PasswordFieldState extends State<PasswordField> {
       autofocus: widget.autofocus,
       focusNode: widget.focusNode,
       textInputAction: widget.textInputAction,
+      autofillHints: widget.autofillHints,
       // A password is never a dictionary word — leave the keyboard's guessing
       // engines out of it, matching what release_device_screen already did by
       // hand. Also stops iOS from echoing the password in the QuickType bar.

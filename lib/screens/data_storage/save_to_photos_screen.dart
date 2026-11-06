@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -63,7 +62,6 @@ class SaveToPhotosScreen extends StatelessWidget {
                   title: l10n.storageKindPhotos,
                   value: rule.photos,
                   onChanged: (v) {
-                    HapticFeedback.lightImpact();
                     save(rule.copyWith(photos: v));
                   },
                 ),
@@ -73,7 +71,6 @@ class SaveToPhotosScreen extends StatelessWidget {
                   title: l10n.storageKindVideos,
                   value: rule.videos,
                   onChanged: (v) {
-                    HapticFeedback.lightImpact();
                     save(rule.copyWith(videos: v));
                   },
                 ),

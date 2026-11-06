@@ -1,12 +1,12 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import 'store_answer.dart';
 import 'update_destination.dart' show kAppleAppId;
 import 'version_compare.dart';
+import '../ui/foundation/channels.dart';
 
 /// The App Store's own answer for an App Store install, on iOS and macOS.
 ///
@@ -20,7 +20,7 @@ import 'version_compare.dart';
 ///
 /// Native side: `monkeyhub/installer` in `ios/Runner/InstallerEnvironment.swift`
 /// and `macos/Runner/InstallerEnvironment.swift`.
-const _installer = MethodChannel('monkeyhub/installer');
+const _installer = Channels.installer;
 
 /// What the App Store would install for this device, or why it can't say.
 Future<StoreAnswer> appStoreAnswer(

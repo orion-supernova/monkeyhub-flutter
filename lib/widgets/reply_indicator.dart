@@ -15,6 +15,7 @@ import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
 import '../models/expression_item.dart';
 import 'chrome_motion.dart' show ContextRail;
 import 'expressions/expression_media.dart';
@@ -23,7 +24,7 @@ import 'media_spoiler.dart';
 import 'remote_image.dart';
 import 'speaker_scope.dart';
 import 'user_avatar.dart';
-import 'liquid_glass.dart' show GlassShadow;
+import 'liquid_glass.dart' show GlassShadow, plateFill;
 
 /// The two colours a quote card paints the person it is quoting in.
 ///
@@ -700,6 +701,7 @@ class _BranchButton extends StatelessWidget {
             ],
             child: ClipOval(
             child: BackdropFilter(
+              enabled: UiKit.of(context).blurs,
               filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
               child: Container(
                 width: size,
@@ -707,7 +709,9 @@ class _BranchButton extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: theme.accent.withValues(alpha: 0.18),
+                  color: UiKit.of(context).blurs
+                      ? theme.accent.withValues(alpha: 0.18)
+                      : Color.alphaBlend(theme.accent.withValues(alpha: 0.18), plateFill(theme)),
                   border: Border.all(
                     color: theme.accent.withValues(alpha: 0.55),
                     width: 1,

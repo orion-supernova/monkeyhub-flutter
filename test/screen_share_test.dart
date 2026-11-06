@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/calls/screen_share.dart';
 import 'package:monkeyhub/privacy/capture_protection.dart';
@@ -11,6 +13,11 @@ import 'fakes/fake_webrtc.dart';
 /// keeps our own outgoing picture from being black. Neither can be seen from
 /// a test on a Mac, so the seams record what would have been asked.
 void main() {
+  // flutter_test defaults to Android, where the mobile call paths (channels,
+  // permission pre-flight) apply; these tests drive the desktop shape.
+  setUpAll(() => debugDefaultTargetPlatformOverride = TargetPlatform.macOS);
+  tearDownAll(() => debugDefaultTargetPlatformOverride = null);
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('capture protection is lifted for the share and restored after',

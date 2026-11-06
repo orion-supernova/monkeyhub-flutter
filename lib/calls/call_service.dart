@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -27,6 +26,7 @@ import 'native_call_handler.dart';
 import 'renegotiation.dart';
 import 'screen_share.dart';
 import 'video_quality_governor.dart';
+import '../ui/foundation/caps.dart';
 
 /// Single-call peer-to-peer WebRTC manager.
 ///
@@ -155,9 +155,6 @@ class CallService extends ChangeNotifier
   /// (setSpeakerphoneOn, switchCamera) exist. On web/desktop those channels
   /// have no implementation and throw MissingPluginException — the browser/OS
   /// manages audio routing itself, so we simply skip them there.
-  static bool get _isMobile =>
-      !kIsWeb && (Platform.isIOS || Platform.isAndroid);
-
   String? _userId;
   String? get userId => _userId;
   String? _deviceId;
@@ -588,7 +585,7 @@ class CallService extends ChangeNotifier
   final ValueNotifier<int> callAudioActivations = ValueNotifier<int>(0);
 
   bool get _systemOwnsCallAudio =>
-      !kIsWeb && Platform.isIOS && !NativeCallHandler.instance.isIosSimulator;
+      Caps.iOS && !NativeCallHandler.instance.isIosSimulator;
 
   void _markCallAudioLive() {
     _callAudioLiveTimer?.cancel();
@@ -2050,7 +2047,7 @@ class CallService extends ChangeNotifier
   Future<void> switchCamera() => _camSerial(() async {
         final t = _camTrack;
         if (t == null || !localCamActive) return;
-        if (!_isMobile) return; // Helper.switchCamera is a mobile-only channel.
+        if (!Caps.mobileCalls) return; // Helper.switchCamera is a mobile-only channel.
         try {
           final front =
               await switchCameraFn(t).timeout(const Duration(seconds: 3));
@@ -3823,7 +3820,7 @@ class CallService extends ChangeNotifier
   void _reportRinging(String callId) {
     final me = _userId;
     if (me == null) return;
-    if (_isMobile && !appInForegroundFn()) return;
+    if (Caps.mobileCalls && !appInForegroundFn()) return;
     unawaited(() async {
       try {
         await api.markCallRinging(callId: callId, userId: me);
@@ -3836,7 +3833,7 @@ class CallService extends ChangeNotifier
   void _ackNativeDismissed(String callId) {
     final me = _userId;
     final dev = _deviceId;
-    if (!_isMobile || me == null || dev == null) return;
+    if (!Caps.mobileCalls || me == null || dev == null) return;
     unawaited(() async {
       try {
         if (!await NativeCallHandler.instance.cardGone(callId)) {

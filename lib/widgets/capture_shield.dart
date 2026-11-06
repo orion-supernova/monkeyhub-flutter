@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../privacy/capture_protection.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
 import 'ios_kit.dart' show groupedRadius;
 import '../l10n/text_case.dart';
 
@@ -32,10 +33,15 @@ class CaptureShield extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                  child: Container(color: Colors.black.withValues(alpha: 0.55)),
-                ),
+                // Lite draws no blur, so the cover is opaque: the shield is a
+                // privacy control, content must not show through it.
+                if (UiKit.of(context).blurs)
+                  BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                    child: Container(color: Colors.black.withValues(alpha: 0.55)),
+                  )
+                else
+                  const ColoredBox(color: Colors.black),
                 Center(
                   child: Padding(
                     padding: const EdgeInsets.all(32),

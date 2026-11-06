@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/glass_hud.dart';
-import 'package:monkeyhub/widgets/glass_progress_dialog.dart';
+import 'package:monkeyhub/widgets/progress_ring.dart';
 import 'package:monkeyhub/widgets/scan_frame_overlay.dart';
 
 import 'preview_kit.dart';
@@ -45,7 +45,7 @@ void main() {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        ProgressRing(value: v),
+                        ProgressRing.spinner(value: v),
                         const SizedBox(height: 16),
                         Text('Syncing Messages…',
                             style: theme.body.copyWith(

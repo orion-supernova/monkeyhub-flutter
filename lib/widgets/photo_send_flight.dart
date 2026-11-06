@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'capture_glyphs.dart' show glyphSpan;
 import 'message_bubble.dart' show kCaptionPadding;
 import 'send_flight.dart';
+import '../theme/motion.dart';
 
 /// The photo preview's Send: the picture itself flies down out of the
 /// preview into the bubble it becomes, the way a video note's circle does
@@ -50,7 +51,7 @@ class PhotoSendFlight {
     TextStyle? captionStyle,
   }) {
     final overlay = Overlay.maybeOf(context, rootOverlay: true);
-    if (overlay == null || MediaQuery.disableAnimationsOf(context)) {
+    if (overlay == null || MotionScope.of(context).calm) {
       image.dispose();
       return;
     }

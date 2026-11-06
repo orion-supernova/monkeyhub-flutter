@@ -581,7 +581,7 @@ class _ScheduledRowState extends State<_ScheduledRow>
     // Closes up once the front has crossed, under the dust still in the
     // air, as a deleted message does.
     _closeTimer = Timer(
-      MediaQuery.disableAnimationsOf(context)
+      MotionScope.of(context).calm
           ? DustDissolve.calmDuration
           : DustDissolve.waveDuration,
       () {

@@ -16040,4 +16040,37 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get uiKitLiteFooter =>
       'Lite draws no glass, so there is nothing to tune. Choose Frosted to shape the glass yourself.';
+
+  @override
+  String bulkForwardedToChats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'forwarded to $count chats',
+      one: 'forwarded',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkSavedToPhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'saved $count to photos',
+      one: 'saved to photos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bulkDeletedMessages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'deleted $count',
+      one: 'deleted',
+    );
+    return '$_temp0';
+  }
 }

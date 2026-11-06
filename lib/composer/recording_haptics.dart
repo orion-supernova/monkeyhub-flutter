@@ -1,5 +1,7 @@
-import 'package:flutter/foundation.dart' show debugPrint, defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart';
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// iOS mutes the Taptic Engine while the microphone is recording unless the
 /// audio session opts in. Without this every haptic of a voice or video note
@@ -9,9 +11,9 @@ import 'package:flutter/services.dart';
 /// recorder has started, because the record and camera plugins reconfigure
 /// the shared session when they start. Fire-and-forget, a no-op elsewhere.
 Future<void> allowHapticsWhileRecording() async {
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return;
+  if (!Caps.iOS) return;
   try {
-    await const MethodChannel('monkeyhub/haptics').invokeMethod<void>('allowDuringRecording');
+    await Channels.haptics.invokeMethod<void>('allowDuringRecording');
   } catch (e) {
     debugPrint('allowHapticsWhileRecording: $e');
   }
@@ -22,7 +24,7 @@ Future<void> allowHapticsWhileRecording() async {
 /// this app's window on Android; iOS restores the remembered level. A no-op
 /// off mobile.
 Future<void> setFlashBrightness(bool on) async {
-  if (kIsWeb || (defaultTargetPlatform != TargetPlatform.iOS && defaultTargetPlatform != TargetPlatform.android)) return;
+  if (!Caps.nativeMobile) return;
   try {
     await const MethodChannel('monkeyhub/screen').invokeMethod<void>('setFlashBrightness', {'on': on});
   } catch (e) {

@@ -9,4 +9,4 @@
 // This needs `dart:js_interop`, which cannot be compiled for the VM, hence the
 // conditional export. Off-web it resolves to a stub that returns null and the
 // caller falls back to the plain URL.
-export 'blob_url_io.dart' if (dart.library.html) 'blob_url_web.dart';
+export 'blob_url_io.dart' if (dart.library.js_interop) 'blob_url_web.dart';

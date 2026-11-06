@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/glass_hud.dart';
 import 'package:monkeyhub/widgets/glass_progress_dialog.dart';
+import 'package:monkeyhub/widgets/progress_ring.dart';
 import 'package:monkeyhub/widgets/scan_frame_overlay.dart';
 
 Widget _app(Widget Function(BuildContext) body, {bool calm = false}) =>
@@ -117,11 +118,11 @@ void main() {
 
   testWidgets('ProgressRing indeterminate spins, determinate settles',
       (tester) async {
-    await tester.pumpWidget(_app((_) => const Center(child: ProgressRing())));
+    await tester.pumpWidget(_app((_) => const Center(child: ProgressRing.spinner())));
     await tester.pump(const Duration(milliseconds: 100));
     expect(tester.hasRunningAnimations, isTrue);
     await tester.pumpWidget(
-        _app((_) => const Center(child: ProgressRing(value: 0.5))));
+        _app((_) => const Center(child: ProgressRing.spinner(value: 0.5))));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     expect(tester.hasRunningAnimations, isFalse);

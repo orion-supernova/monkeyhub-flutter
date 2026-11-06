@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'file_meta.dart';
+import '../ui/foundation/caps.dart';
 
 /// Re-encodes a video that is over [kMaxFileUploadBytes] until it fits.
 ///
@@ -17,10 +18,7 @@ class VideoShrink {
   static const _channel = MethodChannel('monkeyhub/video_shrink');
 
   static bool get supported =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.macOS);
+      (Caps.nativeMobile || Caps.macOS);
 
   /// The path of a new MP4 at or under [capBytes], or null when the clip is
   /// too long to fit at any watchable quality or will not encode. The caller

@@ -4,7 +4,7 @@ import 'package:flutter/gestures.dart' show PointerEnterEvent, PointerExitEvent;
 import 'package:flutter/material.dart';
 
 import '../keyboard/app_shortcuts.dart';
-import '../platform.dart';
+import '../ui/foundation/caps.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'shortcuts/keycaps.dart';
@@ -181,7 +181,7 @@ class _HoverHintState extends State<HoverHint>
 
   @override
   Widget build(BuildContext context) {
-    if (!isWebOrDesktop) return widget.child;
+    if (!Caps.hover) return widget.child;
     return OverlayPortal(
       controller: _portal,
       overlayChildBuilder: _bubble,

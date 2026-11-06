@@ -1,6 +1,5 @@
-import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../ui/foundation/caps.dart';
 
 /// A keychain store that finds its items whichever accessibility class they
 /// were written under.
@@ -50,7 +49,7 @@ class AnyClassKeychain {
   /// The move is best effort, since the value is already in hand; a failed one
   /// is simply repeated by the next read.
   Future<String?> readElsewhere({required String key}) async {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return null;
+    if (!Caps.iOS) return null;
     final stray = await _anyClass.read(key: key);
     if (stray == null) return null;
     try {

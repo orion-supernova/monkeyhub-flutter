@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import '../ui/foundation/caps.dart';
+import '../ui/foundation/channels.dart';
 
 /// The app's binding: Flutter's own, plus one thing it lacks — haptics on a
 /// Mac.
@@ -69,7 +71,7 @@ class AppBinding extends WidgetsFlutterBinding {
     if (kIsWeb) return inner;
     return HapticMessenger(
       inner,
-      mac: defaultTargetPlatform == TargetPlatform.macOS,
+      mac: Caps.macOS,
     );
   }
 }
@@ -92,7 +94,7 @@ class HapticMessenger implements BinaryMessenger {
 
   static const _platform = 'flutter/platform';
   static const _codec = JSONMethodCodec();
-  static const _haptics = MethodChannel('monkeyhub/haptics');
+  static const _haptics = Channels.haptics;
 
   @override
   Future<ByteData?>? send(String channel, ByteData? message) {

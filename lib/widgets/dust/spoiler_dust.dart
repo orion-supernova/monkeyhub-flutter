@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../theme/perf_tier.dart';
 import 'dust_kit.dart';
+import '../../theme/motion.dart';
 
 /// Telegram's spoiler grain: what one mote of a spoiler is.
 ///
@@ -221,7 +222,7 @@ class _SpoilerDustState extends State<SpoilerDust>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _calm = MediaQuery.disableAnimationsOf(context);
+    _calm = MotionScope.of(context).calm;
     _sync();
   }
 
