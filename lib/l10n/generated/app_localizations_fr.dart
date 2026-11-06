@@ -9865,6 +9865,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'iOS affiche une courte alerte à chaque changement d’icône.';
 
   @override
+  String get appIconAndroidNote =>
+      'L’icône de l’écran d’accueil change la prochaine fois que vous quittez l’app.';
+
+  @override
   String get onboardingGetStarted => 'C’est parti';
 
   @override
@@ -14363,6 +14367,24 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get voiceTranscriptNoSpeech => 'Aucune parole dans ce message vocal.';
+
+  @override
+  String get voiceTranscriptFetching => 'Récupération de la vidéo…';
+
+  @override
+  String get voiceTranscriptFailedAudioVideo =>
+      'Impossible de lire cette vidéo.';
+
+  @override
+  String get voiceTranscriptFailedVideo =>
+      'Impossible de transcrire cette vidéo.';
+
+  @override
+  String get voiceTranscriptNoSpeechVideo => 'Aucune parole dans cette vidéo.';
+
+  @override
+  String get voiceTranscriptTooLarge =>
+      'Cette vidéo est trop volumineuse pour être transcrite sur cet appareil.';
 
   @override
   String get voiceTranscriptOnDevice => 'Transcrit sur cet appareil';

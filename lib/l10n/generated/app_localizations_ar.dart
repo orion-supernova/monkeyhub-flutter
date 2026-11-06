@@ -9894,6 +9894,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'يعرض iOS تنبيهًا قصيرًا كلما تغيّرت الأيقونة.';
 
   @override
+  String get appIconAndroidNote =>
+      'تتغيّر أيقونة الشاشة الرئيسية في المرة القادمة التي تغادر فيها التطبيق.';
+
+  @override
   String get onboardingGetStarted => 'لنبدأ';
 
   @override
@@ -14356,6 +14360,22 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get voiceTranscriptNoSpeech => 'لا يوجد كلام في هذه الرسالة الصوتية.';
+
+  @override
+  String get voiceTranscriptFetching => 'جارٍ جلب الفيديو…';
+
+  @override
+  String get voiceTranscriptFailedAudioVideo => 'تعذّرت قراءة هذا الفيديو.';
+
+  @override
+  String get voiceTranscriptFailedVideo => 'تعذّر تحويل هذا الفيديو إلى نص.';
+
+  @override
+  String get voiceTranscriptNoSpeechVideo => 'لا يوجد كلام في هذا الفيديو.';
+
+  @override
+  String get voiceTranscriptTooLarge =>
+      'هذا الفيديو كبير جدًا بحيث لا يمكن تحويله إلى نص على هذا الجهاز.';
 
   @override
   String get voiceTranscriptOnDevice => 'حُوِّل إلى نص على هذا الجهاز';

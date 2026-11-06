@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/companions/brain_download.dart';
+import 'package:monkeyhub/media/video_file_cache.dart' show MediaTooLarge;
 import 'package:monkeyhub/transcripts/builtin_speech.dart';
 import 'package:monkeyhub/transcripts/speech_engine.dart';
 import 'package:monkeyhub/transcripts/transcript.dart';
@@ -152,6 +153,50 @@ void main() {
 
     await t.retry('n');
     expect(t.handleFor('n').phase, TranscriptPhase.done);
+  });
+
+  group('video and video notes', () {
+    test('a video with no audio track is "no speech", not a failure', () async {
+      await install();
+      final engine = _FakeEngine()..failNext = const SpeechException(SpeechFailure.noAudio);
+      final t = VoiceTranscriber.forTest(engine, model: model, onCellular: () => false);
+      await t.toggle('v', audio, media: TranscriptMedia.video);
+      final h = t.handleFor('v');
+      expect(h.phase, TranscriptPhase.done);
+      expect(h.transcript!.isEmpty, isTrue);
+    });
+
+    test('the same missing track is a failure for a voice note', () async {
+      await install();
+      final engine = _FakeEngine()..failNext = const SpeechException(SpeechFailure.noAudio);
+      final t = VoiceTranscriber.forTest(engine, model: model, onCellular: () => false);
+      await t.toggle('a', audio);
+      expect(t.handleFor('a').phase, TranscriptPhase.failed);
+      expect(t.handleFor('a').failure, TranscriptFailure.audio);
+    });
+
+    test('a video too large to keep is reported as such', () async {
+      await install();
+      final t = VoiceTranscriber.forTest(_FakeEngine(), model: model, onCellular: () => false);
+      await t.toggle('big', () => throw const MediaTooLarge(99), media: TranscriptMedia.videoNote);
+      expect(t.handleFor('big').failure, TranscriptFailure.tooLarge);
+    });
+
+    test('cancel while the file is being fetched puts the slab back to rest', () async {
+      await install();
+      final fetch = Completer<String>();
+      final t = VoiceTranscriber.forTest(_FakeEngine(), model: model, onCellular: () => false);
+      final run = t.toggle('c', () => fetch.future, media: TranscriptMedia.video);
+      for (var i = 0; i < 50 && !t.handleFor('c').fetching; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      expect(t.handleFor('c').fetching, isTrue);
+      t.cancel('c');
+      fetch.complete('/v.mp4');
+      await run;
+      expect(t.handleFor('c').phase, TranscriptPhase.idle);
+      expect(t.handleFor('c').open, isFalse);
+    });
   });
 
   test('notes are transcribed one at a time', () async {

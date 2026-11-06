@@ -9680,6 +9680,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'iOS, simge her değiştiğinde kısa bir bildirim gösterir.';
 
   @override
+  String get appIconAndroidNote =>
+      'Ana ekrandaki simge, uygulamadan bir sonraki çıkışında değişir.';
+
+  @override
   String get onboardingGetStarted => 'Başlayalım';
 
   @override
@@ -14100,6 +14104,22 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get voiceTranscriptNoSpeech => 'Bu sesli mesajda konuşma yok.';
+
+  @override
+  String get voiceTranscriptFetching => 'Video alınıyor…';
+
+  @override
+  String get voiceTranscriptFailedAudioVideo => 'Bu video okunamadı.';
+
+  @override
+  String get voiceTranscriptFailedVideo => 'Bu video yazıya dökülemedi.';
+
+  @override
+  String get voiceTranscriptNoSpeechVideo => 'Bu videoda konuşma yok.';
+
+  @override
+  String get voiceTranscriptTooLarge =>
+      'Bu video bu cihazda yazıya dökülemeyecek kadar büyük.';
 
   @override
   String get voiceTranscriptOnDevice => 'Bu cihazda metne dönüştürüldü';

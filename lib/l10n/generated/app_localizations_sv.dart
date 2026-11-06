@@ -9756,6 +9756,10 @@ class AppLocalizationsSv extends AppLocalizations {
       'iOS visar ett kort meddelande varje gång ikonen ändras.';
 
   @override
+  String get appIconAndroidNote =>
+      'Ikonen på hemskärmen byts nästa gång du lämnar appen.';
+
+  @override
   String get onboardingGetStarted => 'Kom igång';
 
   @override
@@ -14198,6 +14202,24 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get voiceTranscriptNoSpeech => 'Inget tal i det här röstmeddelandet.';
+
+  @override
+  String get voiceTranscriptFetching => 'Hämtar videon…';
+
+  @override
+  String get voiceTranscriptFailedAudioVideo =>
+      'Det gick inte att läsa den här videon.';
+
+  @override
+  String get voiceTranscriptFailedVideo =>
+      'Det gick inte att transkribera den här videon.';
+
+  @override
+  String get voiceTranscriptNoSpeechVideo => 'Inget tal i den här videon.';
+
+  @override
+  String get voiceTranscriptTooLarge =>
+      'Videon är för stor för att transkriberas på den här enheten.';
 
   @override
   String get voiceTranscriptOnDevice => 'Transkriberat på den här enheten';

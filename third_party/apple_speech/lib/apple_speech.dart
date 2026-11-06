@@ -71,6 +71,9 @@ enum AppleSpeechError {
   unsupportedLocale,
   assetsFailed,
   decode,
+
+  /// A video with no audio track: nothing to transcribe, not a failure.
+  noAudio,
   permissionDenied,
   cancelled,
   failed,

@@ -9731,6 +9731,10 @@ class AppLocalizationsHi extends AppLocalizations {
       'आइकन बदलने पर iOS हर बार एक छोटा नोटिस दिखाता है।';
 
   @override
+  String get appIconAndroidNote =>
+      'होम स्क्रीन का आइकन अगली बार ऐप से बाहर निकलने पर बदल जाएगा।';
+
+  @override
   String get onboardingGetStarted => 'शुरू करें';
 
   @override
@@ -14140,6 +14144,23 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get voiceTranscriptNoSpeech => 'इस वॉइस मैसेज में कोई बोली नहीं है।';
+
+  @override
+  String get voiceTranscriptFetching => 'वीडियो लाया जा रहा है…';
+
+  @override
+  String get voiceTranscriptFailedAudioVideo => 'यह वीडियो पढ़ा नहीं जा सका।';
+
+  @override
+  String get voiceTranscriptFailedVideo =>
+      'यह वीडियो ट्रांसक्राइब नहीं हो सका।';
+
+  @override
+  String get voiceTranscriptNoSpeechVideo => 'इस वीडियो में कोई बोली नहीं है।';
+
+  @override
+  String get voiceTranscriptTooLarge =>
+      'यह वीडियो इस डिवाइस पर ट्रांसक्राइब करने के लिए बहुत बड़ा है।';
 
   @override
   String get voiceTranscriptOnDevice => 'इसी डिवाइस पर ट्रांसक्राइब किया गया';

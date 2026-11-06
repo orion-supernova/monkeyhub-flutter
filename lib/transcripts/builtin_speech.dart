@@ -7,7 +7,7 @@ library;
 
 import 'transcript.dart';
 
-enum BuiltInFailure { unavailable, unsupportedLanguage, audio, engine, cancelled }
+enum BuiltInFailure { unavailable, unsupportedLanguage, audio, noAudio, engine, cancelled }
 
 class BuiltInSpeechException implements Exception {
   const BuiltInSpeechException(this.failure, [this.detail]);

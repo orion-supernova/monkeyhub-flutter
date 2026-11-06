@@ -1,5 +1,15 @@
-/// The transcript half of a voice bubble: the button beside the waveform, and
-/// the slab that opens under it.
+/// The transcript half of a message: the button, and the slab that opens
+/// under it. One component for voice notes, videos and round video notes.
+///
+/// ── One component, three homes ─────────────────────────────────────────────
+///
+/// [TranscriptButton] and [TranscriptSlab] are the same widgets wherever they
+/// are used. A voice bubble puts the button in its player row and the slab
+/// inside its own bubble. A video or a round note has no text bubble to open
+/// into, so [MediaTranscript] wraps the picture: the button sits on a corner
+/// of it (`onMedia`, white on a dark chip, readable over any frame) and the
+/// slab opens as a card of its own under the picture, in the bubble's colour.
+/// What differs per kind lives in `TranscriptSubject`, not here.
 ///
 /// ── Why it reads along ─────────────────────────────────────────────────────
 ///
@@ -32,6 +42,7 @@ import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../transcripts/transcript.dart';
+import '../transcripts/transcript_subject.dart';
 import '../transcripts/voice_transcriber.dart';
 import 'app_toast.dart';
 import 'spring_press.dart';
@@ -49,6 +60,7 @@ class TranscriptButton extends StatelessWidget {
     required TranscriptHandle this.handle,
     required this.isMine,
     required this.onTap,
+    this.onMedia = false,
   });
 
   /// The same disc, at rest, where the platform cannot transcribe (the
@@ -58,11 +70,16 @@ class TranscriptButton extends StatelessWidget {
     super.key,
     required this.isMine,
     required this.onTap,
-  }) : handle = null;
+  })  : handle = null,
+        onMedia = false;
 
   final TranscriptHandle? handle;
   final bool isMine;
   final VoidCallback onTap;
+
+  /// Sitting on a picture rather than a bubble: white ink on a dark chip,
+  /// which reads over any frame, instead of the bubble's own ink.
+  final bool onMedia;
 
   static const double size = 26;
 
@@ -70,7 +87,7 @@ class TranscriptButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final ink = isMine ? theme.accentInk : theme.ink;
+    final ink = onMedia ? Colors.white : (isMine ? theme.accentInk : theme.ink);
     final handle = this.handle;
     if (handle == null) {
       return SpringPress(
@@ -121,7 +138,9 @@ class TranscriptButton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             child: _TranscriptDisc(
               ink: ink,
-              fill: ink.withValues(alpha: handle.open ? 0.2 : 0.12),
+              fill: onMedia
+                  ? Colors.black.withValues(alpha: handle.open ? 0.62 : 0.5)
+                  : ink.withValues(alpha: handle.open ? 0.2 : 0.12),
               open: handle.open,
               busy: busy,
               ring: ring,
@@ -335,27 +354,43 @@ class _TranscriptGlyphPainter extends CustomPainter {
 }
 
 /// Under the player, once the button has been tapped.
+///
+/// Inside a voice bubble it opens under a hairline. For a video or a round
+/// note (`decoration` set) it is a card of its own, [cardWidth] wide, in the
+/// bubble's colour: there is no text bubble to grow, and a full-width text
+/// slab under a circle would look like a caption that lost its message.
 class TranscriptSlab extends StatelessWidget {
   const TranscriptSlab({
     super.key,
     required this.handle,
     required this.isMine,
-    required this.position,
-    required this.following,
-    required this.onSeek,
+    this.position = Duration.zero,
+    this.following = false,
+    this.onSeek,
+    this.decoration,
+    this.cardWidth,
   });
 
   final TranscriptHandle handle;
   final bool isMine;
 
-  /// Where playback is, for reading along.
+  /// Where playback is, for reading along. Videos play in their own viewer,
+  /// so they leave this at rest.
   final Duration position;
 
   /// Whether the note is mid-play (playing, or paused partway). Only then do
   /// unspoken words dim — see the library doc.
   final bool following;
 
-  final ValueChanged<Duration> onSeek;
+  /// Tapping a word jumps playback there. Null where the transcript is not
+  /// beside a player (a video's), and words are then plain text.
+  final ValueChanged<Duration>? onSeek;
+
+  /// Set for the card form: what the card is painted with.
+  final Decoration? decoration;
+  final double? cardWidth;
+
+  bool get _card => decoration != null;
 
   @override
   Widget build(BuildContext context) {
@@ -367,24 +402,52 @@ class TranscriptSlab extends StatelessWidget {
           ? const AlwaysStoppedAnimation<double>(0)
           : Listenable.merge([handle, VoiceTranscriber.instance.download]),
       builder: (context, _) {
-        final Widget body = !handle.open
-            ? const SizedBox(width: double.infinity)
-            : Padding(
-                padding: const EdgeInsets.only(top: 8, bottom: 2),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      height: 1,
-                      color: (isMine ? theme.accentInk : theme.ink)
-                          .withValues(alpha: 0.14),
-                    ),
-                    const SizedBox(height: 8),
-                    _body(context, theme, motion),
-                  ],
-                ),
+        final Widget? content = !handle.open
+            ? null
+            : KeyedSubtree(
+                key: ValueKey((handle.phase, handle.fetching)),
+                child: _body(context, theme, motion),
               );
+        final Widget switched = (frozen || content == null)
+            ? (content ?? const SizedBox.shrink())
+            : AnimatedSwitcher(
+                duration: motion.d(const Duration(milliseconds: 200)),
+                switchInCurve: Curves.easeOut,
+                transitionBuilder: (child, a) => FadeTransition(opacity: a, child: child),
+                layoutBuilder: (current, previous) => Stack(
+                  alignment: Alignment.topLeft,
+                  children: [...previous, ?current],
+                ),
+                child: content,
+              );
+        final ink = isMine ? theme.accentInk : theme.ink;
+        final Widget body;
+        if (!handle.open) {
+          body = _card ? const SizedBox.shrink() : const SizedBox(width: double.infinity);
+        } else if (_card) {
+          body = Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Container(
+              width: cardWidth,
+              decoration: decoration,
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+              child: switched,
+            ),
+          );
+        } else {
+          body = Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(height: 1, color: ink.withValues(alpha: 0.14)),
+                const SizedBox(height: 8),
+                switched,
+              ],
+            ),
+          );
+        }
         if (frozen) return body;
         return AnimatedSize(
           duration: motion.d(theme.motionMed),
@@ -431,6 +494,7 @@ class TranscriptSlab extends StatelessWidget {
     final model = VoiceTranscriber.instance.model;
     final ink = isMine ? theme.accentInk : theme.ink;
     final quiet = theme.caption.copyWith(color: ink.withValues(alpha: 0.72));
+    final voice = handle.media == TranscriptMedia.voice;
     switch (handle.phase) {
       case TranscriptPhase.idle:
         return const SizedBox.shrink();
@@ -470,7 +534,7 @@ class TranscriptSlab extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            _Bar(fraction: dl?.fraction ?? 0, ink: ink),
+            _Bar(fraction: dl?.fraction ?? 0, ink: ink, width: _card ? cardWidth : null),
             const SizedBox(height: 8),
             Text(l10n.voiceTranscriptOneTimeNote, style: quiet),
             _LinkRow(
@@ -484,18 +548,49 @@ class TranscriptSlab extends StatelessWidget {
         );
 
       case TranscriptPhase.transcribing:
-        return _Breathing(
-          motion: motion,
-          child: Text(l10n.voiceTranscriptWorking, style: quiet),
+        final fetching = handle.fetching;
+        final p = handle.progress;
+        final label = fetching
+            ? l10n.voiceTranscriptFetching
+            : (p == null || p <= 0
+                ? l10n.voiceTranscriptWorking
+                : '${l10n.voiceTranscriptWorking} ${(p * 100).round()}%');
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Where the words will be: three lines of shimmer, so the slab is
+            // already the shape of the answer when it arrives.
+            _Skeleton(ink: ink, motion: motion),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: quiet.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+            ),
+            _LinkRow(
+              theme: theme,
+              isMine: isMine,
+              links: [
+                (
+                  l10n.voiceTranscriptCancel,
+                  () => VoiceTranscriber.instance.cancel(handle.storageId),
+                ),
+              ],
+            ),
+          ],
         );
 
       case TranscriptPhase.failed:
+        final tooLarge = handle.failure == TranscriptFailure.tooLarge;
         final message = switch (handle.failure) {
           TranscriptFailure.network => l10n.voiceTranscriptFailedNetwork,
           TranscriptFailure.storage =>
             l10n.voiceTranscriptFailedStorage(model.sizeLabel),
-          TranscriptFailure.audio => l10n.voiceTranscriptFailedAudio,
-          TranscriptFailure.engine || null => l10n.voiceTranscriptFailed,
+          TranscriptFailure.audio =>
+            voice ? l10n.voiceTranscriptFailedAudio : l10n.voiceTranscriptFailedAudioVideo,
+          TranscriptFailure.tooLarge => l10n.voiceTranscriptTooLarge,
+          TranscriptFailure.engine || null =>
+            voice ? l10n.voiceTranscriptFailed : l10n.voiceTranscriptFailedVideo,
         };
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -506,10 +601,12 @@ class TranscriptSlab extends StatelessWidget {
               theme: theme,
               isMine: isMine,
               links: [
-                (
-                  l10n.voiceTranscriptRetry,
-                  () => VoiceTranscriber.instance.retry(handle.storageId),
-                ),
+                if (!tooLarge)
+                  (
+                    l10n.voiceTranscriptRetry,
+                    () => VoiceTranscriber.instance.retry(handle.storageId),
+                  ),
+                if (_card) (l10n.voiceTranscriptHide, _fold),
               ],
             ),
           ],
@@ -518,7 +615,18 @@ class TranscriptSlab extends StatelessWidget {
       case TranscriptPhase.done:
         final t = handle.transcript;
         if (t == null || (t.isEmpty && t.source == TranscriptSource.model)) {
-          return Text(l10n.voiceTranscriptNoSpeech, style: quiet);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(voice ? l10n.voiceTranscriptNoSpeech : l10n.voiceTranscriptNoSpeechVideo, style: quiet),
+              _LinkRow(
+                theme: theme,
+                isMine: isMine,
+                links: [if (_card) (l10n.voiceTranscriptHide, _fold)],
+              ),
+            ],
+          );
         }
         final lang = t.language;
         final builtIn = t.source == TranscriptSource.builtIn;
@@ -535,14 +643,22 @@ class TranscriptSlab extends StatelessWidget {
           children: [
             // Empty from the built-in recognizer means "not this language"
             // far more often than silence; the offer below says so.
-            if (!t.isEmpty) ReadAlongText(
-              transcript: t,
-              style: theme.body.copyWith(color: ink),
-              dimmed: ink.withValues(alpha: 0.42),
-              position: position,
-              following: following,
-              onSeek: onSeek,
-            ),
+            //
+            // Held down, the words copy: the same as the Copy link, where a
+            // thumb already is. Taps still seek, on the bubbles that can.
+            if (!t.isEmpty)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onLongPress: copy,
+                child: ReadAlongText(
+                  transcript: t,
+                  style: theme.body.copyWith(color: ink),
+                  dimmed: ink.withValues(alpha: 0.42),
+                  position: position,
+                  following: following,
+                  onSeek: onSeek,
+                ),
+              ),
             // Who heard it, said plainly: the built-in recognizer was TOLD a
             // language, so naming it is how a reader spots the wrong one.
             _LinkRow(
@@ -557,6 +673,15 @@ class TranscriptSlab extends StatelessWidget {
                       : l10n.voiceTranscriptLanguageOnDevice(languageName)),
               links: [(l10n.voiceTranscriptCopy, copy)],
             ),
+            // The card has no disc in its own row to fold it again. Its own
+            // line, for the credit's reason below.
+            if (_card)
+              _LinkRow(
+                theme: theme,
+                isMine: isMine,
+                tight: true,
+                links: [(l10n.voiceTranscriptHide, _fold)],
+              ),
             // Its own line rather than a third item on the credit: wrapped
             // into that line it either strands a dot or leads with one.
             if (builtIn && !handle.offering)
@@ -594,7 +719,78 @@ class TranscriptSlab extends StatelessWidget {
     }
   }
 
+  /// Folds the slab, for the card's own "Hide" link.
+  void _fold() => VoiceTranscriber.instance.setOpen(handle.storageId, false);
+
   static String _mb(int bytes) => '${(bytes / (1024 * 1024)).round()} MB';
+}
+
+/// The wrapper a video or a round note puts around its picture: the button on
+/// one corner, the card under it.
+///
+/// Renders [child] unchanged where the platform cannot transcribe. The card
+/// is [cardWidth] wide and sits on the bubble's side ([isMine]) so it lines up
+/// with the picture rather than floating mid-row.
+class MediaTranscript extends StatelessWidget {
+  const MediaTranscript({
+    super.key,
+    required this.subject,
+    required this.isMine,
+    required this.decoration,
+    required this.cardWidth,
+    required this.child,
+    this.buttonAlignment = Alignment.topLeft,
+    this.buttonInset = const EdgeInsets.all(4),
+  });
+
+  final TranscriptSubject subject;
+  final bool isMine;
+
+  /// The bubble's own decoration, so the card reads as part of the message.
+  final Decoration decoration;
+  final double cardWidth;
+  final Widget child;
+  final Alignment buttonAlignment;
+
+  /// Distance of the button's 34pt target from the picture's edges.
+  final EdgeInsets buttonInset;
+
+  @override
+  Widget build(BuildContext context) {
+    final handle = subject.handle;
+    if (handle == null) return child;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Stack(
+          children: [
+            child,
+            Positioned.fill(
+              child: Padding(
+                padding: buttonInset,
+                child: Align(
+                  alignment: buttonAlignment,
+                  child: TranscriptButton(
+                    handle: handle,
+                    isMine: isMine,
+                    onMedia: true,
+                    onTap: () => subject.toggle(context),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        TranscriptSlab(
+          handle: handle,
+          isMine: isMine,
+          decoration: decoration,
+          cardWidth: cardWidth,
+        ),
+      ],
+    );
+  }
 }
 
 /// The transcript, lit as far as playback has got.
@@ -610,7 +806,7 @@ class ReadAlongText extends StatefulWidget {
     required this.dimmed,
     required this.position,
     required this.following,
-    required this.onSeek,
+    this.onSeek,
   });
 
   final Transcript transcript;
@@ -618,7 +814,7 @@ class ReadAlongText extends StatefulWidget {
   final Color dimmed;
   final Duration position;
   final bool following;
-  final ValueChanged<Duration> onSeek;
+  final ValueChanged<Duration>? onSeek;
 
   @override
   State<ReadAlongText> createState() => _ReadAlongTextState();
@@ -650,8 +846,10 @@ class _ReadAlongTextState extends State<ReadAlongText> {
       for (final w in widget.transcript.words)
         TapGestureRecognizer()
           ..onTap = () {
+            final seek = widget.onSeek;
+            if (seek == null) return;
             HapticFeedback.selectionClick();
-            widget.onSeek(w.start);
+            seek(w.start);
           },
     ];
   }
@@ -778,10 +976,13 @@ class _Dot extends StatelessWidget {
 /// The download's own bar. Thin, in the bubble's ink, animated between
 /// progress ticks so 1 MB jumps do not stutter.
 class _Bar extends StatelessWidget {
-  const _Bar({required this.fraction, required this.ink});
+  const _Bar({required this.fraction, required this.ink, this.width});
 
   final double fraction;
   final Color ink;
+
+  /// Null is the bubble's 180; a card passes its own, minus its padding.
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
@@ -790,7 +991,7 @@ class _Bar extends StatelessWidget {
       borderRadius: BorderRadius.circular(2),
       child: SizedBox(
         height: 3,
-        width: 180,
+        width: width == null ? 180 : width! - 24,
         child: Stack(
           children: [
             Positioned.fill(child: ColoredBox(color: ink.withValues(alpha: 0.16))),
@@ -815,18 +1016,22 @@ class _Bar extends StatelessWidget {
   }
 }
 
-/// Fades its child between two visible alphas while work is happening.
-class _Breathing extends StatefulWidget {
-  const _Breathing({required this.motion, required this.child});
+/// Three bars where the words will be, with a light sweeping across them.
+///
+/// Telegram's treatment of a transcript in progress: the slab already has the
+/// shape of the answer, so when text arrives it replaces the bars instead of
+/// pushing the list around. Under calm motion the bars hold still.
+class _Skeleton extends StatefulWidget {
+  const _Skeleton({required this.ink, required this.motion});
 
+  final Color ink;
   final MotionScope motion;
-  final Widget child;
 
   @override
-  State<_Breathing> createState() => _BreathingState();
+  State<_Skeleton> createState() => _SkeletonState();
 }
 
-class _BreathingState extends State<_Breathing> with SingleTickerProviderStateMixin {
+class _SkeletonState extends State<_Skeleton> with SingleTickerProviderStateMixin {
   AnimationController? _ctrl;
 
   @override
@@ -835,8 +1040,8 @@ class _BreathingState extends State<_Breathing> with SingleTickerProviderStateMi
     if (!widget.motion.calm) {
       _ctrl = AnimationController(
         vsync: this,
-        duration: const Duration(milliseconds: 1100),
-      )..repeat(reverse: true);
+        duration: const Duration(milliseconds: 1500),
+      )..repeat();
     }
   }
 
@@ -846,13 +1051,47 @@ class _BreathingState extends State<_Breathing> with SingleTickerProviderStateMi
     super.dispose();
   }
 
+  static const _widths = [1.0, 0.86, 0.5];
+
   @override
   Widget build(BuildContext context) {
     final ctrl = _ctrl;
-    if (ctrl == null) return widget.child;
-    return FadeTransition(
-      opacity: Tween<double>(begin: 0.45, end: 1).animate(ctrl),
-      child: widget.child,
+    final base = widget.ink.withValues(alpha: 0.12);
+    final glint = widget.ink.withValues(alpha: 0.26);
+    Widget bars(double t) => ShaderMask(
+          blendMode: BlendMode.srcATop,
+          shaderCallback: (rect) => LinearGradient(
+            colors: [base, glint, base],
+            stops: const [0.0, 0.5, 1.0],
+            // Wider than the box and slid across it, so the glint enters from
+            // the left edge and leaves at the right.
+            begin: Alignment(-2.0 + t * 4.0 - 1.0, 0),
+            end: Alignment(-2.0 + t * 4.0 + 1.0, 0),
+          ).createShader(rect),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final (i, w) in _widths.indexed)
+                Padding(
+                  padding: EdgeInsets.only(top: i == 0 ? 2 : 6),
+                  child: FractionallySizedBox(
+                    widthFactor: w,
+                    child: Container(
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: base,
+                        borderRadius: BorderRadius.circular(4.5),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+    if (ctrl == null) return bars(0.5);
+    return RepaintBoundary(
+      child: AnimatedBuilder(animation: ctrl, builder: (_, _) => bars(ctrl.value)),
     );
   }
 }

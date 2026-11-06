@@ -16315,6 +16315,12 @@ abstract class AppLocalizations {
   /// **'iOS shows a short notice whenever the icon changes.'**
   String get onboardingIconIosNote;
 
+  /// Settings › App Icon footnote on Android: the launcher icon swaps once the app is backgrounded, not on tap.
+  ///
+  /// In en, this message translates to:
+  /// **'Your home screen icon changes the next time you leave the app.'**
+  String get appIconAndroidNote;
+
   /// Primary button on the last onboarding step; finishes onboarding.
   ///
   /// In en, this message translates to:
@@ -23574,6 +23580,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No speech in this voice message.'**
   String get voiceTranscriptNoSpeech;
+
+  /// Shown while a video's file is being fetched to the device, before transcribing starts. The transcript of a video or round video message.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting the video…'**
+  String get voiceTranscriptFetching;
+
+  /// Shown when the video file itself could not be opened or read for a transcript.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read this video.'**
+  String get voiceTranscriptFailedAudioVideo;
+
+  /// Shown when transcribing a video or round video message failed after the file was read.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t transcribe this video.'**
+  String get voiceTranscriptFailedVideo;
+
+  /// The model ran but heard no words in the video (silence, music, or no audio track).
+  ///
+  /// In en, this message translates to:
+  /// **'No speech in this video.'**
+  String get voiceTranscriptNoSpeechVideo;
+
+  /// Shown when a video is larger than the device keeps on disk, so it cannot be transcribed.
+  ///
+  /// In en, this message translates to:
+  /// **'This video is too large to transcribe on this device.'**
+  String get voiceTranscriptTooLarge;
 
   /// Credit line under a finished transcript when the language could not be detected; says it was made on the device, nothing was sent anywhere.
   ///

@@ -9217,6 +9217,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingIconIosNote => '每次更换图标时，iOS 都会显示一条简短提示。';
 
   @override
+  String get appIconAndroidNote => '下次离开应用时，主屏幕图标就会更换。';
+
+  @override
   String get onboardingGetStarted => '开始使用';
 
   @override
@@ -13400,6 +13403,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get voiceTranscriptNoSpeech => '这条语音消息里没有说话内容。';
+
+  @override
+  String get voiceTranscriptFetching => '正在获取视频…';
+
+  @override
+  String get voiceTranscriptFailedAudioVideo => '无法读取此视频。';
+
+  @override
+  String get voiceTranscriptFailedVideo => '无法转写此视频。';
+
+  @override
+  String get voiceTranscriptNoSpeechVideo => '此视频中没有说话内容。';
+
+  @override
+  String get voiceTranscriptTooLarge => '此视频太大，无法在此设备上转写。';
 
   @override
   String get voiceTranscriptOnDevice => '在此设备上转写';

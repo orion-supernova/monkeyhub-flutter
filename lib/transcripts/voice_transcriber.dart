@@ -34,6 +34,7 @@ import 'package:flutter/foundation.dart';
 
 import '../companions/brain_download.dart';
 import '../media/storage/network_kind.dart';
+import '../media/video_file_cache.dart' show MediaTooLarge;
 import '../media/storage/storage_kinds.dart';
 import 'builtin_speech.dart';
 import 'speech_engine.dart';
@@ -61,7 +62,20 @@ enum TranscriptPhase {
   failed,
 }
 
-enum TranscriptFailure { network, storage, audio, engine }
+enum TranscriptFailure {
+  network,
+  storage,
+  audio,
+  engine,
+
+  /// A video bigger than the device will keep on disk. Nothing a retry fixes.
+  tooLarge,
+}
+
+/// What kind of message a transcript belongs to. Decides the words around it
+/// ("this voice message" or "this video") and what a file with no audio track
+/// means: a broken voice note, but only a silent video.
+enum TranscriptMedia { voice, video, videoNote }
 
 class TranscriptHandle extends ChangeNotifier {
   TranscriptHandle._(this.storageId);
@@ -86,6 +100,18 @@ class TranscriptHandle extends ChangeNotifier {
 
   TranscriptFailure? _failure;
   TranscriptFailure? get failure => _failure;
+
+  TranscriptMedia _media = TranscriptMedia.voice;
+  TranscriptMedia get media => _media;
+
+  /// True while the file itself is being fetched or prepared, before the
+  /// engine has it. A video can be tens of megabytes, so "getting the video"
+  /// is a different wait from "transcribing" and the slab says so.
+  bool _fetching = false;
+  bool get fetching => _fetching;
+
+  /// The reader backed out while this was queued or fetching.
+  bool _cancelled = false;
 
   /// Whether the slab is showing the "better transcripts" offer under a
   /// built-in transcript.
@@ -120,6 +146,7 @@ class TranscriptHandle extends ChangeNotifier {
     if (transcript != null) _transcript = transcript;
     if (open != null) _open = open;
     if (progress != null || clearProgress) _progress = progress;
+    if (phase != null && phase != TranscriptPhase.transcribing) _fetching = false;
     _failure = failure;
     notifyListeners();
   }
@@ -212,10 +239,13 @@ class VoiceTranscriber {
     String storageId,
     Future<String> Function() resolveAudio, {
     List<String> languages = const [],
+    TranscriptMedia media = TranscriptMedia.voice,
   }) async {
     final h = handleFor(storageId);
     h._resolveAudio = resolveAudio;
     h._languages = languages;
+    h._media = media;
+    h._cancelled = false;
     switch (h.phase) {
       case TranscriptPhase.idle || TranscriptPhase.failed:
         h._set(open: true, phase: TranscriptPhase.transcribing, clearProgress: true);
@@ -227,6 +257,15 @@ class VoiceTranscriber {
         h._offering = false;
         h._set(open: !h.open, failure: h.failure);
     }
+  }
+
+  /// Opens or folds the slab without touching the work, for the card's own
+  /// "Hide" link.
+  void setOpen(String storageId, bool open) {
+    final h = _handles[storageId];
+    if (h == null || h.open == open) return;
+    h._offering = false;
+    h._set(open: open, failure: h.failure);
   }
 
   /// Opens or closes the "better transcripts" offer under a built-in
@@ -265,9 +304,25 @@ class VoiceTranscriber {
     await Future.wait([for (final h in waiting) _run(h)]);
   }
 
+  /// The reader gave up on a transcript that has not started yet (queued, or
+  /// still fetching the file). An engine already mid-note cannot be stopped,
+  /// so its result is kept in the cache and simply not shown: the next tap
+  /// opens it instantly.
+  void cancel(String storageId) {
+    final h = _handles[storageId];
+    if (h == null || h.phase != TranscriptPhase.transcribing) return;
+    h._cancelled = true;
+    h._set(
+      phase: h.transcript != null ? TranscriptPhase.done : TranscriptPhase.idle,
+      open: h.transcript != null ? h.open : false,
+      clearProgress: true,
+    );
+  }
+
   Future<void> retry(String storageId) async {
     final h = _handles[storageId];
     if (h == null || h._resolveAudio == null) return;
+    h._cancelled = false;
     h._set(open: true, phase: TranscriptPhase.transcribing, clearProgress: true);
     await _run(h);
   }
@@ -373,13 +428,8 @@ class VoiceTranscriber {
   Future<void> _transcribeBuiltIn(TranscriptHandle h, BuiltInSpeech b, List<String> locales) async {
     final resolve = h._resolveAudio;
     if (resolve == null) return;
-    String audio;
-    try {
-      audio = await resolve();
-    } catch (_) {
-      h._set(phase: TranscriptPhase.failed, failure: TranscriptFailure.audio);
-      return;
-    }
+    final audio = await _resolveFile(h, resolve);
+    if (audio == null) return;
     h._set(progress: 0);
     Transcript? best;
     try {
@@ -394,6 +444,10 @@ class VoiceTranscriber {
       }
     } on BuiltInSpeechException catch (e) {
       debugPrint('VoiceTranscriber: built-in failed on ${h.storageId}: $e');
+      if (best == null && e.failure == BuiltInFailure.noAudio && h.media != TranscriptMedia.voice) {
+        _finishSilent(h);
+        return;
+      }
       if (best == null) {
         // A note the OS could not decode, the model's decoder will not read
         // either. Anything else, the retry goes to the model.
@@ -417,9 +471,39 @@ class VoiceTranscriber {
     }
     final t = best!;
     _remember(h.storageId, t);
+    if (h._cancelled) return;
     // Wrong language, most likely: say so where the reader is looking, with
     // the fix one tap away, rather than presenting nonsense as a transcript.
     if (t.doubtful) h._offering = true;
+    h._set(phase: TranscriptPhase.done, transcript: t, clearProgress: true);
+  }
+
+  /// Gets the file the engine will read. Null when it could not, with the
+  /// handle already failed (or put back to rest, if the reader cancelled).
+  Future<String?> _resolveFile(TranscriptHandle h, Future<String> Function() resolve) async {
+    if (h._cancelled) return null;
+    h._fetching = true;
+    h._set(progress: null);
+    try {
+      final path = await resolve();
+      h._fetching = false;
+      if (h._cancelled) return null;
+      return path;
+    } on MediaTooLarge {
+      h._set(phase: TranscriptPhase.failed, failure: TranscriptFailure.tooLarge, clearProgress: true);
+    } catch (_) {
+      if (h._cancelled) return null;
+      h._set(phase: TranscriptPhase.failed, failure: TranscriptFailure.audio, clearProgress: true);
+    }
+    return null;
+  }
+
+  /// A video with no audio track: nothing was said, and that is an answer,
+  /// not an error. Cached like any other, so it is not asked again.
+  void _finishSilent(TranscriptHandle h) {
+    const t = Transcript(text: '');
+    _remember(h.storageId, t);
+    h._wantsModel = false;
     h._set(phase: TranscriptPhase.done, transcript: t, clearProgress: true);
   }
 
@@ -465,13 +549,14 @@ class VoiceTranscriber {
     _releaseTimer?.cancel();
     final resolve = h._resolveAudio;
     if (resolve == null) return;
-    String audio;
-    try {
-      audio = await resolve();
-    } catch (_) {
-      h._set(phase: TranscriptPhase.failed, failure: TranscriptFailure.audio);
+    // Asked twice (cancel, then tap again): the first job may have landed.
+    final cached = _cache?[h.storageId];
+    if (cached != null && !h._wantsModel) {
+      if (!h._cancelled) h._set(phase: TranscriptPhase.done, transcript: cached);
       return;
     }
+    final audio = await _resolveFile(h, resolve);
+    if (audio == null) return;
     h._set(progress: 0);
     try {
       final modelFile = await TranscriptStore.instance.modelFile(_model);
@@ -482,12 +567,19 @@ class VoiceTranscriber {
       );
       _remember(h.storageId, t);
       h._wantsModel = false;
+      // Cancelled while the engine ran: keep the words, do not show them.
+      if (h._cancelled) return;
       h._set(phase: TranscriptPhase.done, transcript: t, clearProgress: true);
     } on SpeechException catch (e) {
       debugPrint('VoiceTranscriber: ${h.storageId} failed: $e');
+      if (h._cancelled) return;
+      if (e.failure == SpeechFailure.noAudio && h.media != TranscriptMedia.voice) {
+        _finishSilent(h);
+        return;
+      }
       h._set(
         phase: TranscriptPhase.failed,
-        failure: e.failure == SpeechFailure.decode
+        failure: e.failure == SpeechFailure.decode || e.failure == SpeechFailure.noAudio
             ? TranscriptFailure.audio
             : TranscriptFailure.engine,
         clearProgress: true,

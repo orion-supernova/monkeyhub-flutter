@@ -20,7 +20,7 @@ import '../screens/room_items.dart' show formatClockDuration;
 import '../screens/voice_recorder_screen.dart' show voiceNoteContentType;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
-import '../transcripts/language_hint.dart';
+import '../transcripts/transcript_subject.dart';
 import '../transcripts/voice_transcriber.dart';
 import 'dust_dissolve.dart';
 import 'spring_press.dart';
@@ -344,9 +344,8 @@ class _AudioMessageState extends State<AudioMessage> {
 
     final ready = _phase == _Phase.ready;
     // Null where the platform cannot transcribe (web). A map lookup otherwise.
-    final transcript = VoiceTranscriber.instance.supported
-        ? VoiceTranscriber.instance.handleFor(widget.storageId!)
-        : null;
+    final subject = _subject;
+    final transcript = subject?.handle;
     return StreamBuilder<PlayerState>(
       stream: _player.playerStateStream,
       builder: (context, snap) {
@@ -484,26 +483,23 @@ class _AudioMessageState extends State<AudioMessage> {
     );
   }
 
-  /// Opens or folds the transcript. The first open is also what fetches the
-  /// speech model and runs it — see [VoiceTranscriber.toggle].
-  void _toggleTranscript() {
+  /// The shared transcript subject: the same local copy playback uses, so a
+  /// note already listened to is transcribed without another download.
+  TranscriptSubject? get _subject {
     final id = widget.storageId;
-    if (id == null) return;
-    final guess = VoiceLanguageHints.guess(
+    if (id == null) return null;
+    return TranscriptSubject.stored(
+      api: widget.api,
+      storageId: id,
+      media: TranscriptMedia.voice,
       roomId: widget.roomId,
       senderId: widget.senderId,
     );
-    unawaited(VoiceTranscriber.instance.toggle(
-      id,
-      languages: [?guess, Localizations.localeOf(context).toLanguageTag()],
-      // The same local copy playback uses, so a note already listened to is
-      // transcribed without another download.
-      () => AudioFileCache.instance.resolve(
-        id,
-        () => FileUrlCache.instance.resolve(id, () => widget.api.getFileUrl(id)),
-      ),
-    ));
   }
+
+  /// Opens or folds the transcript. The first open is also what fetches the
+  /// speech model and runs it — see [VoiceTranscriber.toggle].
+  void _toggleTranscript() => _subject?.toggle(context);
 }
 
 /// A play-once voice message: the same pill as [AudioMessage], with the

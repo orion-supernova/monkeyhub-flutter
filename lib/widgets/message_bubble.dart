@@ -26,6 +26,8 @@ import '../theme/app_theme.dart';
 import '../theme/interaction.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../transcripts/transcript_subject.dart';
+import '../transcripts/voice_transcriber.dart' show TranscriptMedia;
 import '../screens/fullscreen_image_viewer.dart';
 import '../screens/fullscreen_video_viewer.dart';
 import '../screens/view_once_viewer.dart';
@@ -64,6 +66,7 @@ import 'video_message.dart';
 import 'secondary_click_recognizer.dart';
 import 'send_flight.dart';
 import 'video_note_message.dart';
+import 'voice_transcript.dart' show MediaTranscript;
 import 'view_once_seal.dart';
 import 'expressions/expression_bubble.dart';
 import 'expressions/expression_sheet.dart';
@@ -1961,17 +1964,41 @@ Widget buildMessageContent({
         ),
         stamp: hasCaption ? null : stampFor(StampTone.onMedia),
       );
-      if (!hasCaption) return videoTile;
-      return _captionedAttachment(
-        context: context,
-        theme: theme,
-        message: message,
+      final Widget videoBubble = hasCaption
+          ? _captionedAttachment(
+              context: context,
+              theme: theme,
+              message: message,
+              isMine: isMine,
+              deco: deco,
+              tile: videoTile,
+              stamp: stampFor(bubbleTone),
+              currentUserId: currentUserId,
+              onMentionTap: onMentionTap,
+            )
+          : videoTile;
+      // The shared transcript button and card, once the file is real and not
+      // sealed. Same widgets as a voice note's; see `voice_transcript.dart`.
+      if (videoUpload != null || videoStorageId == null || message.viewOnce) {
+        return videoBubble;
+      }
+      final videoBoxW = metrics?.videoMaxWidth ?? ChatMetrics.videoMin;
+      final videoRatio = message.mediaAspectRatio;
+      return MediaTranscript(
+        subject: TranscriptSubject.stored(
+          api: api,
+          storageId: videoStorageId,
+          media: TranscriptMedia.video,
+          roomId: message.roomId,
+          senderId: message.senderId,
+        ),
         isMine: isMine,
-        deco: deco,
-        tile: videoTile,
-        stamp: stampFor(bubbleTone),
-        currentUserId: currentUserId,
-        onMentionTap: onMentionTap,
+        decoration: deco,
+        cardWidth: (videoRatio != null && videoRatio.isFinite && videoRatio > 0)
+            ? videoBoxW
+            : videoBoxW * (240 / 280),
+        buttonInset: const EdgeInsets.all(6),
+        child: videoBubble,
       );
     case MessageType.file:
       // Same reasoning as the audio row above: with no storage id there is
@@ -2097,7 +2124,7 @@ Widget buildMessageContent({
           seedKey: message.clientId ?? message.id,
         );
       }
-      return VideoNoteMessage(
+      final note = VideoNoteMessage(
         api: api,
         storageId: message.mediaStorageId,
         isMine: isMine,
@@ -2109,6 +2136,26 @@ Widget buildMessageContent({
         upNext: () =>
             RoomGalleryScope.maybeOf(context)?.videoNotesAfter?.call(message) ??
             const [],
+      );
+      final noteId = message.mediaStorageId;
+      if (noteId == null) return note;
+      // The button rides the circle's lower corner (on the rim, clear of the
+      // centred play mark and the length at the bottom); the card opens under
+      // it, wider than the circle but on the same side, never a text slab.
+      return MediaTranscript(
+        subject: TranscriptSubject.stored(
+          api: api,
+          storageId: noteId,
+          media: TranscriptMedia.videoNote,
+          roomId: message.roomId,
+          senderId: message.senderId,
+        ),
+        isMine: isMine,
+        decoration: deco,
+        cardWidth: math.max(noteSize, 232),
+        buttonAlignment: Alignment.bottomRight,
+        buttonInset: EdgeInsets.all(noteSize * 0.09),
+        child: note,
       );
     case MessageType.system:
       return Container(

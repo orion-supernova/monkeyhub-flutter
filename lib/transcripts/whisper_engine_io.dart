@@ -81,6 +81,9 @@ class _WhisperEngine implements SpeechEngine {
         words: words,
       );
     } on WhisperDecodeException catch (e) {
+      if (e.code == WhisperDecodeException.noAudio) {
+        throw SpeechException(SpeechFailure.noAudio, '${e.code}: ${e.message}');
+      }
       throw SpeechException(SpeechFailure.decode, '${e.code}: ${e.message}');
     } on SpeechException {
       rethrow;

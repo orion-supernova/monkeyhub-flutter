@@ -11215,6 +11215,10 @@
     "description": "Explanation under the app icon title. Themes can change the icon automatically; this lets the user keep it."
   },
   "onboardingIconIosNote": "iOS shows a short notice whenever the icon changes.",
+  "appIconAndroidNote": "Your home screen icon changes the next time you leave the app.",
+  "@appIconAndroidNote": {
+    "description": "Settings › App Icon footnote on Android: the launcher icon swaps once the app is backgrounded, not on tap."
+  },
   "@onboardingIconIosNote": {
     "description": "iOS-only footnote under the app icon grid: iOS shows a system alert whenever an app changes its icon."
   },
@@ -16994,6 +16998,26 @@
   "voiceTranscriptNoSpeech": "No speech in this voice message.",
   "@voiceTranscriptNoSpeech": {
     "description": "The model ran but heard no words in the voice message (silence, music, noise)."
+  },
+  "voiceTranscriptFetching": "Getting the video…",
+  "@voiceTranscriptFetching": {
+    "description": "Shown while a video's file is being fetched to the device, before transcribing starts. The transcript of a video or round video message."
+  },
+  "voiceTranscriptFailedAudioVideo": "Couldn't read this video.",
+  "@voiceTranscriptFailedAudioVideo": {
+    "description": "Shown when the video file itself could not be opened or read for a transcript."
+  },
+  "voiceTranscriptFailedVideo": "Couldn't transcribe this video.",
+  "@voiceTranscriptFailedVideo": {
+    "description": "Shown when transcribing a video or round video message failed after the file was read."
+  },
+  "voiceTranscriptNoSpeechVideo": "No speech in this video.",
+  "@voiceTranscriptNoSpeechVideo": {
+    "description": "The model ran but heard no words in the video (silence, music, or no audio track)."
+  },
+  "voiceTranscriptTooLarge": "This video is too large to transcribe on this device.",
+  "@voiceTranscriptTooLarge": {
+    "description": "Shown when a video is larger than the device keeps on disk, so it cannot be transcribed."
   },
   "voiceTranscriptOnDevice": "Transcribed on this device",
   "@voiceTranscriptOnDevice": {

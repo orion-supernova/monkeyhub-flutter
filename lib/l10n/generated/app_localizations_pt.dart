@@ -9823,6 +9823,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'O iOS mostra um aviso breve sempre que o ícone muda.';
 
   @override
+  String get appIconAndroidNote =>
+      'O ícone do ecrã principal muda da próxima vez que sair da app.';
+
+  @override
   String get onboardingGetStarted => 'Começar';
 
   @override
@@ -14303,6 +14307,24 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get voiceTranscriptNoSpeech => 'Não há fala nesta mensagem de voz.';
+
+  @override
+  String get voiceTranscriptFetching => 'A obter o vídeo…';
+
+  @override
+  String get voiceTranscriptFailedAudioVideo =>
+      'Não foi possível ler este vídeo.';
+
+  @override
+  String get voiceTranscriptFailedVideo =>
+      'Não foi possível transcrever este vídeo.';
+
+  @override
+  String get voiceTranscriptNoSpeechVideo => 'Não há fala neste vídeo.';
+
+  @override
+  String get voiceTranscriptTooLarge =>
+      'Este vídeo é demasiado grande para ser transcrito neste dispositivo.';
 
   @override
   String get voiceTranscriptOnDevice => 'Transcrito neste dispositivo';
@@ -24972,6 +24994,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'O iOS mostra um aviso rápido sempre que o ícone muda.';
 
   @override
+  String get appIconAndroidNote =>
+      'O ícone da tela inicial muda na próxima vez que você sair do app.';
+
+  @override
   String get onboardingGetStarted => 'Começar';
 
   @override
@@ -29442,6 +29468,24 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get voiceTranscriptNoSpeech => 'Não há fala nesta mensagem de voz.';
+
+  @override
+  String get voiceTranscriptFetching => 'Baixando o vídeo…';
+
+  @override
+  String get voiceTranscriptFailedAudioVideo =>
+      'Não foi possível ler este vídeo.';
+
+  @override
+  String get voiceTranscriptFailedVideo =>
+      'Não foi possível transcrever este vídeo.';
+
+  @override
+  String get voiceTranscriptNoSpeechVideo => 'Não há fala neste vídeo.';
+
+  @override
+  String get voiceTranscriptTooLarge =>
+      'Este vídeo é grande demais para ser transcrito neste dispositivo.';
 
   @override
   String get voiceTranscriptOnDevice => 'Transcrito neste dispositivo';

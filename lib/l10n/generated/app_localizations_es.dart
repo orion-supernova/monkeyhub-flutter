@@ -9814,6 +9814,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'iOS muestra un aviso breve cada vez que cambia el icono.';
 
   @override
+  String get appIconAndroidNote =>
+      'El icono de la pantalla de inicio cambia la próxima vez que salgas de la app.';
+
+  @override
   String get onboardingGetStarted => 'Empezar';
 
   @override
@@ -14299,6 +14303,22 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get voiceTranscriptNoSpeech => 'No hay voz en este mensaje.';
+
+  @override
+  String get voiceTranscriptFetching => 'Obteniendo el vídeo…';
+
+  @override
+  String get voiceTranscriptFailedAudioVideo => 'No se pudo leer este vídeo.';
+
+  @override
+  String get voiceTranscriptFailedVideo => 'No se pudo transcribir este vídeo.';
+
+  @override
+  String get voiceTranscriptNoSpeechVideo => 'No hay voz en este vídeo.';
+
+  @override
+  String get voiceTranscriptTooLarge =>
+      'Este vídeo es demasiado grande para transcribirlo en este dispositivo.';
 
   @override
   String get voiceTranscriptOnDevice => 'Transcrito en este dispositivo';

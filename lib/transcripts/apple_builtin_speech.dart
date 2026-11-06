@@ -63,6 +63,7 @@ class AppleBuiltInSpeech implements BuiltInSpeech {
           AppleSpeechError.unavailable => BuiltInFailure.unavailable,
           AppleSpeechError.unsupportedLocale => BuiltInFailure.unsupportedLanguage,
           AppleSpeechError.decode => BuiltInFailure.audio,
+          AppleSpeechError.noAudio => BuiltInFailure.noAudio,
           AppleSpeechError.cancelled => BuiltInFailure.cancelled,
           AppleSpeechError.assetsFailed ||
           AppleSpeechError.permissionDenied ||

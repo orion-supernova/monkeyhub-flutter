@@ -16,7 +16,7 @@ import Speech
 
 /// Error codes, 1:1 with the Dart `AppleSpeechError` enum names.
 enum AppleSpeechCode: String {
-    case unavailable, unsupportedLocale, assetsFailed, decode,
+    case unavailable, unsupportedLocale, assetsFailed, decode, noAudio,
          permissionDenied, cancelled, failed
 }
 
@@ -332,12 +332,24 @@ final class AppleSpeechCore: @unchecked Sendable {
     private func run(path: String, raw: String,
                      onProgress: @escaping @Sendable (Double) -> Void) async throws -> AppleSpeechResultOut {
         let (locale, engine) = try await resolveOrThrow(raw)
-        let file: AVAudioFile
-        do {
-            file = try AVAudioFile(forReading: URL(fileURLWithPath: path))
-        } catch {
-            throw AppleSpeechCoreError(.decode, error.localizedDescription)
+        // A voice note opens directly. A video (mp4/mov) may not: the audio
+        // track is then pulled out into a temp m4a first. A video with no
+        // audio track at all is `noAudio`, which the app shows as "no speech"
+        // rather than as a failure.
+        var extracted: URL?
+        defer { if let extracted { try? FileManager.default.removeItem(at: extracted) } }
+        var opened: AVAudioFile?
+        if let f = try? AVAudioFile(forReading: URL(fileURLWithPath: path)), f.length > 0 {
+            opened = f
+        } else {
+            extracted = try await Self.extractAudio(path)
+            if let url = extracted {
+                do { opened = try AVAudioFile(forReading: url) } catch {
+                    throw AppleSpeechCoreError(.decode, error.localizedDescription)
+                }
+            }
         }
+        guard let file = opened else { throw AppleSpeechCoreError(.decode, "unreadable audio") }
         let rate = file.processingFormat.sampleRate
         let durationSec = rate > 0 ? Double(file.length) / rate : 0
         guard durationSec > 0 else { throw AppleSpeechCoreError(.decode, "empty audio") }
@@ -402,6 +414,33 @@ final class AppleSpeechCore: @unchecked Sendable {
         }
         onProgress(1)
         return Self.assemble(segments, locale: Self.bcp47(locale), engine: engine)
+    }
+
+    /// Writes the audio track of the video at [path] to a temp m4a and returns
+    /// it. Throws `noAudio` when the file has no audio track, `decode` when it
+    /// is not a movie AVFoundation can read.
+    @available(iOS 26.0, macOS 26.0, *)
+    static func extractAudio(_ path: String) async throws -> URL {
+        let asset = AVURLAsset(url: URL(fileURLWithPath: path))
+        let tracks: [AVAssetTrack]
+        do {
+            tracks = try await asset.loadTracks(withMediaType: .audio)
+        } catch {
+            throw AppleSpeechCoreError(.decode, error.localizedDescription)
+        }
+        guard !tracks.isEmpty else { throw AppleSpeechCoreError(.noAudio, "no audio track") }
+        guard let export = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else {
+            throw AppleSpeechCoreError(.decode, "no audio export")
+        }
+        let out = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mh-speech-\(UUID().uuidString).m4a")
+        do {
+            try await export.export(to: out, as: .m4a)
+        } catch {
+            try? FileManager.default.removeItem(at: out)
+            throw AppleSpeechCoreError(.decode, error.localizedDescription)
+        }
+        return out
     }
 
     @available(iOS 26.0, macOS 26.0, *)

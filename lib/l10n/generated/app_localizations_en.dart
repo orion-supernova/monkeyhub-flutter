@@ -9710,6 +9710,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'iOS shows a short notice whenever the icon changes.';
 
   @override
+  String get appIconAndroidNote =>
+      'Your home screen icon changes the next time you leave the app.';
+
+  @override
   String get onboardingGetStarted => 'Get started';
 
   @override
@@ -14168,6 +14172,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get voiceTranscriptNoSpeech => 'No speech in this voice message.';
+
+  @override
+  String get voiceTranscriptFetching => 'Getting the video…';
+
+  @override
+  String get voiceTranscriptFailedAudioVideo => 'Couldn\'t read this video.';
+
+  @override
+  String get voiceTranscriptFailedVideo => 'Couldn\'t transcribe this video.';
+
+  @override
+  String get voiceTranscriptNoSpeechVideo => 'No speech in this video.';
+
+  @override
+  String get voiceTranscriptTooLarge =>
+      'This video is too large to transcribe on this device.';
 
   @override
   String get voiceTranscriptOnDevice => 'Transcribed on this device';

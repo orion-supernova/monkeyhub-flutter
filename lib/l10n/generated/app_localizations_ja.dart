@@ -9320,6 +9320,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingIconIosNote => 'アイコンを変更するたびに、iOSが短い通知を表示します。';
 
   @override
+  String get appIconAndroidNote => 'ホーム画面のアイコンは、次にアプリを閉じたときに変わります。';
+
+  @override
   String get onboardingGetStarted => 'はじめる';
 
   @override
@@ -13530,6 +13533,21 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get voiceTranscriptNoSpeech => 'このボイスメッセージには音声がありません。';
+
+  @override
+  String get voiceTranscriptFetching => '動画を取得しています…';
+
+  @override
+  String get voiceTranscriptFailedAudioVideo => 'この動画を読み込めませんでした。';
+
+  @override
+  String get voiceTranscriptFailedVideo => 'この動画を文字起こしできませんでした。';
+
+  @override
+  String get voiceTranscriptNoSpeechVideo => 'この動画には音声がありません。';
+
+  @override
+  String get voiceTranscriptTooLarge => 'この動画は大きすぎて、このデバイスでは文字起こしできません。';
 
   @override
   String get voiceTranscriptOnDevice => 'この端末で文字起こし';

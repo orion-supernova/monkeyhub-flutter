@@ -9344,6 +9344,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingIconIosNote => '아이콘이 바뀔 때마다 iOS에서 짧은 알림이 표시돼요.';
 
   @override
+  String get appIconAndroidNote => '홈 화면 아이콘은 다음에 앱을 나갈 때 바뀌어요.';
+
+  @override
   String get onboardingGetStarted => '시작하기';
 
   @override
@@ -13562,6 +13565,21 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get voiceTranscriptNoSpeech => '이 음성 메시지에는 말소리가 없습니다.';
+
+  @override
+  String get voiceTranscriptFetching => '동영상을 가져오는 중…';
+
+  @override
+  String get voiceTranscriptFailedAudioVideo => '이 동영상을 읽을 수 없습니다.';
+
+  @override
+  String get voiceTranscriptFailedVideo => '이 동영상을 텍스트로 변환하지 못했습니다.';
+
+  @override
+  String get voiceTranscriptNoSpeechVideo => '이 동영상에는 말소리가 없습니다.';
+
+  @override
+  String get voiceTranscriptTooLarge => '이 동영상은 너무 커서 이 기기에서 텍스트로 변환할 수 없습니다.';
 
   @override
   String get voiceTranscriptOnDevice => '이 기기에서 변환됨';

@@ -13,6 +13,9 @@ enum SpeechFailure {
   /// or on Linux no decoder installed at all).
   decode,
 
+  /// The file has no audio track (a silent video). Not a failure to retry.
+  noAudio,
+
   /// The model loaded and ran and something still went wrong.
   engine,
 }
