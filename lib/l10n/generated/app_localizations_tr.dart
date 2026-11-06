@@ -16018,4 +16018,111 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get uiKitMaterialBody =>
       'Android\'in kendi tasarımı: dokunma dalgalı Material 3 kontrolleri, temanızın renkleriyle.';
+
+  @override
+  String get uiKitShaderTitle => 'Shader cam';
+
+  @override
+  String get uiKitShaderBody =>
+      'GPU ile çizilen gerçek bir mercek; kendi ışık ve kırılma ayarlarıyla. Yalnızca telefonlarda.';
+
+  @override
+  String get uiKitShaderFooter =>
+      'Shader cam her yüzeyde GPU ile çizilir. Uygulama ağır ya da sıcak hissettirirse Buzlu veya Hafif seçeneğine geç.';
+
+  @override
+  String get shaderGlassHeader => 'Shader cam ayarları';
+
+  @override
+  String get shaderGlassFullLensTitle => 'Tam mercek kırılması';
+
+  @override
+  String get shaderGlassFullLensBody =>
+      'Camın arkasındaki her şeyi gerçekten büker. En güzeli, ama en çok pili harcar. Düşük donanımlı telefonlarda ve Güç Tasarrufu’nda kapalı.';
+
+  @override
+  String get shaderGlassReset => 'Shader cam ayarlarını sıfırla';
+
+  @override
+  String get shaderKnobLabelThickness => 'Kalınlık';
+
+  @override
+  String get shaderKnobHintThickness =>
+      'Merceğin kalınlığı. Kalın cam, arkasındakini daha çok büker.';
+
+  @override
+  String get shaderKnobLabelBlur => 'Bulanıklık';
+
+  @override
+  String get shaderKnobHintBlur =>
+      'Camın arkasındaki görüntünün ne kadar yumuşatılacağı.';
+
+  @override
+  String get shaderKnobLabelRefraction => 'Kırılma';
+
+  @override
+  String get shaderKnobHintRefraction =>
+      'Camın kırılma indisi. 1 hava demek, yükseldikçe ışık daha çok kırılır.';
+
+  @override
+  String get shaderKnobLabelChromatic => 'Kromatik sapma';
+
+  @override
+  String get shaderKnobHintChromatic =>
+      'Kenarda renkleri ayırarak silik bir gökkuşağı kenarı oluşturur.';
+
+  @override
+  String get shaderKnobLabelLight => 'Işık şiddeti';
+
+  @override
+  String get shaderKnobHintLight =>
+      'Kenardaki parlak yansımanın ne kadar parlak olduğu.';
+
+  @override
+  String get shaderKnobLabelAngle => 'Işık açısı';
+
+  @override
+  String get shaderKnobHintAngle =>
+      'Işığın nereden geldiği, camın çevresinde derece olarak.';
+
+  @override
+  String get shaderKnobLabelSaturation => 'Doygunluk';
+
+  @override
+  String get shaderKnobHintSaturation =>
+      'Görünenin renk artışı. 1 hiçbir şeyi değiştirmez.';
+
+  @override
+  String get shaderKnobLabelTint => 'Renk tonu';
+
+  @override
+  String get shaderKnobHintTint =>
+      'Camın beyazla ya da koyu sayfalarda dumanla ne kadar yıkandığı.';
+
+  @override
+  String get shaderKnobLabelRim => 'Kenar ışığı';
+
+  @override
+  String get shaderKnobHintRim =>
+      'İnce, aydınlık bir kenar; en çok üstte parlar.';
+
+  @override
+  String get nativeScopeHeader => 'Yerel denetimler';
+
+  @override
+  String get nativeScopeEverythingTitle => 'Her şey';
+
+  @override
+  String get nativeScopeEverythingBody =>
+      'Düğmeler, anahtarlar, menüler, alanlar ve daha fazlasını iOS çizer';
+
+  @override
+  String get nativeScopeTabBarTitle => 'Yalnızca sekme çubuğu';
+
+  @override
+  String get nativeScopeTabBarBody =>
+      'Sekme çubuğunu iOS, gerisini uygulama çizer';
+
+  @override
+  String get controlsLabTitle => 'Denetim laboratuvarı';
 }

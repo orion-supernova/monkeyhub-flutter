@@ -30,7 +30,11 @@ class NativeControl extends StatefulWidget {
     this.onEvent,
     this.size,
     this.gestures = const {},
+    this.handle,
   });
+
+  /// Lets the owner move focus in a native text field (`focus` / `blur`).
+  final NativeControlHandle? handle;
 
   final NativeSpec spec;
   final void Function(String event, Object? value)? onEvent;
@@ -60,6 +64,35 @@ class NativeControl extends StatefulWidget {
   State<NativeControl> createState() => _NativeControlState();
 }
 
+/// The Dart→native calls of one [NativeControl]: focus and blur of a text
+/// field. A call made before the platform view exists is replayed once it
+/// does (autofocus).
+class NativeControlHandle {
+  MethodChannel? _channel;
+  String? _pending;
+
+  void _attach(MethodChannel? channel) {
+    _channel = channel;
+    final pending = _pending;
+    if (channel != null && pending != null) {
+      _pending = null;
+      _invoke(pending);
+    }
+  }
+
+  void _invoke(String method) {
+    final channel = _channel;
+    if (channel == null) {
+      _pending = method;
+      return;
+    }
+    channel.invokeMethod<void>(method).catchError((Object _) {});
+  }
+
+  void focus() => _invoke('focus');
+  void blur() => _invoke('blur');
+}
+
 class _NativeControlState extends State<NativeControl> {
   MethodChannel? _channel;
 
@@ -87,6 +120,7 @@ class _NativeControlState extends State<NativeControl> {
   void _created(int id) {
     final channel = MethodChannel('monkeyhub/native_control/$id');
     _channel = channel;
+    widget.handle?._attach(channel);
     // A rebuild between creating the view and its channel opening changed
     // the spec the view was created with.
     final latest = _latest;
@@ -109,7 +143,17 @@ class _NativeControlState extends State<NativeControl> {
   }
 
   @override
+  void didUpdateWidget(NativeControl old) {
+    super.didUpdateWidget(old);
+    if (old.handle != widget.handle) {
+      old.handle?._attach(null);
+      widget.handle?._attach(_channel);
+    }
+  }
+
+  @override
   void dispose() {
+    widget.handle?._attach(null);
     _channel?.setMethodCallHandler(null);
     super.dispose();
   }
@@ -228,24 +272,134 @@ class NativeSpec {
     'enabled': enabled,
   });
 
+  /// A one-line field. [text] is only applied natively when [textRev]
+  /// changes (an external edit): typing never echoes back.
   factory NativeSpec.textField({
     required String text,
+    int textRev = 0,
     String placeholder = '',
     bool secure = false,
     String? contentType,
     String? keyboard,
+    String? leadingSymbol,
+    String? submitLabel,
+    bool clearButton = false,
+    bool plain = false,
+    String? capitalization,
+    bool? autocorrect,
     double height = 44,
     double cornerRadius = 22,
     bool enabled = true,
   }) => NativeSpec._({
     'kind': 'textField',
     'text': text,
+    'textRev': textRev,
     'placeholder': placeholder,
     'secure': secure,
     'contentType': ?contentType,
     'keyboard': ?keyboard,
+    'leadingSymbol': ?leadingSymbol,
+    'submitLabel': ?submitLabel,
+    'clearButton': clearButton,
+    'plain': plain,
+    'capitalization': ?capitalization,
+    'autocorrect': ?autocorrect,
     'size': height,
     'cornerRadius': cornerRadius,
+    'enabled': enabled,
+  });
+
+  /// The search capsule: magnifier, clear button, "search" return key.
+  factory NativeSpec.searchField({
+    required String text,
+    int textRev = 0,
+    String placeholder = '',
+    String submitLabel = 'search',
+    double height = 44,
+    bool enabled = true,
+  }) => NativeSpec._({
+    'kind': 'searchField',
+    'text': text,
+    'textRev': textRev,
+    'placeholder': placeholder,
+    'submitLabel': submitLabel,
+    'size': height,
+    'enabled': enabled,
+  });
+
+  /// Symbol buttons sharing one glass capsule. Taps arrive as `select` with
+  /// the option's value. [size] is each slot's width and height.
+  factory NativeSpec.buttonGroup({
+    required List<NativeOptionSpec> options,
+    double size = 44,
+    double symbolSize = 17,
+    bool enabled = true,
+  }) => NativeSpec._({
+    'kind': 'buttonGroup',
+    'options': [for (final o in options) o.toMap()],
+    'size': size,
+    'symbolSize': symbolSize,
+    'enabled': enabled,
+  });
+
+  /// Separate glass discs in a GlassEffectContainer: discs closer than
+  /// [blend] (default [spacing]) blend into one shape like the iOS 26
+  /// toolbar, so a [blend] above [spacing] merges neighbours at rest. Taps
+  /// arrive as `select`.
+  factory NativeSpec.toolbar({
+    required List<NativeOptionSpec> options,
+    double size = 44,
+    double symbolSize = 17,
+    double spacing = 8,
+    double? blend,
+    bool enabled = true,
+  }) => NativeSpec._({
+    'kind': 'toolbar',
+    'options': [for (final o in options) o.toMap()],
+    'size': size,
+    'symbolSize': symbolSize,
+    'spacing': spacing,
+    'blend': ?blend,
+    'enabled': enabled,
+  });
+
+  /// A pull-down menu: a glass button (symbol, or label with chevron) that
+  /// morphs into the system menu. A pick arrives as `select` with the id.
+  factory NativeSpec.menu({
+    String? label,
+    String? symbol,
+    required List<NativeMenuItemSpec> items,
+    double size = 44,
+    double symbolSize = 17,
+    bool enabled = true,
+  }) => NativeSpec._({
+    'kind': 'menu',
+    'label': label ?? '',
+    'symbol': ?symbol,
+    'items': [for (final i in items) i.toMap()],
+    'size': size,
+    'symbolSize': symbolSize,
+    'enabled': enabled,
+  });
+
+  /// The system date picker. [mode] date | time | dateTime; [style] compact |
+  /// wheel | graphical. Dates travel as epoch milliseconds (`changed`).
+  factory NativeSpec.datePicker({
+    required int ms,
+    int? minMs,
+    int? maxMs,
+    String mode = 'dateTime',
+    String style = 'compact',
+    String label = '',
+    bool enabled = true,
+  }) => NativeSpec._({
+    'kind': 'datePicker',
+    'dateMs': ms.toDouble(),
+    'minDateMs': ?minMs?.toDouble(),
+    'maxDateMs': ?maxMs?.toDouble(),
+    'dateMode': mode,
+    'dateStyle': style,
+    'label': label,
     'enabled': enabled,
   });
 
@@ -255,6 +409,73 @@ class NativeSpec {
 
   @override
   int get hashCode => Object.hashAllUnordered(_map.keys);
+}
+
+/// One slot of a native [NativeSpec.buttonGroup] / [NativeSpec.toolbar].
+@immutable
+class NativeOptionSpec {
+  const NativeOptionSpec({
+    required this.value,
+    required this.label,
+    this.symbol,
+    this.disabled = false,
+    this.destructive = false,
+  });
+
+  final String value;
+  final String label;
+  final String? symbol;
+  final bool disabled;
+  final bool destructive;
+
+  Map<String, Object?> toMap() => {
+    'value': value,
+    'label': label,
+    'symbol': ?symbol,
+    'disabled': disabled,
+    'destructive': destructive,
+  };
+}
+
+/// One row of a native [NativeSpec.menu]. A [divider] row has no label.
+@immutable
+class NativeMenuItemSpec {
+  const NativeMenuItemSpec({
+    required this.id,
+    this.label = '',
+    this.symbol,
+    this.destructive = false,
+    this.disabled = false,
+    this.checked,
+    this.divider = false,
+  });
+
+  const NativeMenuItemSpec.divider()
+    : id = '',
+      label = '',
+      symbol = null,
+      destructive = false,
+      disabled = false,
+      checked = null,
+      divider = true;
+
+  final String id;
+  final String label;
+  final String? symbol;
+  final bool destructive;
+  final bool disabled;
+  final bool? checked;
+  final bool divider;
+
+  Map<String, Object?> toMap() => {
+    'id': id,
+    'label': label,
+    'symbol': ?symbol,
+    'destructive': destructive,
+    'disabled': disabled,
+    'checked': ?checked,
+    'divider': divider,
+  };
 }
 
 /// The SF Symbol for a [CupertinoIcons] glyph the shared buttons use, or null
@@ -316,6 +537,29 @@ final Map<IconData, String> _symbols = {
   CupertinoIcons.arrow_clockwise: 'arrow.clockwise',
   CupertinoIcons.play_fill: 'play.fill',
   CupertinoIcons.pause_fill: 'pause.fill',
+  // CupertinoIcons aliases (share = square_arrow_up, delete = trash,
+  // person_add = person_badge_plus, videocam_fill = video_camera_solid)
+  // share one key above.
+  CupertinoIcons.arrowshape_turn_up_right: 'arrowshape.turn.up.right',
+  CupertinoIcons.arrow_2_circlepath: 'arrow.2.circlepath',
+  CupertinoIcons.photo_on_rectangle: 'photo.on.rectangle',
+  CupertinoIcons.phone_badge_plus: 'phone.badge.plus',
+  CupertinoIcons.square_grid_2x2: 'square.grid.2x2',
+  CupertinoIcons.camera_rotate: 'camera.rotate',
+  CupertinoIcons.rotate_left: 'rotate.left',
+  CupertinoIcons.moon: 'moon',
+  CupertinoIcons.moon_fill: 'moon.fill',
+  CupertinoIcons.bubble_left: 'bubble.left',
+  CupertinoIcons.star: 'star',
+  CupertinoIcons.star_slash: 'star.slash',
+  CupertinoIcons.arrow_down_left: 'arrow.down.left',
+  CupertinoIcons.arrow_up_right: 'arrow.up.right',
+  CupertinoIcons.sparkles: 'sparkles',
+  CupertinoIcons.chevron_up_chevron_down: 'chevron.up.chevron.down',
+  CupertinoIcons.eye: 'eye',
+  CupertinoIcons.eye_slash: 'eye.slash',
+  CupertinoIcons.xmark_circle_fill: 'xmark.circle.fill',
+  CupertinoIcons.exclamationmark_circle_fill: 'exclamationmark.circle.fill',
 };
 
 /// Structural equality over the wire format: maps, lists and primitives.

@@ -217,6 +217,8 @@ caller moved. Platform channel names live once in <code>lib/ui/foundation/channe
     <p>No backdrop blur, opaque plates, no drop shadows. Auto on low-RAM phones. Offered everywhere.</p></div>
   <div class="card"><div class="k">UiKit.material</div><div class="v">Material</div>
     <p>Android only, built (2026-11-07): Flutter's Material 3 widgets dressed from the current <code>AppTheme</code> (<code>lib/ui/kits/material/</code>). Offered only where <code>Caps.android</code>; Automatic on Android unless the phone is low-RAM (then Lite). The one kit with ripples.</p></div>
+  <div class="card"><div class="k">UiKit.shader</div><div class="v">Shader glass</div>
+    <p>Added 2026-11-07 at the user's request. Glass drawn by the vendored <code>liquid_glass_widgets</code> GPU shader engine (<code>third_party/liquid_glass_widgets</code>, skin in <code>lib/ui/kits/shader/</code>): a real lens with refraction, chromatic aberration and a lit rim. <strong>Android and iOS only</strong> (<code>Caps.android || Caps.iOS</code>), never web or desktop, never chosen by Automatic. If the shader cannot start, <code>UiKits.shaderUsable</code> flips off and the app is drawn as Frosted. Falls back to glass component by component.</p></div>
 </div>
 
 <h3>Resolution</h3>
@@ -235,7 +237,25 @@ UiKitScope (above MaterialApp in app.dart)  →  UiKit.of(context)</code></pre>
 setting never breaks a device. The old <code>mh.glass.engine = 'flutter'</code> migrates to an explicit Frosted;
 the old default (<code>native</code>) migrates to Automatic, which resolves to the same thing.</p>
 <p>Settings › Glass › Style shows Automatic plus <code>UiKits.offered</code>. The glass dials only show under
-Frosted. Settings' Glass row names the active kit.</p>
+Frosted. Settings' Glass row names the active kit. Under Shader glass the Frosted dials give way to the engine's own
+(thickness, blur, refraction, chromatic aberration, light intensity and angle, rim light, saturation, tint, plus a
+full-lens switch), kept in <code>SettingsStore.shaderGlass</code> (<code>mh.glass.shader</code>, a sparse JSON map of
+the dials moved off standard; <code>lib/data/shader_glass_config.dart</code>).</p>
+<h3>The shader kit's performance contract</h3>
+<ul>
+  <li>Default quality is the library's lightweight shader: one backdrop filter plus a small fragment pass per surface,
+  every surface its own layer. The premium multi-pass lens (real refraction of a captured backdrop) is the user's
+  "Full lens refraction" switch, off by default, and is forced back to lightweight on <code>Perf.low</code> and
+  while <code>LowPowerMode.active</code>. Chromatic aberration is dropped in the same cases.</li>
+  <li>Shaders are warmed once (<code>ShaderGlassEngine.ensureStarted</code>): at launch only if the saved kit is Shader
+  glass, otherwise the first time one is built or chosen. Nothing loads for anyone on another kit.</li>
+  <li>Media-tone glass (over photos and video) keeps its own dark recipe in this kit; only app glass is shader-drawn.
+  Menus, sheets and the bottom bar draw through <code>LiquidGlass</code> and so pick it up with no per-component work.</li>
+  <li>Safety: a failed start calls <code>ShaderGlassEngine.markFailed</code>, which makes the kit unavailable so the app
+  resolves to Frosted; a shader that fails per surface falls back to the library's frosted fallback. Under
+  <code>flutter test</code> the pre-warm is skipped (the library looks for its shaders where a package under test has
+  them, not where an app does) and surfaces still build.</li>
+</ul>
 
 <h3>Writing a kit-aware component</h3>
 <pre><code>class GlassIconButton extends StatelessWidget {
@@ -294,11 +314,11 @@ no exact native form (an icon without an SF Symbol in <code>sfSymbolFor</code>, 
 
 <h3>Performance contract per kit</h3>
 <div class="tbl"><table>
-<tr><th></th><th>glass</th><th>liquid</th><th>lite</th></tr>
-<tr><td>BackdropFilter</td><td>grouped, never animated</td><td>grouped, never animated</td><td>none</td></tr>
-<tr><td>Drop shadows</td><td>yes</td><td>yes</td><td>none</td></tr>
-<tr><td>Spring press</td><td>yes</td><td>yes</td><td>yes (cheap)</td></tr>
-<tr><td>Moments (dust, waves)</td><td>full</td><td>full</td><td>full, particle counts via <code>Perf</code></td></tr>
+<tr><th></th><th>glass</th><th>liquid</th><th>shader</th><th>lite</th></tr>
+<tr><td>BackdropFilter</td><td>grouped, never animated</td><td>grouped, never animated</td><td>per surface + fragment shader; premium lens opt-in</td><td>none</td></tr>
+<tr><td>Drop shadows</td><td>yes</td><td>yes</td><td>yes</td><td>none</td></tr>
+<tr><td>Spring press</td><td>yes</td><td>yes</td><td>yes</td><td>yes (cheap)</td></tr>
+<tr><td>Moments (dust, waves)</td><td>full</td><td>full</td><td>full</td><td>full, particle counts via <code>Perf</code></td></tr>
 </table></div>
 
 <!-- ======================================================================= -->
@@ -509,6 +529,12 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
   (<code>MaterialKitTheme</code>, cached per <code>AppTheme</code>) supplies the splash.</li>
   <li><strong>2026-11-07</strong> Android look = Flutter's built-in Material 3 widgets, not native Android views: same
   rendering pipeline, no platform-view cost in lists, themed from <code>AppTheme</code> so all palettes survive.</li>
+  <li><strong>2026-11-07</strong> Added <code>UiKit.shader</code> ("Shader glass") at the user's request: the
+  <code>liquid_glass_widgets</code> engine as an extra, explicit-opt-in glass option on <strong>Android and iOS only</strong>.
+  Named for what it is (a GPU shader) rather than "Liquid Glass", which is Apple's name for the iOS 26 kit. Kept as an
+  addition: Frosted, Liquid Glass, Material and Lite are unchanged. Not picked by Automatic because per-surface shader
+  glass costs more GPU than Frosted; the premium lens is a second opt-in inside it. Desktop and web are excluded
+  because the pipeline is tuned for mobile GPUs and the library caps itself there anyway.</li>
   <li><strong>2026-10-02</strong> Native glass is a sibling <code>UITabBar</code>, never a platform view in Flutter
   content (performance).</li>
 </ul>

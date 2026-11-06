@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../keyboard/app_shortcuts.dart';
 import '../keyboard/focusable_tap.dart' show FocusRingShape;
@@ -627,6 +628,25 @@ class GlassPillButton extends StatelessWidget {
     if (tone == GlassTone.app && UiKit.of(context) == UiKit.material) {
       return _materialPill(context, height, type);
     }
+    // The liquid kit's real glass button, for a plain label (no drawn glyph,
+    // no custom ink or tint, which the system button cannot carry).
+    if (tone == GlassTone.app &&
+        glyph == null &&
+        color == null &&
+        icon == null &&
+        NativeControl.readyIn(context)) {
+      return NativeControl(
+        spec: NativeSpec.button(
+          label: sentenceCaseOf(context, label),
+          prominent: tint != null,
+          enabled: enabled,
+          height: height,
+        ),
+        onEvent: (event, _) {
+          if (event == 'tap') onTap?.call();
+        },
+      );
+    }
     return Semantics(
       button: true,
       enabled: enabled,
@@ -738,7 +758,55 @@ class GlassButtonGroup extends StatelessWidget {
   final Color? accent;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => KitSwitch(
+    glass: _glass,
+    liquid: NativeControl.readyIn(context) && _hasNativeForm(context)
+        ? _liquid
+        : null,
+  );
+
+  /// Native only when every slot is a plain symbol: a lit slot, a text slot
+  /// or a drawn glyph would lose information in the system capsule.
+  bool _hasNativeForm(BuildContext context) {
+    final danger = ThemeScope.of(context).danger;
+    return items.isNotEmpty &&
+        items.every(
+          (i) =>
+              i.glyph == null &&
+              i.text == null &&
+              !i.active &&
+              sfSymbolFor(i.icon) != null &&
+              (i.color == null || i.color == danger),
+        );
+  }
+
+  Widget _liquid(BuildContext context) {
+    final danger = ThemeScope.of(context).danger;
+    return NativeControl(
+      size: Size(items.length * 44.0, 44),
+      spec: NativeSpec.buttonGroup(
+        options: [
+          for (var i = 0; i < items.length; i++)
+            NativeOptionSpec(
+              value: '$i',
+              label: items[i].semanticLabel,
+              symbol: sfSymbolFor(items[i].icon),
+              disabled: items[i].onTap == null,
+              destructive: items[i].color == danger,
+            ),
+        ],
+      ),
+      onEvent: (event, value) {
+        if (event != 'select') return;
+        final i = int.tryParse('$value');
+        if (i == null || i < 0 || i >= items.length) return;
+        if (haptic) HapticFeedback.selectionClick();
+        items[i].onTap?.call();
+      },
+    );
+  }
+
+  Widget _glass(BuildContext context) {
     final theme = ThemeScope.of(context);
     final lit = accent ?? theme.accent;
     return LiquidGlass(

@@ -1,3 +1,6 @@
+import 'dart:async' show unawaited;
+import 'ui/foundation/ui_kit.dart' show UiKit;
+import 'ui/kits/shader/shader_engine.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:flutter/material.dart';
@@ -163,6 +166,11 @@ Future<void> main() async {
   // runs in `_bootstrap`, where it can be given a timeout that does not sit in
   // front of `runApp`.
   await ServerDirectory.instance.load();
+
+  // The shader glass kit's shaders, warmed only for someone who chose it.
+  if (SettingsStore.instance.uiKit == UiKit.shader) {
+    unawaited(ShaderGlassEngine.ensureStarted());
+  }
 
   PaintingBinding.instance.imageCache.maximumSize = 1500;
 

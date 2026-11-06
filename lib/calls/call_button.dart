@@ -8,6 +8,7 @@ import '../theme/density.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/chrome_motion.dart';
+import '../ui/native/native_control.dart';
 import '../widgets/liquid_glass.dart';
 import 'call_models.dart';
 import 'call_service.dart';
@@ -220,6 +221,23 @@ class _CallGlyphButtonState extends State<CallGlyphButton> {
     final face = _face(context, widget.kind);
     final color = widget.enabled ? theme.ink : theme.inkMuted;
     final onTap = widget.onTap;
+    // The liquid kit's native glass disc. Busy (not enabled) keeps the Flutter
+    // disc, which dims and still answers a tap; the native one loses the
+    // handset's rock and the camera's pop, so it is the idle-state skin only.
+    if (widget.enabled && onTap != null && NativeControl.readyIn(context)) {
+      return NativeControl(
+        size: Size.square(widget.size),
+        spec: NativeSpec.symbolButton(
+          symbol: widget.kind == CallMediaKind.audio ? 'phone' : 'video',
+          label: face.tooltip,
+          size: widget.size,
+          symbolSize: widget.size * 17 / 44,
+        ),
+        onEvent: (event, _) {
+          if (event == 'tap') onTap();
+        },
+      );
+    }
     return Tooltip(
       message: face.tooltip,
       child: Semantics(

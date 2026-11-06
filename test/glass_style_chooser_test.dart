@@ -22,7 +22,8 @@ void main() {
   });
 
   Future<void> pump(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(393, 852);
+    // Tall enough for every kit row (Material and Shader glass lengthen the list).
+    tester.view.physicalSize = const Size(393, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(ThemeScope(
@@ -67,11 +68,15 @@ void main() {
     expect(tick(tester, en.glassStyleLiquidTitle), 1);
     expect(tick(tester, en.glassStyleFrostedTitle), 0);
 
+    await tester.ensureVisible(find.text(en.uiKitLiteTitle));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(en.uiKitLiteTitle));
     await tester.pumpAndSettle();
     expect(store.uiKit, UiKit.lite);
     expect(tick(tester, en.uiKitLiteTitle), 1);
 
+    await tester.ensureVisible(find.text(en.uiKitAutoTitle));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(en.uiKitAutoTitle));
     await tester.pumpAndSettle();
     expect(store.uiKit, isNull);

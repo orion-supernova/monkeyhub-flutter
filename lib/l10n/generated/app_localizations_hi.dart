@@ -16061,4 +16061,109 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get uiKitMaterialBody =>
       'Android का अपना डिज़ाइन: टच रिपल वाले Material 3 कंट्रोल, आपकी थीम के रंगों में।';
+
+  @override
+  String get uiKitShaderTitle => 'शेडर ग्लास';
+
+  @override
+  String get uiKitShaderBody =>
+      'GPU से बना असली लेंस, अपनी रोशनी और अपवर्तन सेटिंग के साथ। केवल फ़ोन पर।';
+
+  @override
+  String get uiKitShaderFooter =>
+      'शेडर ग्लास हर सतह पर GPU से बनता है। अगर ऐप भारी या गर्म लगे तो फ्रॉस्टेड या लाइट पर जाएँ।';
+
+  @override
+  String get shaderGlassHeader => 'शेडर ग्लास सेटिंग';
+
+  @override
+  String get shaderGlassFullLensTitle => 'पूर्ण लेंस अपवर्तन';
+
+  @override
+  String get shaderGlassFullLensBody =>
+      'शीशे के पीछे की हर चीज़ को सचमुच मोड़ता है। सबसे सुंदर, पर सबसे ज़्यादा बैटरी खर्च। कमज़ोर फ़ोन और पावर सेविंग में बंद।';
+
+  @override
+  String get shaderGlassReset => 'शेडर ग्लास सेटिंग रीसेट करें';
+
+  @override
+  String get shaderKnobLabelThickness => 'मोटाई';
+
+  @override
+  String get shaderKnobHintThickness =>
+      'लेंस कितना मोटा है। मोटा शीशा पीछे की चीज़ों को ज़्यादा मोड़ता है।';
+
+  @override
+  String get shaderKnobLabelBlur => 'धुंध';
+
+  @override
+  String get shaderKnobHintBlur =>
+      'शीशे के पीछे की पृष्ठभूमि कितनी धुंधली होती है।';
+
+  @override
+  String get shaderKnobLabelRefraction => 'अपवर्तन';
+
+  @override
+  String get shaderKnobHintRefraction =>
+      'शीशे का अपवर्तनांक। 1 हवा है, ज़्यादा होने पर रोशनी ज़्यादा मुड़ती है।';
+
+  @override
+  String get shaderKnobLabelChromatic => 'वर्णिक विपथन';
+
+  @override
+  String get shaderKnobHintChromatic =>
+      'किनारे पर रंगों को अलग कर हल्की इंद्रधनुषी झालर बनाता है।';
+
+  @override
+  String get shaderKnobLabelLight => 'रोशनी की तीव्रता';
+
+  @override
+  String get shaderKnobHintLight => 'किनारे की चमकदार झलक कितनी तेज़ है।';
+
+  @override
+  String get shaderKnobLabelAngle => 'रोशनी का कोण';
+
+  @override
+  String get shaderKnobHintAngle =>
+      'रोशनी कहाँ से आती है, शीशे के चारों ओर डिग्री में।';
+
+  @override
+  String get shaderKnobLabelSaturation => 'संतृप्ति';
+
+  @override
+  String get shaderKnobHintSaturation =>
+      'जो दिखता है उसके रंगों को बढ़ाता है। 1 पर कोई बदलाव नहीं।';
+
+  @override
+  String get shaderKnobLabelTint => 'टिंट';
+
+  @override
+  String get shaderKnobHintTint =>
+      'शीशे पर सफ़ेद, या गहरे पन्नों पर धुएँ जैसी परत कितनी चढ़ती है।';
+
+  @override
+  String get shaderKnobLabelRim => 'किनारे की रोशनी';
+
+  @override
+  String get shaderKnobHintRim => 'पतला रोशन किनारा, ऊपर सबसे चमकीला।';
+
+  @override
+  String get nativeScopeHeader => 'नेटिव कंट्रोल';
+
+  @override
+  String get nativeScopeEverythingTitle => 'सब कुछ';
+
+  @override
+  String get nativeScopeEverythingBody =>
+      'बटन, स्विच, मेन्यू, फ़ील्ड और बहुत कुछ iOS खुद बनाता है';
+
+  @override
+  String get nativeScopeTabBarTitle => 'सिर्फ़ टैब बार';
+
+  @override
+  String get nativeScopeTabBarBody =>
+      'टैब बार iOS बनाता है, बाकी सब ऐप बनाता है';
+
+  @override
+  String get controlsLabTitle => 'कंट्रोल लैब';
 }

@@ -1,5 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart'
+    show EagerGestureRecognizer, OneSequenceGestureRecognizer;
+import 'package:flutter/foundation.dart' show Factory;
 import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
@@ -8,6 +11,7 @@ import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import '../ui/native/native_control.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/sheet_kit.dart';
@@ -346,7 +350,30 @@ class _InteractionComposeSheetState extends State<InteractionComposeSheet> {
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         child: SizedBox(
           height: 216,
-          child: CupertinoTheme(
+          child: NativeControl.readyIn(ctx)
+              // The liquid kit's own wheel: same range, same mode.
+              ? NativeControl(
+                  size: const Size(double.infinity, 216),
+                  spec: NativeSpec.datePicker(
+                    ms: initial.millisecondsSinceEpoch,
+                    minMs: first.millisecondsSinceEpoch,
+                    maxMs: last.millisecondsSinceEpoch,
+                    mode: 'dateTime',
+                    style: 'wheel',
+                    label: sentenceCaseOf(ctx, l10n.interactionComposeWhenLabel),
+                  ),
+                  gestures: {
+                    Factory<OneSequenceGestureRecognizer>(
+                      () => EagerGestureRecognizer(),
+                    ),
+                  },
+                  onEvent: (event, v) {
+                    if (event == 'changed' && v is num) {
+                      value = DateTime.fromMillisecondsSinceEpoch(v.round());
+                    }
+                  },
+                )
+              : CupertinoTheme(
             data: CupertinoThemeData(
               brightness: theme.isLight ? Brightness.light : Brightness.dark,
               primaryColor: theme.accent,

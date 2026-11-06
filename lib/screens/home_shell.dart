@@ -40,6 +40,9 @@ import 'navigation/tab_reselect.dart';
 import 'room_screen.dart';
 import 'settings_screen.dart';
 import '../widgets/route_depth.dart';
+import '../ui/lab/controls_lab_screen.dart';
+
+const bool _kOpenLab = bool.fromEnvironment('OPEN_LAB');
 
 /// Hosts the active major section (Chat / Discover / Feed / Settings) and
 /// switches via the [RadialFloatingMenu] (or a conventional bottom-pill nav,
@@ -88,6 +91,17 @@ class _HomeShellState extends State<HomeShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(ensureTermsAccepted(context, widget.api));
     });
+    // Debug convenience for simulator screenshots:
+    // `--dart-define=OPEN_LAB=true` opens the Controls lab after the first
+    // frame of the shell.
+    if (_kOpenLab) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const ControlsLabScreen()),
+        );
+      });
+    }
   }
 
   @override

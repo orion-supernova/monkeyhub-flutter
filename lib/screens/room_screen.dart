@@ -20,6 +20,7 @@ import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
 import '../backend/group_call_api.dart';
 import '../calls/call_button.dart';
+import '../calls/call_button_pair.dart';
 import '../chat_games/active_games_banner.dart';
 import '../chat_games/game_start_sheet.dart';
 import '../data/matches_store.dart';
@@ -8522,37 +8523,15 @@ class _Header extends StatelessWidget {
               ),
               if (!caps.canCall)
                 const SizedBox.shrink()
-              else if (room.isDm && dmUser != null) ...[
-                CallButton(
+              else if (room.isDm && dmUser != null)
+                CallButtonPair.direct(
                   peerUserId: dmUser!.id,
                   peerName: dmUser!.displayName,
                   peerAvatarStorageId: dmUser!.avatarStorageId,
                   roomId: room.id,
-                  variant: CallButtonVariant.liquid,
-                  kind: CallMediaKind.video,
-                ),
-                const SizedBox(width: 6),
-                CallButton(
-                  peerUserId: dmUser!.id,
-                  peerName: dmUser!.displayName,
-                  peerAvatarStorageId: dmUser!.avatarStorageId,
-                  roomId: room.id,
-                  variant: CallButtonVariant.liquid,
-                  kind: CallMediaKind.audio,
-                ),
-              ] else ...[
-                GroupCallButton(
-                  roomId: room.id,
-                  liquid: true,
-                  kind: CallMediaKind.video,
-                ),
-                const SizedBox(width: 6),
-                GroupCallButton(
-                  roomId: room.id,
-                  liquid: true,
-                  kind: CallMediaKind.audio,
-                ),
-              ],
+                )
+              else
+                CallButtonPair.group(roomId: room.id),
             ],
           ),
         ),
@@ -9489,30 +9468,16 @@ class _LiquidHeader extends StatelessWidget {
     }
     if (room.isDm && dmUser != null) {
       return [
-        CallButton(
+        CallButtonPair.direct(
           peerUserId: dmUser!.id,
           peerName: dmUser!.displayName,
           peerAvatarStorageId: dmUser!.avatarStorageId,
           roomId: room.id,
-          variant: CallButtonVariant.liquid,
-          kind: CallMediaKind.video,
-        ),
-        const SizedBox(width: _controlGap),
-        CallButton(
-          peerUserId: dmUser!.id,
-          peerName: dmUser!.displayName,
-          peerAvatarStorageId: dmUser!.avatarStorageId,
-          roomId: room.id,
-          variant: CallButtonVariant.liquid,
-          kind: CallMediaKind.audio,
+          gap: _controlGap,
         ),
       ];
     }
-    return [
-      GroupCallButton(roomId: room.id, liquid: true, kind: CallMediaKind.video),
-      const SizedBox(width: _controlGap),
-      GroupCallButton(roomId: room.id, liquid: true, kind: CallMediaKind.audio),
-    ];
+    return [CallButtonPair.group(roomId: room.id, gap: _controlGap)];
   }
 
   Widget? _status(BuildContext context) =>

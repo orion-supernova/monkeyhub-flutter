@@ -34,7 +34,15 @@ enum UiKit {
   /// The low-end kit: no backdrop blur anywhere, opaque plates, no drop
   /// shadows. Same shapes, sizes and motion vocabulary, a fraction of the GPU
   /// cost. Offered everywhere; picked automatically on low-RAM phones.
-  lite;
+  lite,
+
+  /// Glass drawn by a GPU fragment shader (the vendored `liquid_glass_widgets`
+  /// engine): a real lens that refracts and splits light, tuned by its own
+  /// dials in Settings › Glass. Android and iOS only, because the shader
+  /// pipeline is a mobile-GPU path; never chosen by Automatic. If the shader
+  /// cannot start, [UiKits.available] turns false and the app is drawn as
+  /// [glass].
+  shader;
 
   /// The kit the nearest [UiKitScope] resolved, or the app-wide resolution
   /// where there is no scope (tests, previews, overlays built before the app).
@@ -51,7 +59,7 @@ enum UiKit {
       UiKits.current;
 
   /// Whether this kit draws backdrop blur at all.
-  bool get blurs => this == glass || this == liquid;
+  bool get blurs => this == glass || this == liquid || this == shader;
 
   /// The kit a component falls back to when it has no skin for this one.
   /// Every chain ends at [glass], the reference kit.
@@ -60,6 +68,7 @@ enum UiKit {
     UiKit.liquid => UiKit.glass,
     UiKit.material => UiKit.glass,
     UiKit.lite => UiKit.glass,
+    UiKit.shader => UiKit.glass,
   };
 }
 
@@ -90,17 +99,30 @@ abstract final class UiKits {
     UiKit.lite => true,
     UiKit.liquid => Caps.nativeGlass,
     UiKit.material => materialReady && Caps.android,
+    UiKit.shader => shaderUsable && (Caps.android || Caps.iOS),
   };
+
+  /// Whether the shader engine started. Flipped off by `ShaderGlassEngine`
+  /// when a shader fails to compile or load, which silently returns the app
+  /// to [UiKit.glass]. Tests set it directly.
+  static bool shaderUsable = true;
 
   /// The kits Settings offers, in display order.
   static List<UiKit> get offered => [
-    for (final k in const [UiKit.liquid, UiKit.material, UiKit.glass, UiKit.lite])
+    for (final k in const [
+      UiKit.liquid,
+      UiKit.material,
+      UiKit.glass,
+      UiKit.shader,
+      UiKit.lite,
+    ])
       if (available(k)) k,
   ];
 
   /// What "Automatic" means on this device:
   /// iOS 26+ → [UiKit.liquid]; a low-RAM phone → [UiKit.lite]; Android →
-  /// [UiKit.material]; everything else → [UiKit.glass].
+  /// [UiKit.material]; everything else → [UiKit.glass]. Never [UiKit.shader]:
+  /// that one is an explicit opt-in.
   static UiKit get automatic => resolve(null);
 
   /// Pure resolution, so it can be tested without a device.
@@ -111,11 +133,13 @@ abstract final class UiKits {
     required bool lowTier,
     required bool android,
     bool materialReady = UiKits.materialReady,
+    bool mobile = false,
   }) {
     bool can(UiKit k) => switch (k) {
       UiKit.glass || UiKit.lite => true,
       UiKit.liquid => nativeGlass,
       UiKit.material => materialReady && android,
+      UiKit.shader => mobile && UiKits.shaderUsable,
     };
     if (choice != null && can(choice)) return choice;
     if (nativeGlass) return UiKit.liquid;
@@ -143,6 +167,7 @@ abstract final class UiKits {
     nativeGlass: Caps.nativeGlass,
     lowTier: Perf.low,
     android: Caps.android,
+    mobile: Caps.android || Caps.iOS,
   );
 
   static UiKit? _debugOverride;
@@ -220,12 +245,14 @@ class KitSwitch extends StatelessWidget {
     this.liquid,
     this.material,
     this.lite,
+    this.shader,
   });
 
   final WidgetBuilder glass;
   final WidgetBuilder? liquid;
   final WidgetBuilder? material;
   final WidgetBuilder? lite;
+  final WidgetBuilder? shader;
 
   @override
   Widget build(BuildContext context) => kitValue<WidgetBuilder>(
@@ -234,6 +261,7 @@ class KitSwitch extends StatelessWidget {
     liquid: liquid,
     material: material,
     lite: lite,
+    shader: shader,
   )(context);
 }
 
@@ -245,6 +273,7 @@ T kitValue<T>(
   T? liquid,
   T? material,
   T? lite,
+  T? shader,
 }) {
   var k = kit;
   while (true) {
@@ -253,6 +282,7 @@ T kitValue<T>(
       UiKit.liquid => liquid,
       UiKit.material => material,
       UiKit.lite => lite,
+      UiKit.shader => shader,
     };
     if (v != null || k == UiKit.glass) return v as T;
     k = k.fallback;

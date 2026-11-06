@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/glass_config.dart';
 import '../data/settings_store.dart';
+import '../data/shader_glass_config.dart';
 import '../keyboard/focusable_tap.dart';
 import '../models/chat_user.dart' show initialOf;
 import '../l10n/generated/app_localizations.dart';
@@ -15,6 +16,8 @@ import '../widgets/sheet_kit.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/value_slider.dart';
 import '../ui/foundation/ui_kit.dart';
+import '../ui/kits/shader/shader_engine.dart';
+import '../ui/lab/controls_lab_screen.dart';
 import 'navigation/pill_bottom_nav.dart';
 
 /// Live tuning for every glass surface, plus named slots to keep looks in.
@@ -213,12 +216,17 @@ class _GlassScreenState extends State<GlassScreen> {
   double _targetPreviewHeight() => _expanded
       ? _GlassPreview.expandedHeightFor(
           _store.glass.geometry,
-          _activePanel.shows,
+          _shows,
         )
       : _GlassPreview.collapsedHeightFor(
           _store.glass.geometry,
-          _activePanel.shows,
+          _shows,
         );
+
+  /// What the preview renders: the shader kit has no bar-only dials, so it
+  /// always shows the surfaces its dials change.
+  _Shows get _shows =>
+      UiKits.current == UiKit.shader ? _Shows.surfaces : _activePanel.shows;
 
   /// A panel: its sticky header, then its rows.
   ///
@@ -301,7 +309,8 @@ class _GlassScreenState extends State<GlassScreen> {
     final dirty = profile != base;
     // The dials tune the Frosted kit only: Liquid Glass is drawn by iOS and
     // Lite draws no glass at all.
-    final liquid = UiKits.current != UiKit.glass;
+    final shader = UiKits.current == UiKit.shader;
+    final liquid = UiKits.current != UiKit.glass && !shader;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -386,6 +395,7 @@ class _GlassScreenState extends State<GlassScreen> {
                                 ),
                                 const SizedBox(height: 22),
                                 const _GlassStyleChooser(),
+                                const _NativeScopeChooser(),
                               ],
                             ),
                           ),
@@ -393,7 +403,10 @@ class _GlassScreenState extends State<GlassScreen> {
 
                         // Under Liquid Glass iOS owns the look: no preview, no
                         // dials, nothing that would move only half the glass.
-                        if (!liquid) ...[
+                        // The shader kit has its own dials, not the Frosted
+                        // ones: a pinned preview, then the engine's panel.
+                        if (shader) ..._shaderSlivers(theme, previewHeight),
+                        if (!liquid && !shader) ...[
                         // Sticks to the top once it gets there, so every dial below
                         // is judged against the thing it changes. Seventeen sliders
                         // is far more than one screen, and a preview you have to
@@ -409,10 +422,10 @@ class _GlassScreenState extends State<GlassScreen> {
                               profile,
                               _previewSection,
                               _expanded,
-                              _activePanel.shows,
+                              _shows,
                             ),
                             child: _GlassPreview(
-                              shows: _activePanel.shows,
+                              shows: _shows,
                               section: _previewSection,
                               onSelect: (s) =>
                                   setState(() => _previewSection = s),
@@ -552,6 +565,97 @@ class _GlassScreenState extends State<GlassScreen> {
     );
   }
 
+  /// Settings › Glass under [UiKit.shader]: the pinned live preview, the
+  /// engine's own dials, the full-lens switch and a reset.
+  List<Widget> _shaderSlivers(AppTheme theme, double previewHeight) {
+    final l10n = AppLocalizations.of(context);
+    final cfg = _store.shaderGlass;
+    return [
+      SliverPersistentHeader(
+        pinned: true,
+        delegate: _PinnedPreview(
+          height: previewHeight,
+          signature: Object.hash(cfg, _previewSection, _expanded),
+          child: _GlassPreview(
+            shows: _Shows.surfaces,
+            section: _previewSection,
+            onSelect: (s) => setState(() => _previewSection = s),
+            expanded: _expanded,
+            onToggle: _toggleExpanded,
+          ),
+        ),
+      ),
+      SliverPersistentHeader(
+        pinned: true,
+        delegate: _PinnedLabel(
+          signature: Object.hash(l10n.shaderGlassHeader, theme.accent),
+          child: GroupedHeader(l10n.shaderGlassHeader),
+        ),
+      ),
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        sliver: SliverList.list(
+          children: [
+            GroupedSection(
+              margin: EdgeInsets.zero,
+              children: [
+                GroupedRow(
+                  icon: CupertinoIcons.sparkles,
+                  tone: TileTone.indigo,
+                  title: l10n.shaderGlassFullLensTitle,
+                  subtitle: l10n.shaderGlassFullLensBody,
+                  chevron: false,
+                  trailing: RowSwitch(
+                    value: cfg.fullLens,
+                    onChanged: (v) =>
+                        _store.setShaderGlass(cfg.withFullLens(v)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        sliver: SliverList.builder(
+          itemCount: kShaderKnobs.length,
+          itemBuilder: (context, i) {
+            final k = kShaderKnobs[i];
+            return _PlateItem(
+              first: i == 0,
+              last: i == kShaderKnobs.length - 1,
+              child: _KnobRow(
+                knob: k,
+                value: cfg.of(k),
+                base: k.standard,
+                label: shaderKnobLabel(l10n, k),
+                hint: shaderKnobHint(l10n, k),
+                onChanged: (v) => _store.setShaderGlass(cfg.with_(k, v)),
+                onReset: () => _store.setShaderGlass(
+                  cfg.with_(k, k.standard),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+        sliver: SliverToBoxAdapter(
+          child: _ActionRow(
+            icon: CupertinoIcons.arrow_counterclockwise,
+            label: l10n.shaderGlassReset,
+            enabled: !cfg.isStandard,
+            onTap: () => _store.setShaderGlass(const ShaderGlassConfig()),
+          ),
+        ),
+      ),
+      const SliverToBoxAdapter(child: SizedBox(height: 260)),
+    ];
+  }
+
   List<Widget> _knobRows(
     AppTheme theme,
     List<GlassKnob> knobs,
@@ -563,8 +667,10 @@ class _GlassScreenState extends State<GlassScreen> {
     for (final k in knobs)
       _KnobRow(
         knob: k,
-        config: appChrome ? resolveAppGlass(config) : config,
-        base: appChrome ? resolveAppGlass(base) : base,
+        value: (appChrome ? resolveAppGlass(config) : config).of(k),
+        base: (appChrome ? resolveAppGlass(base) : base).of(k),
+        label: glassKnobLabel(AppLocalizations.of(context), k),
+        hint: glassKnobHint(AppLocalizations.of(context), k),
         onChanged: (v) => onChanged(config.set(k, v)),
         onReset: () => onChanged(_resetKnob(config, base, k)),
       ),
@@ -1326,19 +1432,26 @@ String _localNumber(BuildContext context, String fixed) {
 class _KnobRow extends StatelessWidget {
   const _KnobRow({
     required this.knob,
-    required this.config,
+    required this.value,
     required this.base,
+    required this.label,
+    required this.hint,
     required this.onChanged,
     required this.onReset,
   });
 
   final GlassKnob knob;
-  final GlassConfig config;
+  final double value;
 
   /// The active look's value for this dial. What "modified" is measured
   /// against, so the accent marking and the undo button mean "you changed
   /// this", not "this look differs from the raw recipe".
-  final GlassConfig base;
+  final double base;
+
+  /// Display name and caption, already localized by the caller: the Frosted
+  /// dials and the shader glass dials resolve them from different tables.
+  final String label;
+  final String hint;
 
   final ValueChanged<double> onChanged;
   final VoidCallback onReset;
@@ -1347,9 +1460,7 @@ class _KnobRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final value = config.of(knob);
-    final standard = value == base.of(knob);
-    final label = glassKnobLabel(l10n, knob);
+    final standard = value == base;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Column(
@@ -1391,11 +1502,11 @@ class _KnobRow extends StatelessWidget {
             onChanged: (t) => onChanged(knob.fromSlider(t)),
             onReset: standard ? null : onReset,
           ),
-          if (glassKnobHint(l10n, knob).isNotEmpty)
+          if (hint.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 2),
               child: Text(
-                glassKnobHint(l10n, knob),
+                hint,
                 style: groupedSubtitleStyle(theme),
               ),
             ),
@@ -1533,6 +1644,7 @@ class _GlassStyleChooser extends StatelessWidget {
         UiKit.glass => l10n.glassStyleFrostedTitle,
         UiKit.material => l10n.uiKitMaterialTitle,
         UiKit.lite => l10n.uiKitLiteTitle,
+        UiKit.shader => l10n.uiKitShaderTitle,
       };
 
   Widget _build(BuildContext context) {
@@ -1547,6 +1659,7 @@ class _GlassStyleChooser extends StatelessWidget {
       footer: switch (resolved) {
         UiKit.liquid => l10n.glassStyleLiquidFooter,
         UiKit.lite => l10n.uiKitLiteFooter,
+        UiKit.shader => l10n.uiKitShaderFooter,
         _ => null,
       },
       margin: EdgeInsets.zero,
@@ -1589,6 +1702,18 @@ class _GlassStyleChooser extends StatelessWidget {
                 onTap: () => store.setUiKit(UiKit.glass),
                 trailing: _Tick(on: on(UiKit.glass)),
               ),
+            UiKit.shader => GroupedRow(
+                icon: CupertinoIcons.sparkles,
+                tone: TileTone.purple,
+                title: l10n.uiKitShaderTitle,
+                subtitle: l10n.uiKitShaderBody,
+                chevron: false,
+                onTap: () {
+                  ShaderGlassEngine.ensureStarted();
+                  store.setUiKit(UiKit.shader);
+                },
+                trailing: _Tick(on: on(UiKit.shader)),
+              ),
             UiKit.lite => GroupedRow(
                 icon: CupertinoIcons.square_fill,
                 tone: TileTone.gray,
@@ -1599,6 +1724,71 @@ class _GlassStyleChooser extends StatelessWidget {
                 trailing: _Tick(on: on(UiKit.lite)),
               ),
           },
+      ],
+    );
+  }
+}
+
+/// Settings › Glass › Native controls, and the Controls lab door. The scope
+/// only means something under Liquid Glass (the one kit that can draw real iOS
+/// controls), so the section appears only then; the lab is for every kit.
+class _NativeScopeChooser extends StatelessWidget {
+  const _NativeScopeChooser();
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: SettingsStore.instance,
+        builder: (context, _) => _build(context),
+      );
+
+  Widget _build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final store = SettingsStore.instance;
+    final everything = store.nativeScope == NativeScope.everything;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (UiKits.current == UiKit.liquid) ...[
+          const SizedBox(height: 22),
+          GroupedSection(
+            header: l10n.nativeScopeHeader,
+            margin: EdgeInsets.zero,
+            children: [
+              GroupedRow(
+                icon: CupertinoIcons.square_grid_2x2_fill,
+                tone: TileTone.blue,
+                title: l10n.nativeScopeEverythingTitle,
+                subtitle: l10n.nativeScopeEverythingBody,
+                chevron: false,
+                onTap: () => store.setNativeScope(NativeScope.everything),
+                trailing: _Tick(on: everything),
+              ),
+              GroupedRow(
+                icon: CupertinoIcons.rectangle_split_3x1_fill,
+                tone: TileTone.gray,
+                title: l10n.nativeScopeTabBarTitle,
+                subtitle: l10n.nativeScopeTabBarBody,
+                chevron: false,
+                onTap: () => store.setNativeScope(NativeScope.tabBar),
+                trailing: _Tick(on: !everything),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 22),
+        GroupedSection(
+          margin: EdgeInsets.zero,
+          children: [
+            GroupedRow(
+              icon: CupertinoIcons.slider_horizontal_3,
+              tone: TileTone.orange,
+              title: l10n.controlsLabTitle,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const ControlsLabScreen()),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }

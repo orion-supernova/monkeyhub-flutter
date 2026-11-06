@@ -594,8 +594,29 @@ class RowPillButton extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      KitSwitch(glass: _glass, material: _material);
+  Widget build(BuildContext context) => KitSwitch(
+    glass: _glass,
+    liquid: NativeControl.readyIn(context) && !busy ? _liquid : null,
+    material: _material,
+  );
+
+  /// The system glass button, small. A busy pill keeps the Flutter skin: the
+  /// system button has no in-place spinner.
+  Widget _liquid(BuildContext context) => Padding(
+    padding: const EdgeInsetsDirectional.only(start: 8),
+    child: NativeControl(
+      spec: NativeSpec.button(
+        label: sentenceCaseOf(context, label),
+        prominent: filled,
+        destructive: destructive,
+        enabled: onTap != null,
+        height: 32,
+      ),
+      onEvent: (event, _) {
+        if (event == 'tap') onTap?.call();
+      },
+    ),
+  );
 
   Widget _glass(BuildContext context) {
     final theme = ThemeScope.of(context);

@@ -12,6 +12,8 @@ import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart';
+import '../ui/native/native_control.dart';
+import '../ui/native/native_text_input.dart';
 import 'ios_kit.dart' show groupedTitleStyle, groupedValueStyle;
 import 'route_landing.dart';
 import 'spring_press.dart';
@@ -391,6 +393,23 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
     final l10n = AppLocalizations.of(context);
     final controller = widget.controller!;
     final accessory = widget.leadingAccessory;
+    // The liquid kit's native search capsule, for the plain field: a scope tag,
+    // a hero flight or a caller-owned clear keep the Flutter pill.
+    if (accessory == null &&
+        widget.heroTag == null &&
+        widget.onClear == null &&
+        NativeControl.readyIn(context)) {
+      return NativeTextInput(
+        controller: controller,
+        focusNode: _node,
+        search: true,
+        placeholder: sentenceCaseOf(context, widget.hintText),
+        autofocus: false,
+        height: widget.compact ? searchFieldCompactHeight : searchFieldHeight,
+        onChanged: widget.onChanged,
+        onSubmitted: widget.onSubmitted,
+      );
+    }
     final input = TextField(
       controller: controller,
       focusNode: _node,

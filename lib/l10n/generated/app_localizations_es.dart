@@ -16236,4 +16236,111 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get uiKitMaterialBody =>
       'El diseño propio de Android: controles Material 3 con ondas al tocar, con los colores de tu tema.';
+
+  @override
+  String get uiKitShaderTitle => 'Cristal con shader';
+
+  @override
+  String get uiKitShaderBody =>
+      'Una lente real dibujada por la GPU, con sus propios ajustes de luz y refracción. Solo en móviles.';
+
+  @override
+  String get uiKitShaderFooter =>
+      'El cristal con shader lo dibuja la GPU en cada superficie. Si la app va pesada o caliente, cambia a Escarchado o Ligero.';
+
+  @override
+  String get shaderGlassHeader => 'Ajustes del cristal con shader';
+
+  @override
+  String get shaderGlassFullLensTitle => 'Refracción de lente completa';
+
+  @override
+  String get shaderGlassFullLensBody =>
+      'Curva de verdad todo lo que hay detrás del cristal. Es lo más bonito, pero gasta más batería. Desactivado en móviles modestos y en Ahorro de energía.';
+
+  @override
+  String get shaderGlassReset => 'Restablecer ajustes del cristal con shader';
+
+  @override
+  String get shaderKnobLabelThickness => 'Grosor';
+
+  @override
+  String get shaderKnobHintThickness =>
+      'Lo gruesa que es la lente. Cuanto más gruesa, más curva lo que hay detrás.';
+
+  @override
+  String get shaderKnobLabelBlur => 'Desenfoque';
+
+  @override
+  String get shaderKnobHintBlur =>
+      'Cuánto se suaviza el fondo detrás del cristal.';
+
+  @override
+  String get shaderKnobLabelRefraction => 'Refracción';
+
+  @override
+  String get shaderKnobHintRefraction =>
+      'Índice de refracción del cristal. 1 es aire; más alto curva más la luz.';
+
+  @override
+  String get shaderKnobLabelChromatic => 'Aberración cromática';
+
+  @override
+  String get shaderKnobHintChromatic =>
+      'Separa los colores del borde en un tenue halo de arcoíris.';
+
+  @override
+  String get shaderKnobLabelLight => 'Intensidad de luz';
+
+  @override
+  String get shaderKnobHintLight =>
+      'Cuánto brilla el reflejo especular del borde.';
+
+  @override
+  String get shaderKnobLabelAngle => 'Ángulo de luz';
+
+  @override
+  String get shaderKnobHintAngle =>
+      'De dónde viene la luz, en grados alrededor del cristal.';
+
+  @override
+  String get shaderKnobLabelSaturation => 'Saturación';
+
+  @override
+  String get shaderKnobHintSaturation =>
+      'Realce de color de lo que se ve a través. 1 lo deja igual.';
+
+  @override
+  String get shaderKnobLabelTint => 'Tinte';
+
+  @override
+  String get shaderKnobHintTint =>
+      'Cuánto se lava el cristal con blanco, o con humo en páginas oscuras.';
+
+  @override
+  String get shaderKnobLabelRim => 'Luz del borde';
+
+  @override
+  String get shaderKnobHintRim =>
+      'Un borde fino iluminado, más brillante arriba.';
+
+  @override
+  String get nativeScopeHeader => 'Controles nativos';
+
+  @override
+  String get nativeScopeEverythingTitle => 'Todo';
+
+  @override
+  String get nativeScopeEverythingBody =>
+      'iOS dibuja los botones, interruptores, menús, campos y más';
+
+  @override
+  String get nativeScopeTabBarTitle => 'Solo la barra de pestañas';
+
+  @override
+  String get nativeScopeTabBarBody =>
+      'iOS dibuja la barra de pestañas y la app dibuja el resto';
+
+  @override
+  String get controlsLabTitle => 'Laboratorio de controles';
 }

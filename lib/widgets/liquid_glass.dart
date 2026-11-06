@@ -10,6 +10,9 @@ import '../theme/app_theme.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
+import '../ui/kits/shader/shader_glass_surface.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart'
+    show LiquidOval, LiquidRoundedRectangle, LiquidRoundedSuperellipse, LiquidShape;
 import '../ui/kits/material/material_kit_theme.dart';
 import 'glass_reveal.dart';
 import 'spring_press.dart';
@@ -219,6 +222,9 @@ class LiquidGlass extends StatelessWidget {
   /// The engine-aware material: which recipe the glass wears.
   Widget _material(BuildContext context, bool pressed) {
     final kit = UiKit.of(context);
+    if (kit == UiKit.shader && tone == GlassTone.app) {
+      return _shader(context, pressed);
+    }
     if (!kit.blurs) {
       return tone == GlassTone.media
           ? _media(context, pressed, plate: true)
@@ -250,6 +256,32 @@ class LiquidGlass extends StatelessWidget {
           appChrome: !liquid && !app.isUntouched,
         );
       },
+    );
+  }
+
+  /// The [UiKit.shader] surface: the same shape and content, drawn by the
+  /// shader engine with the user's shader dials. Listens to the store so the
+  /// dials repaint live.
+  Widget _shader(BuildContext context, bool pressed) {
+    final theme = ThemeScope.of(context);
+    final isLight = theme.background.computeLuminance() > 0.5;
+    final LiquidShape engineShape = switch (shape) {
+      LiquidGlassShape.circle => const LiquidOval(),
+      LiquidGlassShape.capsule => const LiquidRoundedRectangle(borderRadius: 999),
+      LiquidGlassShape.rounded => LiquidRoundedSuperellipse(borderRadius: radius),
+    };
+    final wash = tint ??
+        (tinted ? theme.accent.withValues(alpha: 0.38) : null);
+    return ListenableBuilder(
+      listenable: SettingsStore.instance,
+      builder: (context, _) => ShaderGlassSurface(
+        shape: engineShape,
+        isLight: isLight,
+        color: wash,
+        pressed: pressed,
+        shadow: shadow,
+        content: _content(context),
+      ),
     );
   }
 

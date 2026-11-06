@@ -187,6 +187,11 @@ struct NativeControlSpec {
   let maxDateMs: Double?
   let dateMode: String
   let dateStyle: String
+  let textRev: Int
+  let capitalization: String?
+  let autocorrect: Bool?
+  let spacing: CGFloat
+  let blend: CGFloat?
 
   init(_ map: [String: Any]) {
     kind = map["kind"] as? String ?? "symbolButton"
@@ -223,6 +228,11 @@ struct NativeControlSpec {
     maxDateMs = map["maxDateMs"] as? Double
     dateMode = map["dateMode"] as? String ?? "dateTime"
     dateStyle = map["dateStyle"] as? String ?? "compact"
+    textRev = map["textRev"] as? Int ?? 0
+    capitalization = map["capitalization"] as? String
+    autocorrect = map["autocorrect"] as? Bool
+    spacing = CGFloat(map["spacing"] as? Double ?? 8)
+    blend = (map["blend"] as? Double).map { CGFloat($0) }
   }
 }
 
@@ -230,11 +240,15 @@ struct NativeOption: Identifiable {
   let id: String
   let label: String
   let symbol: String?
+  let disabled: Bool
+  let destructive: Bool
 
   init(_ map: [String: Any]) {
     id = map["value"] as? String ?? ""
     label = map["label"] as? String ?? ""
     symbol = map["symbol"] as? String
+    disabled = map["disabled"] as? Bool ?? false
+    destructive = map["destructive"] as? Bool ?? false
   }
 }
 
@@ -356,13 +370,13 @@ struct NativeTextButton: View {
       if let s = spec.symbol { Image(systemName: s) }
       Text(spec.label).lineLimit(1)
     }
-    .font(.system(size: 17, weight: .semibold))
+    .font(.system(size: spec.size <= 34 ? 15 : 17, weight: .semibold))
     .frame(maxWidth: spec.fill ? .infinity : nil)
-    .frame(minHeight: spec.size - 16)
+    .frame(minHeight: spec.size <= 34 ? nil : spec.size - 16)
     let button = Button(role: spec.destructive ? .destructive : nil) {
       emit("tap", nil)
     } label: { label }
-      .controlSize(.large)
+      .controlSize(spec.size <= 34 ? .small : (spec.size <= 40 ? .regular : .large))
     if #available(iOS 26.0, *) {
       if spec.prominent {
         button.buttonStyle(.glassProminent)
@@ -606,13 +620,23 @@ struct NativeTextField: View {
     .focused($focused)
     .textContentType(contentType)
     .keyboardType(keyboardType)
-    .textInputAutocapitalization(isSearch || spec.contentType != nil ? .never : .sentences)
-    .autocorrectionDisabled(isSearch || spec.contentType != nil)
+    .textInputAutocapitalization(autocap)
+    .autocorrectionDisabled(!(spec.autocorrect ?? !(isSearch || spec.contentType != nil)))
     .submitLabel(submitLabel)
     .onSubmit { emit("submitted", text) }
-    .onChange(of: spec.text) { if $0 != text { text = $0 } }
+    .onChange(of: spec.textRev) { _ in if spec.text != text { text = spec.text } }
     .onChange(of: text) { if $0 != spec.text { emit("changed", $0) } }
     .onChange(of: focused) { emit("focus", $0) }
+  }
+
+  private var autocap: TextInputAutocapitalization {
+    switch spec.capitalization {
+    case "words": return .words
+    case "characters": return .characters
+    case "sentences": return .sentences
+    case "none": return .never
+    default: return isSearch || spec.contentType != nil ? .never : .sentences
+    }
   }
 
   private var submitLabel: SubmitLabel {
@@ -668,11 +692,12 @@ struct NativeButtonGroup: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(Color.primary)
+        .foregroundStyle(option.destructive ? Color.red : Color.primary)
+        .disabled(option.disabled)
+        .opacity(option.disabled ? 0.4 : 1)
         .accessibilityLabel(Text(option.label))
       }
     }
-    .padding(.horizontal, 4)
     if #available(iOS 26.0, *) {
       row.glassEffect(.regular.interactive(), in: Capsule())
     } else {
@@ -729,23 +754,26 @@ struct NativeToolbar: View {
 
   var body: some View {
     if #available(iOS 26.0, *) {
-      GlassEffectContainer(spacing: 8) {
-        HStack(spacing: 8) {
+      GlassEffectContainer(spacing: spec.blend ?? spec.spacing) {
+        HStack(spacing: spec.spacing) {
           ForEach(spec.options) { option in
             Button { emit("select", option.id) } label: {
               Image(systemName: option.symbol ?? "circle")
-                .font(.system(size: 20, weight: .semibold))
+                .font(.system(size: spec.symbolSize, weight: .semibold))
                 .frame(width: spec.size, height: spec.size)
                 .contentShape(Circle())
             }
             .buttonStyle(.plain)
+            .foregroundStyle(option.destructive ? Color.red : Color.primary)
+            .disabled(option.disabled)
+            .opacity(option.disabled ? 0.4 : 1)
             .accessibilityLabel(Text(option.label))
             .glassEffect(.regular.interactive(), in: Circle())
           }
         }
       }
     } else {
-      HStack(spacing: 8) {
+      HStack(spacing: spec.spacing) {
         ForEach(spec.options) { option in
           Button { emit("select", option.id) } label: {
             Image(systemName: option.symbol ?? "circle")

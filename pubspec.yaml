@@ -104,6 +104,13 @@ dependencies:
   # dependency.
   image: ^4.8.0
 
+  # GPU-shader glass engine behind the "Shader glass" kit (Android + iOS only,
+  # explicit opt-in). Vendored from Swirl's copy of 1.16.1; see
+  # third_party/liquid_glass_widgets/PATCHES.md. Its shaders are declared in
+  # its own pubspec and bundle with it.
+  liquid_glass_widgets:
+    path: third_party/liquid_glass_widgets
+
   # Disk + memory cache for remote images. `Image.network` has NO persistent
   # cache on mobile (dart:io's HttpClient doesn't implement one), so every cold
   # start re-downloaded every avatar — and Convex serves storage with

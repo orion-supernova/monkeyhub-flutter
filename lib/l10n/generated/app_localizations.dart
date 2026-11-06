@@ -26538,6 +26538,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Android\'s own design: Material 3 controls with touch ripples, coloured by your theme.'**
   String get uiKitMaterialBody;
+
+  /// Settings > Glass interface kit row: glass drawn by a GPU shader (phones only).
+  ///
+  /// In en, this message translates to:
+  /// **'Shader glass'**
+  String get uiKitShaderTitle;
+
+  /// Subtitle of the Shader glass kit row.
+  ///
+  /// In en, this message translates to:
+  /// **'A real lens drawn by the GPU, with its own light and refraction dials. Phones only.'**
+  String get uiKitShaderBody;
+
+  /// Footer under the kit list when Shader glass is the active kit.
+  ///
+  /// In en, this message translates to:
+  /// **'Shader glass is drawn by the GPU on every surface. If the app feels heavy or warm, switch to Frosted or Lite.'**
+  String get uiKitShaderFooter;
+
+  /// Header of the shader glass dials section in Settings > Glass.
+  ///
+  /// In en, this message translates to:
+  /// **'Shader glass dials'**
+  String get shaderGlassHeader;
+
+  /// Switch title: use the full premium refraction shader.
+  ///
+  /// In en, this message translates to:
+  /// **'Full lens refraction'**
+  String get shaderGlassFullLensTitle;
+
+  /// Switch subtitle for full lens refraction.
+  ///
+  /// In en, this message translates to:
+  /// **'Bends everything behind the glass for real. Prettiest, but costs the most battery. Off on low-end phones and in Power Saving.'**
+  String get shaderGlassFullLensBody;
+
+  /// Button: reset every shader glass dial.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset shader glass dials'**
+  String get shaderGlassReset;
+
+  /// Shader glass dial name: Thickness.
+  ///
+  /// In en, this message translates to:
+  /// **'Thickness'**
+  String get shaderKnobLabelThickness;
+
+  /// Shader glass dial caption: Thickness.
+  ///
+  /// In en, this message translates to:
+  /// **'How thick the lens is. Thicker glass bends what is behind it more.'**
+  String get shaderKnobHintThickness;
+
+  /// Shader glass dial name: Blur.
+  ///
+  /// In en, this message translates to:
+  /// **'Blur'**
+  String get shaderKnobLabelBlur;
+
+  /// Shader glass dial caption: Blur.
+  ///
+  /// In en, this message translates to:
+  /// **'How much the backdrop is softened behind the glass.'**
+  String get shaderKnobHintBlur;
+
+  /// Shader glass dial name: Refraction.
+  ///
+  /// In en, this message translates to:
+  /// **'Refraction'**
+  String get shaderKnobLabelRefraction;
+
+  /// Shader glass dial caption: Refraction.
+  ///
+  /// In en, this message translates to:
+  /// **'Refractive index of the glass. 1 is air, higher bends light harder.'**
+  String get shaderKnobHintRefraction;
+
+  /// Shader glass dial name: Chromatic aberration.
+  ///
+  /// In en, this message translates to:
+  /// **'Chromatic aberration'**
+  String get shaderKnobLabelChromatic;
+
+  /// Shader glass dial caption: Chromatic aberration.
+  ///
+  /// In en, this message translates to:
+  /// **'Splits colours at the rim into a faint rainbow fringe.'**
+  String get shaderKnobHintChromatic;
+
+  /// Shader glass dial name: Light intensity.
+  ///
+  /// In en, this message translates to:
+  /// **'Light intensity'**
+  String get shaderKnobLabelLight;
+
+  /// Shader glass dial caption: Light intensity.
+  ///
+  /// In en, this message translates to:
+  /// **'How bright the specular highlight on the rim is.'**
+  String get shaderKnobHintLight;
+
+  /// Shader glass dial name: Light angle.
+  ///
+  /// In en, this message translates to:
+  /// **'Light angle'**
+  String get shaderKnobLabelAngle;
+
+  /// Shader glass dial caption: Light angle.
+  ///
+  /// In en, this message translates to:
+  /// **'Where the light comes from, in degrees round the glass.'**
+  String get shaderKnobHintAngle;
+
+  /// Shader glass dial name: Saturation.
+  ///
+  /// In en, this message translates to:
+  /// **'Saturation'**
+  String get shaderKnobLabelSaturation;
+
+  /// Shader glass dial caption: Saturation.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour boost on what shows through. 1 leaves it unchanged.'**
+  String get shaderKnobHintSaturation;
+
+  /// Shader glass dial name: Tint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tint'**
+  String get shaderKnobLabelTint;
+
+  /// Shader glass dial caption: Tint.
+  ///
+  /// In en, this message translates to:
+  /// **'How strongly the glass is washed with white, or smoke on dark pages.'**
+  String get shaderKnobHintTint;
+
+  /// Shader glass dial name: Rim light.
+  ///
+  /// In en, this message translates to:
+  /// **'Rim light'**
+  String get shaderKnobLabelRim;
+
+  /// Shader glass dial caption: Rim light.
+  ///
+  /// In en, this message translates to:
+  /// **'A thin lit edge, brightest along the top.'**
+  String get shaderKnobHintRim;
+
+  /// Section header in Settings > Glass, under the style rows, shown only in the Liquid Glass style: how much of the app iOS itself draws.
+  ///
+  /// In en, this message translates to:
+  /// **'Native controls'**
+  String get nativeScopeHeader;
+
+  /// Row title: iOS draws every control it can (Settings > Glass > Native controls).
+  ///
+  /// In en, this message translates to:
+  /// **'Everything'**
+  String get nativeScopeEverythingTitle;
+
+  /// Row subtitle under 'Everything' in Native controls.
+  ///
+  /// In en, this message translates to:
+  /// **'Buttons, switches, menus, fields and more are drawn by iOS'**
+  String get nativeScopeEverythingBody;
+
+  /// Row title: only the tab bar is drawn by iOS (Settings > Glass > Native controls).
+  ///
+  /// In en, this message translates to:
+  /// **'Just the tab bar'**
+  String get nativeScopeTabBarTitle;
+
+  /// Row subtitle under 'Just the tab bar' in Native controls.
+  ///
+  /// In en, this message translates to:
+  /// **'iOS draws the tab bar, the app draws the rest'**
+  String get nativeScopeTabBarBody;
+
+  /// Row at the bottom of Settings > Glass that opens a page listing every shared control in the active style (a developer and design review tool).
+  ///
+  /// In en, this message translates to:
+  /// **'Controls lab'**
+  String get controlsLabTitle;
 }
 
 class _AppLocalizationsDelegate

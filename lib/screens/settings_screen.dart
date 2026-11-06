@@ -261,6 +261,8 @@ class _SettingsScreenState extends State<SettingsScreen>
         return l10n.uiKitLiteTitle;
       case UiKit.material:
         return l10n.uiKitMaterialTitle;
+      case UiKit.shader:
+        return l10n.uiKitShaderTitle;
       case UiKit.glass:
         break;
     }

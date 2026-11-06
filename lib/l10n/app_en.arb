@@ -19033,5 +19033,129 @@
   "uiKitMaterialBody": "Android's own design: Material 3 controls with touch ripples, coloured by your theme.",
   "@uiKitMaterialBody": {
     "description": "Settings > Glass: subtitle of the Material row, shown on Android only. Android's own design language, ripples on touch, coloured by the chosen theme."
+  },
+  "uiKitShaderTitle": "Shader glass",
+  "@uiKitShaderTitle": {
+    "description": "Settings > Glass interface kit row: glass drawn by a GPU shader (phones only)."
+  },
+  "uiKitShaderBody": "A real lens drawn by the GPU, with its own light and refraction dials. Phones only.",
+  "@uiKitShaderBody": {
+    "description": "Subtitle of the Shader glass kit row."
+  },
+  "uiKitShaderFooter": "Shader glass is drawn by the GPU on every surface. If the app feels heavy or warm, switch to Frosted or Lite.",
+  "@uiKitShaderFooter": {
+    "description": "Footer under the kit list when Shader glass is the active kit."
+  },
+  "shaderGlassHeader": "Shader glass dials",
+  "@shaderGlassHeader": {
+    "description": "Header of the shader glass dials section in Settings > Glass."
+  },
+  "shaderGlassFullLensTitle": "Full lens refraction",
+  "@shaderGlassFullLensTitle": {
+    "description": "Switch title: use the full premium refraction shader."
+  },
+  "shaderGlassFullLensBody": "Bends everything behind the glass for real. Prettiest, but costs the most battery. Off on low-end phones and in Power Saving.",
+  "@shaderGlassFullLensBody": {
+    "description": "Switch subtitle for full lens refraction."
+  },
+  "shaderGlassReset": "Reset shader glass dials",
+  "@shaderGlassReset": {
+    "description": "Button: reset every shader glass dial."
+  },
+  "shaderKnobLabelThickness": "Thickness",
+  "@shaderKnobLabelThickness": {
+    "description": "Shader glass dial name: Thickness."
+  },
+  "shaderKnobHintThickness": "How thick the lens is. Thicker glass bends what is behind it more.",
+  "@shaderKnobHintThickness": {
+    "description": "Shader glass dial caption: Thickness."
+  },
+  "shaderKnobLabelBlur": "Blur",
+  "@shaderKnobLabelBlur": {
+    "description": "Shader glass dial name: Blur."
+  },
+  "shaderKnobHintBlur": "How much the backdrop is softened behind the glass.",
+  "@shaderKnobHintBlur": {
+    "description": "Shader glass dial caption: Blur."
+  },
+  "shaderKnobLabelRefraction": "Refraction",
+  "@shaderKnobLabelRefraction": {
+    "description": "Shader glass dial name: Refraction."
+  },
+  "shaderKnobHintRefraction": "Refractive index of the glass. 1 is air, higher bends light harder.",
+  "@shaderKnobHintRefraction": {
+    "description": "Shader glass dial caption: Refraction."
+  },
+  "shaderKnobLabelChromatic": "Chromatic aberration",
+  "@shaderKnobLabelChromatic": {
+    "description": "Shader glass dial name: Chromatic aberration."
+  },
+  "shaderKnobHintChromatic": "Splits colours at the rim into a faint rainbow fringe.",
+  "@shaderKnobHintChromatic": {
+    "description": "Shader glass dial caption: Chromatic aberration."
+  },
+  "shaderKnobLabelLight": "Light intensity",
+  "@shaderKnobLabelLight": {
+    "description": "Shader glass dial name: Light intensity."
+  },
+  "shaderKnobHintLight": "How bright the specular highlight on the rim is.",
+  "@shaderKnobHintLight": {
+    "description": "Shader glass dial caption: Light intensity."
+  },
+  "shaderKnobLabelAngle": "Light angle",
+  "@shaderKnobLabelAngle": {
+    "description": "Shader glass dial name: Light angle."
+  },
+  "shaderKnobHintAngle": "Where the light comes from, in degrees round the glass.",
+  "@shaderKnobHintAngle": {
+    "description": "Shader glass dial caption: Light angle."
+  },
+  "shaderKnobLabelSaturation": "Saturation",
+  "@shaderKnobLabelSaturation": {
+    "description": "Shader glass dial name: Saturation."
+  },
+  "shaderKnobHintSaturation": "Colour boost on what shows through. 1 leaves it unchanged.",
+  "@shaderKnobHintSaturation": {
+    "description": "Shader glass dial caption: Saturation."
+  },
+  "shaderKnobLabelTint": "Tint",
+  "@shaderKnobLabelTint": {
+    "description": "Shader glass dial name: Tint."
+  },
+  "shaderKnobHintTint": "How strongly the glass is washed with white, or smoke on dark pages.",
+  "@shaderKnobHintTint": {
+    "description": "Shader glass dial caption: Tint."
+  },
+  "shaderKnobLabelRim": "Rim light",
+  "@shaderKnobLabelRim": {
+    "description": "Shader glass dial name: Rim light."
+  },
+  "shaderKnobHintRim": "A thin lit edge, brightest along the top.",
+  "@shaderKnobHintRim": {
+    "description": "Shader glass dial caption: Rim light."
+  },
+  "nativeScopeHeader": "Native controls",
+  "@nativeScopeHeader": {
+    "description": "Section header in Settings > Glass, under the style rows, shown only in the Liquid Glass style: how much of the app iOS itself draws."
+  },
+  "nativeScopeEverythingTitle": "Everything",
+  "@nativeScopeEverythingTitle": {
+    "description": "Row title: iOS draws every control it can (Settings > Glass > Native controls)."
+  },
+  "nativeScopeEverythingBody": "Buttons, switches, menus, fields and more are drawn by iOS",
+  "@nativeScopeEverythingBody": {
+    "description": "Row subtitle under 'Everything' in Native controls."
+  },
+  "nativeScopeTabBarTitle": "Just the tab bar",
+  "@nativeScopeTabBarTitle": {
+    "description": "Row title: only the tab bar is drawn by iOS (Settings > Glass > Native controls)."
+  },
+  "nativeScopeTabBarBody": "iOS draws the tab bar, the app draws the rest",
+  "@nativeScopeTabBarBody": {
+    "description": "Row subtitle under 'Just the tab bar' in Native controls."
+  },
+  "controlsLabTitle": "Controls lab",
+  "@controlsLabTitle": {
+    "description": "Row at the bottom of Settings > Glass that opens a page listing every shared control in the active style (a developer and design review tool)."
   }
 }

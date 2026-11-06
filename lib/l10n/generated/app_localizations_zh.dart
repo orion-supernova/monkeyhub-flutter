@@ -15250,4 +15250,97 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get uiKitMaterialBody =>
       'Android 原生设计：带触摸水波纹的 Material 3 控件，配色跟随你的主题。';
+
+  @override
+  String get uiKitShaderTitle => '着色器玻璃';
+
+  @override
+  String get uiKitShaderBody => '由 GPU 绘制的真实镜片,带有专属的光线与折射调节。仅限手机。';
+
+  @override
+  String get uiKitShaderFooter => '着色器玻璃的每个表面都由 GPU 绘制。如果应用变卡或发热,请切换到磨砂或精简。';
+
+  @override
+  String get shaderGlassHeader => '着色器玻璃调节';
+
+  @override
+  String get shaderGlassFullLensTitle => '完整镜片折射';
+
+  @override
+  String get shaderGlassFullLensBody => '真实折射玻璃后方的一切。效果最好,但最耗电。低端手机和省电模式下自动关闭。';
+
+  @override
+  String get shaderGlassReset => '重置着色器玻璃调节';
+
+  @override
+  String get shaderKnobLabelThickness => '厚度';
+
+  @override
+  String get shaderKnobHintThickness => '镜片有多厚。越厚,后方的内容弯曲得越多。';
+
+  @override
+  String get shaderKnobLabelBlur => '模糊';
+
+  @override
+  String get shaderKnobHintBlur => '玻璃后方背景被柔化的程度。';
+
+  @override
+  String get shaderKnobLabelRefraction => '折射';
+
+  @override
+  String get shaderKnobHintRefraction => '玻璃的折射率。1 为空气,越高光线弯曲越强。';
+
+  @override
+  String get shaderKnobLabelChromatic => '色差';
+
+  @override
+  String get shaderKnobHintChromatic => '在边缘分离颜色,形成淡淡的彩虹边。';
+
+  @override
+  String get shaderKnobLabelLight => '光照强度';
+
+  @override
+  String get shaderKnobHintLight => '边缘高光有多亮。';
+
+  @override
+  String get shaderKnobLabelAngle => '光照角度';
+
+  @override
+  String get shaderKnobHintAngle => '光从哪里来,以玻璃周围的角度表示。';
+
+  @override
+  String get shaderKnobLabelSaturation => '饱和度';
+
+  @override
+  String get shaderKnobHintSaturation => '透出内容的色彩增强。1 表示不变。';
+
+  @override
+  String get shaderKnobLabelTint => '着色';
+
+  @override
+  String get shaderKnobHintTint => '玻璃被白色(深色页面上为烟灰色)覆盖的程度。';
+
+  @override
+  String get shaderKnobLabelRim => '边缘光';
+
+  @override
+  String get shaderKnobHintRim => '一圈细细的亮边,顶部最亮。';
+
+  @override
+  String get nativeScopeHeader => '原生控件';
+
+  @override
+  String get nativeScopeEverythingTitle => '全部';
+
+  @override
+  String get nativeScopeEverythingBody => '按钮、开关、菜单、输入框等由 iOS 绘制';
+
+  @override
+  String get nativeScopeTabBarTitle => '仅标签栏';
+
+  @override
+  String get nativeScopeTabBarBody => '标签栏由 iOS 绘制，其余由应用绘制';
+
+  @override
+  String get controlsLabTitle => '控件实验室';
 }

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../keyboard/app_shortcuts.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
+import '../ui/native/native_control.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart';
 import 'message_stamp.dart' show formatClockTime;
@@ -455,7 +457,77 @@ class ViewerToolbar extends StatelessWidget {
   static const double height = 44;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => KitSwitch(
+    glass: _glass,
+    liquid:
+        NativeControl.readyIn(context) &&
+            actions.isNotEmpty &&
+            actions.every((a) => sfSymbolFor(a.icon) != null)
+        ? _liquid
+        : null,
+  );
+
+  /// The same Photos layout in system glass: the first and last action each a
+  /// native disc, anything between one native capsule.
+  Widget _liquid(BuildContext context) {
+    Widget disc(ViewerToolbarAction a) => NativeControl(
+      size: const Size.square(height),
+      spec: NativeSpec.toolbar(
+        options: [
+          NativeOptionSpec(
+            value: 'a',
+            label: a.semanticLabel,
+            symbol: sfSymbolFor(a.icon),
+            destructive: a.danger,
+          ),
+        ],
+      ),
+      onEvent: (event, _) {
+        if (event == 'select') a.onTap();
+      },
+    );
+    final middle = actions.length > 2
+        ? actions.sublist(1, actions.length - 1)
+        : const <ViewerToolbarAction>[];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: SizedBox(
+        height: height,
+        child: Row(
+          children: [
+            disc(actions.first),
+            const Spacer(),
+            if (middle.length == 1) disc(middle.single),
+            if (middle.length > 1)
+              NativeControl(
+                size: Size(middle.length * 44.0, height),
+                spec: NativeSpec.buttonGroup(
+                  options: [
+                    for (var i = 0; i < middle.length; i++)
+                      NativeOptionSpec(
+                        value: '$i',
+                        label: middle[i].semanticLabel,
+                        symbol: sfSymbolFor(middle[i].icon),
+                        destructive: middle[i].danger,
+                      ),
+                  ],
+                ),
+                onEvent: (event, value) {
+                  final i = int.tryParse('$value');
+                  if (event == 'select' && i != null && i < middle.length) {
+                    middle[i].onTap();
+                  }
+                },
+              ),
+            const Spacer(),
+            if (actions.length > 1) disc(actions.last),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _glass(BuildContext context) {
     final theme = ThemeScope.of(context);
     Widget disc(ViewerToolbarAction a) => GlassIconButton(
           icon: a.icon,

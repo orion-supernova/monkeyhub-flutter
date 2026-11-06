@@ -13,6 +13,7 @@ import '../theme/theme_scope.dart';
 import '../services/haptics.dart';
 import '../ui/foundation/ui_kit.dart' show UiKit;
 import 'glass_config.dart';
+import 'shader_glass_config.dart';
 import 'room_filter.dart';
 import 'settings_keychain.dart';
 
@@ -100,6 +101,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kGlassPreset = 'mh.glass.preset';
   static const _kUiKit = 'mh.ui.kit';
   static const _kNativeScope = 'mh.ui.nativeScope';
+  static const _kShaderGlass = 'mh.glass.shader';
 
   /// Pre-[UiKit] storage of the Liquid Glass / Frosted choice. Read once to
   /// carry an explicit "Frosted" over; never written again.
@@ -133,7 +135,7 @@ class SettingsStore extends ChangeNotifier {
     _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
     _kVideoQualityTier, _kAutoLowerVideoQuality, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
-    _kGlassProfile, _kGlassSlots, _kGlassPreset, _kUiKit, _kNativeScope, _kLocale, _kMotionLevel, _kPowerSaving, _kHaptics,
+    _kGlassProfile, _kGlassSlots, _kGlassPreset, _kUiKit, _kNativeScope, _kShaderGlass, _kLocale, _kMotionLevel, _kPowerSaving, _kHaptics,
     _kScheduledIndicator, _kSebastianEnabled, _kTranslationTarget,
     _kTranslatedRoomIds, _kMarloweBrainId, _kCompanionForceCpu,
   };
@@ -208,6 +210,7 @@ class SettingsStore extends ChangeNotifier {
   Set<String>? _diagHiddenCategories;
   FilterStyle _filterStyle = FilterStyle.chips;
   UiKit? _uiKit;
+  ShaderGlassConfig _shaderGlass = const ShaderGlassConfig();
   NativeScope _nativeScope = NativeScope.tabBar;
   RoomFilter _roomFilter = RoomFilter.empty;
   GlassProfile _glass = _presetById(kDefaultGlassPresetId).profile;
@@ -529,6 +532,9 @@ class SettingsStore extends ChangeNotifier {
   /// device cannot honour (Liquid Glass off iOS 26) quietly means Automatic.
   UiKit? get uiKit => _uiKit;
 
+  /// The shader glass kit's dials ([UiKit.shader]).
+  ShaderGlassConfig get shaderGlass => _shaderGlass;
+
   /// Under Liquid Glass, how much of the interface iOS draws itself: just the
   /// tab bar, or every control that has a native form (buttons, switches,
   /// segmented controls, sliders, menus, text and search fields, date
@@ -814,6 +820,7 @@ class SettingsStore extends ChangeNotifier {
     _nativeScope = s[_kNativeScope] == 'everything'
         ? NativeScope.everything
         : NativeScope.tabBar;
+    _shaderGlass = ShaderGlassConfig.decode(s[_kShaderGlass]);
     final kit = s[_kUiKit];
     _uiKit = kit != null
         ? UiKit.values.asNameMap()[kit]
@@ -983,6 +990,17 @@ class SettingsStore extends ChangeNotifier {
     _nativeScope = scope;
     notifyListeners();
     await _storage.write(key: _kNativeScope, value: scope.name);
+  }
+
+  Future<void> setShaderGlass(ShaderGlassConfig c) async {
+    if (_shaderGlass == c) return;
+    _shaderGlass = c;
+    notifyListeners();
+    if (c.isStandard) {
+      await _storage.delete(key: _kShaderGlass);
+    } else {
+      await _storage.write(key: _kShaderGlass, value: c.encode());
+    }
   }
 
   /// Null returns to Automatic.

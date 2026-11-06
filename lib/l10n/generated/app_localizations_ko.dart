@@ -15418,4 +15418,99 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get uiKitMaterialBody =>
       'Android 고유의 디자인: 터치 물결 효과가 있는 Material 3 컨트롤, 테마 색상으로 표시됩니다.';
+
+  @override
+  String get uiKitShaderTitle => '셰이더 글래스';
+
+  @override
+  String get uiKitShaderBody => 'GPU가 그리는 진짜 렌즈로, 빛과 굴절 전용 조절이 있습니다. 휴대폰 전용.';
+
+  @override
+  String get uiKitShaderFooter =>
+      '셰이더 글래스는 모든 면을 GPU로 그립니다. 앱이 무겁거나 뜨거우면 프로스트나 라이트로 바꾸세요.';
+
+  @override
+  String get shaderGlassHeader => '셰이더 글래스 조절';
+
+  @override
+  String get shaderGlassFullLensTitle => '전체 렌즈 굴절';
+
+  @override
+  String get shaderGlassFullLensBody =>
+      '유리 뒤의 모든 것을 실제로 휘게 합니다. 가장 예쁘지만 배터리를 가장 많이 씁니다. 저사양 폰과 절전 모드에서는 꺼집니다.';
+
+  @override
+  String get shaderGlassReset => '셰이더 글래스 조절 초기화';
+
+  @override
+  String get shaderKnobLabelThickness => '두께';
+
+  @override
+  String get shaderKnobHintThickness => '렌즈의 두께입니다. 두꺼울수록 뒤의 것을 더 많이 휘게 합니다.';
+
+  @override
+  String get shaderKnobLabelBlur => '흐림';
+
+  @override
+  String get shaderKnobHintBlur => '유리 뒤 배경을 얼마나 부드럽게 만들지 정합니다.';
+
+  @override
+  String get shaderKnobLabelRefraction => '굴절';
+
+  @override
+  String get shaderKnobHintRefraction => '유리의 굴절률입니다. 1은 공기이며 높을수록 빛이 더 휩니다.';
+
+  @override
+  String get shaderKnobLabelChromatic => '색수차';
+
+  @override
+  String get shaderKnobHintChromatic => '가장자리에서 색을 분리해 은은한 무지개 테두리를 만듭니다.';
+
+  @override
+  String get shaderKnobLabelLight => '빛의 세기';
+
+  @override
+  String get shaderKnobHintLight => '가장자리 하이라이트의 밝기입니다.';
+
+  @override
+  String get shaderKnobLabelAngle => '빛의 각도';
+
+  @override
+  String get shaderKnobHintAngle => '빛이 오는 방향을 유리 둘레의 각도로 정합니다.';
+
+  @override
+  String get shaderKnobLabelSaturation => '채도';
+
+  @override
+  String get shaderKnobHintSaturation => '비치는 색을 강조합니다. 1이면 그대로입니다.';
+
+  @override
+  String get shaderKnobLabelTint => '틴트';
+
+  @override
+  String get shaderKnobHintTint => '유리에 흰색(어두운 페이지에서는 연기색)을 얼마나 입힐지 정합니다.';
+
+  @override
+  String get shaderKnobLabelRim => '테두리 빛';
+
+  @override
+  String get shaderKnobHintRim => '가늘게 빛나는 테두리로, 위쪽이 가장 밝습니다.';
+
+  @override
+  String get nativeScopeHeader => '네이티브 컨트롤';
+
+  @override
+  String get nativeScopeEverythingTitle => '모두';
+
+  @override
+  String get nativeScopeEverythingBody => '버튼, 스위치, 메뉴, 입력란 등을 iOS가 그립니다';
+
+  @override
+  String get nativeScopeTabBarTitle => '탭 바만';
+
+  @override
+  String get nativeScopeTabBarBody => '탭 바는 iOS가, 나머지는 앱이 그립니다';
+
+  @override
+  String get controlsLabTitle => '컨트롤 랩';
 }

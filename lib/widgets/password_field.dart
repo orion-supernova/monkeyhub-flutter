@@ -5,6 +5,8 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
+import '../ui/native/native_control.dart';
+import '../ui/native/native_text_input.dart';
 import 'hover_hint.dart';
 import 'labeled_field.dart';
 
@@ -62,7 +64,26 @@ class _PasswordFieldState extends State<PasswordField> {
         ? l10n.countBadgeShowPasswordTooltip
         : l10n.countBadgeHidePasswordTooltip;
     void toggle() => setState(() => _obscure = !_obscure);
-    final field = ThemedInput(
+    // The liquid kit's native secure field draws its own dots; it has no eye
+    // (the system's field is the whole control), so the toggle is dropped.
+    final native = NativeControl.readyIn(context);
+    final field = native
+        ? NativeTextInput(
+            controller: widget.controller,
+            focusNode: widget.focusNode,
+            placeholder: widget.hint,
+            secure: true,
+            contentType: NativeTextInput.contentTypeFor(widget.autofillHints),
+            submitLabel: NativeTextInput.submitLabelFor(widget.textInputAction),
+            capitalization: 'none',
+            autocorrect: false,
+            autofocus: widget.autofocus,
+            height: 50,
+            cornerRadius: 25,
+            onChanged: widget.onChanged,
+            onSubmitted: widget.onSubmitted,
+          )
+        : ThemedInput(
       controller: widget.controller,
       hint: widget.hint,
       obscure: _obscure,

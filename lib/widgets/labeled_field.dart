@@ -9,6 +9,8 @@ import '../theme/theme_scope.dart';
 import '../l10n/text_case.dart';
 import '../ui/foundation/ui_kit.dart';
 import '../ui/kits/material/material_kit_theme.dart';
+import '../ui/native/native_control.dart';
+import '../ui/native/native_text_input.dart';
 import 'notice.dart';
 
 /// The small uppercase caption that sits above a form control.
@@ -393,8 +395,44 @@ class _TextBox extends StatelessWidget {
   final bool bottomAlignMultiline;
 
   @override
-  Widget build(BuildContext context) =>
-      KitSwitch(glass: _glass, material: _material);
+  Widget build(BuildContext context) => KitSwitch(
+    glass: _glass,
+    liquid: NativeControl.readyIn(context) && _hasNativeForm ? _liquid : null,
+    material: _material,
+  );
+
+  /// The native field is a single line with no custom widgets: multi-line
+  /// growth, a character limit, a trailing widget or a custom fill keep the
+  /// Flutter skin.
+  bool get _hasNativeForm =>
+      (maxLines ?? 2) == 1 &&
+      (minLines ?? 1) <= 1 &&
+      maxLength == null &&
+      trailing == null &&
+      fill == null &&
+      (leadingIcon == null || sfSymbolFor(leadingIcon) != null);
+
+  /// The liquid kit's SwiftUI field: glass rounded rect, 50pt tall.
+  Widget _liquid(BuildContext context) {
+    return NativeTextInput(
+      controller: controller,
+      focusNode: focusNode,
+      placeholder: hint == null ? '' : _hintText(context, hint!),
+      secure: obscure,
+      contentType: NativeTextInput.contentTypeFor(autofillHints),
+      keyboard: NativeTextInput.keyboardFor(keyboardType),
+      submitLabel: NativeTextInput.submitLabelFor(textInputAction),
+      leadingSymbol: sfSymbolFor(leadingIcon),
+      capitalization: NativeTextInput.capitalizationFor(textCapitalization),
+      autocorrect: autocorrect && !obscure,
+      enabled: enabled,
+      autofocus: autofocus,
+      height: 50,
+      cornerRadius: 25,
+      onChanged: onChanged,
+      onSubmitted: onSubmitted,
+    );
+  }
 
   /// The [UiKit.material] skin: the same [TextField] with a Material 3 filled
   /// decoration (tonal fill, accent focus ring, leading and trailing slots).

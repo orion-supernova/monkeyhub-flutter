@@ -16090,4 +16090,110 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get uiKitMaterialBody =>
       'Android\'s own design: Material 3 controls with touch ripples, coloured by your theme.';
+
+  @override
+  String get uiKitShaderTitle => 'Shader glass';
+
+  @override
+  String get uiKitShaderBody =>
+      'A real lens drawn by the GPU, with its own light and refraction dials. Phones only.';
+
+  @override
+  String get uiKitShaderFooter =>
+      'Shader glass is drawn by the GPU on every surface. If the app feels heavy or warm, switch to Frosted or Lite.';
+
+  @override
+  String get shaderGlassHeader => 'Shader glass dials';
+
+  @override
+  String get shaderGlassFullLensTitle => 'Full lens refraction';
+
+  @override
+  String get shaderGlassFullLensBody =>
+      'Bends everything behind the glass for real. Prettiest, but costs the most battery. Off on low-end phones and in Power Saving.';
+
+  @override
+  String get shaderGlassReset => 'Reset shader glass dials';
+
+  @override
+  String get shaderKnobLabelThickness => 'Thickness';
+
+  @override
+  String get shaderKnobHintThickness =>
+      'How thick the lens is. Thicker glass bends what is behind it more.';
+
+  @override
+  String get shaderKnobLabelBlur => 'Blur';
+
+  @override
+  String get shaderKnobHintBlur =>
+      'How much the backdrop is softened behind the glass.';
+
+  @override
+  String get shaderKnobLabelRefraction => 'Refraction';
+
+  @override
+  String get shaderKnobHintRefraction =>
+      'Refractive index of the glass. 1 is air, higher bends light harder.';
+
+  @override
+  String get shaderKnobLabelChromatic => 'Chromatic aberration';
+
+  @override
+  String get shaderKnobHintChromatic =>
+      'Splits colours at the rim into a faint rainbow fringe.';
+
+  @override
+  String get shaderKnobLabelLight => 'Light intensity';
+
+  @override
+  String get shaderKnobHintLight =>
+      'How bright the specular highlight on the rim is.';
+
+  @override
+  String get shaderKnobLabelAngle => 'Light angle';
+
+  @override
+  String get shaderKnobHintAngle =>
+      'Where the light comes from, in degrees round the glass.';
+
+  @override
+  String get shaderKnobLabelSaturation => 'Saturation';
+
+  @override
+  String get shaderKnobHintSaturation =>
+      'Colour boost on what shows through. 1 leaves it unchanged.';
+
+  @override
+  String get shaderKnobLabelTint => 'Tint';
+
+  @override
+  String get shaderKnobHintTint =>
+      'How strongly the glass is washed with white, or smoke on dark pages.';
+
+  @override
+  String get shaderKnobLabelRim => 'Rim light';
+
+  @override
+  String get shaderKnobHintRim => 'A thin lit edge, brightest along the top.';
+
+  @override
+  String get nativeScopeHeader => 'Native controls';
+
+  @override
+  String get nativeScopeEverythingTitle => 'Everything';
+
+  @override
+  String get nativeScopeEverythingBody =>
+      'Buttons, switches, menus, fields and more are drawn by iOS';
+
+  @override
+  String get nativeScopeTabBarTitle => 'Just the tab bar';
+
+  @override
+  String get nativeScopeTabBarBody =>
+      'iOS draws the tab bar, the app draws the rest';
+
+  @override
+  String get controlsLabTitle => 'Controls lab';
 }

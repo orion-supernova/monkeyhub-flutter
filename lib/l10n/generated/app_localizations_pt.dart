@@ -16239,6 +16239,112 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get uiKitMaterialBody =>
       'O design próprio do Android: controlos Material 3 com ondas ao toque, nas cores do seu tema.';
+
+  @override
+  String get uiKitShaderTitle => 'Vidro com shader';
+
+  @override
+  String get uiKitShaderBody =>
+      'Uma lente real desenhada pela GPU, com ajustes próprios de luz e refração. Só em telemóveis.';
+
+  @override
+  String get uiKitShaderFooter =>
+      'O vidro com shader é desenhado pela GPU em cada superfície. Se a app ficar pesada ou aquecer, mude para Fosco ou Lite.';
+
+  @override
+  String get shaderGlassHeader => 'Ajustes do vidro com shader';
+
+  @override
+  String get shaderGlassFullLensTitle => 'Refração de lente completa';
+
+  @override
+  String get shaderGlassFullLensBody =>
+      'Entorta mesmo tudo o que está atrás do vidro. É o mais bonito, mas gasta mais bateria. Desligado em telemóveis básicos e na Poupança de energia.';
+
+  @override
+  String get shaderGlassReset => 'Repor ajustes do vidro com shader';
+
+  @override
+  String get shaderKnobLabelThickness => 'Espessura';
+
+  @override
+  String get shaderKnobHintThickness =>
+      'Quão grossa é a lente. Quanto mais grossa, mais entorta o que está atrás.';
+
+  @override
+  String get shaderKnobLabelBlur => 'Desfocagem';
+
+  @override
+  String get shaderKnobHintBlur =>
+      'O quanto o fundo atrás do vidro é suavizado.';
+
+  @override
+  String get shaderKnobLabelRefraction => 'Refração';
+
+  @override
+  String get shaderKnobHintRefraction =>
+      'Índice de refração do vidro. 1 é ar; quanto maior, mais a luz entorta.';
+
+  @override
+  String get shaderKnobLabelChromatic => 'Aberração cromática';
+
+  @override
+  String get shaderKnobHintChromatic =>
+      'Separa as cores na borda numa leve franja de arco-íris.';
+
+  @override
+  String get shaderKnobLabelLight => 'Intensidade da luz';
+
+  @override
+  String get shaderKnobHintLight => 'O brilho do realce especular na borda.';
+
+  @override
+  String get shaderKnobLabelAngle => 'Ângulo da luz';
+
+  @override
+  String get shaderKnobHintAngle =>
+      'De onde vem a luz, em graus à volta do vidro.';
+
+  @override
+  String get shaderKnobLabelSaturation => 'Saturação';
+
+  @override
+  String get shaderKnobHintSaturation =>
+      'Realce de cor do que aparece através. 1 não altera nada.';
+
+  @override
+  String get shaderKnobLabelTint => 'Matiz';
+
+  @override
+  String get shaderKnobHintTint =>
+      'O quanto o vidro é lavado de branco, ou de fumo em páginas escuras.';
+
+  @override
+  String get shaderKnobLabelRim => 'Luz da borda';
+
+  @override
+  String get shaderKnobHintRim =>
+      'Uma borda fina iluminada, mais brilhante no topo.';
+
+  @override
+  String get nativeScopeHeader => 'Controlos nativos';
+
+  @override
+  String get nativeScopeEverythingTitle => 'Tudo';
+
+  @override
+  String get nativeScopeEverythingBody =>
+      'Botões, interruptores, menus, campos e mais são desenhados pelo iOS';
+
+  @override
+  String get nativeScopeTabBarTitle => 'Só a barra de separadores';
+
+  @override
+  String get nativeScopeTabBarBody =>
+      'O iOS desenha a barra de separadores, a app desenha o resto';
+
+  @override
+  String get controlsLabTitle => 'Laboratório de controlos';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -32455,4 +32561,110 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get uiKitMaterialBody =>
       'O design próprio do Android: controles Material 3 com ondas ao toque, nas cores do seu tema.';
+
+  @override
+  String get uiKitShaderTitle => 'Vidro com shader';
+
+  @override
+  String get uiKitShaderBody =>
+      'Uma lente de verdade desenhada pela GPU, com ajustes próprios de luz e refração. Só em celulares.';
+
+  @override
+  String get uiKitShaderFooter =>
+      'O vidro com shader é desenhado pela GPU em cada superfície. Se o app ficar pesado ou esquentar, troque para Fosco ou Lite.';
+
+  @override
+  String get shaderGlassHeader => 'Ajustes do vidro com shader';
+
+  @override
+  String get shaderGlassFullLensTitle => 'Refração de lente completa';
+
+  @override
+  String get shaderGlassFullLensBody =>
+      'Entorta de verdade tudo que está atrás do vidro. É o mais bonito, mas gasta mais bateria. Desligado em celulares básicos e na Economia de energia.';
+
+  @override
+  String get shaderGlassReset => 'Redefinir ajustes do vidro com shader';
+
+  @override
+  String get shaderKnobLabelThickness => 'Espessura';
+
+  @override
+  String get shaderKnobHintThickness =>
+      'Quão grossa é a lente. Quanto mais grossa, mais entorta o que está atrás.';
+
+  @override
+  String get shaderKnobLabelBlur => 'Desfoque';
+
+  @override
+  String get shaderKnobHintBlur =>
+      'O quanto o fundo atrás do vidro é suavizado.';
+
+  @override
+  String get shaderKnobLabelRefraction => 'Refração';
+
+  @override
+  String get shaderKnobHintRefraction =>
+      'Índice de refração do vidro. 1 é ar; quanto maior, mais a luz entorta.';
+
+  @override
+  String get shaderKnobLabelChromatic => 'Aberração cromática';
+
+  @override
+  String get shaderKnobHintChromatic =>
+      'Separa as cores na borda em uma leve franja de arco-íris.';
+
+  @override
+  String get shaderKnobLabelLight => 'Intensidade da luz';
+
+  @override
+  String get shaderKnobHintLight => 'O brilho do realce especular na borda.';
+
+  @override
+  String get shaderKnobLabelAngle => 'Ângulo da luz';
+
+  @override
+  String get shaderKnobHintAngle =>
+      'De onde vem a luz, em graus ao redor do vidro.';
+
+  @override
+  String get shaderKnobLabelSaturation => 'Saturação';
+
+  @override
+  String get shaderKnobHintSaturation =>
+      'Realce de cor do que aparece através. 1 não altera nada.';
+
+  @override
+  String get shaderKnobLabelTint => 'Matiz';
+
+  @override
+  String get shaderKnobHintTint =>
+      'O quanto o vidro é lavado de branco, ou de fumaça em páginas escuras.';
+
+  @override
+  String get shaderKnobLabelRim => 'Luz da borda';
+
+  @override
+  String get shaderKnobHintRim =>
+      'Uma borda fina iluminada, mais brilhante no topo.';
+
+  @override
+  String get nativeScopeHeader => 'Controles nativos';
+
+  @override
+  String get nativeScopeEverythingTitle => 'Tudo';
+
+  @override
+  String get nativeScopeEverythingBody =>
+      'Botões, interruptores, menus, campos e mais são desenhados pelo iOS';
+
+  @override
+  String get nativeScopeTabBarTitle => 'Só a barra de abas';
+
+  @override
+  String get nativeScopeTabBarBody =>
+      'O iOS desenha a barra de abas, o app desenha o resto';
+
+  @override
+  String get controlsLabTitle => 'Laboratório de controles';
 }

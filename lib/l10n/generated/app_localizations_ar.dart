@@ -16328,4 +16328,107 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get uiKitMaterialBody =>
       'تصميم أندرويد الأصلي: عناصر Material 3 مع تموّجات اللمس، بألوان السمة التي اخترتها.';
+
+  @override
+  String get uiKitShaderTitle => 'زجاج الشيدر';
+
+  @override
+  String get uiKitShaderBody =>
+      'عدسة حقيقية يرسمها المعالج الرسومي، مع إعدادات خاصة للضوء والانكسار. للهواتف فقط.';
+
+  @override
+  String get uiKitShaderFooter =>
+      'يرسم المعالج الرسومي زجاج الشيدر على كل سطح. إذا بدا التطبيق ثقيلاً أو ساخناً، انتقل إلى المصقول أو الخفيف.';
+
+  @override
+  String get shaderGlassHeader => 'إعدادات زجاج الشيدر';
+
+  @override
+  String get shaderGlassFullLensTitle => 'انكسار العدسة الكامل';
+
+  @override
+  String get shaderGlassFullLensBody =>
+      'يثني كل ما خلف الزجاج فعلياً. الأجمل لكنه الأكثر استهلاكاً للبطارية. متوقف على الهواتف الضعيفة وفي توفير الطاقة.';
+
+  @override
+  String get shaderGlassReset => 'إعادة ضبط إعدادات زجاج الشيدر';
+
+  @override
+  String get shaderKnobLabelThickness => 'السماكة';
+
+  @override
+  String get shaderKnobHintThickness =>
+      'سماكة العدسة. كلما زادت انحنى ما خلفها أكثر.';
+
+  @override
+  String get shaderKnobLabelBlur => 'التمويه';
+
+  @override
+  String get shaderKnobHintBlur => 'مقدار تنعيم الخلفية خلف الزجاج.';
+
+  @override
+  String get shaderKnobLabelRefraction => 'الانكسار';
+
+  @override
+  String get shaderKnobHintRefraction =>
+      'معامل انكسار الزجاج. 1 يعني الهواء، وكلما ارتفع انحنى الضوء أكثر.';
+
+  @override
+  String get shaderKnobLabelChromatic => 'الزيغ اللوني';
+
+  @override
+  String get shaderKnobHintChromatic =>
+      'يفصل الألوان عند الحافة إلى هالة قوس قزح خافتة.';
+
+  @override
+  String get shaderKnobLabelLight => 'شدة الضوء';
+
+  @override
+  String get shaderKnobHintLight => 'مدى سطوع اللمعان على الحافة.';
+
+  @override
+  String get shaderKnobLabelAngle => 'زاوية الضوء';
+
+  @override
+  String get shaderKnobHintAngle => 'من أين يأتي الضوء، بالدرجات حول الزجاج.';
+
+  @override
+  String get shaderKnobLabelSaturation => 'التشبع';
+
+  @override
+  String get shaderKnobHintSaturation =>
+      'تعزيز اللون لما يظهر عبر الزجاج. 1 يتركه كما هو.';
+
+  @override
+  String get shaderKnobLabelTint => 'الصبغة';
+
+  @override
+  String get shaderKnobHintTint =>
+      'مقدار صبغ الزجاج بالأبيض، أو بالدخان في الصفحات الداكنة.';
+
+  @override
+  String get shaderKnobLabelRim => 'ضوء الحافة';
+
+  @override
+  String get shaderKnobHintRim => 'حافة رفيعة مضيئة، أسطع ما تكون في الأعلى.';
+
+  @override
+  String get nativeScopeHeader => 'عناصر التحكم الأصلية';
+
+  @override
+  String get nativeScopeEverythingTitle => 'كل شيء';
+
+  @override
+  String get nativeScopeEverythingBody =>
+      'الأزرار والمفاتيح والقوائم والحقول وغيرها يرسمها iOS';
+
+  @override
+  String get nativeScopeTabBarTitle => 'شريط التبويب فقط';
+
+  @override
+  String get nativeScopeTabBarBody =>
+      'يرسم iOS شريط التبويب ويرسم التطبيق الباقي';
+
+  @override
+  String get controlsLabTitle => 'مختبر عناصر التحكم';
 }

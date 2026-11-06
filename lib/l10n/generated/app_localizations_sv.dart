@@ -16125,4 +16125,110 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get uiKitMaterialBody =>
       'Androids egen design: Material 3-kontroller med tryckvågor, i ditt temas färger.';
+
+  @override
+  String get uiKitShaderTitle => 'Shaderglas';
+
+  @override
+  String get uiKitShaderBody =>
+      'En riktig lins som ritas av GPU:n, med egna reglage för ljus och refraktion. Bara på mobiler.';
+
+  @override
+  String get uiKitShaderFooter =>
+      'Shaderglaset ritas av GPU:n på varje yta. Känns appen tung eller varm, byt till Frostat eller Lite.';
+
+  @override
+  String get shaderGlassHeader => 'Reglage för shaderglas';
+
+  @override
+  String get shaderGlassFullLensTitle => 'Full linsrefraktion';
+
+  @override
+  String get shaderGlassFullLensBody =>
+      'Böjer verkligen allt bakom glaset. Snyggast, men drar mest batteri. Av på enklare mobiler och i Strömsparläge.';
+
+  @override
+  String get shaderGlassReset => 'Återställ reglage för shaderglas';
+
+  @override
+  String get shaderKnobLabelThickness => 'Tjocklek';
+
+  @override
+  String get shaderKnobHintThickness =>
+      'Hur tjock linsen är. Tjockare glas böjer det bakom mer.';
+
+  @override
+  String get shaderKnobLabelBlur => 'Oskärpa';
+
+  @override
+  String get shaderKnobHintBlur =>
+      'Hur mycket bakgrunden bakom glaset mjukas upp.';
+
+  @override
+  String get shaderKnobLabelRefraction => 'Refraktion';
+
+  @override
+  String get shaderKnobHintRefraction =>
+      'Glasets brytningsindex. 1 är luft, högre böjer ljuset mer.';
+
+  @override
+  String get shaderKnobLabelChromatic => 'Kromatisk aberration';
+
+  @override
+  String get shaderKnobHintChromatic =>
+      'Delar upp färgerna vid kanten i en svag regnbågskant.';
+
+  @override
+  String get shaderKnobLabelLight => 'Ljusstyrka';
+
+  @override
+  String get shaderKnobHintLight =>
+      'Hur starkt det blanka ljuset på kanten är.';
+
+  @override
+  String get shaderKnobLabelAngle => 'Ljusvinkel';
+
+  @override
+  String get shaderKnobHintAngle =>
+      'Varifrån ljuset kommer, i grader runt glaset.';
+
+  @override
+  String get shaderKnobLabelSaturation => 'Mättnad';
+
+  @override
+  String get shaderKnobHintSaturation =>
+      'Färgförstärkning av det som syns igenom. 1 ändrar inget.';
+
+  @override
+  String get shaderKnobLabelTint => 'Nyans';
+
+  @override
+  String get shaderKnobHintTint =>
+      'Hur kraftigt glaset tvättas med vitt, eller rök på mörka sidor.';
+
+  @override
+  String get shaderKnobLabelRim => 'Kantljus';
+
+  @override
+  String get shaderKnobHintRim => 'En tunn upplyst kant, ljusast upptill.';
+
+  @override
+  String get nativeScopeHeader => 'Inbyggda kontroller';
+
+  @override
+  String get nativeScopeEverythingTitle => 'Allt';
+
+  @override
+  String get nativeScopeEverythingBody =>
+      'Knappar, reglage, menyer, fält och mer ritas av iOS';
+
+  @override
+  String get nativeScopeTabBarTitle => 'Bara flikfältet';
+
+  @override
+  String get nativeScopeTabBarBody =>
+      'iOS ritar flikfältet, appen ritar resten';
+
+  @override
+  String get controlsLabTitle => 'Kontrollabb';
 }

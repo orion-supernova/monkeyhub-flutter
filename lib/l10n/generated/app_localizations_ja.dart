@@ -15386,4 +15386,99 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get uiKitMaterialBody =>
       'Android 本来のデザイン。タッチで波紋が広がる Material 3 のコントロールが、テーマの色で表示されます。';
+
+  @override
+  String get uiKitShaderTitle => 'シェーダーガラス';
+
+  @override
+  String get uiKitShaderBody => 'GPUが描く本物のレンズ。光と屈折の専用調整つき。スマートフォンのみ。';
+
+  @override
+  String get uiKitShaderFooter =>
+      'シェーダーガラスはすべての面をGPUで描きます。重い・熱いと感じたら、フロストまたはライトに切り替えてください。';
+
+  @override
+  String get shaderGlassHeader => 'シェーダーガラスの調整';
+
+  @override
+  String get shaderGlassFullLensTitle => 'フルレンズ屈折';
+
+  @override
+  String get shaderGlassFullLensBody =>
+      'ガラスの奥にあるものを実際に屈折させます。最も美しい反面、電池をいちばん使います。低性能の端末と省電力モードではオフ。';
+
+  @override
+  String get shaderGlassReset => 'シェーダーガラスの調整をリセット';
+
+  @override
+  String get shaderKnobLabelThickness => '厚み';
+
+  @override
+  String get shaderKnobHintThickness => 'レンズの厚み。厚いほど背後のものを大きく曲げます。';
+
+  @override
+  String get shaderKnobLabelBlur => 'ぼかし';
+
+  @override
+  String get shaderKnobHintBlur => 'ガラスの奥の背景をどれだけやわらげるか。';
+
+  @override
+  String get shaderKnobLabelRefraction => '屈折';
+
+  @override
+  String get shaderKnobHintRefraction => 'ガラスの屈折率。1は空気で、大きいほど光を強く曲げます。';
+
+  @override
+  String get shaderKnobLabelChromatic => '色収差';
+
+  @override
+  String get shaderKnobHintChromatic => '縁で色を分け、ほのかな虹色の縁取りを作ります。';
+
+  @override
+  String get shaderKnobLabelLight => '光の強さ';
+
+  @override
+  String get shaderKnobHintLight => '縁のハイライトの明るさ。';
+
+  @override
+  String get shaderKnobLabelAngle => '光の角度';
+
+  @override
+  String get shaderKnobHintAngle => '光がどこから来るか。ガラスの周囲を度数で指定します。';
+
+  @override
+  String get shaderKnobLabelSaturation => '彩度';
+
+  @override
+  String get shaderKnobHintSaturation => '透けて見える色の強調。1なら変化なし。';
+
+  @override
+  String get shaderKnobLabelTint => '色合い';
+
+  @override
+  String get shaderKnobHintTint => 'ガラスを白（暗いページでは煙色）でどれだけ曇らせるか。';
+
+  @override
+  String get shaderKnobLabelRim => '縁の光';
+
+  @override
+  String get shaderKnobHintRim => '細く光る縁。上側がいちばん明るくなります。';
+
+  @override
+  String get nativeScopeHeader => 'ネイティブコントロール';
+
+  @override
+  String get nativeScopeEverythingTitle => 'すべて';
+
+  @override
+  String get nativeScopeEverythingBody => 'ボタン、スイッチ、メニュー、入力欄などをiOSが描画します';
+
+  @override
+  String get nativeScopeTabBarTitle => 'タブバーのみ';
+
+  @override
+  String get nativeScopeTabBarBody => 'タブバーはiOS、そのほかはアプリが描画します';
+
+  @override
+  String get controlsLabTitle => 'コントロールラボ';
 }
