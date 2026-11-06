@@ -160,6 +160,9 @@ class MessageAlerts {
     if (LinuxNotifier.supported && focused && active != null) {
       unawaited(LinuxNotifier.instance.dismissRoom(active));
     }
+    // The room on screen is being read, so its burst is over: the next line
+    // after you look away should be heard.
+    if (focused && active != null) _burst.forget(active);
     final due = <ChatRoom>[];
     for (final r in repo.rooms) {
       final t = _msgTime(r);
@@ -219,12 +222,14 @@ class MessageAlerts {
           title: _bannerTitle(repo, r),
           body: _bannerBody(repo, r),
         ));
-        // The banner always updates; only the first line of a burst is heard.
-        // No `mention:` here — `hasMention` is the room's sticky unread flag,
-        // so passing it would un-quiet every later line until the room is read.
-        if (!_burst.shouldAlert(r.id, DateTime.now())) {
-          continue;
-        }
+      }
+      // The banner always updates; only the first line of a burst is heard.
+      // On every surface, not just Linux: a Mac or Windows window in front of
+      // you used to ping once per line of an active group in another room.
+      // No `mention:` here — `hasMention` is the room's sticky unread flag,
+      // so passing it would un-quiet every later line until the room is read.
+      if (!_burst.shouldAlert(r.id, DateTime.now())) {
+        continue;
       }
 
       // One ping per notify tick even if several rooms advanced at once. This

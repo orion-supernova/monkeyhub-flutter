@@ -14,6 +14,7 @@ import { liveSessionDeviceIds } from "./sessionCore";
 import { resolveMute } from "./mute";
 import { receiptFields } from "./receiptToken";
 import { engagedDeviceId } from "./engagement";
+import { SERVER_BURST_PLATFORMS } from "./alertBurst";
 
 // Deliberately NOT imported from ./webPush: that module runs in the Node
 // runtime (Convex's V8 isolate has no ECDH), and importing it here would drag
@@ -500,6 +501,14 @@ export const sendAlert = internalAction({
     sentAt: v.optional(v.number()),
     /** userId → { title?, body?, data? } overrides. Used for @mentions. */
     perUser: v.optional(v.any()),
+    /**
+     * The message is mid-burst in its room; this is the previous message's
+     * time. Devices that cannot run the burst rule themselves
+     * (`SERVER_BURST_PLATFORMS`) get it quietly, unless the recipient was
+     * mentioned or has read since then — a reply to someone who caught up is
+     * a new start for them. See alertBurst.ts.
+     */
+    burstSince: v.optional(v.number()),
   },
   returns: v.null(),
   handler: async (ctx, a) => {
@@ -568,13 +577,19 @@ export const sendAlert = internalAction({
         // The device they are chatting on gets it as composed; the rest get
         // it quietly. See `AlertSpec.quiet`.
         const engaged = t.engagedDeviceId;
+        const burstQuiet =
+          a.kind === "message" &&
+          a.burstSince !== undefined &&
+          spec.data.mention !== "true" &&
+          t.lastReadAt < a.burstSince;
         await Promise.allSettled(
           t.devices.map((d) =>
             alertToDevice(
               ctx,
               t.userId,
               d,
-              engaged !== null && d.deviceId !== engaged
+              (engaged !== null && d.deviceId !== engaged) ||
+                (burstQuiet && SERVER_BURST_PLATFORMS.has(d.platform))
                 ? { ...spec, quiet: true }
                 : spec,
             ),

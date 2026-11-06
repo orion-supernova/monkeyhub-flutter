@@ -10,7 +10,9 @@
 /// alerts — keep them in step:
 ///   - here, for the desktop builds' ping and banner;
 ///   - ios/NotificationService/NotificationService.swift (`AlertBurst`);
-///   - android/.../ChatNotifications.kt (`AlertBurst`).
+///   - android/.../ChatNotifications.kt (`AlertBurst`);
+///   - backend/convex/alertBurst.ts, for the Mac's and the browser's push
+///     banners, which have no extension or state of their own to run it in.
 /// It runs on the device, not the server, because a buzz is per device: the
 /// phone in your pocket should not stay quiet because the laptop in front of
 /// you chimed. It also costs the backend nothing per message per recipient.
@@ -45,6 +47,11 @@ class AlertBurst {
     _rooms[roomId] = (seen: now, alerted: now);
     return true;
   }
+
+  /// Ends [roomId]'s burst, so its next message alerts: the room was read,
+  /// and a burst is a run of lines nobody has looked at yet. The iOS copy
+  /// does the same (`AlertBurst.forget`).
+  void forget(String roomId) => _rooms.remove(roomId);
 
   void clear() => _rooms.clear();
 }

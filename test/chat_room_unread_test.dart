@@ -154,6 +154,26 @@ void main() {
       expect(pings, 1);
     }, variant: _mac);
 
+    // Reported on a MacBook: an active group in another room pinged once per
+    // line while the window was in front. Only Linux had the burst rule.
+    testWidgets('another room in a burst pings once, until you read it',
+        (tester) async {
+      final repo = _FakeRepo([at(2000)], userId: 'me', activeRoomId: null);
+      MessageAlerts.instance.bind(repo);
+
+      for (var i = 1; i <= 10; i++) {
+        repo.fire([at(2000 + i * 100, sender: 'peer', unread: i)]);
+      }
+      expect(pings, 1, reason: 'ten lines, one burst');
+
+      // Opening the room reads it and ends the burst.
+      repo.activeRoomId = 'r1';
+      repo.fire([at(4000, sender: 'peer')]);
+      repo.activeRoomId = null;
+      repo.fire([at(5000, sender: 'peer', unread: 1)]);
+      expect(pings, 2, reason: 'the first line after reading is heard');
+    }, variant: _mac);
+
     group('chatting on another device', () {
       tearDown(() => MessageAlerts.instance.engagedElsewhere = null);
 

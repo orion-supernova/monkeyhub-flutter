@@ -327,6 +327,11 @@ export default defineSchema({
     avatarStorageId: v.optional(v.id("_storage")),
     lastMessage: v.optional(v.string()),
     lastMessageTime: v.optional(v.number()),
+    // When this room's current burst of messages last made a sound — the
+    // server's half of the burst rule, for the Mac and web banners that
+    // cannot keep one on the device. See alertBurst.ts. Absent until the
+    // room's first push after the field shipped.
+    alertBurstAt: v.optional(v.number()),
     // Who sent the message `lastMessage` previews. Written wherever the
     // preview is, in the same patch, so it costs no extra invalidation. The
     // client reads it (`ChatRoom.lastMessageSenderId`) to tell its OWN newest

@@ -41,6 +41,7 @@ import { noteEngaged } from "./engagement";
 import { copiesOn } from "./profileCopyGate";
 import { consume } from "./rateLimit";
 import { recordMentions } from "./mentions";
+import { alertBurstStep } from "./alertBurst";
 
 // ── Delivery-receipt tuning ─────────────────────────────────────────────────
 
@@ -1756,10 +1757,21 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     viewOnce: armed,
     formatting: fmt,
   });
+  // The room's burst, for the devices that cannot keep one themselves (see
+  // alertBurst.ts). Read off the row before this patch moves it, and stored in
+  // the same patch, so it costs neither a read nor a write. A [quiet] send
+  // pushes nothing, so it neither starts a burst nor stretches one.
+  const prevMessageTime: number | undefined = room.lastMessageTime;
+  const burst = quiet === true
+    ? null
+    : alertBurstStep(prevMessageTime, room.alertBurstAt, sentAt);
   await ctx.db.patch(roomId, {
     lastMessage: preview,
     lastMessageTime: sentAt,
     lastMessageSenderId: userId,
+    ...(burst && burst.burstAt !== room.alertBurstAt
+      ? { alertBurstAt: burst.burstAt }
+      : {}),
   });
 
   // The `@` stack for everyone named (see mentions.ts). Explicit mentions are
@@ -1796,6 +1808,11 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
     // that was rejected above and isn't on the stored row.
     mentionedUserIds: resolvedMentions?.map((m) => m.userId),
     mentionsEveryone: everyone ? true : undefined,
+    // Mid-burst: quiet on a Mac or a browser for anyone who has not read
+    // since the previous message. See alertBurst.ts.
+    ...(burst && !burst.alerts && prevMessageTime !== undefined
+      ? { burstSince: prevMessageTime }
+      : {}),
   });
 
   return messageId;

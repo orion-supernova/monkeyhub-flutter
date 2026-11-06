@@ -185,6 +185,11 @@ export const sendMessagePush = internalAction({
     // members and really were written into the text.
     mentionedUserIds: v.optional(v.array(v.id("users"))),
     mentionsEveryone: v.optional(v.boolean()),
+    /**
+     * Set when this message is mid-burst in its room: the previous message's
+     * time. Passed through to `push.sendAlert`. See alertBurst.ts.
+     */
+    burstSince: v.optional(v.number()),
   },
   handler: async (
     ctx,
@@ -197,6 +202,7 @@ export const sendMessagePush = internalAction({
       type,
       mentionedUserIds,
       mentionsEveryone,
+      burstSince,
     },
   ) => {
     // Cheapest possible guard against the "typed it, sent it, deleted it"
@@ -476,6 +482,7 @@ export const sendMessagePush = internalAction({
       // that was stale before it landed.
       sentAt: Date.now(),
       perUser,
+      burstSince,
     });
 
     await syncBadgeOnly();
