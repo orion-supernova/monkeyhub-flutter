@@ -15396,7 +15396,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vanishExplainApp =>
-      'On web and Linux, these messages open only in the app.';
+      'Web and Linux can\'t block screenshots, so these messages don\'t show there.';
 
   @override
   String get vanishTimerPickerTitle => 'Vanish after seen';

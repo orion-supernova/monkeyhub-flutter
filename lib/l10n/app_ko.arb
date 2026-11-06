@@ -4248,7 +4248,7 @@
   "vanishExplainSeen": "메시지는 모두가 본 뒤 {timer} 후에 사라져요.",
   "vanishExplain24h": "읽음을 공유하지 않는 사람이 있으면 메시지는 24시간 동안 남아요.",
   "vanishExplainShots": "스크린샷은 차단돼요.",
-  "vanishExplainApp": "웹과 Linux에서는 이 메시지를 앱에서만 열 수 있어요.",
+  "vanishExplainApp": "웹과 Linux에서는 스크린샷을 막을 수 없어서 이 메시지가 표시되지 않아요.",
   "vanishTimerPickerTitle": "읽은 후 사라짐",
   "vanishCardDm": "읽음을 공유하지 않아서 {name}님이 보낸 메시지는 24시간 동안 남아요. 내 메시지는 {name}님이 본 뒤 {timer} 후에 사라져요. 상대 메시지도 사라지도록 여기서 읽음을 공유할까요?",
   "vanishCardGroup": "읽음을 공유하지 않아서 여기서 받은 메시지는 24시간 동안 남아요. 모두가 본 뒤 {timer} 후에 사라지도록 여기서 읽음을 공유할까요?",

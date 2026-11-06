@@ -15430,7 +15430,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get vanishExplainApp =>
-      'På webben och i Linux öppnas de här meddelandena bara i appen.';
+      'Webben och Linux kan inte blockera skärmdumpar, så de här meddelandena visas inte där.';
 
   @override
   String get vanishTimerPickerTitle => 'Försvinn efter läst';

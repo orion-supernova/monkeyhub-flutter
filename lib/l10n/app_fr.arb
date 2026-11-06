@@ -4248,7 +4248,7 @@
   "vanishExplainSeen": "Les messages disparaissent {timer} après avoir été vus par tous.",
   "vanishExplain24h": "Si quelqu'un ne partage pas le Vu, les messages durent 24 heures.",
   "vanishExplainShots": "Les captures d'écran sont bloquées.",
-  "vanishExplainApp": "Sur le web et sur Linux, ces messages s'ouvrent uniquement dans l'app.",
+  "vanishExplainApp": "Le web et Linux ne peuvent pas bloquer les captures d'écran, donc ces messages n'y sont pas affichés.",
   "vanishTimerPickerTitle": "Disparaître après la vue",
   "vanishCardDm": "Tu ne partages pas ton Vu, donc les messages de {name} pour toi durent 24 heures. Les tiens disparaissent toujours {timer} après que {name} les a vus. Partager tes lectures ici pour que les siens disparaissent aussi ?",
   "vanishCardGroup": "Tu ne partages pas ton Vu, donc les messages qu'on t'envoie ici durent 24 heures. Partager tes lectures ici pour qu'ils disparaissent {timer} après avoir été vus par tous ?",

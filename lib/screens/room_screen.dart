@@ -2649,8 +2649,11 @@ class _RoomScreenState extends State<_RoomView>
   /// Never the raw id count: a selected message can self-destruct, expire or be
   /// deleted by its sender while the bar is up, and offering to forward four
   /// things that are now three is how a bulk action lies about what it did.
-  List<ChatMessage> get _selectedMessages =>
-      _selection.resolve(widget.repo.timelineFor(widget.roomId));
+  List<ChatMessage> get _selectedMessages => _selection.resolve([
+        ...widget.repo.timelineFor(widget.roomId),
+        // This device's local-only huddle notes are selectable too.
+        ...LocalHuddleNotes.instance.forRoom(widget.roomId),
+      ]);
 
   /// Enters selection mode with [m] already picked.
   void _beginSelection(ChatMessage m) {
@@ -2783,7 +2786,19 @@ class _RoomScreenState extends State<_RoomView>
     // check marks in the dust — and in one wave, top to bottom.
     _selection.clear();
     _exits.begin(picked);
-    final ids = [for (final m in picked) m.id];
+    // Local-only huddle notes were never on the server: they just go.
+    final localIds = [
+      for (final m in picked)
+        if (LocalHuddleNotes.isLocalId(m.id)) m.id,
+    ];
+    for (final id in localIds) {
+      LocalHuddleNotes.instance.remove(widget.roomId, id);
+    }
+    final ids = [
+      for (final m in picked)
+        if (!LocalHuddleNotes.isLocalId(m.id)) m.id,
+    ];
+    if (ids.isEmpty) return;
     final result = await deleteMessages(
       api: widget.api,
       repo: widget.repo,
@@ -7506,6 +7521,11 @@ class _RoomScreenState extends State<_RoomView>
                     case MessageAction.delete:
                       if (!await _confirmDelete(1) || !context.mounted) break;
                       _exits.begin([target]);
+                      if (LocalHuddleNotes.isLocalId(target.id)) {
+                        LocalHuddleNotes.instance
+                            .remove(room.id, target.id);
+                        break;
+                      }
                       try {
                         await widget.repo.deleteMessage(target.id);
                       } catch (_) {

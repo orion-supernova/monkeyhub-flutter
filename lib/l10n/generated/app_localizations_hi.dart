@@ -15368,7 +15368,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get vanishExplainApp =>
-      'वेब और Linux पर ये मैसेज सिर्फ़ ऐप में खुलते हैं।';
+      'वेब और Linux स्क्रीनशॉट नहीं रोक सकते, इसलिए ये मैसेज वहाँ नहीं दिखते।';
 
   @override
   String get vanishTimerPickerTitle => 'देखे जाने के बाद वैनिश';

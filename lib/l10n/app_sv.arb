@@ -4248,7 +4248,7 @@
   "vanishExplainSeen": "Meddelanden försvinner {timer} efter att alla har sett dem.",
   "vanishExplain24h": "Om någon inte delar Sett varar meddelandena i 24 timmar.",
   "vanishExplainShots": "Skärmdumpar blockeras.",
-  "vanishExplainApp": "På webben och i Linux öppnas de här meddelandena bara i appen.",
+  "vanishExplainApp": "Webben och Linux kan inte blockera skärmdumpar, så de här meddelandena visas inte där.",
   "vanishTimerPickerTitle": "Försvinn efter läst",
   "vanishCardDm": "Du delar inte din läsning, så meddelanden från {name} till dig finns kvar i 24 timmar. Dina försvinner fortfarande {timer} efter att {name} har sett dem. Vill du dela din läsning här så att deras också försvinner?",
   "vanishCardGroup": "Du delar inte din läsning, så meddelanden som skickas till dig här finns kvar i 24 timmar. Vill du dela din läsning här så att de försvinner {timer} efter att alla har sett dem?",

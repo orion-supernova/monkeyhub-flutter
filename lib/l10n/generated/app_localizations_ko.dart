@@ -14745,7 +14745,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get vanishExplainShots => '스크린샷은 차단돼요.';
 
   @override
-  String get vanishExplainApp => '웹과 Linux에서는 이 메시지를 앱에서만 열 수 있어요.';
+  String get vanishExplainApp => '웹과 Linux에서는 스크린샷을 막을 수 없어서 이 메시지가 표시되지 않아요.';
 
   @override
   String get vanishTimerPickerTitle => '읽은 후 사라짐';

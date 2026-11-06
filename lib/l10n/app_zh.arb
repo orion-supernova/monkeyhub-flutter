@@ -4248,7 +4248,7 @@
   "vanishExplainSeen": "消息在所有人看过后 {timer} 消失。",
   "vanishExplain24h": "如果有人不分享已读，消息会保留 24 小时。",
   "vanishExplainShots": "截屏会被阻止。",
-  "vanishExplainApp": "在网页和 Linux 上，这些消息只能在应用中打开。",
+  "vanishExplainApp": "网页和 Linux 无法阻止截屏，所以这些消息不会在那里显示。",
   "vanishTimerPickerTitle": "已读后消失",
   "vanishCardDm": "你没有分享已读，所以{name}发给你的消息会保留 24 小时。你的消息仍会在{name}看过后 {timer} 消失。要在这里分享你的已读，让对方的消息也消失吗？",
   "vanishCardGroup": "你没有分享已读，所以这里发给你的消息会保留 24 小时。要在这里分享你的已读，让消息在所有人看过后 {timer} 消失吗？",

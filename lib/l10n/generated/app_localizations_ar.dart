@@ -15590,7 +15590,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get vanishExplainApp =>
-      'على الويب وLinux، تُفتح هذه الرسائل في التطبيق فقط.';
+      'لا يستطيع الويب وLinux منع لقطات الشاشة، لذا لا تظهر هذه الرسائل هناك.';
 
   @override
   String get vanishTimerPickerTitle => 'الاختفاء بعد المشاهدة';

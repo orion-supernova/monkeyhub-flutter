@@ -15327,7 +15327,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get vanishExplainApp =>
-      'Web ve Linux\'ta bu mesajlar yalnızca uygulamada açılır.';
+      'Web ve Linux ekran görüntüsünü engelleyemiyor, bu yüzden bu mesajlar orada görünmez.';
 
   @override
   String get vanishTimerPickerTitle => 'Görüldükten sonra kaybol';

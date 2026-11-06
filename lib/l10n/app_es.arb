@@ -4248,7 +4248,7 @@
   "vanishExplainSeen": "Los mensajes desaparecen {timer} después de que todos los hayan visto.",
   "vanishExplain24h": "Si alguien no comparte el visto, los mensajes duran 24 horas.",
   "vanishExplainShots": "Las capturas de pantalla están bloqueadas.",
-  "vanishExplainApp": "En la web y en Linux, estos mensajes solo se abren en la app.",
+  "vanishExplainApp": "La web y Linux no pueden bloquear capturas de pantalla, así que estos mensajes no se muestran allí.",
   "vanishTimerPickerTitle": "Desaparecer tras ver",
   "vanishCardDm": "No compartes tu Visto, así que los mensajes de {name} para ti duran 24 horas. Los tuyos siguen desapareciendo {timer} después de que {name} los vea. ¿Compartes tus lecturas aquí para que los suyos también desaparezcan?",
   "vanishCardGroup": "No compartes tu Visto, así que los mensajes que te envían aquí duran 24 horas. ¿Compartes tus lecturas aquí para que desaparezcan {timer} después de que todos los hayan visto?",

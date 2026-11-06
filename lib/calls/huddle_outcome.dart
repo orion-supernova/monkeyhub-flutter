@@ -52,6 +52,28 @@ class LocalHuddleNotes extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Whether [messageId] is one of these local-only notes (never on the
+  /// server, so a delete of it must not be sent there).
+  static bool isLocalId(String messageId) =>
+      messageId.startsWith('local:huddle:');
+
+  /// Drops the note [messageId] from [roomId]. Local only: nothing was ever
+  /// written, so there is nothing to delete remotely.
+  void remove(String roomId, String messageId) {
+    final list = _byRoom[roomId];
+    if (list == null || !list.any((m) => m.id == messageId)) return;
+    final next = [
+      for (final m in list)
+        if (m.id != messageId) m,
+    ];
+    if (next.isEmpty) {
+      _byRoom.remove(roomId);
+    } else {
+      _byRoom[roomId] = next;
+    }
+    notifyListeners();
+  }
+
   @visibleForTesting
   void clear() {
     _byRoom.clear();

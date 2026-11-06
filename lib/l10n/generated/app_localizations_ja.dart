@@ -14712,7 +14712,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get vanishExplainShots => 'スクリーンショットはブロックされます。';
 
   @override
-  String get vanishExplainApp => 'ウェブとLinuxでは、これらのメッセージはアプリでのみ開けます。';
+  String get vanishExplainApp =>
+      'ウェブとLinuxではスクリーンショットを防げないため、これらのメッセージはそこには表示されません。';
 
   @override
   String get vanishTimerPickerTitle => '既読後に消える';

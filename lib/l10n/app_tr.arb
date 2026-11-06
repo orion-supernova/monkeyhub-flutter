@@ -4248,7 +4248,7 @@
   "vanishExplainSeen": "Mesajlar, herkes gördükten {timer} sonra kaybolur.",
   "vanishExplain24h": "Biri Görüldü bilgisini paylaşmıyorsa mesajlar 24 saat kalır.",
   "vanishExplainShots": "Ekran görüntüsü engellenir.",
-  "vanishExplainApp": "Web ve Linux'ta bu mesajlar yalnızca uygulamada açılır.",
+  "vanishExplainApp": "Web ve Linux ekran görüntüsünü engelleyemiyor, bu yüzden bu mesajlar orada görünmez.",
   "vanishTimerPickerTitle": "Görüldükten sonra kaybol",
   "vanishCardDm": "Görüldü bilgini paylaşmadığın için {name} kişisinin sana yazdığı mesajlar 24 saat kalır. Seninkiler ise {name} görünce {timer} sonra yine kaybolur. Onunkiler de kaybolsun diye okuduklarını burada paylaşmak ister misin?",
   "vanishCardGroup": "Görüldü bilgini paylaşmadığın için buradaki sana gönderilen mesajlar 24 saat kalır. Herkes gördükten {timer} sonra kaybolsunlar diye okuduklarını paylaşmak ister misin?",

@@ -25648,7 +25648,7 @@ abstract class AppLocalizations {
   /// Last line of the vanish-mode explainer sheet: web and Linux cannot block screenshots, so vanishing messages stay sealed there.
   ///
   /// In en, this message translates to:
-  /// **'On web and Linux, these messages open only in the app.'**
+  /// **'Web and Linux can\'t block screenshots, so these messages don\'t show there.'**
   String get vanishExplainApp;
 
   /// Title of the small sheet that picks how long after everyone has seen a message it disappears.

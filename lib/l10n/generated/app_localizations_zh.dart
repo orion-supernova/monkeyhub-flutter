@@ -14578,7 +14578,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get vanishExplainShots => '截屏会被阻止。';
 
   @override
-  String get vanishExplainApp => '在网页和 Linux 上，这些消息只能在应用中打开。';
+  String get vanishExplainApp => '网页和 Linux 无法阻止截屏，所以这些消息不会在那里显示。';
 
   @override
   String get vanishTimerPickerTitle => '已读后消失';

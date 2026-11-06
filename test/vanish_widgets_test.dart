@@ -76,6 +76,19 @@ void main() {
     expect(changed, 10);
   });
 
+  testWidgets('holding a system line opens the row menu', (t) async {
+    var held = 0;
+    await t.pumpWidget(host(MessageBubble(
+      message: sys('vanish:off', sender: 'zeynep'),
+      now: t0,
+      currentUserId: 'zeynep',
+      api: api,
+      onLongPress: () => held++,
+    )));
+    await t.longPress(find.textContaining('vanish mode', findRichText: true));
+    expect(held, 1);
+  });
+
   testWidgets('"You" for yourself', (t) async {
     await t.pumpWidget(lineHost(sys('vanish:on:60', sender: 'zeynep')));
     expect(find.textContaining('You turned on vanish mode', findRichText: true),
@@ -94,7 +107,9 @@ void main() {
     expect(find.text("If someone doesn't share Seen, messages last 24 hours."),
         findsOneWidget);
     expect(find.text('Screenshots are blocked.'), findsOneWidget);
-    expect(find.text('On web and Linux, these messages open only in the app.'),
+    expect(
+        find.text(
+            "Web and Linux can't block screenshots, so these messages don't show there."),
         findsOneWidget);
   });
 

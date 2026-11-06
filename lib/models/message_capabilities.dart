@@ -352,10 +352,11 @@ MessageCapabilities messageCapabilitiesFor({
         !vanishing,
     // Offered on anything the transcript will let you long-press — including
     // messages that aren't yours and can't be forwarded, because SELECT is
-    // how you reach the bar that says which of the two actions apply. Not a
-    // system notice, though: there is no batch of "X joined the room" anyone
-    // means to reach for, and it can't be forwarded, pinned or saved either.
-    canSelect: !isPending && !isSystem,
+    // how you reach the bar that says which of the two actions apply. A
+    // system line too (vanish on/off, huddle history): they pile up, and
+    // SELECT is how a batch of them is cleared. It is the only thing a line
+    // someone else wrote offers; your own also offers DELETE.
+    canSelect: !isPending,
     // Neither of these has anyone to aim at on a system notice. It carries a
     // `senderId` (the system account that wrote it) but no one reads that as
     // "the sender" the way they would on a real message — there is no one to

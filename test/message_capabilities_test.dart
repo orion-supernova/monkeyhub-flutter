@@ -211,22 +211,31 @@ void main() {
       expect(system.canForward, isFalse);
     });
 
-    test('has no one to view a profile of or report, and nothing to select',
+    test('has no one to view a profile of or report, but can be selected',
         () {
       // It carries a `senderId` (the system account that wrote it), but
       // nobody reads that as "the sender" the way they would on a real
-      // message — there is no one to view the profile of or report, and no
-      // batch of "X joined the room" anyone means to reach for via SELECT.
+      // message — there is no one to view the profile of or report. SELECT
+      // is offered: vanish and huddle lines pile up and are cleared in bulk.
       expect(system.canViewProfile, isFalse);
       expect(system.canReport, isFalse);
-      expect(system.canSelect, isFalse);
+      expect(system.canSelect, isTrue);
+      expect(system.canReact, isFalse);
+      expect(system.canCopy, isFalse);
+      expect(system.canEdit, isFalse);
     });
 
-    test('still affords none of the two rows that need no server row either',
-        () {
-      // Contrast with the pending-message group above: DELETE stays gated on
-      // `isMine` alone regardless of type, and a system notice is never
-      // mine — same outcome, different reason.
+    test('a line the reader wrote can be deleted, nothing else is added', () {
+      final mine = caps(msg(type: MessageType.system), isMine: true);
+      expect(mine.canDelete, isTrue);
+      expect(mine.canSelect, isTrue);
+      expect(mine.canReply, isFalse);
+      expect(mine.canForward, isFalse);
+      expect(mine.canPin, isFalse);
+    });
+
+    test('someone else\'s line is never deletable', () {
+      // DELETE stays gated on `isMine` alone regardless of type.
       expect(system.canDelete, isFalse);
     });
   });

@@ -15609,7 +15609,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get vanishExplainApp =>
-      'Sur le web et sur Linux, ces messages s\'ouvrent uniquement dans l\'app.';
+      'Le web et Linux ne peuvent pas bloquer les captures d\'écran, donc ces messages n\'y sont pas affichés.';
 
   @override
   String get vanishTimerPickerTitle => 'Disparaître après la vue';

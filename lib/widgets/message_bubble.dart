@@ -370,10 +370,10 @@ class MessageBubble extends StatelessWidget {
     // starter's local-only `huddle:alone`) are not bubbles: one quiet sentence.
     if (message.type == MessageType.system) {
       final line = VanishLine.parse(message.content);
-      if (line != null) return _vanishLine(context, line);
+      if (line != null) return _systemLineMenu(_vanishLine(context, line));
       if (HuddleHistory.parse(message.content) != null ||
           HuddleHistory.isAlone(message.content)) {
-        return HuddleHistoryLine(content: message.content);
+        return _systemLineMenu(HuddleHistoryLine(content: message.content));
       }
     }
     // A reply sent in vanish mode that answers a message now gone says
@@ -381,6 +381,19 @@ class MessageBubble extends StatelessWidget {
     return VanishedParentScope(
       vanished: message.isReply && message.vanishUntil != null,
       child: _buildBubble(context, bubbleStyle),
+    );
+  }
+
+  /// A system line is not a bubble, but it opens the same action menu as one
+  /// (the capabilities table leaves it SELECT, and DELETE on the reader's
+  /// own), by the same hold, right-click and hover door.
+  Widget _systemLineMenu(Widget line) {
+    if (onLongPress == null && onContextMenu == null) return line;
+    return _BubbleGestureDetector(
+      onLongPress: onLongPress,
+      onContextMenu: onContextMenu,
+      hover: hover,
+      child: line,
     );
   }
 

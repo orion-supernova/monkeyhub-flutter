@@ -18243,7 +18243,7 @@
   "@vanishExplain24h": {"description": "Second line of the vanish-mode explainer sheet: what happens when somebody hides their Seen."},
   "vanishExplainShots": "Screenshots are blocked.",
   "@vanishExplainShots": {"description": "Third line of the vanish-mode explainer sheet."},
-  "vanishExplainApp": "On web and Linux, these messages open only in the app.",
+  "vanishExplainApp": "Web and Linux can't block screenshots, so these messages don't show there.",
   "@vanishExplainApp": {"description": "Last line of the vanish-mode explainer sheet: web and Linux cannot block screenshots, so vanishing messages stay sealed there."},
   "vanishTimerPickerTitle": "Vanish after seen",
   "@vanishTimerPickerTitle": {"description": "Title of the small sheet that picks how long after everyone has seen a message it disappears."},
