@@ -200,26 +200,6 @@ export const setVanishShareReads = mutation({
   },
 });
 
-/**
- * Call after switching the GLOBAL "share my reads in vanishing chats" on (or
- * changing "seen" away from "nobody") while a vanishing room is open: counts
- * what the caller has already read there. Idempotent; a no-op when they do not
- * share, or when there is nothing to catch up. Other rooms catch up lazily the
- * next time they are opened (markRoomRead does the same catch-up).
- */
-export const catchUpVanishReads = mutation({
-  args: { roomId: v.id("rooms") },
-  returns: v.null(),
-  handler: async (ctx, { roomId, userId }) => {
-    const membership = await membershipOf(ctx, roomId, userId);
-    if (!membership) throw new Error("NOT_A_MEMBER");
-    if (await mayShareReads(ctx, userId, membership)) {
-      await catchUp(ctx, membership, roomId);
-    }
-    return null;
-  },
-});
-
 // ───────────────────────────── queries ───────────────────────────────────
 
 /**

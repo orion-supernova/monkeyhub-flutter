@@ -190,11 +190,13 @@ describe("filing a report", () => {
       alsoBlock: true,
     } as any);
     expect(res.blocked).toBe(true);
-    const blocked = await t.query(api.users.isBlocked, {
-      ...as(ada),
-      otherUserId: bob.userId,
-    } as any);
-    expect(blocked).toBe(true);
+    const blocked = await t.run((ctx) =>
+      ctx.db
+        .query("blocks")
+        .withIndex("by_pair", (q) => q.eq("userId", ada.userId as any).eq("blockedUserId", bob.userId as any))
+        .first(),
+    );
+    expect(blocked).not.toBeNull();
   });
 
   test("a repeat report posts no second card", async () => {

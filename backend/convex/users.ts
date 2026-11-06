@@ -927,31 +927,6 @@ export const listBlocked = query({
   },
 });
 
-/**
- * True when EITHER user has blocked the other — used by clients before
- * showing message-send or friend-request UI. The backend should ALSO check
- * inside sendRequest/sendMessage; this is convenience.
- */
-export const isBlocked = query({
-  args: { userId: v.id("users"), otherUserId: v.id("users") },
-  handler: async (ctx, { userId, otherUserId }) => {
-    const a = await ctx.db
-      .query("blocks")
-      .withIndex("by_pair", (q) =>
-        q.eq("userId", userId).eq("blockedUserId", otherUserId)
-      )
-      .first();
-    if (a) return true;
-    const b = await ctx.db
-      .query("blocks")
-      .withIndex("by_pair", (q) =>
-        q.eq("userId", otherUserId).eq("blockedUserId", userId)
-      )
-      .first();
-    return !!b;
-  },
-});
-
 // ─────────────────────────────── Reporting ───────────────────────────────
 
 /**

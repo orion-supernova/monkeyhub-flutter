@@ -237,7 +237,7 @@ describe("read receipts carry a real read time", () => {
       // did to the author's own row.
       await t.run(async (ctx) => {
         const row = await ctx.db
-          .query("roomMembers")
+          .query("roomReceipts")
           .withIndex("by_room_user", (q) =>
             q.eq("roomId", roomId as any).eq("userId", me.userId as any)
           )

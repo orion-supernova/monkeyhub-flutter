@@ -7,7 +7,7 @@ export type ReceiptKind = "read" | "delivered";
 
 // ── receiptMoves: one small row per cursor move ───────────────────────────────
 //
-// `receiptLogs.entries` was rewritten whole (up to 200 entries) on every
+// The retired per-member log was rewritten whole (up to 200 entries) on every
 // cursor move. Each move is now one ~100 B row in `receiptMoves`:
 //   at     the cursor position the move reached (a message createdAt)
 //   clock  wall-clock time of the move; 0 = "time not known" (a marker)
@@ -15,8 +15,6 @@ export type ReceiptKind = "read" | "delivered";
 // "When did this cursor first cover message M" is the first row with
 // `at >= M`: one indexed range read. Depth is the same 200 moves.
 //
-// The old per-member logs (`receiptLogs` rows, `roomMembers.readLog` /
-// `deliveredLog`) were copied in and are gone; no reader falls back to them.
 
 function movesFor(ctx: any, roomId: any, userId: any, kind: ReceiptKind) {
   return ctx.db

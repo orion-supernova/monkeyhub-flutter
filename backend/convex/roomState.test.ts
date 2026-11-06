@@ -4,13 +4,15 @@ import { api, internal } from "./_generated/api";
 import { hookDb } from "./dbHooks";
 import schema from "./schema";
 import { drainDeletions } from "./deletionTestUtils";
+import { unreadForRoom } from "./badges";
+import { roomUnread } from "./unread";
 
 /**
  * C1 (docs/backend/c1-cursors-design.md): per-room sequence numbers, the
  * `roomUserState` / `roomReceipts` split, exact unread without scans, gap rows,
- * the dual-mode backfill, and the re-run isolation the split exists for.
+ * and the re-run isolation the split exists for.
  *
- * `shadowCompare` is the oracle for unread exactness: it reads the new
+ * `shadow()` is the oracle for unread exactness: it reads the new
  * arithmetic and the old capped scan with the SAME cursor and names any
  * membership where they differ.
  */
@@ -136,20 +138,25 @@ const read = (t: T, who: any, roomId: any, upTo?: number) =>
     ...(upTo !== undefined ? { upTo } : {}),
   } as any);
 
-/** Every mismatch between the new unread arithmetic and the old scan. */
+/** Every mismatch between the new unread arithmetic and the old capped scan. */
 async function shadow(t: T): Promise<any[]> {
-  const out: any[] = [];
-  let cursor: string | null = null;
-  for (let i = 0; i < 50; i++) {
-    const page: any = await t.query(internal.roomStateMigration.shadowCompare, {
-      cursor,
-      numItems: 50,
-    });
-    out.push(...page.mismatches);
-    if (page.done) break;
-    cursor = page.next;
-  }
-  return out;
+  return (await t.run(async (ctx: any) => {
+    const out: any[] = [];
+    const now = Date.now();
+    for (const s of await ctx.db.query("roomUserState").collect()) {
+      const room = await ctx.db.get(s.roomId);
+      if (!room) continue;
+      const fresh = await roomUnread(ctx, room, s, now);
+      const old = await unreadForRoom(ctx, s.roomId, s.userId, s.readAt, room.lastMessageTime);
+      if (
+        fresh.count !== old.count ||
+        (fresh.count === 99 && old.count === 99 && fresh.capped !== old.capped)
+      ) {
+        out.push({ roomId: s.roomId, userId: s.userId, fresh: fresh.count, old: old.count });
+      }
+    }
+    return out;
+  })) as any[];
 }
 
 /** Every document of the tables a membership touches, for write-set diffs. */
@@ -785,7 +792,6 @@ describe("chat list payload and scope", () => {
     "muteBadges",
     "participantIds",
     "lastReadAt",
-    "lastDeliveredAt",
     "pinnedAt",
     "archivedAt",
     "mutedUntil",
@@ -799,14 +805,14 @@ describe("chat list payload and scope", () => {
     for (const k of FROM_JSON) expect(e, k).toHaveProperty(k);
     expect(e).not.toHaveProperty("passwordHash");
     expect(e).not.toHaveProperty("lastSeq");
-    expect(e.lastDeliveredAt).toBeNull();
+    expect(e).not.toHaveProperty("lastDeliveredAt");
     expect(e.lastReadAt).toBeNull();
     expect(e.hasPassword).toBe(false);
     expect(e.lastMessageTime).toBeGreaterThan(0);
     expect(e.participantIds).toEqual([]);
   });
 
-  test("scope splits active and archived; absent means all; archivedCount counts", async () => {
+  test("scope splits active and archived; absent means all", async () => {
     const t = convexTest(schema);
     const { bob, roomId } = await pair(t);
     const second = await t.mutation(api.rooms.create, {
@@ -824,232 +830,6 @@ describe("chat list payload and scope", () => {
     expect(ids(await listFor(t, bob))).toEqual([roomId, second].sort());
     expect(ids(await listFor(t, bob, "active"))).toEqual([roomId]);
     expect(ids(await listFor(t, bob, "archived"))).toEqual([second]);
-    const n = await t.query(api.rooms.archivedCount, {
-      sessionToken: bob.token,
-      userId: bob.userId as any,
-    } as any);
-    expect(n).toBe(1);
     expect((await listFor(t, bob)).find((r) => r._id === second).isArchived).toBe(true);
-  });
-});
-
-describe("backfill", () => {
-  /** A pre-C1 world: rooms without lastSeq, messages without seq, cursors on roomMembers. */
-  async function legacyWorld(t: T) {
-    const alice = await signUp(t, "alice");
-    const bob = await signUp(t, "bob");
-    const day = 24 * 60 * 60 * 1000;
-    const base = Date.now() - 5 * day;
-    return await t.run(async (ctx: any) => {
-      const roomId = await ctx.db.insert("rooms", {
-        name: "old",
-        createdBy: alice.userId,
-        createdAt: base,
-        isPrivate: false,
-        memberCount: 2,
-        lastMessageTime: base + 60,
-      });
-      for (const [u, role] of [
-        [alice.userId, "owner"],
-        [bob.userId, "member"],
-      ] as const) {
-        await ctx.db.insert("roomMembers", { roomId, userId: u, joinedAt: base, role });
-      }
-      // Messages: A A B A A A (seq 1..6), bob read through the second.
-      const who = [alice, alice, bob, alice, alice, alice];
-      const ids: any[] = [];
-      for (let i = 0; i < who.length; i++) {
-        ids.push(
-          await ctx.db.insert("messages", {
-            roomId,
-            userId: who[i].userId,
-            content: `m${i}`,
-            createdAt: base + 10 * (i + 1),
-            type: "text",
-          }),
-        );
-      }
-      const bobRow = await ctx.db
-        .query("roomMembers")
-        .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId).eq("userId", bob.userId))
-        .first();
-      await ctx.db.patch(bobRow._id, {
-        lastReadAt: base + 20,
-        lastDeliveredAt: base + 30,
-        isPinned: true,
-        pinnedAt: base,
-        muteBadges: true,
-        mutedUntil: 9_999_999_999_999,
-      });
-      return { alice, bob, roomId, ids, base };
-    });
-  }
-
-  const runSeq = async (t: T) => {
-    await t.mutation(internal.roomStateMigration.assignSeq, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
-  };
-  const runStates = async (t: T) => {
-    const r: any = await t.mutation(internal.roomStateMigration.createStates, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
-    return r;
-  };
-
-  test("assigns seq oldest first, sets lastSeq, and is idempotent", async () => {
-    vi.useFakeTimers();
-    const t = convexTest(schema);
-    const w = await legacyWorld(t);
-    await runSeq(t);
-    const seqs = await Promise.all(w.ids.map(async (id: any) => (await doc(t, id)).seq));
-    expect(seqs).toEqual([1, 2, 3, 4, 5, 6]);
-    expect((await room(t, w.roomId)).lastSeq).toBe(6);
-    await runSeq(t);
-    expect(await Promise.all(w.ids.map(async (id: any) => (await doc(t, id)).seq))).toEqual(seqs);
-    expect((await room(t, w.roomId)).lastSeq).toBe(6);
-  });
-
-  test("a room bigger than a page continues in its own chain and is numbered completely", async () => {
-    vi.useFakeTimers();
-    const t = convexTest(schema);
-    const alice = await signUp(t, "alice");
-    const roomId = await t.run(async (ctx: any) => {
-      const id = await ctx.db.insert("rooms", {
-        name: "big",
-        createdBy: alice.userId,
-        createdAt: 1,
-        isPrivate: false,
-        memberCount: 0,
-      });
-      for (let i = 0; i < 650; i++) {
-        await ctx.db.insert("messages", {
-          roomId: id,
-          userId: alice.userId,
-          content: "x",
-          createdAt: 1000 + i,
-          type: "text",
-        });
-      }
-      return id;
-    });
-    await runSeq(t);
-    const rows = (await t.run((ctx: any) =>
-      ctx.db.query("messages").withIndex("by_room_time", (q: any) => q.eq("roomId", roomId)).collect(),
-    )) as any[];
-    expect(rows.map((m) => m.seq)).toEqual(Array.from({ length: 650 }, (_, i) => i + 1));
-    expect((await room(t, roomId)).lastSeq).toBe(650);
-  });
-
-  test("a send that lands before the room is closed is numbered by the final page; after, by the hook", async () => {
-    vi.useFakeTimers();
-    const t = convexTest(schema);
-    const w = await legacyWorld(t);
-    // Sent mid-migration: the room has no lastSeq yet, so the hook leaves it unnumbered.
-    const late = await put(t, w.roomId, w.alice.userId);
-    expect((await doc(t, late)).seq).toBeUndefined();
-    await runSeq(t);
-    expect((await doc(t, late)).seq).toBe(7);
-    expect((await room(t, w.roomId)).lastSeq).toBe(7);
-    // After: the hook takes over.
-    const after = await put(t, w.roomId, w.alice.userId);
-    expect((await doc(t, after)).seq).toBe(8);
-    expect((await room(t, w.roomId)).lastSeq).toBe(8);
-  });
-
-  test("createStates builds readSeq, own runs and the moved fields; skips unsequenced rooms; is idempotent", async () => {
-    vi.useFakeTimers();
-    const t = convexTest(schema);
-    const w = await legacyWorld(t);
-    const waiting: any = await runStates(t);
-    expect(waiting.pending).toBe(2); // nothing is sequenced yet
-    expect(await state(t, w.roomId, w.bob.userId)).toBeNull();
-
-    await runSeq(t);
-    const done: any = await runStates(t);
-    expect(done.created).toBe(2);
-    const s = await state(t, w.roomId, w.bob.userId);
-    expect(s.readSeq).toBe(2);
-    expect(s.readAt).toBe(w.base + 20);
-    expect(s.ownRuns).toEqual([{ from: 3, to: 3 }]);
-    expect(s).toMatchObject({
-      isPinned: true,
-      pinnedAt: w.base,
-      muteBadges: true,
-      archived: false,
-    });
-    const r = await receipt(t, w.roomId, w.bob.userId);
-    expect(r).toMatchObject({ lastReadAt: w.base + 20, lastDeliveredAt: w.base + 30 });
-    expect(r.vanishSeenAt).toBe(w.base);
-    // Alice never read: everything of bob's counts, nothing of hers.
-    const a = await state(t, w.roomId, w.alice.userId);
-    expect(a.readSeq).toBe(0);
-    // 6 messages, 1 is bob's: bob's unread = 3 (m3, m4, m5 are alice's after seq 3...) -> seq 4,5,6
-    expect((await entry(t, w.bob, w.roomId)).unreadCount).toBe(3);
-    expect((await entry(t, w.alice, w.roomId)).unreadCount).toBe(1);
-    expect(await shadow(t)).toEqual([]);
-
-    const before = await snapshot(t);
-    const again: any = await runStates(t);
-    expect(again.created).toBe(0);
-    expect(touched(before, await snapshot(t))).toEqual([]);
-  });
-
-  test("a stale legacy cursor that cannot be told falls back, never over-counts own messages", async () => {
-    vi.useFakeTimers();
-    const t = convexTest(schema);
-    const alice = await signUp(t, "alice");
-    const bob = await signUp(t, "bob");
-    const roomId = await t.run(async (ctx: any) => {
-      const id = await ctx.db.insert("rooms", {
-        name: "chatty",
-        createdBy: alice.userId,
-        createdAt: Date.now() - 1000 * 1000,
-        isPrivate: false,
-        memberCount: 2,
-      });
-      for (const u of [alice, bob]) {
-        await ctx.db.insert("roomMembers", { roomId: id, userId: u.userId, joinedAt: 1, role: "member" });
-      }
-      // Bob never read; he wrote 9 separate runs between alice's messages.
-      for (let i = 0; i < 18; i++) {
-        await ctx.db.insert("messages", {
-          roomId: id,
-          userId: (i % 2 === 0 ? alice : bob).userId,
-          content: "x",
-          createdAt: Date.now() - 900 * 1000 + i,
-          type: "text",
-        });
-      }
-      return id;
-    });
-    await runSeq(t);
-    await runStates(t);
-    const s = await state(t, roomId, bob.userId);
-    expect(s.ownOverflow).toBe(true);
-    expect((await entry(t, bob, roomId)).unreadCount).toBe(9);
-    expect(await shadow(t)).toEqual([]);
-  });
-
-  test("finish refuses while a membership has no state, then sets the marker", async () => {
-    vi.useFakeTimers();
-    const t = convexTest(schema);
-    const w = await legacyWorld(t);
-    await runSeq(t);
-    // Rooms are done, memberships are not.
-    await t.mutation(internal.roomStateMigration.finish, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
-    const noMarker = (await t.run((ctx: any) =>
-      ctx.db.query("migrationMarkers").collect(),
-    )) as any[];
-    expect(noMarker.filter((m) => m.name === "roomUserState")).toEqual([]);
-
-    await runStates(t);
-    await t.mutation(internal.roomStateMigration.finish, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
-    const marker = (await t.run((ctx: any) =>
-      ctx.db.query("migrationMarkers").collect(),
-    )) as any[];
-    expect(marker.filter((m) => m.name === "roomUserState")).toHaveLength(1);
-    // The list reads state rows only, and still answers.
-    expect((await entry(t, w.bob, w.roomId)).unreadCount).toBe(3);
   });
 });

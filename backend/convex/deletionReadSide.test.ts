@@ -93,7 +93,7 @@ describe("a user being deleted", () => {
 
     // Search finds neither the old handle nor the scrubbed one.
     for (const q of ["bob", "deleted"]) {
-      const found: any[] = await t.query(api.friends.searchUsers, {
+      const found: any[] = await t.query(api.users.searchUsers, {
         sessionToken: carol.token,
         currentUserId: carol.userId as any,
         query: q,
@@ -179,12 +179,6 @@ describe("a room being deleted", () => {
     );
     expect(listed).not.toContain(roomId);
     expect(listed).not.toContain(firstDm);
-    expect(
-      await t.query(api.rooms.getRoom, {
-        sessionToken: alice.token,
-        roomId,
-      } as any),
-    ).toBeNull();
 
     // A send is refused, both through the real mutation and the shared gate.
     await expect(

@@ -378,39 +378,6 @@ export const listFriends = query({
   },
 });
 
-/**
- * No current caller — the app subscribes to `listIncomingDirectRequests`
- * instead. Kept (and fixed) rather than deleted because it stays callable by
- * any build already in users' hands; delete it once that's no longer a concern.
- */
-export const listPendingRequests = query({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
-    // Requests sent TO this user. Rows still held at a guardian hop are
-    // invisible here — that filter is what keeps an unreleased request from
-    // ever reaching a child.
-    const rows = await ctx.db
-      .query("friendships")
-      .withIndex("by_friend", (q) => q.eq("friendId", userId))
-      .collect();
-    const incoming = rows.filter(
-      (f) => f.status === "pending" && isReleasedToRecipient(f.stage),
-    );
-
-    const lens = await lensFor(ctx, userId);
-    const now = Date.now();
-    const requesters = await Promise.all(
-      incoming.map(async (f) => {
-        const user = await ctx.db.get(f.userId);
-        return user && !isTombstoned(user)
-          ? { ...await publicUserView(ctx, lens, user), friendshipId: f._id }
-          : null;
-      })
-    );
-    return requesters.filter(Boolean);
-  },
-});
-
 export const createDirectRequest = mutation({
   args: {
     userId: v.id("users"),
@@ -536,7 +503,7 @@ export const listDirectRequestMessages = query({
     const messages = await ctx.db
       .query("friendRequestMessages")
       .withIndex("by_request", (q: any) => q.eq("requestId", requestId))
-      .collect();
+      .take(MAX_REQUEST_MESSAGES);
     return messages
       .sort((a, b) => a.createdAt - b.createdAt)
       .map((m) => ({
@@ -814,24 +781,5 @@ export const removeFriend = mutation({
       .first();
     if (f1) await deleteFriendshipRow(ctx, f1);
     if (f2) await deleteFriendshipRow(ctx, f2);
-  },
-});
-
-/**
- * No current caller — `users:searchUsers` is the one the client actually
- * calls (`chat_api.dart`); kept and fixed rather than deleted for the same
- * reason `listPendingRequests` above is, since it stays callable by any build
- * already in users' hands. "Fixed" is the operative word: this used to be an
- * independent copy of the scan in `users.searchUsers` that had already
- * drifted — no blocking filter, no child-safe reachability restriction — the
- * exact duplicated-read-path trap `users.searchUsersCore`'s header comment
- * describes. It now calls that one implementation and narrows the shape
- * afterward, so there is nothing left here that can drift again.
- */
-export const searchUsers = query({
-  args: { query: v.string(), currentUserId: v.id("users") },
-  handler: async (ctx, { query, currentUserId }) => {
-    const results = await searchUsersCore(ctx, currentUserId, query, 10);
-    return results.map((u) => ({ _id: u._id, username: u.username, status: u.status }));
   },
 });

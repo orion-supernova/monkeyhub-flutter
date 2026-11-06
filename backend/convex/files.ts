@@ -223,22 +223,6 @@ async function releaseLedger(ctx: any, storageId: any) {
 }
 
 /**
- * What one user has stored and may still store, for a settings screen.
- */
-export const myUsage = query({
-  args: {},
-  handler: async (ctx, { userId }) => {
-    const usage = await usageRow(ctx, userId);
-    return {
-      totalBytes: usage?.totalBytes ?? 0,
-      soloBytes: usage?.soloBytes ?? 0,
-      maxTotalBytes: MAX_TOTAL_BYTES,
-      maxSoloBytes: MAX_SOLO_BYTES,
-    };
-  },
-});
-
-/**
  * Reclaims files uploaded since [UPLOADS_EPOCH] that nothing ever claimed:
  * the upload that never got sent, and every file a script PUT on purpose.
  *

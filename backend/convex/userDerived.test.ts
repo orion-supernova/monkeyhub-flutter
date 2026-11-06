@@ -2,6 +2,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
+import { hookDb } from "./dbHooks";
 import { badgeTotalFor } from "./badges";
 
 async function signUp(t: ReturnType<typeof convexTest>, username: string) {
@@ -70,9 +71,10 @@ describe("userPushState", () => {
       const s = await ctx.db.query("sessions").withIndex("by_user", (q) => q.eq("userId", me.userId)).first();
       return s;
     });
-    await t.mutation(api.sessions.revokeForDevice, {
-      sessionToken: me.token, userId: me.userId, deviceId: "device-bob",
-    } as any);
+    await t.run(async (ctx) => {
+      const rows = await ctx.db.query("sessions").withIndex("by_user", (q) => q.eq("userId", me.userId)).collect();
+      for (const r of rows) await hookDb(ctx.db).patch(r._id, { revokedAt: Date.now() });
+    });
     expect((await pushRow(t, me.userId)).devices).toEqual([]);
     expect((await targets(t, [me.userId]))[0].devices).toEqual([]);
   });

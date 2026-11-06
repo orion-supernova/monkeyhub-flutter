@@ -243,8 +243,6 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "recordReactions.userId": { rule: "cascade", index: "by_user", why: "User plan, `records` step." },
 
   // ── rooms and membership ──────────────────────────────────────────────────
-  "receiptLogs.roomId": { rule: "cascade", index: "by_room_user_kind", why: "Room teardown; the log of a deleted room means nothing." },
-  "receiptLogs.userId": { rule: "cascade", index: "by_user", why: "A deleted account's receipt history goes with it." },
   "receiptMoves.roomId": { rule: "cascade", index: "by_room_user_kind_at", why: "Room teardown; the move history of a deleted room means nothing." },
   "receiptMoves.userId": { rule: "cascade", index: "by_user", why: "A deleted account's receipt history goes with it." },
   "roomUserState.roomId": { rule: "cascade", index: "by_room_user", why: "Room teardown (generic step); a member's private cursor in a deleted room means nothing." },

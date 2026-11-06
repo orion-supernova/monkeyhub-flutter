@@ -1059,23 +1059,6 @@ async function heldFrom(
   return !!holder && holder !== deviceId;
 }
 
-export const consumeSignal = mutation({
-  args: {
-    signalId: v.id("callSignals"),
-    userId: v.id("users"),
-    deviceId: v.optional(v.string()),
-  },
-  handler: async (ctx, { signalId, userId, deviceId }) => {
-    const sig = await ctx.db.get(signalId);
-    if (!sig) return;
-    if (sig.toUserId.toString() !== userId.toString()) {
-      throw new Error("NOT_RECIPIENT");
-    }
-    if (await heldFrom(ctx, sig, deviceId)) return;
-    await ctx.db.patch(signalId, { consumed: true });
-  },
-});
-
 export const consumeSignals = mutation({
   args: {
     signalIds: v.array(v.id("callSignals")),

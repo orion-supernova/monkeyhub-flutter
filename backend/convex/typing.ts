@@ -152,63 +152,30 @@ export const clearTyping = mutation({
   },
 });
 
-/// Returns { roomId: [typerName, …] } for all rooms the user belongs to.
-/// A single subscription gives live typing state for the whole room list.
+/// Returns `{ rooms: { roomId: [typerName, …] }, until: { roomId: ms } }` for
+/// the rooms on screen (`roomIds`, capped at [TYPING_ROOM_IDS_CAP]). Access is
+/// one point read per room (`canReadRoom`) and nothing else is read: no scan of
+/// the viewer's memberships, which every roster change would re-run. A room the
+/// viewer cannot read, or where nobody else is typing, is absent.
 ///
-/// With `roomId` it reads that one room only (still keyed by room id, empty
-/// when the user is not in it or nobody else is typing), so a screen that shows
-/// one conversation does not subscribe to every room of the user. Without it
-/// the old whole-session behaviour stays, for app builds that do not send it.
-///
-/// Intentionally still plain names, not the richer `typistOf` shape: the room
-/// list only renders a label, and changing this to objects would garble the
-/// typing text on every app build already in users' hands. The in-room
-/// indicator, which does need avatars, uses `getTypingUsers` below.
+/// Plain names, not the richer `typistOf` shape: the room list only renders a
+/// label. The in-room indicator, which does need avatars, uses `getTypingUsers`.
+/// `until[roomId]` is when that room's newest indicator expires.
 export const getTypingForUser = query({
   args: {
     userId: v.id("users"),
-    roomId: v.optional(v.id("rooms")),
-    /**
-     * Answer `{ rooms, until }` instead of the bare map: `until[roomId]` is
-     * when that room's newest indicator expires, for the same reason as
-     * `typingUntil` in `getTypingUsers`. Opt-in, because builds already in
-     * people's hands read every key of the bare map as a room.
-     */
+    roomIds: v.array(v.id("rooms")),
+    /** Sent by the app (`chat_repository.dart`); the answer is always `{ rooms, until }` now. */
     withUntil: v.optional(v.boolean()),
-    /**
-     * The rooms on screen (capped at [TYPING_ROOM_IDS_CAP]). When given, access
-     * is one point read per room and nothing else is read: no scan of the
-     * viewer's `roomMembers` rows, which every read/delivery/pin/mute write
-     * would otherwise re-run. Absent = the old whole-session scan, for builds
-     * that do not send it.
-     */
-    roomIds: v.optional(v.array(v.id("rooms"))),
   },
-  handler: async (ctx, { userId, roomId, withUntil, roomIds }) => {
+  handler: async (ctx, { userId, roomIds }) => {
     const now = Date.now();
-    // Access through `roomAccess` (a churn-free row per membership), never a
-    // `roomMembers` scan: those rows are rewritten by roster changes, and the
-    // legacy whole-session branch below used to re-run on every one of them.
     const memberships: { roomId: any }[] = [];
-    if (!roomIds) {
-      if (roomId) {
-        if (await canReadRoom(ctx, roomId, userId)) memberships.push({ roomId });
-      } else {
-        const grants = await ctx.db
-          .query("roomAccess")
-          .withIndex("by_user", (q) => q.eq("userId", userId))
-          .collect();
-        for (const g of grants) memberships.push({ roomId: g.roomId });
-      }
-    }
-
-    if (roomIds) {
-      const seen = new Set<string>();
-      for (const id of roomIds.slice(0, TYPING_ROOM_IDS_CAP)) {
-        if (seen.has(id.toString())) continue;
-        seen.add(id.toString());
-        if (await canReadRoom(ctx, id, userId)) memberships.push({ roomId: id });
-      }
+    const seen = new Set<string>();
+    for (const id of roomIds.slice(0, TYPING_ROOM_IDS_CAP)) {
+      if (seen.has(id.toString())) continue;
+      seen.add(id.toString());
+      if (await canReadRoom(ctx, id, userId)) memberships.push({ roomId: id });
     }
 
     const result: Record<string, string[]> = {};
@@ -233,7 +200,7 @@ export const getTypingForUser = query({
         }
       }
     }
-    return withUntil ? { rooms: result, until } : result;
+    return { rooms: result, until };
   },
 });
 

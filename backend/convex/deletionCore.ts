@@ -25,12 +25,7 @@ import { retireIfStaff } from "./retiredHandles";
 import { SESSION_LIVE_CAP, identityBanHash, recordAccountBans } from "./sessionCore";
 import { clearPresence } from "./presenceCore";
 
-/**
- * The live kinds. `avatar` is retired (phase 6Z: the old file is released
- * directly by `users.updateAvatar`); its literal stays in the schema only
- * until `cleanupMigration:stripLegacy` has deleted any leftover rows.
- */
-export type DeletionKind = Exclude<Doc<"deletions">["kind"], "avatar">;
+export type DeletionKind = Doc<"deletions">["kind"];
 export type Job = Doc<"deletions">;
 
 export interface StepResult {

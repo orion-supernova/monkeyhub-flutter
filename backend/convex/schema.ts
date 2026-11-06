@@ -499,121 +499,6 @@ export default defineSchema({
     // promotion in `auth.purgeUser`. Rooms written before the admin tier
     // existed have one "owner" and the rest "member", which is already valid.
     role: v.string(),
-    // ── LEGACY CURSORS, UNREAD AND UNUSED ─────────────────────────────────
-    // Everything from here to the end of this table's fields moved to
-    // `roomUserState` / `roomReceipts` / `receiptMoves` (C1) and nothing reads
-    // or writes it any more. `cleanupMigration:stripLegacy` unsets it; once
-    // `countLegacy` is 0, cleanup deploy 2 deletes these fields from the schema.
-    // ms since epoch — last time this user "read" the room. Used to compute
-    // read receipts: a message is "seen by X" when roomMembers[room,X].lastReadAt >= message.createdAt.
-    lastReadAt: v.optional(v.number()),
-    // ms since epoch — last time this user's device HAD the room's traffic,
-    // whether or not they looked at it. The second tick.
-    //
-    // A cursor on the membership row, exactly like `lastReadAt` and for exactly
-    // the same reason: "delivered" as a per-message × per-recipient fact is
-    // O(messages × members) rows and a write per message per recipient, which
-    // is the fan-out this whole schema is built to avoid (see the
-    // `viewOnceViews` and `pins` comments). One row per membership answers the
-    // only question the UI asks — "is this message past the recipient's
-    // cursor?" — at O(rooms × members), and it is the same shape the read
-    // receipt has already proven at this scale.
-    //
-    // Written by `markRoomDelivered` when the recipient's client sees the room
-    // move, and by `markRoomRead`, which advances it too: reading a room is
-    // proof of delivery, and folding it into the same patch means the two
-    // cursors can never cross. That also means a recipient on a build too old
-    // to call `markRoomDelivered` still advances this the moment they open the
-    // room, so senders are not stuck on one tick waiting for a rollout.
-    //
-    // Absent on every row written before this field existed. It reads as 0,
-    // which is behind every message, so those simply show one tick until the
-    // recipient's client writes the cursor once. No backfill.
-    lastDeliveredAt: v.optional(v.number()),
-    // WALL-CLOCK times the two cursors above last advanced — what the receipts
-    // screen shows. The cursors themselves cannot be shown: `markRoomRead`
-    // writes the newest read message's own `createdAt` as `lastReadAt` (an OCC
-    // fix, see there), so displaying it made every "read" time equal the
-    // message's sent time. Comparisons stay on the cursors; these are display
-    // only. Absent on rows not advanced since they were added; the client
-    // falls back to the cursor.
-    lastReadClock: v.optional(v.number()),
-    lastDeliveredClock: v.optional(v.number()),
-    // Each cursor's recent moves, so a message's own delivered/read time can
-    // be found again after the cursor has moved past it — the clocks above
-    // only ever hold the newest move. Bounded; see receiptLog.ts. DEPRECATED:
-    // the logs live in `receiptLogs` now; these are read as a fallback and
-    // unset by writers and `receipts:moveLogs`. Remove in a later deploy once
-    // the backfill has run.
-    readLog: v.optional(
-      v.array(v.object({ upTo: v.number(), at: v.number() })),
-    ),
-    deliveredLog: v.optional(
-      v.array(v.object({ upTo: v.number(), at: v.number() })),
-    ),
-    // Per-viewer chat-list organization. Lives here, not on `rooms`, because
-    // pinning/archiving a chat is inherently per-member — the same room can
-    // be pinned for one member and untouched for everyone else in it.
-    isPinned: v.optional(v.boolean()),
-    pinnedAt: v.optional(v.number()),
-    isArchived: v.optional(v.boolean()),
-    archivedAt: v.optional(v.number()),
-    // ── Per-viewer mute ─────────────────────────────────────────────────
-    //
-    // Same per-membership reasoning as `isPinned`/`isArchived` above: muting
-    // a chat is one person's decision about their own attention, and the same
-    // room stays loud for everyone else in it.
-    //
-    // TWO switches, not one, because "stop buzzing me about this" and "hide
-    // this from my counts entirely" are different requests. The first is the
-    // everyday one; the second is the stronger "I don't want to see this at
-    // all". They are read independently everywhere — a room muted for
-    // notifications only still climbs its unread count and still bolds in the
-    // chat list, which is exactly what someone who picked only that switch
-    // asked for.
-    //
-    //   muteNotifications — suppresses the push before it is sent. The check
-    //     lives server-side, at `push.sendAlert`, because a notification
-    //     suppressed on the device has already buzzed. Only `kind: "message"`
-    //     is gated: an incoming call carries a roomId too, and silencing a
-    //     ringing phone is not what anyone means by muting a chat.
-    //   muteBadges — drops the room out of `badges.badgeTotalFor`, so it stops
-    //     contributing to the OS app-icon count, and tells the client to hide
-    //     its unread pill, its dot and its bold name.
-    //
-    // `mutedUntil` is the clock both switches hang on: an absolute instant in
-    // ms since epoch, computed server-side from a duration the client asks for
-    // so a phone with a skewed clock cannot mute for the wrong length of time.
-    // Absent means no mute; a value in the past means one lapsed and is read
-    // as nothing, with no sweep and nothing to clean up. "Always" is the
-    // sentinel `mute.MUTE_ALWAYS` rather than a null — see that file for why
-    // the sentinel is the safe direction to forget about.
-    //
-    // Absent on every row written before these fields existed, which reads as
-    // "not muted". No backfill.
-    muteNotifications: v.optional(v.boolean()),
-    muteBadges: v.optional(v.boolean()),
-    mutedUntil: v.optional(v.number()),
-    // Denormalized copy of this member's `users.visibility.seen`, the ONLY
-    // field `messages:getReadState` needs from the full `users` row it used
-    // to read per member. Reading the row for one near-static field meant
-    // that query re-fired on every member's presence heartbeat too, since
-    // Convex subscribes at document granularity. Stamped at membership
-    // creation (`visibility.seenVisibilityOf`) and kept current by
-    // `users.updateVisibility`'s fan-out whenever the owner changes the
-    // setting. Absent on every row written before this field existed —
-    // resolves through `DEFAULT_LEVEL.seen` ("friends") until the one-time
-    // backfill migration runs; see `migrations.backfillSeenVisibility`.
-    seenVisibility: v.optional(v.string()),
-    // ── Vanish mode ──────────────────────────────────────────────────────
-    // A separate read cursor that advances only for reads the reader agreed
-    // to share (see vanish.ts). Absent reads as `joinedAt`: a member who
-    // never shares holds every message sent after they joined for the full
-    // 24 hours. Written in the SAME patch as `lastReadAt`, so it costs nothing.
-    vanishSeenAt: v.optional(v.number()),
-    // Per-chat consent to share reads in vanishing chats, for people who hide
-    // "seen" globally. Absent = follow the global setting.
-    vanishShareReads: v.optional(v.boolean()),
   })
     // No standalone `by_room` — `by_room_user` alone serves every "all
     // members of this room" read as a prefix scan on `roomId`.
@@ -683,23 +568,6 @@ export default defineSchema({
     // Retention: gaps past the horizon are never counted (retention.gcMessageGaps).
     .index("by_at", ["at"]),
 
-  // RETIRED, unread and unwritten: `cleanupMigration:stripLegacy` empties it and
-  // cleanup deploy 2 drops the table. Each member's receipt history per cursor (was `roomMembers.readLog` /
-  // `deliveredLog`). Out of the membership row because that row is rewritten by
-  // every receipt and read whole, for every member, by `getReadState`. Written
-  // only by the owner's own receipt; read only by `getReceiptTimes`, one point
-  // read per visible member. See receipts.ts and receiptLog.ts. Prefix
-  // `roomId` on the index serves room teardown; `by_user` serves account
-  // deletion.
-  receiptLogs: defineTable({
-    roomId: v.id("rooms"),
-    userId: v.id("users"),
-    kind: v.union(v.literal("read"), v.literal("delivered")),
-    entries: v.array(v.object({ upTo: v.number(), at: v.number() })),
-  })
-    .index("by_room_user_kind", ["roomId", "userId", "kind"])
-    .index("by_user", ["userId"]),
-
   // One row per receipt cursor move (replaces rewriting `receiptLogs.entries`,
   // ~4 KB per move, with a ~100 B insert). `at` is the cursor position the move
   // reached (a message `createdAt`; indexed, so "first move that covered this
@@ -716,12 +584,6 @@ export default defineSchema({
   })
     .index("by_room_user_kind_at", ["roomId", "userId", "kind", "at"])
     .index("by_user", ["userId"]),
-
-  // Named one-off migrations that have finished (`receipts:backfillMoves`).
-  migrationMarkers: defineTable({
-    name: v.string(),
-    doneAt: v.number(),
-  }).index("by_name", ["name"]),
 
   // Debounce for the "you read this room" dismissal push to the reader's other
   // devices. At most one live row per (room, user) while reads keep coming. See
@@ -3694,9 +3556,6 @@ export default defineSchema({
       v.literal("message"),
       v.literal("moment"),
       v.literal("match"),
-      // Retired (phase 6Z). Kept only until `cleanupMigration:stripLegacy` has
-      // deleted leftover rows; cleanup deploy 2 removes it.
-      v.literal("avatar"),
       v.literal("comment"),
     ),
     targetId: v.string(),
@@ -3709,7 +3568,7 @@ export default defineSchema({
     stepId: v.string(),
     cursor: v.union(v.string(), v.null()),
     // user {avatarStorageId?, suspended?}; room {avatarStorageId?, system?};
-    // message {deletedStorageIds?}; match {skipBubbles?}; avatar {userId, from, to}.
+    // message {deletedStorageIds?}; match {skipBubbles?}.
     args: v.optional(v.record(v.string(), v.any())),
     // self | guardian | lastMember | blockDm | cutoff | owner
     reason: v.optional(v.string()),

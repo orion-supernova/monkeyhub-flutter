@@ -80,14 +80,7 @@ describe("typing reads only live rows", () => {
       sessionToken: me.token,
       userId: me.userId,
       roomIds: [mine, foreign],
-    } as any)) as Record<string, string[]>;
-    expect(Object.keys(got)).toEqual([mine.toString()]);
-
-    // Old builds: no roomIds, every room.
-    const all = (await t.query(api.typing.getTypingForUser, {
-      sessionToken: me.token,
-      userId: me.userId,
-    } as any)) as Record<string, string[]>;
-    expect(Object.keys(all).sort()).toEqual([mine.toString(), other.toString()].sort());
+    } as any)) as { rooms: Record<string, string[]> };
+    expect(Object.keys(got.rooms)).toEqual([mine.toString()]);
   });
 });

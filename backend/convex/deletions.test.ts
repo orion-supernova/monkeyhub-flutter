@@ -168,13 +168,13 @@ describe("job lifecycle", () => {
     const a = await t.run((ctx) => startRoomDeletion(ctx, roomId));
     const b = await t.run((ctx) => startRoomDeletion(ctx, roomId));
     expect(b).toBe(a);
-    const c = await t.run((ctx) => enqueueDeletion(ctx, { kind: "avatar" as any, targetId: "u1" }));
-    const d = await t.run((ctx) => enqueueDeletion(ctx, { kind: "avatar" as any, targetId: "u1" }));
+    const c = await t.run((ctx) => enqueueDeletion(ctx, { kind: "comment", targetId: "u1" }));
+    const d = await t.run((ctx) => enqueueDeletion(ctx, { kind: "comment", targetId: "u1" }));
     expect(d).toBe(c);
     expect(await count(t, "deletions")).toBe(2);
     await drain(t);
-    expect(((await job(t, c)) as any).state).toBe("done"); // avatar: empty plan
-    const e = await t.run((ctx) => enqueueDeletion(ctx, { kind: "avatar" as any, targetId: "u1" }));
+    expect(((await job(t, c)) as any).state).toBe("done"); // empty plan
+    const e = await t.run((ctx) => enqueueDeletion(ctx, { kind: "comment", targetId: "u1" }));
     expect(e).not.toBe(c);
   });
 
@@ -311,7 +311,7 @@ describe("failure, re-drive, give-up", () => {
 
   test("prune drops done rows older than 30 days and nothing else", async () => {
     const t = convexTest(schema);
-    const base = { kind: "avatar" as const, targetId: "x", cursor: null, stepId: "", createdAt: 1, lastProgressAt: 1, restarts: 0, attempts: 0, pages: 0, writes: 0 };
+    const base = { kind: "message" as const, targetId: "x", cursor: null, stepId: "", createdAt: 1, lastProgressAt: 1, restarts: 0, attempts: 0, pages: 0, writes: 0 };
     const now = Date.now();
     await t.run(async (ctx) => {
       await ctx.db.insert("deletions", { ...base, state: "done", finishedAt: now - 31 * 86400_000 });

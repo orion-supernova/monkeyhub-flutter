@@ -159,7 +159,7 @@ export const listForRoom = query({
       .withIndex("by_room_user_message", (q) =>
         q.eq("roomId", roomId).eq("userId", userId)
       )
-      .collect();
+      .take(MAX_BOOKMARKS_PER_ROOM);
 
     const resolved = await Promise.all(
       rows.map(async (row) => {

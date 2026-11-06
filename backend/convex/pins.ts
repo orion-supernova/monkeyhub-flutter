@@ -140,7 +140,7 @@ export const listForRoom = query({
     const rows = await ctx.db
       .query("pinnedMessages")
       .withIndex("by_room_message", (q) => q.eq("roomId", roomId))
-      .collect();
+      .take(MAX_PINS_PER_ROOM);
 
     const resolved = await Promise.all(
       rows.map(async (row) => {

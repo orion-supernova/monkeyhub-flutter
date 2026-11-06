@@ -105,7 +105,7 @@ describe("typing indicators", () => {
     expect(await all(t, "typingIndicators")).toHaveLength(0);
   });
 
-  test("getTypingForUser reads one room when given roomId, all rooms otherwise", async () => {
+  test("getTypingForUser reads only the listed rooms the viewer can read", async () => {
     const t = convexTest(schema);
     const { a, b, userId, otherId, room } = await world(t);
     const second = (await t.mutation(api.rooms.create, {
@@ -124,19 +124,19 @@ describe("typing indicators", () => {
       }
     });
     const base = { sessionToken: a.token, userId };
-    const everything = await t.query(api.typing.getTypingForUser, base);
-    expect(Object.keys(everything).sort()).toEqual([room.toString(), second.toString()].sort());
-    const one = await t.query(api.typing.getTypingForUser, { ...base, roomId: room });
-    expect(one).toEqual({ [room.toString()]: ["bob"] });
+    const both: any = await t.query(api.typing.getTypingForUser, { ...base, roomIds: [room, second] });
+    expect(Object.keys(both.rooms).sort()).toEqual([room.toString(), second.toString()].sort());
+    const one: any = await t.query(api.typing.getTypingForUser, { ...base, roomIds: [room] });
+    expect(one.rooms).toEqual({ [room.toString()]: ["bob"] });
     // A room the asker is not in yields nothing.
     const stranger = await t.query(api.typing.getTypingForUser, {
       sessionToken: b.token,
       userId: otherId,
-      roomId: (await t.mutation(api.rooms.create, {
+      roomIds: [(await t.mutation(api.rooms.create, {
         sessionToken: a.token, userId, name: "vault", isPrivate: true,
-      })) as any,
+      })) as any],
     });
-    expect(stranger).toEqual({});
+    expect((stranger as any).rooms).toEqual({});
   });
 });
 

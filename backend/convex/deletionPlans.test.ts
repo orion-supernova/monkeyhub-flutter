@@ -101,7 +101,5 @@ describe("delete plans", () => {
     const ids = planFor("room").map((s) => s.id);
     expect(ids).toContain("generic:roomBans.roomId"); // roomAccess.roomId is a custom step (WP-C)
     expect(ids).toContain("generic:friendships.roomId");
-    // The retired `avatar` kind has no steps: a leftover job finishes at once.
-    expect(planFor("avatar")).toEqual([]);
   });
 });

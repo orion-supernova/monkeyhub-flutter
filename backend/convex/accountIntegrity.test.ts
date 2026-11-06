@@ -9,6 +9,17 @@ import { suspendAccount } from "./moderation";
 import { drainDeletions } from "./deletionTestUtils";
 import schema from "./schema";
 
+/** The full catalog (official packs with stickers, then the caller's own), from the live queries. */
+async function catalogOf(t: any, token: string): Promise<any[]> {
+  const out: any[] = [];
+  for (const p of await t.query(api.expressions.packList, { sessionToken: token })) {
+    out.push({ ...p, stickers: await t.query(api.expressions.packStickers, { sessionToken: token, packId: p._id }) });
+  }
+  const mine = await t.query(api.expressions.personalPack, { sessionToken: token });
+  if (mine) out.push(mine);
+  return out;
+}
+
 /**
  * Phase 0 of the data-integrity plan, the account half: what deleting,
  * suspending, signing in and unlinking an account leaves behind.
@@ -429,9 +440,7 @@ describe("item 7 (reversed): deleting an account deletes its stickers' files", (
     // Refused as a sticker: whatever was stored carries no reference to it.
     const sent: any = await t.run((ctx) => ctx.db.get(sentId as any));
     expect(sent.stickerId).toBeUndefined();
-    const catalog: any[] = await t.query(api.expressions.packs, {
-      sessionToken: other.token,
-    } as any);
+    const catalog: any[] = await catalogOf(t, other.token);
     expect(catalog.flatMap((p) => p.stickers ?? []).map((s: any) => s._id)).not.toContain(
       stickerId,
     );

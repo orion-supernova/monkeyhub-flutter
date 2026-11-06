@@ -6,6 +6,17 @@ import { emojiForCode, OFFICIAL_PACKS } from "./expressions";
 import { isKlipyUrl, permissionsFor, roomPreviewFor } from "./messages";
 import schema from "./schema";
 
+/** The full catalog (official packs with stickers, then the caller's own), from the live queries. */
+async function catalogOf(t: any, token: string): Promise<any[]> {
+  const out: any[] = [];
+  for (const p of await t.query(api.expressions.packList, { sessionToken: token })) {
+    out.push({ ...p, stickers: await t.query(api.expressions.packStickers, { sessionToken: token, packId: p._id }) });
+  }
+  const mine = await t.query(api.expressions.personalPack, { sessionToken: token });
+  if (mine) out.push(mine);
+  return out;
+}
+
 /**
  * GIFs and stickers: what `messages:send` lets onto a row, what the child
  * guard makes of it, and the recents/favourites/personal-pack bookkeeping.
@@ -408,10 +419,8 @@ describe("personal stickers", () => {
       width: 400,
       height: 400,
     });
-    const mine = await t.query(api.expressions.packs, { sessionToken: me.token });
-    const theirs = await t.query(api.expressions.packs, {
-      sessionToken: stranger.token,
-    });
+    const mine = await catalogOf(t, me.token);
+    const theirs = await catalogOf(t, stranger.token);
     expect(mine.map((p: any) => p.kind)).toEqual(["personal"]);
     expect(theirs).toEqual([]);
   });
@@ -533,7 +542,7 @@ describe("official packs", () => {
   test("a retired pack leaves the catalog, keeps its blobs, and reseeds", async () => {
     const { t, me } = await setup();
     const { storageId } = await officialSticker(t);
-    const before = await t.query(api.expressions.packs, { sessionToken: me.token });
+    const before = await catalogOf(t, me.token);
     expect(before.map((p: any) => p.slug)).toEqual(["test-pack"]);
 
     const { retired } = await t.mutation(
@@ -541,7 +550,7 @@ describe("official packs", () => {
       { slug: "test-pack" }
     );
     expect(retired).toBe(1);
-    expect(await t.query(api.expressions.packs, { sessionToken: me.token })).toEqual([]);
+    expect(await catalogOf(t, me.token)).toEqual([]);
     // Stickers already sent still point at the old file.
     await t.mutation(internal.files.reapUnreferenced, {});
     expect(await t.run((ctx) => ctx.db.system.get(storageId))).not.toBeNull();
@@ -564,7 +573,7 @@ describe("official packs", () => {
       order: 0,
       format: "image",
     });
-    const after = await t.query(api.expressions.packs, { sessionToken: me.token });
+    const after = await catalogOf(t, me.token);
     expect(after[0].stickers.map((s: any) => [s.emoji, s.format])).toEqual([
       ["🐵", "image"],
     ]);

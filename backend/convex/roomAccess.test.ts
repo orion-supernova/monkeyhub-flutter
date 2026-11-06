@@ -59,7 +59,6 @@ describe("room reads are members-only", () => {
         beforeTimestamp: Date.now() + 1000,
       }),
     ).toEqual([]);
-    expect(await t.query(api.rooms.getRoom, asStranger)).toBeNull();
     expect(await t.query(api.rooms.getMembers, asStranger)).toEqual([]);
     expect(await t.query(api.pins.listForRoom, asStranger)).toEqual([]);
     expect(

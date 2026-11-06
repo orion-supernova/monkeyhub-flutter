@@ -570,24 +570,3 @@ export const decideJoinRequest = mutation({
     });
   },
 });
-
-/**
- * "Have I already asked?" for the requester's own screen — the one query about
- * a join request that a non-member is allowed to run, because it only ever
- * returns their own row.
- */
-export const myJoinRequest = query({
-  args: { roomId: v.id("rooms"), userId: v.id("users") },
-  handler: async (ctx, { roomId, userId }) => {
-    const rows = await ctx.db
-      .query("roomJoinRequests")
-      .withIndex("by_room_user", (q: any) =>
-        q.eq("roomId", roomId).eq("userId", userId),
-      )
-      .collect();
-    if (rows.length === 0) return null;
-    rows.sort((a: any, b: any) => b.createdAt - a.createdAt);
-    const r = rows[0];
-    return { requestId: r._id, status: r.status, createdAt: r.createdAt };
-  },
-});

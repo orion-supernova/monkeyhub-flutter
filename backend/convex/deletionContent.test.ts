@@ -477,7 +477,7 @@ describe("avatar", () => {
     expect(((await get(t, me.userId)) as any).avatarStorageId).toBe(b);
     expect(await exists(t, a)).toBe(false);
     expect(await exists(t, b)).toBe(true);
-    expect(await jobs(t, "avatar")).toHaveLength(0);
+    expect(await jobs(t)).toHaveLength(0);
   });
 
   test("A to B to C leaves only C", async () => {
@@ -500,7 +500,7 @@ describe("avatar", () => {
     await set(a);
     await drain(t);
     expect(await exists(t, a)).toBe(true);
-    expect(await jobs(t, "avatar")).toHaveLength(0);
+    expect(await jobs(t)).toHaveLength(0);
   });
 });
 

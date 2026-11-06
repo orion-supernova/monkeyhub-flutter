@@ -171,9 +171,7 @@ function defaultParentStep(table: "users" | "rooms"): Step {
  * unclaimed, non-exempt generic rule, and (user, room) the parent row last.
  * A custom step with id `"parent"` replaces the default parent step.
  */
-export function planFor(kind: DeletionKind | "avatar"): Step[] {
-  // A leftover `avatar` job (retired kind, see schema.ts) has no steps: it finishes at once.
-  if (kind === "avatar") return [];
+export function planFor(kind: DeletionKind): Step[] {
   const custom = CUSTOM_STEPS[kind];
   const claimed = new Set(custom.flatMap((s) => s.claims ?? []));
   const generic = coveredKeys(kind)

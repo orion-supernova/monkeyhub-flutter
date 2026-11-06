@@ -298,21 +298,6 @@ export const createPairingCode = mutation({
   },
 });
 
-export const revokePairingCode = mutation({
-  identityArg: "guardianId" as const,
-  args: { guardianId: v.id("users"), childId: v.id("users") },
-  handler: async (ctx, { guardianId, childId }) => {
-    await assertGuardian(ctx, guardianId, childId);
-    const rows = await ctx.db
-      .query("pairingCodes")
-      .withIndex("by_child", (q) => q.eq("childId", childId))
-      .collect();
-    for (const r of rows) {
-      if (!r.consumedAt) await ctx.db.delete(r._id);
-    }
-  },
-});
-
 /**
  * Redeems a pairing code on the child's device. Single-use: the row is stamped
  * consumed, so a shoulder-surfed code is dead the moment it's used. Returns
@@ -1286,33 +1271,6 @@ export const getFamilyContext = query({
       children,
       pendingCount,
     };
-  },
-});
-
-/** The child's own "waiting on a grown-up" list. */
-export const listMyApprovals = query({
-  identityArg: "childId" as const,
-  args: { childId: v.id("users") },
-  handler: async (ctx, { childId }) => {
-    const rows = await ctx.db
-      .query("approvalRequests")
-      .withIndex("by_child_status", (q) =>
-        q.eq("childId", childId).eq("status", "pending"),
-      )
-      .collect();
-    const out = [];
-    for (const r of rows) {
-      const room = r.targetRoomId ? await ctx.db.get(r.targetRoomId) : null;
-      if (isTombstoned(room)) continue;
-      out.push({
-        _id: r._id,
-        kind: r.kind,
-        createdAt: r.createdAt,
-        roomId: r.targetRoomId,
-        roomName: room?.name ?? null,
-      });
-    }
-    return out;
   },
 });
 

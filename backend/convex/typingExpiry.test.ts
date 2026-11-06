@@ -71,22 +71,16 @@ describe("typing indicators carry their deadline", () => {
     expect(typists[0].typingUntil).toBe(NOW - 2000 + 8000);
   });
 
-  test("the room list: bare map by default, deadlines when asked", async () => {
+  test("the room list answers rooms and deadlines", async () => {
     const t = convexTest(schema);
     const me = await signUp(t, "murat");
     const them = await signUp(t, "zeynep");
     const roomId = await sharedRoom(t, me.userId, them.userId);
 
-    const bare = await t.query(api.typing.getTypingForUser, {
-      sessionToken: me.token,
-      userId: me.userId,
-    } as any);
-    expect(bare).toEqual({ [roomId]: ["zeynep"] });
-
     const rich = await t.query(api.typing.getTypingForUser, {
       sessionToken: me.token,
       userId: me.userId,
-      withUntil: true,
+      roomIds: [roomId],
     } as any);
     expect(rich).toEqual({
       rooms: { [roomId]: ["zeynep"] },

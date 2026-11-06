@@ -5,19 +5,14 @@
  * every per-member cursor, so every read, delivery, pin and mute write
  * re-ran every query that listed the roster. It is now three rows:
  *
- *  - `roomMembers`    roster + role (the legacy cursor fields are stripped by
- *                     `cleanupMigration` and leave the schema in deploy 2),
+ *  - `roomMembers`    roster + role,
  *  - `roomUserState`  private: read position, pin/archive/mute (chat list,
  *                     badges, push, send),
  *  - `roomReceipts`   public: delivered / read cursors, vanish cursor
  *                     (read-state, seen-by, vanish).
  *
- * The migration is finished ([STATE_MARKER] is set in production): every
- * membership has both rows and no reader falls back to `roomMembers`.
+ * Every membership has both rows and no reader falls back to `roomMembers`.
  */
-
-/** Marker set by `roomStateMigration.finish` once every membership has rows (only that module reads it). */
-export const STATE_MARKER = "roomUserState";
 
 /** Deleted messages older than this log no gap row; stale cursors scan instead. */
 export const GAP_HORIZON_MS = 180 * 24 * 60 * 60 * 1000;
@@ -140,8 +135,9 @@ export async function deleteMemberRows(ctx: any, roomId: any, userId: any): Prom
 }
 
 /**
- * Mute columns for every member of a room, preferring the state row over the
- * (legacy) membership row. [rows] are the `roomMembers` rows the caller holds.
+ * Mute columns for every member of a room, merged onto the `roomMembers` rows
+ * the caller already holds. Reads every state row: when the caller has no
+ * roster of its own, use [muteRoster].
  */
 export async function withMuteState(ctx: any, roomId: any, rows: any[]): Promise<any[]> {
   const states = await ctx.db
@@ -154,6 +150,20 @@ export async function withMuteState(ctx: any, roomId: any, rows: any[]): Promise
     const s = byUser.get(m.userId.toString());
     return s ? { ...m, ...pickMute(s) } : m;
   });
+}
+
+/**
+ * The room's roster with mute columns, from `roomUserState` alone (it carries
+ * `userId`, and every membership has exactly one): N reads instead of the
+ * 2N of `roomMembers` + [withMuteState]. For fan-outs that need nothing but
+ * who is in the room and whether they muted it.
+ */
+export async function muteRoster(ctx: any, roomId: any): Promise<any[]> {
+  const states = await ctx.db
+    .query("roomUserState")
+    .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
+    .collect();
+  return states.map((s: any) => ({ userId: s.userId, ...pickMute(s) }));
 }
 
 function pickMute(s: any) {

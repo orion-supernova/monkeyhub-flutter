@@ -13,7 +13,7 @@ import { assertNoSystemAccount, assertNotSystemRoom } from "./systemAccount";
 import { assertCleanName, assertCleanText } from "./contentFilter";
 import { lensFor, levelOf, seenVisibilityOf } from "./visibility";
 import { roomUnread } from "./unread";
-import { stateOf, withMuteState } from "./roomState";
+import { muteRoster, stateOf } from "./roomState";
 import { MUTE_ALWAYS, resolveMute } from "./mute";
 import { attachFile, claimUpload, releaseFile } from "./files";
 import { wipeRoomCompletely } from "./roomCleanup";
@@ -473,9 +473,8 @@ function viewerFields(m: any): Record<string, any> {
  * `scope` ("active" | "archived") narrows to one half of the viewer's list;
  * absent means everything, which is what builds already in users' hands expect.
  *
- * `lastDeliveredAt` is always null: reading it would make the list re-run on
- * every delivery report. Builds that used it to skip already-reported rooms
- * now send at most one no-op delivery mutation per room with unread.
+ * No `lastDeliveredAt`: reading it would make the list re-run on every
+ * delivery report.
  */
 export const listUserRooms = query({
   args: {
@@ -519,7 +518,6 @@ export const listUserRooms = query({
           ...listCard(room),
           participantIds,
           lastReadAt: s.readAt ?? null,
-          lastDeliveredAt: null,
           unreadCount: unread.count,
           unreadCapped: unread.capped,
           hasMention: unread.hasMention,
@@ -537,7 +535,8 @@ export const listUserRooms = query({
 /**
  * How many rooms the viewer has archived, for the "Archived (n)" row that sits
  * above a list fetched with `scope: "active"`. Reads only the state rows in the
- * archived half of the index.
+ * archived half of the index. Not called by the app yet: it is the server half
+ * of the archived-chats split (handbook C4), kept for that app change.
  */
 export const archivedCount = query({
   args: { userId: v.id("users") },
@@ -814,14 +813,7 @@ export const getMemberIds = internalQuery({
         msg.mediaSpoiler !== true;
     }
     // Mute lives on `roomUserState` (C1).
-    const memberRows = await withMuteState(
-      ctx,
-      roomId,
-      await ctx.db
-        .query("roomMembers")
-        .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
-        .collect(),
-    );
+    const memberRows = await muteRoster(ctx, roomId);
     const now = Date.now();
     const filtered = memberRows.filter(
       (m) => m.userId.toString() !== excludeUserId.toString(),
@@ -909,22 +901,6 @@ export const getMemberIds = internalQuery({
       plain,
       members,
     };
-  },
-});
-
-export const getRoom = query({
-  args: { roomId: v.id("rooms") },
-  handler: async (ctx, { roomId, userId }) => {
-    const room = await ctx.db.get(roomId);
-    if (!room || isTombstoned(room)) return null;
-    const members = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
-      .collect();
-    // Members only: the row carries `lastMessage`, a DM's preview text.
-    if (!members.some((m) => m.userId === userId)) return null;
-    const { passwordHash, ...rest } = room;
-    return { ...rest, participantIds: members.map((m) => m.userId.toString()), hasPassword: !!passwordHash };
   },
 });
 
@@ -1096,28 +1072,6 @@ export const ensureSavedMessagesRoom = mutation({
       true,
     );
     return roomId;
-  },
-});
-
-export const isMember = query({
-  args: { roomId: v.id("rooms"), userId: v.id("users") },
-  handler: async (ctx, { roomId, userId }) => {
-    const member = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
-      .first();
-    return !!member;
-  },
-});
-
-export const getMembership = query({
-  args: { roomId: v.id("rooms"), userId: v.id("users") },
-  handler: async (ctx, { roomId, userId }) => {
-    const m = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
-      .first();
-    return m ? { role: m.role } : null;
   },
 });
 

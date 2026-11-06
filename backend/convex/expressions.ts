@@ -56,68 +56,7 @@ export const config = query({
   },
 });
 
-/**
- * The whole catalog: every official pack in order, then the caller's own
- * personal pack if they have made any stickers.
- *
- * The catalog, not the caller's strip — which packs they have ADDED lives in
- * [state], deliberately. This query resolves a URL for every sticker (~400
- * `getUrl` calls), and reading the per-user row here would re-run all of that
- * on every recents update, i.e. on every sticker anybody sends. Kept apart,
- * it re-runs only when a pack itself changes.
- */
-export const packs = query({
-  args: {},
-  handler: async (ctx, { userId }) => {
-    const official = await ctx.db
-      .query("stickerPacks")
-      .withIndex("by_kind_order", (q) => q.eq("kind", "official"))
-      .collect();
-    const personal = await ctx.db
-      .query("stickerPacks")
-      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
-      .collect();
-
-    const out = [];
-    for (const pack of [...official, ...personal]) {
-      const rows = await ctx.db
-        .query("stickers")
-        .withIndex("by_pack_order", (q) => q.eq("packId", pack._id))
-        .collect();
-      const stickers = [];
-      for (const s of rows) {
-        if (s.deletedAt !== undefined) continue;
-        const url = await ctx.storage.getUrl(s.storageId);
-        if (!url) continue;
-        stickers.push({
-          _id: s._id,
-          storageId: s.storageId,
-          url,
-          format: s.format,
-          emoji: s.emoji,
-          width: s.width,
-          height: s.height,
-        });
-      }
-      // An official pack whose seed failed half-way is not worth a tab; the
-      // personal pack is always shown so its owner can see it is empty.
-      if (stickers.length === 0 && pack.kind === "official") continue;
-      out.push({
-        _id: pack._id,
-        slug: pack.slug,
-        title: pack.title,
-        kind: pack.kind,
-        author: pack.author,
-        license: pack.license,
-        sourceUrl: pack.sourceUrl,
-        stickers,
-      });
-    }
-    return out;
-  },
-});
-
-/** One sticker as the picker draws it (the shape `packs` has always used). */
+/** One sticker as the picker draws it. */
 function stickerShape(s: any, url: string) {
   return {
     _id: s._id,
