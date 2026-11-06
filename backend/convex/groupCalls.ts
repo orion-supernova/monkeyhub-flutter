@@ -704,6 +704,102 @@ export const sendHuddlePush = internalAction({
   },
 });
 
+/// Ring more people into a call that is already going (the huddle's "Ring
+/// someone"). The caller must be in it. Each person is run through the same
+/// gates `start` applies (room membership, blocks both ways, child guard), and
+/// anyone already in the call, or already being rung, is skipped. Returns how
+/// many were rung.
+export const ringInto = mutation({
+  args: {
+    groupCallId: v.id("groupCalls"),
+    userId: v.id("users"),
+    inviteeIds: v.array(v.id("users")),
+  },
+  handler: async (ctx, { groupCallId, userId, inviteeIds }) => {
+    const call = await ctx.db.get(groupCallId);
+    if (!call || call.status !== "active") throw new Error("CALL_ENDED");
+    const mine = await participantRow(ctx, groupCallId, userId);
+    if (!mine || mine.status !== "joined") throw new Error("NOT_IN_CALL");
+    await consume(ctx, `gcallr:${userId}`, 10, 60 * 1000);
+
+    const members = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room_user", (q) => q.eq("roomId", call.roomId))
+      .collect();
+    const memberIds = new Set(members.map((m: any) => m.userId.toString()));
+    const joinedNow = await joinedParticipants(ctx, groupCallId);
+    const now = Date.now();
+    const rung: any[] = [];
+    for (const inviteeId of inviteeIds) {
+      if (rung.length >= MAX_RING_INVITEES) break;
+      const key = inviteeId.toString();
+      if (key === userId.toString() || !memberIds.has(key)) continue;
+      if (rung.some((i) => i.toString() === key)) continue;
+      if (joinedNow.length + rung.length >= MAX_GROUP_CALL_PARTICIPANTS) break;
+      const row = await participantRow(ctx, groupCallId, inviteeId);
+      // Already in, or already ringing: ringing again would just buzz the
+      // same phone twice.
+      if (row?.status === "joined" || row?.status === "invited") continue;
+      const blocked = await ctx.db
+        .query("blocks")
+        .withIndex("by_pair", (q: any) =>
+          q.eq("userId", userId).eq("blockedUserId", inviteeId),
+        )
+        .first();
+      const blockedRev = await ctx.db
+        .query("blocks")
+        .withIndex("by_pair", (q: any) =>
+          q.eq("userId", inviteeId).eq("blockedUserId", userId),
+        )
+        .first();
+      if (blocked || blockedRev) continue;
+      let guarded = false;
+      for (const [a, b] of [
+        [userId, inviteeId],
+        [inviteeId, userId],
+      ]) {
+        const policy = await childPolicyOf(ctx, a);
+        if (policy === null) continue;
+        if (!policy.callsEnabled || !(await childMayReach(ctx, a, b))) {
+          guarded = true;
+          break;
+        }
+      }
+      if (guarded) continue;
+      if (row) {
+        await ctx.db.patch(row._id, { status: "invited", invitedAt: now });
+      } else {
+        await ctx.db.insert("groupCallParticipants", {
+          groupCallId,
+          userId: inviteeId,
+          status: "invited",
+          invitedAt: now,
+        });
+      }
+      rung.push(inviteeId);
+    }
+    if (rung.length === 0) return { rung: 0 };
+
+    const starter = await ctx.db.get(userId);
+    const room = await ctx.db.get(call.roomId);
+    await ctx.scheduler.runAfter(0, internal.voipPush.sendGroupVoip, {
+      groupCallId,
+      roomId: call.roomId,
+      inviteeIds: rung,
+      starterName: starter?.name ?? starter?.username ?? "Someone",
+      roomName: room?.name ?? "a room",
+      type: call.type,
+      perUser: {},
+    });
+    await ctx.scheduler.runAfter(
+      INVITE_RING_WINDOW_MS,
+      internal.groupCalls._expireRingers,
+      { groupCallId },
+    );
+    return { rung: rung.length };
+  },
+});
+
 export const join = mutation({
   args: {
     groupCallId: v.id("groupCalls"),

@@ -51,6 +51,22 @@ class GroupCallApi {
     );
   }
 
+  /// Rings [inviteeIds] into the call already going (a huddle's "Ring
+  /// someone"). Returns how many were actually rung; the server skips anyone
+  /// in the call, blocked, or not in the room.
+  Future<int> ringInto({
+    required String groupCallId,
+    required String userId,
+    required List<String> inviteeIds,
+  }) async {
+    final res = await _cv.mutation('groupCalls:ringInto', {
+      'groupCallId': groupCallId,
+      'userId': userId,
+      'inviteeIds': inviteeIds,
+    });
+    return ((res as Map)['rung'] as num?)?.toInt() ?? 0;
+  }
+
   Future<void> leave({
     required String groupCallId,
     required String userId,

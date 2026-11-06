@@ -25452,6 +25452,270 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t invite {names}. You can invite them from the room.'**
   String newRoomInviteFailed(String names);
+
+  /// Huddle bar text while you are alone in the huddle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody else here yet'**
+  String get huddleBarNobodyElse;
+
+  /// Huddle bar text with two other people in it.
+  ///
+  /// In en, this message translates to:
+  /// **'{first} and {second}'**
+  String huddleBarNamesTwo(String first, String second);
+
+  /// Huddle bar text with three or more other people: the first name and how many more.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} and {count, plural, one{1 other} other{{count} others}}'**
+  String huddleBarNamesMore(int count, String name);
+
+  /// Screen-reader label of the huddle bar; names says who is here.
+  ///
+  /// In en, this message translates to:
+  /// **'Huddle. {names}'**
+  String huddleBarSemantics(String names);
+
+  /// Screen-reader label for the middle of the huddle bar, which opens the call screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open huddle'**
+  String get huddleBarOpenSemantics;
+
+  /// Screen-reader label of the collapsed huddle chip on the dock shelf.
+  ///
+  /// In en, this message translates to:
+  /// **'Huddle is live'**
+  String get huddleChipSemantics;
+
+  /// Call-screen control inside a huddle: opens the people picker and rings the chosen people into the huddle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ring someone'**
+  String get huddleRingSomeone;
+
+  /// Toast when ringing people into a huddle fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t ring them. Try again.'**
+  String get huddleRingFailed;
+
+  /// Local-only line shown to the person who started a huddle that ended with nobody else joining.
+  ///
+  /// In en, this message translates to:
+  /// **'You wanted to talk · Nobody joined'**
+  String get huddleAloneLine;
+
+  /// System line left in a room after a huddle that others joined.
+  ///
+  /// In en, this message translates to:
+  /// **'Huddle · {duration} · {people}'**
+  String huddleHistoryLine(String duration, String people);
+
+  /// How many people were in a finished huddle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} person} other{{count} people}}'**
+  String huddlePeopleCount(int count);
+
+  /// Duration of a finished huddle shorter than one minute.
+  ///
+  /// In en, this message translates to:
+  /// **'under a minute'**
+  String get huddleDurationUnderMinute;
+
+  /// Duration of a finished huddle in minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min'**
+  String huddleDurationMinutes(int count);
+
+  /// Duration of a finished huddle of an hour or more; minutes is zero-padded.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h {minutes} min'**
+  String huddleDurationHours(int hours, String minutes);
+
+  /// Chat-list label of a room with a live huddle.
+  ///
+  /// In en, this message translates to:
+  /// **'Huddle'**
+  String get liveCallChipHuddle;
+
+  /// Line under a chat's name while vanish mode is on.
+  ///
+  /// In en, this message translates to:
+  /// **'vanish on'**
+  String get vanishHeaderStatus;
+
+  /// Placeholder of the message field while vanish mode is on.
+  ///
+  /// In en, this message translates to:
+  /// **'Vanishing message · keep it short'**
+  String get vanishComposerHint;
+
+  /// Quiet line above the message field when a vanishing message runs long (over about 160 characters).
+  ///
+  /// In en, this message translates to:
+  /// **'Long messages may vanish before they\'re finished'**
+  String get vanishLongHint;
+
+  /// Tiny label next to a vanishing message's time: it is on its 24-hour clock because not everyone has read it (or shares reads). Keep it very short.
+  ///
+  /// In en, this message translates to:
+  /// **'24h'**
+  String get vanishClockLabel;
+
+  /// Screen-reader text for a vanishing message's 24h clock: time left, in hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Vanishes in {hours, plural, =1{1 hour} other{{hours} hours}}'**
+  String vanishLeftHours(int hours);
+
+  /// Screen-reader text for a vanishing message's 24h clock: time left, in minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Vanishes in {minutes, plural, =1{1 minute} other{{minutes} minutes}}'**
+  String vanishLeftMinutes(int minutes);
+
+  /// Screen-reader text for the small ring that drains on a vanishing message once everyone has seen it.
+  ///
+  /// In en, this message translates to:
+  /// **'Vanishing soon'**
+  String get vanishRingSemantics;
+
+  /// Screen-reader label for a vanishing message shown sealed on a platform that cannot block screenshots (web, Linux).
+  ///
+  /// In en, this message translates to:
+  /// **'Vanishing message. Opens in the app'**
+  String get vanishSealedSemantics;
+
+  /// The name used for yourself in a vanish-mode system line, like 'You turned on vanish mode.'
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get vanishSysYou;
+
+  /// Vanish timer option: how long after everyone has seen a message it disappears.
+  ///
+  /// In en, this message translates to:
+  /// **'10 seconds'**
+  String get vanishAfterSeen10;
+
+  /// Vanish timer option: how long after everyone has seen a message it disappears.
+  ///
+  /// In en, this message translates to:
+  /// **'1 minute'**
+  String get vanishAfterSeen60;
+
+  /// Vanish timer option: how long after everyone has seen a message it disappears.
+  ///
+  /// In en, this message translates to:
+  /// **'1 hour'**
+  String get vanishAfterSeen3600;
+
+  /// Vanish timer for an unusual number of seconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} seconds'**
+  String vanishAfterSeenOther(int count);
+
+  /// System line in a chat when vanish mode is turned on. {name} is who did it (or 'You'), {timer} is like '10 seconds' or '1 hour'. A tappable 'Change' follows it.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} turned on vanish mode. New messages disappear {timer} after everyone has seen them, or after 24 hours at most. Screenshots are blocked.'**
+  String vanishSysOn(String name, String timer);
+
+  /// System line in a chat when the vanish timer is changed. {name} is who did it (or 'You'), {timer} is like '1 minute'.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} changed vanish mode. New messages disappear {timer} after everyone has seen them.'**
+  String vanishSysChange(String name, String timer);
+
+  /// System line in a chat when vanish mode is turned off. {name} is who did it (or 'You').
+  ///
+  /// In en, this message translates to:
+  /// **'{name} turned off vanish mode. Messages sent while it was on still disappear on time.'**
+  String vanishSysOff(String name);
+
+  /// Tappable word at the end of the vanish-mode system line; opens the timer picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get vanishSysChangeAction;
+
+  /// Title of the small sheet that picks how long after everyone has seen a message it disappears.
+  ///
+  /// In en, this message translates to:
+  /// **'Vanish after seen'**
+  String get vanishTimerPickerTitle;
+
+  /// Card in a vanishing 1:1 chat for someone who hides their Seen. {name} is the other person, {timer} is like '10 seconds'.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t share Seen, so {name}\'s messages to you last 24 hours. Yours still vanish {timer} after {name} sees them. Share your reads here so theirs vanish too?'**
+  String vanishCardDm(String name, String timer);
+
+  /// Card in a vanishing group chat for someone who hides their Seen. {timer} is like '10 seconds'.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t share Seen, so messages sent to you here last 24 hours. Share your reads here so they vanish {timer} after everyone has seen them?'**
+  String vanishCardGroup(String timer);
+
+  /// Footnote on the hidden-Seen card and on the note that replaces it. 'Settings › Privacy' names the screens in the app.
+  ///
+  /// In en, this message translates to:
+  /// **'You can change this anytime in Settings › Privacy.'**
+  String get vanishSettingsNote;
+
+  /// Button on the hidden-Seen card: share reads in this chat only.
+  ///
+  /// In en, this message translates to:
+  /// **'Share my reads here'**
+  String get vanishCardShare;
+
+  /// Button on the hidden-Seen card: keep reads hidden in this chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t share here'**
+  String get vanishCardKeep;
+
+  /// Screen-reader label of the small close button on the hidden-Seen card; closing it means not sharing.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t share here'**
+  String get vanishCardDismissSemantics;
+
+  /// Note shown after answering 'Share my reads here'. {timer} is like '10 seconds'.
+  ///
+  /// In en, this message translates to:
+  /// **'You share your reads here, so messages vanish {timer} after everyone has seen them.'**
+  String vanishNoteShared(String timer);
+
+  /// Note shown after answering 'Don't share here'.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t share your reads here, so messages sent to you last 24 hours.'**
+  String get vanishNoteKept;
+
+  /// Shown in a reply's quote when the message it answered has vanished.
+  ///
+  /// In en, this message translates to:
+  /// **'Vanished'**
+  String get vanishedParent;
+
+  /// Body of the sheet shown when someone taps a sealed vanishing message in a browser or on Linux.
+  ///
+  /// In en, this message translates to:
+  /// **'{platform, select, web{Your browser can\'t block screenshots, so vanishing messages stay sealed here and never count as read. Open this chat in MonkeyHub on your phone, or on a Mac or Windows computer.} other{Linux can\'t block screenshots, so vanishing messages stay sealed here and never count as read. Open this chat in MonkeyHub on your phone, or on a Mac or Windows computer.}}'**
+  String appOnlyVanishBody(String platform);
+
+  /// Row on that sheet: a sealed vanishing message cannot start anyone's disappearing timer.
+  ///
+  /// In en, this message translates to:
+  /// **'Sealed messages never count as read'**
+  String get appOnlyVanishUnread;
 }
 
 class _AppLocalizationsDelegate

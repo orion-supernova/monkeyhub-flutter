@@ -14,6 +14,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_preference.dart' show AppThemeBrightness;
 import '../theme/theme_scope.dart';
 import 'app_toast.dart';
+import 'huddle_bar.dart' show HuddleWaveGlyph;
 import 'spring_press.dart';
 
 // A call going on in a room, as the chat list shows it in every layout: a
@@ -98,6 +99,7 @@ class _LiveCallHaloState extends State<LiveCallHalo>
   @override
   Widget build(BuildContext context) {
     final call = widget.call;
+    final huddle = call?.isHuddle ?? false;
     return TweenAnimationBuilder<double>(
       tween: Tween(end: _target),
       duration: const Duration(milliseconds: 420),
@@ -115,10 +117,11 @@ class _LiveCallHaloState extends State<LiveCallHalo>
               // in the room the avatar always had.
               Positioned.fill(
                 child: Transform.scale(
-                  scale: 1 - 0.14 * on.clamp(0.0, 1.0),
+                  scale: huddle ? 1 : 1 - 0.14 * on.clamp(0.0, 1.0),
                   child: child,
                 ),
               ),
+              if (!huddle)
               Positioned.fill(
                 child: IgnorePointer(
                   child: RepaintBoundary(
@@ -388,8 +391,11 @@ class LiveCallChip extends StatelessWidget {
       under,
     );
     final ink = liveCallInk(fill);
-    final label =
-        call.video ? l10n.liveCallChipVideo : l10n.liveCallChipVoice;
+    final label = call.isHuddle
+        ? l10n.liveCallChipHuddle
+        : call.video
+            ? l10n.liveCallChipVideo
+            : l10n.liveCallChipVoice;
     final people = call.groupCallId != null
         ? l10n.groupCallScreenParticipantCount(call.count)
         : null;
@@ -449,7 +455,9 @@ class LiveCallChip extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                LiveCallGlyph(video: call.video, size: glyph, color: ink),
+                call.isHuddle
+                    ? HuddleWaveGlyph(size: glyph, color: ink)
+                    : LiveCallGlyph(video: call.video, size: glyph, color: ink),
                 if (any) SizedBox(width: gap),
                 if (show.label)
                   Flexible(

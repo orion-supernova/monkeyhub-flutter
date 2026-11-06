@@ -245,6 +245,10 @@ MessageCapabilities messageCapabilitiesFor({
   final isPending = message.id.startsWith('tmp_');
   final isSent = message.status == MessageStatus.sent;
   final isSystem = message.type == MessageType.system;
+  // A vanishing message cannot be carried out of the chat: not copied,
+  // forwarded, saved or translated (the server refuses a forward with
+  // SOURCE_IS_EPHEMERAL). Replying stays: the quote goes with the parent.
+  final vanishing = message.vanishUntil != null;
   // No `isInteractive` local, deliberately, even though a poll/checklist/event
   // changes four of the answers below. Each of those rules already excludes it
   // for a reason of its own — EDIT and COPY through `isEditableText`, which
@@ -289,8 +293,12 @@ MessageCapabilities messageCapabilitiesFor({
     // copy a FRESH one — same question, no answers, open even if the original
     // was closed. See `forkInteraction`: carrying the votes would attribute
     // this room's members' answers to people who are not in it.
-    canForward:
-        !isPending && isSent && !isSystem && !roomIsEphemeral && !message.viewOnce,
+    canForward: !isPending &&
+        isSent &&
+        !isSystem &&
+        !roomIsEphemeral &&
+        !message.viewOnce &&
+        !vanishing,
     canViewThread: message.isReply,
     // `isEditableText`, not a bare `type == text`: `url` is the same
     // grandfathered text-with-a-link content EDIT already treats as text
@@ -303,13 +311,15 @@ MessageCapabilities messageCapabilitiesFor({
     // the answers — which reads, on the clipboard, exactly like a text message
     // somebody sent. The thing worth carrying away from a poll is its result,
     // and that is the respondents sheet's job rather than the clipboard's.
-    canCopy: isEditableText && message.content.isNotEmpty,
-    canCopyName: message.type == MessageType.file && message.fileName != null,
+    canCopy: isEditableText && message.content.isNotEmpty && !vanishing,
+    canCopyName: message.type == MessageType.file &&
+        message.fileName != null &&
+        !vanishing,
     // See the doc comment on [MessageCapabilities.canCopyCoordinates] for why
     // this reads `locationShare` rather than `message.type` directly — it is
     // what folds in both the type gate and the "coordinates actually
     // present" gate a stale-cache or downgraded send can fail.
-    canCopyCoordinates: message.locationShare != null,
+    canCopyCoordinates: message.locationShare != null && !vanishing,
     // Same two text types COPY takes, and for the same reason: those are the
     // shapes whose whole content is `message.content`. A caption is excluded
     // with them — an image bubble's body is the image — and so is an
@@ -319,6 +329,7 @@ MessageCapabilities messageCapabilitiesFor({
     // keeps TRANSLATE off "ok", "+1" and a bubble of pure emoji. Offering a row
     // that can only report "nothing to do" is worse than not offering it.
     canTranslate: isEditableText &&
+        !vanishing &&
         LanguageDetector.isWorthTranslating(message.content),
     // An optimistic bubble has no server id to pin, and a system notice is
     // not something anyone means to keep.
@@ -326,7 +337,7 @@ MessageCapabilities messageCapabilitiesFor({
     // top of a room is one of the better reasons the banner exists — "vote on
     // this" is exactly what a pin says — and the banner renders it through
     // `messagePreviewLine`, which gives the prompt.
-    canPin: !isPending && isSent && !isSystem && posting.canPin,
+    canPin: !isPending && isSent && !isSystem && posting.canPin && !vanishing,
     // Same three gates as pinning, plus the room capability — which is what
     // keeps Saved Messages from offering to save into itself. See
     // `RoomCapabilities.canSaveMessages`.
@@ -334,7 +345,11 @@ MessageCapabilities messageCapabilitiesFor({
     // photo — `messageBookmarks` marks the message where it was said rather
     // than copying it, so the card the reader comes back to is the live one
     // with whatever the tally has become.
-    canSave: !isPending && isSent && !isSystem && room.canSaveMessages,
+    canSave: !isPending &&
+        isSent &&
+        !isSystem &&
+        room.canSaveMessages &&
+        !vanishing,
     // Offered on anything the transcript will let you long-press — including
     // messages that aren't yours and can't be forwarded, because SELECT is
     // how you reach the bar that says which of the two actions apply. Not a

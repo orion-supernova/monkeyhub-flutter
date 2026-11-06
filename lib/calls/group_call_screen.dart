@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -29,6 +30,8 @@ import 'draw/draw_canvas.dart';
 import 'draw/draw_model.dart';
 import 'draw/overlay_permission_hint.dart';
 import 'group_call_service.dart';
+import 'group_call_sheets.dart' show showRingSomeoneSheet;
+import 'live_calls_store.dart';
 import 'screen_share.dart';
 import 'share_picker_sheet.dart';
 import 'widgets/call_auto_hide.dart';
@@ -113,6 +116,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
     super.initState();
     svc.addListener(_onChanged);
     svc.drawArmed.addListener(_onChanged);
+    LiveCallsStore.instance.addListener(_onChanged);
     SettingsStore.instance.addListener(_onSettings);
     CallAudioDevices.instance
       ..attach()
@@ -373,6 +377,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
       svc.speakerOn,
       CallAudioDevices.instance.revision,
       svc.hasAnyVideo,
+      svc.isHuddle,
       svc.drawArmed.value,
       controlsVisible,
       _shareSupported,
@@ -430,6 +435,7 @@ class _GroupCallScreenState extends State<GroupCallScreen>
   void dispose() {
     svc.removeListener(_onChanged);
     svc.drawArmed.removeListener(_onChanged);
+    LiveCallsStore.instance.removeListener(_onChanged);
     SettingsStore.instance.removeListener(_onSettings);
     CallAudioDevices.instance
       ..removeListener(_onChanged)
@@ -804,6 +810,22 @@ class _GroupCallScreenState extends State<GroupCallScreen>
             ? l10n.groupCallScreenUnmuteLabel
             : l10n.groupCallScreenMuteLabel,
       ),
+      // A huddle rang no one; this is how anyone's phone rings, into THIS
+      // call. Right after the mic: it is the huddle's one extra verb.
+      if (svc.isHuddle && widget.api != null && svc.roomId != null)
+        CallTrayAction(
+          icon: CupertinoIcons.person_crop_circle_badge_plus,
+          onTap: () => unawaited(
+            showRingSomeoneSheet(
+              context,
+              service: svc,
+              api: widget.api!,
+              roomId: svc.roomId!,
+              myUserId: svc.userId ?? '',
+            ),
+          ),
+          label: l10n.huddleRingSomeone,
+        ),
       CallTrayAction(
         // The wish while it is carried out, else the camera's real state.
         icon: svc.cameraButtonOn ? CallGlyphs.camera : CallGlyphs.cameraOff,

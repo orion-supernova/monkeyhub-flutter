@@ -35,7 +35,7 @@ import '../widgets/ios_kit.dart' show GroupedRow, TileTone;
 import '../widgets/sheet_kit.dart' show SheetActionButton, SheetFrame, SheetGroup;
 import 'capture_protection.dart';
 
-enum AppOnlyFeature { viewOnce, secretRoom, transcript }
+enum AppOnlyFeature { viewOnce, secretRoom, transcript, vanish }
 
 class AppOnly {
   const AppOnly._();
@@ -51,6 +51,12 @@ class AppOnly {
     await _show(context, AppOnlyFeature.viewOnce);
     return false;
   }
+
+  /// A sealed vanishing message was tapped where screenshots cannot be
+  /// blocked. Same sheet, same way out; the message stays sealed and never
+  /// counts as seen.
+  static Future<void> explainVanish(BuildContext context) =>
+      _show(context, AppOnlyFeature.vanish);
 
   /// The transcript button's answer in a browser.
   static Future<void> explainTranscripts(BuildContext context) =>
@@ -115,6 +121,17 @@ class AppOnlyPanel extends StatelessWidget {
               tone: TileTone.orange,
               title: l10n.appOnlySecretTimers,
             ),
+          ],
+        ),
+      AppOnlyFeature.vanish => (
+          l10n.appOnlyVanishBody(_platformKey),
+          [
+            GroupedRow(
+              icon: CupertinoIcons.timer,
+              tone: TileTone.gray,
+              title: l10n.appOnlyVanishUnread,
+            ),
+            blocked,
           ],
         ),
       AppOnlyFeature.transcript => (
@@ -212,6 +229,8 @@ class _Hero extends StatelessWidget {
         AppOnlyFeature.secretRoom => theme.hourglassIcon(size: 32, color: ink),
         AppOnlyFeature.transcript =>
           Icon(CupertinoIcons.text_quote, size: 32, color: ink),
+        AppOnlyFeature.vanish =>
+          Icon(CupertinoIcons.timer, size: 32, color: ink),
       },
     );
   }

@@ -50,6 +50,10 @@ object ChatNotifications {
     const val CH_GAMES = "mh_games"
     const val CH_SOCIAL = "mh_social"
 
+    /// The soft "hanging out, drop in" invitation of a huddle. Backend
+    /// `HUDDLE_CHANNEL_ID` is "huddles"; this is that channel's real id.
+    const val CH_HUDDLES = "huddles"
+
     /// Every notification shares one id and is distinguished by TAG instead.
     /// (tag, id) is the identity NotificationManager uses, so a tag of
     /// messageId gives exactly APNs collapse-id semantics: re-posting replaces,
@@ -120,6 +124,21 @@ object ChatNotifications {
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply {
                 description = "Highlights, points and game results from friends"
+            }
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CH_HUDDLES,
+                "Huddles",
+                // LOW: an invitation to drop in, not a summons. No sound, no
+                // heads-up, no vibration; it waits in the shade. Its own
+                // channel so a person can switch huddles off without touching
+                // messages or call alerts.
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = "Friends hanging out in a huddle you can drop into"
+                setSound(null, null)
+                enableVibration(false)
             }
         )
         nm.createNotificationChannel(
@@ -672,6 +691,7 @@ object ChatNotifications {
             "call_invite", "group_call_invite" -> CH_CALLS
             "daily_games" -> CH_GAMES
             "friend_moment", "game_result" -> CH_SOCIAL
+            "huddle" -> CH_HUDDLES
             else -> CH_MESSAGES
         }
         val tag = data["collapseId"]?.takeIf { it.isNotEmpty() }
@@ -707,9 +727,11 @@ object ChatNotifications {
             .setWhen(data["createdAt"]?.toLongOrNull() ?: System.currentTimeMillis())
             .setContentIntent(pi)
             .setPriority(
-                if (channel == CH_GAMES || channel == CH_SOCIAL)
-                    NotificationCompat.PRIORITY_DEFAULT
-                else NotificationCompat.PRIORITY_HIGH
+                when (channel) {
+                    CH_HUDDLES -> NotificationCompat.PRIORITY_LOW
+                    CH_GAMES, CH_SOCIAL -> NotificationCompat.PRIORITY_DEFAULT
+                    else -> NotificationCompat.PRIORITY_HIGH
+                }
             )
             .setCategory(
                 when (channel) {
@@ -722,7 +744,7 @@ object ChatNotifications {
                     // reader — SOCIAL is the bucket for exactly that, and it
                     // keeps friend activity out of the conversation surfaces
                     // CATEGORY_MESSAGE feeds.
-                    CH_SOCIAL -> NotificationCompat.CATEGORY_SOCIAL
+                    CH_SOCIAL, CH_HUDDLES -> NotificationCompat.CATEGORY_SOCIAL
                     else -> NotificationCompat.CATEGORY_MESSAGE
                 }
             )

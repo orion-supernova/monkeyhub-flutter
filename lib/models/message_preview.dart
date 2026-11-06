@@ -1,6 +1,7 @@
 import 'chat_message.dart';
 import 'enums.dart';
 import 'expression_item.dart';
+import 'huddle_history.dart';
 import 'message_formatting.dart';
 
 /// The most this ever renders as. A pinned banner is one line on a phone; a
@@ -95,7 +96,8 @@ String _rawPreview(ChatMessage m, {required bool hasThumbnail}) {
       // exactly the question the banner cannot answer — live until when?
       return 'location';
     case MessageType.system:
-      return m.content;
+      // A huddle's history line is a code on the wire, not a sentence.
+      return HuddleHistory.isHuddleLine(m.content) ? 'huddle' : m.content;
     case MessageType.poll:
     case MessageType.checklist:
     case MessageType.event:

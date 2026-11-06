@@ -318,3 +318,70 @@ describe("history", () => {
     expect(dismiss.args.userIds).toEqual([people[1].userId]);
   });
 });
+
+describe("ring someone into a huddle", () => {
+  const invitedOf = async (t: T, who: any) =>
+    (await rowsOf(t, "groupCallParticipants")).filter(
+      (r: any) => r.userId === who.userId && r.status === "invited",
+    );
+
+  test("rings a member: invited row, one VoIP send, a ring-expiry job", async () => {
+    const t = convexTest(schema);
+    const { people, roomId } = await roomWith(t, ["alice", "bob", "carol"]);
+    const id = await startHuddle(t, people[0], roomId);
+    const res: any = await t.mutation(api.groupCalls.ringInto, {
+      ...as(people[0]),
+      groupCallId: id,
+      inviteeIds: [people[1].userId],
+    });
+    expect(res.rung).toBe(1);
+    expect(await invitedOf(t, people[1])).toHaveLength(1);
+    expect(await pending(t, "sendGroupVoip")).toHaveLength(1);
+    expect((await pending(t, "_expireRingers")).length).toBeGreaterThanOrEqual(1);
+  });
+
+  test("skips non-members, people already in, people already ringing, and yourself", async () => {
+    const t = convexTest(schema);
+    const { people, roomId } = await roomWith(t, ["alice", "bob", "carol"]);
+    const stranger = await signUp(t, "mallory");
+    const id = await startHuddle(t, people[0], roomId);
+    await t.mutation(api.groupCalls.join, { ...as(people[1]), groupCallId: id });
+    await t.mutation(api.groupCalls.ringInto, {
+      ...as(people[0]),
+      groupCallId: id,
+      inviteeIds: [people[2].userId],
+    });
+    const again: any = await t.mutation(api.groupCalls.ringInto, {
+      ...as(people[0]),
+      groupCallId: id,
+      inviteeIds: [people[0].userId, people[1].userId, people[2].userId, stranger.userId],
+    });
+    expect(again.rung).toBe(0);
+    expect(await invitedOf(t, stranger)).toHaveLength(0);
+    // Only ring sends carry inviteeIds; joining also schedules a cancel to the
+    // joiner's other devices through the same action.
+    const rings = (await pending(t, "sendGroupVoip")).filter((p) => p.args.inviteeIds);
+    expect(rings).toHaveLength(1);
+  });
+
+  test("only someone in the call can ring, and only while it's live", async () => {
+    const t = convexTest(schema);
+    const { people, roomId } = await roomWith(t, ["alice", "bob", "carol"]);
+    const id = await startHuddle(t, people[0], roomId);
+    await expect(
+      t.mutation(api.groupCalls.ringInto, {
+        ...as(people[1]),
+        groupCallId: id,
+        inviteeIds: [people[2].userId],
+      }),
+    ).rejects.toThrow("NOT_IN_CALL");
+    await t.mutation(api.groupCalls.leave, { ...as(people[0]), groupCallId: id } as any);
+    await expect(
+      t.mutation(api.groupCalls.ringInto, {
+        ...as(people[0]),
+        groupCallId: id,
+        inviteeIds: [people[2].userId],
+      }),
+    ).rejects.toThrow(/CALL_ENDED|NOT_IN_CALL/);
+  });
+});

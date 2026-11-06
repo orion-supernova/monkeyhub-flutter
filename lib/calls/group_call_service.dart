@@ -22,6 +22,8 @@ import 'call_stats_monitor.dart';
 import 'draw/draw_channel.dart';
 import 'draw/draw_mirror.dart';
 import 'draw/draw_model.dart';
+import 'huddle_outcome.dart';
+import 'live_calls_store.dart';
 import 'native_call_handler.dart';
 import 'renegotiation.dart';
 import 'screen_share.dart';
@@ -243,6 +245,15 @@ class GroupCallService extends ChangeNotifier
   CallMediaKind _mediaKind = CallMediaKind.audio;
   CallMediaKind get mediaKind => _mediaKind;
   bool get inCall => _groupCallId != null;
+
+  /// The call this device is in is a huddle (rang no one). Read off the live
+  /// calls store the chat list already subscribes to, so no new query.
+  bool get isHuddle {
+    final r = _roomId;
+    if (r == null) return false;
+    final live = LiveCallsStore.instance.forRoom(r);
+    return live != null && live.isHuddle && live.groupCallId == _groupCallId;
+  }
 
   /// Whether [attach] has run, i.e. whether this service knows who it is.
   ///
@@ -561,6 +572,20 @@ class GroupCallService extends ChangeNotifier
       return;
     }
     await _enterCall(res.groupCallId, roomId: roomId, kind: kind);
+    // A huddle nobody joins leaves nothing behind for others; the starter
+    // gets a private, local-only "Nobody joined" note when it ends.
+    if (callKind == 'huddle' && _groupCallId == res.groupCallId) {
+      HuddleOutcome.track(this, groupCallId: res.groupCallId, roomId: roomId);
+    }
+  }
+
+  /// Rings [userIds] into the call this device is in. For a huddle this is
+  /// the only way anyone's phone rings.
+  Future<int> ringInto(List<String> userIds) {
+    final me = _userId;
+    final id = _groupCallId;
+    if (me == null || id == null) return Future.value(0);
+    return api.ringInto(groupCallId: id, userId: me, inviteeIds: userIds);
   }
 
   Future<void> joinCall(String groupCallId) async {

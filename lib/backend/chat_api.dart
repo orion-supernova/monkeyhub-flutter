@@ -858,6 +858,43 @@ class ChatApi {
     return res is Map && res['changed'] == true;
   }
 
+  /// `vanish:setVanishShareReads`: the per-chat answer of the hidden-seen
+  /// card. Sharing also counts what the caller has already read.
+  Future<void> setVanishShareReads(String roomId, bool share) async {
+    await _cv.mutation('vanish:setVanishShareReads', {
+      'roomId': roomId,
+      'share': share,
+    });
+  }
+
+  /// `vanish:catchUpVanishReads`: after switching the global share switch on
+  /// while a vanishing room is open. Idempotent.
+  Future<void> catchUpVanishReads(String roomId) async {
+    await _cv.mutation('vanish:catchUpVanishReads', {'roomId': roomId});
+  }
+
+  /// [markRoomRead] for a vanishing room: the same write plus the two flags
+  /// the server needs. A separate method so an ordinary room's call, and
+  /// everything that stands in for it, stays exactly as it was.
+  ///
+  /// [vanishCounts] is whether this read may be shared (the reader hides
+  /// nothing, shares globally, or said yes in this chat), and is false on a
+  /// platform that cannot block screenshots.
+  Future<void> markVanishRoomRead({
+    required String roomId,
+    required String userId,
+    required bool vanishCounts,
+    DateTime? upTo,
+  }) async {
+    await _cv.mutation('messages:markRoomRead', {
+      'roomId': roomId,
+      'userId': userId,
+      'upTo': ?upTo?.millisecondsSinceEpoch,
+      'vanish': true,
+      'vanishCounts': vanishCounts,
+    });
+  }
+
   Future<void> archiveRoom({required String roomId, required String userId}) async {
     await _cv.mutation('rooms:archiveRoom', {'roomId': roomId, 'userId': userId});
   }

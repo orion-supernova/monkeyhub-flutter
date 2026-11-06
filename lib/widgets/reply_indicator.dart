@@ -9,6 +9,7 @@ import '../data/profile_scope.dart';
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
+import 'vanish_scope.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
@@ -971,7 +972,7 @@ class _PhantomBody extends StatelessWidget {
               const SizedBox(height: 1),
               if (deleted)
                 Text(
-                  AppLocalizations.of(context).replyIndicatorMessageRemoved,
+                  replyRemovedLabel(context),
                   style: theme.bodySoft.copyWith(
                     color: phantomMuted,
                     fontStyle: FontStyle.italic,
@@ -1114,9 +1115,7 @@ class _StickyNote extends StatelessWidget {
                                 const SizedBox(height: 1),
                                 if (deleted)
                                   Text(
-                                    AppLocalizations.of(
-                                      context,
-                                    ).replyIndicatorMessageRemoved,
+                                    replyRemovedLabel(context),
                                     style: theme.bodySoft.copyWith(
                                       color: theme.inkMuted,
                                       fontStyle: FontStyle.italic,
@@ -1309,9 +1308,7 @@ class _ComicTail extends StatelessWidget {
                             const SizedBox(height: 1),
                             if (deleted)
                               Text(
-                                AppLocalizations.of(
-                                  context,
-                                ).replyIndicatorMessageRemoved,
+                                replyRemovedLabel(context),
                                 style: theme.bodySoft.copyWith(
                                   color: theme.inkMuted,
                                   fontStyle: FontStyle.italic,
@@ -1536,9 +1533,7 @@ class _ClassicQuote extends StatelessWidget {
                           const SizedBox(height: 2),
                           if (deleted)
                             Text(
-                              AppLocalizations.of(
-                                context,
-                              ).replyIndicatorMessageRemoved,
+                              replyRemovedLabel(context),
                               style: theme.bodySoft.copyWith(
                                 color: mutedInk,
                                 fontStyle: FontStyle.italic,
@@ -1646,7 +1641,7 @@ class InlineReplyQuote extends StatelessWidget {
     final isMedia =
         preview.type == MessageType.image || preview.type == MessageType.video;
     final line = deleted
-        ? AppLocalizations.of(context).replyIndicatorMessageRemoved
+        ? replyRemovedLabel(context)
         : _previewLabel(context, preview);
     final lineStyle = theme.bodySoft.copyWith(
       fontSize: 15,
@@ -1725,4 +1720,14 @@ class InlineReplyQuote extends StatelessWidget {
             ),
     );
   }
+}
+
+/// What a quote says in place of a parent that is gone: "Vanished" when the
+/// reply itself was sent in vanish mode (its parent went with the burn),
+/// otherwise "Message removed".
+String replyRemovedLabel(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
+  return VanishedParentScope.of(context)
+      ? l10n.vanishedParent
+      : l10n.replyIndicatorMessageRemoved;
 }

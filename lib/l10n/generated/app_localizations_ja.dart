@@ -14573,4 +14573,203 @@ class AppLocalizationsJa extends AppLocalizations {
   String newRoomInviteFailed(String names) {
     return 'Couldn\'t invite $names. You can invite them from the room.';
   }
+
+  @override
+  String get huddleBarNobodyElse => 'Nobody else here yet';
+
+  @override
+  String huddleBarNamesTwo(String first, String second) {
+    return '$first and $second';
+  }
+
+  @override
+  String huddleBarNamesMore(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count others',
+      one: '1 other',
+    );
+    return '$name and $_temp0';
+  }
+
+  @override
+  String huddleBarSemantics(String names) {
+    return 'Huddle. $names';
+  }
+
+  @override
+  String get huddleBarOpenSemantics => 'Open huddle';
+
+  @override
+  String get huddleChipSemantics => 'Huddle is live';
+
+  @override
+  String get huddleRingSomeone => 'Ring someone';
+
+  @override
+  String get huddleRingFailed => 'Couldn\'t ring them. Try again.';
+
+  @override
+  String get huddleAloneLine => 'You wanted to talk · Nobody joined';
+
+  @override
+  String huddleHistoryLine(String duration, String people) {
+    return 'Huddle · $duration · $people';
+  }
+
+  @override
+  String huddlePeopleCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count people',
+      one: '$count person',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get huddleDurationUnderMinute => 'under a minute';
+
+  @override
+  String huddleDurationMinutes(int count) {
+    return '$count min';
+  }
+
+  @override
+  String huddleDurationHours(int hours, String minutes) {
+    return '$hours h $minutes min';
+  }
+
+  @override
+  String get liveCallChipHuddle => 'Huddle';
+
+  @override
+  String get vanishHeaderStatus => 'vanish on';
+
+  @override
+  String get vanishComposerHint => 'Vanishing message · keep it short';
+
+  @override
+  String get vanishLongHint =>
+      'Long messages may vanish before they\'re finished';
+
+  @override
+  String get vanishClockLabel => '24h';
+
+  @override
+  String vanishLeftHours(int hours) {
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours hours',
+      one: '1 hour',
+    );
+    return 'Vanishes in $_temp0';
+  }
+
+  @override
+  String vanishLeftMinutes(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minutes',
+      one: '1 minute',
+    );
+    return 'Vanishes in $_temp0';
+  }
+
+  @override
+  String get vanishRingSemantics => 'Vanishing soon';
+
+  @override
+  String get vanishSealedSemantics => 'Vanishing message. Opens in the app';
+
+  @override
+  String get vanishSysYou => 'You';
+
+  @override
+  String get vanishAfterSeen10 => '10 seconds';
+
+  @override
+  String get vanishAfterSeen60 => '1 minute';
+
+  @override
+  String get vanishAfterSeen3600 => '1 hour';
+
+  @override
+  String vanishAfterSeenOther(int count) {
+    return '$count seconds';
+  }
+
+  @override
+  String vanishSysOn(String name, String timer) {
+    return '$name turned on vanish mode. New messages disappear $timer after everyone has seen them, or after 24 hours at most. Screenshots are blocked.';
+  }
+
+  @override
+  String vanishSysChange(String name, String timer) {
+    return '$name changed vanish mode. New messages disappear $timer after everyone has seen them.';
+  }
+
+  @override
+  String vanishSysOff(String name) {
+    return '$name turned off vanish mode. Messages sent while it was on still disappear on time.';
+  }
+
+  @override
+  String get vanishSysChangeAction => 'Change';
+
+  @override
+  String get vanishTimerPickerTitle => 'Vanish after seen';
+
+  @override
+  String vanishCardDm(String name, String timer) {
+    return 'You don\'t share Seen, so $name\'s messages to you last 24 hours. Yours still vanish $timer after $name sees them. Share your reads here so theirs vanish too?';
+  }
+
+  @override
+  String vanishCardGroup(String timer) {
+    return 'You don\'t share Seen, so messages sent to you here last 24 hours. Share your reads here so they vanish $timer after everyone has seen them?';
+  }
+
+  @override
+  String get vanishSettingsNote =>
+      'You can change this anytime in Settings › Privacy.';
+
+  @override
+  String get vanishCardShare => 'Share my reads here';
+
+  @override
+  String get vanishCardKeep => 'Don\'t share here';
+
+  @override
+  String get vanishCardDismissSemantics => 'Don\'t share here';
+
+  @override
+  String vanishNoteShared(String timer) {
+    return 'You share your reads here, so messages vanish $timer after everyone has seen them.';
+  }
+
+  @override
+  String get vanishNoteKept =>
+      'You don\'t share your reads here, so messages sent to you last 24 hours.';
+
+  @override
+  String get vanishedParent => 'Vanished';
+
+  @override
+  String appOnlyVanishBody(String platform) {
+    String _temp0 = intl.Intl.selectLogic(platform, {
+      'web':
+          'Your browser can\'t block screenshots, so vanishing messages stay sealed here and never count as read. Open this chat in MonkeyHub on your phone, or on a Mac or Windows computer.',
+      'other':
+          'Linux can\'t block screenshots, so vanishing messages stay sealed here and never count as read. Open this chat in MonkeyHub on your phone, or on a Mac or Windows computer.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get appOnlyVanishUnread => 'Sealed messages never count as read';
 }

@@ -7,6 +7,9 @@ import 'package:flutter/foundation.dart';
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
 import '../diagnostics/diag_log.dart';
+import '../privacy/capture_protection.dart';
+import '../privacy/vanish_rules.dart';
+import 'vanish_controller.dart';
 import '../media/view_once_media.dart' show kViewOnceMicroPosterMaxBytes;
 import '../media/image_raster.dart' show CroppedImage;
 import '../media/upload_service.dart';
@@ -517,7 +520,20 @@ class ChatRepository extends ChangeNotifier {
     // the clearest possible statement that you did not read it, and the room
     // has to stay unread (and badged) until you come back to it.
     _deferredRead = null;
+    _vanish?.bind(value);
     unawaited(PushManager.instance.setActiveRoom(value));
+  }
+
+  VanishController? _vanish;
+
+  /// What the open room knows about vanish mode: the burn state behind the
+  /// countdown rings and the reader's own sharing choices. Created on first
+  /// use, so a repository that never opens a vanishing room never builds it.
+  VanishController get vanish {
+    final v = _vanish ??= VanishController(cv: cv, api: api, clock: () => serverNow);
+    // Born after the room it should serve opened: point it there.
+    if (v.roomId != _activeRoomIdValue) v.bind(_activeRoomIdValue);
+    return v;
   }
 
   String? get activeRoomId => _activeRoomIdValue;
@@ -1493,10 +1509,62 @@ class ChatRepository extends ChangeNotifier {
     final p = _pendingRead;
     _pendingRead = null;
     if (p == null) return;
-    api
-        .markRoomRead(roomId: p.roomId, userId: p.userId, upTo: p.upTo)
-        .catchError((_) {});
+    _sendRead(p.roomId, p.userId, p.upTo);
   }
+
+  /// The one place a read receipt leaves this repository.
+  ///
+  /// An ordinary room sends exactly what it always did. A vanishing room (or a
+  /// secret room on a "seen" clock) sends the vanish flags too: whether this
+  /// read may be SHARED is the reader's privacy choice, not ours, so it
+  /// follows `visibility.seen`, the global switch and the answer given in this
+  /// chat. Where screenshots cannot be blocked the vanish messages are sealed,
+  /// so the read never counts and never passes the oldest sealed message.
+  void _sendRead(String roomId, String userId, DateTime? upTo) {
+    final room = roomById(roomId);
+    final protects = CaptureProtection.platformProtects;
+    final cursor = readCursorFor(
+      upTo: upTo,
+      messages: _messages[roomId] ?? const [],
+      me: userId,
+      platformProtects: protects,
+    );
+    if (!isVanishReadRoom(room)) {
+      api
+          .markRoomRead(roomId: roomId, userId: userId, upTo: cursor)
+          .catchError((_) {});
+      return;
+    }
+    unawaited(() async {
+      bool counts;
+      if (roomId == _activeRoomIdValue) {
+        final v = vanish;
+        v.watchState();
+        final prefs = v.prefs ?? await v.watchPrefs();
+        counts = vanishReadArgs(
+          room: room,
+          prefs: prefs,
+          platformProtects: protects,
+        )!
+            .vanishCounts;
+        _vanishCounts[roomId] = counts;
+      } else {
+        // A read flushed after the reader moved on: the controller is bound
+        // to the new room now, so use what this room last said (never "yes"
+        // by default).
+        counts = protects && (_vanishCounts[roomId] ?? false);
+      }
+      await api.markVanishRoomRead(
+        roomId: roomId,
+        userId: userId,
+        vanishCounts: counts,
+        upTo: cursor,
+      );
+    }().catchError((_) {}));
+  }
+
+  /// Per room, whether its last vanish read counted; see [_sendRead].
+  final Map<String, bool> _vanishCounts = {};
 
   /// A read the open room earned but nobody was present to take — see
   /// [_markReadOrDefer]. At most one, because only the open room is ever
@@ -2883,13 +2951,7 @@ class ChatRepository extends ChangeNotifier {
         }
       }
       if (_away?.roomId == roomId && _returnedAt != null) _readSinceReturn = true;
-      api
-          .markRoomRead(
-            roomId: roomId,
-            userId: me,
-            upTo: heldUpTo,
-          )
-          .catchError((_) {});
+      _sendRead(roomId, me, heldUpTo);
       PushManager.instance.dismissRoomNotifications(roomId);
     }
     final id = _userId;

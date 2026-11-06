@@ -122,7 +122,7 @@ class CallFcmService : FirebaseMessagingService() {
             "group_invite" -> handleInvite(data, message.sentTime, groupCallId = data["groupCallId"])
             "group_taken" -> handleTaken(data, groupCallId = data["groupCallId"])
             "message", "approval", "call_invite", "group_call_invite",
-            "daily_games", "friend_moment", "game_result" -> {
+            "daily_games", "friend_moment", "game_result", "huddle" -> {
                 ChatNotifications.show(this, data)
                 // After the banner, never before it: the second tick is not
                 // worth a moment of the message itself.

@@ -70,6 +70,14 @@ import 'voice_transcript.dart' show MediaTranscript;
 import 'view_once_seal.dart';
 import 'expressions/expression_bubble.dart';
 import 'expressions/expression_sheet.dart';
+import '../theme/vanish_palette.dart';
+import '../privacy/vanish_rules.dart';
+import '../models/huddle_history.dart';
+import 'huddle_bar.dart' show HuddleHistoryLine;
+import 'vanish_card.dart';
+import 'vanish_scope.dart';
+import 'vanish_sealed.dart';
+import 'vanish_stamp.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
@@ -357,6 +365,47 @@ class MessageBubble extends StatelessWidget {
   }
 
   Widget _build(BuildContext context, BubbleStyle bubbleStyle) {
+    // `vanish:on|change|off` and huddle history (`huddle:ended:…`, and the
+    // starter's local-only `huddle:alone`) are not bubbles: one quiet sentence.
+    if (message.type == MessageType.system) {
+      final line = VanishLine.parse(message.content);
+      if (line != null) return _vanishLine(context, line);
+      if (HuddleHistory.parse(message.content) != null ||
+          HuddleHistory.isAlone(message.content)) {
+        return HuddleHistoryLine(content: message.content);
+      }
+    }
+    // A reply sent in vanish mode that answers a message now gone says
+    // "Vanished" in place of "Message removed".
+    return VanishedParentScope(
+      vanished: message.isReply && message.vanishUntil != null,
+      child: _buildBubble(context, bubbleStyle),
+    );
+  }
+
+  Widget _vanishLine(BuildContext context, VanishLine line) {
+    final l10n = AppLocalizations.of(context);
+    final scope = VanishScope.maybeOf(context);
+    final mine = message.senderId == currentUserId;
+    final name = mine
+        ? l10n.vanishSysYou
+        : (author?.displayName.trim().isNotEmpty ?? false)
+            ? author!.displayName
+            : message.senderName.trim();
+    final canChange = scope != null &&
+        scope.canChange &&
+        scope.roomVanishOn &&
+        line.kind != VanishLineKind.off;
+    return VanishSystemLine(
+      line: line,
+      name: name,
+      onChange: canChange
+          ? () => scope.onChangeTimer(context, scope.currentSeconds)
+          : null,
+    );
+  }
+
+  Widget _buildBubble(BuildContext context, BubbleStyle bubbleStyle) {
     final theme = ThemeScope.of(context);
     final isMine = message.senderId == currentUserId;
     // One lookup for the whole bubble. Null when this bubble is rendered
@@ -1648,13 +1697,24 @@ Widget buildMessageContent({
   final speakerFill = (isMine || authoredFill == null)
       ? null
       : SpeakerScope.washOf(context, message.senderId, surface: authoredFill);
+  // Vanish mode: a vanishing message of mine wears the vanish violet instead
+  // of the accent, and one of theirs, on a device that cannot block
+  // screenshots, is sealed (never drawn, never counted as seen).
+  final vanishScope =
+      message.vanishUntil == null ? null : VanishScope.maybeOf(context);
+  if (vanishScope != null && vanishScope.sealsMessage(message, isMine: isMine)) {
+    return const VanishSealedBubble();
+  }
+  final vanishFill = (isMine && vanishScope != null && vanishScope.roomVanishOn)
+      ? VanishPalette(theme).bubbleFill
+      : null;
   final deco = theme.bubbleDecoration(
     isMine: isMine,
     ephemeral: ephemeral,
     style: bubbleStyle,
     firstInRun: firstInRun,
     lastInRun: lastInRun,
-    fill: speakerFill,
+    fill: speakerFill ?? vanishFill,
     // Only ever handed over alongside a fill, so a reader who asked for names
     // alone never gets a recoloured border out of it.
     edge: speakerFill == null
@@ -1692,11 +1752,19 @@ Widget buildMessageContent({
             isMine: isMine,
             deliveredToOthers: deliveredToOthers,
             seenByOthers: seenByOthers,
+            vanishing: message.vanishUntil != null,
           ),
           saved: saved,
           pinned: pinned,
           edited: message.edited,
           tone: tone,
+          vanish: vanishMarkFor(
+            context,
+            message: message,
+            isMine: isMine,
+            tone: tone,
+            theme: theme,
+          ),
         )
       : null;
   // Every branch that draws its own ink already maps mine→accentInk and
@@ -3884,6 +3952,8 @@ class _LinkAwareBubble extends StatelessWidget {
   /// the veil, and copies what is under it.
   Widget _selectableOr(BuildContext context, Widget body) {
     if (!selectable || !isPhysicalKeyboardPlatform) return body;
+    // A vanishing message cannot be copied out, by menu or by dragging.
+    if (message.vanishUntil != null) return body;
     if (message.formatting.any((f) => f.type == FormattingType.spoiler)) {
       return body;
     }
@@ -3985,11 +4055,19 @@ class _MetaRow extends StatelessWidget {
           isMine: isMine,
           deliveredToOthers: deliveredToOthers,
           seenByOthers: seenByOthers,
+          vanishing: message.vanishUntil != null,
         ),
         saved: saved,
         pinned: pinned,
         edited: message.edited,
         tone: StampTone.onSurface,
+        vanish: vanishMarkFor(
+          context,
+          message: message,
+          isMine: isMine,
+          tone: StampTone.onSurface,
+          theme: ThemeScope.of(context),
+        ),
       ),
     );
   }

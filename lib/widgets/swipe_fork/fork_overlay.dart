@@ -7,6 +7,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
+import '../../theme/vanish_palette.dart';
 import '../progress_ring.dart';
 import '../swipe_fork.dart';
 
@@ -18,28 +19,15 @@ import '../swipe_fork.dart';
 class ForkPalette {
   ForkPalette(AppTheme theme)
       : talk = theme.success,
-        vanish = _violetOf(theme.accent);
+        vanish = VanishPalette(theme).vanish;
 
   final Color talk;
   final Color vanish;
 
   Color of(ForkOption o) => o.isVanish ? vanish : talk;
 
-  static Color _violetOf(Color accent) {
-    final hsl = HSLColor.fromColor(accent);
-    return HSLColor.fromAHSL(
-      1,
-      258,
-      hsl.saturation.clamp(0.45, 0.85).toDouble(),
-      hsl.lightness.clamp(0.5, 0.66).toDouble(),
-    ).toColor();
-  }
-
   /// A readable glyph colour on top of [c].
-  static Color onColor(Color c) =>
-      ThemeData.estimateBrightnessForColor(c) == Brightness.dark
-          ? const Color(0xFFFFFFFF)
-          : const Color(0xFF000000);
+  static Color onColor(Color c) => VanishPalette.onColor(c);
 }
 
 /// Every word the fork shows, from the app's localizations.

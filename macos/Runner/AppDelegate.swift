@@ -222,6 +222,13 @@ class AppDelegate: FlutterAppDelegate {
           doomed.append(n.request.identifier)
           continue
         }
+        // A huddle invitation has no messageId; its dismiss id is
+        // "huddle:<groupCallId>" (the push's collapse id), so match it on the
+        // payload's own groupCallId in case the identifier mapping drifts.
+        if let gid = info["groupCallId"] as? String, wanted.contains("huddle:\(gid)") {
+          doomed.append(n.request.identifier)
+          continue
+        }
         if wanted.isEmpty, let roomId, n.request.content.threadIdentifier == roomId {
           doomed.append(n.request.identifier)
         }

@@ -107,6 +107,36 @@ Future<void> showStartGroupCallSheet(
   );
 }
 
+/// "Ring someone" inside a running call: the same "Choose people" picker the
+/// start sheet uses, then those people are rung into THIS call.
+Future<void> showRingSomeoneSheet(
+  BuildContext context, {
+  required GroupCallService service,
+  required ChatApi api,
+  required String roomId,
+  required String myUserId,
+}) async {
+  final picked = await _pickMembers(
+    context,
+    api: api,
+    roomId: roomId,
+    myUserId: myUserId,
+  );
+  if (picked == null || picked.isEmpty || !context.mounted) return;
+  try {
+    await service.ringInto(picked);
+  } catch (e) {
+    if (!context.mounted) return;
+    final l10n = AppLocalizations.of(context);
+    showAppToast(
+      context,
+      e.toString().contains('CALL_FULL')
+          ? l10n.linkedAccountsScreenCallSheetCallFullError
+          : l10n.huddleRingFailed,
+    );
+  }
+}
+
 void _startCall(
   BuildContext context,
   GroupCallService service,

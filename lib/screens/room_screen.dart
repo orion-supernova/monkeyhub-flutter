@@ -29,6 +29,7 @@ import '../calls/call_models.dart';
 import '../calls/group_call_banner.dart';
 import '../calls/group_call_button.dart';
 import '../calls/group_call_service.dart';
+import '../calls/huddle_outcome.dart' show LocalHuddleNotes;
 import '../calls/live_calls_store.dart';
 import '../calls/call_service.dart';
 import '../backend/server_limits.dart';
@@ -104,6 +105,7 @@ import '../widgets/bulk_action_bar.dart';
 import '../widgets/busy_scrim.dart';
 import '../widgets/chat_bottom_inset.dart';
 import '../widgets/chat_dock.dart';
+import '../widgets/huddle_bar.dart';
 import '../composer/capture_machine.dart';
 import '../composer/capture_recorder.dart';
 import '../widgets/chat_composer.dart';
@@ -189,6 +191,9 @@ import 'profile_screen.dart';
 import 'room_info_screen.dart';
 import 'navigation/room_side_pane.dart';
 import 'voice_recorder_screen.dart';
+import '../theme/vanish_palette.dart';
+import '../widgets/vanish_card.dart';
+import '../widgets/vanish_scope.dart';
 
 /// Back affordance shared by both room headers. In the desktop two-pane layout
 /// the room lives in the chat detail pane (never a full-screen route), so
@@ -644,9 +649,69 @@ class _RoomScreenState extends State<_RoomView>
   String _memoFoldKey = '';
   ({List<RoomItem> items, Set<String> hidden})? _memoResult;
 
+  void _onLocalNotes() {
+    if (!mounted) return;
+    if (LocalHuddleNotes.instance.forRoom(widget.roomId).isEmpty &&
+        _localNotesMerged == null) {
+      return;
+    }
+    setState(() {});
+  }
+
+  /// [live] with this device's local-only huddle notes slotted in by time.
+  ///
+  /// Only what is DRAWN gets them. [_lastTimeline] and everything that reads
+  /// it (the read cursor among others) keep the server's list: a row that
+  /// exists on one phone must never move what the server thinks was read.
+  /// Memoised on the source list's identity and the notes' length, so a
+  /// rebuild with nothing new allocates nothing; with no notes (the usual
+  /// case) the live list is returned as is.
+  List<ChatMessage> _withLocalNotes(List<ChatMessage> live) {
+    final notes = LocalHuddleNotes.instance.forRoom(widget.roomId);
+    if (notes.isEmpty) {
+      _localNotesMerged = null;
+      return live;
+    }
+    final memo = _localNotesMerged;
+    if (memo != null &&
+        identical(memo.source, live) &&
+        memo.count == notes.length) {
+      return memo.merged;
+    }
+    // A merge, not a sort: List.sort is not stable, and the server's order
+    // for messages sharing a timestamp must survive. A note goes after every
+    // live message at or before its time.
+    final sortedNotes = [...notes]
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final merged = <ChatMessage>[];
+    var n = 0;
+    for (final m in live) {
+      while (n < sortedNotes.length &&
+          sortedNotes[n].createdAt.isBefore(m.createdAt)) {
+        merged.add(sortedNotes[n++]);
+      }
+      merged.add(m);
+    }
+    while (n < sortedNotes.length) {
+      merged.add(sortedNotes[n++]);
+    }
+    _localNotesMerged = (source: live, count: notes.length, merged: merged);
+    return merged;
+  }
+
+  ({List<ChatMessage> source, int count, List<ChatMessage> merged})?
+      _localNotesMerged;
+
   @override
   void initState() {
     super.initState();
+    // The huddle bar / Join pill on the dock shelf follow the live calls.
+    LiveCallsStore.instance.addListener(_onHuddleChanged);
+    GroupCallService.maybeInstance?.addListener(_onHuddleChanged);
+    _huddleSig = _huddleSignature();
+    // The starter's own "You wanted to talk · Nobody joined" lines: local-only
+    // rows (see [_withLocalNotes]) that appear the moment a huddle ends empty.
+    LocalHuddleNotes.instance.addListener(_onLocalNotes);
     // A play-once note staged for a player that never got to release it — the
     // process died mid-listen — is still on disk. Gone before this room can
     // show anything.
@@ -925,6 +990,7 @@ class _RoomScreenState extends State<_RoomView>
   }
 
   void _maybePushCaptureScope(ChatRoom? room) {
+    _syncVanishCapture(room);
     if (_pushedCaptureScope) return;
     if (room == null) return;
     if (!room.isEphemeral) return;
@@ -932,6 +998,28 @@ class _RoomScreenState extends State<_RoomView>
     // CaptureProtection defers its listener notification internally, so
     // calling this from initState / _onRepoChange / dispose is safe.
     CaptureProtection.instance.pushScope();
+  }
+
+  /// Whether screenshots are blocked for vanish's sake.
+  bool _pushedVanishScope = false;
+
+  /// Vanish mode is a capture scope exactly like a secret room: pushed while
+  /// the room is vanishing, popped when it stops. Held on after vanish is
+  /// turned off for as long as a vanishing message is still on screen, since
+  /// turning the mode off never shortens a promise already made. Also where
+  /// the room's two vanish subscriptions are started, once.
+  void _syncVanishCapture(ChatRoom? room) {
+    if (room == null) return;
+    final vanishing = room.vanishMode ||
+        widget.repo.messagesFor(widget.roomId).any((m) => m.vanishUntil != null);
+    if (room.vanishMode) widget.repo.vanish.watchAll();
+    if (vanishing == _pushedVanishScope) return;
+    _pushedVanishScope = vanishing;
+    if (vanishing) {
+      CaptureProtection.instance.pushScope();
+    } else {
+      CaptureProtection.instance.popScope();
+    }
   }
 
   /// Whether [m] must keep its own row — never folded into a chip.
@@ -1874,6 +1962,9 @@ class _RoomScreenState extends State<_RoomView>
 
   @override
   void dispose() {
+    LiveCallsStore.instance.removeListener(_onHuddleChanged);
+    LocalHuddleNotes.instance.removeListener(_onLocalNotes);
+    GroupCallService.maybeInstance?.removeListener(_onHuddleChanged);
     UiSelectionStore.instance.removeListener(_onSelectionStoreChange);
     // Compact/medium `openRoom` mirrors this room into `UiSelectionStore` too
     // (see open_room.dart), so a later resize to expanded can find it. Clear
@@ -1963,6 +2054,10 @@ class _RoomScreenState extends State<_RoomView>
       MatchesStore.instance.unwatchRoom(widget.roomId);
     }
     if (_pushedCaptureScope) {
+      CaptureProtection.instance.popScope();
+    }
+    if (_pushedVanishScope) {
+      _pushedVanishScope = false;
       CaptureProtection.instance.popScope();
     }
     super.dispose();
@@ -2158,10 +2253,12 @@ class _RoomScreenState extends State<_RoomView>
     List<ScheduledMessage> scheduled,
     ScheduledIndicator indicator,
   ) {
-    if (!indicator.showsPill || scheduled.isEmpty) return const [];
+    final huddle = _huddleShelf();
+    if (!indicator.showsPill || scheduled.isEmpty) return huddle;
     final failed = scheduled.any((s) => s.hasFailed);
     final pending = scheduled.where((s) => s.pending).length;
     return [
+      ...huddle,
       DockShelfItem(
         id: 'scheduled',
         // A failure is something to deal with, so it outranks a calm queue.
@@ -2181,6 +2278,43 @@ class _RoomScreenState extends State<_RoomView>
         ),
       ),
     ];
+  }
+
+  /// The huddle's shelf item (bar when you are in it, Join pill when others
+  /// are and you are not), from the live calls the chat list already
+  /// subscribes to. See `huddle_bar.dart`.
+  List<DockShelfItem> _huddleShelf() => huddleShelfItems(
+        roomId: widget.roomId,
+        service: GroupCallService.maybeInstance,
+        live: LiveCallsStore.instance.forRoom(widget.roomId),
+        members: _members,
+        myUserId: widget.repo.userId,
+        api: widget.api,
+        onJoin: _forkJoinHuddle,
+      );
+
+  /// What the huddle shelf currently depends on, so a call-state tick that
+  /// changes nothing here (stats, heartbeats) does not rebuild the room.
+  String? _huddleSig;
+
+  String _huddleSignature() {
+    final live = LiveCallsStore.instance.forRoom(widget.roomId);
+    final mode = huddleShelfModeFor(
+      roomId: widget.roomId,
+      service: GroupCallService.maybeInstance,
+      live: live,
+    );
+    final ids = mode == HuddleShelfMode.join
+        ? (live?.joinedUserIds.take(3).join(',') ?? '')
+        : '';
+    return '${mode.index}:${live?.groupCallId}:$ids';
+  }
+
+  void _onHuddleChanged() {
+    if (!mounted) return;
+    final sig = _huddleSignature();
+    if (sig == _huddleSig) return;
+    setState(() => _huddleSig = sig);
   }
 
   void _openScheduledList() {
@@ -2548,6 +2682,7 @@ class _RoomScreenState extends State<_RoomView>
     if (room.isEphemeral) return false;
     return picked.every((m) =>
         !m.viewOnce &&
+        m.vanishUntil == null &&
         m.type != MessageType.system &&
         m.status == MessageStatus.sent &&
         !m.id.startsWith('tmp_'));
@@ -3106,7 +3241,9 @@ class _RoomScreenState extends State<_RoomView>
 
   /// The slice of room state the fork's options depend on.
   ForkRoomState _forkRoomState() {
-    final room = _room!;
+    // `_room` is set by the first repository notification; the very first
+    // build already has the room from the list.
+    final room = _room ?? widget.repo.roomById(widget.roomId)!;
     final live = LiveCallsStore.instance.forRoom(room.id);
     final inCall = (GroupCallService.maybeInstance?.inCall ?? false) ||
         (CallService.maybeInstance?.inCall ?? false) ||
@@ -3141,6 +3278,18 @@ class _RoomScreenState extends State<_RoomView>
       return Future.error(StateError('No huddle to join'));
     }
     return svc.joinCall(id);
+  }
+
+  /// "Change" on the vanish system line: pick 10 seconds, 1 minute or 1 hour
+  /// after seen, and set it (the mode stays on).
+  Future<void> _changeVanishTimer(BuildContext context, int current) async {
+    final pick = await showVanishTimerPicker(context, current);
+    if (pick == null || pick == current || !mounted) return;
+    try {
+      await widget.api.setVanishMode(widget.roomId, true, afterSeen: pick);
+    } catch (e) {
+      debugPrint('vanish timer change failed: $e');
+    }
   }
 
   Future<void> _forkToggleVanish(bool on) async {
@@ -5820,8 +5969,9 @@ class _RoomScreenState extends State<_RoomView>
     // ...plus every message whose exit is still playing: the ledger keeps a
     // departed row in the list until its picture has blown away.
     // ...and every message being deleted, until its dust has left.
-    final messages = _exits.withHeld(widget.repo.timelineFor(widget.roomId));
-    _lastTimeline = messages;
+    final live = _exits.withHeld(widget.repo.timelineFor(widget.roomId));
+    _lastTimeline = live;
+    final messages = _withLocalNotes(live);
     final me = widget.repo.userId ?? '';
     // ListView is rendered with reverse:true so the viewport naturally
     // anchors to the newest message at the bottom. The items list is built
@@ -5851,7 +6001,13 @@ class _RoomScreenState extends State<_RoomView>
     // Every photo bubble below reads this out of the tree instead of being
     // handed a callback it would have to carry through five widgets. See the
     // scope's own doc for why it is an inherited widget and not a parameter.
-    final screen = RoomGalleryScope(
+    final screen = VanishScope(
+      controller: widget.repo.vanish,
+      roomVanishOn: room.vanishMode,
+      canChange: room.isDm || (room.isGroupChat && _suggestions.isReviewer),
+      currentSeconds: room.vanishAfterSeen,
+      onChangeTimer: _changeVanishTimer,
+      child: RoomGalleryScope(
       openGallery: _openGallery,
       videoGalleryFor: _videoGalleryFor,
       videoNotesAfter: _videoNotesAfter,
@@ -5931,6 +6087,9 @@ class _RoomScreenState extends State<_RoomView>
                 body: Stack(
                   children: [
                     theme.backgroundLayer(context),
+                    // The violet wave: a flat wash over the chat's background,
+                    // under every bubble, while vanish is on.
+                    Positioned.fill(child: VanishTint(on: room.vanishMode)),
                     if (chatStyle == ChatStyle.classic)
                       _buildClassic(context, room, messages, items, me)
                     else
@@ -5953,7 +6112,7 @@ class _RoomScreenState extends State<_RoomView>
           ),
         ),
       ),
-    );
+    ));
     // Live while this room's route is current and its pane is on stage; see
     // [ShortcutBindings]. Newer than the shell's, so ⌘-keys a room answers win
     // over the app-wide ones for as long as it is open.
@@ -6105,9 +6264,15 @@ class _RoomScreenState extends State<_RoomView>
                   : null,
               // Zero-height unless the composer holds a lone emoji that a
               // sticker stands for.
-              stickers: StickerSuggestions(
-                composer: _composer,
-                onSend: _sendSuggestedSticker,
+              stickers: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  StickerSuggestions(
+                    composer: _composer,
+                    onSend: _sendSuggestedSticker,
+                  ),
+                  VanishLongHint(text: _composer, enabled: room.vanishMode),
+                ],
               ),
               media: PickedMediaStrip(controller: _picker, onOpen: _openPick),
               field:
@@ -6130,7 +6295,9 @@ class _RoomScreenState extends State<_RoomView>
                   hasAttachments: _picker.hasPicks,
                   hint: _picker.hasPicks
                       ? AppLocalizations.of(context).inlinePickerCommentHint
-                      : null,
+                      : room.vanishMode
+                          ? AppLocalizations.of(context).vanishComposerHint
+                          : null,
                   onCamera: _posting
                           .allowsAny(const {PostKind.image, PostKind.video})
                       ? _onCamera
@@ -6382,9 +6549,15 @@ class _RoomScreenState extends State<_RoomView>
               mention: _mention.isOpen
                   ? MentionPicker(session: _mention, api: widget.api)
                   : null,
-              stickers: StickerSuggestions(
-                composer: _composer,
-                onSend: _sendSuggestedSticker,
+              stickers: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  StickerSuggestions(
+                    composer: _composer,
+                    onSend: _sendSuggestedSticker,
+                  ),
+                  VanishLongHint(text: _composer, enabled: room.vanishMode),
+                ],
               ),
               media: PickedMediaStrip(controller: _picker, onOpen: _openPick),
               field:
@@ -6407,7 +6580,9 @@ class _RoomScreenState extends State<_RoomView>
                   hasAttachments: _picker.hasPicks,
                   hint: _picker.hasPicks
                       ? AppLocalizations.of(context).inlinePickerCommentHint
-                      : null,
+                      : room.vanishMode
+                          ? AppLocalizations.of(context).vanishComposerHint
+                          : null,
                   onCamera: _posting
                           .allowsAny(const {PostKind.image, PostKind.video})
                       ? _onCamera
@@ -6597,10 +6772,25 @@ class _RoomScreenState extends State<_RoomView>
           chrome: bottomChrome,
           builder: (context, inset, _) => SizedBox(height: inset),
         );
-    Widget typingRow() => TypingRow(
-          typists: widget.repo.typingIn(room.id),
-          api: widget.api,
-          showAvatars: !room.isDm,
+    Widget typingRow() => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Under the newest message, never in a sheet: the card for
+            // someone who hides their Seen in a vanishing chat.
+            VanishHiddenSeenSlot(
+              controller: widget.repo.vanish,
+              vanishOn: room.vanishMode,
+              isDm: room.isDm,
+              name: widget.repo.otherUserFor(room)?.displayName ?? '',
+              afterSeen: room.vanishAfterSeen,
+            ),
+            TypingRow(
+              typists: widget.repo.typingIn(room.id),
+              api: widget.api,
+              showAvatars: !room.isDm,
+            ),
+          ],
         );
     // Recorded for _recomputePositionState — must match the Positioned.top
     // applied to the chip below so the overlap math reflects the real rect.
@@ -8767,6 +8957,11 @@ Widget? roomHeaderStatus(
         ? l10n.roomHeaderStatusTyping
         : typingLabel(context, typists);
     color = theme.accent;
+  } else if (room.vanishMode) {
+    // Ahead of presence and member count: a room that vanishes says so under
+    // its name, in the vanish violet.
+    text = l10n.vanishHeaderStatus;
+    color = VanishPalette(theme).vanish;
   } else if (room.isSavedMessages) {
     return null;
   } else if (dmUser != null) {

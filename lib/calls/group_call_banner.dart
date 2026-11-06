@@ -117,7 +117,10 @@ class _GroupCallBannerState extends State<GroupCallBanner>
     final call = _call;
     final svc = widget.service;
     // Hidden: no call, or we're already in this room's call.
+    // A huddle has its own Join pill on the chat's dock shelf; two surfaces
+    // for one invitation would be one too many.
     if (call == null ||
+        call['kind'] == 'huddle' ||
         (svc.inCall && svc.groupCallId == call['groupCallId'].toString())) {
       return const SizedBox.shrink();
     }

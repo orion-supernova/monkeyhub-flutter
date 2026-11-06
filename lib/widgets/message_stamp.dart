@@ -79,9 +79,13 @@ MessageReceipt? messageReceipt({
   required bool isMine,
   required bool deliveredToOthers,
   required bool seenByOthers,
+  // A vanishing message never says Seen: its ring (or its 24h clock) is the
+  // only word on whether it was read, and a tick would tell a person who
+  // hides their reads that they were found out.
+  bool vanishing = false,
 }) {
   if (!isMine) return null;
-  if (seenByOthers) return MessageReceipt.seen;
+  if (seenByOthers && !vanishing) return MessageReceipt.seen;
   if (deliveredToOthers) return MessageReceipt.delivered;
   return MessageReceipt.sent;
 }
@@ -119,7 +123,12 @@ class MessageStamp extends StatelessWidget {
     this.saved = false,
     this.pinned = false,
     this.edited = false,
+    this.vanish,
   });
+
+  /// The vanish mark of a vanishing message (a draining ring, or the quiet
+  /// "24h" clock), drawn right after the time. Null on every other message.
+  final Widget? vanish;
 
   final DateTime createdAt;
   final MessageStatus status;
@@ -249,6 +258,10 @@ class MessageStamp extends StatelessWidget {
           const SizedBox(width: 4),
         ],
         Text(formatClockTime(createdAt), style: style),
+        if (vanish != null) ...[
+          const SizedBox(width: 5),
+          vanish!,
+        ],
         // One chain, in this order, and the order is the point. The outbox's
         // own states come FIRST because a [receipt] is computed from another
         // member's cursor measured against this message's timestamp, and a
@@ -364,11 +377,16 @@ class StampSpacer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ExcludeSemantics(
-        child: Opacity(
-          opacity: 0,
-          child: Padding(
-            padding: const EdgeInsetsDirectional.only(start: 6),
-            child: stamp,
+        // Tickers off: the twin only has to be the same SIZE, and a vanish
+        // ring in it must not drain a second time, unseen.
+        child: TickerMode(
+          enabled: false,
+          child: Opacity(
+            opacity: 0,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(start: 6),
+              child: stamp,
+            ),
           ),
         ),
       );
