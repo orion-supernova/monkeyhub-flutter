@@ -15,6 +15,7 @@ class StickerPack {
     this.author,
     this.license,
     this.sourceUrl,
+    this.emojis = '',
   }) : _count = count;
 
   final String id;
@@ -48,10 +49,16 @@ class StickerPack {
         stickers: list,
         count: list.length,
         cover: cover,
+        emojis: emojis,
         author: author,
         license: license,
         sourceUrl: sourceUrl,
       );
+
+  /// The emoji of the pack's stickers, space separated, as the pack list
+  /// carries them: lets the store search a pack that is not loaded. Empty when
+  /// the server has not computed it (or for a personal pack).
+  final String emojis;
 
   /// Credit for the art. The Noto packs are CC BY 4.0, whose one condition is
   /// exactly this line being shown.
@@ -86,6 +93,7 @@ class StickerPack {
       author: j['author'] as String?,
       license: j['license'] as String?,
       sourceUrl: j['sourceUrl'] as String?,
+      emojis: (j['emojis'] as String?) ?? '',
       stickers: [
         for (final s in (j['stickers'] as List? ?? const []))
           PackSticker.fromJson((s as Map).cast<String, dynamic>(),

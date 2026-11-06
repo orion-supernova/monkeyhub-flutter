@@ -32,7 +32,16 @@ export async function prepareMessageInsert(db: any, value: any): Promise<any> {
   const room = await db.get(value.roomId);
   if (!room || room.lastSeq === undefined) return value;
   const seq = room.lastSeq + 1;
-  await db.patch(room._id, { lastSeq: seq });
+  // An @everyone message also stamps the room, in this same patch: unread
+  // reads the marker off the room doc it already holds, so the badge's @ is
+  // instant and exact (the inbox fan-out for it is async). A later message
+  // deleted leaves a stale marker until the viewer reads: no write per delete.
+  const patch: Record<string, unknown> = { lastSeq: seq };
+  if (value.mentionsEveryone === true) {
+    patch.lastEveryoneSeq = seq;
+    patch.lastEveryoneBy = value.userId;
+  }
+  await db.patch(room._id, patch);
   return { ...value, seq };
 }
 

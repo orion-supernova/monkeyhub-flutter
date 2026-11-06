@@ -83,16 +83,6 @@ class ExpressionStore extends ChangeNotifier {
     }
   }
 
-  /// Loads every official pack's stickers, once per session. Only for the pack
-  /// store's search, which matches packs by the emoji their stickers stand for
-  /// and so needs them all; nothing else pays for the whole catalog.
-  Future<void> ensureAllLoaded() async {
-    await Future.wait([
-      for (final p in _official)
-        if (!p.stickersLoaded) ensureLoaded(p),
-    ]);
-  }
-
   /// Sticker id → pack id, from [resolvePackOf]. Session cache.
   final Map<String, String?> _packIdBySticker = {};
 

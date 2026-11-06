@@ -74,6 +74,22 @@ export async function roomUnread(
   const capped = raw > UNREAD_CAP;
   if (count === 0) return NONE;
 
+  // Instant @everyone: the room doc already says which seq it was and who
+  // sent it. Not mine, and above my read position (and not inside my runs).
+  const es: number | undefined = room.lastEveryoneSeq;
+  if (
+    es !== undefined &&
+    es > readSeq &&
+    es <= lastSeq &&
+    room.lastEveryoneBy !== state.userId &&
+    !(state.ownRuns ?? []).some((r: any) => es >= r.from && es <= r.to) &&
+    // A deleted @everyone message is a gap row, and the gaps above the read
+    // position are already in hand: no stale marker, no extra read.
+    !gaps.some((g) => g.seq === es)
+  ) {
+    return { count, capped, hasMention: true };
+  }
+
   const mention = await ctx.db
     .query("mentionInbox")
     .withIndex("by_user_room", (q: any) =>

@@ -457,6 +457,27 @@ void main() {
       expect(matchPacks(all, 'zzz'), isEmpty);
     });
 
+    test('search matches an unloaded pack by its emoji string', () {
+      const unloaded = StickerPack(
+        id: 'u',
+        slug: 'u',
+        title: 'Zoo',
+        personal: false,
+        stickers: [],
+        count: 3,
+        stickersLoaded: false,
+        emojis: '🐶 🦊 ❤',
+      );
+      expect(matchPacks([unloaded, moods], '🦊').map((p) => p.id), ['u']);
+      expect(matchPacks([unloaded, moods], '❤️').map((p) => p.id), ['u']);
+      expect(
+        matchPacks([unloaded, moods], 'dog', emojiHits: {'🐶'})
+            .map((p) => p.id),
+        ['u'],
+      );
+      expect(matchPacks([unloaded], '🍕'), isEmpty);
+    });
+
     test('adding, removing and reordering change the strip', () async {
       final store = ExpressionStore.instance
         ..debugSeed(packs: [wild, food, moods]);

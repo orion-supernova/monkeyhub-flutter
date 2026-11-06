@@ -165,12 +165,14 @@ export const packList = query({
       let count = pack.stickerCount;
       let coverStorageId = pack.coverStorageId;
       let coverFormat = pack.coverFormat;
+      let emojis = pack.emojis;
       if (count === undefined) {
         // Seeded before the summary existed: derive it (reads the pack).
         const live = (await stickersOfPack(ctx, pack._id)) as any[];
         count = live.length;
         coverStorageId = live[0]?.storageId;
         coverFormat = live[0]?.format;
+        emojis = emojisOf(live);
       }
       // A pack whose seed failed half-way is not worth a tab.
       if (count === 0) continue;
@@ -187,6 +189,7 @@ export const packList = query({
         coverUrl,
         coverStorageId: coverStorageId ?? null,
         coverFormat: coverFormat ?? null,
+        ...(emojis !== undefined ? { emojis } : {}),
       });
     }
     return out;
@@ -247,6 +250,16 @@ export const personalPack = query({
   },
 });
 
+/** Distinct emoji of [stickers], variation selectors stripped, as one string. */
+function emojisOf(stickers: any[]): string {
+  const seen = new Set<string>();
+  for (const s of stickers) {
+    const e = String(s.emoji ?? "").replace(/\uFE0F/g, "").trim();
+    if (e) seen.add(e);
+  }
+  return [...seen].join(" ");
+}
+
 /** Recomputes an official pack's count and cover (seeding, retiring, backfill). */
 async function refreshPackSummary(ctx: any, packId: any) {
   const rows = await ctx.db
@@ -258,6 +271,7 @@ async function refreshPackSummary(ctx: any, packId: any) {
     stickerCount: live.length,
     coverStorageId: live[0]?.storageId,
     coverFormat: live[0]?.format,
+    emojis: emojisOf(live),
   });
 }
 

@@ -20,6 +20,18 @@ import '../search_field.dart';
 
 String _bare(String s) => s.replaceAll('️', '').trim();
 
+bool _matchesEmoji(StickerPack p, Set<String> hits, String typed) {
+  bool one(String raw) {
+    final e = _bare(raw);
+    return e.isNotEmpty && (hits.contains(e) || typed.contains(e));
+  }
+
+  // Loaded stickers are the authority; an unloaded pack answers from the
+  // emoji string the pack list carries.
+  if (p.stickersLoaded) return p.stickers.any((s) => one(s.emoji));
+  return p.emojis.split(' ').any(one);
+}
+
 /// Which of [packs] a search for [query] should show.
 ///
 /// Three ways in, because people look for stickers the way they think of
@@ -39,10 +51,7 @@ List<StickerPack> matchPacks(
   return [
     for (final p in packs)
       if (p.title.toLowerCase().contains(q) ||
-          p.stickers.any((s) {
-            final e = _bare(s.emoji);
-            return hits.contains(e) || (e.isNotEmpty && typed.contains(e));
-          }))
+          _matchesEmoji(p, hits, typed))
         p,
   ];
 }
@@ -139,11 +148,6 @@ class _StickerPackStoreState extends State<StickerPackStore> {
   void _onQuery(String text) {
     final gen = ++_gen;
     setState(() {});
-    // The search matches packs by the emoji their stickers stand for, so it
-    // needs every pack's stickers: fetched once per session, on first search.
-    if (text.trim().isNotEmpty) {
-      unawaited(ExpressionStore.instance.ensureAllLoaded());
-    }
     final index = _index;
     if (index == null || text.trim().isEmpty) {
       setState(() => _emojiHits = const {});
@@ -247,10 +251,10 @@ class _StickerPackStoreState extends State<StickerPackStore> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 buildDefaultDragHandles: false,
-                onReorder: (from, to) {
+                onReorderItem: (from, to) {
                   final ids = [for (final p in added) p.id];
                   final moved = ids.removeAt(from);
-                  ids.insert(to > from ? to - 1 : to, moved);
+                  ids.insert(to, moved);
                   HapticFeedback.selectionClick();
                   store.reorderInstalled(ids);
                 },
@@ -397,7 +401,7 @@ class _KlipyCategoryTile extends StatelessWidget {
   }
 }
 
-/// "Search '<query>' on KLIPY", at the end of the store's search results.
+/// "Search '`<query>`' on KLIPY", at the end of the store's search results.
 class _KlipySearchRow extends StatelessWidget {
   const _KlipySearchRow({required this.label, required this.onTap});
 

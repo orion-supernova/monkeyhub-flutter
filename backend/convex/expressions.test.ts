@@ -585,6 +585,26 @@ describe("packList / packStickers / personalPack (C5)", () => {
     expect((list[0] as any).stickers).toBeUndefined();
   });
 
+  test("emojis: stored on seed and retire, returned by packList, derived when unset", async () => {
+    const { t, me } = await setup();
+    const { packId } = await officialSticker(t); // summary unset
+    let list = await t.query(api.expressions.packList, { sessionToken: me.token } as any);
+    expect(list[0].emojis).toBe("😂");
+    // Seeding a second sticker refreshes the stored string (variation selector stripped, deduped).
+    const sid = await t.run((ctx) => ctx.storage.store(new Blob(["{}"])));
+    for (const [emoji, order] of [["❤️", 1], ["😂", 2]] as const) {
+      await t.mutation(internal.expressions.insertOfficialSticker, {
+        packId, storageId: sid, emoji, width: 1, height: 1, order, format: "lottie",
+      });
+    }
+    const stored = await t.run((ctx) => ctx.db.get(packId));
+    expect(stored!.emojis).toBe("😂 ❤");
+    list = await t.query(api.expressions.packList, { sessionToken: me.token } as any);
+    expect(list[0].emojis).toBe("😂 ❤");
+    await t.mutation(internal.expressions.retireOfficialStickers, { slug: "test-pack" });
+    expect((await t.run((ctx) => ctx.db.get(packId)))!.emojis).toBe("");
+  });
+
   test("packList reads the stored summary and hides empty packs", async () => {
     const { t, me } = await setup();
     await t.run(async (ctx) => {

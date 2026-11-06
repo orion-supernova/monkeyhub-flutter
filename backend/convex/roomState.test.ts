@@ -455,6 +455,40 @@ describe("unread is exact", () => {
     expect(after.hasMention).toBe(false);
   });
 
+  test("an @everyone send marks the room instantly for others, never the sender, and clears after read", async () => {
+    const t = convexTest(schema);
+    const { alice, bob, roomId } = await pair(t);
+    await put(t, roomId, alice.userId);
+    expect((await entry(t, bob, roomId)).hasMention).toBe(false);
+    const m = await put(t, roomId, alice.userId, { mentionsEveryone: true });
+    const r = await room(t, roomId);
+    expect(r.lastEveryoneSeq).toBe((await doc(t, m)).seq);
+    expect(r.lastEveryoneBy).toBe(alice.userId);
+    const b = await entry(t, bob, roomId);
+    expect(b.unreadCount).toBe(2);
+    expect(b.hasMention).toBe(true);
+    expect((await entry(t, alice, roomId)).hasMention).toBe(false);
+    await read(t, bob, roomId, (await doc(t, m)).createdAt);
+    const after = await entry(t, bob, roomId);
+    expect(after.unreadCount).toBe(0);
+    expect(after.hasMention).toBe(false);
+    // A plain message afterwards does not resurrect the old marker.
+    await put(t, roomId, alice.userId);
+    expect((await entry(t, bob, roomId)).hasMention).toBe(false);
+  });
+
+  test("a deleted @everyone message stops marking the room", async () => {
+    const t = convexTest(schema);
+    const { alice, bob, roomId } = await pair(t);
+    await put(t, roomId, alice.userId);
+    const m = await put(t, roomId, alice.userId, { mentionsEveryone: true });
+    expect((await entry(t, bob, roomId)).hasMention).toBe(true);
+    await del(t, m);
+    const b = await entry(t, bob, roomId);
+    expect(b.unreadCount).toBe(1);
+    expect(b.hasMention).toBe(false);
+  });
+
   test("the badge total uses the same arithmetic and skips badge-muted rooms", async () => {
     const t = convexTest(schema);
     const { alice, bob, roomId } = await pair(t);

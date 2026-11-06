@@ -385,6 +385,10 @@ export default defineSchema({
     // Undefined = a room the seq backfill has not reached: unread falls back
     // to the legacy `createdAt` scan. New rooms are born with 0 (`dbHooks.ts`).
     lastSeq: v.optional(v.number()),
+    // Newest `@everyone` message: its seq and sender, stamped in the same
+    // patch that assigns the seq (`roomStateCore.prepareMessageInsert`).
+    lastEveryoneSeq: v.optional(v.number()),
+    lastEveryoneBy: v.optional(v.id("users")),
   })
     .index("by_name", ["name"])
     .index("by_last_activity", ["lastMessageTime"])
@@ -1960,6 +1964,10 @@ export default defineSchema({
     stickerCount: v.optional(v.number()),
     coverStorageId: v.optional(v.id("_storage")),
     coverFormat: v.optional(v.string()),
+    // The deduplicated emoji of the live stickers as one string (variation
+    // selectors stripped), so the store can search packs without loading them.
+    // Kept by `refreshPackSummary`; unset until the operator backfill runs.
+    emojis: v.optional(v.string()),
   })
     .index("by_slug", ["slug"])
     .index("by_kind_order", ["kind", "order"])

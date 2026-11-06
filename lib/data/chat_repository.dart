@@ -1796,6 +1796,11 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
   /// costs nothing and sends nothing.
   void flushDeferredRead() {
     _noteViewerReturned();
+    // A delivery report that failed twice is parked with its guard released;
+    // coming back to the app is its other retry trigger. Free when nothing is
+    // parked: reported rooms are skipped by the guard.
+    final uid = _userId;
+    if (uid != null && _rooms.isNotEmpty) _scheduleDeliveryReport(uid);
     final d = _deferredRead;
     _deferredRead = null;
     if (d == null || d.roomId != _activeRoomId) return;
@@ -1872,14 +1877,66 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
       final inFlight = _deliveryReported[room.id];
       if (inFlight != null && !newest.isAfter(inFlight)) continue;
       _deliveryReported[room.id] = newest;
-      // The newest message this device has seen, not "now": a message sent
-      // after this snapshot has not reached the device, and must not be
-      // claimed by it.
-      api
-          .markRoomDelivered(roomId: room.id, userId: userId, upTo: newest)
-          .catchError((_) {});
+      _sendDelivery(room.id, userId, newest);
     }
   }
+
+  /// Fires one delivery mutation. The newest message this device has seen, not
+  /// "now": a message sent after this snapshot has not reached the device, and
+  /// must not be claimed by it.
+  ///
+  /// A failure used to be forgiven by an echo loop that no longer exists, so a
+  /// report lost to a dropped socket waited for the room's next message. Now
+  /// the guard entry is released and the room is retried once after
+  /// [deliveryRetryDelay]. If that fails too, nothing more is scheduled: the guard
+  /// stays released, so the next chat-list delivery (a reconnect re-sends the
+  /// whole list) or app resume ([flushDeferredRead]) reports it. A success
+  /// costs exactly what it always did.
+  void _sendDelivery(String roomId, String userId, DateTime newest) {
+    api
+        .markRoomDelivered(roomId: roomId, userId: userId, upTo: newest)
+        .catchError((_) {
+      // Superseded (a newer report took the guard) or cleared by a sign-out:
+      // the newer one owns the room now.
+      if (_deliveryReported[roomId] != newest) return;
+      _deliveryReported.remove(roomId);
+      // One retry per room per message; at most one timer per room.
+      if (_deliveryRetried[roomId] == newest) return;
+      if (_deliveryRetryTimers.containsKey(roomId)) return;
+      _deliveryRetryTimers[roomId] = Timer(deliveryRetryDelay, () {
+        _deliveryRetryTimers.remove(roomId);
+        _retryDelivery(roomId, userId, newest);
+      });
+    });
+  }
+
+  void _retryDelivery(String roomId, String userId, DateTime failed) {
+    if (_userId != userId) return; // signed out / switched account
+    ChatRoom? room;
+    for (final r in _rooms) {
+      if (r.id == roomId) room = r;
+    }
+    final newest = room?.lastMessageTime;
+    if (room == null || newest == null) return;
+    // Superseded by a newer message (its own report covers this one), or read
+    // since, or already re-reported by a list delivery.
+    if (newest.isAfter(failed) || room.unreadCount <= 0) return;
+    final inFlight = _deliveryReported[roomId];
+    if (inFlight != null && !newest.isAfter(inFlight)) return;
+    _deliveryRetried[roomId] = newest;
+    _deliveryReported[roomId] = newest;
+    _sendDelivery(roomId, userId, newest);
+  }
+
+  /// How long a failed delivery report waits before its one retry.
+  @visibleForTesting
+  static Duration deliveryRetryDelay = const Duration(seconds: 5);
+
+  /// Rooms with a retry timer pending: never more than one per room.
+  final Map<String, Timer> _deliveryRetryTimers = {};
+
+  /// The message each room's one retry was spent on.
+  final Map<String, DateTime> _deliveryRetried = {};
 
   /// Queued behind any in-flight [attach] for the same reason attaches are
   /// queued behind each other: a sign-out that overtook a running attach would
@@ -2008,6 +2065,11 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
     _deliveryDebounce?.cancel();
     _deliveryDebounce = null;
     _deliveryReported.clear();
+    for (final t in _deliveryRetryTimers.values) {
+      t.cancel();
+    }
+    _deliveryRetryTimers.clear();
+    _deliveryRetried.clear();
     // Dropped, not flushed: the queued receipt names the account signing out.
     _readDebounce?.cancel();
     _readDebounce = null;

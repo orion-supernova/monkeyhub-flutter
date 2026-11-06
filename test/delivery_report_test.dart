@@ -43,6 +43,9 @@ class _FakeCv extends Fake implements ConvexBackend {
 class _FakeApi extends Fake implements ChatApi {
   final List<({String roomId, DateTime? upTo})> deliveries = [];
 
+  /// How many upcoming calls fail (they are still recorded in [deliveries]).
+  int failNext = 0;
+
   @override
   Future<List<ChatRoom>> listUserRooms(String userId) async => const [];
 
@@ -64,6 +67,10 @@ class _FakeApi extends Fake implements ChatApi {
     DateTime? upTo,
   }) async {
     deliveries.add((roomId: roomId, upTo: upTo));
+    if (failNext > 0) {
+      failNext--;
+      throw Exception('offline');
+    }
   }
 }
 
@@ -94,6 +101,7 @@ void main() {
   setUp(() async {
     cv = _FakeCv();
     api = _FakeApi();
+    ChatRepository.deliveryRetryDelay = const Duration(milliseconds: 300);
     repo = ChatRepository(api: api, cv: cv);
     await repo.attach('me');
   });
@@ -128,5 +136,40 @@ void main() {
     cv.onRooms!([_room('a', 5000, unread: 0)]);
     await settle();
     expect(api.deliveries, isEmpty);
+  });
+
+  test('a failed report is retried exactly once, then not again', () async {
+    api.failNext = 1;
+    cv.onRooms!([_room('a', 5000)]);
+    await Future<void>.delayed(const Duration(milliseconds: 2000));
+    // report fails, retry fires 300ms later and succeeds
+    expect(api.deliveries.length, 2);
+    expect(api.deliveries.every((d) => d.roomId == 'a'), isTrue);
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    expect(api.deliveries.length, 2);
+  });
+
+  test('a retry that also fails waits for the next trigger', () async {
+    api.failNext = 2;
+    cv.onRooms!([_room('a', 5000)]);
+    await Future<void>.delayed(const Duration(milliseconds: 2000));
+    expect(api.deliveries.length, 2);
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    expect(api.deliveries.length, 2); // no third timer
+    // The next chat-list delivery (e.g. after a reconnect) reports it.
+    cv.onRooms!([_room('a', 5000, unread: 3)]);
+    await settle();
+    expect(api.deliveries.length, 3);
+  });
+
+  test('a superseded report is not retried', () async {
+    api.failNext = 1;
+    cv.onRooms!([_room('a', 5000)]);
+    await Future<void>.delayed(const Duration(milliseconds: 1300));
+    expect(api.deliveries.length, 1); // failed, retry pending
+    cv.onRooms!([_room('a', 6000)]); // newer message arrives before the retry
+    await settle();
+    // Only the 6000 report; the 5000 retry saw it was superseded.
+    expect(api.deliveries.map((d) => d.upTo!.millisecondsSinceEpoch), [5000, 6000]);
   });
 }
