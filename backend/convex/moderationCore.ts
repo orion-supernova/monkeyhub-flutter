@@ -350,7 +350,6 @@ async function postAsReporter(
     content: text,
     createdAt: now + seq++,
     type: "text",
-    senderName: REPORTER_DISPLAY_NAME,
     ...(card ? { moderationCard: card } : {}),
   });
   for (const m of media) {
@@ -368,7 +367,6 @@ async function postAsReporter(
       fileName: m.fileName,
       fileSize: m.fileSize,
       mimeType: m.mimeType,
-      senderName: REPORTER_DISPLAY_NAME,
     });
     // The bubble holds the blob alongside the source message.
     for (const field of ["mediaStorageId", "posterStorageId"]) {
@@ -414,14 +412,12 @@ export async function postOutcome(ctx: any, report: any, text: string) {
     content: text,
     createdAt: now,
     type: "text",
-    senderName: REPORTER_DISPLAY_NAME,
     ...(card
       ? {
           replyToId: card._id,
           rootId: card.rootId ?? card._id,
           replyToPreview: {
             senderId: inbox.accountId,
-            senderName: REPORTER_DISPLAY_NAME,
             contentPreview: excerpt(card.content.split("\n")[0], 140),
             type: "text",
           },

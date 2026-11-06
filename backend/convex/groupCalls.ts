@@ -652,7 +652,7 @@ async function announceHuddle(
   if (!room) return;
   const isDm = typeof room.name === "string" && room.name.startsWith("dm:");
   const recipients: any[] = [];
-  // Mute is on `roomUserState` for migrated memberships (C1).
+  // Mute is on `roomUserState` (C1).
   const withMute = await withMuteState(ctx, roomId, members);
   for (const m of withMute) {
     if (m.userId.toString() === starterId.toString()) continue;

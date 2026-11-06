@@ -101,9 +101,7 @@ describe("delete plans", () => {
     const ids = planFor("room").map((s) => s.id);
     expect(ids).toContain("generic:roomBans.roomId"); // roomAccess.roomId is a custom step (WP-C)
     expect(ids).toContain("generic:friendships.roomId");
-    // No rule targets an avatar repoint, so its plan is custom steps only.
-    const avatar = planFor("avatar").map((s) => s.id);
-    expect(avatar.some((id) => id.startsWith("generic:"))).toBe(false);
-    expect(avatar[avatar.length - 1]).toBe("deleteOld");
+    // The retired `avatar` kind has no steps: a leftover job finishes at once.
+    expect(planFor("avatar")).toEqual([]);
   });
 });

@@ -12,9 +12,8 @@ import {
 import { assertNoSystemAccount, assertNotSystemRoom } from "./systemAccount";
 import { assertCleanName, assertCleanText } from "./contentFilter";
 import { lensFor, levelOf, seenVisibilityOf } from "./visibility";
-import { unreadForRoom } from "./badges";
 import { roomUnread } from "./unread";
-import { stateBackfilled, stateOf, withMuteState } from "./roomState";
+import { stateOf, withMuteState } from "./roomState";
 import { MUTE_ALWAYS, resolveMute } from "./mute";
 import { attachFile, claimUpload, releaseFile } from "./files";
 import { wipeRoomCompletely } from "./roomCleanup";
@@ -449,11 +448,11 @@ function listCard(room: any): Record<string, any> {
 }
 
 /** What a viewer's own organisation (pin, archive, mute) adds to a list entry. */
-function viewerFields(m: any, archivedKey: "archived" | "isArchived"): Record<string, any> {
+function viewerFields(m: any): Record<string, any> {
   return {
     isPinned: m.isPinned ?? false,
     pinnedAt: m.pinnedAt ?? null,
-    isArchived: (archivedKey === "archived" ? m.archived : m.isArchived) ?? false,
+    isArchived: m.archived ?? false,
     archivedAt: m.archivedAt ?? null,
     // RAW, not resolved against the clock: see `lib/models/room_mute.dart`.
     muteNotifications: m.muteNotifications ?? false,
@@ -474,9 +473,6 @@ function viewerFields(m: any, archivedKey: "archived" | "isArchived"): Record<st
  * `scope` ("active" | "archived") narrows to one half of the viewer's list;
  * absent means everything, which is what builds already in users' hands expect.
  *
- * Dual-mode until the state backfill marker is set: a membership with no state
- * row yet is listed from its legacy `roomMembers` row, as before.
- *
  * `lastDeliveredAt` is always null: reading it would make the list re-run on
  * every delivery report. Builds that used it to skip already-reported rooms
  * now send at most one no-op delivery mutation per room with unread.
@@ -487,15 +483,11 @@ export const listUserRooms = query({
     scope: v.optional(v.union(v.literal("active"), v.literal("archived"))),
   },
   handler: async (ctx, { userId, scope }) => {
-    const backfilled = await stateBackfilled(ctx);
-    // Once every membership has its rows the scope is an index range. Before
-    // that, all states are read and filtered, because the legacy half needs to
-    // know which rooms already have one whichever side they are on.
     const wantArchived = scope === undefined ? undefined : scope === "archived";
     const states = await ctx.db
       .query("roomUserState")
       .withIndex("by_user_archived", (q) =>
-        backfilled && wantArchived !== undefined
+        wantArchived !== undefined
           ? q.eq("userId", userId).eq("archived", wantArchived)
           : q.eq("userId", userId),
       )
@@ -505,7 +497,6 @@ export const listUserRooms = query({
     const now = Date.now();
     await Promise.all(
       states.map(async (s) => {
-        if (wantArchived !== undefined && s.archived !== wantArchived) return;
         const room = await ctx.db.get(s.roomId);
         // A room being deleted vanishes from the list at once.
         if (!room || isTombstoned(room)) return;
@@ -532,52 +523,10 @@ export const listUserRooms = query({
           unreadCount: unread.count,
           unreadCapped: unread.capped,
           hasMention: unread.hasMention,
-          ...viewerFields(s, "archived"),
+          ...viewerFields(s),
         });
       }),
     );
-
-    if (!backfilled) {
-      const have = new Set(states.map((s) => s.roomId.toString()));
-      const memberships = await ctx.db
-        .query("roomMembers")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .collect();
-      await Promise.all(
-        memberships.map(async (m) => {
-          if (have.has(m.roomId.toString())) return;
-          if (wantArchived !== undefined && (m.isArchived === true) !== wantArchived) return;
-          const room = await ctx.db.get(m.roomId);
-          if (!room || isTombstoned(room)) return;
-          // DMs only (see git history for why group rooms never collect).
-          const participantIds = room.name?.startsWith("dm:")
-            ? (
-                await ctx.db
-                  .query("roomMembers")
-                  .withIndex("by_room_user", (q) => q.eq("roomId", m.roomId))
-                  .collect()
-              ).map((mem) => mem.userId.toString())
-            : [];
-          const unread = await unreadForRoom(
-            ctx,
-            m.roomId,
-            userId,
-            m.lastReadAt,
-            room.lastMessageTime,
-          );
-          entries.push({
-            ...listCard(room),
-            participantIds,
-            lastReadAt: m.lastReadAt ?? null,
-            lastDeliveredAt: null,
-            unreadCount: unread.count,
-            unreadCapped: unread.capped,
-            hasMention: unread.hasMention,
-            ...viewerFields(m, "isArchived"),
-          });
-        }),
-      );
-    }
 
     return entries.sort(
       (a, b) => (b.lastMessageTime ?? b.createdAt) - (a.lastMessageTime ?? a.createdAt),
@@ -588,8 +537,7 @@ export const listUserRooms = query({
 /**
  * How many rooms the viewer has archived, for the "Archived (n)" row that sits
  * above a list fetched with `scope: "active"`. Reads only the state rows in the
- * archived half of the index (plus, until the backfill marker is set, legacy
- * memberships without a state row).
+ * archived half of the index.
  */
 export const archivedCount = query({
   args: { userId: v.id("users") },
@@ -599,31 +547,15 @@ export const archivedCount = query({
       .query("roomUserState")
       .withIndex("by_user_archived", (q) => q.eq("userId", userId).eq("archived", true))
       .collect();
-    let n = archived.length;
-    if (!(await stateBackfilled(ctx))) {
-      const states = await ctx.db
-        .query("roomUserState")
-        .withIndex("by_user_archived", (q) => q.eq("userId", userId))
-        .collect();
-      const have = new Set(states.map((s) => s.roomId.toString()));
-      const memberships = await ctx.db
-        .query("roomMembers")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .collect();
-      for (const m of memberships) {
-        if (m.isArchived === true && !have.has(m.roomId.toString())) n++;
-      }
-    }
-    return n;
+    return archived.length;
   },
 });
 
 /**
  * Per-viewer chat-list organization: pin/unpin and archive/unarchive a room
- * for the calling user only. Patches the caller's own `roomUserState` row (or,
- * for a membership the backfill has not reached, their legacy `roomMembers`
- * row), so it never touches how the room looks to anyone else in it and never
- * re-runs a roster or read-state query.
+ * for the calling user only. Patches the caller's own `roomUserState` row, so
+ * it never touches how the room looks to anyone else in it and never re-runs
+ * a roster or read-state query. Not a member (no state row): silent no-op.
  */
 async function patchOwnMembership(
   ctx: any,
@@ -632,20 +564,12 @@ async function patchOwnMembership(
   patch: Record<string, unknown>
 ) {
   const state = await stateOf(ctx, roomId, userId);
-  if (state) {
-    const { isArchived, ...rest } = patch as any;
-    await ctx.db.patch(state._id, {
-      ...rest,
-      ...("isArchived" in patch ? { archived: isArchived === true } : {}),
-    });
-    return;
-  }
-  const membership = await ctx.db
-    .query("roomMembers")
-    .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId).eq("userId", userId))
-    .first();
-  if (!membership) return; // not a member, silently no-op — same as markRoomRead
-  await ctx.db.patch(membership._id, patch);
+  if (!state) return;
+  const { isArchived, ...rest } = patch as any;
+  await ctx.db.patch(state._id, {
+    ...rest,
+    ...("isArchived" in patch ? { archived: isArchived === true } : {}),
+  });
 }
 
 export const pinRoom = mutation({
@@ -889,8 +813,7 @@ export const getMemberIds = internalQuery({
         !msg.replyToId &&
         msg.mediaSpoiler !== true;
     }
-    // Mute lives on `roomUserState` for migrated memberships (C1); the roster
-    // row only answers for the ones the backfill has not reached.
+    // Mute lives on `roomUserState` (C1).
     const memberRows = await withMuteState(
       ctx,
       roomId,

@@ -1,7 +1,7 @@
 /**
  * When each message reached a recipient, without a row per message.
  *
- * The receipt cursors on `roomMembers` (`lastDeliveredAt`, `lastReadAt`) say
+ * The receipt cursors on `roomReceipts` (`lastDeliveredAt`, `lastReadAt`) say
  * WHETHER a message got there: it did when the cursor is at or past its
  * `createdAt`. They cannot say WHEN. The one wall-clock stamp beside each
  * cursor (`lastDeliveredClock`, `lastReadClock`) is when it last moved, so
@@ -23,52 +23,9 @@
 export type ReceiptLogEntry = { upTo: number; at: number };
 
 /**
- * Moves kept per cursor. Each is ~20 bytes, so a full log is about 4 KB on the
- * membership row. Not served by `getReadState` (the hot subscription every
+ * Moves kept per cursor. Not served by `getReadState` (the hot subscription every
  * open room holds); only `getReceiptTimes` reads it, while the receipts screen
  * is open. 200 moves is days of an active chat, and nobody checks the minute a
  * month-old message arrived.
  */
 export const RECEIPT_LOG_CAP = 200;
-
-/**
- * [log] with the cursor's move from [before] up to [upTo] at [at] appended.
- *
- * If the log does not end where the cursor stood, the gap is closed with an
- * unknown-time entry first. That is the first write to a row from before this
- * existed, and it keeps any future writer that moves a cursor without logging
- * from having its stretch claimed by the next logged move.
- */
-export function appendReceiptLog(
-  log: ReceiptLogEntry[] | undefined,
-  before: number,
-  upTo: number,
-  at: number,
-): ReceiptLogEntry[] {
-  const out = [...(log ?? [])];
-  const end = out.length > 0 ? out[out.length - 1].upTo : 0;
-  if (before > end) out.push({ upTo: before, at: 0 });
-  out.push({ upTo, at });
-  if (out.length <= RECEIPT_LOG_CAP) return out;
-  // Trim from the front, and leave a marker where the trimmed run ended:
-  // without it the oldest kept entry would claim every message before it.
-  const kept = out.slice(out.length - (RECEIPT_LOG_CAP - 1));
-  const lastDropped = out[out.length - RECEIPT_LOG_CAP];
-  return [{ upTo: lastDropped.upTo, at: 0 }, ...kept];
-}
-
-/**
- * When the cursor this log belongs to first covered a message stamped
- * [createdAt], or null when that is not known — including when the cursor has
- * not reached it at all, which callers tell apart with the cursor itself.
- */
-export function receiptTimeFor(
-  log: ReceiptLogEntry[] | undefined,
-  createdAt: number,
-): number | null {
-  if (!log) return null;
-  for (const e of log) {
-    if (e.upTo >= createdAt) return e.at > 0 ? e.at : null;
-  }
-  return null;
-}

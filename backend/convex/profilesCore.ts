@@ -11,15 +11,6 @@
 // only ever moves forward: `max(prev + 1, now)` even if the clock steps back.
 import { isSystemAccount } from "./systemAccount";
 
-/**
- * Stage W3 is done: false. Writers of the denormalised name/avatar copies
- * (`messages.senderName`, `moments.authorName`, ...) check this and no longer
- * stamp them (every supported build, 1.3.137+, resolves names from `profiles`).
- * Order: deploy this, then run `profileMigrations:stripCopies` per table
- * (`stripCopies` refuses while this is true) and check `countCopies` is 0.
- */
-export const PROFILE_COPIES = false;
-
 type ProfileFields = {
   name: string;
   username: string;

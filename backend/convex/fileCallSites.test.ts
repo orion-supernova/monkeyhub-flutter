@@ -411,18 +411,13 @@ describe("room photos", () => {
 });
 
 describe("avatars", () => {
-  test("the old file is freed by the avatar job, not before", async () => {
+  test("the old file is freed in the same transaction as the swap", async () => {
     const t = convexTest(schema);
     const me = await signUp(t, "me");
     const first = await store(t);
     const second = await store(t);
     await t.mutation(api.users.updateAvatar, { ...as(me), storageId: first } as any);
     await t.mutation(api.users.updateAvatar, { ...as(me), storageId: second } as any);
-    // The job has not run: copies still point at the old file.
-    expect(await alive(t, first)).toBe(true);
-    expect(await refsOf(t, first)).toHaveLength(1);
-
-    await drain(t);
     expect(await alive(t, first)).toBe(false);
     expect(await refsOf(t, first)).toHaveLength(0);
     expect(await refsOf(t, second)).toHaveLength(1);

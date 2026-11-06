@@ -4,7 +4,7 @@ import type { Id } from "./_generated/dataModel";
 import { internalQuery } from "./_generated/server";
 import { internalMutation } from "./dbHooks";
 import { unreadForRoom } from "./badges";
-import { MAX_OWN_RUNS, STATE_MARKER, dmPeerFor, stateBackfilled, stateOf } from "./roomState";
+import { MAX_OWN_RUNS, STATE_MARKER, dmPeerFor, stateOf } from "./roomState";
 import { roomUnread } from "./unread";
 
 /**
@@ -309,7 +309,11 @@ export const finish = internalMutation({
     cursor: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, { phase, cursor }) => {
-    if (await stateBackfilled(ctx)) return { ok: true, already: true };
+    const marker = await ctx.db
+      .query("migrationMarkers")
+      .withIndex("by_name", (q: any) => q.eq("name", STATE_MARKER))
+      .first();
+    if (marker !== null) return { ok: true, already: true };
     const which = phase ?? "rooms";
     if (which === "rooms") {
       const page = await ctx.db.query("rooms").paginate({ numItems: 100, cursor: cursor ?? null });

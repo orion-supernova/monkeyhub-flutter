@@ -199,7 +199,6 @@ export const submit = mutation({
       content: text,
       createdAt: now + seq++,
       type: "text",
-      senderName: LOG_DISPLAY_NAME,
     });
 
     if (logStorageId !== undefined) {
@@ -220,7 +219,6 @@ export const submit = mutation({
         fileSize: logFileSize,
         mimeType: "text/plain",
         galleryBucket: galleryBucketFor("file", true, false),
-        senderName: LOG_DISPLAY_NAME,
       });
       await attachFile(ctx, logStorageId, {
         table: "messages",
@@ -238,7 +236,6 @@ export const submit = mutation({
         type: "image",
         mediaStorageId: shot,
         galleryBucket: galleryBucketFor("image", true, false),
-        senderName: LOG_DISPLAY_NAME,
       });
       await attachFile(ctx, shot, {
         table: "messages",

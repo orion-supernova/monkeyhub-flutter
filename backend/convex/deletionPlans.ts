@@ -22,7 +22,6 @@ import {
   type Job,
   type Step,
 } from "./deletionCore";
-import { avatarSteps } from "./deletionSteps/avatarSteps";
 import { commentSteps } from "./deletionSteps/commentSteps";
 import { matchSteps } from "./deletionSteps/matchSteps";
 import { messageSteps } from "./deletionSteps/messageSteps";
@@ -39,7 +38,6 @@ export const KIND_TABLE: Record<DeletionKind, string | null> = {
   moment: "moments",
   match: "matches",
   comment: "momentComments",
-  avatar: null,
 };
 
 export const CUSTOM_STEPS: Record<DeletionKind, Step[]> = {
@@ -49,7 +47,6 @@ export const CUSTOM_STEPS: Record<DeletionKind, Step[]> = {
   moment: momentSteps,
   match: matchSteps,
   comment: commentSteps,
-  avatar: avatarSteps,
 };
 
 export const GENERIC_TIER = 50;
@@ -174,7 +171,9 @@ function defaultParentStep(table: "users" | "rooms"): Step {
  * unclaimed, non-exempt generic rule, and (user, room) the parent row last.
  * A custom step with id `"parent"` replaces the default parent step.
  */
-export function planFor(kind: DeletionKind): Step[] {
+export function planFor(kind: DeletionKind | "avatar"): Step[] {
+  // A leftover `avatar` job (retired kind, see schema.ts) has no steps: it finishes at once.
+  if (kind === "avatar") return [];
   const custom = CUSTOM_STEPS[kind];
   const claimed = new Set(custom.flatMap((s) => s.claims ?? []));
   const generic = coveredKeys(kind)

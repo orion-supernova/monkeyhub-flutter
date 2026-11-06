@@ -2,11 +2,6 @@ import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import {
-  RECEIPT_LOG_CAP,
-  appendReceiptLog,
-  receiptTimeFor,
-} from "./receiptLog";
 import { receiptEndpoint, receiptFields } from "./receiptToken";
 import schema from "./schema";
 
@@ -105,37 +100,6 @@ const at = (iso: string) => Date.parse(iso);
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllEnvs();
-});
-
-describe("receipt log", () => {
-  test("a message takes the time of the first move that covered it", () => {
-    let log = appendReceiptLog(undefined, 0, 100, 1000);
-    log = appendReceiptLog(log, 100, 200, 2000);
-    expect(receiptTimeFor(log, 50)).toBe(1000);
-    expect(receiptTimeFor(log, 100)).toBe(1000);
-    expect(receiptTimeFor(log, 150)).toBe(2000);
-    expect(receiptTimeFor(log, 201)).toBeNull();
-  });
-
-  test("where the cursor stood before the log began has no time", () => {
-    const log = appendReceiptLog(undefined, 100, 200, 2000);
-    expect(receiptTimeFor(log, 90)).toBeNull();
-    expect(receiptTimeFor(log, 150)).toBe(2000);
-  });
-
-  test("a full log trims from the front and leaves the trimmed run unknown", () => {
-    let log: any[] | undefined;
-    for (let i = 1; i <= RECEIPT_LOG_CAP + 10; i++) {
-      log = appendReceiptLog(log, (i - 1) * 10, i * 10, i * 1000);
-    }
-    expect(log!.length).toBe(RECEIPT_LOG_CAP);
-    expect(receiptTimeFor(log, 10)).toBeNull();
-    const last = RECEIPT_LOG_CAP + 10;
-    expect(receiptTimeFor(log, last * 10)).toBe(last * 1000);
-    // The oldest entry still known keeps its own time, not the gap's.
-    const oldestKnown = log![1];
-    expect(receiptTimeFor(log, oldestKnown.upTo)).toBe(oldestKnown.at);
-  });
 });
 
 describe("each message keeps its own delivered and read time", () => {

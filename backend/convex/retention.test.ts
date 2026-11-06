@@ -119,7 +119,7 @@ describe("typing indicators", () => {
       await ctx.db.insert("roomMembers", { roomId: room, userId: otherId, role: "member", joinedAt: NOW } as any);
       for (const r of [room, second]) {
         await ctx.db.insert("typingIndicators", {
-          roomId: r, userId: otherId, updatedAt: NOW, userName: "bob",
+          roomId: r, userId: otherId, updatedAt: NOW,
         });
       }
     });
@@ -149,7 +149,6 @@ describe("moment views", () => {
       const mk = (expiresAt: number) =>
         ctx.db.insert("moments", {
           userId, dayKey: "2026-01-01", createdAt: expiresAt - DAY, expiresAt,
-          authorName: "a", authorUsername: "a",
         });
       const expired = await mk(NOW - 30 * DAY);
       const lived = await mk(NOW - DAY); // expired a day ago only

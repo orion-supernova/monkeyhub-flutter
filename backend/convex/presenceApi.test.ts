@@ -335,7 +335,6 @@ describe("sweepStale", () => {
           passwordHash: "x",
           recoveryKeyHash: "x",
           createdAt: 1,
-          status: "online",
         } as any);
         await ctx.db.insert("presence", { userId: id, status: "online" });
         await ctx.db.insert("presenceBeats", { userId: id, beatAt, live });
@@ -357,7 +356,7 @@ describe("sweepStale", () => {
       lastSeen: T0 - PRESENCE_OFFLINE_MS - 5_000,
     });
     expect(s.beats[0].live).toBe(false);
-    expect(s.user.status).toBe("online"); // the sweep never touches users
+    expect(s.user.status).toBeUndefined(); // the sweep never touches users
     const f = await rowsOf(t, fresh);
     expect(f.presence[0].status).toBe("online");
     expect(f.beats[0].live).toBe(true);

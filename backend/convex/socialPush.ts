@@ -710,13 +710,9 @@ export const _momentAudience = internalQuery({
       )
       .take(MAX_TODAY_COUNT);
 
-    // Built now, from the profile: a rename shows in the push, and a moment
-    // written without copies still has a name. A deleted author: no push.
-    const authorName = await displayName(
-      ctx,
-      m.userId,
-      m.authorName || m.authorUsername,
-    );
+    // Built now, from the profile: a rename shows in the push. A deleted
+    // author: no push.
+    const authorName = await displayName(ctx, m.userId);
     if (!authorName) return null;
 
     return {
@@ -914,7 +910,7 @@ export const _commentAudience = internalQuery({
     }
     if (recipients.length === 0) return null;
 
-    const commenterName = await displayName(ctx, commenter._id, c.userName);
+    const commenterName = await displayName(ctx, commenter._id);
     if (!commenterName) return null;
 
     return {
@@ -1053,7 +1049,7 @@ export const _reactionAudience = internalQuery({
     const level = levelOf(reactor, "avatar");
     const face = level === "public" || (level === "friends" && friend);
 
-    const reactorName = await displayName(ctx, reactor._id, r.userName);
+    const reactorName = await displayName(ctx, reactor._id);
     if (!reactorName) return null;
 
     return {

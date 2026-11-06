@@ -140,10 +140,10 @@ export const setVanishMode = mutation({
   },
 });
 
-/** The per-chat "share my reads" answer: the state row's (C1), else the legacy membership's. */
+/** The per-chat "share my reads" answer: the member's `roomUserState` row. */
 async function perChatShare(ctx: any, membership: any): Promise<boolean | undefined> {
   const state = await stateOf(ctx, membership.roomId, membership.userId);
-  return state ? state.vanishShareReads : membership.vanishShareReads;
+  return state?.vanishShareReads;
 }
 
 /**
@@ -165,12 +165,11 @@ async function mayShareReads(ctx: any, userId: any, membership: any): Promise<bo
  * nothing to catch up. Reads the vanishState only when the cursor moved.
  */
 async function catchUp(ctx: any, membership: any, roomId: any): Promise<boolean> {
-  // C1: the cursors are on `roomReceipts` for a migrated membership.
   const receipt = await receiptOf(ctx, roomId, membership.userId);
-  const read = (receipt ? receipt.lastReadAt : membership.lastReadAt) ?? 0;
-  const current = (receipt ? receipt.vanishSeenAt : membership.vanishSeenAt) ?? 0;
-  if (read <= current) return false;
-  await ctx.db.patch((receipt ?? membership)._id, { vanishSeenAt: read });
+  if (!receipt) return false;
+  const read = receipt.lastReadAt ?? 0;
+  if (read <= receipt.vanishSeenAt) return false;
+  await ctx.db.patch(receipt._id, { vanishSeenAt: read });
   const state = await vanishStateOf(ctx, roomId);
   if (state) await recomputeFloor(ctx, state, Date.now());
   return true;
@@ -178,7 +177,7 @@ async function catchUp(ctx: any, membership: any, roomId: any): Promise<boolean>
 
 /**
  * The per-chat choice for people who hide "seen": share my reads in THIS
- * vanishing chat, or don't. Writes only the caller's own roomMembers row.
+ * vanishing chat, or don't. Writes only the caller's own roomUserState row.
  * Sharing also counts what they have already read: their vanish cursor jumps
  * to their read cursor and anything below it burns after the grace period.
  * Not sharing never rewinds a cursor already given.
@@ -193,12 +192,8 @@ export const setVanishShareReads = mutation({
     const membership = await membershipOf(ctx, roomId, userId);
     if (!membership) throw new Error("NOT_A_MEMBER");
     const state = await stateOf(ctx, roomId, userId);
-    if (state) {
-      if (state.vanishShareReads !== share) {
-        await ctx.db.patch(state._id, { vanishShareReads: share });
-      }
-    } else if (membership.vanishShareReads !== share) {
-      await ctx.db.patch(membership._id, { vanishShareReads: share });
+    if (state && state.vanishShareReads !== share) {
+      await ctx.db.patch(state._id, { vanishShareReads: share });
     }
     if (share) await catchUp(ctx, membership, roomId);
     return null;

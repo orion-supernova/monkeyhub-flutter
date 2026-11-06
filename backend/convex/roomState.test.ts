@@ -1029,7 +1029,7 @@ describe("backfill", () => {
     expect(await shadow(t)).toEqual([]);
   });
 
-  test("finish refuses while a membership has no state, then sets the marker and retires the fallback", async () => {
+  test("finish refuses while a membership has no state, then sets the marker", async () => {
     vi.useFakeTimers();
     const t = convexTest(schema);
     const w = await legacyWorld(t);
@@ -1049,48 +1049,7 @@ describe("backfill", () => {
       ctx.db.query("migrationMarkers").collect(),
     )) as any[];
     expect(marker.filter((m) => m.name === "roomUserState")).toHaveLength(1);
-    // Past the marker the list reads state rows only, and still answers.
+    // The list reads state rows only, and still answers.
     expect((await entry(t, w.bob, w.roomId)).unreadCount).toBe(3);
-  });
-
-  test("dual mode: a legacy membership still lists, reads and mutes on its roomMembers row", async () => {
-    const t = convexTest(schema);
-    const alice = await signUp(t, "alice");
-    const bob = await signUp(t, "bob");
-    const roomId = await t.run(async (ctx: any) => {
-      const id = await ctx.db.insert("rooms", {
-        name: "legacy",
-        createdBy: alice.userId,
-        createdAt: 1,
-        isPrivate: false,
-        memberCount: 2,
-        lastMessageTime: 500,
-      });
-      for (const u of [alice, bob]) {
-        await ctx.db.insert("roomMembers", { roomId: id, userId: u.userId, joinedAt: 1, role: "member" });
-      }
-      await ctx.db.insert("messages", {
-        roomId: id,
-        userId: alice.userId,
-        content: "x",
-        createdAt: 500,
-        type: "text",
-      });
-      return id;
-    });
-    expect((await entry(t, bob, roomId)).unreadCount).toBe(1);
-    await read(t, bob, roomId, 500);
-    expect((await entry(t, bob, roomId)).unreadCount).toBe(0);
-    const row = (await t.run((ctx: any) =>
-      ctx.db
-        .query("roomMembers")
-        .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId).eq("userId", bob.userId))
-        .first(),
-    )) as any;
-    expect(row.lastReadAt).toBe(500);
-    expect(await state(t, roomId, bob.userId)).toBeNull();
-    await t.mutation(api.rooms.pinRoom, { sessionToken: bob.token, roomId, userId: bob.userId as any });
-    expect((await entry(t, bob, roomId)).isPinned).toBe(true);
-    expect((await entry(t, bob, roomId)).lastDeliveredAt).toBeNull();
   });
 });

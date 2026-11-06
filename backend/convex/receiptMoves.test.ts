@@ -1,9 +1,8 @@
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { api, internal } from "./_generated/api";
+import { api } from "./_generated/api";
 import { RECEIPT_LOG_CAP } from "./receiptLog";
 import schema from "./schema";
-import { makeLegacyRoom } from "./roomStateTestUtils";
 
 /**
  * B1/B2/B4/B7 of the backend handbook: receipt history as one row per move,
@@ -47,8 +46,6 @@ async function pair(t: T) {
     userId: reader.userId as any,
     roomId,
   });
-  // These tests are about the pre-backfill (dual-mode) shape of a membership.
-  await makeLegacyRoom(t, roomId);
   return { sender, reader, roomId };
 }
 
@@ -130,76 +127,6 @@ describe("receiptMoves", () => {
     expect(sorted[sorted.length - 1].at).toBe(2500);
     expect(sorted[sorted.length - 1].clock).toBe(1250);
     void sent;
-  });
-
-  test("backfillMoves copies old logs, is idempotent, and sets the marker", async () => {
-    vi.useFakeTimers();
-    const t = convexTest(schema);
-    const { sender, reader, roomId } = await pair(t);
-    const sent = await send(t, sender, roomId, "hi");
-    const row: any = await t.run((ctx: any) =>
-      ctx.db
-        .query("roomMembers")
-        .withIndex("by_room_user", (q: any) =>
-          q.eq("roomId", roomId).eq("userId", reader.userId),
-        )
-        .first(),
-    );
-    await t.run(async (ctx: any) => {
-      await ctx.db.patch(row._id, { lastReadAt: sent, lastDeliveredAt: sent });
-      await ctx.db.insert("receiptLogs", {
-        roomId,
-        userId: reader.userId,
-        kind: "read",
-        entries: [{ upTo: sent, at: 4242 }],
-      });
-    });
-    // Before the backfill, readers fall back to the old log.
-    expect((await times(t, sender, roomId, sent, reader.userId)).readAt).toBe(4242);
-
-    const first = await t.mutation(internal.receipts.backfillMoves, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
-    expect(first.done).toBe(true);
-    expect(await moves(t)).toHaveLength(1);
-    const again = await t.mutation(internal.receipts.backfillMoves, {});
-    expect(again.copied).toBe(0);
-    expect(await moves(t)).toHaveLength(1);
-    const markers = await t.run((ctx: any) => ctx.db.query("migrationMarkers").collect());
-    expect(markers).toHaveLength(1);
-    expect((await times(t, sender, roomId, sent, reader.userId)).readAt).toBe(4242);
-  });
-
-  test("a first move after deploy carries the old history over", async () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(Date.parse("2026-10-07T10:00:00Z"));
-    const t = convexTest(schema);
-    const { sender, reader, roomId } = await pair(t);
-    const first = await send(t, sender, roomId, "one");
-    const row: any = await t.run((ctx: any) =>
-      ctx.db
-        .query("roomMembers")
-        .withIndex("by_room_user", (q: any) =>
-          q.eq("roomId", roomId).eq("userId", reader.userId),
-        )
-        .first(),
-    );
-    await t.run(async (ctx: any) => {
-      await ctx.db.patch(row._id, { lastReadAt: first, lastDeliveredAt: first });
-      await ctx.db.insert("receiptLogs", {
-        roomId,
-        userId: reader.userId,
-        kind: "read",
-        entries: [{ upTo: first, at: 4242 }],
-      });
-    });
-    vi.setSystemTime(Date.parse("2026-10-07T10:05:00Z"));
-    const second = await send(t, sender, roomId, "two");
-    await read(t, reader, roomId, second);
-    expect((await times(t, sender, roomId, first, reader.userId)).readAt).toBe(4242);
-    expect((await times(t, sender, roomId, second, reader.userId)).readAt).toBe(
-      Date.parse("2026-10-07T10:05:00Z"),
-    );
-    expect(await t.run((ctx: any) => ctx.db.query("receiptLogs").collect())).toHaveLength(0);
   });
 });
 

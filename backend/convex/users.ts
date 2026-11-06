@@ -2,8 +2,8 @@ import { internalMutation } from "./dbHooks";
 import { mutation, publicQuery, query } from "./functions";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { attachFile, claimUpload, releaseRowFiles } from "./files";
-import { enqueueDeletion, getLiveUser, isTombstoned } from "./deletionCore";
+import { attachFile, claimUpload, releaseFile, releaseRowFiles } from "./files";
+import { getLiveUser, isTombstoned } from "./deletionCore";
 import {
   SOCIAL_ONLY_PASSWORD_SENTINEL,
   normaliseUsername, assertNoCaseTwin,
@@ -264,15 +264,11 @@ export const updateVisibility = mutation({
       await syncLevels(ctx, userId, next as any);
     }
 
-    // Keep `roomMembers.seenVisibility` — the denormalized copy
-    // `messages:getReadState` / `getReceiptTimes` read instead of the full
-    // `users` row, see schema.ts — in sync. It cannot be read from the owner's
-    // row at read time: `users` also carries presence, so every member's
-    // heartbeat would re-run those queries again (Phase 5 moves presence out,
-    // and this can go then). So the fan-out stays, paged: the first page
-    // inline, so a tightening takes effect for the first rooms at once, and
-    // the rest chained through the scheduler. Each page stamps the user's
-    // CURRENT level, so overlapping edits converge.
+    // Keep `roomReceipts.seenVisibility` (what `messages:getReadState` /
+    // `getReceiptTimes` read instead of the full `users` row) in sync, paged:
+    // the first page inline, so a tightening takes effect for the first rooms
+    // at once, and the rest chained through the scheduler. Each page stamps the
+    // user's CURRENT level, so overlapping edits converge.
     if (seen !== undefined) {
       const next = await restampSeenPage(ctx, userId, null);
       if (next !== null) {
@@ -509,18 +505,14 @@ export const applyUsernameChange = internalMutation({
 });
 
 /**
- * Points the user at a freshly uploaded avatar and hands the clean-up to an
- * `avatar` job.
+ * Points the user at a freshly uploaded avatar and releases the old file.
  *
- * Convex bills for stored files, not for the rows referencing them, so dropping
- * the old id without deleting the blob leaks it permanently, and invisibly,
- * since `_storage` is a system table nothing in the app ever walks. But a user
- * with years of moments and reactions has thousands of denormalized copies of
- * the old id (`moments.authorAvatarStorageId`,
- * `momentReactions.userAvatarStorageId`), so this mutation only patches the
- * row. The job (`avatarSteps`) moves the copies, and deletes the old file as
- * its LAST step, only if it is no longer the current avatar: deleting it here
- * would leave every earlier post pointing at nothing until the job finished.
+ * Convex bills for stored files, not for the rows referencing them, so
+ * dropping the old id without deleting the blob leaks it permanently, and
+ * invisibly, since `_storage` is a system table nothing in the app ever walks.
+ * No row copies the avatar id any more (readers resolve it from `profiles`,
+ * which `syncProfile` re-points here), so the old file's last ref is the
+ * user row and it is released in this same transaction.
  */
 export const updateAvatar = mutation({
   args: {
@@ -536,21 +528,17 @@ export const updateAvatar = mutation({
     const previous = user.avatarStorageId;
     await ctx.db.patch(userId, { avatarStorageId: storageId });
     await syncProfile(ctx, userId);
-    // The old file's ref is dropped by the avatar job, once its copies moved.
     await attachFile(ctx, storageId, {
       table: "users",
       id: userId.toString(),
       field: "avatarStorageId",
     });
-    // Guard against re-submitting the id already stored: the job would find it
-    // is still current and do nothing, but there is no point queueing it.
+    // Re-submitting the id already stored keeps it.
     if (previous && previous !== storageId) {
-      // One job per change (`to` is a fresh upload), so a second change while
-      // the first is running is not folded into it.
-      await enqueueDeletion(ctx, {
-        kind: "avatar",
-        targetId: `${userId}:${storageId}`,
-        args: { userId, from: previous, to: storageId },
+      await releaseFile(ctx, previous, {
+        table: "users",
+        id: userId.toString(),
+        field: "avatarStorageId",
       });
     }
   },

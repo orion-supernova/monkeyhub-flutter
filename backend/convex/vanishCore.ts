@@ -9,7 +9,7 @@ import { internal } from "./_generated/api";
  *
  *  * A vanishing message is stamped `vanishUntil = createdAt + 24h` at send.
  *    Nothing else is written or scheduled by a send.
- *  * Each member has a "seen" cursor, `vanishSeenAt ?? joinedAt`. It only
+ *  * Each member has a "seen" cursor, `roomReceipts.vanishSeenAt` (starts at `joinedAt`). It only
  *    advances for reads the reader agreed to share (the client says so when it
  *    calls markRoomRead).
  *  * Everything at or below the lowest cursor was seen by everyone; one burn
@@ -145,11 +145,6 @@ export async function ensureVanishState(
   return state;
 }
 
-/** A member's seen cursor. */
-export function seenOf(m: { vanishSeenAt?: number; joinedAt: number }): number {
-  return m.vanishSeenAt ?? m.joinedAt;
-}
-
 /** Rows the own-messages probe looks at before it gives up and says "maybe". */
 const PROBE_ROWS = 10;
 
@@ -206,29 +201,19 @@ export async function recomputeFloor(
   state: any,
   now: number,
 ): Promise<boolean> {
-  const members = await ctx.db
-    .query("roomMembers")
-    .withIndex("by_room_user", (q: any) => q.eq("roomId", state.roomId))
-    .take(MEMBER_SCAN_CAP + 1);
-  if (members.length > MEMBER_SCAN_CAP || members.length === 0) return false;
-  // C1: a migrated member's vanish cursor is on `roomReceipts`; the roster row
-  // answers only for memberships the backfill has not reached.
+  // The roster is the `roomReceipts` rows (one per member, C1); the vanish
+  // cursor lives there, so `roomMembers` is not read.
   const receipts = await ctx.db
     .query("roomReceipts")
     .withIndex("by_room_user", (q: any) => q.eq("roomId", state.roomId))
     .take(MEMBER_SCAN_CAP + 1);
-  const receiptOfUser = new Map<string, any>(
-    receipts.map((r: any) => [r.userId.toString(), r]),
-  );
+  if (receipts.length > MEMBER_SCAN_CAP || receipts.length === 0) return false;
 
-  const rows = members
-    .map((m: any) => {
-      const r = receiptOfUser.get(m.userId.toString());
-      return {
-        userId: m.userId,
-        seen: Math.min(r ? r.vanishSeenAt : seenOf(m), now),
-      };
-    })
+  const rows = receipts
+    .map((r: any) => ({
+      userId: r.userId,
+      seen: Math.min(r.vanishSeenAt, now),
+    }))
     .sort((a: any, b: any) =>
       a.seen !== b.seen ? a.seen - b.seen : a.userId.toString().localeCompare(b.userId.toString()),
     );

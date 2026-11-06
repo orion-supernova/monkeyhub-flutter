@@ -52,9 +52,7 @@ describe("file ownership", () => {
     expect(await t.run((ctx) => ctx.db.system.get(photo))).not.toBeNull();
   });
 
-  test("changing my avatar moves its copies on my posts and reactions", async () => {
-    // The copies move, and the old file goes, in an `avatar` job.
-    vi.useFakeTimers();
+  test("changing my avatar frees the old file at once and leaves nothing to repoint", async () => {
     const t = convexTest(schema);
     const me = await signUp(t, "me");
     const set = (storageId: any) =>
@@ -65,45 +63,24 @@ describe("file ownership", () => {
       });
     const first = await store(t, 1000);
     await set(first);
-
-    const ids = await t.run(async (ctx) => {
-      const moment = (author: any) =>
-        ctx.db.insert("moments", {
-          userId: me.userId as any,
-          dayKey: "2026-10-22",
-          createdAt: 0,
-          expiresAt: 1,
-          authorName: "me",
-          authorUsername: "me",
-          ...(author ? { authorAvatarStorageId: author } : {}),
-        });
-      const withFace = await moment(first);
-      // Posted before there was any avatar: stays on initials.
-      const bare = await moment(undefined);
-      const reaction = await ctx.db.insert("momentReactions", {
-        momentId: withFace,
-        userId: me.userId as any,
-        emoji: "🔥",
-        createdAt: 0,
-        userAvatarStorageId: first,
-      });
-      return { withFace, bare, reaction };
-    });
-
     const second = await store(t, 1000);
     await set(second);
-    await drainDeletions(t, vi.runAllTimers);
 
     const after = await t.run(async (ctx) => ({
-      withFace: await ctx.db.get(ids.withFace),
-      bare: await ctx.db.get(ids.bare),
-      reaction: await ctx.db.get(ids.reaction),
+      user: await ctx.db.get(me.userId as any),
+      profile: await ctx.db
+        .query("profiles")
+        .withIndex("by_user", (q: any) => q.eq("userId", me.userId))
+        .first(),
       old: await ctx.db.system.get(first),
+      current: await ctx.db.system.get(second),
+      jobs: await ctx.db.query("deletions").collect(),
     }));
-    expect(after.withFace?.authorAvatarStorageId).toBe(second);
-    expect(after.bare?.authorAvatarStorageId).toBeUndefined();
-    expect(after.reaction?.userAvatarStorageId).toBe(second);
+    expect((after.user as any).avatarStorageId).toBe(second);
+    expect((after.profile as any).avatarStorageId).toBe(second);
     expect(after.old).toBeNull();
+    expect(after.current).not.toBeNull();
+    expect(after.jobs).toHaveLength(0);
   });
 
   test("a file over the cap is refused", async () => {

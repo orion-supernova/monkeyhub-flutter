@@ -48,7 +48,6 @@ async function sharedRoom(t: ReturnType<typeof convexTest>, a: string, b: string
       roomId,
       userId: b as any,
       updatedAt: NOW - 2000,
-      userName: "zeynep",
     } as any);
     return roomId;
   });

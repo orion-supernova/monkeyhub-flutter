@@ -270,8 +270,7 @@ export const alertFailed = internalMutation({
       roomId: msg.roomId,
       messageId,
       senderId: msg.userId,
-      senderName:
-        (await displayName(ctx, msg.userId, msg.senderName)) || "Monkey Reporter",
+      senderName: (await displayName(ctx, msg.userId)) || "Monkey Reporter",
       content: headline,
       type: "text",
     });

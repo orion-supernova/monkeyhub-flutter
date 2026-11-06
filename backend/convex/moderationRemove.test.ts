@@ -39,15 +39,15 @@ async function scene() {
   const { momentId, rootId, replyId } = await t.run(async (ctx: any) => {
     const momentId = await ctx.db.insert("moments", {
       userId: author.userId, dayKey: "2026-10-22", createdAt: 1, expiresAt: 2,
-      authorName: "author", authorUsername: "author", caption: "bad", mediaStorageId: media,
+      caption: "bad", mediaStorageId: media,
       commentCount: 2,
     });
     await ctx.db.insert("momentReactions", { momentId, userId: author.userId, emoji: "x", createdAt: 1 });
     const rootId = await ctx.db.insert("momentComments", {
-      momentId, userId: author.userId, userName: "author", text: "rude", createdAt: 1,
+      momentId, userId: author.userId, text: "rude", createdAt: 1,
     });
     const replyId = await ctx.db.insert("momentComments", {
-      momentId, userId: reporter.userId, userName: "reporter", text: "hey", createdAt: 2, parentId: rootId,
+      momentId, userId: reporter.userId, text: "hey", createdAt: 2, parentId: rootId,
     });
     await ctx.db.insert("momentCommentReactions", {
       commentId: replyId, momentId, userId: author.userId, emoji: "x", createdAt: 1,

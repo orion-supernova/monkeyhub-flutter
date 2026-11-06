@@ -32,11 +32,8 @@ export default defineSchema({
     passwordHash: v.string(),
     recoveryKeyHash: v.optional(v.string()),
     createdAt: v.number(),
-    // Retired: presence lives in `presence`. Nothing writes or reads these;
-    // they stay optional only until presenceMigrations.stripUsersPresence has
-    // run everywhere, then a later deploy deletes both lines.
-    status: v.optional(v.string()),
-    lastSeen: v.optional(v.number()),
+    // `status` / `lastSeen` lived here until presence moved to `presence`
+    // (stripped everywhere by presenceMigrations.stripUsersPresence).
     email: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
     // Tombstone: set by `deletionCore.startUserDeletion`. From then on the
@@ -502,6 +499,11 @@ export default defineSchema({
     // promotion in `auth.purgeUser`. Rooms written before the admin tier
     // existed have one "owner" and the rest "member", which is already valid.
     role: v.string(),
+    // ── LEGACY CURSORS, UNREAD AND UNUSED ─────────────────────────────────
+    // Everything from here to the end of this table's fields moved to
+    // `roomUserState` / `roomReceipts` / `receiptMoves` (C1) and nothing reads
+    // or writes it any more. `cleanupMigration:stripLegacy` unsets it; once
+    // `countLegacy` is 0, cleanup deploy 2 deletes these fields from the schema.
     // ms since epoch — last time this user "read" the room. Used to compute
     // read receipts: a message is "seen by X" when roomMembers[room,X].lastReadAt >= message.createdAt.
     lastReadAt: v.optional(v.number()),
@@ -625,8 +627,8 @@ export default defineSchema({
   // chat list, badges, push mute checks and send; NOT written by delivery
   // reports, so a delivery re-runs nothing here. unread =
   // room.lastSeq - readSeq - gaps(readSeq, lastSeq] - own messages not gapped.
-  // Dual-mode: a membership with no row here is still on its `roomMembers`
-  // row (legacy) until the backfill (`roomStateMigration.ts`) creates one.
+  // Every membership has exactly one (the backfill in `roomStateMigration.ts`
+  // is finished; `roomAdmin.addMembership` creates it with the roster row).
   roomUserState: defineTable({
     roomId: v.id("rooms"),
     userId: v.id("users"),
@@ -681,7 +683,8 @@ export default defineSchema({
     // Retention: gaps past the horizon are never counted (retention.gcMessageGaps).
     .index("by_at", ["at"]),
 
-  // Each member's receipt history per cursor (was `roomMembers.readLog` /
+  // RETIRED, unread and unwritten: `cleanupMigration:stripLegacy` empties it and
+  // cleanup deploy 2 drops the table. Each member's receipt history per cursor (was `roomMembers.readLog` /
   // `deliveredLog`). Out of the membership row because that row is rewritten by
   // every receipt and read whole, for every member, by `getReadState`. Written
   // only by the owner's own receipt; read only by `getReceiptTimes`, one point
@@ -1353,7 +1356,6 @@ export default defineSchema({
       })
     ),
 
-    senderName: v.optional(v.string()),
     expiresAt: v.optional(v.number()),       // Unix ms timestamp — set for Chamber of Secrets rooms
     // Vanish mode: `createdAt + 24h`, stamped at insert when the room is in
     // vanish mode or is a secret room on the "seen" clock. The hard deadline;
@@ -1368,7 +1370,6 @@ export default defineSchema({
     replyToPreview: v.optional(
       v.object({
         senderId: v.id("users"),
-        senderName: v.optional(v.string()),
         contentPreview: v.string(),
         type: v.string(),
         mediaStorageId: v.optional(v.id("_storage")),
@@ -2220,11 +2221,7 @@ export default defineSchema({
           v.array(
             v.object({
               userId: v.id("users"),
-              // Snapshotted at response time, exactly as `messages.mentions`
-              // snapshots a handle beside its id and for the same reason: a
-              // card must render with no roster available — from the disk
-              // cache, in history containing someone who has since left.
-              name: v.optional(v.string()),
+              // Names resolve from `profiles` by `userId`.
               at: v.number(),
             })
           )
@@ -2342,12 +2339,7 @@ export default defineSchema({
     // three kinds so one index serves them: a poll option's ordinal, a
     // checklist item's stable id, or one of the three RSVP tokens.
     choiceId: v.string(),
-    // Snapshotted beside the id, like `messages.mentions` and like the
-    // `respondents` preview this feeds. A respondents sheet that resolved names
-    // live would re-read a `users` row per voter inside a reactive query — the
-    // precise mistake `messages:list`'s header warns about, where one person
-    // going offline refires the query for everyone.
-    userName: v.optional(v.string()),
+    // Names resolve from `profiles` by `userId` (no name copy on the row).
     createdAt: v.number(),
   })
     // Four reads off one index, because Convex indexes are prefix-scannable:
@@ -2465,19 +2457,8 @@ export default defineSchema({
     // not a deletion deadline, and deliberately not a `ctx.scheduler.runAt`.
     expiresAt: v.number(),
 
-    // ── Denormalized author projection ─────────────────────────────────────
-    // `feed:board` is a SUBSCRIBED query. If it did `ctx.db.get(m.userId)` to
-    // render a name, the board would join the invalidation set of every users
-    // row it touched — and presence writes land on those rows every 90s per
-    // friend. The board would then re-fire, and re-render, continuously, for
-    // everyone, forever. This is the exact storm class messages.ts documents.
-    //
-    // Cost of the copy: a renamed user's older moments keep the old name until
-    // they post again. That is the right trade, and it is also how
-    // `messages.senderName` already behaves.
-    authorName: v.optional(v.string()),
-    authorUsername: v.optional(v.string()),
-    authorAvatarStorageId: v.optional(v.id("_storage")),
+    // The author's name, handle and face resolve from `profiles` by `userId`
+    // (the denormalized author copies are gone).
 
     // How many rows `momentComments` holds for this moment, replies included.
     // A counter rather than a count: the board renders a comment pill on every
@@ -2528,20 +2509,7 @@ export default defineSchema({
     userId: v.id("users"),
     emoji: v.string(),
     createdAt: v.number(),
-    // Denormalized at write time, same reason as `moments.authorName`: the
-    // board is a subscribed query and must never read a `users` document, so
-    // "who reacted" has to already be sitting on the row it's read from.
-    // Optional because rows written before this field existed don't have it —
-    // they just fall out of the reactor list until reacted again.
-    userName: v.optional(v.string()),
-    // The reactor's handle and face, denormalized for the same reason, so the
-    // story can show WHO reacted (Instagram's avatar row) without the board
-    // ever touching a `users` row. `userAvatarLevel` is their avatar setting
-    // as of the reaction; `feed.momentView` applies it against the viewer's
-    // friendships, which the board already holds.
-    userUsername: v.optional(v.string()),
-    userAvatarStorageId: v.optional(v.id("_storage")),
-    userAvatarLevel: v.optional(v.string()),
+    // The reactor's name, handle and face resolve from `profiles` by `userId`.
   })
     .index("by_moment", ["momentId"])
     .index("by_moment_user", ["momentId", "userId"])
@@ -2565,15 +2533,11 @@ export default defineSchema({
   momentComments: defineTable({
     momentId: v.id("moments"),
     userId: v.id("users"),
-    // Denormalized at write time, as `momentReactions.userName` is.
-    userName: v.optional(v.string()),
     // The thread root this replies to. Absent on a top-level comment.
     parentId: v.optional(v.id("momentComments")),
     // Who a reply answers, when it answers a reply rather than the root —
-    // rendered as a leading "@name". Denormalized for the same reason as
-    // `userName`.
+    // rendered as a leading "@name" (resolved from `profiles`).
     replyToUserId: v.optional(v.id("users")),
-    replyToName: v.optional(v.string()),
     text: v.optional(v.string()),
     // "gif" | "sticker" when the comment carries one. Absent for words alone.
     expressionKind: v.optional(v.string()),
@@ -2604,7 +2568,6 @@ export default defineSchema({
     commentId: v.id("momentComments"),
     momentId: v.id("moments"),
     userId: v.id("users"),
-    userName: v.optional(v.string()),
     emoji: v.string(),
     createdAt: v.number(),
   })
@@ -2809,9 +2772,6 @@ export default defineSchema({
     // wrong thing.
     achievedAt: v.number(),
     userId: v.id("users"),
-    // Denormalized at write time, as `momentReactions.userName` is, so the
-    // board never reads a `users` document per reactor.
-    userName: v.optional(v.string()),
     emoji: v.string(),
     createdAt: v.number(),
   })
@@ -2838,25 +2798,8 @@ export default defineSchema({
     // Separate from `updatedAt` because `clearTyping` zeroes that to hide the
     // indicator, and a zeroed timestamp would wave the next write through.
     writtenAt: v.optional(v.number()),
-    // Denormalized at write time (`typing:setTyping`), same reason
-    // `messages.senderName`/`moments.authorName` are: `getTypingForUser` is a
-    // GLOBAL subscription held for the whole signed-in session, so a
-    // `ctx.db.get(userId)` here would subscribe it to every typist's full
-    // `users` document — including `status`/`lastSeen`, patched by that
-    // typist's presence heartbeat — and refire continuously for anyone
-    // sharing a room with an active typist, regardless of what screen they're
-    // on. Re-stamped every 2s while composing (the same cadence that patches
-    // `updatedAt`), so it is at most ~2s stale — tighter than the 8s TTL that
-    // already governs the whole feature. Optional rather than required: a row
-    // written a moment before this field existed would otherwise fail schema
-    // validation at deploy time instead of just aging out within its own
-    // 2s/8s lifecycle like every other row.
-    userName: v.optional(v.string()),
-    avatarStorageId: v.optional(v.id("_storage")),
-    // The raw `visibility.avatar` level, not a resolved boolean — so readers
-    // can still run it through `visibility.ts`'s one real `canSee` check
-    // instead of a second copy of that logic.
-    avatarVisibility: v.optional(v.string()),
+    // Name and face resolve from `profiles` by `userId` (the denormalized
+    // `userName` / `avatarStorageId` / `avatarVisibility` copies are gone).
   })
     // No standalone `by_room` — `by_room_user` alone serves every
     // "typing indicators in this room" read as a prefix scan on `roomId`.
@@ -3751,6 +3694,8 @@ export default defineSchema({
       v.literal("message"),
       v.literal("moment"),
       v.literal("match"),
+      // Retired (phase 6Z). Kept only until `cleanupMigration:stripLegacy` has
+      // deleted leftover rows; cleanup deploy 2 removes it.
       v.literal("avatar"),
       v.literal("comment"),
     ),

@@ -242,7 +242,6 @@ describe("a read-only room", () => {
         name: "Bot",
         passwordHash: `${SYSTEM_PASSWORD_PREFIX}abc`,
         createdAt: Date.now(),
-        status: "offline",
       } as any);
       await ctx.db.insert("roomMembers", {
         roomId,

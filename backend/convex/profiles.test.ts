@@ -4,7 +4,6 @@ import { api } from "./_generated/api";
 import schema from "./schema";
 import { PROFILES_CAP } from "./profiles";
 import {
-  PROFILE_COPIES,
   nameOf,
   syncProfile,
   tombstoneProfile,
@@ -159,9 +158,6 @@ describe("tombstoneProfile and nameOf", () => {
     expect((await profileRows(t, a.userId))[0].deleted).toBe(true);
   });
 
-  test("PROFILE_COPIES is off: stage W3 is done", () => {
-    expect(PROFILE_COPIES).toBe(false);
-  });
 });
 
 describe("versions and get", () => {

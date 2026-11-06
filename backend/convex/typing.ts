@@ -2,7 +2,7 @@ import { mutation, query } from "./functions";
 import { v } from "convex/values";
 import { canSeeAs } from "./visibilityPoint";
 import { canReadRoom } from "./roomAccess";
-import { copiesOn, nameResolver } from "./profileCopyGate";
+import { nameResolver } from "./profileCopyGate";
 
 const TYPING_TTL_MS = 8000; // safety net — clearTyping fires after 3s inactivity, heartbeat every 2s
 
@@ -35,15 +35,13 @@ const TYPING_REFRESH_MS = 4000;
  * `ChatUser.fromJson` reads on the client, so the indicator can render a real
  * `UserAvatar` without a bespoke model.
  *
- * Built entirely off the denormalized row — never `ctx.db.get(userId)` — so
- * neither query subscribes to the typist's `users` document. See the
- * `userName`/`avatarStorageId`/`avatarVisibility` comment in schema.ts for
- * why: `getTypingForUser` is a global, whole-session subscription, and a
- * users-doc read there used to refire on every typist's presence heartbeat.
- * The avatar still goes through the viewer's lens — `canSee` only reads
- * `subject._id`/`subject.visibility`, both of which a synthetic subject built
- * from the row supplies, so this reuses the one real privacy check in
- * `visibility.ts` rather than re-deriving it.
+ * Built from the typist's `profiles` row — never `ctx.db.get(userId)` — so
+ * neither query subscribes to the typist's `users` document:
+ * `getTypingForUser` is a global, whole-session subscription. The avatar still
+ * goes through the viewer's lens — `canSee` only reads
+ * `subject._id`/`subject.visibility`, both of which a synthetic subject
+ * supplies, so this reuses the one real privacy check in `visibility.ts`
+ * rather than re-deriving it.
  */
 function typistOf(canSeeAvatar: boolean, row: any, name: string, face: any) {
   return {
@@ -83,8 +81,7 @@ async function liveTypingRows(ctx: any, roomId: any, now: number) {
 
 /**
  * A typist's avatar and its visibility level: the profile row (a point read,
- * and profiles rarely change, so safe in a subscription), else the copy on the
- * typing row while it is written. Never a `users` read.
+ * and profiles rarely change, so safe in a subscription). Never a `users` read.
  */
 async function faceOf(ctx: any, row: any) {
   const profile = await ctx.db
@@ -94,7 +91,7 @@ async function faceOf(ctx: any, row: any) {
   if (profile) {
     return { avatarStorageId: profile.avatarStorageId, level: profile.avatarLevel };
   }
-  return { avatarStorageId: row.avatarStorageId, level: row.avatarVisibility };
+  return { avatarStorageId: undefined, level: undefined };
 }
 
 export const setTyping = mutation({
@@ -112,8 +109,8 @@ export const setTyping = mutation({
     const now = Date.now();
 
     // Still fresh — the row already says "typing" and will keep saying it for
-    // seconds yet. Returning here skips the users read below as well as the
-    // write, so a suppressed beat costs one indexed lookup and nothing else.
+    // seconds yet. Returning here skips the write, so a suppressed beat costs
+    // one indexed lookup and nothing else.
     if (
       existing &&
       now - (existing.writtenAt ?? existing.updatedAt) < TYPING_REFRESH_MS
@@ -121,29 +118,14 @@ export const setTyping = mutation({
       return;
     }
 
-    // Denormalized onto the row so neither typing query has to read the
-    // typist's `users` document — see `typistOf`. Read here, in a mutation,
-    // where a read creates no subscription.
-    const user = await ctx.db.get(userId);
-    // Only while the copies are written (PROFILE_COPIES); the readers resolve
-    // name and face through the profile.
-    const stamp = copiesOn()
-      ? {
-          userName: user?.name ?? user?.username ?? "",
-          avatarStorageId: user?.avatarStorageId,
-          avatarVisibility: user?.visibility?.avatar,
-        }
-      : {};
-
     if (existing) {
-      await ctx.db.patch(existing._id, { updatedAt: now, writtenAt: now, ...stamp });
+      await ctx.db.patch(existing._id, { updatedAt: now, writtenAt: now });
     } else {
       await ctx.db.insert("typingIndicators", {
         roomId,
         userId,
         updatedAt: now,
         writtenAt: now,
-        ...stamp,
       });
     }
   },
@@ -241,11 +223,8 @@ export const getTypingForUser = query({
       );
 
       if (active.length > 0) {
-        // Legacy rows written a moment before this field existed have no
-        // `userName` yet — they age out of the TTL within seconds, same as
-        // any other stale row, rather than being resolved with a users read.
         const names = (
-          await Promise.all(active.map((t: any) => nameFor(t.userId, t.userName)))
+          await Promise.all(active.map((t: any) => nameFor(t.userId)))
         ).filter((n): n is string => Boolean(n));
         if (names.length > 0) {
           result[m.roomId.toString()] = names;
@@ -270,13 +249,10 @@ export const getTypingUsers = query({
       (t: any) => t.userId.toString() !== currentUserId.toString(),
     );
 
-    // Legacy rows written a moment before this field existed have no
-    // `userName` yet — they age out of the TTL within seconds, same as any
-    // other stale row, rather than being resolved with a users read.
     const nameFor = nameResolver(ctx);
     const typists = await Promise.all(
       active.map(async (t: any) => {
-        const name = await nameFor(t.userId, t.userName);
+        const name = await nameFor(t.userId);
         // A deleted (or unresolvable) typist is not shown.
         if (name === "") return null;
         const face = await faceOf(ctx, t);

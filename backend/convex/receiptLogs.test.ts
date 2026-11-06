@@ -4,12 +4,12 @@ import { api, internal } from "./_generated/api";
 import { startRoomDeletion, startUserDeletion } from "./deletionCore";
 import { drainDeletions, shrinkTuning } from "./deletionTestUtils";
 import schema from "./schema";
-import { makeLegacyRoom } from "./roomStateTestUtils";
 
 /**
- * Receipt logs live in `receiptLogs`, not on `roomMembers` (plan 4C): the same
- * receipts, a membership row that stays small, dual-read of rows from before
- * the move, a paged idempotent backfill, and cleanup with the room and user.
+ * Receipt cursors live on `roomReceipts` and their history in `receiptMoves`,
+ * never on `roomMembers`: the same receipts, a membership row that stays a
+ * bare roster row, a re-stamp fan-out that pages, and cleanup with the room
+ * and the user.
  */
 
 type T = ReturnType<typeof convexTest>;
@@ -48,8 +48,6 @@ async function pair(t: T) {
     userId: reader.userId as any,
     roomId,
   });
-  // These tests are about the pre-backfill (dual-mode) shape of a membership.
-  await makeLegacyRoom(t, roomId);
   return { sender, reader, roomId };
 }
 
@@ -66,12 +64,11 @@ async function send(t: T, who: any, roomId: any, content: string): Promise<numbe
 const member = (t: T, roomId: any, userId: any) =>
   t.run((ctx: any) =>
     ctx.db
-      .query("roomMembers")
+      .query("roomReceipts")
       .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId).eq("userId", userId))
       .first(),
   ) as Promise<any>;
 
-const logRows = (t: T) => t.run((ctx: any) => ctx.db.query("receiptLogs").collect()) as Promise<any[]>;
 const moveRows = (t: T) => t.run((ctx: any) => ctx.db.query("receiptMoves").collect()) as Promise<any[]>;
 
 async function times(t: T, viewer: any, roomId: any, createdAt: number, userId: any) {
@@ -99,7 +96,7 @@ afterEach(() => {
 });
 
 describe("writers", () => {
-  test("a read writes receiptLogs and leaves the member row log-free", async () => {
+  test("a read writes receiptMoves and the receipt row, and leaves the roster row bare", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(at("2026-10-07T10:00:00Z"));
     const t = convexTest(schema);
@@ -109,12 +106,18 @@ describe("writers", () => {
     await read(t, reader, roomId, sent);
 
     const row = await member(t, roomId, reader.userId);
-    expect(row.readLog).toBeUndefined();
-    expect(row.deliveredLog).toBeUndefined();
     expect(row.lastReadAt).toBe(sent);
+    const roster: any = await t.run((ctx: any) =>
+      ctx.db
+        .query("roomMembers")
+        .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId).eq("userId", reader.userId))
+        .first(),
+    );
+    expect(Object.keys(roster).sort()).toEqual(
+      ["_creationTime", "_id", "joinedAt", "role", "roomId", "userId"].sort(),
+    );
     const logs = await moveRows(t);
     expect(logs.map((l) => l.kind).sort()).toEqual(["delivered", "read"]);
-    expect(await logRows(t)).toHaveLength(0);
 
     // Seen-by is unchanged.
     const r = await times(t, sender, roomId, sent, reader.userId);
@@ -133,143 +136,11 @@ describe("writers", () => {
       upTo: sent,
     } as any);
     expect((await moveRows(t)).map((l) => l.kind)).toEqual(["delivered"]);
-    expect((await member(t, roomId, reader.userId)).deliveredLog).toBeUndefined();
-  });
-
-  test("a stale log from an earlier stay is not spliced onto", async () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(at("2026-10-07T10:00:00Z"));
-    const t = convexTest(schema);
-    const { sender, reader, roomId } = await pair(t);
-    const sent = await send(t, sender, roomId, "hi");
-    await t.run((ctx: any) =>
-      ctx.db.insert("receiptLogs", {
-        roomId,
-        userId: reader.userId,
-        kind: "read",
-        entries: [{ upTo: sent + 9_999_999, at: 5 }],
-      }),
-    );
-    vi.setSystemTime(at("2026-10-07T10:00:09Z"));
-    await read(t, reader, roomId, sent);
-    const r = await times(t, sender, roomId, sent, reader.userId);
-    expect(r.readAt).toBe(at("2026-10-07T10:00:09Z"));
-  });
-});
-
-describe("dual read of rows from before the move", () => {
-  test("getReceiptTimes falls back to the member row's log", async () => {
-    const t = convexTest(schema);
-    const { sender, reader, roomId } = await pair(t);
-    const sent = await send(t, sender, roomId, "hi");
-    const row = await member(t, roomId, reader.userId);
-    await t.run((ctx: any) =>
-      ctx.db.patch(row._id, {
-        lastReadAt: sent,
-        lastDeliveredAt: sent,
-        readLog: [{ upTo: sent, at: 7777 }],
-        deliveredLog: [{ upTo: sent, at: 5555 }],
-      }),
-    );
-    const r = await times(t, sender, roomId, sent, reader.userId);
-    expect(r.readAt).toBe(7777);
-    expect(r.deliveredAt).toBe(5555);
-  });
-
-  test("the first write moves the legacy log out and keeps its history", async () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(at("2026-10-07T10:00:00Z"));
-    const t = convexTest(schema);
-    const { sender, reader, roomId } = await pair(t);
-    const first = await send(t, sender, roomId, "one");
-    const row = await member(t, roomId, reader.userId);
-    await t.run((ctx: any) =>
-      ctx.db.patch(row._id, {
-        lastReadAt: first,
-        lastDeliveredAt: first,
-        readLog: [{ upTo: first, at: 7777 }],
-        deliveredLog: [{ upTo: first, at: 5555 }],
-      }),
-    );
-    vi.setSystemTime(at("2026-10-07T10:05:00Z"));
-    const second = await send(t, sender, roomId, "two");
-    vi.setSystemTime(at("2026-10-07T10:05:09Z"));
-    await read(t, reader, roomId, second);
-
-    const after = await member(t, roomId, reader.userId);
-    expect(after.readLog).toBeUndefined();
-    expect(after.deliveredLog).toBeUndefined();
-    // Old message keeps its legacy time, new one gets the new time.
-    expect((await times(t, sender, roomId, first, reader.userId)).readAt).toBe(7777);
-    expect((await times(t, sender, roomId, second, reader.userId)).readAt).toBe(
-      at("2026-10-07T10:05:09Z"),
-    );
-  });
-});
-
-describe("receipts:moveLogs", () => {
-  async function seedLegacy(t: T, n: number) {
-    const { sender, reader, roomId } = await pair(t);
-    const sent = await send(t, sender, roomId, "hi");
-    const rows: any[] = await t.run((ctx: any) => ctx.db.query("roomMembers").collect());
-    for (const m of rows.slice(0, n)) {
-      await t.run((ctx: any) =>
-        ctx.db.patch(m._id, {
-          lastReadAt: sent,
-          lastDeliveredAt: sent,
-          readLog: [{ upTo: sent, at: 11 }],
-          deliveredLog: [{ upTo: sent, at: 22 }],
-        }),
-      );
-    }
-    return { sender, reader, roomId, sent, count: Math.min(n, rows.length) };
-  }
-
-  test("pages, moves everything, and is idempotent", async () => {
-    vi.useFakeTimers();
-    const t = convexTest(schema);
-    const { sender, reader, roomId, sent, count } = await seedLegacy(t, 2);
-    expect(count).toBe(2);
-    const first = await t.mutation(internal.receipts.moveLogs, { batchSize: 1 });
-    expect(first.done).toBe(false);
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
-
-    const members: any[] = await t.run((ctx: any) => ctx.db.query("roomMembers").collect());
-    for (const m of members) {
-      expect(m.readLog).toBeUndefined();
-      expect(m.deliveredLog).toBeUndefined();
-    }
-    expect(await logRows(t)).toHaveLength(4);
-    expect((await times(t, sender, roomId, sent, reader.userId)).readAt).toBe(11);
-
-    const again = await t.mutation(internal.receipts.moveLogs, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
-    expect(again.moved).toBe(0);
-    expect(await logRows(t)).toHaveLength(4);
-  });
-
-  test("an existing receiptLogs row wins over the legacy field", async () => {
-    const t = convexTest(schema);
-    const { reader, roomId, sent } = await seedLegacy(t, 2);
-    await t.run((ctx: any) =>
-      ctx.db.insert("receiptLogs", {
-        roomId,
-        userId: reader.userId,
-        kind: "read",
-        entries: [{ upTo: sent, at: 99 }],
-      }),
-    );
-    await t.mutation(internal.receipts.moveLogs, { batchSize: 100 });
-    const reads = (await logRows(t)).filter(
-      (l) => l.kind === "read" && l.userId === reader.userId,
-    );
-    expect(reads).toHaveLength(1);
-    expect(reads[0].entries[0].at).toBe(99);
   });
 });
 
 describe("getReadState on a big room", () => {
-  test("1,000 members: small rows, no logs, same answer", async () => {
+  test("1,000 members: small receipt rows, same answer", async () => {
     const t = convexTest(schema);
     const { sender, reader, roomId } = await pair(t);
     const sent = await send(t, sender, roomId, "hi");
@@ -281,13 +152,13 @@ describe("getReadState on a big room", () => {
           passwordHash: "x",
           createdAt: 1,
         });
-        await ctx.db.insert("roomMembers", {
+        await ctx.db.insert("roomMembers", { roomId, userId: u, role: "member", joinedAt: 1 });
+        await ctx.db.insert("roomReceipts", {
           roomId,
           userId: u,
-          role: "member",
-          joinedAt: 1,
           lastReadAt: sent,
           lastDeliveredAt: sent,
+          vanishSeenAt: 1,
         });
       }
     });
@@ -298,18 +169,14 @@ describe("getReadState on a big room", () => {
       viewerUserId: sender.userId as any,
     } as any);
     expect(state.length).toBeGreaterThan(0);
-    const members: any[] = await t.run((ctx: any) =>
+    const receipts: any[] = await t.run((ctx: any) =>
       ctx.db
-        .query("roomMembers")
+        .query("roomReceipts")
         .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
         .collect(),
     );
-    expect(members.length).toBe(1000);
-    for (const m of members) {
-      expect(m.readLog).toBeUndefined();
-      expect(m.deliveredLog).toBeUndefined();
-      expect(JSON.stringify(m).length).toBeLessThan(700);
-    }
+    expect(receipts.length).toBe(1000);
+    for (const m of receipts) expect(JSON.stringify(m).length).toBeLessThan(700);
   });
 });
 
@@ -333,6 +200,11 @@ describe("seenVisibility fan-out", () => {
           role: "member",
           joinedAt: 1,
         });
+        await ctx.db.insert("roomReceipts", {
+          roomId: room,
+          userId: reader.userId,
+          vanishSeenAt: 1,
+        });
       }
     });
     await t.mutation(api.users.updateVisibility, {
@@ -343,7 +215,7 @@ describe("seenVisibility fan-out", () => {
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     const rows: any[] = await t.run((ctx: any) =>
       ctx.db
-        .query("roomMembers")
+        .query("roomReceipts")
         .withIndex("by_user", (q: any) => q.eq("userId", reader.userId))
         .collect(),
     );

@@ -26,10 +26,9 @@ import { attachShared } from "./fileShare";
 import { deleteCapped, enqueueDeletion, getLiveRoom, tuning } from "./deletionCore";
 import { forkInteraction, purgeInteraction } from "./interactionCore";
 import { purgeChallengeForMessage, purgeMatchForMessage } from "./matchCore";
-import { lensFor } from "./visibility";
+import { lensFor, seenVisibilityOf } from "./visibility";
 import {
   appendReceiptMove,
-  receiptMovesBackfilled,
   receiptTimeAt,
 } from "./receipts";
 import { scheduleReadDismiss } from "./readDismiss";
@@ -45,7 +44,6 @@ import { isSystemAccount, isSystemRoom } from "./systemAccount";
 import { canReadRoom } from "./roomAccess";
 import { noteEngaged } from "./engagement";
 import { receiptOf, receiptRoster, stateOf } from "./roomState";
-import { copiesOn } from "./profileCopyGate";
 import { ERR_RATE_LIMITED, consume } from "./rateLimit";
 import { recordMentions } from "./mentions";
 import { alertBurstStep } from "./alertBurst";
@@ -1413,7 +1411,6 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
   // parent isn't reachable from the same room — never store a dangling id.
   let replyToPreview: {
     senderId: any;
-    senderName?: string;
     contentPreview: string;
     type: string;
     mediaStorageId?: any;
@@ -1442,9 +1439,6 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
       const parentIsViewOnce = parent.viewOnce === true;
       replyToPreview = {
         senderId: parent.userId,
-        // A copy: stripped once PROFILE_COPIES is off; clients resolve the
-        // name from `senderId` through the profile cache.
-        ...(copiesOn() ? { senderName: parent.senderName ?? "unknown" } : {}),
         // Spoilers masked: the quote is a permanent copy shown above the
         // reply, untouched and un-revealable, so the hidden words would
         // otherwise sit in the open on every reply to them.
@@ -1681,7 +1675,6 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
       ? { hasLink: true }
       : {}),
     ...(fmt ? { formatting: fmt } : {}),
-    ...(copiesOn() ? { senderName: resolvedSenderName } : {}),
     expiresAt,
     // Vanish mode / seen-clock secret room: the 24h promise, from the room doc
     // `guardOutgoing` already read, so a send costs nothing extra. No job.
@@ -1984,17 +1977,12 @@ export const updateLiveLocation = mutation({
     // May this person still write into this room, right now? See the header —
     // membership, the child policy and the DM block can all change during a
     // share, and none of them is honoured by a check that ran hours ago.
-    //
-    // `senderName` is passed so the guard skips its `users` read: this row
-    // already carries the name that was resolved at send time, and a live share
-    // is not the place to discover a rename.
     try {
       await guardOutgoing(
         ctx,
         msg.roomId,
         userId,
-        { media: false, location: true, kinds: ["location"] },
-        msg.senderName ?? "unknown"
+        { media: false, location: true, kinds: ["location"] }
       );
     } catch (_) {
       // Ended, not merely refused. A share whose permission has gone must stop
@@ -2818,7 +2806,6 @@ export const forwardToRoom = mutation({
         // A spoiler photo forwards as a spoiler: the sender hid it, and
         // forwarding is not a reason to un-hide it in somebody else's room.
         ...(msg.mediaSpoiler === true ? { mediaSpoiler: true } : {}),
-        ...(copiesOn() ? { senderName: resolvedSenderName } : {}),
         expiresAt,
         ...(copyVanishUntil !== undefined ? { vanishUntil: copyVanishUntil } : {}),
         ...(clientId !== undefined ? { clientId } : {}),
@@ -3032,9 +3019,8 @@ export const list = query({
     // including `ctx.db.get(msg.userId)` made this subscription re-fire on
     // every user.status flip (online/away/offline) for any author in the
     // list — which then triggered markRoomRead, which patched roomMembers,
-    // which refired four other subscriptions. The denormalized
-    // `msg.senderName` is set at write time in `messages:send` so the
-    // client already has the display name.
+    // which refired four other subscriptions. The client resolves the display
+    // name from `senderId` through its profile cache.
     //
     // Reactions come through `reactionsFor`, which reads the `reactions`
     // table only for rows flagged as having any. This query is what every
@@ -3762,11 +3748,12 @@ async function markReadWithState(
       .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId).eq("userId", userId))
       .first();
     if (!member) return;
+    const seen = await seenVisibilityOf(ctx, userId);
     const id = await ctx.db.insert("roomReceipts", {
       roomId,
       userId,
       vanishSeenAt: member.joinedAt,
-      ...(member.seenVisibility !== undefined ? { seenVisibility: member.seenVisibility } : {}),
+      ...(seen !== undefined ? { seenVisibility: seen } : {}),
     });
     receipt = await ctx.db.get(id);
   }
@@ -3839,8 +3826,8 @@ async function markReadWithState(
 
 /**
  * Mark a room as "read up to now" for the given user. Persisted on the
- * roomMembers row so the relationship is O(rooms × members) rather than
- * O(messages × members).
+ * member's `roomUserState` / `roomReceipts` rows so the relationship is
+ * O(rooms × members) rather than O(messages × members).
  *
  * Advances `lastDeliveredAt` in the same patch: you cannot read a message your
  * device does not have, so a read cursor ahead of the delivery cursor would be
@@ -3870,144 +3857,11 @@ export const markRoomRead = mutation({
     vanishCounts: v.optional(v.boolean()),
   },
   handler: async (ctx, { roomId, userId, upTo, vanish, vanishCounts }) => {
-    // C1: a membership with a `roomUserState` row lives on the new tables and
-    // never touches `roomMembers` (which would re-run every roster query).
+    // C1: a membership lives on `roomUserState` / `roomReceipts` and never
+    // touches `roomMembers` (which would re-run every roster query).
     const state = await stateOf(ctx, roomId, userId);
-    if (state) {
-      await markReadWithState(ctx, { roomId, userId, upTo, vanish, vanishCounts, state });
-      return;
-    }
-    const membership = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q) =>
-        q.eq("roomId", roomId).eq("userId", userId)
-      )
-      .first();
-    if (!membership) return; // not a member, silently no-op
-
-    // Ahead of the early return below on purpose: re-entering an already-read
-    // room is still someone reading on this device. The client only calls
-    // this while its viewer is present (`viewerIsPresent`), so a hidden Mac
-    // window never claims it. Throttled inside; see engagement.ts.
-    await noteEngaged(ctx, userId);
-
-    // Nothing new to mark. The same guard `markRoomDelivered` carries, for the
-    // same reason and with more to gain: patching a `roomMembers` row re-fires
-    // `getReadState` for every member of the room and `listUserRooms` for this
-    // one, so a patch that moves the cursor past nothing is not free — it is a
-    // rebuild of several subscriptions that say exactly what they said before.
-    //
-    // This is the room-entry case, and it is the common one: opening a room
-    // you have already read used to cost the same fan-out as reading a fresh
-    // message in it, plus a scheduled `dismissAndSync`. Re-entering a quiet
-    // room now costs one indexed read.
-    //
-    // Skipping the dismiss along with the patch is correct rather than merely
-    // cheap: the cursor being at or past the newest message means an earlier
-    // `markRoomRead` already ran and already scheduled one. The reading device
-    // clears its own notifications locally either way (see `ChatRepository`),
-    // so nothing is left showing on the device in the user's hand.
-    //
-    // `upTo` is the client saying WHICH message it read, so the bar comes from
-    // the argument and the room document stays out of this transaction. That
-    // is an OCC fix, not a saved read: `send` patches the room on every
-    // message, and a `markRoomRead` that had read the room while a send was
-    // committing was thrown away and re-run from the top — in a fast two-way
-    // chat, where each arrival triggers exactly this call while the reply is
-    // already on its way, a good share of them. The server logs showed it as
-    // "Documents read from or written to the rooms table changed while this
-    // mutation was being run". Writing the message's own timestamp instead of
-    // `Date.now()` keeps every comparison as it was: unread is
-    // `createdAt > lastReadAt` (badges.ts) and SEEN is `lastReadAt >=
-    // createdAt` (room_screen.dart), and the newest message satisfies both.
-    // Clients from before the argument existed send none and take the room
-    // read as before.
-    // Never in the future: a cursor that could run ahead let a client patch
-    // this row (and refire everyone's read state) on every call by nudging
-    // `upTo` up by one. Clamped to the clock rather than the room's newest
-    // message so this still doesn't read the room row (see above).
-    let newest: number;
-    if (upTo !== undefined) {
-      newest = Math.min(upTo, Date.now());
-    } else {
-      const room = await getLiveRoom(ctx, roomId);
-      newest = room?.lastMessageTime ?? 0;
-    }
-    const countsVanish = vanish === true && vanishCounts === true;
-    if ((membership.lastReadAt ?? 0) >= newest) {
-      // Already read, but possibly before this reader agreed to share: catch
-      // the vanish cursor up to the read cursor (one patch, only when behind).
-      // A normal room, or a reader who does not share, returns exactly as before.
-      if (
-        countsVanish &&
-        (membership.vanishSeenAt ?? 0) < (membership.lastReadAt ?? 0)
-      ) {
-        await ctx.db.patch(membership._id, {
-          vanishSeenAt: membership.lastReadAt,
-        });
-        await vanishAfterRead(ctx, roomId, userId, Date.now());
-      }
-      return;
-    }
-    // Only cursor moves count: the early return above already makes a
-    // repeated call free.
-    await consume(ctx, `read:${userId}`, MAX_READS_PER_MINUTE, 60 * 1000);
-
-    // The cursor is the message's timestamp, but WHEN it was read is now —
-    // stamped separately so the receipts screen has a real read time rather
-    // than echoing the sent time. The delivery stamp moves only if this read
-    // is also what delivered it; an earlier delivery keeps its own time.
-    const clock = Date.now();
-    const cursor = upTo ?? clock;
-    const deliveredBefore = membership.lastDeliveredAt ?? 0;
-    // Both logs ride the same patch — see receiptLog.ts. A read that is also
-    // what delivered the message (no earlier delivery report reached us)
-    // gives it the same time for both, which is the truth as far as anyone
-    // can know it.
-    // The logs go to `receiptLogs`; the member row keeps only the cursors and
-    // sheds any legacy log it still carries (receipts.ts).
-    const readClear = await appendReceiptMove(ctx, membership, "read", {
-      before: membership.lastReadAt ?? 0,
-      upTo: cursor,
-      at: clock,
-    });
-    const deliveredClear =
-      cursor > deliveredBefore
-        ? await appendReceiptMove(ctx, membership, "delivered", {
-            before: deliveredBefore,
-            upTo: cursor,
-            at: clock,
-          })
-        : {};
-    await ctx.db.patch(membership._id, {
-      lastReadAt: cursor,
-      lastReadClock: clock,
-      lastDeliveredAt: Math.max(deliveredBefore, cursor),
-      ...(cursor > deliveredBefore ? { lastDeliveredClock: clock } : {}),
-      ...readClear,
-      ...deliveredClear,
-      // The vanish cursor rides the SAME patch, so it costs no extra write.
-      ...(countsVanish
-        ? { vanishSeenAt: Math.max(membership.vanishSeenAt ?? 0, cursor) }
-        : {}),
-    });
-    if (countsVanish) await vanishAfterRead(ctx, roomId, userId, clock);
-
-    // Reading the room retires its outstanding notifications. The device that
-    // did the reading also clears them locally (it doesn't need a round trip);
-    // this covers the user's *other* devices and corrects the badge everywhere.
-    //
-    // No id list: every platform sweeps this case by thread/group id (the
-    // roomId), which is what `dismissAndSync` carries. The old code passed the
-    // ids it had just read out of `pushReceipts`, but that table only ever
-    // existed to hold OneSignal notification ids for cancellation, and the
-    // client never used the list for the whole-room case.
-    //
-    // Only when there is something to clear and somewhere to clear it: the
-    // cursor moved past unread messages (so alerts went out), the reader has
-    // another push-reachable device, and the room is not fully muted. Debounced
-    // per (user, room); see readDismiss.ts.
-    await scheduleReadDismiss(ctx, { userId, roomId, membership });
+    if (!state) return; // not a member, silently no-op
+    await markReadWithState(ctx, { roomId, userId, upTo, vanish, vanishCounts, state });
   },
 });
 
@@ -4074,69 +3928,24 @@ async function advanceDelivered(
   userId: Id<"users">,
   upTo: number | undefined,
 ): Promise<void> {
-  // C1: a membership on the new tables moves its `roomReceipts` row only. No
-  // `roomMembers`, no `roomUserState`, no room doc: a delivery report re-runs
-  // nothing but the read-state / seen-by views.
+  // A delivery report moves the member's `roomReceipts` row only. No
+  // `roomMembers`, no `roomUserState`, no room doc: it re-runs nothing but the
+  // read-state / seen-by views. No receipt row: not a member, silently no-op.
   const receipt = await receiptOf(ctx, roomId, userId);
-  if (receipt) {
-    let to: number;
-    if (upTo === undefined) {
-      const room = await getLiveRoom(ctx, roomId);
-      if ((room?.memberCount ?? 0) > DELIVERY_MEMBER_LIMIT) return;
-      to = room?.lastMessageTime ?? 0;
-    } else {
-      to = Math.min(upTo, Date.now());
-    }
-    const at = receipt.lastDeliveredAt ?? 0;
-    if (at >= to) return;
-    const now = Date.now();
-    await appendReceiptMove(ctx, receipt, "delivered", { before: at, upTo: to, at: now });
-    await ctx.db.patch(receipt._id, { lastDeliveredAt: to, deliveredClock: now });
-    return;
-  }
-  const membership = await ctx.db
-    .query("roomMembers")
-    .withIndex("by_room_user", (q: any) =>
-      q.eq("roomId", roomId).eq("userId", userId)
-    )
-    .first();
-  if (!membership) return; // not a member, silently no-op
-
-  // The room document is NOT read: every send patches it, so a receipt that
-  // read it conflicted with the send it was acknowledging (OCC retries).
-  //
-  // Never past now: the push signature (or the device) vouches for `upTo`,
-  // exactly as `markRoomRead` trusts its own. Clients from before the argument
-  // send none and get the room's newest message, which is the one read left.
-  //
-  // The member-count ceiling (DELIVERY_MEMBER_LIMIT) is no longer enforced
-  // here, because the count lives on that hot document. The client skips the
-  // call above the limit (`kDeliveryMemberLimit`); the push path should not
-  // mint delivery proofs above it either (push.ts, where the member list is
-  // already in hand).
-  let target: number;
+  if (!receipt) return;
+  let to: number;
   if (upTo === undefined) {
     const room = await getLiveRoom(ctx, roomId);
     if ((room?.memberCount ?? 0) > DELIVERY_MEMBER_LIMIT) return;
-    target = room?.lastMessageTime ?? 0;
+    to = room?.lastMessageTime ?? 0;
   } else {
-    target = Math.min(upTo, Date.now());
+    to = Math.min(upTo, Date.now());
   }
-  const cursor = membership.lastDeliveredAt ?? 0;
-  // Nothing to move: no write at all.
-  if (cursor >= target) return;
-
-  const clock = Date.now();
-  const legacyClear = await appendReceiptMove(ctx, membership, "delivered", {
-    before: cursor,
-    upTo: target,
-    at: clock,
-  });
-  await ctx.db.patch(membership._id, {
-    lastDeliveredAt: target,
-    lastDeliveredClock: clock,
-    ...legacyClear,
-  });
+  const at = receipt.lastDeliveredAt ?? 0;
+  if (at >= to) return;
+  const now = Date.now();
+  await appendReceiptMove(ctx, receipt, "delivered", { before: at, upTo: to, at: now });
+  await ctx.db.patch(receipt._id, { lastDeliveredAt: to, deliveredClock: now });
 }
 
 /**
@@ -4272,23 +4081,21 @@ export const getReceiptTimes = query({
       readAt: number | null;
       deliveredAt: number | null;
     }> = [];
-    const backfilled = await receiptMovesBackfilled(ctx);
     for (const m of members) {
       if (lens.isSelf(m.userId)) continue;
       const subject = { _id: m.userId, visibility: { seen: m.seenVisibility } };
       if (!lens.canSee(subject, "seen")) continue;
-      // One point read per log actually needed (cursor past the message),
-      // only for members the viewer may see; `receiptLogs` first, legacy
-      // member-row log as the fallback (receipts.ts).
+      // One range read per cursor actually needed (cursor past the message),
+      // only for members the viewer may see (receipts.ts).
       out.push({
         userId: m.userId,
         readAt:
           (m.lastReadAt ?? 0) >= createdAt
-            ? await receiptTimeAt(ctx, m, "read", createdAt, backfilled)
+            ? await receiptTimeAt(ctx, m, "read", createdAt)
             : null,
         deliveredAt:
           (m.lastDeliveredAt ?? 0) >= createdAt
-            ? await receiptTimeAt(ctx, m, "delivered", createdAt, backfilled)
+            ? await receiptTimeAt(ctx, m, "delivered", createdAt)
             : null,
       });
     }

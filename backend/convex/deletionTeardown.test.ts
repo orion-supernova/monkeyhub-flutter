@@ -131,7 +131,6 @@ describe("user teardown", () => {
       for (let i = 0; i < 3; i++) {
         await ctx.db.insert("moments", {
           userId: u, dayKey: "2026-10-22", createdAt: 1, expiresAt: 9e15,
-          authorName: "x", authorUsername: "leaver",
         });
       }
       await ctx.db.insert("userExpressions", { userId: u, recents: [], favorites: [], updatedAt: 1 });

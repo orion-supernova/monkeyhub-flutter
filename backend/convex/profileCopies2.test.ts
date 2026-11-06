@@ -1,27 +1,18 @@
 import { convexTest } from "convex-test";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { noteSolve } from "./recordBook";
 import { syncProfile, tombstoneProfile } from "./profilesCore";
-import { copyFlags } from "./profileCopyGate";
 
 /**
- * Phase 6D: the moment, comment, reaction and record name copies sit behind
- * `PROFILE_COPIES`. On, nothing changes; off, no copy is written and every
- * reader (board, comments, records, pushes) shows the CURRENT name.
+ * Phase 6D: no moment, comment, reaction or record row carries a name copy, and
+ * every reader (board, comments, records, pushes) shows the CURRENT name.
  */
 
 type T = ReturnType<typeof convexTest>;
 type Who = { token: string; userId: any; username: string };
 const DAY = "2026-10-08";
-
-beforeEach(() => {
-  copyFlags.copies = true;
-});
-afterEach(() => {
-  copyFlags.copies = true;
-});
 
 async function signUp(t: T, username: string): Promise<Who> {
   const u: any = await t.mutation(api.auth.signup, {
@@ -88,42 +79,8 @@ async function giveToken(t: T, userId: any) {
 
 const row = (t: T, id: any): Promise<any> => t.run((ctx: any) => ctx.db.get(id));
 
-describe("copies on: unchanged", () => {
-  test("every writer still stamps its copy", async () => {
-    const { t, author, friend, momentId } = await world();
-    const m = await row(t, momentId);
-    expect(m.authorName).toBe("author");
-    expect(m.authorUsername).toBe("author");
-
-    const rid: any = await t.mutation(api.feed.react, {
-      ...as(friend), momentId, emoji: "🔥",
-    } as any);
-    const r = await row(t, rid);
-    expect(r.userName).toBe("friend");
-    expect(r.userUsername).toBe("friend");
-
-    const root: any = await t.mutation(api.momentComments.add, {
-      ...as(friend), momentId, text: "hi",
-    } as any);
-    const reply: any = await t.mutation(api.momentComments.add, {
-      ...as(author), momentId, text: "yo", replyToId: root,
-    } as any);
-    const nested: any = await t.mutation(api.momentComments.add, {
-      ...as(friend), momentId, text: "k", replyToId: reply,
-    } as any);
-    expect((await row(t, root)).userName).toBe("friend");
-    expect((await row(t, nested)).replyToName).toBe("author");
-
-    const cr: any = await t.mutation(api.momentComments.react, {
-      ...as(author), commentId: root, emoji: "❤️",
-    } as any);
-    expect((await row(t, cr)).userName).toBe("author");
-  });
-});
-
-describe("copies off", () => {
+describe("no copies", () => {
   test("no copy is written anywhere", async () => {
-    copyFlags.copies = false;
     const { t, author, friend, momentId } = await world();
     const m = await row(t, momentId);
     expect(m.authorName).toBeUndefined();
@@ -159,7 +116,6 @@ describe("copies off", () => {
   });
 
   test("the board, comments and viewer show current names", async () => {
-    copyFlags.copies = false;
     const { t, author, friend, momentId } = await world();
     await t.mutation(api.feed.react, { ...as(friend), momentId, emoji: "🔥" } as any);
     const root: any = await t.mutation(api.momentComments.add, {
@@ -198,7 +154,6 @@ describe("copies off", () => {
   });
 
   test("a record reaction shows the current name", async () => {
-    copyFlags.copies = false;
     const { t, author, friend } = await world();
     await t.run(async (ctx: any) => {
       await noteSolve(ctx, {
@@ -219,7 +174,6 @@ describe("copies off", () => {
   });
 
   test("pushes are built with the current name, after a rename", async () => {
-    copyFlags.copies = false;
     const { t, author, friend, momentId } = await world();
     const rid: any = await t.mutation(api.feed.react, { ...as(friend), momentId, emoji: "🔥" } as any);
     const root: any = await t.mutation(api.momentComments.add, {
@@ -239,20 +193,8 @@ describe("copies off", () => {
   });
 });
 
-describe("copies on, rename", () => {
-  test("readers show the live name over the stored copy", async () => {
-    const { t, author, friend, momentId } = await world();
-    await t.mutation(api.feed.react, { ...as(friend), momentId, emoji: "🔥" } as any);
-    await rename(t, author, "Author Renamed");
-    const items: any = await t.query(api.feed.board, { ...as(friend), dayKey: DAY } as any);
-    const list = Array.isArray(items) ? items : items.moments ?? [];
-    expect(list.find((x: any) => x._id === momentId).authorName).toBe("Author Renamed");
-  });
-});
-
 describe("review fixes", () => {
   test("the viewer's own moments are named from the profile, not the users row", async () => {
-    copyFlags.copies = false;
     const { t, author, momentId } = await world();
     // Profile says one thing, the users row another: only the profile counts.
     await t.run(async (ctx: any) => {
@@ -264,7 +206,6 @@ describe("review fixes", () => {
   });
 
   test("a deleting account is an empty name, never its internal handle", async () => {
-    copyFlags.copies = false;
     const { t, author, friend, momentId } = await world();
     const root: any = await t.mutation(api.momentComments.add, {
       ...as(author), momentId, text: "hi",

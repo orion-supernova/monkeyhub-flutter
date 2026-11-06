@@ -243,17 +243,10 @@ export async function addMembership(
   }
   const joinedAt = Date.now();
   const seen = await seenVisibilityOf(ctx, userId);
-  // C1: a room with a sequence gives the member their private state and public
-  // cursors as rows of their own, so the roster row stays a roster row. An
-  // unmigrated room keeps the legacy row alone (the backfill adds the rest).
-  const onNewTables = await insertMemberRows(ctx, target, userId, joinedAt, seen, extra);
-  await ctx.db.insert("roomMembers", {
-    roomId,
-    userId,
-    joinedAt,
-    role,
-    ...(onNewTables ? {} : { seenVisibility: seen, ...extra }),
-  });
+  // C1: the member's private state and public cursors are rows of their own,
+  // so the roster row stays a roster row.
+  await insertMemberRows(ctx, target, userId, joinedAt, seen, extra);
+  await ctx.db.insert("roomMembers", { roomId, userId, joinedAt, role });
   await recordJoin(ctx, userId, before);
   await grantRoomAccess(ctx, roomId, userId);
   const room = await ctx.db.get(roomId);
@@ -296,17 +289,6 @@ export async function removeMembership(
     )
     .first();
   if (typing) await ctx.db.delete(typing._id);
-
-  // Their receipt logs (read and delivered), so a rejoin starts clean.
-  for (const kind of ["read", "delivered"]) {
-    const log = await ctx.db
-      .query("receiptLogs")
-      .withIndex("by_room_user_kind", (q: any) =>
-        q.eq("roomId", roomId).eq("userId", userId).eq("kind", kind),
-      )
-      .first();
-    if (log) await ctx.db.delete(log._id);
-  }
 
   // A live group call in this room: they are no longer entitled to be in it.
   // Through the call's own leave path, so the roster, the pair signals and

@@ -41,7 +41,7 @@ async function room(t: ReturnType<typeof convexTest>, owner: string, members: st
 
 const row = (t: ReturnType<typeof convexTest>, roomId: any, userId: string, updatedAt: number) =>
   t.run((ctx) =>
-    ctx.db.insert("typingIndicators", { roomId, userId: userId as any, updatedAt, userName: userId } as any),
+    ctx.db.insert("typingIndicators", { roomId, userId: userId as any, updatedAt } as any),
   );
 
 describe("typing reads only live rows", () => {

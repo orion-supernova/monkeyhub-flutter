@@ -54,8 +54,6 @@ const poison = (t: T, userId: string) =>
   t.run(async (ctx: any) => {
     await ctx.db.patch(userId, {
       name: "POISONED",
-      status: "online",
-      lastSeen: T0 + 5,
       email: "x@example.com",
     });
   });
@@ -173,9 +171,8 @@ describe("getFamilyContext", () => {
       });
     });
     await setPresence(t, kid.userId, { status: "away", lastSeen: T0 - 5 });
-    await t.run((ctx: any) =>
-      ctx.db.patch(kid.userId, { status: "online", lastSeen: T0 }),
-    );
+    // A users write that is NOT presence (the row carries no status any more).
+    await t.run((ctx: any) => ctx.db.patch(kid.userId, { name: "POISONED" }));
     const out: any = await t.query(api.family.getFamilyContext, {
       sessionToken: parent.token,
       userId: parent.userId,

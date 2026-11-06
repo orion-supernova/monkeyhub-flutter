@@ -1,20 +1,12 @@
 import { convexTest } from "convex-test";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
-import { copyFlags } from "./profileCopyGate";
 import { syncProfile, tombstoneProfile } from "./profilesCore";
 
 // Phase 6C: the copy writers of messages, interactions and typing, and the
 // server readers that build a name (reaction push, deletion alert, typing).
 type T = ReturnType<typeof convexTest>;
-
-beforeEach(() => {
-  copyFlags.copies = true;
-});
-afterEach(() => {
-  copyFlags.copies = true;
-});
 
 async function signUp(t: T, username: string) {
   return await t.mutation(api.auth.signup, {
@@ -88,34 +80,8 @@ const typers = (t: T, w: any) =>
     currentUserId: w.a.userId as any,
   } as any) as Promise<any[]>;
 
-describe("copies on (today's behaviour)", () => {
-  test("messages, replies, votes and typing still carry the copies", async () => {
-    const t = convexTest(schema);
-    const w = await world(t);
-    const m1 = await send(t, w, w.a, "first");
-    await send(t, w, w.b, "second", { replyToId: m1 });
-    const msgs = await rows(t, "messages");
-    expect(msgs.every((m) => m.senderName)).toBe(true);
-    expect(msgs.find((m) => m.replyToPreview)!.replyToPreview.senderName).toBe("alice");
-
-    const p = await poll(t, w);
-    await vote(t, w, w.b, p);
-    expect((await rows(t, "interactionResponses"))[0].userName).toBe("bobby");
-    const tally = (await rows(t, "messageInteractions"))[0];
-    expect(tally.choices[0].respondents[0].name).toBe("bobby");
-
-    await t.mutation(api.typing.setTyping, {
-      sessionToken: w.b.token, roomId: w.roomId, userId: w.b.userId as any,
-    } as any);
-    const ti = (await rows(t, "typingIndicators"))[0];
-    expect(ti.userName).toBe("bobby");
-    expect((await typers(t, w))[0].name).toBe("bobby");
-  });
-});
-
-describe("copies off", () => {
+describe("no copies", () => {
   test("no copy is written and every reader still shows the current name", async () => {
-    copyFlags.copies = false;
     const t = convexTest(schema);
     const w = await world(t);
     const m1 = await send(t, w, w.a, "first");
@@ -150,7 +116,7 @@ describe("copies off", () => {
 });
 
 describe("readers", () => {
-  test("respondents shows the renamed voter even from the stored copy", async () => {
+  test("respondents shows the renamed voter", async () => {
     const t = convexTest(schema);
     const w = await world(t);
     const p = await poll(t, w);
@@ -162,7 +128,7 @@ describe("readers", () => {
     expect(list[0].name).toBe("Robert");
   });
 
-  test("a deleted voter has an empty name, not the stale copy", async () => {
+  test("a deleted voter has an empty name", async () => {
     const t = convexTest(schema);
     const w = await world(t);
     const p = await poll(t, w);
@@ -175,8 +141,7 @@ describe("readers", () => {
   });
 
   test("a reaction push built after a rename uses the new name; a deleted reactor sends none", async () => {
-    for (const copies of [true, false]) {
-      copyFlags.copies = copies;
+    {
       const t = convexTest(schema);
       const w = await world(t);
       const msg = await send(t, w, w.a, "see you at 8");

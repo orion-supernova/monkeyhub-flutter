@@ -25,7 +25,12 @@ import { retireIfStaff } from "./retiredHandles";
 import { SESSION_LIVE_CAP, identityBanHash, recordAccountBans } from "./sessionCore";
 import { clearPresence } from "./presenceCore";
 
-export type DeletionKind = Doc<"deletions">["kind"];
+/**
+ * The live kinds. `avatar` is retired (phase 6Z: the old file is released
+ * directly by `users.updateAvatar`); its literal stays in the schema only
+ * until `cleanupMigration:stripLegacy` has deleted any leftover rows.
+ */
+export type DeletionKind = Exclude<Doc<"deletions">["kind"], "avatar">;
 export type Job = Doc<"deletions">;
 
 export interface StepResult {
@@ -412,11 +417,6 @@ export async function startUserDeletion(
       name: undefined,
       email: undefined,
       recoveryKeyHash: undefined,
-      // Legacy presence fields: no longer written anywhere, but a row from
-      // before the presence table may still carry them; a tombstone keeps
-      // nothing it doesn't need.
-      status: undefined,
-      lastSeen: undefined,
       passwordHash: "",
       avatarStorageId: undefined,
       // Legacy push tokens on the row itself: a ghost must not ring.

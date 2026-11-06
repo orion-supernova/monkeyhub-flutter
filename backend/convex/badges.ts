@@ -5,7 +5,6 @@ import {
 import { resolveMute } from "./mute";
 import { isTombstoned } from "./deletionCore";
 import { computePendingCounts } from "./userDerivedCore";
-import { stateBackfilled } from "./roomState";
 import { roomUnread } from "./unread";
 
 /**
@@ -113,31 +112,6 @@ async function unreadBadgePart(
     }
   }
 
-  // Memberships the backfill has not reached keep the legacy arithmetic.
-  if (!(await stateBackfilled(ctx))) {
-    const have = new Set<string>(states.map((s: any) => s.roomId.toString()));
-    const memberships = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_user", (q: any) => q.eq("userId", userId))
-      .collect();
-    for (const m of memberships) {
-      if (have.has(m.roomId.toString())) continue;
-      if (resolveMute(m, now).badges) continue;
-      const room = await ctx.db.get(m.roomId);
-      if (!room || isTombstoned(room)) continue;
-      const { count } = await unreadForRoom(
-        ctx,
-        m.roomId,
-        userId,
-        m.lastReadAt,
-        room.lastMessageTime,
-      );
-      if (count > 0) {
-        perRoom.push({ roomId: m.roomId, count });
-        unread += count;
-      }
-    }
-  }
   return { unread, perRoom };
 }
 

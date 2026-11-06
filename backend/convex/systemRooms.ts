@@ -294,13 +294,12 @@ export async function reconcileSystemRoomMembers(
   if (!botRow) {
     const joinedAt = Date.now();
     const seen = await seenVisibilityOf(ctx, accountId);
-    const onNew = await insertMemberRows(ctx, roomDoc, accountId, joinedAt, seen);
+    await insertMemberRows(ctx, roomDoc, accountId, joinedAt, seen);
     await ctx.db.insert("roomMembers", {
       roomId,
       userId: accountId,
       joinedAt,
       role: "owner",
-      ...(onNew ? {} : { seenVisibility: seen }),
     });
     await incrementRoomCount(ctx, accountId);
     await grantRoomAccess(ctx, roomId, accountId);
@@ -312,18 +311,17 @@ export async function reconcileSystemRoomMembers(
   for (const readerId of readerIds) {
     const key = readerId.toString();
     if (present.has(key)) continue;
-    // No read position (`readSeq` 0 / no `lastReadAt`): the backlog counts as
+    // No read position (`readSeq` 0): the backlog counts as
     // unread to somebody newly responsible for reading it, which is the
     // honest number.
     const joinedAt = Date.now();
     const seen = await seenVisibilityOf(ctx, readerId);
-    const onNew = await insertMemberRows(ctx, roomDoc, readerId, joinedAt, seen);
+    await insertMemberRows(ctx, roomDoc, readerId, joinedAt, seen);
     await ctx.db.insert("roomMembers", {
       roomId,
       userId: readerId,
       joinedAt,
       role: "member",
-      ...(onNew ? {} : { seenVisibility: seen }),
     });
     await incrementRoomCount(ctx, readerId);
     await grantRoomAccess(ctx, roomId, readerId);

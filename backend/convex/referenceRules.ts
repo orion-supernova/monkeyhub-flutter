@@ -196,14 +196,12 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "momentCommentReactions.userId": { rule: "cascade", index: "by_user", why: "User plan, `comments` step (deleteCommentCore)." },
   "momentComments.momentId": { rule: "cascade", index: "by_moment_created", why: "deleteMomentCore, or the `moment` job." },
   "momentComments.parentId": { rule: "cascade", index: "by_parent", why: "Replies hang off their root (deleteCommentCore, or the `comment` job)." },
-  "momentComments.replyToUserId": { rule: "history", why: "Copy with a name (replyToName); a deleted account still reads as a name." },
+  "momentComments.replyToUserId": { rule: "history", why: "Who a reply answers; a deleted account still reads as a deleted user (name resolved from profiles)." },
   "momentComments.stickerId": { rule: "softRef", why: "Tombstoned stickers resolve to 'unavailable'." },
   "momentComments.stickerStorageId": { rule: "file", fileHold: "ref", why: "Owner: the sticker row (borrowed copy).", today: "verified: same as messages.stickerStorageId: a shared ref keeps the art alive after a soft delete; the owner's account deletion force-deletes the file and the id dangles (accepted, privacy)" },
   "momentComments.userId": { rule: "cascade", index: "by_user", why: "User plan, `comments` step (deleteCommentCore)." },
   "momentReactions.momentId": { rule: "cascade", index: "by_moment", why: "deleteMomentCore (feed.remove and the user plan)." },
-  "momentReactions.userAvatarStorageId": { rule: "file", fileHold: "copy", why: "Owner: users.avatarStorageId (borrowed copy, moved by repointAvatarCopies); Phase 6 profiles remove it." },
   "momentReactions.userId": { rule: "cascade", index: "by_user", why: "A person's reactions go with their account." },
-  "moments.authorAvatarStorageId": { rule: "file", fileHold: "copy", why: "Owner: users.avatarStorageId (borrowed copy, moved by repointAvatarCopies); Phase 6 profiles remove it." },
   "moments.mediaStorageId": { rule: "file", fileHold: "ref", index: "by_media", why: "Owner: the moment; refcounted across moments." },
   "moments.posterStorageId": { rule: "file", fileHold: "ref", index: "by_poster", why: "Owner: the moment; checked against its own by_poster index." },
   "moments.userId": { rule: "cascade", index: "by_user", why: "A person's moments, with children first, go with the account." },
@@ -310,7 +308,6 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "userRoomCounts.userId": { rule: "cascade", index: "by_user", why: "The per-user room counter (roomCounts.ts) dies with the account; generic step, after memberships." },
 
   // ── typing, uploads, users ────────────────────────────────────────────────
-  "typingIndicators.avatarStorageId": { rule: "file", fileHold: "copy", why: "Owner: users.avatarStorageId (borrowed copy); Phase 6 profiles remove it." },
   "typingIndicators.roomId": { rule: "cascade", index: "by_room_user", why: "Room teardown (should also go when the user leaves the room)." },
   "typingIndicators.userId": { rule: "cascade", index: "by_user", why: "Account deletion." },
   "fileRefs.storageId": { rule: "file", fileHold: "ledger", index: "by_file_holder", why: "Owner: the ref row IS one use of the file; deleted with its holder (releaseFile), dead ones by repairRefs." },

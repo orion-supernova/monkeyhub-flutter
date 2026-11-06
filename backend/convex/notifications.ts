@@ -632,11 +632,7 @@ export const _reactionPushPlan = internalQuery({
     if (!reactor) return null;
     // The name as of now, built at send time. A deleted reactor has none, and
     // a push titled with nothing is worse than no push.
-    const reactorName = await displayName(
-      ctx,
-      r.userId,
-      reactor.name ?? reactor.username ?? "",
-    );
+    const reactorName = await displayName(ctx, r.userId);
     if (reactorName === "") return null;
     const room = await ctx.db.get(msg.roomId);
     // The same rule `rooms.getMemberIds` uses, so the two cannot disagree.

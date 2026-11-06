@@ -14,7 +14,7 @@ import {
   type StreakState,
 } from "./recordBook";
 import { lensFor } from "./visibility";
-import { copiesOn, nameResolver } from "./profileCopyGate";
+import { nameResolver } from "./profileCopyGate";
 import { isTombstoned } from "./deletionCore";
 import { byNameThenId, competitionPlaces, shownSeconds } from "./ranking";
 
@@ -158,7 +158,7 @@ export const board = query({
 
     const resolve = nameResolver(ctx);
     const reactorName = async (x: any): Promise<string> =>
-      nameById.get(x.userId.toString()) ?? (await resolve(x.userId, x.userName));
+      nameById.get(x.userId.toString()) ?? (await resolve(x.userId));
 
     const games: Record<string, any[]> = {};
     for (const g of RECORD_GAMES) {
@@ -270,12 +270,10 @@ export const react = mutation({
       });
       return null;
     }
-    const reactor = copiesOn() ? await ctx.db.get(userId) : null;
     await ctx.db.insert("recordReactions", {
       recordId,
       achievedAt: record.achievedAt,
       userId,
-      ...(copiesOn() ? { userName: reactor?.name ?? reactor?.username } : {}),
       emoji,
       createdAt: now,
     });

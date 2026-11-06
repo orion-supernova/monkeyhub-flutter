@@ -90,7 +90,7 @@ function seedMessageTails(t: T, p: { messageId: Id<"messages">; roomId: Id<"room
       await ctx.db.insert("messageBookmarks", { roomId: p.roomId, messageId: p.messageId, userId: p.userId, savedAt: 1 });
       await ctx.db.insert("viewOnceViews", { messageId: p.messageId, roomId: p.roomId, userId: p.userId, viewedAt: 1, countsToward: true });
       await ctx.db.insert("interactionResponses", {
-        messageId: p.messageId, roomId: p.roomId, userId: p.userId, choiceId: `c${i}`, userName: "u", createdAt: 1,
+        messageId: p.messageId, roomId: p.roomId, userId: p.userId, choiceId: `c${i}`, createdAt: 1,
       });
     }
   });
@@ -113,7 +113,7 @@ describe("message", () => {
       replies.push(
         await mkMsg(t, roomId, u1, {
           replyToId: target,
-          replyToPreview: { senderId: u1, senderName: "u1", contentPreview: "hello", type: "text" },
+          replyToPreview: { senderId: u1, contentPreview: "hello", type: "text" },
         }),
       );
     }
@@ -192,7 +192,7 @@ describe("message", () => {
         ids.push(
           await mkMsg(t, inRoom, u1, {
             replyToId: parent,
-            replyToPreview: { senderId: u1, senderName: "u1", contentPreview: "pic", type: "image", mediaStorageId: blob },
+            replyToPreview: { senderId: u1, contentPreview: "pic", type: "image", mediaStorageId: blob },
           }),
         );
       }
@@ -306,7 +306,7 @@ describe("moment", () => {
     const media = await store(t);
     const poster = await store(t); // also another moment's PICTURE
     const poster2 = await store(t); // also another moment's POSTER
-    const base = { dayKey: "2026-10-22", createdAt: 1, expiresAt: 2, authorName: "x", authorUsername: "x" };
+    const base = { dayKey: "2026-10-22", createdAt: 1, expiresAt: 2 };
     const ids = await t.run(async (ctx) => {
       const momentId = await ctx.db.insert("moments", {
         ...base, userId: mine, mediaStorageId: media, posterStorageId: poster,
@@ -320,7 +320,7 @@ describe("moment", () => {
       for (let i = 0; i < 5; i++) {
         await ctx.db.insert("momentReactions", { momentId, userId: mine, emoji: `e${i}`, createdAt: 1 });
         await ctx.db.insert("momentViews", { momentId, viewerId: other.userId as any, viewedAt: i });
-        const c = await ctx.db.insert("momentComments", { momentId, userId: mine, userName: "me", text: "hi", createdAt: i });
+        const c = await ctx.db.insert("momentComments", { momentId, userId: mine, text: "hi", createdAt: i });
         await ctx.db.insert("momentCommentReactions", { commentId: c, momentId, userId: mine, emoji: "x", createdAt: 1 });
       }
       return { momentId, second };
@@ -349,15 +349,15 @@ describe("moment", () => {
     const mine = me.userId as Id<"users">;
     const seeded = await t.run(async (ctx) => {
       const momentId = await ctx.db.insert("moments", {
-        dayKey: "d", createdAt: 1, expiresAt: 2, authorName: "x", authorUsername: "x",
+        dayKey: "d", createdAt: 1, expiresAt: 2,
         userId: mine, commentCount: 7,
       } as any);
-      const root = await ctx.db.insert("momentComments", { momentId, userId: mine, userName: "me", text: "r", createdAt: 1 });
-      const other = await ctx.db.insert("momentComments", { momentId, userId: mine, userName: "me", text: "o", createdAt: 2 });
+      const root = await ctx.db.insert("momentComments", { momentId, userId: mine, text: "r", createdAt: 1 });
+      const other = await ctx.db.insert("momentComments", { momentId, userId: mine, text: "o", createdAt: 2 });
       await ctx.db.insert("momentCommentReactions", { commentId: other, momentId, userId: mine, emoji: "x", createdAt: 1 });
       for (let i = 0; i < 5; i++) {
         const reply = await ctx.db.insert("momentComments", {
-          momentId, userId: mine, userName: "me", text: "y", parentId: root, createdAt: 3 + i,
+          momentId, userId: mine, text: "y", parentId: root, createdAt: 3 + i,
         });
         for (let k = 0; k < 3; k++) {
           await ctx.db.insert("momentCommentReactions", { commentId: reply, momentId, userId: mine, emoji: `e${k}`, createdAt: 1 });
@@ -414,7 +414,7 @@ describe("engine behaviour for these kinds", () => {
     const target = await mkMsg(t, roomId, u1);
     const reply = await mkMsg(t, roomId, u1, {
       replyToId: target,
-      replyToPreview: { senderId: u1, senderName: "u1", contentPreview: "hello", type: "text" },
+      replyToPreview: { senderId: u1, contentPreview: "hello", type: "text" },
     });
     await seedMessageTails(t, { messageId: target, roomId, userId: u1 }, 5);
     await remove(t, target);
@@ -465,62 +465,35 @@ describe("avatar", () => {
       t.mutation(api.users.updateAvatar, { sessionToken: me.token, userId: me.userId as any, storageId } as any);
     return { t, me, set };
   };
-  const stamp = (t: T, me: any, avatar: any, n = 5) =>
-    t.run(async (ctx) => {
-      const ids: Id<"moments">[] = [];
-      for (let i = 0; i < n; i++) {
-        ids.push(
-          await ctx.db.insert("moments", {
-            userId: me.userId, dayKey: "d", createdAt: i, expiresAt: 9, authorName: "x", authorUsername: "x",
-            authorAvatarStorageId: avatar,
-          } as any),
-        );
-      }
-      return ids;
-    });
 
-  test("the patch is immediate; copies move and the old file goes in the job, last", async () => {
+  // Phase 6Z: no row copies the avatar id, so the old file goes in the same
+  // transaction as the swap and no `avatar` job is queued.
+  test("the old file is released directly; no job is queued", async () => {
     const { t, set, me } = await setup();
     const a = await store(t);
     const b = await store(t);
     await set(a);
-    const moments = await stamp(t, me, a);
     await set(b);
-    // Nothing deleted inline: the old file is still there for the copies.
-    expect(await exists(t, a)).toBe(true);
     expect(((await get(t, me.userId)) as any).avatarStorageId).toBe(b);
-    await drain(t);
     expect(await exists(t, a)).toBe(false);
-    for (const m of moments) expect(((await get(t, m)) as any).authorAvatarStorageId).toBe(b);
-    expect((await jobs(t, "avatar")).every((j) => j.state === "done")).toBe(true);
+    expect(await exists(t, b)).toBe(true);
+    expect(await jobs(t, "avatar")).toHaveLength(0);
   });
 
-  test("changing back before the job runs keeps the file; A to B to C converges on C", async () => {
-    const { t, set, me } = await setup();
+  test("A to B to C leaves only C", async () => {
+    const { t, set } = await setup();
     const a = await store(t);
     const b = await store(t);
     const c = await store(t);
     await set(a);
-    const moments = await stamp(t, me, a, 3);
-
     await set(b);
-    await set(a); // back again before anything ran
-    await drain(t);
-    expect(await exists(t, a)).toBe(true);
-    expect(await exists(t, b)).toBe(false);
-    for (const m of moments) expect(((await get(t, m)) as any).authorAvatarStorageId).toBe(a);
-
-    const d = await store(t);
-    await set(d);
     await set(c);
-    await drain(t);
     expect(await exists(t, a)).toBe(false);
-    expect(await exists(t, d)).toBe(false);
+    expect(await exists(t, b)).toBe(false);
     expect(await exists(t, c)).toBe(true);
-    for (const m of moments) expect(((await get(t, m)) as any).authorAvatarStorageId).toBe(c);
   });
 
-  test("re-submitting the current avatar queues nothing and deletes nothing", async () => {
+  test("re-submitting the current avatar deletes nothing", async () => {
     const { t, set } = await setup();
     const a = await store(t);
     await set(a);

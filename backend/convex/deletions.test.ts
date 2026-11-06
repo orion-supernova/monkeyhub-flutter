@@ -168,13 +168,13 @@ describe("job lifecycle", () => {
     const a = await t.run((ctx) => startRoomDeletion(ctx, roomId));
     const b = await t.run((ctx) => startRoomDeletion(ctx, roomId));
     expect(b).toBe(a);
-    const c = await t.run((ctx) => enqueueDeletion(ctx, { kind: "avatar", targetId: "u1" }));
-    const d = await t.run((ctx) => enqueueDeletion(ctx, { kind: "avatar", targetId: "u1" }));
+    const c = await t.run((ctx) => enqueueDeletion(ctx, { kind: "avatar" as any, targetId: "u1" }));
+    const d = await t.run((ctx) => enqueueDeletion(ctx, { kind: "avatar" as any, targetId: "u1" }));
     expect(d).toBe(c);
     expect(await count(t, "deletions")).toBe(2);
     await drain(t);
     expect(((await job(t, c)) as any).state).toBe("done"); // avatar: empty plan
-    const e = await t.run((ctx) => enqueueDeletion(ctx, { kind: "avatar", targetId: "u1" }));
+    const e = await t.run((ctx) => enqueueDeletion(ctx, { kind: "avatar" as any, targetId: "u1" }));
     expect(e).not.toBe(c);
   });
 
@@ -328,7 +328,7 @@ describe("user tombstone", () => {
   test("scrubs the row, revokes sessions, drops identities, keeps a ban, then deletes the user last", async () => {
     const t = convexTest(schema);
     const userId = await mkUser(t, "alice", {
-      name: "Alice", email: "a@x.com", recoveryKeyHash: "r", lastSeen: 5, status: "online",
+      name: "Alice", email: "a@x.com", recoveryKeyHash: "r",
       suspendedAt: 7,
     });
     await t.run(async (ctx) => {
@@ -345,7 +345,7 @@ describe("user tombstone", () => {
     expect(row.deletingAt).toBeTypeOf("number");
     expect(row.username).toBe(`deleted:${userId}`);
     expect(row.passwordHash).toBe("");
-    for (const f of ["name", "email", "recoveryKeyHash", "status", "lastSeen"]) expect(row[f]).toBeUndefined();
+    for (const f of ["name", "email", "recoveryKeyHash"]) expect(row[f]).toBeUndefined();
     expect(row.suspendedAt).toBe(7); // the ban survives the scrub
     const sessions: any[] = await t.run((ctx) => ctx.db.query("sessions").collect());
     expect(sessions.every((s) => s.revokedAt !== undefined)).toBe(true);
