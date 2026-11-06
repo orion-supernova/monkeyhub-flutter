@@ -80,5 +80,17 @@
 	<array>
 		<string>applinks:monkeyhub.walhallaa.com</string>
 	</array>
+	<!-- Shared with the Notification Service Extension
+	     (macos/NotificationService): the push inbox it parks arriving
+	     messages in, so a room opens already showing them. Must match the
+	     extension's entitlements and ios/Shared/ShareGroup.swift. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.walhallaa.monkeyhub</string>
+	</array>
+	<!-- Communication notifications: the extension draws the sender's face.
+	     The app needs it too, as on iOS. -->
+	<key>com.apple.developer.usernotifications.communication</key>
+	<true/>
 </dict>
 </plist>

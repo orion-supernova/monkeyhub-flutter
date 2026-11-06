@@ -5,6 +5,9 @@ import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import 'banner_avatar_files_io.dart';
+import 'banner_composer.dart';
+
 /// Desktop notifications for the Linux build, through the desktop's own
 /// notification daemon (org.freedesktop.Notifications — GNOME Shell, KDE
 /// Plasma, dunst, mako, swaync all speak it).
@@ -19,7 +22,7 @@ import 'package:flutter/services.dart';
 /// One notification per room, replaced in place (`replaces_id`), so an active
 /// group is a single entry that keeps its latest line rather than a column of
 /// them — the same shape the phones now use.
-class LinuxNotifier {
+class LinuxNotifier implements DesktopBannerSink {
   LinuxNotifier._();
   static final LinuxNotifier instance = LinuxNotifier._();
 
@@ -47,7 +50,13 @@ class LinuxNotifier {
   bool _broken = false;
 
   void Function(String roomId)? _onOpenRoom;
+  void Function(String roomId)? _onDismissed;
+  @override
+  bool get isSupported => supported;
+  @override
   void setOnOpenRoom(void Function(String roomId) cb) => _onOpenRoom = cb;
+  @override
+  void setOnDismissed(void Function(String roomId) cb) => _onDismissed = cb;
 
   DBusRemoteObject _connect() {
     final existing = _daemon;
@@ -93,6 +102,8 @@ class LinuxNotifier {
         _tokens.remove(id);
         final room = _roomById.remove(id);
         if (room != null && _idByRoom[room] == id) _idByRoom.remove(room);
+        // Swiped away or timed out: the lines it held were seen or declined.
+        if (room != null) _onDismissed?.call(room);
       }),
     );
     return daemon;
@@ -135,15 +146,26 @@ class LinuxNotifier {
   /// Shows (or replaces) [roomId]'s notification.
   ///
   /// [quiet] asks the daemon not to play its own sound, for the second and
-  /// later messages of a burst; daemons that ignore the hint are no worse off
-  /// than before.
+  /// later messages of a burst, and drops the urgency back to low so the
+  /// update does not re-raise a banner the person already saw; daemons that
+  /// ignore the hints are no worse off than before.
+  ///
+  /// [avatarUrl] becomes the notification's `image-path` once it is on disk.
+  /// It is fetched with a short deadline: a slow avatar must never cost the
+  /// banner itself.
+  @override
   Future<void> show({
     required String roomId,
     required String title,
     required String body,
+    String? avatarUrl,
     bool quiet = false,
   }) async {
     if (!supported || _broken) return;
+    final image = avatarUrl == null
+        ? null
+        : BannerAvatarFiles.instance.peek(avatarUrl) ??
+            await BannerAvatarFiles.instance.fetch(avatarUrl);
     try {
       final daemon = _connect();
       final reply = await daemon.callMethod(
@@ -161,7 +183,8 @@ class LinuxNotifier {
             // and KDE group it under the app and honour its per-app settings.
             'desktop-entry': const DBusString('monkeyhub'),
             'category': const DBusString('im.received'),
-            'urgency': const DBusByte(1),
+            'urgency': DBusByte(quiet ? 0 : 1),
+            if (image != null) 'image-path': DBusString(image),
             if (quiet) 'suppress-sound': const DBusBoolean(true),
           }),
           const DBusInt32(-1),
@@ -180,6 +203,7 @@ class LinuxNotifier {
   }
 
   /// Takes [roomId]'s notification down — the room was opened here.
+  @override
   Future<void> dismissRoom(String roomId) async {
     final id = _idByRoom.remove(roomId);
     if (id == null) return;

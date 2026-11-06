@@ -6,13 +6,16 @@ import '../audio/alert_sounds.dart';
 import '../l10n/app_labels.dart';
 import '../platform.dart';
 import '../data/chat_repository.dart';
+import '../media/file_url_cache.dart';
 import '../models/chat_room.dart';
 import '../privacy/app_only.dart';
 import 'alert_burst.dart';
+import 'banner_composer.dart';
 import 'linux_notifier.dart';
 import 'push_manager.dart';
 import 'viewer_presence.dart';
 import 'web_notifier.dart';
+import 'windows_notifier.dart';
 
 /// Plays a sound (and, on web, shows a browser banner) when a new inbound
 /// message arrives in a room the user isn't currently viewing.
@@ -29,11 +32,14 @@ import 'web_notifier.dart';
 ///
 /// Scope: web + desktop only. Mobile is served by the OS notification.
 ///
-/// Linux also gets a desktop banner per room from here ([LinuxNotifier]),
-/// because nothing else can give it one: it has no push service at all, so
-/// the socket this observes is the only way a message reaches it. While the
-/// window is in the background a burst from one room pings once, not per
-/// line ([AlertBurst]).
+/// Linux and Windows also get a desktop banner per room from here
+/// ([LinuxNotifier], [WindowsNotifier]), because nothing else can give them
+/// one: they have no push service the app can use, so the socket this
+/// observes is the only way a message reaches them. The banner is composed
+/// like the phones' ([BannerComposer]): one per room, the last few lines, the
+/// sender's face. While the window is in the background a burst from one room
+/// pings once, not per line ([AlertBurst]); the rest update the banner
+/// silently.
 ///
 /// On a Mac with working push ([PushManager.osDeliversMessageAlerts]) the work
 /// is split by whether anyone is looking: in front of the user this pings and
@@ -94,14 +100,35 @@ class MessageAlerts {
 
   void setOnOpenRoom(void Function(String roomId) cb) {
     WebNotifier.setOnOpenRoom(cb);
-    LinuxNotifier.instance.setOnOpenRoom(cb);
+    for (final sink in _sinks) {
+      sink.setOnOpenRoom(cb);
+    }
   }
 
   final AlertBurst _burst = AlertBurst();
+  final BannerComposer _composer = BannerComposer();
+
+  /// The desktop platforms that draw a banner themselves (at most one is
+  /// supported on any given build).
+  static final List<DesktopBannerSink> _sinks = [
+    LinuxNotifier.instance,
+    WindowsNotifier.instance,
+  ];
+
+  static DesktopBannerSink? get _sink {
+    for (final s in _sinks) {
+      if (s.isSupported) return s;
+    }
+    return null;
+  }
 
   void bind(ChatRepository repo) {
     if (!_enabled) return;
     if (identical(_repo, repo)) return;
+    // Closing a banner by hand is reading it: the next line starts afresh.
+    for (final sink in _sinks) {
+      sink.setOnDismissed(_composer.reset);
+    }
     _repo?.removeListener(_onChange);
     _repo = repo;
     // Establish a baseline of current room states so the initial room-list
@@ -117,6 +144,7 @@ class MessageAlerts {
     _repo = null;
     _lastSeen.clear();
     _burst.clear();
+    _composer.clear();
     _engaged = null;
   }
 
@@ -152,13 +180,18 @@ class MessageAlerts {
       return;
     }
     final me = repo.userId;
-    // A Linux banner stands in for the push this build cannot receive, so it
-    // follows the same rule the phones' banners do: only while nobody is
+    // A desktop banner stands in for the push this build cannot receive, so
+    // it follows the same rule the phones' banners do: only while nobody is
     // looking.
-    final banners = LinuxNotifier.supported && !focused;
-    // Opening the room is reading it; its banner has nothing left to say.
-    if (LinuxNotifier.supported && focused && active != null) {
-      unawaited(LinuxNotifier.instance.dismissRoom(active));
+    final sink = _sink;
+    final banners = sink != null && !focused;
+    // Opening the room is reading it; its banner has nothing left to say, and
+    // the lines it held must not come back with the next message.
+    if (sink != null && focused && active != null) {
+      if (_composer.current(active) != null) {
+        _composer.reset(active);
+        unawaited(sink.dismissRoom(active));
+      }
     }
     // The room on screen is being read, so its burst is over: the next line
     // after you look away should be heard.
@@ -216,21 +249,15 @@ class MessageAlerts {
   void _fire(ChatRepository repo, List<ChatRoom> due, {required bool banners}) {
     var pinged = false;
     for (final r in due) {
-      if (banners) {
-        unawaited(LinuxNotifier.instance.show(
-          roomId: r.id,
-          title: _bannerTitle(repo, r),
-          body: _bannerBody(repo, r),
-        ));
-      }
-      // The banner always updates; only the first line of a burst is heard.
-      // On every surface, not just Linux: a Mac or Windows window in front of
-      // you used to ping once per line of an active group in another room.
-      // No `mention:` here — `hasMention` is the room's sticky unread flag,
-      // so passing it would un-quiet every later line until the room is read.
-      if (!_burst.shouldAlert(r.id, DateTime.now())) {
-        continue;
-      }
+      // Only the first line of a burst is heard; the rest update the banner
+      // silently. On every surface, not just the desktop banners: a Mac or
+      // Windows window in front of you used to ping once per line of an active
+      // group in another room. No `mention:` here — `hasMention` is the room's
+      // sticky unread flag, so passing it would un-quiet every later line
+      // until the room is read.
+      final alert = _burst.shouldAlert(r.id, DateTime.now());
+      if (banners) unawaited(_banner(repo, r, quiet: !alert));
+      if (!alert) continue;
 
       // One ping per notify tick even if several rooms advanced at once. This
       // is the in-app awareness sound; the background BANNER belongs to Web
@@ -250,6 +277,59 @@ class MessageAlerts {
     }
   }
 
+  /// Composes [r]'s card and hands it to the platform's notifier.
+  ///
+  /// The card is added to synchronously, so lines can never be lost or
+  /// reordered; the shown text is re-read from the composer after the avatar
+  /// wait, so a slow face on an earlier line cannot overwrite a later one.
+  Future<void> _banner(ChatRepository repo, ChatRoom r,
+      {required bool quiet}) async {
+    final sink = _sink;
+    if (sink == null) return;
+    final secret = r.isEphemeral && AppOnly.gatesCapture;
+    final senderId = r.lastMessageSenderId;
+    final sender = senderId == null ? null : repo.userById(senderId);
+    final card = _composer.add(
+      roomId: r.id,
+      isDm: r.isDm,
+      title: _bannerTitle(repo, r),
+      text: _bannerText(r, secret),
+      sender: sender?.displayName,
+      // A secret room says only what its chat-list row says, every time.
+      replace: secret,
+      peerAvatar: repo.otherUserFor(r)?.avatarStorageId,
+      roomAvatar: r.avatarStorageId,
+      senderAvatar: sender?.avatarStorageId,
+    );
+    final url = await _avatarUrl(repo, card.avatarStorageId);
+    // Read or dismissed while the face was loading.
+    final now = _composer.current(r.id);
+    if (now == null || !identical(_repo, repo)) return;
+    await sink.show(
+      roomId: r.id,
+      title: now.title,
+      body: now.body,
+      avatarUrl: url,
+      quiet: quiet,
+    );
+  }
+
+  /// The serving URL for an avatar, from the same cache the chat list uses,
+  /// so a face the UI would not show is never shown here either. Never waits
+  /// long: a banner without a face beats a late one.
+  Future<String?> _avatarUrl(ChatRepository repo, String? storageId) async {
+    if (storageId == null) return null;
+    final known = FileUrlCache.instance.peek(storageId);
+    if (known != null) return known;
+    try {
+      return await FileUrlCache.instance
+          .resolve(storageId, () => repo.api.getFileUrl(storageId))
+          .timeout(const Duration(milliseconds: 700));
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// A DM is titled by the person, a group by its name — what the room list
   /// shows on the same row.
   String _bannerTitle(ChatRepository repo, ChatRoom r) {
@@ -257,16 +337,8 @@ class MessageAlerts {
     return r.name;
   }
 
-  /// The preview line, attributed in a group. A secret room says only what
-  /// its chat-list row says here, because Linux does not open it.
-  String _bannerBody(ChatRepository repo, ChatRoom r) {
-    if (r.isEphemeral && AppOnly.gatesCapture) {
-      return appLabels().appOnlySecretPreview;
-    }
-    final text = r.lastMessage?.trim() ?? '';
-    if (r.isDm) return text;
-    final sender = r.lastMessageSenderId;
-    final name = sender == null ? null : repo.userById(sender)?.displayName;
-    return name == null || name.isEmpty ? text : '$name: $text';
-  }
+  /// The preview line. A secret room says only what its chat-list row says
+  /// here, because the desktop builds do not open it.
+  String _bannerText(ChatRoom r, bool secret) =>
+      secret ? appLabels().appOnlySecretPreview : r.lastMessage?.trim() ?? '';
 }

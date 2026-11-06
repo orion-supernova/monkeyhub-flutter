@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as alertBurst from "../alertBurst.js";
 import type * as appleTokens from "../appleTokens.js";
 import type * as auth from "../auth.js";
 import type * as badges from "../badges.js";
@@ -157,6 +158,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  alertBurst: typeof alertBurst;
   appleTokens: typeof appleTokens;
   auth: typeof auth;
   badges: typeof badges;

@@ -31,55 +31,91 @@ self.addEventListener('push', (event) => {
   // browser's hidden budget and earn a "site updated in the background" banner.
   if (d.kind === 'dismiss') return;
 
-  // The Notification API has no third "subtitle" line the way `aps.alert`
-  // does on iOS (see push.ts's `AlertSpec.subtitle`) — title and body is all
-  // Chrome renders, so the three things a group message has to say have to
-  // fit in two.
-  //
-  // The room takes the TITLE and the sender moves in front of the text, which
-  // is the shape Android's MessagingStyle produces (ChatNotifications.kt) and
-  // the one every mainstream messenger uses on this platform. The room name
-  // used to be the first line of the BODY instead, where it was rendered in
-  // the same dim type as the message and read as part of it.
-  //
-  // Never for a DM: `roomName` is only ever sent when `isGroup` is `"true"`,
-  // and there the sender's name in the title is the whole answer to "who is
-  // this from".
-  const isGroup = d.isGroup === 'true' && !!d.roomName;
-  const sender = d.senderName || d.title || '';
-  const title = (isGroup ? d.roomName : d.title) || 'MonkeyHub';
-  // A mention used to vanish here for a group: "X mentioned you" WAS the title
-  // the room's name just replaced. It moves in front of the text instead. A
-  // DM keeps it in the title, where the backend put it.
-  const mentioned = d.mention === 'true';
-  const body = isGroup && sender
-    ? `${sender}${mentioned ? ' mentioned you' : ''}: ${d.body || ''}`
-    : (d.body || '');
   // The second tick, from the browser that just received it — see
   // reportDelivery below. Inside the same waitUntil, so the worker is not
   // torn down with the post still in flight.
-  event.waitUntil(Promise.all([
-    reportDelivery(d),
-    self.registration.showNotification(title, {
-      body,
-      // Same semantics as the APNs collapse-id and the Android tag: a later
-      // notification with this tag replaces this one rather than stacking.
-      tag: d.collapseId || d.threadId || undefined,
-      // `quiet`: the person is chatting on another of their devices right
-      // now (backend engagement.ts). Delivered, so it is in the tray when they
-      // come back, but without a sound or re-alert. `renotify` must be false
-      // alongside it, or Chrome alerts anyway for a replaced tag.
-      silent: d.quiet === 'true',
-      renotify: d.quiet !== 'true' && !!(d.collapseId || d.threadId),
-      // The sender's own face, WhatsApp/Telegram-style, when they have one
-      // and the recipient is allowed to see it (see rooms.ts's
-      // `resolvePushContext` — the backend never sends this key otherwise).
-      icon: d.senderAvatarUrl || '/web/icons/Icon-192.png',
-      badge: '/web/icons/Icon-192.png',
-      data: d,
-    }),
-  ]));
+  event.waitUntil(Promise.all([reportDelivery(d), show(d)]));
 });
+
+// How many lines a room's notification keeps. Android's MessagingStyle keeps
+// more, but a browser toast clips long before this.
+const MAX_LINES = 5;
+const APP_ICON = '/web/icons/Icon-192.png';
+
+async function show(d) {
+  if (d.kind === 'message' && d.roomId) return showRoom(d);
+
+  // Everything that is not a chat message (calls, approvals, friend activity)
+  // keeps the one-notification-per-event behavior.
+  const tagged = d.collapseId || d.threadId || undefined;
+  return self.registration.showNotification(d.title || 'MonkeyHub', {
+    body: d.body || '',
+    tag: tagged,
+    silent: d.quiet === 'true',
+    renotify: d.quiet !== 'true' && !!tagged,
+    icon: d.senderAvatarUrl || APP_ICON,
+    badge: APP_ICON,
+    data: d,
+  });
+}
+
+// One notification per room, updated in place with the room's last few lines
+// the way Android's MessagingStyle does (ChatNotifications.kt). The tag is the
+// room, so each new message REPLACES the previous notification; the lines
+// already shown are read back off it and carried in `data.lines`, because a
+// replaced notification keeps nothing of its own.
+//
+// Each line keeps its messageId so a deletion can drop just that line.
+async function showRoom(d) {
+  const tag = 'room:' + d.roomId;
+  let lines = [];
+  try {
+    const prev = await self.registration.getNotifications({ tag });
+    const carried = prev.length ? prev[prev.length - 1].data : null;
+    if (carried && Array.isArray(carried.lines)) lines = carried.lines;
+  } catch (_) {
+    // No history is better than no notification.
+  }
+
+  // Group: the room takes the TITLE and the sender moves in front of the text
+  // (the Android shape; the Notification API has no subtitle line). A mention
+  // used to vanish for a group because "X mentioned you" WAS the title the
+  // room's name replaced, so it rides in the line instead. A DM keeps the
+  // sender as the title and bare text lines; `roomName` is only ever sent when
+  // `isGroup` is "true".
+  const isGroup = d.isGroup === 'true' && !!d.roomName;
+  const sender = d.senderName || d.title || '';
+  const mentioned = d.mention === 'true';
+  const text = isGroup && sender
+    ? `${sender}${mentioned ? ' mentioned you' : ''}: ${d.body || ''}`
+    : (d.body || '');
+
+  // A retried push must not print the same line twice.
+  if (!d.messageId || !lines.some((l) => l.id === d.messageId)) {
+    lines = lines.concat([{ id: d.messageId || '', text }]).slice(-MAX_LINES);
+  }
+
+  const quiet = d.quiet === 'true';
+  const icon = isGroup
+    ? d.roomAvatarUrl || d.senderAvatarUrl || APP_ICON
+    : d.senderAvatarUrl || APP_ICON;
+  return self.registration.showNotification(
+    (isGroup ? d.roomName : d.title) || 'MonkeyHub',
+    {
+      body: lines.map((l) => l.text).join('\n'),
+      tag,
+      // `quiet`: mid-burst, or the person is chatting on another of their
+      // devices (backend alertBurst.ts / engagement.ts). The line still lands
+      // in the tray, without a sound. `renotify` must be false alongside it,
+      // or Chrome alerts anyway for a replaced tag.
+      silent: quiet,
+      renotify: !quiet,
+      icon,
+      badge: APP_ICON,
+      data: Object.assign({}, d, { lines }),
+    },
+  );
+}
 
 // Tells the sender's server this message reached this browser. The push
 // carries a proof signed for this recipient and message (rcptUrl / rcptUser /

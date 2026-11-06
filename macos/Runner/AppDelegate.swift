@@ -52,8 +52,11 @@ class AppDelegate: FlutterAppDelegate {
   //     incoming call rings over the live socket. The only call surface APNs
   //     can produce here is the backend's banner rescue (calls.sendCallPush),
   //     sent when no phone could be rung.
-  //   - A Notification Service Extension, so no push inbox and no sender face.
-  //     `mutable-content` is simply ignored by macOS without an extension.
+  //
+  // It DOES have the Notification Service Extension now (macos/
+  // NotificationService, same source as iOS): sender faces, group layout,
+  // the push inbox and the delivery tick. The burst rule is the server's on
+  // the Mac (backend/convex/alertBurst.ts).
   //
   // Same APNs topic as iOS (the bundle id is shared), so the backend sends a
   // Mac row exactly as it sends an iPhone row, keyed on its own `apnsEnv`.
@@ -151,11 +154,12 @@ class AppDelegate: FlutterAppDelegate {
           result([])
         }
       case "takePushInbox":
-        // No Notification Service Extension on the Mac, so nothing is ever
-        // staged. Answered rather than left unimplemented so the contract is
-        // the same on every Apple platform.
-        result([])
+        // What the Notification Service Extension (macos/NotificationService,
+        // the iPhone's source compiled for the Mac) parked in the App Group,
+        // so a room opens already showing it. See ShareGroup.stagePush.
+        result(ShareGroup.takePushInbox())
       case "clearPushInbox":
+        ShareGroup.clearPushInbox()
         result(nil)
       default:
         result(FlutterMethodNotImplemented)

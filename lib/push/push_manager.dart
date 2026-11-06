@@ -101,14 +101,22 @@ class PushManager {
   bool get _pushSupported => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
 
   /// macOS: an APNs ALERT token on the `monkeyhub/notifications` channel
-  /// (macos/Runner/AppDelegate.swift), and nothing else — no PushKit, no
-  /// Notification Service Extension, so no push inbox.
+  /// (macos/Runner/AppDelegate.swift). No PushKit; the Notification Service
+  /// Extension and its push inbox are gated separately ([_pushInboxSupported]).
   ///
   /// Kept apart from [_pushSupported] rather than folded into it, because that
   /// one also gates the inbox paths, and because `flutter test` runs on a macOS
   /// host: widening it would send every test's room open down a channel that
   /// isn't there.
   bool get _isMacPush => !kIsWeb && Platform.isMacOS;
+
+  /// Whether a Notification Service Extension parks pushes for the app to
+  /// take ([takePushInbox]): the phones, and a Mac since it got the iPhone's
+  /// extension. Not under `flutter test`, whose host is often a Mac with no
+  /// native handler behind the channel.
+  bool get _pushInboxSupported =>
+      _pushSupported ||
+      (_isMacPush && !Platform.environment.containsKey('FLUTTER_TEST'));
 
   /// Whether this platform registers an OS alert token at all.
   bool get _alertPushSupported => _pushSupported || _isMacPush;
@@ -382,7 +390,7 @@ class PushManager {
     // cache to seed. Checked rather than left to the MissingPluginException
     // below, because this runs on every room open and an exception per open is
     // a silly price for a question with a compile-time answer.
-    if (!_pushSupported) return const [];
+    if (!_pushInboxSupported) return const [];
     try {
       final rows =
           await _notifChannel.invokeMethod<List<dynamic>>('takePushInbox');
@@ -409,7 +417,7 @@ class PushManager {
   /// that is leaving, and the native side stages them under no user id at all
   /// — it has none to stage them under.
   Future<void> clearPushInbox() async {
-    if (!_pushSupported) return;
+    if (!_pushInboxSupported) return;
     try {
       await _notifChannel.invokeMethod('clearPushInbox');
     } on MissingPluginException {

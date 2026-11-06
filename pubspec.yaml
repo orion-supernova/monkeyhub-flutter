@@ -162,6 +162,12 @@ dependencies:
   # the Linux build talks to the desktop's notification daemon itself over
   # org.freedesktop.Notifications (`lib/push/linux_notifier_io.dart`).
   dbus: ^0.7.14
+  # Windows toast banners (`lib/push/windows_notifier_io.dart`). The Windows
+  # half ONLY, never the umbrella `flutter_local_notifications`: that one pulls
+  # in iOS/Android/macOS implementations that would take over the app's own
+  # native notification code, which is deliberately SDK-free (see above). This
+  # package is plain FFI into WinRT and registers nothing on other platforms.
+  flutter_local_notifications_windows: ^4.0.0
 
   # Social sign-in. NATIVE flows only, on purpose: the native SDKs hand back an
   # ID token the backend verifies itself (`backend/convex/idToken.ts`), so there

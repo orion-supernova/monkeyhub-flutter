@@ -1,6 +1,12 @@
 import Intents
-import UIKit
 import UserNotifications
+#if canImport(UIKit)
+import UIKit
+#else
+import AppKit
+import ImageIO
+import UniformTypeIdentifiers
+#endif
 
 /// Redraws an incoming banner as a COMMUNICATION notification: a face where
 /// the app icon normally sits and a name as the title — the shape iMessage and
@@ -22,6 +28,14 @@ import UserNotifications
 /// ChatNotifications.kt and web/mh-push-sw.js. Renaming one here breaks a
 /// platform you are not looking at; test/push_payload_contract_test.dart pins
 /// them.
+///
+/// The SAME file is compiled into the Mac's extension
+/// (macos/NotificationService, added by
+/// tool/setup_macos_notification_extension.rb), so the Mac gets the same faces,
+/// group layout, push inbox and delivery tick. The only differences are behind
+/// `#if os(macOS)`: the picture is redrawn with ImageIO instead of UIKit, and
+/// the burst rule is the server's there (backend/convex/alertBurst.ts), which
+/// already sends a mid-burst line quiet.
 ///
 /// The governing rule in every branch below: **a face must never cost the
 /// message.** Every failure — no URL, a dead host, a slow host, a missing
@@ -287,7 +301,17 @@ class NotificationService: UNNotificationServiceExtension {
     // returned BEFORE the burst rule so it is never counted: a line read
     // elsewhere must not leave the next real one silent.
     let quiet = (info["quiet"] as? String) == "true"
-    guard quiet || !AlertBurst.shouldAlert(roomId: roomId, mention: mentioned),
+    #if os(macOS)
+    // The server runs the burst rule for the Mac (alertBurst.ts) and has
+    // already said `quiet` for a mid-burst line. Running it here as well would
+    // count lines twice over, against a clock the server's rule ignores.
+    _ = mentioned
+    let silenced = quiet
+    #else
+    let silenced =
+      quiet || !AlertBurst.shouldAlert(roomId: roomId, mention: mentioned)
+    #endif
+    guard silenced,
           let mutable = content.mutableCopy() as? UNMutableNotificationContent
     else { return content }
     mutable.sound = nil
@@ -321,6 +345,30 @@ class NotificationService: UNNotificationServiceExtension {
   ///
   /// Falls back to the raw bytes on every failure: a face drawn sideways beats
   /// no face, and both beat no notification.
+  #if os(macOS)
+  /// The Mac's version of the redraw above. No UIKit here, so ImageIO does
+  /// both jobs at once: a thumbnail made "with transform" applies the EXIF
+  /// orientation, and its max pixel size is the downscale. Same fallback to
+  /// the raw bytes on every failure, same transparent corners kept (PNG).
+  static func uprightAvatar(_ data: Data) -> INImage {
+    guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+          let thumb = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: Int(Self.avatarMaxEdge),
+          ] as CFDictionary)
+    else {
+      return INImage(imageData: data)
+    }
+    let out = NSMutableData()
+    guard let dest = CGImageDestinationCreateWithData(
+      out as CFMutableData, UTType.png.identifier as CFString, 1, nil
+    ) else { return INImage(imageData: data) }
+    CGImageDestinationAddImage(dest, thumb, nil)
+    guard CGImageDestinationFinalize(dest) else { return INImage(imageData: data) }
+    return INImage(imageData: out as Data)
+  }
+  #else
   static func uprightAvatar(_ data: Data) -> INImage {
     guard let decoded = UIImage(data: data),
           decoded.size.width > 0, decoded.size.height > 0
@@ -352,6 +400,7 @@ class NotificationService: UNNotificationServiceExtension {
     guard let png = upright.pngData() else { return INImage(imageData: data) }
     return INImage(imageData: png)
   }
+  #endif
 
   /// Tells the sender's server this message is on this phone — the second
   /// tick, while the app may not be running at all.
@@ -482,9 +531,15 @@ class NotificationService: UNNotificationServiceExtension {
     // sender's face standing in otherwise (`avatarUrl(in:)`). Without an image
     // on the group parameter iOS falls back to the app icon for every group
     // message, which is the exact thing being fixed here.
+    //
+    // Not on the Mac, where Intents marks this unavailable. There the INPerson
+    // above already IS the room, drawn with the room's picture, which is what
+    // the banner shows.
+    #if !os(macOS)
     if isGroup {
       intent.setImage(image, forParameterNamed: \.speakableGroupName)
     }
+    #endif
 
     let interaction = INInteraction(intent: intent, response: nil)
     // INCOMING. The default is outgoing, and an outgoing donation would teach

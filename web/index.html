@@ -184,6 +184,32 @@
         });
       };
 
+      // Reading a room clears its notification, the way a phone does. The push
+      // worker keeps ONE notification per room, tagged `room:<id>`, and the
+      // app's own URL (`#/c/<id>`, lib/web/web_url_sync.dart) says which room
+      // is open, so no Dart is needed: whenever the tab is looked at, or the
+      // room changes, close the open room's notification. Messages that arrive
+      // WHILE the room is open are handled by the page's own banner logic.
+      (function () {
+        if (!('serviceWorker' in navigator)) return;
+        function clearOpenRoom() {
+          if (document.visibilityState !== 'visible') return;
+          var m = /^#\/c\/([^/?]+)/.exec(location.hash || '');
+          if (!m) return;
+          var tag = 'room:' + decodeURIComponent(m[1]);
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (r) {
+              r.getNotifications({ tag: tag }).then(function (ns) {
+                ns.forEach(function (n) { n.close(); });
+              }).catch(function () {});
+            });
+          }).catch(function () {});
+        }
+        document.addEventListener('visibilitychange', clearOpenRoom);
+        window.addEventListener('focus', clearOpenRoom);
+        window.addEventListener('hashchange', clearOpenRoom);
+      })();
+
       // The previous vendor's service worker outlives its script tag, and it
       // keeps a live push subscription. Left alone it could still deliver, or
       // double up with ours.

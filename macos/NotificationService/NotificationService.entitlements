@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The Mac twin of ios/NotificationService. Same source file
+	     (ios/NotificationService/NotificationService.swift), same App ID
+	     (com.walhallaa.chatTest-20241220.NotificationService), so the
+	     capabilities below are the ones the iOS extension already has on that
+	     App ID; automatic signing makes the macOS profile for it. -->
+
+	<!-- Every Mac App Store binary is sandboxed, an extension included. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- The avatar fetch and the delivery receipt post. Without it both fail
+	     quietly and the banner arrives faceless, which is the fallback, not an
+	     error. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+
+	<!-- Sender face on the banner. See the iOS entitlements for the portal
+	     caveats. -->
+	<key>com.apple.developer.usernotifications.communication</key>
+	<true/>
+
+	<!-- The push inbox the app reads back (ShareGroup.stagePush). Must match
+	     macos/Runner/*.entitlements. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.walhallaa.monkeyhub</string>
+	</array>
+</dict>
+</plist>
