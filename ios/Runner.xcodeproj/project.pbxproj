@@ -110,6 +110,7 @@
 		9EF624E4A6C954881E1EDCDF /* SocketConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 732C3E04750261601E5A2D8B /* SocketConnection.swift */; };
 		A13E68C251A00400903F97B5 /* mh_monkey_fields76x76@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = DE247885B702719230FA311A /* mh_monkey_fields76x76@2x~ipad.png */; };
 		A1C0DE5E2F00000000000001 /* NativeChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0DE5E2F00000000000002 /* NativeChrome.swift */; };
+		A1C0DE5E2F00000000000011 /* NativeControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0DE5E2F00000000000012 /* NativeControls.swift */; };
 		A1C2530BC06358DDF25566CC /* mh_monkey_case_board76x76@2x~ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 62BA622EF9B399F01F0BB2A1 /* mh_monkey_case_board76x76@2x~ipad.png */; };
 		A25BF996CC2FFBF85F3D503A /* mh_monkey_control_room@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 699D2B3897A6D0664D3C12C2 /* mh_monkey_control_room@3x.png */; };
 		A5D75FE8698C30F050FB05BB /* Intents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 931FB6B140ECB72648FAA749 /* Intents.framework */; };
@@ -343,6 +344,7 @@
 		9D0AC766FB13EFB1CB6B1CB0 /* mh_monkey_case_board@3x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "mh_monkey_case_board@3x.png"; sourceTree = "<group>"; };
 		9D2310D4B1FAE16AB14A0618 /* mh_monkey_hiking@3x.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "mh_monkey_hiking@3x.png"; sourceTree = "<group>"; };
 		A1C0DE5E2F00000000000002 /* NativeChrome.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NativeChrome.swift; sourceTree = "<group>"; };
+		A1C0DE5E2F00000000000012 /* NativeControls.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NativeControls.swift; sourceTree = "<group>"; };
 		A21C87067F7516F6B0D855F8 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		A34B87169638A605621B5FCD /* mh_monkey_hmm83.5x83.5@2x~ipad.png */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = image.png; path = "mh_monkey_hmm83.5x83.5@2x~ipad.png"; sourceTree = "<group>"; };
 		A5D37F720DD977E979A09956 /* Staging.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Staging.swift; sourceTree = "<group>"; };
@@ -593,6 +595,7 @@
 				D7A4F1C2B3E5A6D7C8B9E0F1 /* DrawPip.swift */,
 				C1A7E3D5F9B2C4A6E8D0F2B5 /* CallPip.swift */,
 				A1C0DE5E2F00000000000002 /* NativeChrome.swift */,
+				A1C0DE5E2F00000000000012 /* NativeControls.swift */,
 				AF925B6DB0B1B7E2C7B3F1C4 /* PrivacyInfo.xcprivacy */,
 			);
 			path = Runner;
@@ -1215,6 +1218,7 @@
 				E8B5A2D3C4F6B7E8D9C0F1A2 /* DrawPip.swift in Sources */,
 				C1A7E3D5F9B2C4A6E8D0F2B4 /* CallPip.swift in Sources */,
 				A1C0DE5E2F00000000000001 /* NativeChrome.swift in Sources */,
+				A1C0DE5E2F00000000000011 /* NativeControls.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

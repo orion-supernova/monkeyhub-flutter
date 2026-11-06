@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
@@ -39,8 +40,10 @@ void main() {
     test('automatic: everything else gets Frosted glass', () {
       expect(resolve(null), UiKit.glass);
       expect(resolve(null, android: true), UiKit.glass,
-          reason: 'Material is not offered until its kit ships');
+          reason: 'Material needs a ready kit');
       expect(resolve(null, android: true, materialReady: true), UiKit.material);
+      expect(resolve(null, materialReady: true), UiKit.glass,
+          reason: 'Material is Android only');
     });
 
     test('an explicit choice wins when the device can draw it', () {
@@ -53,7 +56,30 @@ void main() {
       expect(resolve(UiKit.liquid), UiKit.glass);
       expect(resolve(UiKit.liquid, lowTier: true), UiKit.lite);
       expect(resolve(UiKit.material, android: true), UiKit.glass);
+      expect(resolve(UiKit.material, materialReady: true), UiKit.glass,
+          reason: 'not on iOS or desktop');
+      expect(resolve(UiKit.material, android: true, materialReady: true),
+          UiKit.material);
+      expect(
+        resolve(UiKit.material, android: true, lowTier: true, materialReady: true),
+        UiKit.material,
+        reason: 'an explicit Material choice beats the low-RAM default',
+      );
     });
+  });
+
+  test('the Material kit is built and offered on Android only', () {
+    expect(UiKits.materialReady, isTrue);
+    // flutter_test reports Android by default.
+    expect(UiKits.available(UiKit.material), isTrue);
+    expect(UiKits.offered, contains(UiKit.material));
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      expect(UiKits.available(UiKit.material), isFalse);
+      expect(UiKits.offered, isNot(contains(UiKit.material)));
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   test('kitValue falls back to glass for a kit with no value', () {
@@ -97,6 +123,43 @@ void main() {
       expect(find.text('pill'), findsOneWidget);
     });
   }
+
+  testWidgets('material skins use Material widgets, ripples and no blur',
+      (tester) async {
+    var taps = 0;
+    final column = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GlassIconButton(icon: Icons.add, onTap: () => taps++),
+        LiquidGlass(
+          shape: LiquidGlassShape.capsule,
+          padding: const EdgeInsets.all(12),
+          child: const Text('pill'),
+        ),
+      ],
+    );
+    await tester.pumpWidget(host(UiKit.material, column));
+    expect(find.byType(BackdropFilter), findsNothing);
+    expect(find.byType(IconButton), findsOneWidget);
+    expect(find.text('pill'), findsOneWidget);
+    expect(find.byType(InkWell), findsOneWidget,
+        reason: 'ripples live inside the Material kit');
+    await tester.tap(find.byType(IconButton));
+    expect(taps, 1);
+
+    await tester.pumpWidget(host(UiKit.glass, column));
+    expect(find.byType(IconButton), findsNothing);
+    expect(find.byType(InkWell), findsNothing,
+        reason: 'the other kits stay ink-free');
+  });
+
+  testWidgets('a disabled material icon button is inert', (tester) async {
+    await tester.pumpWidget(host(
+      UiKit.material,
+      const GlassIconButton(icon: Icons.add, onTap: null),
+    ));
+    expect(tester.widget<IconButton>(find.byType(IconButton)).onPressed, isNull);
+  });
 
   testWidgets('KitSwitch walks to the glass skin when a kit has none',
       (tester) async {

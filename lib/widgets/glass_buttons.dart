@@ -12,6 +12,8 @@ import '../theme/layout.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
+import '../ui/native/native_control.dart';
+import '../ui/kits/material/material_kit_theme.dart';
 import 'hover_hint.dart';
 import 'liquid_glass.dart';
 import 'route_depth.dart';
@@ -98,6 +100,49 @@ class GlassIconButton extends StatelessWidget {
         child: _button(context),
       );
 
+  /// The [UiKit.material] skin: `IconButton.filledTonal` (or `.filled` when
+  /// [tint]ed), the glyph a step larger than Cupertino's, with a ripple.
+  Widget _materialButton(BuildContext context, double size, double iconSize) {
+    final enabled = onTap != null;
+    final shape = Size.square(size);
+    final style = ButtonStyle(
+      fixedSize: WidgetStatePropertyAll(shape),
+      minimumSize: WidgetStatePropertyAll(shape),
+      padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      foregroundColor: color == null ? null : WidgetStatePropertyAll(color),
+    );
+    final glyphSize = (iconSize * 1.2).roundToDouble();
+    final child = glyph ?? Icon(icon, size: glyphSize);
+    final onPressed = enabled ? onTap : null;
+    final button = tint != null
+        ? IconButton.filled(
+            onPressed: onPressed,
+            iconSize: glyphSize,
+            style: style.copyWith(
+              backgroundColor: WidgetStatePropertyAll(tint),
+              foregroundColor:
+                  WidgetStatePropertyAll(color ?? ThemeScope.of(context).accentInk),
+            ),
+            icon: child,
+          )
+        : IconButton.filledTonal(
+            onPressed: onPressed,
+            iconSize: glyphSize,
+            style: style,
+            icon: child,
+          );
+    return MaterialKitScope(
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        label: semanticLabel,
+        excludeSemantics: semanticLabel != null,
+        child: button,
+      ),
+    );
+  }
+
   Widget _button(BuildContext context) {
     final enabled = onTap != null;
     final dense = this.size == null && tone == GlassTone.app
@@ -105,6 +150,31 @@ class GlassIconButton extends StatelessWidget {
         : Density.regular;
     final size = this.size ?? dense.iconButton;
     final iconSize = dense.iconGlyph(this.iconSize);
+    final kit = UiKit.of(context);
+    if (tone == GlassTone.app && kit == UiKit.material) {
+      return _materialButton(context, size, iconSize);
+    }
+    // The liquid kit's real iOS 26 button, when the glyph has an exact SF
+    // Symbol and nothing custom is drawn on the disc.
+    final symbol = glyph == null && tint == null ? sfSymbolFor(icon) : null;
+    if (tone == GlassTone.app &&
+        kit == UiKit.liquid &&
+        NativeControl.ready &&
+        symbol != null) {
+      return NativeControl(
+        size: Size.square(size),
+        spec: NativeSpec.symbolButton(
+          symbol: symbol,
+          label: semanticLabel ?? '',
+          enabled: enabled,
+          size: size,
+          symbolSize: size * 17 / 44,
+        ),
+        onEvent: (event, _) {
+          if (event == 'tap') onTap?.call();
+        },
+      );
+    }
     // Real glass on pages, as it shipped in 1.3.114 — the user preferred it
     // to the opaque disc this briefly became. Only a [still] button (on a
     // sheet or card, which slide) draws the blur-free [ChromeDisc].
@@ -194,6 +264,7 @@ class ChromeDisc extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (UiKit.of(context) == UiKit.material) return _tonalDisc(context);
     Widget surface(bool pressed) => _surface(context, pressed);
     if (onTap == null) return surface(false);
     return SpringPress(
@@ -203,6 +274,29 @@ class ChromeDisc extends StatelessWidget {
       focusShape: FocusRingShape.circle,
       focusRadius: size / 2,
       builder: (context, pressed) => surface(pressed),
+    );
+  }
+
+  /// The [UiKit.material] disc: a tonal circle (filled when [tint]ed) with a
+  /// ripple. No blur, no rim, a flat Material surface.
+  Widget _tonalDisc(BuildContext context) {
+    final scheme = MaterialKitTheme.of(ThemeScope.of(context)).colorScheme;
+    final tap = onTap;
+    return MaterialKitScope(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Material(
+          color: tint ?? scheme.secondaryContainer,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: tap,
+            customBorder: const CircleBorder(),
+            child: Center(child: child),
+          ),
+        ),
+      ),
     );
   }
 
@@ -340,7 +434,11 @@ class GlassBackButton extends StatelessWidget {
     final asClose = closes ?? (onTap == null && closesHere(context));
     final labels = MaterialLocalizations.of(context);
     return GlassIconButton(
-      icon: asClose ? CupertinoIcons.xmark : CupertinoIcons.chevron_back,
+      icon: asClose
+          ? kitValue(UiKit.of(context),
+              glass: CupertinoIcons.xmark, material: Icons.close)
+          : kitValue(UiKit.of(context),
+              glass: CupertinoIcons.chevron_back, material: Icons.arrow_back),
       iconSize: asClose ? 17 : 20,
       tone: tone,
       still: still,
@@ -396,7 +494,8 @@ class GlassCloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GlassIconButton(
-        icon: CupertinoIcons.xmark,
+        icon: kitValue(UiKit.of(context),
+            glass: CupertinoIcons.xmark, material: Icons.close),
         iconSize: iconSize,
         size: size,
         tone: tone,
@@ -450,6 +549,61 @@ class GlassPillButton extends StatelessWidget {
   /// Null follows [Density] (app tone) or 44 (media tone).
   final double? height;
 
+  /// The [UiKit.material] skin: `FilledButton.tonal` (filled when [tint]ed).
+  Widget _materialPill(BuildContext context, double height, double type) {
+    final enabled = onTap != null;
+    final style = ButtonStyle(
+      minimumSize: WidgetStatePropertyAll(Size(0, height)),
+      fixedSize: WidgetStatePropertyAll(Size.fromHeight(height)),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 20),
+      ),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      textStyle: WidgetStatePropertyAll(
+        ThemeScope.of(context).body.copyWith(
+          fontSize: type - 1,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.1,
+        ),
+      ),
+      foregroundColor: color == null ? null : WidgetStatePropertyAll(color),
+    );
+    final text = Text(sentenceCaseOf(context, label));
+    final lead = glyph ?? (icon != null ? Icon(icon, size: type + 1) : null);
+    final t = tint;
+    final button = t != null
+        ? FilledButton(
+            onPressed: onTap,
+            style: style.copyWith(
+              backgroundColor: WidgetStatePropertyAll(t),
+              foregroundColor: WidgetStatePropertyAll(
+                  color ?? ThemeScope.of(context).accentInk),
+            ),
+            child: _pillRow(lead, text),
+          )
+        : FilledButton.tonal(
+            onPressed: onTap,
+            style: style,
+            child: _pillRow(lead, text),
+          );
+    return MaterialKitScope(
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        label: semanticLabel ?? label,
+        excludeSemantics: true,
+        child: button,
+      ),
+    );
+  }
+
+  Widget _pillRow(Widget? lead, Widget text) => lead == null
+      ? text
+      : Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [lead, const SizedBox(width: 8), text],
+        );
+
   @override
   Widget build(BuildContext context) {
     final enabled = onTap != null;
@@ -470,6 +624,9 @@ class GlassPillButton extends StatelessWidget {
           : (enabled ? theme.ink : theme.inkMuted);
     }
     final t = tint?.withValues(alpha: enabled ? 1 : 0.35);
+    if (tone == GlassTone.app && UiKit.of(context) == UiKit.material) {
+      return _materialPill(context, height, type);
+    }
     return Semantics(
       button: true,
       enabled: enabled,

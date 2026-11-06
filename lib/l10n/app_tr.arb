@@ -4391,5 +4391,10 @@
   "uiKitLiteFooter": "Hafif stil cam çizmez, bu yüzden ayarlanacak bir şey yok. Camı kendin şekillendirmek için Buzlu'yu seç.",
   "bulkForwardedToChats": "{count, plural, =1{iletildi} other{{count} sohbete iletildi}}",
   "bulkSavedToPhotos": "{count, plural, =1{fotoğraflara kaydedildi} other{{count} öğe fotoğraflara kaydedildi}}",
-  "bulkDeletedMessages": "{count, plural, =1{silindi} other{{count} öğe silindi}}"
+  "bulkDeletedMessages": "{count, plural, =1{silindi} other{{count} öğe silindi}}",
+  "settingsHapticsLabel": "Dokunsal geri bildirim",
+  "settingsHapticsSub": "Uygulama genelinde dokunuş ve titreşimler",
+  "settingsSearchKwHaptics": "titreşim dokunsal geri bildirim haptik",
+  "uiKitMaterialTitle": "Material",
+  "uiKitMaterialBody": "Android'in kendi tasarımı: dokunma dalgalı Material 3 kontrolleri, temanızın renkleriyle."
 }

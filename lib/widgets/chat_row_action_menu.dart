@@ -8,7 +8,6 @@ import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../data/settings_store.dart';
-import '../keyboard/focusable_tap.dart';
 import '../keyboard/overlay_modal_scope.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
@@ -28,7 +27,7 @@ import '../screens/navigation/native_tab_bar.dart' show NativeChrome;
 import 'chat_list_row.dart' show ChatRoomAvatar;
 import 'ios_kit.dart' show groupedMetaStyle;
 
-import 'teardown_safe.dart';
+import 'menu_row.dart';
 import '../l10n/text_case.dart';
 import 'blur_scrim.dart';
 
@@ -738,7 +737,7 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
                         // row can ever show fits on the one line
                         // [_previewTopRowH] is sized for. The tap tooltip
                         // still spells each one out in full — see
-                        // `RoomBadge`'s own doc for why that's enough.
+                        // `StatusPill's explainOnTap doc for why that's enough.
                         if (!room.isDm) VisibilityBadge(isPublic: room.isPublic, dense: true, iconOnly: true),
                         if (room.isEphemeral && room.messageLifetime != null)
                           EphemeralBadge(ttl: room.messageLifetime!, dense: true, iconOnly: true),
@@ -960,7 +959,8 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
   }
 }
 
-class _ChatRowActionRow extends StatefulWidget {
+/// A [ChatRowAction] as a [MenuRow]: its glyph and label from the l10n.
+class _ChatRowActionRow extends StatelessWidget {
   const _ChatRowActionRow({
     required this.action,
     required this.onTap,
@@ -970,15 +970,7 @@ class _ChatRowActionRow extends StatefulWidget {
   final VoidCallback onTap;
   final bool divider;
 
-  @override
-  State<_ChatRowActionRow> createState() => _ChatRowActionRowState();
-}
-
-class _ChatRowActionRowState extends State<_ChatRowActionRow>
-    with TeardownSafe<_ChatRowActionRow> {
-  bool _pressed = false;
-
-  (IconData, String) _spec(AppLocalizations l10n) => switch (widget.action) {
+  (IconData, String) _spec(AppLocalizations l10n) => switch (action) {
     ChatRowAction.pin => (CupertinoIcons.pin, l10n.chatRowActionMenuPinLabel),
     ChatRowAction.unpin => (CupertinoIcons.pin_slash, l10n.chatRowActionMenuUnpinLabel),
     ChatRowAction.archive => (CupertinoIcons.archivebox, l10n.chatRowActionMenuArchiveLabel),
@@ -995,57 +987,16 @@ class _ChatRowActionRowState extends State<_ChatRowActionRow>
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final (icon, label) = _spec(AppLocalizations.of(context));
     // The iOS context-menu row: label on the left in body type, the glyph on
     // the right, a hairline between rows. Fixed at the overlay's row height
-    // so its placement maths stays exact. FocusableTap so a keyboard reaches
-    // it; the pointer keeps the flat wash below.
-    return FocusableTap(
-      onTap: widget.onTap,
-      semanticLabel: sentenceCaseOf(context, label),
-      radius: 0,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTapUp: (_) => setState(() => _pressed = false),
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: _pressed ? Duration.zero : const Duration(milliseconds: 200),
-          height: _ChatRowActionMenuOverlayState._rowHeight,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: _pressed ? theme.ink.withValues(alpha: 0.08) : null,
-            border: widget.divider
-                ? Border(
-                    bottom: BorderSide(
-                      color: theme.ink.withValues(alpha: 0.10),
-                      width: 1 / MediaQuery.devicePixelRatioOf(context),
-                    ),
-                  )
-                : null,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  sentenceCaseOf(context, label),
-                  style: theme.body.copyWith(
-                    fontSize: 17,
-                    color: theme.ink,
-                    letterSpacing: -0.3,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Icon(icon, size: 19, color: theme.ink),
-            ],
-          ),
-        ),
-      ),
+    // so its placement maths stays exact.
+    return MenuRow(
+      label: label,
+      icon: icon,
+      onTap: onTap,
+      divider: divider,
+      height: _ChatRowActionMenuOverlayState._rowHeight,
     );
   }
 }

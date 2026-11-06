@@ -15234,4 +15234,20 @@ class AppLocalizationsZh extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsHapticsLabel => '触感反馈';
+
+  @override
+  String get settingsHapticsSub => '整个应用中的轻触与振动';
+
+  @override
+  String get settingsSearchKwHaptics => '触感 振动 反馈 震动';
+
+  @override
+  String get uiKitMaterialTitle => 'Material';
+
+  @override
+  String get uiKitMaterialBody =>
+      'Android 原生设计：带触摸水波纹的 Material 3 控件，配色跟随你的主题。';
 }

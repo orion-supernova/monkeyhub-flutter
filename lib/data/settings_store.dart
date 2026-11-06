@@ -10,6 +10,7 @@ import '../theme/bubble_shape.dart';
 import '../theme/speaker_colors.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import '../services/haptics.dart';
 import '../ui/foundation/ui_kit.dart' show UiKit;
 import 'glass_config.dart';
 import 'room_filter.dart';
@@ -105,6 +106,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kLocale = 'mh.locale';
   static const _kMotionLevel = 'mh.motionLevel';
   static const _kPowerSaving = 'mh.powerSaving';
+  static const _kHaptics = 'mh.haptics';
   static const _kScheduledIndicator = 'mh.schedule.indicator';
   static const _kDiagHidden = 'mh.diag.hidden';
 
@@ -130,7 +132,7 @@ class SettingsStore extends ChangeNotifier {
     _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
     _kVideoQualityTier, _kAutoLowerVideoQuality, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
-    _kGlassProfile, _kGlassSlots, _kGlassPreset, _kUiKit, _kLocale, _kMotionLevel, _kPowerSaving,
+    _kGlassProfile, _kGlassSlots, _kGlassPreset, _kUiKit, _kLocale, _kMotionLevel, _kPowerSaving, _kHaptics,
     _kScheduledIndicator, _kSebastianEnabled, _kTranslationTarget,
     _kTranslatedRoomIds, _kMarloweBrainId, _kCompanionForceCpu,
   };
@@ -219,6 +221,7 @@ class SettingsStore extends ChangeNotifier {
   // Null means "follow the OS accessibility setting" — see [motionLevel].
   MotionLevel? _motionLevel;
   PowerSaving _powerSaving = PowerSaving.auto;
+  bool _hapticsEnabled = true;
   ScheduledIndicator _scheduledIndicator = ScheduledIndicator.pill;
 
   // Off until asked for. Sebastian costs a 328 MB download, and a default-on
@@ -501,6 +504,10 @@ class SettingsStore extends ChangeNotifier {
   /// When the app calms itself to save battery. See [PowerSaving] and
   /// `LowPowerMode.active`, which is what the rest of the app reads.
   PowerSaving get powerSaving => _powerSaving;
+
+  /// The global haptics switch (default on). Mirrored into [Haptics.enabled],
+  /// the single static the haptic hooks read.
+  bool get hapticsEnabled => _hapticsEnabled;
 
   /// How a room announces that it is holding messages you have not sent yet.
   ///
@@ -828,6 +835,8 @@ class SettingsStore extends ChangeNotifier {
     // is the default every fresh install wants.
     _motionLevel = MotionLevel.parse(s[_kMotionLevel]);
     _powerSaving = PowerSaving.parse(s[_kPowerSaving]);
+    _hapticsEnabled = s[_kHaptics] != 'false';
+    Haptics.enabled = _hapticsEnabled;
     _scheduledIndicator = ScheduledIndicator.parse(s[_kScheduledIndicator]);
     _sebastianEnabled = s[_kSebastianEnabled] == 'true';
     _translationTarget = s[_kTranslationTarget];
@@ -941,6 +950,14 @@ class SettingsStore extends ChangeNotifier {
     } else {
       await _storage.write(key: _kMotionLevel, value: m.name);
     }
+  }
+
+  Future<void> setHapticsEnabled(bool v) async {
+    if (_hapticsEnabled == v) return;
+    _hapticsEnabled = v;
+    Haptics.enabled = v;
+    notifyListeners();
+    await _storage.write(key: _kHaptics, value: v.toString());
   }
 
   Future<void> setPowerSaving(PowerSaving v) async {

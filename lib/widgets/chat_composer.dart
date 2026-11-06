@@ -9,6 +9,7 @@ import '../keyboard/mention_keyboard_nav.dart';
 import '../keyboard/submit_on_enter.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/motion.dart';
+import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'composer_capture.dart';
 import 'composer_format_toolbar.dart';
@@ -301,6 +302,136 @@ class _TrailingSlot extends StatelessWidget {
   }
 }
 
+/// The text field both composers (and the friend-request draft) share: every
+/// behaviour a composer field must agree on, with no visual of its own. Each
+/// style wraps it in its plate (classic raised capsule, liquid glass) and
+/// passes only what genuinely differs.
+///
+/// Holds: Enter-to-send ([SubmitOnEnter]; no `onSubmitted`, a multi-line field
+/// never fires it), the physical-keyboard shortcuts ([ComposerKeys]), the
+/// `@`-picker navigation ([MentionKeyboardNav]), the FORMAT context menu,
+/// keyboard GIF / sticker insertion, the themed keyboard, the one-line hint,
+/// and the smiley that opens the expression panel. Fine with a plain
+/// controller: formatting and mentions degrade to the stock behaviour.
+class ComposerTextField extends StatelessWidget {
+  const ComposerTextField({
+    super.key,
+    required this.controller,
+    required this.hintText,
+    required this.onSend,
+    this.focusNode,
+    this.maxLines = 4,
+    this.contentPadding,
+    this.onChanged,
+    this.onFieldTap,
+    this.onContentInserted,
+    this.onEditLast,
+    this.onPasteMedia,
+    this.mention,
+    this.onExpressions,
+    this.expressionsOpen = false,
+  });
+
+  final TextEditingController controller;
+  final FocusNode? focusNode;
+  final String hintText;
+  final VoidCallback onSend;
+
+  /// Per style on purpose: classic grows to 4 lines, the taller glass pill to
+  /// 5. The two read as different shapes, so this is not drift to flatten.
+  final int maxLines;
+
+  /// Vertical breathing room inside the plate. Null for plates that pad
+  /// themselves (liquid), set where the plate has none (classic).
+  final EdgeInsets? contentPadding;
+  final ValueChanged<String>? onChanged;
+  final VoidCallback? onFieldTap;
+  final ValueChanged<KeyboardInsertedContent>? onContentInserted;
+  final bool Function()? onEditLast;
+  final Future<bool> Function()? onPasteMedia;
+  final MentionSession? mention;
+
+  /// Null hides the smiley.
+  final VoidCallback? onExpressions;
+  final bool expressionsOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return ComposerKeys(
+      controller: controller,
+      onEditLast: onEditLast,
+      onPasteMedia: onPasteMedia,
+      child: SubmitOnEnter(
+        controller: controller,
+        onSubmit: onSend,
+        child: MentionKeyboardNav(
+          session: mention,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  onTap: onFieldTap,
+                  contentInsertionConfiguration: _insertion(onContentInserted),
+                  keyboardAppearance:
+                      theme.isLight ? Brightness.light : Brightness.dark,
+                  style: theme.body.copyWith(color: theme.ink, fontSize: 17),
+                  cursorColor: theme.accent,
+                  minLines: 1,
+                  maxLines: maxLines,
+                  // The native toolbar plus the FORMAT entry. Keep this
+                  // function identity stable: EditableText recreates its
+                  // selection overlay when the callback changes, and an inline
+                  // closure made the handles and toolbar flicker whenever the
+                  // room rebuilt.
+                  contextMenuBuilder: buildComposerContextMenu,
+                  decoration: InputDecoration(
+                    isCollapsed: true,
+                    border: InputBorder.none,
+                    hintText: hintText,
+                    hintStyle: theme.body
+                        .copyWith(color: theme.inkMuted, fontSize: 17),
+                    // One line, always: a hint is laid out like any text and
+                    // wraps, and the longest one grew the empty composer to
+                    // two rows. Ellipsize; no translation can undo this.
+                    hintMaxLines: 1,
+                    contentPadding: contentPadding,
+                  ),
+                  onChanged: onChanged,
+                ),
+              ),
+              if (onExpressions != null)
+                _ExpressionsToggle(
+                  open: expressionsOpen,
+                  onTap: onExpressions!,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The Telegram pop both composers give the send disc: fades in over the first
+/// 40% while scaling up from 0.4 with overshoot, slips out quickly.
+Widget _sendPop(Widget child, Animation<double> animation) => FadeTransition(
+      opacity: CurvedAnimation(parent: animation, curve: const Interval(0, 0.4)),
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 0.4, end: 1.0).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: Curves.elasticOut,
+            reverseCurve: Curves.easeIn,
+          ),
+        ),
+        child: child,
+      ),
+    );
+
 /// Bordered, flat composer. Assumes an ancestor `SafeArea`.
 class ChatComposerClassic extends StatelessWidget {
   const ChatComposerClassic({
@@ -485,67 +616,30 @@ class ChatComposerClassic extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 14),
-              // No `onSubmitted` here: a multi-line TextField never fires it —
-              // Flutter turns Enter into a newline. SubmitOnEnter intercepts
-              // the key instead, and leaves Shift+Enter as the newline.
-              child: ComposerKeys(
+              // No `onSubmitted` anywhere in the shared field: a multi-line
+              // TextField never fires it, SubmitOnEnter does the job.
+              child: ComposerTextField(
                 controller: controller,
+                focusNode: focusNode,
+                hintText: hint ??
+                    (ephemeral
+                        ? AppLocalizations.of(context)
+                            .deepOceanThemeEphemeralHint
+                        : AppLocalizations.of(context)
+                            .deepOceanThemeDefaultHint),
+                maxLines: 4,
+                // The plate has no vertical padding of its own; this is what
+                // gives the classic capsule its resting height.
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                onChanged: onChanged,
+                onFieldTap: onFieldTap,
+                onContentInserted: onContentInserted,
+                onSend: onSend,
                 onEditLast: onEditLast,
                 onPasteMedia: onPasteMedia,
-                child: SubmitOnEnter(
-                controller: controller,
-                onSubmit: onSend,
-                child: MentionKeyboardNav(
-                  session: mention,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                  Expanded(child: TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    onTap: onFieldTap,
-                    contentInsertionConfiguration:
-                        _insertion(onContentInserted),
-                    style: theme.body.copyWith(color: theme.ink, fontSize: 17),
-                    cursorColor: theme.accent,
-                    minLines: 1,
-                    maxLines: 4,
-                    // The native toolbar plus the FORMAT entry — mirrored in
-                    // the liquid variant below; the two are intentionally
-                    // duplicated widgets and must be kept in step by hand.
-                    // Keep this function identity stable. EditableText
-                    // recreates its selection overlay when this callback
-                    // changes; an inline closure here made the handles and
-                    // toolbar flicker whenever the room rebuilt.
-                    contextMenuBuilder: buildComposerContextMenu,
-                    decoration: InputDecoration(
-                      isCollapsed: true,
-                      border: InputBorder.none,
-                      hintText: hint ?? (ephemeral
-                          ? AppLocalizations.of(context).deepOceanThemeEphemeralHint
-                          : AppLocalizations.of(context).deepOceanThemeDefaultHint),
-                      hintStyle: theme.body
-                          .copyWith(color: theme.inkMuted, fontSize: 17),
-                      // One line, always. The field is `minLines: 1`, but a
-                      // hint is laid out like any other text and wraps: the
-                      // ephemeral hint is the longest string here and it grew
-                      // the empty composer to two rows before anyone had typed
-                      // anything. Ellipsize instead of pushing the send button
-                      // down — no translation can undo this.
-                      hintMaxLines: 1,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                    onChanged: onChanged,
-                  )),
-                  if (onExpressions != null)
-                    _ExpressionsToggle(
-                      open: expressionsOpen,
-                      onTap: onExpressions!,
-                    ),
-                    ],
-                  ),
-                ),
-              ),
+                mention: mention,
+                onExpressions: onExpressions,
+                expressionsOpen: expressionsOpen,
               ),
             ),
           ),
@@ -564,22 +658,7 @@ class ChatComposerClassic extends StatelessWidget {
                   .d(const Duration(milliseconds: 420)),
               reverseDuration: MotionScope.of(context)
                   .d(const Duration(milliseconds: 140)),
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: CurvedAnimation(
-                  parent: animation,
-                  curve: const Interval(0, 0.4),
-                ),
-                child: ScaleTransition(
-                  scale: Tween<double>(begin: 0.4, end: 1.0).animate(
-                    CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.elasticOut,
-                      reverseCurve: Curves.easeIn,
-                    ),
-                  ),
-                  child: child,
-                ),
-              ),
+              transitionBuilder: _sendPop,
               child: hasText
                   ? _SendButton(
                       key: const ValueKey('send'),
@@ -738,7 +817,6 @@ class ChatComposerLiquid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
     // Scaffold handles the keyboard via resizeToAvoidBottomInset — the body
     // shrinks and `bottomSafe` is already reduced to 0 when the keyboard
@@ -787,56 +865,28 @@ class ChatComposerLiquid extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 11, 10, 11),
               // See ChatComposerClassic — multi-line fields never fire
               // onSubmitted.
-              child: ComposerKeys(
+              child: ComposerTextField(
                 controller: controller,
+                focusNode: focusNode,
+                hintText: hint ??
+                    (ephemeral
+                        ? AppLocalizations.of(context)
+                            .deepOceanThemeEphemeralHint
+                        : AppLocalizations.of(context)
+                            .deepOceanThemeMessageHint),
+                // The glass pill grows a line taller than the classic plate;
+                // its 11pt plate padding (above) sets the resting height, so
+                // the field adds none of its own.
+                maxLines: 5,
+                onChanged: onChanged,
+                onFieldTap: onFieldTap,
+                onContentInserted: onContentInserted,
+                onSend: onSend,
                 onEditLast: onEditLast,
                 onPasteMedia: onPasteMedia,
-                child: SubmitOnEnter(
-                controller: controller,
-                onSubmit: onSend,
-                child: MentionKeyboardNav(
-                  session: mention,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                  Expanded(child: TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    onTap: onFieldTap,
-                    contentInsertionConfiguration:
-                        _insertion(onContentInserted),
-                    style: theme.body.copyWith(color: theme.ink, fontSize: 17),
-                    cursorColor: theme.accent,
-                    minLines: 1,
-                    maxLines: 5,
-                    // Kept in step with the classic variant above by hand —
-                    // see the note there.
-                    // See the classic composer: the stable callback prevents
-                    // selection-overlay churn during ordinary room rebuilds.
-                    contextMenuBuilder: buildComposerContextMenu,
-                    decoration: InputDecoration(
-                      isCollapsed: true,
-                      border: InputBorder.none,
-                      hintText: hint ?? (ephemeral
-                          ? AppLocalizations.of(context).deepOceanThemeEphemeralHint
-                          : AppLocalizations.of(context).deepOceanThemeMessageHint),
-                      hintStyle: theme.body
-                          .copyWith(color: theme.inkMuted, fontSize: 17),
-                      // See the classic composer — a wrapping hint grew the
-                      // glass pill to two rows before anything was typed.
-                      hintMaxLines: 1,
-                    ),
-                    onChanged: onChanged,
-                  )),
-                  if (onExpressions != null)
-                    _ExpressionsToggle(
-                      open: expressionsOpen,
-                      onTap: onExpressions!,
-                    ),
-                    ],
-                  ),
-                ),
-              ),
+                mention: mention,
+                onExpressions: onExpressions,
+                expressionsOpen: expressionsOpen,
               ),
             ),
           ),
@@ -861,22 +911,7 @@ class ChatComposerLiquid extends StatelessWidget {
               transitionBuilder: (child, animation) =>
                   child.key != const ValueKey('send')
                       ? child
-                      : FadeTransition(
-                          opacity: CurvedAnimation(
-                            parent: animation,
-                            curve: const Interval(0, 0.4),
-                          ),
-                          child: ScaleTransition(
-                            scale: Tween<double>(begin: 0.4, end: 1.0).animate(
-                              CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.elasticOut,
-                                reverseCurve: Curves.easeIn,
-                              ),
-                            ),
-                            child: child,
-                          ),
-                        ),
+                      : _sendPop(child, animation),
               child: hasText
                   ? SizedBox.square(
                       key: const ValueKey('send'),

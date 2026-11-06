@@ -9,6 +9,7 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/room_card.dart';
 import 'package:monkeyhub/widgets/room_grid_tile.dart';
 import 'package:monkeyhub/widgets/visibility_badge.dart';
+import 'package:monkeyhub/widgets/status_pill.dart';
 
 /// What a room's facts say on a card and a grid tile, and where.
 ///
@@ -67,7 +68,7 @@ void main() {
         tile(room(hasPassword: true, ttl: const Duration(minutes: 5))),
       );
       expect(tester.takeException(), isNull);
-      expect(find.byType(RoomBadge), findsNothing);
+      expect(find.byType(StatusPill), findsNothing);
       expect(find.byIcon(CupertinoIcons.lock_fill), findsOneWidget);
     });
 
@@ -148,7 +149,7 @@ void main() {
         host(RoomCard(room: room(hasPassword: true), onTap: () {})),
       );
       expect(tester.takeException(), isNull);
-      expect(find.byType(RoomBadge), findsNothing);
+      expect(find.byType(StatusPill), findsNothing);
       final meta = find.textContaining(loc.roomCardLockedBadge, findRichText: true);
       expect(meta, findsOneWidget);
       final text = tester.widget<RichText>(meta).text.toPlainText();

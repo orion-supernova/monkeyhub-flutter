@@ -16223,6 +16223,22 @@ class AppLocalizationsPt extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsHapticsLabel => 'Vibração';
+
+  @override
+  String get settingsHapticsSub => 'Toques e vibrações em toda a app';
+
+  @override
+  String get settingsSearchKwHaptics => 'vibração háptico toques feedback';
+
+  @override
+  String get uiKitMaterialTitle => 'Material';
+
+  @override
+  String get uiKitMaterialBody =>
+      'O design próprio do Android: controlos Material 3 com ondas ao toque, nas cores do seu tema.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -32423,4 +32439,20 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsHapticsLabel => 'Vibração';
+
+  @override
+  String get settingsHapticsSub => 'Toques e vibrações em todo o app';
+
+  @override
+  String get settingsSearchKwHaptics => 'vibração háptico toques feedback';
+
+  @override
+  String get uiKitMaterialTitle => 'Material';
+
+  @override
+  String get uiKitMaterialBody =>
+      'O design próprio do Android: controles Material 3 com ondas ao toque, nas cores do seu tema.';
 }

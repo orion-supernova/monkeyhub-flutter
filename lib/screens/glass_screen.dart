@@ -1530,7 +1530,8 @@ class _GlassStyleChooser extends StatelessWidget {
 
   static String kitTitle(AppLocalizations l10n, UiKit kit) => switch (kit) {
         UiKit.liquid => l10n.glassStyleLiquidTitle,
-        UiKit.glass || UiKit.material => l10n.glassStyleFrostedTitle,
+        UiKit.glass => l10n.glassStyleFrostedTitle,
+        UiKit.material => l10n.uiKitMaterialTitle,
         UiKit.lite => l10n.uiKitLiteTitle,
       };
 
@@ -1570,7 +1571,16 @@ class _GlassStyleChooser extends StatelessWidget {
                 onTap: () => store.setUiKit(UiKit.liquid),
                 trailing: _Tick(on: on(UiKit.liquid)),
               ),
-            UiKit.glass || UiKit.material => GroupedRow(
+            UiKit.material => GroupedRow(
+                icon: Icons.android,
+                tone: TileTone.green,
+                title: l10n.uiKitMaterialTitle,
+                subtitle: l10n.uiKitMaterialBody,
+                chevron: false,
+                onTap: () => store.setUiKit(UiKit.material),
+                trailing: _Tick(on: on(UiKit.material)),
+              ),
+            UiKit.glass => GroupedRow(
                 icon: CupertinoIcons.circle_grid_hex_fill,
                 tone: TileTone.indigo,
                 title: l10n.glassStyleFrostedTitle,

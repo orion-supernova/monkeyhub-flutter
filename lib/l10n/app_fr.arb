@@ -4391,5 +4391,10 @@
   "uiKitLiteFooter": "Léger ne dessine pas de verre, il n'y a donc rien à régler. Choisissez Givré pour façonner le verre vous-même.",
   "bulkForwardedToChats": "{count, plural, =1{transféré} other{transféré à {count} discussions}}",
   "bulkSavedToPhotos": "{count, plural, =1{enregistré dans Photos} other{{count} enregistrés dans Photos}}",
-  "bulkDeletedMessages": "{count, plural, =1{supprimé} other{{count} supprimés}}"
+  "bulkDeletedMessages": "{count, plural, =1{supprimé} other{{count} supprimés}}",
+  "settingsHapticsLabel": "Retour haptique",
+  "settingsHapticsSub": "Tapotements et vibrations dans toute l'app",
+  "settingsSearchKwHaptics": "haptique vibration vibrer retour tactile",
+  "uiKitMaterialTitle": "Material",
+  "uiKitMaterialBody": "Le design propre à Android : des commandes Material 3 avec ondulations au toucher, aux couleurs de votre thème."
 }

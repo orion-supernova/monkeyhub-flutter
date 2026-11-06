@@ -15402,4 +15402,20 @@ class AppLocalizationsKo extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsHapticsLabel => '햅틱';
+
+  @override
+  String get settingsHapticsSub => '앱 전체의 탭 반응과 진동';
+
+  @override
+  String get settingsSearchKwHaptics => '햅틱 진동 피드백';
+
+  @override
+  String get uiKitMaterialTitle => 'Material';
+
+  @override
+  String get uiKitMaterialBody =>
+      'Android 고유의 디자인: 터치 물결 효과가 있는 Material 3 컨트롤, 테마 색상으로 표시됩니다.';
 }

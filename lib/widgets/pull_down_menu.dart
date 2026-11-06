@@ -5,14 +5,12 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../keyboard/focusable_tap.dart';
 import '../keyboard/overlay_modal_scope.dart';
-import '../l10n/text_case.dart';
 import '../theme/theme_scope.dart';
 import 'glass_reveal.dart';
 import 'glass_surface.dart';
 import 'ios_kit.dart';
-import 'teardown_safe.dart';
+import 'menu_row.dart';
 
 /// One choice in a [showPullDownMenu].
 class PullDownItem<T> {
@@ -186,10 +184,28 @@ class _PullDownOverlayState<T> extends State<_PullDownOverlay<T>>
                 color: theme.ink.withValues(alpha: 0.10),
               ));
       }
-      rows.add(_PullDownRow<T>(item: item, onTap: () {
-        HapticFeedback.selectionClick();
-        _close(item.value);
-      }));
+      rows.add(MenuRow(
+        label: item.label,
+        icon: item.icon,
+        destructive: item.destructive,
+        height: _PullDownOverlayState._rowH - 1,
+        padding: const EdgeInsets.only(left: 12, right: 16),
+        lineHeight: 1.25,
+        leading: SizedBox(
+          width: 26,
+          child: item.checked
+              ? Icon(
+                  CupertinoIcons.checkmark_alt,
+                  size: 18,
+                  color: item.destructive ? theme.danger : theme.ink,
+                )
+              : null,
+        ),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          _close(item.value);
+        },
+      ));
     }
     return Material(
       type: MaterialType.transparency,
@@ -197,69 +213,6 @@ class _PullDownOverlayState<T> extends State<_PullDownOverlay<T>>
         radius: theme.radiusLg + 6,
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Column(mainAxisSize: MainAxisSize.min, children: rows),
-      ),
-    );
-  }
-}
-
-class _PullDownRow<T> extends StatefulWidget {
-  const _PullDownRow({required this.item, required this.onTap});
-  final PullDownItem<T> item;
-  final VoidCallback onTap;
-
-  @override
-  State<_PullDownRow<T>> createState() => _PullDownRowState<T>();
-}
-
-class _PullDownRowState<T> extends State<_PullDownRow<T>>
-    with TeardownSafe<_PullDownRow<T>> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final item = widget.item;
-    final color = item.destructive ? theme.danger : theme.ink;
-    final label = sentenceCaseOf(context, item.label);
-    return FocusableTap(
-      onTap: widget.onTap,
-      semanticLabel: label,
-      radius: 0,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTapUp: (_) => setState(() => _pressed = false),
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: _pressed ? Duration.zero : const Duration(milliseconds: 200),
-          height: _PullDownOverlayState._rowH - 1,
-          padding: const EdgeInsets.only(left: 12, right: 16),
-          color: _pressed ? theme.ink.withValues(alpha: 0.08) : Colors.transparent,
-          child: Row(
-            children: [
-              SizedBox(
-                width: 26,
-                child: item.checked
-                    ? Icon(CupertinoIcons.checkmark_alt, size: 18, color: color)
-                    : null,
-              ),
-              Expanded(
-                child: Text(
-                  label,
-                  style: groupedTitleStyle(theme)
-                      .copyWith(color: color, letterSpacing: -0.3),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (item.icon != null) ...[
-                const SizedBox(width: 12),
-                Icon(item.icon, size: 19, color: color),
-              ],
-            ],
-          ),
-        ),
       ),
     );
   }

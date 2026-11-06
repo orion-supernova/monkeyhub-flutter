@@ -10,6 +10,7 @@ import 'hero_dock.dart';
 import 'ios_kit.dart';
 import 'sunlit_surface.dart' show SunlitBackdrop;
 import 'teardown_safe.dart';
+import 'notice.dart';
 
 // The account-area half of the iOS vocabulary in ios_kit.dart: the Contacts /
 // Telegram profile shape (a big face, a name, a row of action tiles, then
@@ -438,6 +439,8 @@ class StatusDotLine extends StatelessWidget {
 
 /// A note under a hero or above a section: an icon and a sentence on a soft
 /// fill, for things like "some fields are hidden".
+///
+/// A preset over [Notice] (quiet register).
 class SoftNote extends StatelessWidget {
   const SoftNote({
     super.key,
@@ -456,49 +459,8 @@ class SoftNote extends StatelessWidget {
   final String? title;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final c = tone ?? theme.inkMuted;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
-      decoration: BoxDecoration(
-        color: c.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(groupedRadius(theme) * 0.7),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 1),
-            child: Icon(icon, size: 16, color: c),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (title != null) ...[
-                  Text(
-                    title!,
-                    style: groupedFooterStyle(theme).copyWith(
-                      color: theme.ink,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                ],
-                Text(
-                  text,
-                  style:
-                      groupedFooterStyle(theme).copyWith(color: theme.inkSoft),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      Notice(text, icon: icon, color: tone, title: title);
 }
 
 /// Section spacing helper for code that builds a hero by hand.

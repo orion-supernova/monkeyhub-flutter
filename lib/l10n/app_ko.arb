@@ -4391,5 +4391,10 @@
   "uiKitLiteFooter": "라이트는 유리를 그리지 않으므로 조정할 것이 없습니다. 유리를 직접 다듬으려면 프로스티드를 선택하세요.",
   "bulkForwardedToChats": "{count, plural, =1{전달했어요} other{채팅 {count}개에 전달했어요}}",
   "bulkSavedToPhotos": "{count, plural, =1{사진에 저장했어요} other{{count}개를 사진에 저장했어요}}",
-  "bulkDeletedMessages": "{count, plural, =1{삭제했어요} other{{count}개를 삭제했어요}}"
+  "bulkDeletedMessages": "{count, plural, =1{삭제했어요} other{{count}개를 삭제했어요}}",
+  "settingsHapticsLabel": "햅틱",
+  "settingsHapticsSub": "앱 전체의 탭 반응과 진동",
+  "settingsSearchKwHaptics": "햅틱 진동 피드백",
+  "uiKitMaterialTitle": "Material",
+  "uiKitMaterialBody": "Android 고유의 디자인: 터치 물결 효과가 있는 Material 3 컨트롤, 테마 색상으로 표시됩니다."
 }

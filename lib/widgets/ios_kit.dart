@@ -11,6 +11,9 @@ import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import 'action_buttons.dart';
+import '../ui/foundation/ui_kit.dart';
+import '../ui/native/native_control.dart';
+import '../ui/kits/material/material_kit_theme.dart';
 import 'count_badge.dart' show CountBadge;
 import 'glass_buttons.dart';
 import 'spring_press.dart';
@@ -229,41 +232,22 @@ class _IosPageState extends State<IosPage> {
                   padding: EdgeInsets.only(top: top, bottom: 14),
                   child: SizedBox(
                     height: IosPage.barHeight,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 64),
-                            child: CollapsedTitleFade(
-                              scroll: _scroll,
-                              child: Text(
-                                widget.title,
-                                style: theme.bodyEmph.copyWith(
-                                  color: theme.ink,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
+                    child: PageBar(
+                      title: CollapsedTitleFade(
+                        scroll: _scroll,
+                        child: Text(
+                          widget.title,
+                          style: theme.bodyEmph.copyWith(
+                            color: theme.ink,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
                           ),
-                          Row(
-                            children: [
-                              ?leading,
-                              const Spacer(),
-                              for (var i = 0;
-                                  i < widget.actions.length;
-                                  i++) ...[
-                                if (i > 0) const SizedBox(width: 10),
-                                widget.actions[i],
-                              ],
-                            ],
-                          ),
-                        ],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
+                      leading: leading,
+                      actions: widget.actions,
                     ),
                   ),
                 ),
@@ -271,6 +255,79 @@ class _IosPageState extends State<IosPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The row of an iOS navigation bar: [leading] at the start, [actions] at the
+/// end, [title] between them. [IosPage] draws it over its large title; a
+/// screen that has no room for a large title (a viewer, a receipts list, a
+/// segmented screen) uses it directly, so the bar is one shape everywhere.
+///
+/// [centered] puts the title in the middle, clear of the controls; off, it
+/// sits beside [leading] and takes the room the actions leave (a chat-style
+/// header with a face and two lines). [height] is the bar's own height: 52 on
+/// a plain bar, taller for a two-line title.
+class PageBar extends StatelessWidget {
+  const PageBar({
+    super.key,
+    this.title,
+    this.leading,
+    this.actions = const [],
+    this.centered = true,
+    this.height = IosPage.barHeight,
+    this.titleInset = 64,
+    this.gap = 12,
+    this.edge = 16,
+  });
+
+  final Widget? title;
+  final Widget? leading;
+  final List<Widget> actions;
+  final bool centered;
+  final double height;
+
+  /// Clear space kept on each side of a centred title.
+  final double titleInset;
+
+  /// Space between [leading] and a start-aligned title.
+  final double gap;
+
+  /// Side padding; 0 inside a body that already pads its sides.
+  final double edge;
+
+  @override
+  Widget build(BuildContext context) {
+    final trailing = [
+      for (var i = 0; i < actions.length; i++) ...[
+        if (i > 0) const SizedBox(width: 10),
+        actions[i],
+      ],
+    ];
+    return SizedBox(
+      height: height,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: edge),
+        child: centered
+            ? Stack(
+                alignment: Alignment.center,
+                children: [
+                  if (title != null)
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: titleInset),
+                      child: title,
+                    ),
+                  Row(children: [?leading, const Spacer(), ...trailing]),
+                ],
+              )
+            : Row(
+                children: [
+                  if (leading != null) ...[leading!, SizedBox(width: gap)],
+                  Expanded(child: title ?? const SizedBox.shrink()),
+                  ...trailing,
+                ],
+              ),
       ),
     );
   }
@@ -913,15 +970,57 @@ class RowSwitch extends StatelessWidget {
   final ValueChanged<bool>? onChanged;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => KitSwitch(
+        glass: _glass,
+        material: _material,
+        liquid: NativeControl.ready ? _liquid : null,
+      );
+
+  /// The [UiKit.liquid] skin: the system switch itself (a UISwitch), which
+  /// plays its own haptic.
+  Widget _liquid(BuildContext context) => NativeControl(
+        size: const Size(51, 31),
+        spec: NativeSpec.toggle(
+          value: value,
+          label: '',
+          enabled: onChanged != null,
+        ),
+        onEvent: (event, v) {
+          if (event == 'changed' && v is bool) onChanged?.call(v);
+        },
+      );
+
+  /// The [UiKit.material] skin: the Material 3 [Switch] (accent track, thumb
+  /// that grows a check when on), same haptic and read-only rule.
+  Widget _material(BuildContext context) => MaterialKitScope(
+        child: Switch(
+          value: value,
+          onChanged: onChanged == null
+              ? null
+              : (v) {
+                  onChanged!(v);
+                  HapticFeedback.lightImpact();
+                },
+          thumbIcon: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? const Icon(Icons.check)
+                : null,
+          ),
+        ),
+      );
+
+  Widget _glass(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Switch.adaptive(
       value: value,
       onChanged: onChanged == null
           ? null
           : (v) {
-              HapticFeedback.lightImpact();
+              // After the change, not before: the Haptics switch turns the
+              // gate off inside onChanged, so switching it off stays silent
+              // and switching it on gets its confirming tick.
               onChanged!(v);
+              HapticFeedback.lightImpact();
             },
       activeTrackColor: theme.success,
       activeThumbColor: Colors.white,

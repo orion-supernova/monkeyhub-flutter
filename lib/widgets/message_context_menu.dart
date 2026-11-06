@@ -9,6 +9,7 @@ import '../keyboard/focusable_tap.dart';
 import '../keyboard/overlay_modal_scope.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
+import 'menu_row.dart';
 import '../models/message_capabilities.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -387,8 +388,11 @@ class _MessageContextMenuState extends State<MessageContextMenu>
     for (var i = 0; i < specs.length; i++) {
       if (i == split) children.add(_Separator(theme: theme));
       final spec = specs[i];
-      children.add(_MenuRow(
-        spec: spec,
+      children.add(MenuRow.pointer(
+        label: spec.label,
+        icon: spec.icon,
+        destructive: spec.destructive,
+        height: MessageContextMenu.rowH,
         highlighted: i == _hi,
         onHover: (inside) {
           if (inside && _hi != i) setState(() => _hi = i);
@@ -469,76 +473,6 @@ class _Separator extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 8),
           height: 1 / MediaQuery.devicePixelRatioOf(context),
           color: theme.ink.withValues(alpha: 0.12),
-        ),
-      ),
-    );
-  }
-}
-
-/// One action. A pointer row, not a thumb row: 28pt, 14pt type, the glyph
-/// LEADING the way macOS and Windows menus place it, and the highlight a
-/// filled accent capsule with the label turned to the accent's own ink.
-class _MenuRow extends StatelessWidget {
-  const _MenuRow({
-    required this.spec,
-    required this.highlighted,
-    required this.onHover,
-    required this.onTap,
-  });
-
-  final MessageActionSpec spec;
-  final bool highlighted;
-  final ValueChanged<bool> onHover;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final ink = highlighted
-        ? (spec.destructive ? Colors.white : theme.accentInk)
-        : (spec.destructive ? theme.danger : theme.ink);
-    final fill = highlighted
-        ? (spec.destructive ? theme.danger : theme.accent)
-        : Colors.transparent;
-    final label = sentenceCaseOf(context, spec.label);
-    return MouseRegion(
-      cursor: SystemMouseCursors.basic,
-      onEnter: (_) => onHover(true),
-      onExit: (_) => onHover(false),
-      child: Semantics(
-        button: true,
-        label: label,
-        excludeSemantics: true,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: Container(
-            height: MessageContextMenu.rowH,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              color: fill,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              children: [
-                Icon(spec.icon, size: 15, color: ink),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: theme.body.copyWith(
-                      fontSize: 14,
-                      height: 1.2,
-                      color: ink,
-                      letterSpacing: -0.1,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );

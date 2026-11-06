@@ -12,6 +12,8 @@ import '../theme/layout.dart';
 import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
+import '../ui/kits/material/material_kit_theme.dart';
 import 'adaptive_sheet.dart';
 import 'hover_hint.dart';
 import 'labeled_field.dart';
@@ -53,6 +55,25 @@ class SheetHandle extends StatelessWidget {
     // Meaningless where the sheet is a desktop popover, which nothing drags.
     if (!context.isCompact) return const SizedBox(height: 10);
     final theme = ThemeScope.of(context);
+    // Material 3's drag handle: 32 x 4, onSurfaceVariant at 40%.
+    if (UiKit.of(context) == UiKit.material) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 10, bottom: 3),
+        child: Center(
+          child: Container(
+            width: 32,
+            height: 4,
+            decoration: BoxDecoration(
+              color: MaterialKitTheme.of(theme)
+                  .colorScheme
+                  .onSurfaceVariant
+                  .withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+      );
+    }
     return Padding(
       // 8 from the sheet's top edge; 15 in all, so a pinned grabber header
       // (`_GrabberHeader`) and every bar under it keep their old rhythm.
@@ -715,6 +736,18 @@ class SheetPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // Material 3's bottom-sheet surface: a flat tonal container, no light.
+    if (UiKit.of(context) == UiKit.material) {
+      return Container(
+        constraints: constraints,
+        decoration: BoxDecoration(
+          color: MaterialKitTheme.of(theme).colorScheme.surfaceContainerLow,
+          borderRadius: radius ??
+              BorderRadius.vertical(top: Radius.circular(sheetRadius(theme))),
+        ),
+        child: child,
+      );
+    }
     return Container(
       constraints: constraints,
       child: CustomPaint(

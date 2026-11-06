@@ -26508,6 +26508,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{deleted} other{deleted {count}}}'**
   String bulkDeletedMessages(int count);
+
+  /// Toggle title in Motion settings: all vibration and trackpad haptics.
+  ///
+  /// In en, this message translates to:
+  /// **'Haptics'**
+  String get settingsHapticsLabel;
+
+  /// Subtitle under the Haptics toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Taps and vibrations across the app'**
+  String get settingsHapticsSub;
+
+  /// Extra search words for the Haptics setting, space separated.
+  ///
+  /// In en, this message translates to:
+  /// **'haptics vibration vibrate taps feedback trackpad'**
+  String get settingsSearchKwHaptics;
+
+  /// Settings > Glass: name of the Android Material 3 interface style row. Product-style name, kept as Material.
+  ///
+  /// In en, this message translates to:
+  /// **'Material'**
+  String get uiKitMaterialTitle;
+
+  /// Settings > Glass: subtitle of the Material row, shown on Android only. Android's own design language, ripples on touch, coloured by the chosen theme.
+  ///
+  /// In en, this message translates to:
+  /// **'Android\'s own design: Material 3 controls with touch ripples, coloured by your theme.'**
+  String get uiKitMaterialBody;
 }
 
 class _AppLocalizationsDelegate

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
 import 'hover_hint.dart';
 import 'labeled_field.dart';
 
@@ -92,7 +93,15 @@ class _PasswordFieldState extends State<PasswordField> {
               width: 40,
               height: 44,
               child: Icon(
-                _obscure ? CupertinoIcons.eye : CupertinoIcons.eye_slash,
+                kitValue(
+                  UiKit.of(context),
+                  glass: _obscure
+                      ? CupertinoIcons.eye
+                      : CupertinoIcons.eye_slash,
+                  material: _obscure
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
                 color: theme.inkMuted,
                 size: 20,
               ),

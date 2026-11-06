@@ -16045,4 +16045,20 @@ class AppLocalizationsHi extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsHapticsLabel => 'हैप्टिक';
+
+  @override
+  String get settingsHapticsSub => 'पूरे ऐप में टैप और कंपन';
+
+  @override
+  String get settingsSearchKwHaptics => 'हैप्टिक कंपन वाइब्रेशन फीडबैक';
+
+  @override
+  String get uiKitMaterialTitle => 'Material';
+
+  @override
+  String get uiKitMaterialBody =>
+      'Android का अपना डिज़ाइन: टच रिपल वाले Material 3 कंट्रोल, आपकी थीम के रंगों में।';
 }

@@ -1,11 +1,15 @@
-import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../keyboard/focusable_tap.dart';
 import '../l10n/text_case.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
+import '../ui/native/native_control.dart';
+import '../ui/kits/material/material_kit_theme.dart';
+import 'app_spinner.dart';
 import 'liquid_glass.dart' show SpecularRim;
 import 'spring_press.dart';
 
@@ -101,8 +105,149 @@ class SheetActionButton extends StatelessWidget {
   final double minHeight;
   final String? semanticLabel;
 
+  /// The [UiKit.material] skin: `FilledButton` / `.tonal`, error-coloured when
+  /// [destructive]; [busy] swaps the label for a ring at the same size.
+  Widget _material(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final scheme = MaterialKitTheme.of(theme).colorScheme;
+    final enabled = onTap != null;
+    final text = sentenceCaseOf(context, label);
+    final ink = !enabled
+        ? null
+        : tonal
+            ? (destructive ? scheme.error : scheme.onSecondaryContainer)
+            : (destructive ? scheme.onError : scheme.onPrimary);
+    final content = Row(
+      mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: kActionButtonIcon),
+          const SizedBox(width: kActionButtonIconGap),
+        ],
+        Flexible(child: Text(text, textAlign: TextAlign.center)),
+      ],
+    );
+    final child = busy
+        ? Stack(
+            alignment: Alignment.center,
+            children: [
+              Visibility(
+                visible: false,
+                maintainSize: true,
+                maintainAnimation: true,
+                maintainState: true,
+                child: content,
+              ),
+              AppSpinner(color: ink ?? scheme.onSurface, radius: 9),
+            ],
+          )
+        : content;
+    final style = ButtonStyle(
+      minimumSize: WidgetStatePropertyAll(Size(0, minHeight)),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: kActionButtonHPad, vertical: 12),
+      ),
+      textStyle: WidgetStatePropertyAll(
+        theme.bodyEmph.copyWith(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          fontStyle: FontStyle.normal,
+          letterSpacing: 0.1,
+        ),
+      ),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+    final onPressed = enabled && !busy
+        ? () {
+            if (haptic) HapticFeedback.selectionClick();
+            onTap!();
+          }
+        : null;
+    // A busy button keeps its enabled colours: it is working, not disabled.
+    final ButtonStyle colors = busy && enabled
+        ? ButtonStyle(
+            backgroundColor: WidgetStatePropertyAll(
+              tonal
+                  ? (destructive
+                      ? scheme.error.withValues(alpha: 0.12)
+                      : scheme.secondaryContainer)
+                  : (destructive ? scheme.error : scheme.primary),
+            ),
+            foregroundColor: WidgetStatePropertyAll(ink),
+          )
+        : tonal && destructive
+            ? ButtonStyle(
+                backgroundColor: WidgetStatePropertyAll(
+                  scheme.error.withValues(alpha: 0.12),
+                ),
+                foregroundColor: WidgetStatePropertyAll(scheme.error),
+              )
+            : destructive
+                ? ButtonStyle(
+                    backgroundColor: WidgetStatePropertyAll(scheme.error),
+                    foregroundColor: WidgetStatePropertyAll(scheme.onError),
+                  )
+                : const ButtonStyle();
+    final merged = style.merge(colors);
+    final button = tonal
+        ? FilledButton.tonal(
+            onPressed: onPressed,
+            autofocus: autofocus,
+            style: merged,
+            child: child,
+          )
+        : FilledButton(
+            onPressed: onPressed,
+            autofocus: autofocus,
+            style: merged,
+            child: child,
+          );
+    return MaterialKitScope(
+      child: Semantics(
+        button: true,
+        enabled: onPressed != null,
+        label: semanticLabel ?? text,
+        excludeSemantics: true,
+        child: expand ? SizedBox(width: double.infinity, child: button) : button,
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => KitSwitch(
+        glass: _glass,
+        material: _material,
+        // Busy shows a spinner in the button; the native button has none, so
+        // a busy button keeps the glass skin.
+        liquid: NativeControl.ready && !busy ? _liquid : null,
+      );
+
+  /// The [UiKit.liquid] skin: a real glass button; the primary action is
+  /// prominent (tinted), tonal is plain glass, destructive is red.
+  Widget _liquid(BuildContext context) {
+    final text = sentenceCaseOf(context, label);
+    final button = NativeControl(
+      size: Size(expand ? double.infinity : text.length * 9.0 + 64, minHeight),
+      spec: NativeSpec.button(
+        label: text,
+        symbol: sfSymbolFor(icon),
+        prominent: !tonal && !destructive,
+        destructive: destructive,
+        enabled: onTap != null,
+        fill: expand,
+        height: minHeight,
+      ),
+      onEvent: (event, _) {
+        if (event != 'tap') return;
+        if (haptic) HapticFeedback.mediumImpact();
+        onTap?.call();
+      },
+    );
+    return Semantics(label: semanticLabel, child: button);
+  }
+
+  Widget _glass(BuildContext context) {
     final theme = ThemeScope.of(context);
     final enabled = onTap != null;
     final Color fill;
@@ -213,7 +358,7 @@ class SheetActionButton extends StatelessWidget {
                           maintainState: true,
                           child: content,
                         ),
-                        CupertinoActivityIndicator(color: ink),
+                        AppSpinner(color: ink),
                       ],
                     )
                   : content,
@@ -260,8 +405,55 @@ class TextLinkButton extends StatelessWidget {
   final bool autofocus;
   final String? semanticLabel;
 
+  /// The [UiKit.material] skin: a `TextButton`.
+  Widget _material(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final scheme = MaterialKitTheme.of(theme).colorScheme;
+    final enabled = onTap != null;
+    final color = destructive
+        ? scheme.error
+        : (muted ? scheme.onSurfaceVariant : scheme.primary);
+    final text = sentenceCaseOf(context, label);
+    return MaterialKitScope(
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        label: semanticLabel ?? text,
+        excludeSemantics: true,
+        child: TextButton(
+          onPressed: onTap,
+          autofocus: autofocus,
+          style: TextButton.styleFrom(
+            foregroundColor: color,
+            minimumSize: const Size(0, 44),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            textStyle: theme.body.copyWith(
+              fontSize: fontSize - 1,
+              fontWeight: weight == FontWeight.w400 ? FontWeight.w500 : weight,
+              letterSpacing: 0.1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(child: Text(text, textAlign: TextAlign.center)),
+              if (icon != null) ...[
+                const SizedBox(width: 4),
+                Icon(icon, size: fontSize * 0.9),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      KitSwitch(glass: _glass, material: _material);
+
+  Widget _glass(BuildContext context) {
     final theme = ThemeScope.of(context);
     final enabled = onTap != null;
     final color = !enabled
@@ -331,8 +523,81 @@ class RowPillButton extends StatelessWidget {
   final bool filled;
   final String? semanticLabel;
 
+  /// The [UiKit.material] skin: a small `FilledButton.tonal` (`FilledButton`
+  /// when [filled]), error-coloured when [destructive].
+  Widget _material(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final scheme = MaterialKitTheme.of(theme).colorScheme;
+    final enabled = onTap != null;
+    final text = sentenceCaseOf(context, label);
+    final tone = destructive ? scheme.error : scheme.primary;
+    final ButtonStyle colors = filled
+        ? ButtonStyle(
+            backgroundColor: WidgetStatePropertyAll(tone),
+            foregroundColor: WidgetStatePropertyAll(
+              destructive ? scheme.onError : scheme.onPrimary,
+            ),
+          )
+        : ButtonStyle(
+            foregroundColor: WidgetStatePropertyAll(
+              destructive ? scheme.error : scheme.onSecondaryContainer,
+            ),
+          );
+    final style = ButtonStyle(
+      minimumSize: const WidgetStatePropertyAll(Size(0, 32)),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      ),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      textStyle: WidgetStatePropertyAll(
+        theme.bodySoft.copyWith(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.1,
+        ),
+      ),
+    ).merge(colors);
+    final child = busy
+        ? Stack(
+            alignment: Alignment.center,
+            children: [
+              Visibility(
+                visible: false,
+                maintainSize: true,
+                maintainAnimation: true,
+                maintainState: true,
+                child: Text(text, maxLines: 1, softWrap: false),
+              ),
+              AppSpinner(color: filled ? scheme.onPrimary : tone, radius: 8),
+            ],
+          )
+        : Text(text, maxLines: 1, softWrap: false);
+    final onPressed = enabled && !busy ? onTap : null;
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(start: 8),
+      child: MaterialKitScope(
+        child: Semantics(
+          button: true,
+          enabled: onPressed != null,
+          label: semanticLabel ?? text,
+          excludeSemantics: true,
+          child: filled
+              ? FilledButton(onPressed: onPressed, style: style, child: child)
+              : FilledButton.tonal(
+                  onPressed: onPressed,
+                  style: style,
+                  child: child,
+                ),
+        ),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      KitSwitch(glass: _glass, material: _material);
+
+  Widget _glass(BuildContext context) {
     final theme = ThemeScope.of(context);
     final enabled = onTap != null;
     final tone = destructive ? theme.danger : theme.accent;
@@ -387,7 +652,7 @@ class RowPillButton extends StatelessWidget {
                       maintainState: true,
                       child: labelWidget,
                     ),
-                    CupertinoActivityIndicator(color: ink, radius: 8),
+                    AppSpinner(color: ink, radius: 8),
                   ],
                 )
               : labelWidget,

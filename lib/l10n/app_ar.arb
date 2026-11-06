@@ -4391,5 +4391,10 @@
   "uiKitLiteFooter": "النمط الخفيف لا يرسم زجاجًا، لذا لا يوجد ما يُضبط. اختر «مُصنفَر» لتشكيل الزجاج بنفسك.",
   "bulkForwardedToChats": "{count, plural, =1{تمت إعادة التوجيه} other{تمت إعادة التوجيه إلى {count} محادثات}}",
   "bulkSavedToPhotos": "{count, plural, =1{تم الحفظ في الصور} other{تم حفظ {count} في الصور}}",
-  "bulkDeletedMessages": "{count, plural, =1{تم الحذف} other{تم حذف {count}}}"
+  "bulkDeletedMessages": "{count, plural, =1{تم الحذف} other{تم حذف {count}}}",
+  "settingsHapticsLabel": "الاهتزاز اللمسي",
+  "settingsHapticsSub": "نقرات واهتزازات في أنحاء التطبيق",
+  "settingsSearchKwHaptics": "اهتزاز لمسي ردود فعل",
+  "uiKitMaterialTitle": "Material",
+  "uiKitMaterialBody": "تصميم أندرويد الأصلي: عناصر Material 3 مع تموّجات اللمس، بألوان السمة التي اخترتها."
 }

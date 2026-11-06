@@ -1745,6 +1745,12 @@ import WebRTC
       DrawPip.shared.register(messenger: registrar.messenger())
     }
 
+    // monkeyhub/native_control — the Liquid Glass kit's real SwiftUI
+    // controls, one per Flutter platform view. See NativeControls.swift.
+    if let registrar = engine.registrar(forPlugin: "MonkeyHubNativeControlsPlugin") {
+      NativeControlFactory.register(with: registrar)
+    }
+
     // monkeyhub/call_pip — the video call's Picture in Picture window, which
     // is also what lets the camera keep running once the app leaves the
     // screen. See CallPip.swift.

@@ -16109,4 +16109,20 @@ class AppLocalizationsSv extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsHapticsLabel => 'Haptik';
+
+  @override
+  String get settingsHapticsSub => 'Tryck och vibrationer i hela appen';
+
+  @override
+  String get settingsSearchKwHaptics => 'haptik vibration vibrera feedback';
+
+  @override
+  String get uiKitMaterialTitle => 'Material';
+
+  @override
+  String get uiKitMaterialBody =>
+      'Androids egen design: Material 3-kontroller med tryckvågor, i ditt temas färger.';
 }

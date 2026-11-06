@@ -4391,5 +4391,10 @@
   "uiKitLiteFooter": "Lätt ritar inget glas, så det finns inget att justera. Välj Frostat för att forma glaset själv.",
   "bulkForwardedToChats": "{count, plural, =1{vidarebefordrat} other{vidarebefordrat till {count} chattar}}",
   "bulkSavedToPhotos": "{count, plural, =1{sparat i bilder} other{{count} sparade i bilder}}",
-  "bulkDeletedMessages": "{count, plural, =1{raderat} other{{count} raderade}}"
+  "bulkDeletedMessages": "{count, plural, =1{raderat} other{{count} raderade}}",
+  "settingsHapticsLabel": "Haptik",
+  "settingsHapticsSub": "Tryck och vibrationer i hela appen",
+  "settingsSearchKwHaptics": "haptik vibration vibrera feedback",
+  "uiKitMaterialTitle": "Material",
+  "uiKitMaterialBody": "Androids egen design: Material 3-kontroller med tryckvågor, i ditt temas färger."
 }

@@ -12,6 +12,7 @@ import '../widgets/ios_kit.dart';
 import '../widgets/labeled_field.dart' show FormErrorBanner;
 import '../widgets/password_prompt_sheet.dart';
 import '../widgets/social_sign_in_buttons.dart';
+import '../widgets/status_pill.dart';
 
 /// The Apple/Google accounts attached to this one, a card per provider.
 ///
@@ -277,22 +278,11 @@ class _StatusPill extends StatelessWidget {
       );
     }
     final on = linked!;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          on ? CupertinoIcons.checkmark_circle_fill : CupertinoIcons.circle,
-          size: 16,
-          color: on ? theme.success : theme.inkMuted,
-        ),
-        const SizedBox(width: 5),
-        Text(
-          on ? l10n.laLinked : l10n.laNotLinked,
-          style: groupedSubtitleStyle(theme).copyWith(
-            color: on ? theme.success : theme.inkMuted,
-          ),
-        ),
-      ],
+    return StatusPill(
+      fill: StatusFill.none,
+      icon: on ? CupertinoIcons.checkmark_circle_fill : CupertinoIcons.circle,
+      tone: on ? StatusTone.success : StatusTone.muted,
+      label: on ? l10n.laLinked : l10n.laNotLinked,
     );
   }
 }

@@ -5,6 +5,7 @@ import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/low_power.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/caps.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/settings_pickers.dart';
 
@@ -110,6 +111,23 @@ class MotionScreen extends StatelessWidget {
                   ),
               ],
             ),
+            // Phones have a motor, a Mac has its trackpad; web, Windows and
+            // Linux have nothing to switch off.
+            if (Caps.nativeMobile || Caps.macOS)
+              GroupedSection(
+                children: [
+                  GroupedRow.toggle(
+                    icon: CupertinoIcons.waveform,
+                    tone: TileTone.gray,
+                    title: l10n.settingsHapticsLabel,
+                    subtitle: l10n.settingsHapticsSub,
+                    value: SettingsStore.instance.hapticsEnabled,
+                    // The row's own tick runs after this, so it confirms the
+                    // switch coming on and is dropped when it goes off.
+                    onChanged: SettingsStore.instance.setHapticsEnabled,
+                  ),
+                ],
+              ),
             GroupedFooter(
               effective == MotionLevel.full
                   ? l10n.motionFullSub

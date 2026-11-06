@@ -1,8 +1,13 @@
 import 'dart:math' as math;
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart' show Factory;
+import 'package:flutter/gestures.dart' show HorizontalDragGestureRecognizer;
+import 'package:flutter/material.dart';
 
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
+import '../ui/native/native_control.dart';
+import '../ui/kits/material/material_kit_theme.dart';
 
 /// Continuous 0..1 control.
 ///
@@ -33,7 +38,42 @@ class ValueSlider extends StatelessWidget {
   static const _thumb = 18.0;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => KitSwitch(
+        glass: _glass,
+        material: _material,
+        liquid: NativeControl.ready ? _liquid : null,
+      );
+
+  /// The [UiKit.liquid] skin: the system slider, 0..1 continuous.
+  Widget _liquid(BuildContext context) => GestureDetector(
+        onDoubleTap: enabled ? onReset : null,
+        child: NativeControl(
+          size: const Size(double.infinity, 34),
+          gestures: {
+            Factory<HorizontalDragGestureRecognizer>(
+              HorizontalDragGestureRecognizer.new,
+            ),
+          },
+          spec: NativeSpec.slider(value: value.clamp(0.0, 1.0), enabled: enabled),
+          onEvent: (event, v) {
+            if (event == 'changed' && v is num) onChanged(v.toDouble());
+          },
+        ),
+      );
+
+  /// The [UiKit.material] skin: the Material 3 [Slider], still reporting a
+  /// 0..1 position, still double-tap to reset.
+  Widget _material(BuildContext context) => MaterialKitScope(
+        child: GestureDetector(
+          onDoubleTap: enabled ? onReset : null,
+          child: Slider(
+            value: value.clamp(0.0, 1.0),
+            onChanged: enabled ? onChanged : null,
+          ),
+        ),
+      );
+
+  Widget _glass(BuildContext context) {
     final theme = ThemeScope.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {

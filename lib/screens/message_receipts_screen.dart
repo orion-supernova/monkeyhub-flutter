@@ -19,7 +19,7 @@ import '../widgets/message_stamp.dart' show formatClockTime;
 import '../widgets/remote_image.dart';
 import '../widgets/user_avatar.dart';
 import 'room_items.dart' show transcriptDay;
-import '../widgets/ios_kit.dart' show GlassBackButton, GroupedHeader;
+import '../widgets/ios_kit.dart' show GlassBackButton, GroupedHeader, PageBar;
 import '../widgets/sheet_kit.dart' show sheetTitleStyle;
 
 import '../widgets/teardown_safe.dart';
@@ -360,7 +360,8 @@ class _Entry {
 }
 
 /// Back control and title, in the same shape as every other pushed list screen
-/// in the app.
+/// in the app: the shared [PageBar], a large title this screen has no room for
+/// left out.
 class _Header extends StatelessWidget {
   const _Header({required this.title});
   final String title;
@@ -368,32 +369,14 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    // The iOS navigation bar IosPage draws, minus a large title this screen
-    // has no room for: the glass back leading and the title centred at
-    // 17/w600 — not left-aligned beside the chevron.
-    return SizedBox(
-      height: 52,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 56),
-              child: Text(
-                sentenceCaseOf(context, title),
-                style: sheetTitleStyle(theme),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: GlassBackButton(),
-            ),
-          ],
-        ),
+    return PageBar(
+      leading: const GlassBackButton(),
+      title: Text(
+        sentenceCaseOf(context, title),
+        style: sheetTitleStyle(theme),
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

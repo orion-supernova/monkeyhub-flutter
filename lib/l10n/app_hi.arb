@@ -4391,5 +4391,10 @@
   "uiKitLiteFooter": "लाइट कोई ग्लास नहीं बनाता, इसलिए कुछ ट्यून करने को नहीं है। ग्लास खुद आकार देने के लिए फ़्रॉस्टेड चुनें।",
   "bulkForwardedToChats": "{count, plural, =1{फ़ॉरवर्ड किया गया} other{{count} चैट में फ़ॉरवर्ड किया गया}}",
   "bulkSavedToPhotos": "{count, plural, =1{फ़ोटो में सहेजा गया} other{{count} आइटम फ़ोटो में सहेजे गए}}",
-  "bulkDeletedMessages": "{count, plural, =1{हटाया गया} other{{count} हटाए गए}}"
+  "bulkDeletedMessages": "{count, plural, =1{हटाया गया} other{{count} हटाए गए}}",
+  "settingsHapticsLabel": "हैप्टिक",
+  "settingsHapticsSub": "पूरे ऐप में टैप और कंपन",
+  "settingsSearchKwHaptics": "हैप्टिक कंपन वाइब्रेशन फीडबैक",
+  "uiKitMaterialTitle": "Material",
+  "uiKitMaterialBody": "Android का अपना डिज़ाइन: टच रिपल वाले Material 3 कंट्रोल, आपकी थीम के रंगों में।"
 }

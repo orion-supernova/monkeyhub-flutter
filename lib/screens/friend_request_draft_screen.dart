@@ -9,7 +9,7 @@ import '../data/request_outcome.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
-import '../keyboard/submit_on_enter.dart';
+import '../widgets/chat_composer.dart' show ComposerTextField;
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
@@ -469,45 +469,46 @@ class _Header extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     // The chat header's shape: glass back, face, name over a status line.
     // No rule under it — the content below is the separation.
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-      child: Row(
+    return PageBar(
+      centered: false,
+      height: 56,
+      gap: 10,
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           const GlassBackButton(),
           const SizedBox(width: 12),
           UserAvatar(user: user, size: 38, api: api),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  user.displayName,
-                  style: theme.bodyEmph.copyWith(color: theme.ink),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Row(children: [
-                  Flexible(
-                    child: Text(
-                      isIncoming
-                          ? l10n.friendRequestDraftScreenIncomingRequestLabel
-                          : l10n.friendRequestDraftScreenNewRequestLabel,
-                      style: groupedMetaStyle(theme).copyWith(
-                        color: theme.accent,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  if (roomType == RoomType.secret)
-                    EphemeralBadge(ttl: ttl, dense: true),
-                ]),
-              ],
-            ),
+        ],
+      ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            user.displayName,
+            style: theme.bodyEmph.copyWith(color: theme.ink),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
+          Row(children: [
+            Flexible(
+              child: Text(
+                isIncoming
+                    ? l10n.friendRequestDraftScreenIncomingRequestLabel
+                    : l10n.friendRequestDraftScreenNewRequestLabel,
+                style: groupedMetaStyle(theme).copyWith(
+                  color: theme.accent,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 6),
+            if (roomType == RoomType.secret)
+              EphemeralBadge(ttl: ttl, dense: true),
+          ]),
         ],
       ),
     );
@@ -660,35 +661,21 @@ class _Composer extends StatelessWidget {
                 borderRadius: BorderRadius.circular(22),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-              // No `onSubmitted`: a multi-line TextField never fires it.
-              // See lib/keyboard/submit_on_enter.dart.
-              child: SubmitOnEnter(
+              // The shared composer field; no `onSubmitted` (see
+              // lib/keyboard/submit_on_enter.dart). No smiley, no mentions.
+              child: ComposerTextField(
                 controller: controller,
-                onSubmit: onSend,
-                child: TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  style: theme.body.copyWith(color: theme.ink, fontSize: 17),
-                  cursorColor: theme.accent,
-                  minLines: 1,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    isCollapsed: true,
-                    border: InputBorder.none,
-                    hintText: requestMode
-                        ? (ephemeral
-                            ? loc.friendRequestDraftScreenHintWhisperOptional
-                            : loc.friendRequestDraftScreenHintFirstMessageOptional)
-                        : (ephemeral
-                            ? loc.friendRequestDraftScreenHintWhisperFades
-                            : loc.friendRequestDraftScreenHintStartWith),
-                    hintStyle: theme.body.copyWith(
-                      color: theme.inkMuted,
-                      fontSize: 17,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 11),
-                  ),
-                ),
+                focusNode: focusNode,
+                onSend: onSend,
+                maxLines: 4,
+                contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                hintText: requestMode
+                    ? (ephemeral
+                        ? loc.friendRequestDraftScreenHintWhisperOptional
+                        : loc.friendRequestDraftScreenHintFirstMessageOptional)
+                    : (ephemeral
+                        ? loc.friendRequestDraftScreenHintWhisperFades
+                        : loc.friendRequestDraftScreenHintStartWith),
               ),
             ),
           ),

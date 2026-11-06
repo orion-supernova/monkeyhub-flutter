@@ -2,8 +2,7 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../l10n/generated/app_localizations.dart';
-import '../theme/theme_scope.dart';
-import 'visibility_badge.dart';
+import 'status_pill.dart';
 
 /// Marks a chat this viewer has silenced.
 ///
@@ -41,7 +40,6 @@ class MutedBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     // The same three sentences the mute sheet uses to describe the combination
     // being built. Sharing them is what stops the sheet promising one thing and
@@ -51,19 +49,15 @@ class MutedBadge extends StatelessWidget {
         : silencesCounts
             ? l10n.muteSummaryBadgesOnly
             : l10n.muteSummaryNotificationsOnly;
-    return RoomBadge(
+    return StatusPill(
       dense: dense,
       iconOnly: iconOnly,
       explainOnTap: explainOnTap,
-      icon: (size) => Icon(
-        CupertinoIcons.bell_slash_fill,
-        size: size,
-        color: theme.inkMuted,
-      ),
+      dropLabelWhenTight: true,
+      icon: CupertinoIcons.bell_slash_fill,
+      tone: StatusTone.muted,
       label: l10n.mutedBadgeLabel,
       tooltip: tooltip,
-      decoration: theme.chipDecoration(filled: false),
-      textStyle: theme.monoTiny.copyWith(color: theme.inkMuted),
     );
   }
 }

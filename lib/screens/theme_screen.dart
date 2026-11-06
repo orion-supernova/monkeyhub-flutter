@@ -19,6 +19,7 @@ import '../widgets/desktop_scroll.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/settings_pickers.dart';
+import '../widgets/status_pill.dart';
 
 /// The calm, native palettes. Everything else is a Character.
 const List<String> _essentials = [
@@ -446,8 +447,14 @@ class _ThemeTile extends StatelessWidget {
             SizedBox(
               height: 20,
               child: slot != null
-                  ? _SlotBadge(
-                      light: slot == Brightness.light,
+                  ? StatusPill(
+                      fill: StatusFill.solid,
+                      tone: StatusTone.accent,
+                      dense: true,
+                      icon: slot == Brightness.light
+                          ? CupertinoIcons.sun_max_fill
+                          : CupertinoIcons.moon_fill,
+                      iconSize: 11,
                       label: slot == Brightness.light
                           ? l10n.themePageLightBadge
                           : l10n.themePageDarkBadge,
@@ -456,42 +463,6 @@ class _ThemeTile extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _SlotBadge extends StatelessWidget {
-  const _SlotBadge({required this.light, required this.label});
-  final bool light;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: theme.accent,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            light ? CupertinoIcons.sun_max_fill : CupertinoIcons.moon_fill,
-            size: 11,
-            color: theme.accentInk,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: groupedMetaStyle(theme).copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.accentInk,
-            ),
-          ),
-        ],
       ),
     );
   }

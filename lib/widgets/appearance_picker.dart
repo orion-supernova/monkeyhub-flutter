@@ -11,6 +11,7 @@ import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show groupedMetaStyle, groupedTitleStyle;
 import 'spring_press.dart';
 import 'desktop_scroll.dart';
+import 'status_pill.dart';
 
 /// The pieces the first-launch picker and the theme screen are both built
 /// from, so the two can never describe the same choice two different ways.
@@ -160,7 +161,13 @@ class ThemeMiniPreview extends StatelessWidget {
               top: -4,
               left: 0,
               right: 0,
-              child: Center(child: _Badge(text: badge!)),
+              child: Center(
+                child: StatusPill(
+                  fill: StatusFill.solid,
+                  tone: StatusTone.accent,
+                  label: badge!,
+                ),
+              ),
             ),
           Positioned(
             right: -3,
@@ -314,31 +321,6 @@ class _Row extends StatelessWidget {
           ),
         ),
       );
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final outer = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: outer.accent,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        text,
-        style: groupedMetaStyle(outer).copyWith(
-          color: outer.accentInk,
-          fontWeight: FontWeight.w600,
-          height: 1.1,
-        ),
-      ),
-    );
-  }
 }
 
 class AppearanceModeSwitch extends StatelessWidget {

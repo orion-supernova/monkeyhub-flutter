@@ -4391,5 +4391,10 @@
   "uiKitLiteFooter": "Leve não desenha vidro, então não há nada para ajustar. Escolha Fosco para moldar o vidro você mesmo.",
   "bulkForwardedToChats": "{count, plural, =1{encaminhado} other{encaminhado para {count} conversas}}",
   "bulkSavedToPhotos": "{count, plural, =1{salvo nas fotos} other{{count} salvos nas fotos}}",
-  "bulkDeletedMessages": "{count, plural, =1{apagado} other{{count} apagados}}"
+  "bulkDeletedMessages": "{count, plural, =1{apagado} other{{count} apagados}}",
+  "settingsHapticsLabel": "Vibração",
+  "settingsHapticsSub": "Toques e vibrações em todo o app",
+  "settingsSearchKwHaptics": "vibração háptico toques feedback",
+  "uiKitMaterialTitle": "Material",
+  "uiKitMaterialBody": "O design próprio do Android: controles Material 3 com ondas ao toque, nas cores do seu tema."
 }

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show Factory;
+import 'package:flutter/gestures.dart' show HorizontalDragGestureRecognizer;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +11,9 @@ import '../theme/motion.dart';
 import '../theme/spring.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
+import '../ui/native/native_control.dart';
+import '../ui/kits/material/material_kit_theme.dart';
 import 'fit_label.dart';
 
 /// One option of an [IosSegmentedControl].
@@ -142,7 +147,118 @@ class _IosSegmentedControlState<T> extends State<IosSegmentedControl<T>> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => KitSwitch(
+        glass: _glass,
+        material: _material,
+        // Icons and badges have no native equivalent here: those controls
+        // keep the glass skin rather than lose information.
+        liquid: NativeControl.ready &&
+                segments.every((s) => s.icon == null && !s.badge)
+            ? _liquid
+            : null,
+      );
+
+  /// The [UiKit.liquid] skin: the system segmented control. Values travel as
+  /// their index; the commit rule is the same as the glass skin's.
+  Widget _liquid(BuildContext context) => NativeControl(
+        size: const Size(double.infinity, 32),
+        gestures: {
+          Factory<HorizontalDragGestureRecognizer>(
+            HorizontalDragGestureRecognizer.new,
+          ),
+        },
+        spec: NativeSpec.segmented(
+          options: [
+            for (var i = 0; i < segments.length; i++)
+              (value: '$i', label: sentenceCaseOf(context, segments[i].label)),
+          ],
+          selected: '${_valueIndex < 0 ? 0 : _valueIndex}',
+          enabled: widget.onChanged != null,
+        ),
+        onEvent: (event, v) {
+          if (event == 'changed' && v is String) {
+            final i = int.tryParse(v);
+            if (i != null) _commit(i);
+          }
+        },
+      );
+
+  /// The [UiKit.material] skin: a Material 3 [SegmentedButton]. Same commit
+  /// rule (delivered a frame after the tap), same haptic, null = disabled.
+  Widget _material(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final scheme = MaterialKitTheme.of(theme).colorScheme;
+    final enabled = widget.onChanged != null;
+    final picked = _valueIndex;
+    return MaterialKitScope(
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final bar = SegmentedButton<int>(
+            showSelectedIcon: false,
+            emptySelectionAllowed: true,
+            selected: picked < 0 ? const <int>{} : {picked},
+            onSelectionChanged: enabled
+                ? (v) {
+                    if (v.isEmpty) return;
+                    HapticFeedback.selectionClick();
+                    _commit(v.first);
+                  }
+                : null,
+            style: ButtonStyle(
+              visualDensity: VisualDensity.standard,
+              padding: const WidgetStatePropertyAll(
+                EdgeInsets.symmetric(horizontal: 10),
+              ),
+              textStyle: WidgetStatePropertyAll(
+                theme.body.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.1,
+                ),
+              ),
+            ),
+            segments: [
+              for (var i = 0; i < segments.length; i++)
+                ButtonSegment<int>(
+                  value: i,
+                  tooltip: segments[i].semanticLabel,
+                  icon: segments[i].icon == null
+                      ? null
+                      : Icon(segments[i].icon, size: 18),
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          sentenceCaseOf(context, segments[i].label),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (segments[i].badge) ...[
+                        const SizedBox(width: 4),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: scheme.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const SizedBox.square(dimension: 6),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+            ],
+          );
+          return box.hasBoundedWidth
+              ? SizedBox(width: box.maxWidth, child: bar)
+              : bar;
+        },
+      ),
+    );
+  }
+
+  Widget _glass(BuildContext context) {
     final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
     final enabled = widget.onChanged != null;

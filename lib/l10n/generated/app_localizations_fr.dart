@@ -16288,4 +16288,22 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsHapticsLabel => 'Retour haptique';
+
+  @override
+  String get settingsHapticsSub =>
+      'Tapotements et vibrations dans toute l\'app';
+
+  @override
+  String get settingsSearchKwHaptics =>
+      'haptique vibration vibrer retour tactile';
+
+  @override
+  String get uiKitMaterialTitle => 'Material';
+
+  @override
+  String get uiKitMaterialBody =>
+      'Le design propre à Android : des commandes Material 3 avec ondulations au toucher, aux couleurs de votre thème.';
 }

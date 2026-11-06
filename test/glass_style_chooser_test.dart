@@ -84,6 +84,10 @@ void main() {
     final clear = find.text('Clear');
     await tester.scrollUntilVisible(clear, 120,
         scrollable: find.byType(Scrollable).first);
+    // The Material row (Android) lengthens the chooser; keep the target clear
+    // of the pinned preview.
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, 200));
+    await tester.pumpAndSettle();
     await tester.tap(clear);
     await tester.pumpAndSettle();
     expect(store.glassPresetId, 'clear');

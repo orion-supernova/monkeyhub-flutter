@@ -19013,5 +19013,25 @@
         "type": "int"
       }
     }
+  },
+  "settingsHapticsLabel": "Haptics",
+  "@settingsHapticsLabel": {
+    "description": "Toggle title in Motion settings: all vibration and trackpad haptics."
+  },
+  "settingsHapticsSub": "Taps and vibrations across the app",
+  "@settingsHapticsSub": {
+    "description": "Subtitle under the Haptics toggle."
+  },
+  "settingsSearchKwHaptics": "haptics vibration vibrate taps feedback trackpad",
+  "@settingsSearchKwHaptics": {
+    "description": "Extra search words for the Haptics setting, space separated."
+  },
+  "uiKitMaterialTitle": "Material",
+  "@uiKitMaterialTitle": {
+    "description": "Settings > Glass: name of the Android Material 3 interface style row. Product-style name, kept as Material."
+  },
+  "uiKitMaterialBody": "Android's own design: Material 3 controls with touch ripples, coloured by your theme.",
+  "@uiKitMaterialBody": {
+    "description": "Settings > Glass: subtitle of the Material row, shown on Android only. Android's own design language, ripples on touch, coloured by the chosen theme."
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../calls/phone_call_activity.dart';
 import '../data/settings_store.dart';
+import '../services/haptics.dart';
 import '../theme/low_power.dart';
 import '../ui/foundation/channels.dart';
 
@@ -182,6 +183,7 @@ class HapticTick {
   ///
   /// On Android before [load] has answered it plays safe, landmarks only.
   static HapticTier current() {
+    if (!Haptics.enabled) return HapticTier.silent;
     final caps = capabilities;
     if (caps == null) {
       load();
@@ -197,6 +199,7 @@ class HapticTick {
   /// Warms the generator ahead of the first tick: call on touch-down. A no-op
   /// off iOS, and it also starts the capability read everywhere it matters.
   static void prepare() {
+    if (!Haptics.enabled) return;
     if (_android) load();
     if (!_ios) return;
     _channel.invokeMethod<void>('prepare').catchError((Object _) {});
@@ -214,6 +217,7 @@ class HapticTick {
     HapticKind kind = HapticKind.tick,
     HapticTier? tier,
   }) {
+    if (!Haptics.enabled) return;
     tier ??= current();
     if (tier == HapticTier.silent) return;
     if (tier == HapticTier.landmarks && kind == HapticKind.tick) return;

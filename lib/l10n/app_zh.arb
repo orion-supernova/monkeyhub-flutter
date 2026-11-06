@@ -4391,5 +4391,10 @@
   "uiKitLiteFooter": "轻量样式不绘制玻璃，因此无需调节。选择磨砂即可自行调整玻璃。",
   "bulkForwardedToChats": "{count, plural, =1{已转发} other{已转发到 {count} 个聊天}}",
   "bulkSavedToPhotos": "{count, plural, =1{已存入照片} other{已将 {count} 项存入照片}}",
-  "bulkDeletedMessages": "{count, plural, =1{已删除} other{已删除 {count} 条}}"
+  "bulkDeletedMessages": "{count, plural, =1{已删除} other{已删除 {count} 条}}",
+  "settingsHapticsLabel": "触感反馈",
+  "settingsHapticsSub": "整个应用中的轻触与振动",
+  "settingsSearchKwHaptics": "触感 振动 反馈 震动",
+  "uiKitMaterialTitle": "Material",
+  "uiKitMaterialBody": "Android 原生设计：带触摸水波纹的 Material 3 控件，配色跟随你的主题。"
 }

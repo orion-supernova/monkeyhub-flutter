@@ -1,7 +1,12 @@
 import 'package:flutter/cupertino.dart';
 
+import 'package:flutter/material.dart'
+    show Checkbox, MaterialTapTargetSize, VisualDensity;
+
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
+import '../ui/kits/material/material_kit_theme.dart';
 
 /// The circle that says whether one row is picked.
 ///
@@ -152,8 +157,71 @@ class _SelectionCheckState extends State<SelectionCheck>
     );
   }
 
+  /// The [UiKit.material] skin: a Material 3 [Checkbox] (a ring-and-dot radio
+  /// for [SelectionCheck.radio]). Display only: the row owns the tap, so the
+  /// control ignores pointers and keeps its enabled colours.
+  Widget _material(BuildContext context) {
+    final w = widget;
+    final scheme = MaterialKitTheme.of(ThemeScope.of(context)).colorScheme;
+    final motion = MotionScope.of(context);
+    final tone = w.color ?? scheme.primary;
+    final Widget control;
+    if (w.radio) {
+      final d = w.size * 0.9;
+      control = AnimatedContainer(
+        duration: motion.d(const Duration(milliseconds: 160)),
+        width: d,
+        height: d,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: w.picked ? tone : scheme.outline,
+            width: 2,
+          ),
+        ),
+        child: AnimatedScale(
+          scale: w.picked ? 1 : 0,
+          duration: motion.d(const Duration(milliseconds: 160)),
+          curve: Curves.easeOut,
+          child: Container(
+            width: d * 0.5,
+            height: d * 0.5,
+            decoration: BoxDecoration(color: tone, shape: BoxShape.circle),
+          ),
+        ),
+      );
+    } else {
+      control = IgnorePointer(
+        child: Checkbox(
+          value: w.picked,
+          onChanged: (_) {},
+          activeColor: tone,
+          checkColor: w.color == null ? scheme.onPrimary : const Color(0xFFFFFFFF),
+          side: w.media
+              ? const BorderSide(color: Color(0xE6FFFFFF), width: 2)
+              : null,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+        ),
+      );
+    }
+    return MaterialKitScope(
+      child: Opacity(
+        opacity: w.enabled ? 1 : 0.4,
+        child: SizedBox.square(
+          dimension: w.size,
+          child: FittedBox(child: Center(child: control)),
+        ),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      KitSwitch(glass: _glass, material: _material);
+
+  Widget _glass(BuildContext context) {
     if (widget.radio) return _radio(context);
     final w = widget;
     final theme = ThemeScope.of(context);

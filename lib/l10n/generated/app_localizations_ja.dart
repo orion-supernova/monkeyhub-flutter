@@ -15370,4 +15370,20 @@ class AppLocalizationsJa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsHapticsLabel => '触覚フィードバック';
+
+  @override
+  String get settingsHapticsSub => 'アプリ全体のタップ感と振動';
+
+  @override
+  String get settingsSearchKwHaptics => '触覚 振動 バイブ フィードバック';
+
+  @override
+  String get uiKitMaterialTitle => 'Material';
+
+  @override
+  String get uiKitMaterialBody =>
+      'Android 本来のデザイン。タッチで波紋が広がる Material 3 のコントロールが、テーマの色で表示されます。';
 }

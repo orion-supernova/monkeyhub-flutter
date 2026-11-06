@@ -17,6 +17,7 @@ import '../widgets/password_field.dart';
 import '../widgets/remove_contact_sheet.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/status_pill.dart';
 import '../widgets/sheet_kit.dart'
     show SheetConfirm, SheetFrame, SheetGroup;
 
@@ -585,7 +586,13 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
             GroupedRow(
               title: l10n.childPolicyScreenPublicRoomsLabel,
               subtitle: l10n.childPolicyScreenPublicRoomsBody,
-              trailing: _LockedTag(label: l10n.childPolicyScreenLockedLabel),
+              trailing: StatusPill(
+                fill: StatusFill.none,
+                icon: CupertinoIcons.lock_fill,
+                iconSize: 13,
+                tone: StatusTone.muted,
+                label: l10n.childPolicyScreenLockedLabel,
+              ),
             ),
             GroupedRow.toggle(
               title: l10n.childPolicyScreenAskToAddLabel,
@@ -784,25 +791,6 @@ class _AddContactResult {
   const _AddContactResult(this.username, this.sendNow);
   final String username;
   final bool sendNow;
-}
-
-/// The trailing "🔒 Locked" of a rule that is stated rather than offered.
-class _LockedTag extends StatelessWidget {
-  const _LockedTag({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(CupertinoIcons.lock_fill, size: 13, color: theme.inkMuted),
-        const SizedBox(width: 3),
-        Text(label, style: groupedMetaStyle(theme)),
-      ],
-    );
-  }
 }
 
 /// A room's stand-in avatar: the # on a quiet rounded tile, at the 40pt a

@@ -103,7 +103,7 @@ class _CallsScreenState extends State<CallsScreen>
     super.didChangeDependencies();
     if (_summariesRequested) return;
     _summariesRequested = true;
-    final now = DateTime.now();
+    final now = callsClock();
     unawaited(
       _store.loadSummaries(
         weekSince: weekStart(context, now: now).millisecondsSinceEpoch,
@@ -149,7 +149,7 @@ class _CallsScreenState extends State<CallsScreen>
   /// Opening the tab clears its badge: everything missed up to now is seen.
   void _markSeen() {
     if (!mounted) return;
-    var at = DateTime.now().millisecondsSinceEpoch;
+    var at = callsClock().millisecondsSinceEpoch;
     for (final e in _store.entries(CallLogStore.missed)) {
       if (e.startedAt > at) at = e.startedAt;
     }
@@ -224,7 +224,7 @@ class _CallsScreenState extends State<CallsScreen>
 
   void _notNow(ChatUser person) {
     final until =
-        DateTime.now().add(kFavSuggestSnooze).millisecondsSinceEpoch;
+        callsClock().add(kFavSuggestSnooze).millisecondsSinceEpoch;
     unawaited(SettingsStore.instance.snoozeCallsFavSuggestion(person.id, until));
     setState(() {});
   }
@@ -314,7 +314,7 @@ class _CallsScreenState extends State<CallsScreen>
       favouriteIds: favIds,
       userOf: widget.directory.user,
       snoozedUntil: settings.callsFavSnoozedUntil,
-      nowMs: DateTime.now().millisecondsSinceEpoch,
+      nowMs: callsClock().millisecondsSinceEpoch,
     );
 
     final head = <Widget>[

@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
+import '../ui/kits/material/material_kit_theme.dart';
 import 'glass_reveal.dart';
 import 'spring_press.dart';
 import 'sunlit_surface.dart' show sunlitHairline;
@@ -160,6 +161,11 @@ class LiquidGlass extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The Material kit draws app chrome as a tonal surface with a ripple. Over
+    // photos (media tone) it keeps the blur-free plate below, as lite does.
+    if (tone == GlassTone.app && UiKit.of(context) == UiKit.material) {
+      return _sized(_tonal(context));
+    }
     Widget surface(bool pressed) => _sized(_material(context, pressed));
     if (onTap == null) return surface(false);
     return SpringPress(
@@ -171,6 +177,39 @@ class LiquidGlass extends StatelessWidget {
       focusRadius: radius,
       builder: (context, pressed) => surface(pressed),
     );
+  }
+
+  /// The [UiKit.material] surface: a Material 3 tonal container in the same
+  /// shape, no blur, a hairline of elevation, and a ripple when tappable.
+  Widget _tonal(BuildContext context) {
+    final scheme = MaterialKitTheme.of(ThemeScope.of(context)).colorScheme;
+    final fill = tint ??
+        (tinted ? scheme.secondaryContainer : scheme.surfaceContainerHigh);
+    final tap = onTap;
+    Widget body = Material(
+      color: fill,
+      elevation: shadow ? 1 : 0,
+      shadowColor: scheme.shadow,
+      surfaceTintColor: tint == null ? scheme.surfaceTint : Colors.transparent,
+      shape: _border(),
+      clipBehavior: Clip.antiAlias,
+      child: tap == null
+          ? _content(context)
+          : InkWell(
+              onTap: tap,
+              customBorder: _border(),
+              child: _content(context),
+            ),
+    );
+    if (tap != null) {
+      body = Semantics(
+        button: true,
+        label: semanticLabel,
+        excludeSemantics: semanticLabel != null,
+        child: body,
+      );
+    }
+    return MaterialKitScope(child: body);
   }
 
   Widget _sized(Widget glass) => size == null

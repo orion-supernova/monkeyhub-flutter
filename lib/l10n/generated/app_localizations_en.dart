@@ -16073,4 +16073,21 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsHapticsLabel => 'Haptics';
+
+  @override
+  String get settingsHapticsSub => 'Taps and vibrations across the app';
+
+  @override
+  String get settingsSearchKwHaptics =>
+      'haptics vibration vibrate taps feedback trackpad';
+
+  @override
+  String get uiKitMaterialTitle => 'Material';
+
+  @override
+  String get uiKitMaterialBody =>
+      'Android\'s own design: Material 3 controls with touch ripples, coloured by your theme.';
 }

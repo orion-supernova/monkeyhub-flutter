@@ -129,41 +129,35 @@ class _TextFileViewerScreenState extends State<TextFileViewerScreen> {
                   children: [
                     // The iOS viewer bar: glass back, the file's name centred,
                     // a glass download button.
-                    SizedBox(
-                      height: 52,
-                      child: Row(
-                        children: [
-                          const GlassBackButton(),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              widget.fileName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: theme.bodyEmph.copyWith(color: theme.ink),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          _saving
-                              ? SizedBox(
-                                  width: 40,
-                                  height: 40,
-                                  child: Center(
-                                    child: PhotoSpinner(
-                                      size: 16,
-                                      color: theme.inkSoft,
-                                    ),
-                                  ),
-                                )
-                              : GlassIconButton(
-                                  icon: CupertinoIcons.arrow_down_to_line,
-                                  semanticLabel:
-                                      l10n.textFileViewerDownloadTooltip,
-                                  onTap: _download,
-                                ),
-                        ],
+                    PageBar(
+                      edge: 0,
+                      leading: const GlassBackButton(),
+                      title: Text(
+                        widget.fileName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: theme.bodyEmph.copyWith(color: theme.ink),
                       ),
+                      actions: [
+                        _saving
+                            ? SizedBox(
+                                width: 40,
+                                height: 40,
+                                child: Center(
+                                  child: PhotoSpinner(
+                                    size: 16,
+                                    color: theme.inkSoft,
+                                  ),
+                                ),
+                              )
+                            : GlassIconButton(
+                                icon: CupertinoIcons.arrow_down_to_line,
+                                semanticLabel:
+                                    l10n.textFileViewerDownloadTooltip,
+                                onTap: _download,
+                              ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Expanded(

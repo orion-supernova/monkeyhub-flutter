@@ -243,7 +243,9 @@ void main() {
     late FakeDirectory dir;
 
     setUp(() {
-      final live = DateTime.now();
+      // A fixed afternoon, not the wall clock: "26 hours ago" is Yesterday
+      // at 15:30 but two days back at 01:30. `open` pins the screen to it.
+      final live = now;
       final miss = [
         fakeEntry('m1', now: live, minutesAgo: 3, outcome: CallOutcome.missed),
         fakeEntry('m2', now: live, minutesAgo: 8, outcome: CallOutcome.missed),
@@ -289,6 +291,9 @@ void main() {
     });
 
     Future<void> open(WidgetTester tester) async {
+      // The fixtures are minutes before a fixed `now`; so is the screen.
+      callsClock = () => now;
+      addTearDown(() => callsClock = DateTime.now);
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(800, 1800);
       addTearDown(tester.view.reset);

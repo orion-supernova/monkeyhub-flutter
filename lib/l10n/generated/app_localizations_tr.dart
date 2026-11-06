@@ -16001,4 +16001,21 @@ class AppLocalizationsTr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsHapticsLabel => 'Dokunsal geri bildirim';
+
+  @override
+  String get settingsHapticsSub => 'Uygulama genelinde dokunuş ve titreşimler';
+
+  @override
+  String get settingsSearchKwHaptics =>
+      'titreşim dokunsal geri bildirim haptik';
+
+  @override
+  String get uiKitMaterialTitle => 'Material';
+
+  @override
+  String get uiKitMaterialBody =>
+      'Android\'in kendi tasarımı: dokunma dalgalı Material 3 kontrolleri, temanızın renkleriyle.';
 }

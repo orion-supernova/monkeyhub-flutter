@@ -26,6 +26,7 @@ import 'game_info_sheet.dart';
 import 'ios_kit.dart';
 import 'puzzle_symbol.dart';
 import '../l10n/text_case.dart';
+import 'status_pill.dart';
 
 /// One game on the hub: today's real board, its name, and how you did.
 ///
@@ -589,7 +590,8 @@ class _Status extends StatelessWidget {
   }
 }
 
-/// A small tinted capsule: a state in its own colour, never shouting.
+/// A small tinted capsule: a state in its own colour, never shouting. A preset
+/// over [StatusPill] (quiet plate, the tone on the glyph and words).
 class StatusChip extends StatelessWidget {
   const StatusChip({
     super.key,
@@ -603,40 +605,11 @@ class StatusChip extends StatelessWidget {
   final IconData? icon;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        // Neutral, with the tone on the glyph and words: a 14% wash of a
-        // blue tone is a navy pill on a dark page.
-        color: quietFill(theme),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 13, color: tone),
-            // 5, not 3: at 3 the glyph touched the first letter in Turkish
-            // at large text ("Bugün 4 tane kaldı").
-            const SizedBox(width: 5),
-          ],
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.body.copyWith(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: tone,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => StatusPill(
+        label: label,
+        icon: icon,
+        color: tone,
+        fill: StatusFill.quiet,
+        iconSize: 13,
+      );
 }

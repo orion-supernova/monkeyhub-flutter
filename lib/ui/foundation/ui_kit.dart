@@ -25,8 +25,10 @@ enum UiKit {
   /// app-drawn glass switches to the native-matched recipe.
   liquid,
 
-  /// Android's own design language. Not built yet: [UiKits.available] says
-  /// false, so it is never resolved and never offered.
+  /// Android's own design language: Flutter's Material 3 widgets, dressed in
+  /// the current app theme's colours and fonts (`lib/ui/kits/material/`).
+  /// Android only: [UiKits.available] is false everywhere else. The one kit
+  /// with ripples.
   material,
 
   /// The low-end kit: no backdrop blur anywhere, opaque plates, no drop
@@ -55,16 +57,26 @@ enum UiKit {
 
 /// Resolution of the user's [UiKit] choice against what this device can do.
 abstract final class UiKits {
-  /// Flip to true once the Material kit has skins for the core components
-  /// (button, icon button, field, search, switch, segmented, surface).
-  static const bool materialReady = false;
+  /// Whether the [UiKit.liquid] kit draws REAL iOS controls (SwiftUI via
+  /// `lib/ui/native/native_control.dart`): the round chrome buttons, the
+  /// switch, the segmented control, the slider, the primary action button.
+  ///
+  /// Off until verified on a device: the native side is typechecked against
+  /// the iOS SDK but has never run, and a platform view costs list frame rate
+  /// (see NativeControl). Off, the liquid kit draws as it always has.
+  static bool nativeControlsReady = false;
+
+  /// The Material kit has skins for the core components (button, icon button,
+  /// field, search, switch, segmented, chip, check, slider, spinner, sheet,
+  /// surface). It is drawn on Android only; see [available].
+  static const bool materialReady = true;
 
   /// Whether [kit] can be drawn on this device right now.
   static bool available(UiKit kit) => switch (kit) {
     UiKit.glass => true,
     UiKit.lite => true,
     UiKit.liquid => Caps.nativeGlass,
-    UiKit.material => materialReady,
+    UiKit.material => materialReady && Caps.android,
   };
 
   /// The kits Settings offers, in display order.
@@ -74,8 +86,8 @@ abstract final class UiKits {
   ];
 
   /// What "Automatic" means on this device:
-  /// iOS 26+ → [UiKit.liquid]; a low-RAM phone → [UiKit.lite]; Android once
-  /// its kit ships → [UiKit.material]; everything else → [UiKit.glass].
+  /// iOS 26+ → [UiKit.liquid]; a low-RAM phone → [UiKit.lite]; Android →
+  /// [UiKit.material]; everything else → [UiKit.glass].
   static UiKit get automatic => resolve(null);
 
   /// Pure resolution, so it can be tested without a device.
@@ -90,7 +102,7 @@ abstract final class UiKits {
     bool can(UiKit k) => switch (k) {
       UiKit.glass || UiKit.lite => true,
       UiKit.liquid => nativeGlass,
-      UiKit.material => materialReady,
+      UiKit.material => materialReady && android,
     };
     if (choice != null && can(choice)) return choice;
     if (nativeGlass) return UiKit.liquid;
@@ -99,8 +111,21 @@ abstract final class UiKits {
     return UiKit.glass;
   }
 
+  /// What Automatic resolves to under test. `flutter_test` reports android,
+  /// so without this every widget test would draw the Material kit;
+  /// test/flutter_test_config.dart sets it to [UiKit.glass], the reference
+  /// kit. An explicit choice in the store still wins, so kit tests work.
+  @visibleForTesting
+  static UiKit? debugAutomatic;
+
   /// [choice] (null = automatic) resolved for this device.
-  static UiKit resolve(UiKit? choice) => resolveWith(
+  static UiKit resolve(UiKit? choice) {
+    final auto = debugAutomatic;
+    if (auto != null && (choice == null || !available(choice))) return auto;
+    return _resolveHere(choice);
+  }
+
+  static UiKit _resolveHere(UiKit? choice) => resolveWith(
     choice,
     nativeGlass: Caps.nativeGlass,
     lowTier: Perf.low,

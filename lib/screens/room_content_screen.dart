@@ -639,86 +639,73 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
         // as "close the screen"), the title centred at 17/w600, the Select
         // text action trailing. No hairline: the segmented control under it
         // is the separation.
-        return Container(
+        return PageBar(
           height: 56,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Stack(
-            alignment: Alignment.center,
+          // Clear of the 40pt button and the text action on each side.
+          titleInset: 96,
+          title: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Padding(
-                // Clear of the 40pt button and the text action on each side.
-                padding: const EdgeInsets.symmetric(horizontal: 96),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      selecting
-                          ? l10n.roomContentScreenSelectionCount(picked)
-                          : _tab.headerLabel(context),
-                      style: sheetTitleStyle(theme).copyWith(
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (!selecting)
-                      if (_tabSummary(l10n) case final summary?)
-                        Text(
-                          summary,
-                          style: groupedMetaStyle(theme).copyWith(
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                  ],
+              Text(
+                selecting
+                    ? l10n.roomContentScreenSelectionCount(picked)
+                    : _tab.headerLabel(context),
+                style: sheetTitleStyle(theme).copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              Row(
-                children: [
-                  if (selecting)
-                    TextLinkButton(
-                      label: l10n.roomContentScreenCancelTooltip,
-                      onTap: _selection.clear,
-                    )
-                  else
-                    // Real glass, like every page's back button (room info's
-                    // included) — the still disc read as a different, whiter
-                    // button on the same screen pair.
-                    GlassBackButton(
-                      semanticLabel: GlassBackButton.closesHere(context)
-                          ? null
-                          : l10n.roomContentScreenBackTooltip,
-                      closes: GlassBackButton.closesHere(context),
-                      onTap: () => Navigator.of(context).pop(),
+              if (!selecting)
+                if (_tabSummary(l10n) case final summary?)
+                  Text(
+                    summary,
+                    style: groupedMetaStyle(theme).copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
-                  const Spacer(),
-                  // The primary way in on every platform. Long-press is a
-                  // phone shortcut on top of this, not the only door —
-                  // desktop has no long-press idiom and this app defines no
-                  // right-click menu.
-                  TextLinkButton(
-                    label: selecting
-                        ? l10n.roomContentScreenSelectAllActiveLabel
-                        : l10n.roomContentScreenSelectAllLabel,
-                    onTap: () {
-                      if (!selecting) {
-                        _selection.begin();
-                        return;
-                      }
-                      _selection.selectAll(
-                        _tab == RoomContentTab.links
-                            ? {for (final l in _c.links) l.message.id}
-                            : [for (final m in _c.items) m.id],
-                      );
-                    },
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
             ],
           ),
+          leading: selecting
+              ? TextLinkButton(
+                  label: l10n.roomContentScreenCancelTooltip,
+                  onTap: _selection.clear,
+                )
+              // Real glass, like every page's back button (room info's
+              // included) — the still disc read as a different, whiter
+              // button on the same screen pair.
+              : GlassBackButton(
+                  semanticLabel: GlassBackButton.closesHere(context)
+                      ? null
+                      : l10n.roomContentScreenBackTooltip,
+                  closes: GlassBackButton.closesHere(context),
+                  onTap: () => Navigator.of(context).pop(),
+                ),
+          actions: [
+            // The primary way in on every platform. Long-press is a phone
+            // shortcut on top of this, not the only door — desktop has no
+            // long-press idiom and this app defines no right-click menu.
+            TextLinkButton(
+              label: selecting
+                  ? l10n.roomContentScreenSelectAllActiveLabel
+                  : l10n.roomContentScreenSelectAllLabel,
+              onTap: () {
+                if (!selecting) {
+                  _selection.begin();
+                  return;
+                }
+                _selection.selectAll(
+                  _tab == RoomContentTab.links
+                      ? {for (final l in _c.links) l.message.id}
+                      : [for (final m in _c.items) m.id],
+                );
+              },
+            ),
+          ],
         );
       },
     );

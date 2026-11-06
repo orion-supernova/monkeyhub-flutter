@@ -259,7 +259,9 @@ class _SettingsScreenState extends State<SettingsScreen>
         return l10n.glassStyleLiquidTitle;
       case UiKit.lite:
         return l10n.uiKitLiteTitle;
-      case UiKit.glass || UiKit.material:
+      case UiKit.material:
+        return l10n.uiKitMaterialTitle;
+      case UiKit.glass:
         break;
     }
     final id = store.glassPresetId;
@@ -1161,6 +1163,16 @@ class _SettingsScreenState extends State<SettingsScreen>
           kw: l10n.settingsSearchKwMotion,
           enKw: en.settingsSearchKwMotion,
           onOpen: () => _open('motion', (_) => const MotionScreen())),
+      if (Caps.nativeMobile || Caps.macOS)
+        page('haptics',
+            title: l10n.settingsHapticsLabel,
+            enTitle: en.settingsHapticsLabel,
+            section: appearance,
+            icon: CupertinoIcons.waveform,
+            tone: TileTone.gray,
+            kw: l10n.settingsSearchKwHaptics,
+            enKw: en.settingsSearchKwHaptics,
+            onOpen: () => _open('motion', (_) => const MotionScreen())),
       // ── Chats
       page('mapApps',
           title: l10n.mapAppsTitle, enTitle: en.mapAppsTitle,

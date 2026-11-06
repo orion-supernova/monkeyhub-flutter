@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../keyboard/focusable_tap.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
+import '../ui/kits/material/material_kit_theme.dart';
 import 'odometer_number.dart';
 import 'spring_press.dart';
 
@@ -52,7 +54,72 @@ class FilterCapsule extends StatelessWidget {
   final String? semanticLabel;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      KitSwitch(glass: _glass, material: _material);
+
+  /// The [UiKit.material] skin: a Material 3 [FilterChip] (tonal when on,
+  /// outlined at rest, a check when on and there is no [leading] mark).
+  Widget _material(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final scheme = MaterialKitTheme.of(theme).colorScheme;
+    final n = count;
+    final empty = n == 0;
+    final showCount = n != null && (n > 0 || showZeroCount);
+    final on = activeColor;
+    final ink = active
+        ? (activeInk ?? (on != null ? theme.accentInk : scheme.onSecondaryContainer))
+        : (empty ? scheme.outline : scheme.onSurfaceVariant);
+    final chip = FilterChip(
+      selected: active,
+      onSelected: onTap == null ? null : (_) => _tap(),
+      showCheckmark: leading == null,
+      avatar: leading,
+      selectedColor: on ?? scheme.secondaryContainer,
+      checkmarkColor: ink,
+      labelStyle: theme.bodySoft.copyWith(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.1,
+        color: ink,
+      ),
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(child: Text(label)),
+          if (showCount) ...[
+            const SizedBox(width: 6),
+            OdometerNumber(
+              value: n,
+              style: theme.bodySoft.copyWith(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                fontFeatures: const [FontFeature.tabularFigures()],
+                color: ink.withValues(alpha: 0.75),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+    return MaterialKitScope(
+      child: Semantics(
+        button: true,
+        selected: active,
+        enabled: onTap != null,
+        label: semanticLabel ?? label,
+        excludeSemantics: true,
+        child: Opacity(
+          opacity: faded && !active ? 0.5 : 1,
+          child: GestureDetector(
+            onLongPress: onLongPress,
+            child: chip,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _glass(BuildContext context) {
     final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
     final onFill = activeInk ?? theme.accentInk;

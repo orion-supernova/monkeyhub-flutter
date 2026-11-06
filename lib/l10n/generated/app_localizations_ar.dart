@@ -16312,4 +16312,20 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsHapticsLabel => 'الاهتزاز اللمسي';
+
+  @override
+  String get settingsHapticsSub => 'نقرات واهتزازات في أنحاء التطبيق';
+
+  @override
+  String get settingsSearchKwHaptics => 'اهتزاز لمسي ردود فعل';
+
+  @override
+  String get uiKitMaterialTitle => 'Material';
+
+  @override
+  String get uiKitMaterialBody =>
+      'تصميم أندرويد الأصلي: عناصر Material 3 مع تموّجات اللمس، بألوان السمة التي اخترتها.';
 }

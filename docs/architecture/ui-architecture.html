@@ -125,7 +125,7 @@ is <code>theme.isLight</code>. Plates use <code>plateFill</code> / <code>plateEd
 <div class="rule"><b>R7</b> <strong>Motion through <code>MotionScope</code>.</strong> Never read
 <code>MediaQuery.disableAnimations</code> directly: it ignores the user's Calm/Full override.</div>
 
-<div class="rule"><b>R8</b> <strong>No ink.</strong> No <code>InkWell</code>, ripples or Material buttons. Tappables are
+<div class="rule"><b>R8</b> <strong>No ink.</strong> No <code>InkWell</code>, ripples or Material buttons, except inside a <code>material:</code> skin of the Material kit (approved 2026-11-07), which wraps itself in <code>MaterialKitScope</code>. Tappables are
 <code>SpringPress</code> (or <code>FocusableTap</code> for a bare row). Never wrap a <code>GestureDetector(onTap)</code>
 inside a <code>FocusableTap(onTap)</code> with the same callback.</div>
 
@@ -216,7 +216,7 @@ caller moved. Platform channel names live once in <code>lib/ui/foundation/channe
   <div class="card"><div class="k">UiKit.lite</div><div class="v">Lite</div>
     <p>No backdrop blur, opaque plates, no drop shadows. Auto on low-RAM phones. Offered everywhere.</p></div>
   <div class="card"><div class="k">UiKit.material</div><div class="v">Material</div>
-    <p>Android. Not built: <code>UiKits.materialReady = false</code>, so never offered or resolved.</p></div>
+    <p>Android only, built (2026-11-07): Flutter's Material 3 widgets dressed from the current <code>AppTheme</code> (<code>lib/ui/kits/material/</code>). Offered only where <code>Caps.android</code>; Automatic on Android unless the phone is low-RAM (then Lite). The one kit with ripples.</p></div>
 </div>
 
 <h3>Resolution</h3>
@@ -226,7 +226,7 @@ caller moved. Platform channel names live once in <code>lib/ui/foundation/channe
 choice available on this device?  → that kit
 else Caps.nativeGlass             → liquid
 else Perf.low (RAM &lt; 3600 MB)     → lite
-else android &amp;&amp; materialReady     → material
+else Caps.android &amp;&amp; materialReady → material
 else                              → glass
       │
       ▼
@@ -274,6 +274,23 @@ structure (Material's filled tonal button, a native UISwitch).</p>
   <li><strong>Third-party Android library:</strong> wrap it inside the material skin of each component. Screens never
   import it directly. If the library's widgets cannot take our tap/semantics wrapper, wrap them, not the reverse.</li>
 </ol>
+
+<h3>The liquid kit's native controls</h3>
+<p>Real SwiftUI controls, one Flutter platform view each (view type <code>monkeyhub/native_control</code>), driven by a
+<code>NativeSpec</code> from Dart and reporting <code>tap / changed / changeEnd / submitted / select / focus / size</code> back over
+<code>monkeyhub/native_control/&lt;id&gt;</code>. Components opt in with <code>liquid: NativeControl.ready ? _liquid : null</code> in their
+<code>KitSwitch</code>, so everything falls back to glass when the flag is off, the device is not iOS 26, or a control has
+no exact native form (an icon without an SF Symbol in <code>sfSymbolFor</code>, a segment with a badge, a busy button).</p>
+<ul>
+  <li><strong>Turning it on:</strong> set <code>UiKits.nativeControlsReady = true</code> after a device pass (profile mode): buttons, switch rows in
+  Settings, segmented controls, sliders in Data &amp; Storage, sheet primary buttons. Check list frame rate with a native control on screen.</li>
+  <li><strong>Cost:</strong> any platform view on screen drops Flutter lists to bursts of 60 Hz (flutter/flutter#190815) and doubles a nearby
+  BackdropFilter. Fixed chrome (page bar buttons, viewer toolbars) should move to sibling views like <code>NativeChrome</code>'s tab bar.</li>
+  <li><strong>Carried lessons</strong> from the React Native port (<code>monkeyhub-reactnative/docs/native-ui.md</code>): hosts ignore the safe area;
+  a slider never gets a zero step; a menu label takes <code>buttonStyle(.glass)</code>; chrome buttons are 44 pt with a 17 pt symbol.</li>
+  <li>The Flutter-drawn "native-matched" glass (<code>kNativeMatchGlass</code>) still paints app glass under the liquid kit. A separate glass
+  library will become its own option later (user, 2026-11-07); no further Flutter imitation of iOS controls is planned.</li>
+</ul>
 
 <h3>Performance contract per kit</h3>
 <div class="tbl"><table>
@@ -323,7 +340,8 @@ structure (Material's filled tonal button, a native UISwitch).</p>
 <tr><td>Stepper</td><td><code>NumberStepper</code></td><td>widgets/number_stepper.dart</td><td></td></tr>
 <tr><td>Filter / choice chip</td><td><code>FilterCapsule</code></td><td>widgets/filter_capsule.dart</td><td><code>expression_panel _Chip</code>, <code>camera_editor _Chip</code></td></tr>
 <tr><td>Count badge</td><td><code>CountBadge</code> (<code>.tab</code>, <code>.row</code>, <code>.chat</code>, <code>.label</code>)</td><td>widgets/count_badge.dart</td><td><code>ChatUnreadBadge</code>, <code>RowBadge</code> (now presets), <code>call_bubble _CountBadge</code> (deleted)</td></tr>
-<tr><td>Status pill (read-only)</td><td><code>PinnedBadge</code> / <code>MutedBadge</code> family</td><td>widgets/pinned_badge.dart</td><td>(target: one <code>StatusPill</code> with tone, §8)</td></tr>
+<tr><td>Status pill (read-only)</td><td><code>StatusPill</code> (<code>tone</code>, <code>fill</code>, <code>surface</code>, <code>dense</code>, <code>iconOnly</code>, <code>onTap</code>/tooltip; per-kit paint in <code>StatusPill._skin</code>)</td><td>widgets/status_pill.dart</td><td>Presets: <code>PinnedBadge</code>, <code>MutedBadge</code>, <code>VisibilityBadge</code>, <code>LockedBadge</code>, <code>JoinedBadge</code>, <code>EphemeralBadge</code>, game <code>StatusChip</code>. Deleted: <code>RoomBadge</code>, linked_accounts <code>_StatusPill</code>, child_policy <code>_LockedTag</code>, companion <code>_InUseBadge</code>, theme <code>_SlotBadge</code>, diag <code>_Badge</code>, appearance_picker <code>_Badge</code>. Left: <code>_SecretBadge</code> (pop-in animation, solid 8pt tag), file <code>_TypeBadge</code> (a 40pt tile, not a pill), theme <code>_ExpandBadge</code> (a button), <code>StreakBadge</code>/<code>PlayStyleBadge</code>/<code>SeatBadge</code> (domain)</td></tr>
+<tr><td>Inline banner</td><td><code>Notice</code> (<code>tone</code> info/warn/error/success/action, <code>title</code>, <code>actionLabel</code>, <code>onDismiss</code>, <code>loud</code>)</td><td>widgets/notice.dart</td><td>Presets: <code>SoftNote</code>, <code>FormErrorBanner</code>. Left as specialised: <code>ConnectionBanner</code>, <code>PinnedMessageBanner</code>, call and game banners, <code>RoomSuggestionsBanner</code> (tappable chat strip), <code>RecoveryPhraseBanner</code> (a settings row), join_by_invite <code>_Notice</code> (centred hero card)</td></tr>
 </table></div>
 
 <h3>Surfaces, pages, identity</h3>
@@ -331,12 +349,14 @@ structure (Material's filled tonal button, a native UISwitch).</p>
 <tr><th>Role</th><th>Use</th><th>File</th><th>Absorbs</th></tr>
 <tr><td>Glass surface</td><td><code>LiquidGlass</code></td><td>widgets/liquid_glass.dart</td><td>every remaining <code>BackdropFilter</code> is kit-aware (call chrome, side rail, room header, discs, capture shield, reply indicator, radial menu)</td></tr>
 <tr><td>Blurred scrim behind a menu</td><td><code>BlurScrim</code> + <code>BlurSnapshot.capture</code></td><td>widgets/blur_scrim.dart</td><td>three menus' private scrims (message, chat row, thread)</td></tr>
-<tr><td>Pushed page</td><td><code>IosPage</code></td><td>widgets/ios_kit.dart</td><td>hand-rolled <code>_Header</code>s (search, friend request, receipts…)</td></tr>
+<tr><td>Pushed page</td><td><code>IosPage</code></td><td>widgets/ios_kit.dart</td><td>large-title pages. Its bar is now <code>PageBar</code></td></tr>
+<tr><td>Navigation bar row (no large title)</td><td><code>PageBar</code> (centred or start-aligned title, leading, actions, height)</td><td>widgets/ios_kit.dart</td><td>receipts, text file viewer, room content, friend request hand-rolled <code>_Header</code>s; <code>IosPage</code>'s own bar</td></tr>
+<tr><td>Context menu row</td><td><code>MenuRow</code> (touch wash, or <code>.pointer</code> for a desk menu)</td><td>widgets/menu_row.dart</td><td>message_action_menu <code>_ActionRow</code>, pull_down_menu <code>_PullDownRow</code>, message_context_menu <code>_MenuRow</code>, chat_row_action_menu row body</td></tr>
 <tr><td>Profile-style page</td><td><code>HeroPage</code></td><td>widgets/account_kit.dart</td><td></td></tr>
 <tr><td>Tab root header</td><td><code>TabRootBar</code></td><td>widgets/tab_root_bar.dart</td><td></td></tr>
 <tr><td>Grouped list</td><td><code>GroupedSection</code> / <code>GroupedRow</code> / <code>GroupedCard</code></td><td>ios_kit.dart</td><td></td></tr>
 <tr><td>Sheet</td><td><code>SheetFrame</code> via <code>showAdaptiveSheet</code></td><td>sheet_kit.dart, adaptive_sheet.dart</td><td>fight <code>showModalBottomSheet</code>s; deleted <code>SheetSurface</code>, <code>PillNav</code></td></tr>
-<tr><td>Confirm</td><td><code>showConfirmSheet</code></td><td>widgets/destructive_sheet.dart</td><td><code>showIosActionSheet&lt;bool&gt;</code> confirms</td></tr>
+<tr><td>Confirm</td><td><code>showConfirmSheet</code></td><td>widgets/destructive_sheet.dart</td><td>Emblem, "cannot be undone" note, body required. The ~20 <code>showIosActionSheet&lt;bool&gt;</code> yes/no sites stay on the lighter action sheet on purpose (no emblem, often title only, custom cancel); new destructive confirms with a blast radius use this</td></tr>
 <tr><td>Action sheet</td><td><code>showIosActionSheet</code></td><td>sheet_kit.dart</td><td></td></tr>
 <tr><td>Toast</td><td><code>showAppToast</code></td><td>widgets/app_toast.dart</td><td>(snackbars are banned)</td></tr>
 <tr><td>Person avatar</td><td><code>UserAvatar</code></td><td>widgets/user_avatar.dart</td><td><code>score_row</code> monogram stack, redundant <code>ClipOval</code>s in calls</td></tr>
@@ -344,13 +364,29 @@ structure (Material's filled tonal button, a native UISwitch).</p>
 <tr><td>Empty state</td><td><code>EmptyState</code> / <code>EmptyLine</code></td><td>widgets/empty_state.dart</td><td>~11 private <code>_EmptyState</code>/<code>_Empty</code></td></tr>
 <tr><td>Skeleton</td><td><code>SkeletonBox</code> family</td><td>widgets/skeleton_rows.dart</td><td>~9 private shimmers</td></tr>
 <tr><td>Progress ring</td><td><code>ProgressRing</code> (+ <code>.spinner</code>)</td><td>widgets/progress_ring.dart</td><td>the same-named class in glass_progress_dialog.dart</td></tr>
-<tr><td>Spinner</td><td><code>CupertinoActivityIndicator</code></td><td></td><td>8 Material spinners</td></tr>
+<tr><td>Spinner</td><td><code>AppSpinner</code> (Cupertino in glass kits, <code>CircularProgressIndicator</code> in Material)</td><td>widgets/app_spinner.dart</td><td>8 Material spinners; ~94 bare <code>CupertinoActivityIndicator</code> call sites still to migrate (they keep the iOS spinner on Android until then)</td></tr>
 </table></div>
 
 <h3>Chat chrome and motion</h3>
 <p>See <code>docs/design/chat-chrome-language.md</code> and <code>lib/widgets/chrome_motion.dart</code>. Two leave
 animations exist on purpose and both stay: the vanish burn (<code>DustDissolve</code> via <code>MessageExits</code>)
 for ephemeral rooms and the delete exit for deleted messages.</p>
+<p><b>Composer field core.</b> <code>ComposerTextField</code> (widgets/chat_composer.dart) is the one text field under
+<code>ChatComposerClassic</code>, <code>ChatComposerLiquid</code> and the friend-request draft: Enter-to-send,
+<code>ComposerKeys</code>, mention nav, FORMAT menu, keyboard GIF insertion, themed keyboard, one-line hint, smiley.
+The styles keep only their plate (classic raised capsule r20, liquid glass r22), <code>maxLines</code> (4 vs 5) and
+vertical content padding. Add field behaviour there, never in one style.</p>
+
+<h3>Skins per kit</h3>
+<p><strong>Material skins</strong> (Android only): <code>LiquidGlass</code> (app tone: tonal surface, no blur, ripple),
+<code>GlassIconButton</code>/<code>GlassBackButton</code>/<code>GlassCloseButton</code> (<code>IconButton.filledTonal</code>, arrow_back / close glyphs),
+<code>ChromeDisc</code>, <code>GlassPillButton</code> (<code>FilledButton.tonal</code>), <code>SheetActionButton</code> (<code>FilledButton</code>, tonal, error, busy ring),
+<code>TextLinkButton</code> (<code>TextButton</code>), <code>RowPillButton</code>, text fields (<code>_TextBox</code> filled M3 decoration, <code>PasswordField</code> icons),
+<code>SearchField</code> (tonal capsule, Material glyphs, door ripples), <code>RowSwitch</code> (M3 <code>Switch</code> with check thumb),
+<code>IosSegmentedControl</code> (<code>SegmentedButton</code>), <code>FilterCapsule</code> (<code>FilterChip</code>), <code>SelectionCheck</code> (<code>Checkbox</code> / ring-and-dot radio),
+<code>ValueSlider</code> (<code>Slider</code>, still 0..1), <code>AppSpinner</code>, <code>SheetPanel</code>/<code>SheetHandle</code> (M3 surface and 32x4 handle).
+<strong>Fall back to glass/plate:</strong> media-tone glass over photos (no blur, as Lite), <code>GlassButtonGroup</code>, every component not listed.
+The kit's shared pieces live in <code>lib/ui/kits/material/material_kit_theme.dart</code>.</p>
 
 <!-- ======================================================================= -->
 <h2 id="layout">6. Layout: phone, tablet, desktop</h2>
@@ -383,7 +419,7 @@ for ephemeral rooms and the delete exit for deleted messages.</p>
 <tr><td>Error text</td><td><code>humanizeAuthError</code> / <code>friendlyServerError</code></td><td></td></tr>
 <tr><td>Copy to clipboard</td><td><code>copyText(context, text, toast:, haptic:)</code> (services/clipboard_actions.dart)</td><td>16 sites; never toasts "copied" on a failed write</td></tr>
 <tr><td>Open a URL</td><td><code>LinkOpener</code> / <code>LinkOpener.openExternal</code></td><td>klipy ad, app-only panel, update page moved over</td></tr>
-<tr><td>Haptics</td><td><code>HapticTick</code> / <code>HapticFeedback.*</code> through <code>AppBinding</code></td><td>a global on/off hooks into both (not built)</td></tr>
+<tr><td>Haptics</td><td><code>HapticTick</code> / <code>HapticFeedback.*</code> through <code>AppBinding</code></td><td>global on/off: <code>Haptics.enabled</code> (services/haptics.dart, fed by <code>SettingsStore.hapticsEnabled</code>) read by <code>HapticMessenger</code> and <code>HapticTick</code>; toggle lives in Motion settings</td></tr>
 <tr><td>Subscriptions</td><td>stores over <code>ConvexBackend.subscribe</code></td><td>never subscribe from a widget (see backend handbook)</td></tr>
 </table></div>
 
@@ -402,12 +438,12 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
 <tr><td>2c</td><td>Surfaces</td><td>Avatars, ProgressRing clash, dead code, fight sheets, blur bugs, every <code>BackdropFilter</code> kit-aware, empty states</td><td><span class="pill ok">done</span></td></tr>
 <tr><td>2d</td><td>Platform</td><td>Caps migration, hover fix, channel bridges, js_interop barrels, MotionScope bypasses</td><td><span class="pill ok">done</span></td></tr>
 <tr><td>2e</td><td>Logic</td><td>Format module, room titles, mounted bugs, clipboard, links, localized plurals</td><td><span class="pill ok">done</span></td></tr>
-<tr><td>3</td><td>Pages</td><td>Hand-rolled headers onto <code>IosPage</code> (search, friend request, receipts, theme, room content); viewer top bars onto <code>ViewerTopBar</code>; one menu row for the four menus (the scrim is already shared); <code>showConfirmSheet</code> vs <code>showIosActionSheet&lt;bool&gt;</code></td><td><span class="pill">planned</span></td></tr>
-<tr><td>4</td><td>StatusPill + Notice</td><td>One read-only pill with tone; one inline banner with tone (absorbs <code>SoftNote</code>, <code>FormErrorBanner</code>, …)</td><td><span class="pill">planned</span></td></tr>
-<tr><td>5</td><td>Composer</td><td>Merge <code>chat_composer</code> classic/liquid field (documented "kept in step by hand"); command palette search field; leftover relative-time families (<code>roomTimeAgo</code>, <code>requestAgo</code>, devices, family, remove-contact)</td><td><span class="pill">planned</span></td></tr>
-<tr><td>6</td><td>Material kit</td><td>Pick the Android library; skins for the core set; flip <code>materialReady</code></td><td><span class="pill">planned</span></td></tr>
-<tr><td>7</td><td>Native iOS 26 controls</td><td>Sibling-view native controls where it pays (switch, segmented on static screens); matched glass elsewhere</td><td><span class="pill">planned</span></td></tr>
-<tr><td>8</td><td>Haptics setting</td><td>Global on/off wired into <code>AppBinding.send</code> and <code>HapticTick.current()</code></td><td><span class="pill">planned</span></td></tr>
+<tr><td>3</td><td>Pages</td><td>Done: <code>PageBar</code> extracted from <code>IosPage</code> and used by receipts, text file viewer, room content, friend request; one <code>MenuRow</code> for the four menus (hold, chat row, pull-down, desk pointer). Left on purpose: search screen (its header is already the shared <code>SearchField</code> with its own Cancel), theme carousel (full-bleed black viewer), <code>_HeaderAction</code> (a 44pt <code>TextLinkButton</code> would grow the section header), <code>_ListScaffold</code> (shared wrapper over <code>IosPage</code> + <code>AdaptivePageBody</code>, used twice), onboarding screens (already use <code>GlassBackButton</code>/<code>GlassCloseButton</code>), viewer bars (<code>media_pager _TopBar</code> and <code>fullscreen _BottomBar</code> already compose <code>ViewerTopBar</code>/<code>ViewerToolbar</code>; moment viewer <code>_StageTopBar</code> is the stories chrome with a deliberate trailing ×), the confirm-sheet merge (see Confirm row)</td><td><span class="pill warn">partial</span></td></tr>
+<tr><td>4</td><td>StatusPill + Notice</td><td>One read-only pill with tone and a per-kit skin; one inline banner with tone (<code>SoftNote</code>, <code>FormErrorBanner</code> are presets). Specialised strips and cards stay separate, see §5.</td><td><span class="pill ok">done</span></td></tr>
+<tr><td>5</td><td>Composer</td><td>Merge <code>chat_composer</code> classic/liquid field into <code>ComposerTextField</code> (also used by the friend-request draft; shared send-pop transition) <span class="pill ok">done</span>; command palette search field; leftover relative-time families (<code>roomTimeAgo</code>, <code>requestAgo</code>, devices, family, remove-contact) still planned</td><td><span class="pill">partial</span></td></tr>
+<tr><td>6</td><td>Material kit</td><td>Flutter Material 3 chosen; skins for the core set (LiquidGlass, icon/back/close/ChromeDisc/pill buttons, SheetActionButton, TextLinkButton, RowPillButton, text fields, SearchField, RowSwitch, segmented, FilterCapsule, SelectionCheck, ValueSlider, <code>AppSpinner</code>, SheetPanel/SheetHandle); <code>materialReady = true</code>, Android only. Media-tone glass over photos and the glass button group keep the blur-free plate. Not yet seen on a device.</td><td><span class="pill ok">built</span></td></tr>
+<tr><td>7</td><td>Native iOS 26 controls</td><td>Real SwiftUI controls for the liquid kit (<code>ios/Runner/NativeControls.swift</code>, <code>lib/ui/native/native_control.dart</code>): symbol buttons (back, close, icon), switch, segmented, slider, primary button; also text field, menu and toolbar specs ready. Behind <code>UiKits.nativeControlsReady</code> (off) until device-verified. Next: sibling-view hosting for fixed chrome, native text fields, native sheets.</td><td><span class="pill warn">built, gated</span></td></tr>
+<tr><td>8</td><td>Haptics setting</td><td>Global on/off wired into <code>AppBinding.send</code> and <code>HapticTick.current()</code></td><td><span class="pill ok">done</span></td></tr>
 </table></div>
 
 <!-- ======================================================================= -->
@@ -468,6 +504,11 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
   and transcript downloads of 1 GB or more read "2.4 GB" (was "2457 MB").</li>
   <li><strong>2026-11-07</strong> Viewer and hover chrome follow <code>Caps.hover</code>: phone browsers get the touch chrome.</li>
   <li><strong>2026-11-07</strong> Fight sheets and buttons follow the app theme and the shared buttons (44pt), no longer a fixed dark panel.</li>
+  <li><strong>2026-11-07</strong> Ripples (<code>InkWell</code>, <code>InkRipple</code>) are allowed inside the Material kit
+  ONLY, approved by the user; the rest of the app stays ink-free (<code>NoSplash</code> in the app theme). The kit's Theme
+  (<code>MaterialKitTheme</code>, cached per <code>AppTheme</code>) supplies the splash.</li>
+  <li><strong>2026-11-07</strong> Android look = Flutter's built-in Material 3 widgets, not native Android views: same
+  rendering pipeline, no platform-view cost in lists, themed from <code>AppTheme</code> so all palettes survive.</li>
   <li><strong>2026-10-02</strong> Native glass is a sibling <code>UITabBar</code>, never a platform view in Flutter
   content (performance).</li>
 </ul>

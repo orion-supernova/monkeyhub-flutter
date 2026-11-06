@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import '../ui/foundation/caps.dart';
+import 'haptics.dart';
 import '../ui/foundation/channels.dart';
 
 /// The app's binding: Flutter's own, plus one thing it lacks — haptics on a
@@ -106,6 +107,9 @@ class HapticMessenger implements BinaryMessenger {
         return _inner.send(channel, message);
       }
       if (call.method == 'HapticFeedback.vibrate') {
+        // The Haptics setting: dropped before anything else, as if the
+        // platform had accepted it.
+        if (!Haptics.enabled) return Future.value(_codec.encodeSuccessEnvelope(null));
         final repeat =
             _sinceLast.isRunning && _sinceLast.elapsed < _doubleWindow;
         _sinceLast

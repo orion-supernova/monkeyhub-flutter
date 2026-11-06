@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart';
 import 'ios_kit.dart' show groupedTitleStyle, groupedValueStyle;
@@ -47,8 +48,16 @@ const double _kCompactIconSize = 15;
 const double _kGlyphGap = 6;
 
 /// The field, its door and hero shuttle use the app's live glass material.
-Widget _searchGlass(Widget child) =>
-    LiquidGlass(shape: LiquidGlassShape.capsule, child: child);
+Widget _searchGlass(
+  Widget child, {
+  VoidCallback? onTap,
+  String? semanticLabel,
+}) => LiquidGlass(
+  shape: LiquidGlassShape.capsule,
+  onTap: onTap,
+  semanticLabel: semanticLabel,
+  child: child,
+);
 
 /// THE search bar of the app: magnifier, field, clear disc, in a 44pt pill —
 /// and, at the top of a screen, a Cancel that slides in while it is in use.
@@ -283,10 +292,13 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
   /// The capsule both variants share: fill, height, the magnifier at the
   /// same x. [trailing] is the clear disc's slot.
   Widget _capsule(
+    BuildContext context,
     AppTheme theme, {
     required Widget content,
     Widget? trailing,
     bool ring = false,
+    VoidCallback? onTap,
+    String? semanticLabel,
   }) {
     final compact = widget.compact;
     final iconSize = compact ? _kCompactIconSize : searchFieldIconSize;
@@ -295,6 +307,8 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
     return Material(
       type: MaterialType.transparency,
       child: _searchGlass(
+        onTap: onTap,
+        semanticLabel: semanticLabel,
         Container(
           constraints: BoxConstraints(
             minHeight:
@@ -317,7 +331,11 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
           child: Row(
             children: [
               Icon(
-                CupertinoIcons.search,
+                kitValue(
+                  UiKit.of(context),
+                  glass: CupertinoIcons.search,
+                  material: Icons.search,
+                ),
                 color: theme.inkMuted,
                 size: iconSize,
               ),
@@ -333,6 +351,23 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
 
   Widget _door(BuildContext context, AppTheme theme) {
     final hint = sentenceCaseOf(context, widget.hintText);
+    final doorText = Text(
+      hint,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: groupedValueStyle(theme),
+    );
+    // Material: the glass itself is the tappable surface, so the ripple has a
+    // Material to splash on and the bar does not spring.
+    if (UiKit.of(context) == UiKit.material) {
+      return _capsule(
+        context,
+        theme,
+        content: doorText,
+        onTap: widget._doorTap,
+        semanticLabel: widget.semanticLabel ?? hint,
+      );
+    }
     return SpringPress(
       onTap: widget._doorTap,
       scale: 0.98,
@@ -340,6 +375,7 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
       focusShape: FocusRingShape.capsule,
       semanticLabel: widget.semanticLabel ?? hint,
       child: _capsule(
+        context,
         theme,
         content: Text(
           hint,
@@ -379,6 +415,7 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
       onSubmitted: widget.onSubmitted,
     );
     return _capsule(
+      context,
       theme,
       ring: _focused && _traditional,
       content: accessory == null
@@ -412,7 +449,11 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
                     width: widget.compact ? 44 : 32,
                     height: widget.compact ? searchFieldCompactHeight : 32,
                     child: Icon(
-                      CupertinoIcons.xmark_circle_fill,
+                      kitValue(
+                        UiKit.of(context),
+                        glass: CupertinoIcons.xmark_circle_fill,
+                        material: Icons.cancel,
+                      ),
                       size: widget.compact
                           ? _kCompactIconSize
                           : searchFieldIconSize,

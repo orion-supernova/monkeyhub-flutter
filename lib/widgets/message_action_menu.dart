@@ -14,7 +14,6 @@ import '../theme/motion.dart';
 import '../theme/spring.dart';
 import '../keyboard/focusable_tap.dart';
 import '../keyboard/overlay_modal_scope.dart';
-import '../l10n/text_case.dart';
 import '../theme/theme_scope.dart';
 import 'ios_kit.dart' show quietFill;
 import 'glass_reveal.dart';
@@ -23,6 +22,7 @@ import 'hold_scrub.dart';
 import 'segmented_control.dart';
 import 'translation_slab.dart' show FrozenBubble;
 import 'blur_scrim.dart';
+import 'menu_row.dart';
 import 'teardown_safe.dart';
 
 /// Actions surfaced by [showMessageActionMenu] (reactions are handled
@@ -1552,7 +1552,17 @@ class _ActionList extends StatelessWidget {
           color: theme.ink.withValues(alpha: 0.10),
         ));
       }
-      rows.add(_ActionRow(spec: spec, onTap: () => onAction(spec.action)));
+      // The iOS context-menu row, the same one the chat list's long-press
+      // menu draws: the label in 17pt body type and sentence case on the
+      // left, the glyph on the right, a neutral wash under the finger. Fixed
+      // at [rowH] less the hairline so the placement maths in the overlay
+      // stays exact.
+      rows.add(MenuRow(
+        label: spec.label,
+        icon: spec.icon,
+        destructive: spec.destructive,
+        onTap: () => onAction(spec.action),
+      ));
     }
 
     final column = Column(
@@ -1893,70 +1903,3 @@ List<MessageActionSpec> messageActionSpecs({
       ),
   ];
 }
-
-class _ActionRow extends StatefulWidget {
-  const _ActionRow({required this.spec, required this.onTap});
-  final MessageActionSpec spec;
-  final VoidCallback onTap;
-
-  @override
-  State<_ActionRow> createState() => _ActionRowState();
-}
-
-class _ActionRowState extends State<_ActionRow>
-    with TeardownSafe<_ActionRow> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final color = widget.spec.destructive ? theme.danger : theme.ink;
-    // FocusableTap so a keyboard can reach it; the pointer keeps its own
-    // press below.
-    return FocusableTap(
-      onTap: widget.onTap,
-      semanticLabel: sentenceCaseOf(context, widget.spec.label),
-      radius: 0,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTapUp: (_) => setState(() => _pressed = false),
-        onTap: widget.onTap,
-        // The iOS context-menu row, the same one the chat list's long-press
-        // menu draws: the label in 17pt body type and sentence case on the
-        // left, the glyph on the right, a neutral wash under the finger. It
-        // was tracked caps with a leading icon — a second dialect of the same
-        // menu. Fixed at [rowH] less the hairline so the placement maths in
-        // the overlay stays exact.
-        child: AnimatedContainer(
-          duration: _pressed ? Duration.zero : const Duration(milliseconds: 200),
-          height: 47,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          color: _pressed
-              ? theme.ink.withValues(alpha: 0.08)
-              : Colors.transparent,
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  sentenceCaseOf(context, widget.spec.label),
-                  style: theme.body.copyWith(
-                    fontSize: 17,
-                    color: color,
-                    letterSpacing: -0.3,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Icon(widget.spec.icon, size: 19, color: color),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-

@@ -16219,4 +16219,21 @@ class AppLocalizationsEs extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsHapticsLabel => 'Háptica';
+
+  @override
+  String get settingsHapticsSub => 'Toques y vibraciones en toda la app';
+
+  @override
+  String get settingsSearchKwHaptics =>
+      'háptica vibración vibrar toques respuesta';
+
+  @override
+  String get uiKitMaterialTitle => 'Material';
+
+  @override
+  String get uiKitMaterialBody =>
+      'El diseño propio de Android: controles Material 3 con ondas al tocar, con los colores de tu tema.';
 }

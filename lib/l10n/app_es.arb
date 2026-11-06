@@ -4391,5 +4391,10 @@
   "uiKitLiteFooter": "Ligero no dibuja vidrio, así que no hay nada que ajustar. Elige Esmerilado para dar forma al vidrio tú mismo.",
   "bulkForwardedToChats": "{count, plural, =1{reenviado} other{reenviado a {count} chats}}",
   "bulkSavedToPhotos": "{count, plural, =1{guardado en Fotos} other{{count} guardados en Fotos}}",
-  "bulkDeletedMessages": "{count, plural, =1{eliminado} other{{count} eliminados}}"
+  "bulkDeletedMessages": "{count, plural, =1{eliminado} other{{count} eliminados}}",
+  "settingsHapticsLabel": "Háptica",
+  "settingsHapticsSub": "Toques y vibraciones en toda la app",
+  "settingsSearchKwHaptics": "háptica vibración vibrar toques respuesta",
+  "uiKitMaterialTitle": "Material",
+  "uiKitMaterialBody": "El diseño propio de Android: controles Material 3 con ondas al tocar, con los colores de tu tema."
 }

@@ -25,6 +25,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/account_kit.dart';
 import '../../widgets/ios_kit.dart';
+import '../../widgets/status_pill.dart';
 
 /// The house settings-detail page: background layer, back arrow, big title,
 /// accent rule, caption, then content. Copied in shape from `LanguageScreen`
@@ -463,9 +464,13 @@ class BrainRow extends StatelessWidget {
                             if (isSelected &&
                                 state.status == BrainStatus.installed) ...[
                               const SizedBox(width: 8),
-                              _InUseBadge(
-                                theme: theme,
-                                label: l10n.companionBrainInUse,
+                              StatusPill(
+                                fill: StatusFill.solid,
+                                tone: StatusTone.accent,
+                                label: sentenceCaseOf(
+                                  context,
+                                  l10n.companionBrainInUse,
+                                ),
                               ),
                             ],
                           ],
@@ -654,38 +659,6 @@ class _Trailing extends StatelessWidget {
           onTap: busy ? null : () => manager.install(brain),
         );
     }
-  }
-}
-
-/// The chip on the row that is actually running: an accent capsule at the
-/// meta step (13/w600 on the body face, sentence case).
-///
-/// Same shape and register as `LanguageScreen`'s active badge, deliberately —
-/// this is the identical question ("which of these is live?") and answering it
-/// two different ways in two settings screens is how an app stops feeling like
-/// one app.
-class _InUseBadge extends StatelessWidget {
-  const _InUseBadge({required this.theme, required this.label});
-
-  final AppTheme theme;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: theme.accent,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        sentenceCaseOf(context, label),
-        style: groupedMetaStyle(theme).copyWith(
-          color: theme.accentInk,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
   }
 }
 

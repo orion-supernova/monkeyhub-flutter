@@ -2,12 +2,14 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'spring_press.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../l10n/text_case.dart';
+import '../ui/foundation/ui_kit.dart';
+import '../ui/kits/material/material_kit_theme.dart';
+import 'notice.dart';
 
 /// The small uppercase caption that sits above a form control.
 ///
@@ -391,7 +393,75 @@ class _TextBox extends StatelessWidget {
   final bool bottomAlignMultiline;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      KitSwitch(glass: _glass, material: _material);
+
+  /// The [UiKit.material] skin: the same [TextField] with a Material 3 filled
+  /// decoration (tonal fill, accent focus ring, leading and trailing slots).
+  Widget _material(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final scheme = MaterialKitTheme.of(theme).colorScheme;
+    final style = theme.body.copyWith(
+      color: theme.ink,
+      fontSize: 16,
+      height: textHeight,
+    );
+    final multi = (maxLines ?? 2) > 1;
+    OutlineInputBorder edge(Color color, double width) => OutlineInputBorder(
+      borderRadius: BorderRadius.circular(multi ? 16 : 14),
+      borderSide: width == 0
+          ? BorderSide.none
+          : BorderSide(color: color, width: width),
+    );
+    return MaterialKitScope(
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        autofocus: autofocus,
+        obscureText: obscure,
+        minLines: obscure ? null : minLines,
+        maxLines: obscure ? 1 : maxLines,
+        maxLength: maxLength,
+        maxLengthEnforcement: MaxLengthEnforcement.enforced,
+        keyboardType: keyboardType,
+        textInputAction: textInputAction,
+        textCapitalization: textCapitalization,
+        autocorrect: autocorrect,
+        enableSuggestions: enableSuggestions,
+        autofillHints: autofillHints,
+        keyboardAppearance:
+            keyboardAppearance ??
+            (theme.isLight ? Brightness.light : Brightness.dark),
+        enabled: enabled,
+        style: style,
+        cursorColor: scheme.primary,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: fill ?? scheme.surfaceContainerHighest,
+          counterText: '',
+          hintText: hint == null ? null : _hintText(context, hint!),
+          hintStyle: style.copyWith(color: scheme.onSurfaceVariant),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: multi ? 14 : 15,
+          ),
+          prefixIcon: leadingIcon == null
+              ? null
+              : Icon(leadingIcon, size: 20, color: scheme.onSurfaceVariant),
+          suffixIcon: trailing,
+          suffixIconConstraints: const BoxConstraints(),
+          border: edge(scheme.primary, 0),
+          enabledBorder: edge(scheme.primary, 0),
+          disabledBorder: edge(scheme.primary, 0),
+          focusedBorder: edge(scheme.primary, 2),
+        ),
+        onChanged: onChanged,
+        onSubmitted: onSubmitted,
+      ),
+    );
+  }
+
+  Widget _glass(BuildContext context) {
     final theme = ThemeScope.of(context);
     final style = theme.body.copyWith(
       color: theme.ink,
@@ -469,7 +539,7 @@ enum FormBannerTone { error, success }
 /// exclamation glyph and a 15pt sentence — and, optionally, the one thing to
 /// do about it ("Try again", "Use password instead").
 ///
-/// Replaces five private banners that had drifted to three radii and two
+/// A preset over [Notice] (loud register). Replaces five private banners that had drifted to three radii and two
 /// icon treatments (login, recovery, device scan, social username, device
 /// panel).
 class FormErrorBanner extends StatelessWidget {
@@ -490,64 +560,14 @@ class FormErrorBanner extends StatelessWidget {
   final IconData icon;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final radius = (theme.radiusXl.clamp(6.0, 26.0)) * 0.6;
-    final color = tone == FormBannerTone.success ? theme.success : theme.danger;
-    return Semantics(
-      liveRegion: true,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 11, 14, 11),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(radius),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 1),
-              child: Icon(icon, size: 18, color: color),
-            ),
-            const SizedBox(width: 9),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    message,
-                    style: theme.bodySoft.copyWith(
-                      fontSize: 15,
-                      height: 1.3,
-                      color: color,
-                    ),
-                  ),
-                  if (actionLabel != null && onAction != null)
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: SpringPress(
-                        onTap: onAction,
-                        scale: PressSpec.scaleSmall,
-                        semanticLabel: actionLabel,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 6, bottom: 2),
-                          child: Text(
-                            sentenceCaseOf(context, actionLabel!),
-                            style: theme.bodySoft.copyWith(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: color,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Notice(
+        message,
+        loud: true,
+        tone: tone == FormBannerTone.success
+            ? NoticeTone.success
+            : NoticeTone.error,
+        icon: icon,
+        actionLabel: actionLabel,
+        onAction: onAction,
+      );
 }

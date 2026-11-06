@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:monkeyhub/push/push_manager.dart';
+import 'package:monkeyhub/ui/foundation/ui_kit.dart';
 import 'package:monkeyhub/widgets/user_avatar.dart';
 
 /// Applies to every test in this directory.
@@ -19,6 +20,10 @@ import 'package:monkeyhub/widgets/user_avatar.dart';
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   presenceStoreForWidgets = null;
   PushManager.debugInboxReader = emptyPushInbox;
+  // flutter_test reports android, where Automatic means the Material kit.
+  // Widget tests are written against the glass reference kit; a kit test
+  // pins its kit with UiKitScope(kit:) or picks one in the store.
+  UiKits.debugAutomatic = UiKit.glass;
   await testMain();
 }
 

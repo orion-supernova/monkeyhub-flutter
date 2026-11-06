@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/services/app_binding.dart';
+import 'package:monkeyhub/services/haptics.dart';
 
 /// Records what reaches the engine, in place of Flutter's messenger.
 class _Inner implements BinaryMessenger {
@@ -70,5 +71,39 @@ void main() {
     await pumpEventQueue();
     expect(inner.sent, isEmpty);
     expect(played, ['HapticFeedbackType.selectionClick']);
+  });
+
+  group('Haptics setting', () {
+    tearDown(Haptics.resetForTest);
+
+    test('drops a HapticFeedback call when disabled', () async {
+      Haptics.enabled = false;
+      final inner = _Inner();
+      final m = HapticMessenger(inner, mac: false);
+      await m.send('flutter/platform', _vibrate('HapticFeedbackType.lightImpact'));
+      expect(inner.sent, isEmpty);
+    });
+
+    test('drops the macOS trackpad path when disabled', () async {
+      Haptics.enabled = false;
+      final played = <Object?>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(const MethodChannel('monkeyhub/haptics'),
+              (call) async {
+        played.add(call.arguments);
+        return null;
+      });
+      final m = HapticMessenger(_Inner(), mac: true);
+      await m.send('flutter/platform', _vibrate('HapticFeedbackType.lightImpact'));
+      await pumpEventQueue();
+      expect(played, isEmpty);
+    });
+
+    test('passes it through when enabled', () async {
+      final inner = _Inner();
+      final m = HapticMessenger(inner, mac: false);
+      await m.send('flutter/platform', _vibrate('HapticFeedbackType.lightImpact'));
+      expect(inner.sent, ['HapticFeedback.vibrate:HapticFeedbackType.lightImpact']);
+    });
   });
 }

@@ -12,6 +12,7 @@ import '../../services/clipboard_actions.dart';
 import 'diag_collapse.dart';
 import 'diag_palette.dart';
 import 'json_highlight.dart';
+import '../../widgets/status_pill.dart';
 
 /// One row of the timeline — a single event, or a collapsed run of them.
 class DiagEventRow extends StatefulWidget {
@@ -147,21 +148,25 @@ class _DiagEventRowState extends State<DiagEventRow> {
                               ),
                               if (widget.group.collapsed) ...[
                                 const SizedBox(width: 6),
-                                _Badge(
+                                StatusPill(
+                                  fill: StatusFill.tint,
+                                  dense: true,
                                   // The span is the diagnostic, not the count.
-                                  text: l10n.diagRepeatSpan(
+                                  label: l10n.diagRepeatSpan(
                                     widget.group.count,
                                     (widget.group.spanMs / 1000)
                                         .toStringAsFixed(1),
                                   ),
-                                  colour: theme.danger,
+                                  color: theme.danger,
                                 ),
                               ],
                               if (e.durationMs != null) ...[
                                 const SizedBox(width: 6),
-                                _Badge(
-                                  text: '${e.durationMs}ms',
-                                  colour: theme.inkMuted,
+                                StatusPill(
+                                  fill: StatusFill.tint,
+                                  dense: true,
+                                  label: '${e.durationMs}ms',
+                                  color: theme.inkMuted,
                                 ),
                               ],
                             ],
@@ -300,32 +305,6 @@ class _Detail extends StatelessWidget {
       context,
       e.toNdjsonLine(),
       toast: AppLocalizations.of(context).diagEventCopied,
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge({required this.text, required this.colour});
-  final String text;
-  final Color colour;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-      decoration: BoxDecoration(
-        color: colour.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        text,
-        style: groupedMetaStyle(theme).copyWith(
-          fontWeight: FontWeight.w600,
-          fontFeatures: const [FontFeature.tabularFigures()],
-          color: colour,
-        ),
-      ),
     );
   }
 }

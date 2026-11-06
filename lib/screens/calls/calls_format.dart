@@ -4,6 +4,11 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../format/duration_format.dart';
 import 'call_log_models.dart';
 
+/// The Calls tab's "now": what Today, Yesterday and "this week" are measured
+/// from. A test pins it, so a fixture written on one day still reads the same
+/// after midnight.
+DateTime Function() callsClock = DateTime.now;
+
 /// `m:ss`, or `h:mm:ss` from an hour up: the clock a call is read off.
 String clockDuration(int ms) {
   return formatClock(Duration(seconds: (ms / 1000).round()));
@@ -29,7 +34,7 @@ String clockTime(BuildContext context, int ms) {
 /// A day header: Today, Yesterday, then the date.
 String dayLabel(BuildContext context, DateTime day, {DateTime? now}) {
   final l10n = AppLocalizations.of(context);
-  final n = now ?? DateTime.now();
+  final n = now ?? callsClock();
   final today = DateTime(n.year, n.month, n.day);
   final diff = today.difference(day).inDays;
   if (diff == 0) return l10n.callsTabToday;
@@ -105,7 +110,7 @@ String callDetail(AppLocalizations l10n, CallLogEntry e) {
 /// Midnight of the first day of this week in the locale, for the talk-time
 /// header. Flutter's index is 0 = Sunday ... 6 = Saturday.
 DateTime weekStart(BuildContext context, {DateTime? now}) {
-  final n = now ?? DateTime.now();
+  final n = now ?? callsClock();
   final first = MaterialLocalizations.of(context).firstDayOfWeekIndex;
   final today = DateTime(n.year, n.month, n.day);
   final dartWeekday = n.weekday % 7; // 0 = Sunday
