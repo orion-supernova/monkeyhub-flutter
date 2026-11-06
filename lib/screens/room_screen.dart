@@ -724,7 +724,11 @@ class _RoomScreenState extends State<_RoomView>
     // feature exists for, which is why the divider only ever showed up off a
     // chat-list tap. [_maybeLandOnUnread] decides from the transcript instead,
     // which cannot be stale in that way.
-    widget.repo.beginUnreadAnchor(widget.roomId);
+    widget.repo.beginUnreadAnchor(
+      widget.roomId,
+      fromPush: UiSelectionStore.instance.pushEntryPendingRoomId == widget.roomId &&
+          UiSelectionStore.instance.consumePushEntry(widget.roomId),
+    );
     _unreadLandingPending = true;
     _unreadLandingDeadline = DateTime.now().add(_kUnreadLandingWindow);
     _unreadLiveGraceEnds = DateTime.now().add(_kUnreadLiveGrace);
@@ -1774,9 +1778,43 @@ class _RoomScreenState extends State<_RoomView>
   /// mount for it — consuming it here would wipe it before that screen exists.
   void _onSelectionStoreChange() {
     final store = UiSelectionStore.instance;
-    if (store.messageFocusPendingRoomId != widget.roomId) return;
-    final id = store.consumeMessageFocus(widget.roomId);
-    if (id != null) unawaited(_focusMessageFromPush(id));
+    // A screen on its way out (a phone's popped route) leaves the request for
+    // the screen replacing it, which reads it in `initState`.
+    final pushEntry = store.pushEntryPendingRoomId == widget.roomId &&
+        (ModalRoute.of(context)?.isCurrent ?? true) &&
+        store.consumePushEntry(widget.roomId);
+    if (store.messageFocusPendingRoomId == widget.roomId) {
+      final id = store.consumeMessageFocus(widget.roomId);
+      // A reaction push names its own bubble; that outranks the UNREAD line.
+      if (id != null) {
+        unawaited(_focusMessageFromPush(id));
+        return;
+      }
+    }
+    if (pushEntry) _relandOnUnreadFromPush();
+  }
+
+  /// A notification tap into the room this screen is ALREADY showing.
+  ///
+  /// The split pane (macOS, iPad, wide Android, Windows, Linux, web) keeps the
+  /// selected room mounted while the window is away, so the tap selects what
+  /// is already selected and nothing remounts — the opening landing in
+  /// `initState` ran hours ago, against a transcript that had nothing unread.
+  /// Re-run it from the cursor the room had when the viewer left.
+  void _relandOnUnreadFromPush() {
+    if (!mounted) return;
+    if (!widget.repo.reanchorUnreadOnReentry(widget.roomId)) return;
+    setState(() {
+      _unreadDividerId = null;
+      _unreadDividerSettled = false;
+      _unreadBackfillsUsed = 0;
+      _seenUpTo = null;
+    });
+    _unreadLandingPending = true;
+    _unreadLandingDeadline = DateTime.now().add(_kUnreadLandingWindow);
+    // The transcript has been live all along; nothing to wait for.
+    _unreadLiveGraceEnds = DateTime.now();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeLandOnUnread());
   }
 
   /// Lands on [messageId] and pulses it — the last hop of a reaction push.

@@ -289,4 +289,81 @@ void main() {
 
     expect(api.reads, isEmpty);
   });
+
+  // A notification tap into the room a split pane (macOS, iPad, desktop, web)
+  // is ALREADY showing. Nothing remounts, so the screen asks the repository to
+  // re-pin the UNREAD line — and the room list cannot answer, because by the
+  // time the tap lands the resume has flushed the held read.
+  group('push re-entry into the open room', () {
+    test('re-anchors on the cursor the room had when the viewer left', () async {
+      final read = DateTime.now().subtract(const Duration(minutes: 5));
+      await repo.openRoom('a', owner: screen);
+      deliver('a', 'm0', read);
+      await settleRead();
+
+      await lifecycle([AppLifecycleState.inactive, AppLifecycleState.hidden]);
+      deliver('a', 'm1', DateTime.now());
+      await settleRead();
+
+      await lifecycle([AppLifecycleState.inactive, AppLifecycleState.resumed]);
+      repo.flushDeferredRead();
+      await settleRead();
+      expect(api.reads.last.roomId, 'a', reason: 'the held read was taken');
+
+      expect(repo.reanchorUnreadOnReentry('a'), isTrue);
+      expect(repo.unreadAnchorSettled('a'), isTrue);
+      expect(
+        repo.unreadAnchorFor('a')!.millisecondsSinceEpoch,
+        read.millisecondsSinceEpoch,
+        reason:
+            'the line goes above m1, the message that arrived while away — '
+            'not below it, where the flushed read would put it',
+      );
+    });
+
+    test('a fresh screen from the tap uses it too, once this device has read', () async {
+      final read = DateTime.now().subtract(const Duration(minutes: 5));
+      await repo.openRoom('a', owner: screen);
+      deliver('a', 'm0', read);
+      await settleRead();
+
+      await lifecycle([AppLifecycleState.inactive, AppLifecycleState.hidden]);
+      deliver('a', 'm1', DateTime.now());
+      await settleRead();
+      await lifecycle([AppLifecycleState.inactive, AppLifecycleState.resumed]);
+      repo.flushDeferredRead();
+      await settleRead();
+
+      repo.beginUnreadAnchor('a');
+      expect(
+        repo.unreadAnchorSettled('a'),
+        isFalse,
+        reason: 'a list tap still waits for the room list, as before',
+      );
+
+      repo.beginUnreadAnchor('a', fromPush: true);
+      expect(repo.unreadAnchorSettled('a'), isTrue);
+      expect(
+        repo.unreadAnchorFor('a')!.millisecondsSinceEpoch,
+        read.millisecondsSinceEpoch,
+      );
+    });
+
+    test('no absence, nothing to re-anchor', () async {
+      await enterRoom();
+      deliver('a', 'm1', DateTime.now());
+      await settleRead();
+
+      expect(repo.reanchorUnreadOnReentry('a'), isFalse);
+    });
+
+    test('another room\'s absence does not apply', () async {
+      await enterRoom();
+      await lifecycle([AppLifecycleState.inactive, AppLifecycleState.hidden]);
+      deliver('a', 'm1', DateTime.now());
+      await settleRead();
+
+      expect(repo.reanchorUnreadOnReentry('b'), isFalse);
+    });
+  });
 }

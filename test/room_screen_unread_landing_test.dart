@@ -25,7 +25,7 @@ void main() {
   });
 
   test('the anchor is pinned before openRoom is called', () {
-    final beginAt = source.indexOf('widget.repo.beginUnreadAnchor(widget.roomId);');
+    final beginAt = source.indexOf('widget.repo.beginUnreadAnchor(');
     final openRoomAt =
         source.indexOf('widget.repo.openRoom(widget.roomId, owner: this);');
     expect(beginAt, isNonNegative, reason: 'the anchor call was renamed or removed');

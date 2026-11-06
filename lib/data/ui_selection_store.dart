@@ -148,6 +148,27 @@ class UiSelectionStore extends ChangeNotifier {
   /// instead of clearing it on a miss.
   String? get messageFocusPendingRoomId => _messageFocusPending?.roomId;
 
+  /// "This room was opened by a notification tap." Keyed by room for the
+  /// same reason as [messageFocusPendingRoomId]. Consumed by the RoomScreen
+  /// that mounts for it, or — on a split pane where the tapped room was
+  /// already selected and nothing remounts — by the one already showing it,
+  /// which then re-lands on the UNREAD line.
+  String? _pushEntryPending;
+  String? get pushEntryPendingRoomId => _pushEntryPending;
+
+  void requestPushEntry(String roomId) {
+    _pushEntryPending = roomId;
+    _notify();
+  }
+
+  /// Whether [roomId] was the room a notification tap asked for. Clears the
+  /// request either way.
+  bool consumePushEntry(String roomId) {
+    final pending = _pushEntryPending;
+    _pushEntryPending = null;
+    return pending == roomId;
+  }
+
   void requestMessageFocus(String roomId, String messageId) {
     _messageFocusPending = (roomId: roomId, messageId: messageId);
     _notify();

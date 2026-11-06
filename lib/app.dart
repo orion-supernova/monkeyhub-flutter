@@ -1017,6 +1017,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     UiSelectionStore.instance.selectRoom(roomId);
     // Pop any nested route first so we always land cleanly on the shell.
     nav.popUntil((r) => r.isFirst);
+    // Tells the RoomScreen this is a notification tap: the fresh one about to
+    // mount, or — on a split pane whose selection was already this room, so
+    // nothing remounts — the one already on screen, which re-lands on the
+    // UNREAD line itself. After the pop, so a phone's outgoing screen for the
+    // same room is no longer current and leaves it for its replacement.
+    UiSelectionStore.instance.requestPushEntry(roomId);
     final me = _repo.userId;
     void openGame() {
       if (matchId == null || matchId.isEmpty || me == null) return;
@@ -1375,6 +1381,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     );
     // A backgrounding is the last chance to get the tail of the log onto disk.
     if (state != AppLifecycleState.resumed) {
+      // The open room's read cursor as of walking away: where a notification
+      // tap back into it should draw the UNREAD line. See
+      // [ChatRepository.reanchorUnreadOnReentry].
+      _repo.noteViewerAway();
       unawaited(DiagBuffer.instance.flush());
       // And the last moment the app icon's number is ours. Every push carries
       // an absolute `ios_badgeCount` that APNs applies while we are away, so

@@ -551,11 +551,121 @@ class ChatRepository extends ChangeNotifier {
 
   /// Pin [roomId] as the room being read and start resolving its unread
   /// anchor. Call from the reading screen's `initState`, before [openRoom].
-  void beginUnreadAnchor(String roomId) {
+  ///
+  /// [fromPush] is a notification tap: the one entry where the room list's
+  /// cursor can be this device's own just-sent read, see below.
+  void beginUnreadAnchor(String roomId, {bool fromPush = false}) {
     _anchorRoomId = roomId;
     _unreadAnchor = null;
     _unreadAnchorResolved = false;
+    // A screen re-mounting the room the reader just came back to, after this
+    // device has already sent a read for it since the return: the room list's
+    // `lastReadAt` is (or is about to be) our own echo, so it would place the
+    // line under the very messages the tap was about. The cursor taken on the
+    // way out is the true one. See [_away].
+    final away = _away;
+    if (fromPush &&
+        away != null &&
+        away.roomId == roomId &&
+        away.cursor != null &&
+        _readSinceReturn &&
+        _awayValidFor(roomId)) {
+      _unreadAnchor = away.cursor;
+      _unreadAnchorResolved = true;
+      DiagLog.roomOpen(
+        'unread-anchor',
+        '$roomId cursor=${away.cursor!.toIso8601String()} (away)',
+      );
+      return;
+    }
     _resolveUnreadAnchor();
+  }
+
+  /// Re-pin the anchor for a room whose screen is ALREADY open, from the read
+  /// cursor it had when the viewer last walked away.
+  ///
+  /// The notification tap into the room on screen. A split-pane layout (macOS,
+  /// iPad, wide Android, Windows, Linux, web) keeps the selected room mounted
+  /// while the window is hidden, so the tap selects the room that is already
+  /// selected and no new screen ever runs its own [beginUnreadAnchor]. The
+  /// room list cannot answer for it either: by the time the tap lands, the
+  /// resume has flushed the held read and its echo may already be back.
+  ///
+  /// Returns whether there is a cursor to land on.
+  bool reanchorUnreadOnReentry(String roomId) {
+    final away = _away;
+    if (away == null || away.roomId != roomId || away.cursor == null) {
+      return false;
+    }
+    if (!_awayValidFor(roomId)) return false;
+    _anchorRoomId = roomId;
+    _unreadAnchor = away.cursor;
+    _unreadAnchorResolved = true;
+    DiagLog.roomOpen(
+      'unread-anchor',
+      '$roomId cursor=${away.cursor!.toIso8601String()} (re-entry)',
+    );
+    return true;
+  }
+
+  // ──── away cursor ────
+  // The open room's read cursor at the moment the viewer stopped looking:
+  // the line a notification tap back into that room should be drawn from.
+  // Taken once per away period and kept a short while past the return, since
+  // the tap that caused the return lands just after it.
+  ({String roomId, DateTime? cursor})? _away;
+  DateTime? _returnedAt;
+  bool _readSinceReturn = false;
+
+  /// The newest cursor this device has asked the server to mark, per room.
+  final Map<String, DateTime> _lastMarkedUpTo = {};
+
+  static const _kAwayReentryWindow = Duration(seconds: 30);
+
+  bool _awayValidFor(String roomId) {
+    final away = _away;
+    if (away == null || away.roomId != roomId) return false;
+    final back = _returnedAt;
+    return back == null || DateTime.now().difference(back) < _kAwayReentryWindow;
+  }
+
+  /// The furthest this room is known to be read: the server's cursor, or a
+  /// read this device sent that has not echoed back yet.
+  DateTime? _readCursorOf(String roomId) {
+    DateTime? best = _lastMarkedUpTo[roomId];
+    void take(DateTime? t) {
+      if (t != null && (best == null || t.isAfter(best!))) best = t;
+    }
+    for (final r in _roomsStore) {
+      if (r.id == roomId) {
+        take(r.lastReadAt);
+        break;
+      }
+    }
+    final p = _pendingRead;
+    if (p != null && p.roomId == roomId) take(p.upTo);
+    return best;
+  }
+
+  /// The viewer stopped looking (any lifecycle state but `resumed`, or a
+  /// read deferred because nobody was present). Captures the open room's
+  /// cursor once per away period.
+  void noteViewerAway() {
+    final id = _activeRoomId;
+    if (id == null) {
+      _away = null;
+      return;
+    }
+    // Already captured for this absence: a lock walks through several
+    // non-resumed states, and the later ones must not move the cursor.
+    if (_away?.roomId == id && _returnedAt == null) return;
+    _away = (roomId: id, cursor: _readCursorOf(id));
+    _returnedAt = null;
+    _readSinceReturn = false;
+  }
+
+  void _noteViewerReturned() {
+    if (_away != null && _returnedAt == null) _returnedAt = DateTime.now();
   }
 
   /// The read cursor [roomId] had when its screen opened, or null when there
@@ -1370,6 +1480,9 @@ class ChatRepository extends ChangeNotifier {
     final queued = _pendingRead;
     if (queued != null && !upTo.isAfter(queued.upTo)) upTo = queued.upTo;
     _pendingRead = (roomId: roomId, userId: userId, upTo: upTo);
+    final marked = _lastMarkedUpTo[roomId];
+    if (marked == null || upTo.isAfter(marked)) _lastMarkedUpTo[roomId] = upTo;
+    if (_away?.roomId == roomId && _returnedAt != null) _readSinceReturn = true;
     _readDebounce?.cancel();
     _readDebounce = Timer(_kReadDebounce, _flushMarkRead);
   }
@@ -1410,10 +1523,17 @@ class ChatRepository extends ChangeNotifier {
   /// [flushDeferredRead] takes the cursor then.
   void _markReadOrDefer(String roomId, String userId, DateTime upTo) {
     if (!viewerIsPresent) {
+      // Web's presence is document focus, which a lifecycle change does not
+      // always accompany — so the away cursor is also taken here, before the
+      // first message nobody saw. A no-op when the lifecycle already took it.
+      if (_deferredRead == null) noteViewerAway();
       _deferredRead = (roomId: roomId, userId: userId, upTo: upTo);
       return;
     }
     _deferredRead = null;
+    // A read taken while present ends any absence the lifecycle did not see
+    // end — web regaining focus with no `resumed`.
+    _noteViewerReturned();
     _scheduleMarkRead(roomId, userId, upTo);
     // Reading it means its notifications are spent. Done locally rather than
     // waiting for the server's silent dismiss push, which is best-effort and
@@ -1429,6 +1549,7 @@ class ChatRepository extends ChangeNotifier {
   /// and idempotent: no deferral, or one for a room that is no longer open,
   /// costs nothing and sends nothing.
   void flushDeferredRead() {
+    _noteViewerReturned();
     final d = _deferredRead;
     _deferredRead = null;
     if (d == null || d.roomId != _activeRoomId) return;
@@ -1579,6 +1700,10 @@ class ChatRepository extends ChangeNotifier {
     _anchorRoomId = null;
     _unreadAnchor = null;
     _unreadAnchorResolved = false;
+    _away = null;
+    _returnedAt = null;
+    _readSinceReturn = false;
+    _lastMarkedUpTo.clear();
     _openedWithoutUser = false;
     _openOwner = null;
     // Any open still in flight belongs to the account being signed out.
@@ -2748,11 +2873,19 @@ class ChatRepository extends ChangeNotifier {
     final anchorPending = _anchorRoomId == roomId && !_unreadAnchorResolved;
     if (me != null && viewerIsPresent && !anchorPending) {
       final held = _messages[roomId];
+      final heldUpTo = held != null && held.isNotEmpty ? held.last.createdAt : null;
+      if (heldUpTo != null) {
+        final marked = _lastMarkedUpTo[roomId];
+        if (marked == null || heldUpTo.isAfter(marked)) {
+          _lastMarkedUpTo[roomId] = heldUpTo;
+        }
+      }
+      if (_away?.roomId == roomId && _returnedAt != null) _readSinceReturn = true;
       api
           .markRoomRead(
             roomId: roomId,
             userId: me,
-            upTo: held != null && held.isNotEmpty ? held.last.createdAt : null,
+            upTo: heldUpTo,
           )
           .catchError((_) {});
       PushManager.instance.dismissRoomNotifications(roomId);
