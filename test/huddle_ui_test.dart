@@ -210,12 +210,14 @@ void main() {
       )));
       expect(find.byType(HuddleJoinPill), findsOneWidget);
       expect(find.byType(DockShelfChip), findsOneWidget);
-      // One row: the chip and the pill share a vertical band.
+      // One row, as tall as the pill's own row: the chip is centred in it.
+      expect(t.getSize(find.byType(ChatDock)).height,
+          kHuddlePillRowHeight + 52);
       expect(
         (t.getCenter(find.byType(HuddleJoinPill)).dy -
                 t.getCenter(find.byType(DockShelfChip)).dy)
             .abs(),
-        lessThan(kDockShelfHeight),
+        lessThan(1),
       );
     });
 
@@ -239,7 +241,7 @@ void main() {
       )));
       await t.pumpAndSettle();
       expect(find.byType(UserAvatar), findsNWidgets(3));
-      expect(find.text('Ada and 3 others'), findsOneWidget);
+      expect(find.bySemanticsLabel('Ada and 3 others'), findsOneWidget);
       await t.tap(find.text('Join'));
       await t.pump();
       expect(joined, 1);

@@ -36,9 +36,16 @@ import 'user_avatar.dart';
 // whichever of the first two applies. Design: docs/design/swipe-up-fork.html
 // (#notify, #dock, #motion).
 
-/// Height of the bar and the join pill. The shelf row is [kDockShelfHeight]
-/// including the gap under the item.
-const double kHuddleBarHeight = 32;
+/// Height of the in-huddle bar. Its shelf row ([DockShelfItem.height]) is
+/// [kHuddleBarRowHeight].
+const double kHuddleBarHeight = 74;
+
+/// Height of the join pill (WhatsApp's, scaled up a little for thumbs).
+const double kHuddlePillHeight = 56;
+
+/// The shelf row each form asks for: the form plus 6pt of air above and below.
+const double kHuddleBarRowHeight = kHuddleBarHeight + 12;
+const double kHuddlePillRowHeight = kHuddlePillHeight + 12;
 
 /// Where a room stands with respect to huddles, for the shelf.
 enum HuddleShelfMode {
@@ -101,6 +108,7 @@ List<DockShelfItem> huddleShelfItems({
         DockShelfItem(
           id: 'huddle',
           priority: DockShelfPriority.huddle,
+          height: kHuddleBarRowHeight,
           expanded: (_) => HuddleBarHost(
             service: svc,
             members: members,
@@ -119,6 +127,7 @@ List<DockShelfItem> huddleShelfItems({
         DockShelfItem(
           id: 'huddle-join',
           priority: DockShelfPriority.join,
+          height: kHuddlePillRowHeight,
           expanded: (_) => HuddleJoinPill(
             users: [for (final id in ids) members[id] ?? _stub(id)],
             api: api,
@@ -296,68 +305,116 @@ class _HuddleBarState extends State<HuddleBar>
     );
   }
 
+  /// WhatsApp's voice-chat bar, scaled to the shelf row: a round mute button,
+  /// the faces over a muted caption, a round red hang-up button. The shelf is
+  /// [kDockShelfHeight] tall, so the buttons are 30pt where WhatsApp's are 37.
   Widget _content(BuildContext context, AppTheme theme, AppLocalizations l10n) {
     final faces = widget.faces.take(4).toList();
-    return LiquidGlass(
-      shape: LiquidGlassShape.capsule,
-      padding: const EdgeInsets.fromLTRB(4, 3, 4, 3),
-      child: SizedBox(
-        height: kHuddleBarHeight - 6,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _RoundButton(
-              icon: widget.muted
-                  ? CupertinoIcons.mic_slash_fill
-                  : CupertinoIcons.mic_fill,
-              color: widget.muted ? theme.inkMuted : theme.accent,
-              semanticLabel: widget.muted
-                  ? l10n.groupCallScreenUnmuteLabel
-                  : l10n.groupCallScreenMuteLabel,
-              kickTrigger: widget.muted,
-              onTap: widget.onToggleMute,
-            ),
-            const SizedBox(width: 6),
-            // The middle opens the call screen. A generous target, since it
-            // is the bar's one big thing.
-            Flexible(
-              child: SpringPress(
-                onTap: widget.onOpen,
-                scale: 0.98,
-                semanticLabel: l10n.huddleBarOpenSemantics,
-                focusShape: FocusRingShape.capsule,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _FaceStack(faces: faces, api: widget.api),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        widget.names,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.bodySoft.copyWith(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: theme.ink,
-                          decoration: TextDecoration.none,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
+    return LayoutBuilder(
+      builder: (context, box) {
+        final w = math.min(
+          box.maxWidth - 32, math.max(kHuddleBarMinWidth, box.maxWidth * 0.64));
+        return LiquidGlass(
+          shape: LiquidGlassShape.rounded,
+          padding: const EdgeInsets.all(_kBarPad),
+          radius: 22,
+          child: SizedBox(
+            width: w - _kBarPad * 2,
+            height: kHuddleBarHeight - _kBarPad * 2,
+            child: Row(
+              children: [
+                _RoundButton(
+                  icon: widget.muted
+                      ? CupertinoIcons.mic_slash_fill
+                      : CupertinoIcons.mic_fill,
+                  fill: theme.ink.withValues(alpha: 0.14),
+                  color: widget.muted ? theme.inkMuted : theme.ink,
+                  semanticLabel: widget.muted
+                      ? l10n.groupCallScreenUnmuteLabel
+                      : l10n.groupCallScreenMuteLabel,
+                  kickTrigger: widget.muted,
+                  onTap: widget.onToggleMute,
                 ),
-              ),
+                // The middle opens the call screen. A generous target, since
+                // it is the bar's one big thing.
+                Expanded(
+                  child: SpringPress(
+                    onTap: widget.onOpen,
+                    scale: 0.98,
+                    semanticLabel: l10n.huddleBarOpenSemantics,
+                    focusShape: FocusRingShape.capsule,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _FaceStack(
+                              faces: faces,
+                              api: widget.api,
+                              size: 36,
+                              step: 26,
+                            ),
+                            const SizedBox(width: 6),
+                            const _WaveDisc(),
+                          ],
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Text(
+                            widget.names,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.caption.copyWith(
+                              fontSize: 10.5,
+                              height: 1.1,
+                              color: theme.inkMuted,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                _RoundButton(
+                  icon: CupertinoIcons.phone_down_fill,
+                  fill: theme.danger,
+                  color: Colors.white,
+                  semanticLabel: l10n.groupCallScreenLeaveLabel,
+                  onTap: widget.onLeave,
+                ),
+              ],
             ),
-            _RoundButton(
-              icon: CupertinoIcons.phone_down_fill,
-              color: theme.danger,
-              semanticLabel: l10n.groupCallScreenLeaveLabel,
-              onTap: widget.onLeave,
-            ),
-          ],
-        ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// WhatsApp's bar is ~63% of the screen wide (247 of 390).
+const double kHuddleBarMinWidth = 260;
+const double _kBarPad = 6;
+const double _kBarButton = 37;
+
+/// The small grey disc after the faces (WhatsApp's wave/check disc): a still
+/// waveform, so the bar has no idle loop.
+class _WaveDisc extends StatelessWidget {
+  const _WaveDisc();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      width: 28,
+      height: 28,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: theme.ink.withValues(alpha: 0.14),
       ),
+      child: HuddleWaveGlyph(size: 14, color: theme.inkMuted, live: false),
     );
   }
 }
@@ -394,21 +451,26 @@ class _SoundRingsPainter extends CustomPainter {
 
 /// Overlapping faces, each with its speaking ring.
 class _FaceStack extends StatelessWidget {
-  const _FaceStack({required this.faces, required this.api});
+  const _FaceStack({
+    required this.faces,
+    required this.api,
+    this.size = 24,
+    this.step = 15,
+  });
 
   final List<HuddleFace> faces;
   final ChatApi? api;
-
-  static const double size = 24;
-  static const double step = 15;
+  final double size;
+  final double step;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final width = size + (faces.length - 1) * step + 4;
+    final pad = size >= 22 ? 2.0 : 1.0;
+    final width = size + (faces.length - 1) * step + pad * 2;
     return SizedBox(
       width: width,
-      height: size + 4,
+      height: size + pad * 2,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -420,6 +482,7 @@ class _FaceStack extends StatelessWidget {
               child: _SpeakingFace(
                 face: faces[i],
                 api: api,
+                size: size,
                 rim: theme.surfaceRaised,
               ),
             ),
@@ -434,23 +497,27 @@ class _SpeakingFace extends StatelessWidget {
     required this.face,
     required this.api,
     required this.rim,
+    required this.size,
   });
 
   final HuddleFace face;
   final ChatApi? api;
   final Color rim;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
+    // A thinner rim on the bar's small faces.
+    final pad = size >= 22 ? 2.0 : 1.0;
     final avatar = Container(
-      width: _FaceStack.size + 4,
-      height: _FaceStack.size + 4,
-      padding: const EdgeInsets.all(2),
+      width: size + pad * 2,
+      height: size + pad * 2,
+      padding: EdgeInsets.all(pad),
       decoration: BoxDecoration(shape: BoxShape.circle, color: rim),
       child: UserAvatar(
         user: face.user,
         api: api,
-        size: _FaceStack.size - 0,
+        size: size,
         showStatus: false,
       ),
     );
@@ -491,10 +558,11 @@ class _SpeakingRingPainter extends CustomPainter {
   bool shouldRepaint(_SpeakingRingPainter old) => old.level != level;
 }
 
-/// A 24pt round control inside the bar.
+/// A 37pt round control inside the bar, on its own filled disc.
 class _RoundButton extends StatelessWidget {
   const _RoundButton({
     required this.icon,
+    required this.fill,
     required this.color,
     required this.semanticLabel,
     required this.onTap,
@@ -502,6 +570,7 @@ class _RoundButton extends StatelessWidget {
   });
 
   final IconData icon;
+  final Color fill;
   final Color color;
   final String semanticLabel;
   final VoidCallback onTap;
@@ -509,7 +578,7 @@ class _RoundButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget glyph = Icon(icon, size: 14, color: color);
+    Widget glyph = Icon(icon, size: 19, color: color);
     if (kickTrigger != null) {
       glyph = KickGlyph(kick: GlyphKick.pop, trigger: kickTrigger, child: glyph);
     }
@@ -517,7 +586,13 @@ class _RoundButton extends StatelessWidget {
       onTap: onTap,
       semanticLabel: semanticLabel,
       focusShape: FocusRingShape.circle,
-      child: SizedBox(width: 26, height: 26, child: Center(child: glyph)),
+      child: Container(
+        width: _kBarButton,
+        height: _kBarButton,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: fill),
+        child: glyph,
+      ),
     );
   }
 }
@@ -727,30 +802,25 @@ class _HuddleJoinPillState extends State<HuddleJoinPill> {
     final names = huddleNamesLabel(l10n, [
       for (final u in widget.users) u.displayName,
     ]);
+    // WhatsApp's compact pill: the speakers' faces and one big green capsule,
+    // no words but the button's own. Names ride along as the faces' label.
     return _GrowIn(
       child: LiquidGlass(
         shape: LiquidGlassShape.capsule,
-        padding: const EdgeInsets.fromLTRB(5, 3, 3, 3),
+        padding: const EdgeInsets.fromLTRB(8, 5, 5, 5),
         child: SizedBox(
-          height: kHuddleBarHeight - 6,
+          height: kHuddlePillHeight - 10,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _FaceStack(
-                faces: [for (final u in shown) HuddleFace(user: u)],
-                api: widget.api,
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  names,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.bodySoft.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: theme.ink,
-                    decoration: TextDecoration.none,
+              Semantics(
+                label: names,
+                child: ExcludeSemantics(
+                  child: _FaceStack(
+                    faces: [for (final u in shown) HuddleFace(user: u)],
+                    api: widget.api,
+                    size: 36,
+                    step: 24,
                   ),
                 ),
               ),
@@ -760,22 +830,37 @@ class _HuddleJoinPillState extends State<HuddleJoinPill> {
                 semanticLabel: l10n.forkActionJoinHuddle,
                 focusShape: FocusRingShape.capsule,
                 child: Container(
-                  height: 26,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  alignment: Alignment.center,
+                  height: kHuddlePillHeight - 10,
+                  padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: _busy
-                        ? theme.accent.withValues(alpha: 0.6)
-                        : theme.accent,
-                    borderRadius: BorderRadius.circular(13),
+                    color: kCallAcceptGreen.withValues(alpha: 0.28),
+                    borderRadius: BorderRadius.circular(23),
                   ),
-                  child: Text(
-                    l10n.groupCallBannerJoinButtonLabel,
-                    style: theme.bodySoft.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: theme.accentInk,
-                      decoration: TextDecoration.none,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _busy
+                          ? kCallAcceptGreen.withValues(alpha: 0.6)
+                          : kCallAcceptGreen,
+                      borderRadius: BorderRadius.circular(19),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(CupertinoIcons.speaker_2_fill,
+                            size: 20, color: Colors.black),
+                        const SizedBox(width: 7),
+                        Text(
+                          l10n.groupCallBannerJoinButtonLabel,
+                          style: theme.bodySoft.copyWith(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

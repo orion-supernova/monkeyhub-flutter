@@ -177,6 +177,23 @@ void main() {
         t.getSize(find.byType(ChatDock)).height, kDockShelfHeight + 52);
   });
 
+  testWidgets('a tall top item sizes the row; chips stay 44 wide, centred',
+      (t) async {
+    final tall = DockShelfItem(
+      id: 'huddle',
+      priority: DockShelfPriority.huddle,
+      height: 86,
+      expanded: (_) => Container(key: kDummyBarKey, height: 74, width: 240),
+      chip: (_) => const SizedBox.shrink(),
+    );
+    await t.pumpWidget(buildScene(shelf: [scheduledItem(), tall]));
+    expect(t.getSize(find.byType(ChatDock)).height, 86 + 52);
+    final chip = t.getRect(find.byType(DockShelfChip));
+    final bar = t.getRect(find.byKey(kDummyBarKey));
+    expect(chip.center.dy, closeTo(bar.center.dy, 1.0));
+    expect(chip.width, lessThan(kDockChipWidth + 20));
+  });
+
   testWidgets('shelf with one item is exactly the old centred pill',
       (t) async {
     await t.pumpWidget(buildScene(shelf: [scheduledItem()]));

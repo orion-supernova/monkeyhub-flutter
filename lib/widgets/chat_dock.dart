@@ -40,6 +40,7 @@ library;
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/widgets.dart';
 
+import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'glass_reveal.dart';
 import 'liquid_glass.dart';
@@ -69,6 +70,7 @@ class DockShelfItem {
     required this.priority,
     required this.expanded,
     required this.chip,
+    this.height,
   });
 
   /// Stable across rebuilds: it is the item's key, so a chip becoming the
@@ -79,12 +81,16 @@ class DockShelfItem {
   final int priority;
 
   /// The full-width form, used when this is the top item. Should be at most
-  /// [kDockShelfHeight] tall (the pill/bar and the gap under it).
+  /// [height] tall (the pill/bar and the air around it).
   final WidgetBuilder expanded;
 
   /// The collapsed form, used when something outranks this item. Should be
   /// [kDockChipWidth] wide; use [DockShelfChip] so every chip looks the same.
   final WidgetBuilder chip;
+
+  /// The shelf row's height while this is the top item, or [kDockShelfHeight]
+  /// when null. Collapsed chips stay [kDockChipWidth] and sit centred in it.
+  final double? height;
 }
 
 /// Height of the shelf's one row, including the gap under it. The scheduled
@@ -282,6 +288,21 @@ class _Shelf extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The row's height follows its top item, and a change (a huddle bar
+    // arriving, the pill replacing it) grows the dock instead of snapping it;
+    // the transcript follows through the measured inset every frame. Calm
+    // motion snaps.
+    return AnimatedSize(
+      duration: MotionScope.of(context).calm
+          ? Duration.zero
+          : const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.bottomCenter,
+      child: _row(context),
+    );
+  }
+
+  Widget _row(BuildContext context) {
     if (items.isEmpty) return const SizedBox.shrink();
     // Stable: equal priorities keep the order the host registered them in.
     final sorted = [
@@ -291,12 +312,13 @@ class _Shelf extends StatelessWidget {
         return byPriority != 0 ? byPriority : a.$1.compareTo(b.$1);
       });
     final top = sorted.first.$2;
+    final rowHeight = top.height ?? kDockShelfHeight;
     // One item: exactly the old centred pill, no padding, no Row.
     if (sorted.length == 1) {
       return KeyedSubtree(
         key: ValueKey('shelf:${top.id}'),
         child: SizedBox(
-          height: kDockShelfHeight,
+          height: rowHeight,
           child: Center(child: top.expanded(context)),
         ),
       );
@@ -304,7 +326,7 @@ class _Shelf extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SizedBox(
-        height: kDockShelfHeight,
+        height: rowHeight,
         child: Row(
           children: [
             Expanded(
