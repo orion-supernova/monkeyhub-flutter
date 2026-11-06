@@ -22,6 +22,7 @@ import {
   searchUsersCore,
 } from "./users";
 import { consume } from "./rateLimit";
+import { VANISH_TTL_MS, assertSeenTimer, syncSecretClock } from "./vanishCore";
 import { ERR_FILTER_BLOCKED, hasHit } from "./contentFilter";
 
 /**
@@ -140,9 +141,13 @@ async function createDirectRoom(
   receiverId: any,
   roomType?: string,
   messageLifetime?: number,
+  messageClock?: "seen" | "sent",
 ): Promise<Id<"rooms">> {
   const normalizedRoomType = roomType ?? "Regular Room";
   const roomKey = normalizedRoomType === "Chamber of Secrets" ? "secret" : "regular";
+  // Only a secret DM has a clock; "seen" needs one of the seen timers.
+  const dmClock = roomKey === "secret" ? messageClock : undefined;
+  if (dmClock === "seen") assertSeenTimer(messageLifetime);
   const ordered = [requesterId.toString(), receiverId.toString()].sort();
   const roomName = `dm:${roomKey}:${ordered[0]}:${ordered[1]}`;
 
@@ -179,10 +184,14 @@ async function createDirectRoom(
     memberCount: 0,
     type: normalizedRoomType,
     messageLifetime,
+    ...(dmClock !== undefined ? { messageClock: dmClock } : {}),
   });
 
   await addMembership(ctx, roomId, requesterId, ROLE_OWNER);
   await addMembership(ctx, roomId, receiverId);
+  if (dmClock === "seen") {
+    await syncSecretClock(ctx, await ctx.db.get(roomId), Date.now());
+  }
 
   return roomId;
 }
@@ -403,9 +412,10 @@ export const createDirectRequest = mutation({
     friendId: v.id("users"),
     roomType: v.string(),
     messageLifetime: v.optional(v.number()),
+    messageClock: v.optional(v.union(v.literal("seen"), v.literal("sent"))),
     initialMessage: v.optional(v.string()),
   },
-  handler: async (ctx, { userId, friendId, roomType, messageLifetime, initialMessage }) => {
+  handler: async (ctx, { userId, friendId, roomType, messageLifetime, messageClock, initialMessage }) => {
     if (userId.toString() === friendId.toString()) throw new Error("CANNOT_ADD_SELF");
     await consume(ctx, `freq:${userId}`, MAX_FRIEND_REQUESTS_PER_DAY, DAY_MS);
     await consume(ctx, `freqpair:${userId}:${friendId}`, 3, 7 * DAY_MS);
@@ -469,6 +479,11 @@ export const createDirectRequest = mutation({
     const stage = await initialStageFor(ctx, userId, friendId);
 
     const trimmed = initialMessage?.trim() ?? "";
+    // Fail now, not when the other person accepts: a "seen" clock only takes
+    // the seen timers, and only a secret DM has a clock at all.
+    const secretDm = roomType === "Chamber of Secrets";
+    const requestClock = secretDm ? messageClock : undefined;
+    if (requestClock === "seen") assertSeenTimer(messageLifetime);
     const requestId = await ctx.db.insert("friendships", {
       userId,
       friendId,
@@ -476,6 +491,7 @@ export const createDirectRequest = mutation({
       createdAt: Date.now(),
       roomType,
       messageLifetime,
+      ...(requestClock !== undefined ? { messageClock: requestClock } : {}),
       initialMessage: trimmed,
       ...(stage ? { stage } : {}),
     });
@@ -566,7 +582,8 @@ export const approveDirectRequest = mutation({
             requesterId,
             userId,
             request.roomType,
-            request.messageLifetime
+            request.messageLifetime,
+            request.messageClock
           )))
       : null;
 
@@ -590,6 +607,9 @@ export const approveDirectRequest = mutation({
         respondedAt: now,
         roomType: reverse.roomType ?? request.roomType,
         messageLifetime: reverse.messageLifetime ?? request.messageLifetime,
+        ...(reverse.messageClock ?? request.messageClock
+          ? { messageClock: reverse.messageClock ?? request.messageClock }
+          : {}),
         ...(roomId ? { roomId } : {}),
       });
     } else {
@@ -601,15 +621,21 @@ export const approveDirectRequest = mutation({
         respondedAt: now,
         roomType: request.roomType,
         messageLifetime: request.messageLifetime,
+        ...(request.messageClock ? { messageClock: request.messageClock } : {}),
         ...(roomId ? { roomId } : {}),
       });
     }
 
     if (roomId && hasMessages) {
       // Compute expiry from approval time if this is a secret room.
-      const expiresAt = request.messageLifetime
-        ? now + request.messageLifetime * 1000
-        : undefined;
+      // A "seen" room's messages ride the vanish machinery instead: no
+      // `expiresAt`, a 24 hour `vanishUntil` that the read cursor shortens.
+      const seenClock = request.messageClock === "seen";
+      const expiresAt =
+        request.messageLifetime && !seenClock
+          ? now + request.messageLifetime * 1000
+          : undefined;
+      const vanishUntil = seenClock ? now + VANISH_TTL_MS : undefined;
 
       for (const msg of requestMessages) {
         const messageId = await ctx.db.insert("messages", {
@@ -619,6 +645,7 @@ export const approveDirectRequest = mutation({
           createdAt: msg.createdAt,
           type: "text",
           expiresAt,
+          ...(vanishUntil !== undefined ? { vanishUntil } : {}),
         });
         if (expiresAt !== undefined) {
           await ctx.scheduler.runAt(
@@ -710,6 +737,7 @@ export const listIncomingDirectRequests = query({
           createdAt: request.createdAt,
           roomType: request.roomType ?? "Regular Room",
           messageLifetime: request.messageLifetime,
+          messageClock: request.messageClock ?? null,
           initialMessage: request.initialMessage ?? "",
           messageCount: messages.length,
           // A pending request is not a friendship, so a requester at
@@ -751,6 +779,7 @@ export const listOutgoingDirectRequests = query({
           createdAt: request.createdAt,
           roomType: request.roomType ?? "Regular Room",
           messageLifetime: request.messageLifetime,
+          messageClock: request.messageClock ?? null,
           initialMessage: request.initialMessage ?? "",
           messageCount: messages.length,
           // Lets the sender's UI distinguish "waiting for a grown-up" from

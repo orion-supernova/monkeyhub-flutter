@@ -34,6 +34,7 @@ import '../widgets/editable_info_row.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/sheet_kit.dart';
+import '../widgets/message_life_picker.dart';
 import '../widgets/mute_room_sheet.dart';
 import '../widgets/password_field.dart';
 import '../widgets/photo_chrome.dart';
@@ -84,20 +85,16 @@ class RoomInfoScreen extends StatefulWidget {
 }
 
 class _RoomInfoScreenState extends State<RoomInfoScreen> {
-  static const _ttlOptions = [
-    Duration(seconds: 10),
-    Duration(seconds: 30),
-    Duration(minutes: 1),
-    Duration(minutes: 5),
-    Duration(hours: 1),
-  ];
-
   final _name = TextEditingController();
   final _desc = TextEditingController();
   final _newPassword = TextEditingController();
 
   bool _isPrivate = true;
   Duration? _ttl;
+
+  /// When a secret room's countdown starts. Rooms older than the field count
+  /// from sending.
+  MessageClock _clock = MessageClock.sent;
   bool _loaded = false;
 
   /// Whether the password field currently holds anything, tracked so the SET
@@ -520,6 +517,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         a.isPrivate == b.isPrivate &&
         a.hasPassword == b.hasPassword &&
         a.messageLifetime == b.messageLifetime &&
+        a.messageClock == b.messageClock &&
         a.createdBy == b.createdBy &&
         a.memberCount == b.memberCount;
   }
@@ -531,13 +529,14 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     _desc.text = r.description ?? '';
     _isPrivate = r.isPrivate;
     _ttl = r.messageLifetime;
+    _clock = r.messageClock == 'seen' ? MessageClock.seen : MessageClock.sent;
     // Seeded so the first keystroke is measured against what the server has,
     // not against an empty string — otherwise opening the screen and touching
     // nothing would still write on the first debounce.
     // Trimmed to match how [_pushRoom] builds it, or a description stored with
     // stray whitespace would never compare equal and every toggle would write.
     _appliedSig =
-        '${r.name.trim()}|${(r.description ?? '').trim()}|${r.isPrivate}|${r.isEphemeral ? r.messageLifetime : null}';
+        '${r.name.trim()}|${(r.description ?? '').trim()}|${r.isPrivate}|${r.isEphemeral ? r.messageLifetime : null}|${r.isEphemeral ? _clock.name : null}';
     _loaded = true;
     // The roster is already in hand — this screen is only ever pushed from the
     // room it describes, so the repository is holding that room's members by
@@ -694,10 +693,11 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
 
     final nextDesc = (description ?? r.description ?? '').trim();
     final ttl = r.isEphemeral ? _ttl : null;
+    final clock = r.isEphemeral ? _clock : null;
     // Skip a write that would change nothing — committing an edit that landed
     // back on the original value, or tapping the segment that is already
     // active. Every mutation on this row wakes every subscription watching it.
-    final sig = '$nextName|$nextDesc|$_isPrivate|$ttl';
+    final sig = '$nextName|$nextDesc|$_isPrivate|$ttl|${clock?.name}';
     if (sig == _appliedSig) {
       if (_error != null && mounted) setState(() => _error = null);
       return;
@@ -712,6 +712,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         description: nextDesc.isEmpty ? null : nextDesc,
         isPrivate: _isPrivate,
         messageLifetime: ttl,
+        messageClock: clock?.name,
       );
       _appliedSig = sig;
     } catch (e) {
@@ -996,13 +997,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     return friendlyServerError(e, l10n, s.replaceFirst('Exception: ', ''));
   }
 
-  String _fmtTtl(BuildContext context, Duration d) {
-    final l10n = AppLocalizations.of(context);
-    if (d.inSeconds < 60) return l10n.roomInfoScreenTtlSeconds(d.inSeconds);
-    if (d.inMinutes < 60) return l10n.roomInfoScreenTtlMinutes(d.inMinutes);
-    return l10n.roomInfoScreenTtlHours(d.inHours);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -1154,44 +1148,22 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
           InsetGroup(
             header: l10n.riMessageLife,
             children: [
+              // Clock and timer are both editable; a secret room never goes
+              // back to regular, so there is no "off" here.
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final t in _ttlOptions)
-                      SpringPress(
-                        onTap: () {
-                          setState(() => _ttl = t);
-                          unawaited(_pushRoom());
-                        },
-                        child: AnimatedContainer(
-                          duration: theme.motionFast,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _ttl == t
-                                ? theme.accent
-                                : theme.ink.withValues(alpha: 0.07),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            _fmtTtl(context, t),
-                            style: theme.body.copyWith(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                              color: _ttl == t ? theme.accentInk : theme.ink,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                child: MessageLifePicker(
+                  value: (
+                    clock: _clock,
+                    lifetime: _ttl ?? kDefaultMessageLife.lifetime,
+                  ),
+                  onChanged: (v) {
+                    setState(() {
+                      _clock = v.clock;
+                      _ttl = v.lifetime;
+                    });
+                    unawaited(_pushRoom());
+                  },
                 ),
               ),
             ],

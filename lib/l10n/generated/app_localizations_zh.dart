@@ -14232,6 +14232,97 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fightStageDeck => '月夜甲板';
 
   @override
+  String get newRoomPreviewUntitled => 'Untitled room';
+
+  @override
+  String get newRoomPreviewSecretBadge => 'SECRET';
+
+  @override
+  String get newRoomPreviewAvatarSemantic =>
+      'Room emoji. Tap to choose another';
+
+  @override
+  String get newRoomSectionPeople => 'People';
+
+  @override
+  String get newRoomPeopleOnlyYou => 'only you so far';
+
+  @override
+  String newRoomPeopleYouPlus(int count) {
+    return 'you + $count';
+  }
+
+  @override
+  String get newRoomPeopleSearchHint => 'Search friends';
+
+  @override
+  String get newRoomPeopleNoFriends => 'Friends you add can be invited here.';
+
+  @override
+  String get newRoomPeopleNoMatch => 'No friend matches';
+
+  @override
+  String get newRoomSectionRoom => 'Room';
+
+  @override
+  String get newRoomKindRegular => 'Regular';
+
+  @override
+  String get newRoomKindSecret => 'Secret';
+
+  @override
+  String get newRoomKindRegularDesc => 'Messages stay.';
+
+  @override
+  String get newRoomKindSecretDesc =>
+      'Messages always disappear and screenshots are blocked. Once secret, always secret.';
+
+  @override
+  String get newRoomSectionFind => 'Who can find it';
+
+  @override
+  String get newRoomFindInviteOnly => 'Invite only';
+
+  @override
+  String get newRoomFindFindable => 'Findable';
+
+  @override
+  String get newRoomPasswordSwitch => 'Lock with a password';
+
+  @override
+  String get newRoomAddDescription => '+ Add a description';
+
+  @override
+  String get newRoomSubRegular => 'regular';
+
+  @override
+  String newRoomSubSecretSent(String time) {
+    return 'secret · $time after sent';
+  }
+
+  @override
+  String newRoomSubSecretSeen(String time) {
+    return 'secret · $time after seen';
+  }
+
+  @override
+  String get newRoomSubLocked => 'locked';
+
+  @override
+  String get newRoomSubJustYou => 'just you';
+
+  @override
+  String get privacyVanishShareReadsTitle =>
+      'Share my reads in vanishing chats';
+
+  @override
+  String get privacyVanishShareReadsFootnote =>
+      'A vanishing message disappears 10 seconds after it\'s read, so the sender can tell you read it.';
+
+  @override
+  String get privacyVanishShareReadsAnytime => 'You can change this anytime.';
+
+  @override
   String get messageLifeAfterSeen => 'After seen';
 
   @override
@@ -14246,4 +14337,107 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get messageLifeRulerLabel => 'Message timer';
+
+  @override
+  String get forkHintSwipeUp => 'Swipe up';
+
+  @override
+  String get forkSubChoose => 'to talk or vanish';
+
+  @override
+  String get forkSubTalk => 'to talk';
+
+  @override
+  String get forkSubJoin => 'to join';
+
+  @override
+  String get forkSubVanishOn => 'to turn on vanish';
+
+  @override
+  String get forkSubVanishOff => 'to turn off vanish';
+
+  @override
+  String get forkSlideToChoose => 'Slide to choose';
+
+  @override
+  String get forkLetGoCancel => 'let go here to cancel';
+
+  @override
+  String get forkReleaseTalk => 'Release to talk';
+
+  @override
+  String get forkReleaseJoin => 'Release to join';
+
+  @override
+  String get forkReleaseVanishOn => 'Release to turn on vanish';
+
+  @override
+  String get forkReleaseVanishOff => 'Release to turn off vanish';
+
+  @override
+  String get forkDragDownCancel => 'drag down to cancel';
+
+  @override
+  String get forkSlideBackCancel => 'slide back to cancel';
+
+  @override
+  String get forkChipVanish => 'Vanish';
+
+  @override
+  String get forkChipTurnOff => 'Turn off';
+
+  @override
+  String get forkChipTalk => 'Talk';
+
+  @override
+  String get forkChipJoin => 'Join';
+
+  @override
+  String get forkChipVanishSub => 'Messages disappear';
+
+  @override
+  String get forkChipTurnOffSub => 'Messages stay';
+
+  @override
+  String get forkChipTalkSub => 'Nobody gets rung';
+
+  @override
+  String forkChipJoinSub(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count people here',
+      one: '1 person here',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get forkFailGeneric => 'Couldn\'t do that. Try again.';
+
+  @override
+  String get forkFailCallFull => 'That huddle is full.';
+
+  @override
+  String get forkActionStartHuddle => 'Start huddle';
+
+  @override
+  String get forkActionJoinHuddle => 'Join huddle';
+
+  @override
+  String get forkActionVanishOn => 'Turn on vanish mode';
+
+  @override
+  String get forkActionVanishOff => 'Turn off vanish mode';
+
+  @override
+  String get forkToastVanishAlreadyOn => 'Vanish mode is already on';
+
+  @override
+  String get forkToastVanishAlreadyOff => 'Vanish mode is already off';
+
+  @override
+  String newRoomInviteFailed(String names) {
+    return 'Couldn\'t invite $names. You can invite them from the room.';
+  }
 }

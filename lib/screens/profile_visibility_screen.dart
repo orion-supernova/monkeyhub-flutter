@@ -9,6 +9,7 @@ import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
+import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/account_kit.dart';
 import '../widgets/ios_kit.dart';
@@ -95,6 +96,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
     FieldVisibility? points,
     FieldVisibility? puzzle,
     FieldVisibility? pointsPast,
+    bool? vanishShareReads,
   }) async {
     final me = widget.repo.userId;
     if (me == null || widget.readOnly) return;
@@ -110,6 +112,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
         points: points,
         puzzle: puzzle,
         pointsPast: pointsPast,
+        vanishShareReads: vanishShareReads,
       );
     });
     try {
@@ -124,6 +127,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
         points: points,
         puzzle: puzzle,
         pointsPast: pointsPast,
+        vanishShareReads: vanishShareReads,
       );
     } catch (_) {/* leave optimistic state; user can retry */} finally {
       if (mounted) setState(() => _saving = false);
@@ -223,6 +227,33 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                     },
                   ),
                 ],
+              ),
+              // Only for someone who hides "seen": a vanishing message waits
+              // for the people it was sent to, so this is the one switch that
+              // lets their reads start its 10 second clock. Off until chosen.
+              AnimatedSize(
+                duration: MotionScope.of(context)
+                    .d(const Duration(milliseconds: 280)),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: _vis.seen != FieldVisibility.nobody
+                    ? const SizedBox(width: double.infinity)
+                    : InsetGroup(
+                        footer:
+                            '${l10n.privacyVanishShareReadsFootnote}\n${l10n.privacyVanishShareReadsAnytime}',
+                        children: [
+                          GroupedRow.toggle(
+                            title: l10n.privacyVanishShareReadsTitle,
+                            value: _vis.vanishShareReads,
+                            onChanged: ro
+                                ? (_) {}
+                                : (v) {
+                                    HapticFeedback.lightImpact();
+                                    _patch(vanishShareReads: v);
+                                  },
+                          ),
+                        ],
+                      ),
               ),
               InsetGroup(
                 header: l10n.pvSectionPeople,

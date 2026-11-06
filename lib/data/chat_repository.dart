@@ -1862,6 +1862,7 @@ class ChatRepository extends ChangeNotifier {
     String? password,
     RoomType type = RoomType.regular,
     Duration? messageLifetime,
+    String? messageClock,
   }) async {
     final id = _userId;
     if (id == null) throw StateError('Not signed in');
@@ -1873,6 +1874,7 @@ class ChatRepository extends ChangeNotifier {
       password: password,
       type: type,
       messageLifetime: messageLifetime,
+      messageClock: messageClock,
     );
     // Subscription will deliver the new room on the next tick.
   }
@@ -5950,6 +5952,7 @@ class ChatRepository extends ChangeNotifier {
     required String friendId,
     required RoomType roomType,
     Duration? messageLifetime,
+    String? messageClock,
     String? initialMessage,
   }) async {
     final id = _userId;
@@ -5959,6 +5962,7 @@ class ChatRepository extends ChangeNotifier {
       friendId: friendId,
       roomType: roomType,
       messageLifetime: messageLifetime,
+      messageClock: messageClock,
       initialMessage: initialMessage,
     );
   }
@@ -5990,6 +5994,7 @@ class ChatRepository extends ChangeNotifier {
   Future<String> openDmWith(ChatUser friend, {
     RoomType roomType = RoomType.regular,
     Duration? messageLifetime,
+    String? messageClock,
   }) async {
     final id = _userId;
     if (id == null) throw StateError('Not signed in');
@@ -5998,6 +6003,7 @@ class ChatRepository extends ChangeNotifier {
       friendId: friend.id,
       roomType: roomType,
       messageLifetime: messageLifetime,
+      messageClock: messageClock,
     );
   }
 

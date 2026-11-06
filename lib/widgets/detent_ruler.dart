@@ -67,7 +67,10 @@ class DetentRuler extends StatefulWidget {
 
 class _DetentRulerState extends State<DetentRuler>
     with SingleTickerProviderStateMixin {
-  static const double _pad = 24;
+  // At least half the knob (28) and half a stop's label (30), so the first
+  // and last stops' knob and label sit fully inside the ruler instead of
+  // being cut off at its rounded ends.
+  static const double _pad = 32;
   static const double _knobWidth = 56;
   static const _spring = SpringDescription(mass: 1, stiffness: 420, damping: 26);
 

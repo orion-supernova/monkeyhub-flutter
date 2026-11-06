@@ -288,6 +288,8 @@ export default defineSchema({
     respondedAt: v.optional(v.number()),
     roomType: v.optional(v.string()),
     messageLifetime: v.optional(v.number()),
+    // "seen" | "sent": when a secret DM's message life counts from.
+    messageClock: v.optional(v.union(v.literal("seen"), v.literal("sent"))),
     initialMessage: v.optional(v.string()),
     roomId: v.optional(v.id("rooms")),
     // ── Supervision relay ────────────────────────────────────────────────

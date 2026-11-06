@@ -25075,6 +25075,168 @@ abstract class AppLocalizations {
   /// **'Moonlit Deck'**
   String get fightStageDeck;
 
+  /// Placeholder name shown on the live preview card at the top of the new-room sheet until the person types a name.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled room'**
+  String get newRoomPreviewUntitled;
+
+  /// Small all-caps badge on the new-room preview card when the room is a secret room.
+  ///
+  /// In en, this message translates to:
+  /// **'SECRET'**
+  String get newRoomPreviewSecretBadge;
+
+  /// Screen-reader label of the emoji button next to the room name field in the new-room sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Room emoji. Tap to choose another'**
+  String get newRoomPreviewAvatarSemantic;
+
+  /// Section label in the new-room sheet: friends to invite when the room is created.
+  ///
+  /// In en, this message translates to:
+  /// **'People'**
+  String get newRoomSectionPeople;
+
+  /// Right-aligned count next to the People label in the new-room sheet when nobody has been picked.
+  ///
+  /// In en, this message translates to:
+  /// **'only you so far'**
+  String get newRoomPeopleOnlyYou;
+
+  /// Right-aligned count next to the People label: the person making the room plus {count} picked friends. Also part of the preview card subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'you + {count}'**
+  String newRoomPeopleYouPlus(int count);
+
+  /// Hint of the friend search field in the new-room sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Search friends'**
+  String get newRoomPeopleSearchHint;
+
+  /// Shown in the People section of the new-room sheet when the person has no friends yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Friends you add can be invited here.'**
+  String get newRoomPeopleNoFriends;
+
+  /// Shown in the People section of the new-room sheet when the search matches no friend.
+  ///
+  /// In en, this message translates to:
+  /// **'No friend matches'**
+  String get newRoomPeopleNoMatch;
+
+  /// Section label in the new-room sheet for the Regular / Secret choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Room'**
+  String get newRoomSectionRoom;
+
+  /// Segment label in the new-room sheet: a normal room where messages stay.
+  ///
+  /// In en, this message translates to:
+  /// **'Regular'**
+  String get newRoomKindRegular;
+
+  /// Segment label in the new-room sheet: a room where messages always disappear and screenshots are blocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Secret'**
+  String get newRoomKindSecret;
+
+  /// One line under the Regular / Secret segments when Regular is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages stay.'**
+  String get newRoomKindRegularDesc;
+
+  /// One line under the Regular / Secret segments when Secret is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages always disappear and screenshots are blocked. Once secret, always secret.'**
+  String get newRoomKindSecretDesc;
+
+  /// Section label in the new-room sheet for visibility and the password.
+  ///
+  /// In en, this message translates to:
+  /// **'Who can find it'**
+  String get newRoomSectionFind;
+
+  /// Segment label in the new-room sheet: the room is private and people join only by invitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite only'**
+  String get newRoomFindInviteOnly;
+
+  /// Segment label in the new-room sheet: the room is public and anyone can find it.
+  ///
+  /// In en, this message translates to:
+  /// **'Findable'**
+  String get newRoomFindFindable;
+
+  /// Label of the switch in the new-room sheet that reveals the password field.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock with a password'**
+  String get newRoomPasswordSwitch;
+
+  /// Quiet text button in the new-room sheet that reveals the optional description field.
+  ///
+  /// In en, this message translates to:
+  /// **'+ Add a description'**
+  String get newRoomAddDescription;
+
+  /// Part of the new-room preview card subtitle: the room is a regular room.
+  ///
+  /// In en, this message translates to:
+  /// **'regular'**
+  String get newRoomSubRegular;
+
+  /// Part of the new-room preview card subtitle for a secret room whose messages disappear {time} (for example 30s) after they are sent.
+  ///
+  /// In en, this message translates to:
+  /// **'secret · {time} after sent'**
+  String newRoomSubSecretSent(String time);
+
+  /// Part of the new-room preview card subtitle for a secret room whose messages disappear {time} (for example 1m) after they are seen.
+  ///
+  /// In en, this message translates to:
+  /// **'secret · {time} after seen'**
+  String newRoomSubSecretSeen(String time);
+
+  /// Part of the new-room preview card subtitle: the room needs a password.
+  ///
+  /// In en, this message translates to:
+  /// **'locked'**
+  String get newRoomSubLocked;
+
+  /// Part of the new-room preview card subtitle when no friend has been picked.
+  ///
+  /// In en, this message translates to:
+  /// **'just you'**
+  String get newRoomSubJustYou;
+
+  /// Title of the switch in Privacy settings, shown when Seen is set to Nobody: lets vanishing chats see when you read.
+  ///
+  /// In en, this message translates to:
+  /// **'Share my reads in vanishing chats'**
+  String get privacyVanishShareReadsTitle;
+
+  /// Footnote under the 'Share my reads in vanishing chats' switch in Privacy settings.
+  ///
+  /// In en, this message translates to:
+  /// **'A vanishing message disappears 10 seconds after it\'s read, so the sender can tell you read it.'**
+  String get privacyVanishShareReadsFootnote;
+
+  /// Reassurance line under the 'Share my reads in vanishing chats' footnote in Privacy settings.
+  ///
+  /// In en, this message translates to:
+  /// **'You can change this anytime.'**
+  String get privacyVanishShareReadsAnytime;
+
   /// Segment label in the secret-room message timer: the countdown starts when the message is read. Paired with 'After sent'.
   ///
   /// In en, this message translates to:
@@ -25104,6 +25266,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Message timer'**
   String get messageLifeRulerLabel;
+
+  /// Hint above the composer while pulling up the swipe-up fork gesture in a chat, before the fork line.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe up'**
+  String get forkHintSwipeUp;
+
+  /// Second line of the swipe-up hint when two choices will appear: start a huddle (talk) or turn vanish mode on or off.
+  ///
+  /// In en, this message translates to:
+  /// **'to talk or vanish'**
+  String get forkSubChoose;
+
+  /// Second line of the swipe-up hint when the only choice is to start a huddle (a talk with nobody rung).
+  ///
+  /// In en, this message translates to:
+  /// **'to talk'**
+  String get forkSubTalk;
+
+  /// Second line of the swipe-up hint when the only choice is to join the huddle others are in.
+  ///
+  /// In en, this message translates to:
+  /// **'to join'**
+  String get forkSubJoin;
+
+  /// Second line of the swipe-up hint when the only choice is turning vanish mode on (messages disappear after being seen).
+  ///
+  /// In en, this message translates to:
+  /// **'to turn on vanish'**
+  String get forkSubVanishOn;
+
+  /// Second line of the swipe-up hint when the only choice is turning vanish mode off.
+  ///
+  /// In en, this message translates to:
+  /// **'to turn off vanish'**
+  String get forkSubVanishOff;
+
+  /// Hint while the swipe-up fork is open and no choice is selected: slide the finger left or right.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide to choose'**
+  String get forkSlideToChoose;
+
+  /// Second line under 'Slide to choose': releasing in the middle cancels.
+  ///
+  /// In en, this message translates to:
+  /// **'let go here to cancel'**
+  String get forkLetGoCancel;
+
+  /// Hint when the Talk choice is selected in the swipe-up fork: letting go starts a huddle.
+  ///
+  /// In en, this message translates to:
+  /// **'Release to talk'**
+  String get forkReleaseTalk;
+
+  /// Hint when the Join choice is selected in the swipe-up fork: letting go joins the huddle.
+  ///
+  /// In en, this message translates to:
+  /// **'Release to join'**
+  String get forkReleaseJoin;
+
+  /// Hint when the vanish choice is selected: letting go turns vanish mode on.
+  ///
+  /// In en, this message translates to:
+  /// **'Release to turn on vanish'**
+  String get forkReleaseVanishOn;
+
+  /// Hint when the turn-off choice is selected: letting go turns vanish mode off.
+  ///
+  /// In en, this message translates to:
+  /// **'Release to turn off vanish'**
+  String get forkReleaseVanishOff;
+
+  /// Second line of the swipe-up hint with a single choice: dragging back down cancels.
+  ///
+  /// In en, this message translates to:
+  /// **'drag down to cancel'**
+  String get forkDragDownCancel;
+
+  /// Second line of the swipe-up hint with a choice selected: sliding back to the middle cancels.
+  ///
+  /// In en, this message translates to:
+  /// **'slide back to cancel'**
+  String get forkSlideBackCancel;
+
+  /// Label of the swipe-up fork option that turns vanish mode on. Short.
+  ///
+  /// In en, this message translates to:
+  /// **'Vanish'**
+  String get forkChipVanish;
+
+  /// Label of the swipe-up fork option that turns vanish mode off. Short.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off'**
+  String get forkChipTurnOff;
+
+  /// Label of the swipe-up fork option that starts a huddle, a voice call that rings nobody. Short.
+  ///
+  /// In en, this message translates to:
+  /// **'Talk'**
+  String get forkChipTalk;
+
+  /// Label of the swipe-up fork option that joins the huddle others are in. Short.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get forkChipJoin;
+
+  /// Caption under the Vanish option of the swipe-up fork.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages disappear'**
+  String get forkChipVanishSub;
+
+  /// Caption under the Turn off option of the swipe-up fork.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages stay'**
+  String get forkChipTurnOffSub;
+
+  /// Caption under the Talk option of the swipe-up fork: starting a huddle does not ring anyone.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody gets rung'**
+  String get forkChipTalkSub;
+
+  /// Caption under the Join option of the swipe-up fork: how many people are in the huddle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 person here} other{{count} people here}}'**
+  String forkChipJoinSub(int count);
+
+  /// Shown under the orb when a swipe-up fork action fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t do that. Try again.'**
+  String get forkFailGeneric;
+
+  /// Shown under the orb when joining a huddle fails because the call has no room.
+  ///
+  /// In en, this message translates to:
+  /// **'That huddle is full.'**
+  String get forkFailCallFull;
+
+  /// Screen-reader custom action on the message composer: starts a huddle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start huddle'**
+  String get forkActionStartHuddle;
+
+  /// Screen-reader custom action on the message composer: joins the live huddle.
+  ///
+  /// In en, this message translates to:
+  /// **'Join huddle'**
+  String get forkActionJoinHuddle;
+
+  /// Screen-reader custom action on the message composer: turns vanish mode on.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on vanish mode'**
+  String get forkActionVanishOn;
+
+  /// Screen-reader custom action on the message composer: turns vanish mode off.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off vanish mode'**
+  String get forkActionVanishOff;
+
+  /// Toast when the swipe-up fork turns vanish mode on but someone already did.
+  ///
+  /// In en, this message translates to:
+  /// **'Vanish mode is already on'**
+  String get forkToastVanishAlreadyOn;
+
+  /// Toast when the swipe-up fork turns vanish mode off but someone already did.
+  ///
+  /// In en, this message translates to:
+  /// **'Vanish mode is already off'**
+  String get forkToastVanishAlreadyOff;
+
+  /// Toast after creating a room when some of the people picked in the new room sheet could not be invited (for example they turned invitations off). {names} is a comma-separated list of display names.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t invite {names}. You can invite them from the room.'**
+  String newRoomInviteFailed(String names);
 }
 
 class _AppLocalizationsDelegate

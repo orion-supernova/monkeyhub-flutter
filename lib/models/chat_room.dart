@@ -19,6 +19,7 @@ class ChatRoom {
     this.hasPassword = false,
     this.type = RoomType.regular,
     this.messageLifetime,
+    this.messageClock,
     this.avatarStorageId,
     this.unreadCount = 0,
     this.unreadCountFromServer = false,
@@ -32,6 +33,8 @@ class ChatRoom {
     this.mute = RoomMute.none,
     this.systemRole,
     this.postingPolicy,
+    this.vanishMode = false,
+    this.vanishAfterSeen = 10,
     List<String>? participantIds,
   }) : participantIds = participantIds ?? const [];
 
@@ -76,6 +79,11 @@ class ChatRoom {
   bool hasPassword;
   RoomType type;
   Duration? messageLifetime;
+
+  /// When a secret room's countdown starts, `rooms.messageClock`: "seen"
+  /// (after it is read) or "sent". Null on regular rooms and on rooms made
+  /// before the field existed (those count from sending).
+  String? messageClock;
   String? avatarStorageId;
 
   /// Number of messages in this room newer than [lastReadAt] and not sent by
@@ -144,6 +152,16 @@ class ChatRoom {
   /// `roomPostingPolicyOf` in `room_posting_policy.dart` and reaches widgets as
   /// `RoomCapabilities.posting`.
   final String? postingPolicy;
+
+  /// Whether vanish mode is on (`rooms.vanishMode`): new messages disappear
+  /// once everyone has seen them, or after 24 hours at most. False on every
+  /// room and on any backend that predates the field. The swipe-up fork reads
+  /// it to offer "Turn off" instead of "Vanish".
+  bool vanishMode;
+
+  /// Seconds after everyone has seen a message that it vanishes (10, 60 or
+  /// 3600), `rooms.vanishAfterSeen`. Meaningful only while [vanishMode] is on.
+  int vanishAfterSeen;
 
   bool get isEphemeral => type == RoomType.secret;
 
@@ -259,6 +277,7 @@ class ChatRoom {
         'hasPassword': hasPassword,
         'type': type.wire,
         if (messageLifetime != null) 'messageLifetime': messageLifetime!.inSeconds,
+        if (messageClock != null) 'messageClock': messageClock,
         if (avatarStorageId != null) 'avatarStorageId': avatarStorageId,
         'unreadCount': unreadCount,
         'unreadCapped': unreadCapped,
@@ -271,6 +290,8 @@ class ChatRoom {
         ...mute.toJson(),
         if (systemRole != null) 'system': systemRole,
         if (postingPolicy != null) 'postingPolicy': postingPolicy,
+        if (vanishMode) 'vanishMode': true,
+        if (vanishMode) 'vanishAfterSeen': vanishAfterSeen,
       };
 
   factory ChatRoom.fromJson(Map<String, dynamic> j) {
@@ -303,6 +324,9 @@ class ChatRoom {
       hasPassword: (j['hasPassword'] ?? false) as bool,
       type: RoomTypeWire.parse(j['type'] as String?),
       messageLifetime: ml is num ? Duration(seconds: ml.toInt()) : null,
+      messageClock: j['messageClock'] == 'seen' || j['messageClock'] == 'sent'
+          ? j['messageClock'] as String
+          : null,
       avatarStorageId: j['avatarStorageId'] as String?,
       unreadCount: ((j['unreadCount'] ?? 0) as num).toInt(),
       unreadCountFromServer: j['unreadCount'] is num,
@@ -323,6 +347,9 @@ class ChatRoom {
       systemRole: j['system'] as String?,
       // Absent means "decide from the room's kind" — see `roomPostingPolicyOf`.
       postingPolicy: j['postingPolicy'] as String?,
+      vanishMode: j['vanishMode'] == true,
+      vanishAfterSeen:
+          j['vanishAfterSeen'] is num ? (j['vanishAfterSeen'] as num).toInt() : 10,
       participantIds: (j['participantIds'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }

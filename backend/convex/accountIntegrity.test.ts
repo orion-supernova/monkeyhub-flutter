@@ -1009,3 +1009,58 @@ describe("deleting an account leaves the room's live group call", () => {
     expect((call as any).status).toBe("ended");
   });
 });
+
+describe("secret DM requests carry their message clock", () => {
+  async function secretRequest(
+    t: ReturnType<typeof convexTest>,
+    extra: { messageLifetime?: number; messageClock?: "seen" | "sent"; roomType?: string },
+  ) {
+    const a = await signUp(t, "carol");
+    const b = await signUp(t, "dave");
+    await t.mutation(api.friends.createDirectRequest, {
+      sessionToken: a.token,
+      userId: a.userId,
+      friendId: b.userId,
+      roomType: extra.roomType ?? "Chamber of Secrets",
+      messageLifetime: extra.messageLifetime,
+      messageClock: extra.messageClock,
+      initialMessage: "psst",
+    });
+    return { a, b };
+  }
+
+  test("a seen clock survives acceptance into the room", async () => {
+    const t = convexTest(schema);
+    const { a, b } = await secretRequest(t, { messageLifetime: 60, messageClock: "seen" });
+    const roomId = (await t.mutation(api.friends.approveDirectRequest, {
+      sessionToken: b.token,
+      userId: b.userId,
+      requesterId: a.userId,
+    })) as Id<"rooms">;
+    const room = await t.run((ctx) => ctx.db.get(roomId));
+    expect(room!.messageClock).toBe("seen");
+    expect(room!.messageLifetime).toBe(60);
+  });
+
+  test("a seen clock refuses a timer it does not offer", async () => {
+    const t = convexTest(schema);
+    await expect(secretRequest(t, { messageLifetime: 30, messageClock: "seen" })).rejects.toThrow(
+      "BAD_VANISH_TIMER",
+    );
+  });
+
+  test("a regular request drops the clock", async () => {
+    const t = convexTest(schema);
+    const { a, b } = await secretRequest(t, {
+      roomType: "Regular Room",
+      messageClock: "seen",
+    });
+    const roomId = (await t.mutation(api.friends.approveDirectRequest, {
+      sessionToken: b.token,
+      userId: b.userId,
+      requesterId: a.userId,
+    })) as Id<"rooms">;
+    const room = await t.run((ctx) => ctx.db.get(roomId));
+    expect(room!.messageClock).toBeUndefined();
+  });
+});

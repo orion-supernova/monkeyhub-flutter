@@ -402,6 +402,7 @@ class ChatApi {
     FieldVisibility? points,
     FieldVisibility? puzzle,
     FieldVisibility? pointsPast,
+    bool? vanishShareReads,
   }) async {
     await _cv.mutation('users:updateVisibility', {
       'userId': userId,
@@ -416,6 +417,7 @@ class ChatApi {
       if (points != null) 'points': points.wire,
       if (puzzle != null) 'puzzle': puzzle.wire,
       if (pointsPast != null) 'pointsPast': pointsPast.wire,
+      'vanishShareReads': ?vanishShareReads,
     });
   }
 
@@ -702,6 +704,7 @@ class ChatApi {
     String? password,
     RoomType type = RoomType.regular,
     Duration? messageLifetime,
+    String? messageClock,
   }) async {
     final res = await _cv.mutation('rooms:create', {
       'userId': userId,
@@ -711,6 +714,7 @@ class ChatApi {
       if (password != null && password.isNotEmpty) 'passwordHash': sha256Hash(password),
       'type': type.wire,
       if (messageLifetime != null) 'messageLifetime': messageLifetime.inSeconds,
+      if (messageClock != null && type == RoomType.secret) 'messageClock': messageClock,
     });
     return res.toString();
   }
@@ -738,6 +742,7 @@ class ChatApi {
     String? description,
     bool? isPrivate,
     Duration? messageLifetime,
+    String? messageClock,
   }) async {
     await _cv.mutation('rooms:updateRoom', {
       'roomId': roomId,
@@ -746,6 +751,7 @@ class ChatApi {
       'description': ?description,
       'isPrivate': ?isPrivate,
       'messageLifetime': ?messageLifetime?.inSeconds,
+      'messageClock': ?messageClock,
     });
   }
 
@@ -814,12 +820,14 @@ class ChatApi {
     required String friendId,
     RoomType roomType = RoomType.regular,
     Duration? messageLifetime,
+    String? messageClock,
   }) async {
     final res = await _cv.mutation('rooms:getOrCreateDM', {
       'userId': userId,
       'friendId': friendId,
       'roomType': roomType.displayLabel,
       'messageLifetime': ?messageLifetime?.inSeconds,
+      'messageClock': ?messageClock,
     });
     return res.toString();
   }
@@ -830,6 +838,24 @@ class ChatApi {
 
   Future<void> unpinRoom({required String roomId, required String userId}) async {
     await _cv.mutation('rooms:unpinRoom', {'roomId': roomId, 'userId': userId});
+  }
+
+  /// Turns vanish mode on or off for a room (`vanish:setVanishMode`). Anyone in
+  /// a DM; in a group, admins. [afterSeen] is the seconds after everyone has
+  /// seen a message (10, 60 or 3600); null keeps the room's current choice. The
+  /// session token is added by the authed wrapper. Returns whether anything
+  /// changed (false when the room was already in that state).
+  Future<bool> setVanishMode(
+    String roomId,
+    bool on, {
+    int? afterSeen,
+  }) async {
+    final res = await _cv.mutation('vanish:setVanishMode', {
+      'roomId': roomId,
+      'on': on,
+      if (afterSeen != null) 'afterSeen': afterSeen,
+    });
+    return res is Map && res['changed'] == true;
   }
 
   Future<void> archiveRoom({required String roomId, required String userId}) async {
@@ -2395,6 +2421,7 @@ class ChatApi {
     required String friendId,
     required RoomType roomType,
     Duration? messageLifetime,
+    String? messageClock,
     String? initialMessage,
   }) async {
     final res = await _cv.mutation('friends:createDirectRequest', {
@@ -2402,6 +2429,7 @@ class ChatApi {
       'friendId': friendId,
       'roomType': roomType.displayLabel,
       'messageLifetime': ?messageLifetime?.inSeconds,
+      'messageClock': ?messageClock,
       'initialMessage': ?initialMessage,
     });
     return res.toString();

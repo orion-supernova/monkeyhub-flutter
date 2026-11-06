@@ -32,8 +32,8 @@ void main() {
 
   const labels = ['10s', '30s', '1m', '5m', '1h'];
 
-  /// A ruler 324 wide: a 276 track after the 24 padding, so stops sit 69 apart
-  /// starting at x = 24.
+  /// A ruler 324 wide: a 260 track after the 32 padding, so stops sit 65 apart
+  /// starting at x = 32.
   Widget host({
     required ValueNotifier<int> index,
     bool calm = false,
@@ -65,7 +65,7 @@ void main() {
       );
 
   double stopX(WidgetTester t, int i) =>
-      t.getTopLeft(find.byType(DetentRuler)).dx + 24 + 69.0 * i;
+      t.getTopLeft(find.byType(DetentRuler)).dx + 32 + 65.0 * i;
 
   testWidgets('dragging snaps through the stops and ticks once per stop',
       (t) async {

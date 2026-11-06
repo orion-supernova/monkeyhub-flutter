@@ -46,6 +46,7 @@ class ProfileVisibility {
     this.points = FieldVisibility.friends,
     this.puzzle = FieldVisibility.friends,
     this.pointsPast = FieldVisibility.nobody,
+    this.vanishShareReads = false,
   });
 
   FieldVisibility avatar;
@@ -75,6 +76,12 @@ class ProfileVisibility {
   /// setting exists.
   FieldVisibility pointsPast;
 
+  /// "Share my reads in vanishing chats": for someone whose [seen] is
+  /// nobody, lets a vanishing message count as read (and start its 10 second
+  /// clock) when they read it. Off by default; only meaningful while [seen] is
+  /// nobody.
+  bool vanishShareReads;
+
   factory ProfileVisibility.fromJson(Map<String, dynamic> j) => ProfileVisibility(
         avatar: FieldVisibilityWire.parse(
             j['avatar'] as String?, FieldVisibility.public),
@@ -96,6 +103,7 @@ class ProfileVisibility {
         puzzle: FieldVisibilityWire.parse(
             j['puzzle'] as String?, FieldVisibility.friends),
         pointsPast: FieldVisibilityWire.parse(j['pointsPast'] as String?),
+        vanishShareReads: j['vanishShareReads'] == true,
       );
 
   ProfileVisibility copyWith({
@@ -108,6 +116,7 @@ class ProfileVisibility {
     FieldVisibility? points,
     FieldVisibility? puzzle,
     FieldVisibility? pointsPast,
+    bool? vanishShareReads,
   }) =>
       ProfileVisibility(
         avatar: avatar ?? this.avatar,
@@ -119,6 +128,7 @@ class ProfileVisibility {
         points: points ?? this.points,
         puzzle: puzzle ?? this.puzzle,
         pointsPast: pointsPast ?? this.pointsPast,
+        vanishShareReads: vanishShareReads ?? this.vanishShareReads,
       );
 }
 

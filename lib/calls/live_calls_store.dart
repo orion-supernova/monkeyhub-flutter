@@ -24,6 +24,8 @@ class LiveRoomCall {
     required this.mine,
     this.groupCallId,
     this.startedAt,
+    this.kind,
+    this.joinedUserIds = const [],
   });
 
   final String roomId;
@@ -39,6 +41,16 @@ class LiveRoomCall {
   final bool mine;
   final DateTime? startedAt;
 
+  /// `"huddle"` for a call that rang no one (`groupCalls.kind`), null for an
+  /// ordinary call and on a backend that predates the field.
+  final String? kind;
+
+  /// Who is in it, for the faces on the swipe-up fork's Join chip. Not part of
+  /// equality: [count] already moves when the set does.
+  final List<String> joinedUserIds;
+
+  bool get isHuddle => kind == 'huddle';
+
   @override
   bool operator ==(Object other) =>
       other is LiveRoomCall &&
@@ -47,11 +59,12 @@ class LiveRoomCall {
       other.video == video &&
       other.count == count &&
       other.mine == mine &&
-      other.startedAt == startedAt;
+      other.startedAt == startedAt &&
+      other.kind == kind;
 
   @override
   int get hashCode =>
-      Object.hash(roomId, groupCallId, video, count, mine, startedAt);
+      Object.hash(roomId, groupCallId, video, count, mine, startedAt, kind);
 }
 
 /// The calls going on in your rooms, for the chat list's live rows.
@@ -251,6 +264,8 @@ class LiveCallsStore extends ChangeNotifier {
         startedAt: started == null
             ? null
             : DateTime.fromMillisecondsSinceEpoch(started),
+        kind: r['kind'] as String?,
+        joinedUserIds: joined,
       ),
     );
   }

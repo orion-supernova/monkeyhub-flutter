@@ -527,6 +527,22 @@ class GroupCallService extends ChangeNotifier
     required String roomId,
     required CallMediaKind kind,
     List<String>? inviteeIds,
+  }) =>
+      _start(roomId: roomId, kind: kind, inviteeIds: inviteeIds);
+
+  /// Start a huddle in [roomId]: a group call that rings no one (the server
+  /// ignores invitees for this kind). Audio only.
+  Future<void> startHuddle({required String roomId}) => _start(
+        roomId: roomId,
+        kind: CallMediaKind.audio,
+        callKind: 'huddle',
+      );
+
+  Future<void> _start({
+    required String roomId,
+    required CallMediaKind kind,
+    List<String>? inviteeIds,
+    String? callKind,
   }) async {
     final me = _userId;
     if (me == null) throw StateError('GroupCallService not attached');
@@ -537,6 +553,7 @@ class GroupCallService extends ChangeNotifier
       type: kind.wire,
       deviceId: _deviceId,
       inviteeIds: inviteeIds,
+      kind: callKind,
     );
     // Converged onto an existing call: honor ITS media kind via join.
     if (res.existing) {

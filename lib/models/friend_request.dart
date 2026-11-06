@@ -11,6 +11,7 @@ class FriendRequest {
     required this.roomType,
     required this.messageCount,
     this.messageLifetime,
+    this.messageClock,
     this.initialMessage = '',
     this.stage,
     List<FriendRequestMessage>? messages,
@@ -21,6 +22,10 @@ class FriendRequest {
   final DateTime createdAt;
   RoomType roomType;
   Duration? messageLifetime;
+
+  /// "seen" or "sent": when a secret DM's countdown starts. Null on a
+  /// regular request and on requests made before the field existed.
+  String? messageClock;
   String initialMessage;
   int messageCount;
 
@@ -40,6 +45,8 @@ class FriendRequest {
       createdAt: DateTime.fromMillisecondsSinceEpoch((j['createdAt'] as num).toInt()),
       roomType: RoomTypeWire.parse(j['roomType'] as String?),
       messageLifetime: ml is num ? Duration(seconds: ml.toInt()) : null,
+      messageClock:
+          j['messageClock'] == 'seen' || j['messageClock'] == 'sent' ? j['messageClock'] as String : null,
       initialMessage: (j['initialMessage'] ?? '') as String,
       messageCount: ((j['messageCount'] ?? 0) as num).toInt(),
       stage: RequestStage.parse(j['stage'] as String?),

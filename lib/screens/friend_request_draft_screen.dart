@@ -20,6 +20,7 @@ import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/filter_capsule.dart';
+import '../widgets/message_life_picker.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/visibility_badge.dart';
 import 'room_screen.dart';
@@ -64,7 +65,10 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
 
   // Compose-only state (when sending fresh)
   RoomType _roomType = RoomType.regular;
-  Duration _ttl = const Duration(seconds: 60);
+  /// The secret DM's message life. Starts where this screen always did: 60
+  /// seconds from sending.
+  MessageLife _life = (clock: MessageClock.sent, lifetime: const Duration(seconds: 60));
+  Duration get _ttl => _life.lifetime;
   String? _newRequestId;
   bool _busy = false;
 
@@ -92,13 +96,6 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
   /// the backend uses to decide whether approval creates a room at all.
   bool _hadDraftMessages = false;
 
-  static const _ttls = [
-    Duration(seconds: 30),
-    Duration(minutes: 1),
-    Duration(minutes: 5),
-    Duration(hours: 1),
-  ];
-
   String get _requestId => _newRequestId ?? widget.req?.id ?? '';
   ChatUser get _otherUser => widget.req?.user ?? widget.target!;
 
@@ -111,7 +108,12 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
     widget.repo.addListener(_onRepoChanged);
     if (widget.req != null) {
       _roomType = widget.req!.roomType;
-      _ttl = widget.req!.messageLifetime ?? _ttl;
+      _life = normalizeMessageLife((
+        clock: widget.req!.messageClock == 'seen'
+            ? MessageClock.seen
+            : MessageClock.sent,
+        lifetime: widget.req!.messageLifetime ?? _life.lifetime,
+      ));
       _watchMessages();
     }
     // Pull the composer up the moment the screen lands — the user opened this
@@ -244,6 +246,8 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
         _otherUser,
         roomType: _roomType,
         messageLifetime: _roomType == RoomType.secret ? _ttl : null,
+        messageClock:
+            _roomType == RoomType.secret ? _life.clock.name : null,
       );
       if (!mounted) return;
       _leaveFor(roomId);
@@ -287,6 +291,8 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
           friendId: widget.target!.id,
           roomType: _roomType,
           messageLifetime: _roomType == RoomType.secret ? _ttl : null,
+          messageClock:
+              _roomType == RoomType.secret ? _life.clock.name : null,
           initialMessage: text.isEmpty ? null : text,
         );
         setState(() => _newRequestId = id);
@@ -377,10 +383,9 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
                   if (!_isIncoming && _newRequestId == null) _ComposeConfig(
                     theme: theme,
                     roomType: _roomType,
-                    ttl: _ttl,
+                    life: _life,
                     onRoomType: (t) => setState(() => _roomType = t),
-                    onTtl: (d) => setState(() => _ttl = d),
-                    ttls: _ttls,
+                    onLife: (v) => setState(() => _life = v),
                   ),
                   Expanded(
                     child: ListView.builder(
@@ -544,24 +549,15 @@ class _ComposeConfig extends StatelessWidget {
   const _ComposeConfig({
     required this.theme,
     required this.roomType,
-    required this.ttl,
+    required this.life,
     required this.onRoomType,
-    required this.onTtl,
-    required this.ttls,
+    required this.onLife,
   });
   final AppTheme theme;
   final RoomType roomType;
-  final Duration ttl;
+  final MessageLife life;
   final ValueChanged<RoomType> onRoomType;
-  final ValueChanged<Duration> onTtl;
-  final List<Duration> ttls;
-
-  String _fmt(BuildContext context, Duration d) {
-    final loc = AppLocalizations.of(context);
-    if (d.inSeconds < 60) return loc.friendRequestDraftScreenDurationSeconds(d.inSeconds);
-    if (d.inMinutes < 60) return loc.friendRequestDraftScreenDurationMinutes(d.inMinutes);
-    return loc.friendRequestDraftScreenDurationHours(d.inHours);
-  }
+  final ValueChanged<MessageLife> onLife;
 
   @override
   Widget build(BuildContext context) {
@@ -608,33 +604,12 @@ class _ComposeConfig extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(children: [
-                          Text(
-                            loc.friendRequestDraftScreenLifetimeLabel,
-                            style: groupedHeaderStyle(theme),
-                          ),
-                          const SizedBox(width: 8),
-                          // The chosen value, beside its header in the
-                          // accent; tabular so it doesn't jitter as it changes.
-                          Text(
-                            _fmt(context, ttl),
-                            style: groupedHeaderStyle(theme).copyWith(
-                              color: theme.accent,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                        ]),
+                        Text(
+                          loc.friendRequestDraftScreenLifetimeLabel,
+                          style: groupedHeaderStyle(theme),
+                        ),
                         const SizedBox(height: 8),
-                        Wrap(spacing: 8, runSpacing: 8, children: [
-                          for (final t in ttls)
-                            FilterCapsule(
-                              active: ttl == t,
-                              onTap: () => onTtl(t),
-                              label: _fmt(context, t),
-                            ),
-                        ]),
+                        MessageLifePicker(value: life, onChanged: onLife),
                       ],
                     ),
                   ),

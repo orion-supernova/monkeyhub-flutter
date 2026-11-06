@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show BrowserContextMenu, SystemChrome, SystemUiMode;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'widgets/haptic_tick.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app.dart';
 import 'backend/server_directory.dart';
@@ -146,6 +147,9 @@ Future<void> main() async {
     // One hop, in parallel with the rest, so the shell's first frame already
     // knows whether iOS is drawing the bottom bar.
     NativeChrome.init(),
+    // What the vibration motor can do, asked once, so the first haptic ramp
+    // already knows its tier.
+    HapticTick.load(),
   ]);
 
   // Strictly AFTER dotenv, and strictly before runApp. After, because a store

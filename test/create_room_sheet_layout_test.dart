@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/data/chat_repository.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
+import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/screens/create_room_sheet.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
@@ -23,7 +24,10 @@ import 'package:monkeyhub/l10n/text_case.dart';
 /// wrong. An `isScrollControlled` sheet with an unbounded column does not
 /// overflow loudly, it silently clips — and on a short phone with the keyboard
 /// up, the thing past the bottom edge is OPEN ROOM.
-class _FakeRepo extends Fake implements ChatRepository {}
+class _FakeRepo extends Fake implements ChatRepository {
+  @override
+  List<ChatUser> get friends => const [];
+}
 
 class _FakeApi extends Fake implements ChatApi {}
 

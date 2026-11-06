@@ -10,6 +10,7 @@ import 'package:file_selector/file_selector.dart' show openFile;
 import 'package:flutter/foundation.dart' show kIsWeb, listEquals;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -28,6 +29,10 @@ import '../calls/call_models.dart';
 import '../calls/group_call_banner.dart';
 import '../calls/group_call_button.dart';
 import '../calls/group_call_service.dart';
+import '../calls/live_calls_store.dart';
+import '../calls/call_service.dart';
+import '../backend/server_limits.dart';
+import '../widgets/swipe_fork.dart';
 import '../data/chat_repository.dart';
 import '../data/room_suggestion_queue.dart';
 import '../diagnostics/diag_log.dart';
@@ -381,6 +386,20 @@ class _RoomScreenState extends State<_RoomView>
   /// Nothing drives it yet: it is the hook for a takeover (the swipe-up fork)
   /// that dims the dock while a gesture owns the screen. See [DockFade].
   final ValueNotifier<double> dockFade = ValueNotifier<double>(1);
+
+  /// The swipe-up fork: pull up from the newest message, slide, let go. Mounted
+  /// over the transcript in [_messageBody], painted by [SwipeForkOverlay] in
+  /// [build], and it drives [dockFade] while it owns the screen.
+  late final SwipeForkController _fork = SwipeForkController(
+    vsync: this,
+    dockFade: dockFade,
+    canArm: _forkCanArm,
+    roomState: _forkRoomState,
+    onStartHuddle: _forkStartHuddle,
+    onJoinHuddle: _forkJoinHuddle,
+    onToggleVanish: _forkToggleVanish,
+    failureText: _forkFailureText,
+  );
 
   /// id → user, for sender names, avatars and speaker colours.
   ///
@@ -1925,6 +1944,7 @@ class _RoomScreenState extends State<_RoomView>
     _seenOnResume.dispose();
     _unreadBelow.dispose();
     _bottomChrome.dispose();
+    _fork.dispose();
     dockFade.dispose();
     _jumpBack.removeListener(_onJumpBackChanged);
     _jumpBack.dispose();
@@ -3051,6 +3071,128 @@ class _RoomScreenState extends State<_RoomView>
     return room == null
         ? RoomPostingPolicy.open
         : widget.repo.capabilitiesFor(room).posting;
+  }
+
+  // ───────── swipe-up fork ─────────
+
+  /// Whether a drag that starts now may arm the fork. Asked at touch-down.
+  ///
+  /// The transcript must already be at the newest message (a fling that ARRIVES
+  /// there does not count: it is still scrolling), with the keyboard down and
+  /// nothing owning the composer. Mobile layouts only; the desktop and web
+  /// shells reach the same actions from room info and the call sheet.
+  bool _forkCanArm() {
+    final room = _room;
+    if (!mounted || room == null) return false;
+    if (isWebOrDesktop || context.usesSplitShell || widget.inShellPane) {
+      return false;
+    }
+    if (room.isSystemRoom || room.isSavedMessages) return false;
+    if (!_posting.canPost) return false;
+    if (_replyingTo != null || _editing != null || _selection.active) {
+      return false;
+    }
+    if (_mention.isOpen || _picker.isOpen || _expressions.isOpen) return false;
+    if (_composerFocus.hasFocus || MediaQuery.viewInsetsOf(context).bottom > 0) {
+      return false;
+    }
+    if (widget.repo.inHistoryWindow(widget.roomId)) return false;
+    if (_scroll.hasClients) {
+      final pos = _scroll.position;
+      if (pos.pixels > 1 || pos.isScrollingNotifier.value) return false;
+    }
+    return true;
+  }
+
+  /// The slice of room state the fork's options depend on.
+  ForkRoomState _forkRoomState() {
+    final room = _room!;
+    final live = LiveCallsStore.instance.forRoom(room.id);
+    final inCall = (GroupCallService.maybeInstance?.inCall ?? false) ||
+        (CallService.maybeInstance?.inCall ?? false) ||
+        (live?.mine ?? false);
+    final huddle = live != null && !live.mine && live.isHuddle && live.groupCallId != null;
+    final me = widget.repo.userId;
+    return ForkRoomState(
+      isSecret: room.isEphemeral,
+      vanishOn: room.vanishMode,
+      // Anyone in a DM; in a group, whoever can change its settings.
+      canEditVanish: room.isDm || (room.isGroupChat && _suggestions.isReviewer),
+      inCall: inCall,
+      othersHuddle: huddle,
+      huddleCount: live?.count ?? 0,
+      huddleUserIds: [
+        for (final id in live?.joinedUserIds ?? const <String>[])
+          if (id != me) id,
+      ],
+    );
+  }
+
+  Future<void> _forkStartHuddle() {
+    final svc = GroupCallService.maybeInstance;
+    if (svc == null) return Future.error(StateError('Calls are not available'));
+    return svc.startHuddle(roomId: widget.roomId);
+  }
+
+  Future<void> _forkJoinHuddle() {
+    final svc = GroupCallService.maybeInstance;
+    final id = LiveCallsStore.instance.forRoom(widget.roomId)?.groupCallId;
+    if (svc == null || id == null) {
+      return Future.error(StateError('No huddle to join'));
+    }
+    return svc.joinCall(id);
+  }
+
+  Future<void> _forkToggleVanish(bool on) async {
+    final room = _room;
+    // Options were captured at touch-down: someone else may have flipped it.
+    if (room != null && room.vanishMode == on) {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        showAppToast(
+          context,
+          on ? l10n.forkToastVanishAlreadyOn : l10n.forkToastVanishAlreadyOff,
+        );
+      }
+      return;
+    }
+    final changed = await widget.api.setVanishMode(widget.roomId, on);
+    if (!changed && mounted) {
+      final l10n = AppLocalizations.of(context);
+      showAppToast(
+        context,
+        on ? l10n.forkToastVanishAlreadyOn : l10n.forkToastVanishAlreadyOff,
+      );
+    }
+  }
+
+  String _forkFailureText(Object e) {
+    final l10n = AppLocalizations.of(context);
+    if (e.toString().contains('CALL_FULL')) return l10n.forkFailCallFull;
+    return friendlyServerError(e, l10n, l10n.forkFailGeneric);
+  }
+
+  /// The composer's screen-reader actions for what the swipe does.
+  Map<CustomSemanticsAction, VoidCallback> _forkSemanticsActions(ChatRoom room) {
+    if (!_posting.canPost || room.isSystemRoom || room.isSavedMessages) {
+      return const {};
+    }
+    final l10n = AppLocalizations.of(context);
+    final opts = forkOptionsFor(_forkRoomState());
+    void run(ForkKind k) => unawaited(_fork.runOption(k).catchError((Object e) {
+          if (mounted) showAppToast(context, _forkFailureText(e));
+        }));
+    return {
+      for (final o in opts)
+        CustomSemanticsAction(
+          label: switch (o.kind) {
+            ForkKind.startHuddle => l10n.forkActionStartHuddle,
+            ForkKind.joinHuddle => l10n.forkActionJoinHuddle,
+            ForkKind.vanishOn => l10n.forkActionVanishOn,
+            ForkKind.vanishOff => l10n.forkActionVanishOff,
+          },
+        ): () => run(o.kind),
+    };
   }
 
   /// A finished recording, straight into the same optimistic send path a photo
@@ -5801,6 +5943,9 @@ class _RoomScreenState extends State<_RoomView>
                     // button underneath it is an invitation to make the
                     // problem worse.
                     if (_mediaBusy) const BusyScrim(),
+                    // The swipe-up fork's picture. Ignores pointers; paints
+                    // only while a gesture (or its exit) is on screen.
+                    SwipeForkOverlay(controller: _fork),
                   ],
                 ),
               ),
@@ -5924,7 +6069,10 @@ class _RoomScreenState extends State<_RoomView>
                   // the composer's place. See `room_posting_policy.dart`.
                   : !_posting.canPost
                   ? const ReadOnlyComposerFooter()
-                  : ChatDock(
+                  : Semantics(
+                    container: true,
+                    customSemanticsActions: _forkSemanticsActions(room),
+                    child: ChatDock(
               dockFade: dockFade,
               mentionOpen: _mention.isOpen,
               // The scheduled pill used to sit between the reply card and the
@@ -6011,7 +6159,7 @@ class _RoomScreenState extends State<_RoomView>
                 if (_picker.isOpen && !_expressions.isOpen)
                   _pickerPanel(bottomPadding: 0),
               ],
-              ),
+              )),
             ),
           ),
         ],
@@ -6206,7 +6354,10 @@ class _RoomScreenState extends State<_RoomView>
                         glass: true,
                         bottomInset: bottomSafe,
                       )
-                    : ChatDock(
+                    : Semantics(
+                    container: true,
+                    customSemanticsActions: _forkSemanticsActions(room),
+                    child: ChatDock(
               dockFade: dockFade,
               mentionOpen: _mention.isOpen,
               // Mirrors the classic column above — see the comments there. The
@@ -6290,7 +6441,7 @@ class _RoomScreenState extends State<_RoomView>
                 if (_picker.isOpen && !_expressions.isOpen)
                   _pickerPanel(bottomPadding: bottomSafe),
               ],
-                ),
+                )),
                 ),
               ),
               ),
@@ -6460,7 +6611,9 @@ class _RoomScreenState extends State<_RoomView>
     _bottomChromeOverList = bottomChrome == null
         ? 0
         : bottomChrome.inset.height ?? bottomChrome.estimate;
-    return GestureDetector(
+    return SwipeForkGesture(
+      controller: _fork,
+      child: GestureDetector(
       behavior: HitTestBehavior.translucent,
       // Dismisses the soft keyboard when you tap the transcript — and the
       // emoji/GIF/sticker panel, which stands in the keyboard's place and has
@@ -7614,6 +7767,7 @@ class _RoomScreenState extends State<_RoomView>
                 ),
               ],
             ),
+    ),
     );
   }
 

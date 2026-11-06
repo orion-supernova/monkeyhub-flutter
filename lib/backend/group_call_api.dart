@@ -16,6 +16,7 @@ class GroupCallApi {
     required String type,
     String? deviceId,
     List<String>? inviteeIds,
+    String? kind,
   }) async {
     final res = await _cv.mutation('groupCalls:start', {
       'roomId': roomId,
@@ -23,6 +24,7 @@ class GroupCallApi {
       'type': type,
       'deviceId': ?deviceId,
       'inviteeIds': ?inviteeIds,
+      'kind': ?kind,
     });
     final map = (res as Map).cast<String, dynamic>();
     return (

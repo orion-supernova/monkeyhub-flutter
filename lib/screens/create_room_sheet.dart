@@ -1,24 +1,47 @@
-import 'package:flutter/cupertino.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
+import '../media/upload_service.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/layout.dart';
+import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/filter_capsule.dart';
-import '../widgets/labeled_field.dart';
-import '../widgets/password_field.dart';
-import 'room_screen.dart';
-import '../widgets/sheet_kit.dart';
+import '../widgets/app_toast.dart';
+import '../widgets/chrome_motion.dart';
+import '../widgets/emoji_avatar_image.dart';
+import '../widgets/invite_chips.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/labeled_field.dart';
+import '../widgets/message_life_picker.dart';
+import '../widgets/password_field.dart';
+import '../widgets/reaction_picker_sheet.dart';
+import '../widgets/room_kind_segment.dart';
+import '../widgets/room_preview_card.dart';
+import '../widgets/sheet_kit.dart';
 import '../l10n/text_case.dart';
 import '../backend/server_limits.dart';
+import 'room_screen.dart';
 
+/// The new-room sheet: one living card you shape.
+///
+/// A preview of the room sits pinned at the top and reacts to every choice
+/// (name, emoji, who is invited, regular or secret, who can find it). Under it
+/// are four short sections: Name, People, Room, Who can find it. The room kind
+/// is just Regular or Secret: a secret room's messages always disappear and
+/// screenshots are always blocked, and choosing it reveals the shared
+/// [MessageLifePicker].
+///
+/// "Open the room" creates the room, invites everyone picked, then the card
+/// squashes, bounces and flies up as the sheet hands over to the room. Calm
+/// motion skips the flight.
 class CreateRoomSheet extends StatefulWidget {
   const CreateRoomSheet({super.key, required this.repo, required this.api});
   final ChatRepository repo;
@@ -27,37 +50,128 @@ class CreateRoomSheet extends StatefulWidget {
   State<CreateRoomSheet> createState() => _CreateRoomSheetState();
 }
 
-class _CreateRoomSheetState extends State<CreateRoomSheet> {
+class _CreateRoomSheetState extends State<CreateRoomSheet>
+    with SingleTickerProviderStateMixin {
   final _name = TextEditingController();
   final _desc = TextEditingController();
   final _password = TextEditingController();
+
+  /// Offered by the emoji button's picker; this is what the preview wears
+  /// until a different one is chosen.
+  static const _defaultEmoji = '🐒';
+  String _emoji = _defaultEmoji;
+  bool _emojiPicked = false;
+
   bool _isPrivate = true;
+  bool _passwordOn = false;
+  bool _descOpen = false;
   RoomType _type = RoomType.regular;
-  Duration _ttl = const Duration(seconds: 30);
+  MessageLife _life = kDefaultMessageLife;
+  final List<String> _picked = [];
   bool _busy = false;
   String? _error;
 
-  static const _ttls = [
-    Duration(seconds: 10),
-    Duration(seconds: 30),
-    Duration(minutes: 1),
-    Duration(minutes: 5),
-    Duration(hours: 1),
-  ];
+  /// The card's squash, bounce and flight after a successful create.
+  late final AnimationController _flight = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 720),
+  );
+  bool _flying = false;
 
-  String _fmtTtl(BuildContext context, Duration d) {
-    final l10n = AppLocalizations.of(context);
+  /// Marks the timer picker so choosing Secret can scroll it into view.
+  final _lifeKey = GlobalKey();
+
+  List<ChatUser> get _friends => widget.repo.friends;
+
+  List<ChatUser> get _pickedUsers {
+    final all = _friends;
+    return [
+      for (final id in _picked)
+        for (final u in all)
+          if (u.id == id) u,
+    ];
+  }
+
+  String _fmtTtl(AppLocalizations l10n, Duration d) {
     if (d.inSeconds < 60) return l10n.createRoomSheetTtlSeconds(d.inSeconds);
     if (d.inMinutes < 60) return l10n.createRoomSheetTtlMinutes(d.inMinutes);
     return l10n.createRoomSheetTtlHours(d.inHours);
   }
 
+  /// The preview card's one-line subtitle, e.g.
+  /// "Invite only · you + 2 · secret · 1m after seen".
+  String _subtitle(AppLocalizations l10n) {
+    final parts = <String>[
+      _isPrivate ? l10n.newRoomFindInviteOnly : l10n.newRoomFindFindable,
+      if (_passwordOn) l10n.newRoomSubLocked,
+      _picked.isEmpty
+          ? l10n.newRoomSubJustYou
+          : l10n.newRoomPeopleYouPlus(_picked.length),
+      if (_type == RoomType.secret)
+        _life.clock == MessageClock.seen
+            ? l10n.newRoomSubSecretSeen(_fmtTtl(l10n, _life.lifetime))
+            : l10n.newRoomSubSecretSent(_fmtTtl(l10n, _life.lifetime))
+      else
+        l10n.newRoomSubRegular,
+    ];
+    return parts.join(' · ');
+  }
+
+  Future<void> _pickEmoji() async {
+    final e = await showReactionPicker(context);
+    if (e == null || !mounted) return;
+    setState(() {
+      _emoji = e;
+      _emojiPicked = true;
+    });
+  }
+
+  void _setType(RoomType t) {
+    setState(() => _type = t);
+    if (t != RoomType.secret) return;
+    // The picker grows in under the choice; bring it into view once it has
+    // its height, so the new options are not hiding below the fold.
+    final scroll =
+        MotionScope.of(context).d(const Duration(milliseconds: 320));
+    Future<void>.delayed(const Duration(milliseconds: 320), () {
+      final c = _lifeKey.currentContext;
+      if (!mounted || c == null) return;
+      Scrollable.ensureVisible(
+        c,
+        alignment: 0.6,
+        duration: scroll,
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  void _toggle(ChatUser u) {
+    setState(() {
+      if (!_picked.remove(u.id)) _picked.add(u.id);
+    });
+  }
+
+  Future<void> _setEmojiPicture(
+      String roomId, String emoji, List<Color> gradient) async {
+    final me = widget.repo.userId;
+    if (me == null) return;
+    try {
+      final bytes = await renderEmojiAvatar(emoji, gradient);
+      final storageId = await UploadService(widget.api)
+          .uploadFile(bytes: bytes, contentType: 'image/png');
+      await widget.api.updateRoomAvatar(
+          roomId: roomId, userId: me, storageId: storageId);
+    } catch (e) {
+      // The room already exists and works; it just keeps the default face.
+      debugPrint('new room: emoji picture failed: $e');
+    }
+  }
+
   Future<void> _create() async {
+    final l10n = AppLocalizations.of(context);
     final n = _name.text.trim();
     if (n.isEmpty) {
-      setState(
-        () => _error = AppLocalizations.of(context).createRoomSheetNameRequiredError,
-      );
+      setState(() => _error = l10n.createRoomSheetNameRequiredError);
       return;
     }
     setState(() {
@@ -65,16 +179,50 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
       _error = null;
     });
     try {
+      final secret = _type == RoomType.secret;
+      final life = normalizeMessageLife(_life);
+      // Read before the first await: the theme's avatar palette for the emoji
+      // tile, and the toast host that outlives this sheet.
+      final gradient = ThemeScope.of(context).avatarGradient(n.hashCode);
+      final toast = AppToast.onOverlay(
+        Navigator.of(context, rootNavigator: true).overlay,
+      );
       final id = await widget.repo.createRoom(
         name: n,
         isPrivate: _isPrivate,
-        description: _desc.text.trim().isEmpty ? null : _desc.text.trim(),
-        password: _password.text.isEmpty ? null : _password.text,
+        description: _descOpen && _desc.text.trim().isNotEmpty
+            ? _desc.text.trim()
+            : null,
+        password: _passwordOn && _password.text.isNotEmpty ? _password.text : null,
         type: _type,
-        messageLifetime: _type == RoomType.secret ? _ttl : null,
+        messageLifetime: secret ? life.lifetime : null,
+        messageClock: secret ? life.clock.name : null,
       );
+      // The emoji becomes the room's real picture (see renderEmojiAvatar),
+      // in the background: the room opens now, the picture lands a moment
+      // later. Only when somebody chose one; a default nobody picked is not a
+      // decision to put on the room.
+      if (_emojiPicked) unawaited(_setEmojiPicture(id, _emoji, gradient));
+      // Invite everyone picked, all at once. One person failing (they turned
+      // invitations off, say) must not stop the room from opening, but the
+      // creator is told who wasn't invited rather than left to find out.
+      final failed = <String>[];
+      if (_picked.isNotEmpty) {
+        final byId = {for (final u in _friends) u.id: u};
+        await Future.wait([
+          for (final p in _picked)
+            widget.repo
+                .inviteToRoom(roomId: id, inviteeId: p)
+                .then<void>((_) {}, onError: (Object _) {
+              failed.add(byId[p]?.displayName ?? byId[p]?.username ?? '');
+            }),
+        ]);
+        failed.removeWhere((n) => n.isEmpty);
+      }
       if (!mounted) return;
       HapticFeedback.mediumImpact();
+      await _flyAway();
+      if (!mounted) return;
       final nav = Navigator.of(context);
       if (context.usesSplitShell) {
         // Desktop: dismiss the sheet and open the new room in the chat pane.
@@ -89,10 +237,16 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                   RoomScreen(roomId: id, repo: widget.repo, api: widget.api)),
         );
       }
+      if (failed.isNotEmpty) {
+        toast?.show(l10n.newRoomInviteFailed(failed.join(', ')),
+            tone: ToastTone.danger);
+      }
     } catch (e) {
       final s = e.toString();
+      if (!mounted) return;
       setState(() {
         _busy = false;
+        _flying = false;
         // The language filter on the name or description, said in words.
         _error = s.contains('NAME_INAPPROPRIATE')
             ? AppLocalizations.of(context).nameInappropriate
@@ -101,8 +255,46 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
     }
   }
 
+  /// Squash, bounce, fly. Skipped under calm motion (the route change is the
+  /// crossfade).
+  Future<void> _flyAway() async {
+    if (MotionScope.of(context).calm) return;
+    setState(() => _flying = true);
+    Future<void>.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) HapticFeedback.lightImpact();
+    });
+    await _flight.forward(from: 0);
+  }
+
+  /// The card's transform at flight time [t] (0..1).
+  Matrix4 _flightMatrix(double t) {
+    double sx = 1, sy = 1, dy = 0;
+    if (t < 0.28) {
+      // Squash down.
+      final s = Curves.easeOut.transform(t / 0.28);
+      sx = 1 + 0.07 * s;
+      sy = 1 - 0.13 * s;
+    } else if (t < 0.52) {
+      // Spring back past rest into a stretch, hopping up a little.
+      final s = Curves.easeOutBack.transform((t - 0.28) / 0.24);
+      sx = 1.07 + (0.94 - 1.07) * s;
+      sy = 0.87 + (1.10 - 0.87) * s;
+      dy = -10 * s;
+    } else {
+      // Take off.
+      final u = Curves.easeInCubic.transform((t - 0.52) / 0.48);
+      sx = 0.94 + (0.86 - 0.94) * u;
+      sy = 1.10 + (0.86 - 1.10) * u;
+      dy = -10 - 260 * u;
+    }
+    return Matrix4.identity()
+      ..translateByDouble(0, dy, 0, 1)
+      ..scaleByDouble(sx, sy, 1, 1);
+  }
+
   @override
   void dispose() {
+    _flight.dispose();
     _name.dispose();
     _desc.dispose();
     _password.dispose();
@@ -113,190 +305,274 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    // iOS's "New Group": a × and a centred title in the bar (the tagline as
-    // its quiet second line), the two fields, then each either/or as a
-    // grouped pick-one block with a checkmark. The one button is pinned under
-    // the scroller rather than at the end of it, so committing is visible the
-    // moment the sheet opens — it used to sit below the fold, a cut-off slab
-    // you had to scroll to find.
-    Widget choice({
-      required bool selected,
-      required VoidCallback onTap,
-      required IconData icon,
-      required TileTone tone,
-      required String title,
-      required String sub,
-    }) =>
-        GroupedRow.choice(
-          icon: icon,
-          tone: tone,
-          title: sentenceCaseOf(context, title),
-          subtitle: sub,
-          selected: selected,
-          onTap: () {
-            HapticFeedback.selectionClick();
-            onTap();
-          },
-        );
+    final secret = _type == RoomType.secret;
+
+    Widget card = RoomPreviewCard(
+      emoji: _emoji,
+      name: _name.text,
+      subtitle: _subtitle(l10n),
+      secret: secret,
+      people: _pickedUsers,
+      api: widget.api,
+    );
+    card = AnimatedBuilder(
+      animation: _flight,
+      builder: (context, child) => Transform(
+        alignment: Alignment.bottomCenter,
+        transform: _flying ? _flightMatrix(_flight.value) : Matrix4.identity(),
+        child: child,
+      ),
+      child: card,
+    );
 
     return SheetFrame(
       title: sentenceCaseOf(context, l10n.createRoomSheetTitle),
-      subtitle: sentenceCaseOf(
-        context,
-        _type == RoomType.secret
-            ? l10n.createRoomSheetTaglineSecret
-            : l10n.createRoomSheetTaglineRegular,
+      maxHeightFraction: context.isCompact ? 0.92 : null,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      footer: Semantics(
+        label: l10n.createRoomSheetOpenRoomSemanticLabel,
+        child: SheetActionButton(
+          label: l10n.createRoomSheetOpenRoomButton,
+          busy: _busy,
+          onTap: (_busy || _flying) ? null : _create,
+        ),
       ),
-      maxHeightFraction: context.isCompact ? 0.9 : null,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: DefaultTextStyle(
         style: theme.body.copyWith(color: theme.ink),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.only(top: 8, bottom: 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    LabeledField(
-                      label: l10n.createRoomSheetNameLabel,
-                      controller: _name,
-                      hint: l10n.createRoomSheetNameHint,
-                      textInputAction: TextInputAction.next,
-                      onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-                    ),
-                    const SizedBox(height: 14),
-                    LabeledField(
-                      label: l10n.createRoomSheetDescriptionLabel,
-                      controller: _desc,
-                      hint: l10n.createRoomSheetDescriptionHint,
-                      textInputAction: TextInputAction.done,
-                      // Same guard as the button, so Enter can't create a room the
-                      // button is currently refusing to.
-                      onSubmitted: (_) => _busy ? null : _create(),
-                    ),
-                    const SizedBox(height: 22),
-                    GroupedHeader(l10n.createRoomSheetVisibilityLabel),
-                    SheetGroup(
-                      children: [
-                        choice(
-                          selected: !_isPrivate,
-                          onTap: () => setState(() => _isPrivate = false),
-                          icon: CupertinoIcons.globe,
-                          tone: TileTone.blue,
-                          title: l10n.createRoomSheetVisibilityPublicTitle,
-                          sub: l10n.createRoomSheetVisibilityPublicSub,
-                        ),
-                        choice(
-                          selected: _isPrivate,
-                          onTap: () => setState(() => _isPrivate = true),
-                          icon: CupertinoIcons.eye_slash_fill,
-                          tone: TileTone.gray,
-                          title: l10n.createRoomSheetVisibilityPrivateTitle,
-                          sub: l10n.createRoomSheetVisibilityPrivateSub,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 22),
-                    GroupedHeader(l10n.createRoomSheetTypeLabel),
-                    SheetGroup(
-                      children: [
-                        choice(
-                          selected: _type == RoomType.regular,
-                          onTap: () => setState(() => _type = RoomType.regular),
-                          icon: CupertinoIcons.chat_bubble_2_fill,
-                          tone: TileTone.green,
-                          title: l10n.createRoomSheetTypeStandardTitle,
-                          sub: l10n.createRoomSheetTypeStandardSub,
-                        ),
-                        choice(
-                          selected: _type == RoomType.secret,
-                          onTap: () => setState(() => _type = RoomType.secret),
-                          icon: CupertinoIcons.hourglass,
-                          tone: TileTone.purple,
-                          title: l10n.createRoomSheetTypeEphemeralTitle,
-                          sub: l10n.createRoomSheetTypeEphemeralSub,
-                        ),
-                      ],
-                    ),
-                    AnimatedSize(
-                      duration: theme.motionMed,
-                      curve: Curves.easeOutCubic,
-                      alignment: Alignment.topCenter,
-                      child: _type != RoomType.secret
-                          ? const SizedBox(width: double.infinity)
-                          : Padding(
-                              padding: const EdgeInsets.only(top: 22),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  GroupedHeader(
-                                    l10n.createRoomSheetMessageLifeLabel,
-                                    trailing: Text(
-                                      _fmtTtl(context, _ttl),
-                                      style: groupedValueStyle(theme).copyWith(
-                                        fontFeatures: const [
-                                          FontFeature.tabularFigures(),
-                                        ],
+        child: IgnorePointer(
+          ignoring: _flying,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 6, bottom: 4),
+                child: card,
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(top: 8, bottom: 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      GroupedHeader(l10n.createRoomSheetNameLabel),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          _EmojiButton(
+                            emoji: _emoji,
+                            semanticLabel: l10n.newRoomPreviewAvatarSemantic,
+                            onTap: _pickEmoji,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ThemedInput(
+                              controller: _name,
+                              hint: l10n.createRoomSheetNameHint,
+                              textInputAction: TextInputAction.next,
+                              onChanged: (_) => setState(() {}),
+                              onSubmitted: (_) =>
+                                  FocusScope.of(context).nextFocus(),
+                            ),
+                          ),
+                        ],
+                      ),
+                      AnimatedSize(
+                        duration: MotionScope.of(context)
+                            .d(const Duration(milliseconds: 260)),
+                        curve: Curves.easeOutCubic,
+                        alignment: Alignment.topCenter,
+                        child: _descOpen
+                            ? Padding(
+                                padding: const EdgeInsets.only(top: 10),
+                                child: ThemedInput(
+                                  controller: _desc,
+                                  hint: l10n.createRoomSheetDescriptionHint,
+                                  autofocus: true,
+                                  textInputAction: TextInputAction.done,
+                                  // Same guard as the button, so Enter can't
+                                  // create a room the button is refusing to.
+                                  onSubmitted: (_) => _busy ? null : _create(),
+                                ),
+                              )
+                            : Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: SpringPress(
+                                  onTap: () => setState(() => _descOpen = true),
+                                  focusRadius: 10,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 10,
+                                    ),
+                                    child: Text(
+                                      l10n.newRoomAddDescription,
+                                      style: theme.bodyEmph.copyWith(
+                                        color: theme.accent,
+                                        fontSize: 15,
                                       ),
                                     ),
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 4,
-                                    ),
-                                    child: Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: [
-                                        for (final t in _ttls)
-                                          FilterCapsule(
-                                            label: _fmtTtl(context, t),
-                                            active: _ttl == t,
-                                            onTap: () {
-                                              HapticFeedback.selectionClick();
-                                              setState(() => _ttl = t);
-                                            },
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
-                    ),
-                    // Password is independent of visibility: a public room can be
-                    // discoverable yet locked, a private room hidden yet open.
-                    const SizedBox(height: 22),
-                    PasswordField(
-                      label: l10n.createRoomSheetPasswordLabel,
-                      controller: _password,
-                      hint: l10n.createRoomSheetPasswordHint,
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 12),
-                      FormErrorBanner(_error!),
+                      ),
+                      const SizedBox(height: 14),
+                      GroupedHeader(
+                        l10n.newRoomSectionPeople,
+                        trailing: InviteCount(count: _picked.length),
+                      ),
+                      InviteChips(
+                        friends: _friends,
+                        selected: _picked,
+                        onToggle: _toggle,
+                        api: widget.api,
+                      ),
+                      const SizedBox(height: 14),
+                      GroupedHeader(l10n.newRoomSectionRoom),
+                      RoomKindSegment(
+                        value: _type,
+                        regularLabel: l10n.newRoomKindRegular,
+                        secretLabel: l10n.newRoomKindSecret,
+                        onChanged: _setType,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+                        child: SlideSwap(
+                          child: Text(
+                            secret
+                                ? l10n.newRoomKindSecretDesc
+                                : l10n.newRoomKindRegularDesc,
+                            key: ValueKey(secret),
+                            style:
+                                theme.caption.copyWith(color: theme.inkMuted),
+                          ),
+                        ),
+                      ),
+                      AnimatedSize(
+                        duration: MotionScope.of(context)
+                            .d(const Duration(milliseconds: 300)),
+                        curve: Curves.easeOutCubic,
+                        alignment: Alignment.topCenter,
+                        child: !secret
+                            ? const SizedBox(width: double.infinity)
+                            : Padding(
+                                padding: const EdgeInsets.only(top: 14),
+                                child: MessageLifePicker(
+                                  key: _lifeKey,
+                                  value: _life,
+                                  onChanged: (v) => setState(() => _life = v),
+                                ),
+                              ),
+                      ),
+                      const SizedBox(height: 14),
+                      GroupedHeader(l10n.newRoomSectionFind),
+                      IosSegmentedControl<bool>(
+                        segments: [
+                          IosSegment(
+                            value: true,
+                            label: l10n.newRoomFindInviteOnly,
+                          ),
+                          IosSegment(
+                            value: false,
+                            label: l10n.newRoomFindFindable,
+                          ),
+                        ],
+                        value: _isPrivate,
+                        onChanged: (v) => setState(() => _isPrivate = v),
+                      ),
+                      // Password is independent of visibility: a findable room
+                      // can be locked, an invite-only room open.
+                      const SizedBox(height: 6),
+                      SpringPress(
+                        onTap: () => setState(() => _passwordOn = !_passwordOn),
+                        focusRadius: 12,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 6,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  l10n.newRoomPasswordSwitch,
+                                  style: theme.body.copyWith(color: theme.ink),
+                                ),
+                              ),
+                              IgnorePointer(
+                                child: RowSwitch(
+                                  value: _passwordOn,
+                                  onChanged: (_) {},
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      AnimatedSize(
+                        duration: MotionScope.of(context)
+                            .d(const Duration(milliseconds: 280)),
+                        curve: Curves.easeOutCubic,
+                        alignment: Alignment.topCenter,
+                        child: !_passwordOn
+                            ? const SizedBox(width: double.infinity)
+                            : Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: PasswordField(
+                                  controller: _password,
+                                  hint: l10n.createRoomSheetPasswordHint,
+                                ),
+                              ),
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        FormErrorBanner(_error!),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-            // A breath between the scroll edge and the slab, so a field cut
-            // by the edge reads as "more above", not as tucked under it.
-            const SizedBox(height: 10),
-            Semantics(
-              label: l10n.createRoomSheetOpenRoomSemanticLabel,
-              child: SheetActionButton(
-                label: l10n.createRoomSheetOpenRoomButton,
-                busy: _busy,
-                onTap: _create,
-              ),
-            ),
-          ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The emoji button beside the name field: shows the room's emoji, kicks when
+/// it changes, opens the app's emoji picker on tap.
+class _EmojiButton extends StatelessWidget {
+  const _EmojiButton({
+    required this.emoji,
+    required this.onTap,
+    required this.semanticLabel,
+  });
+  final String emoji;
+  final VoidCallback onTap;
+  final String semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return SpringPress(
+      onTap: onTap,
+      semanticLabel: semanticLabel,
+      focusRadius: 14,
+      child: KickGlyph(
+        kick: GlyphKick.pop,
+        trigger: emoji,
+        amplitude: 1.3,
+        child: Container(
+          width: 50,
+          height: 50,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: quietFill(theme),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Text(emoji, style: const TextStyle(fontSize: 26, height: 1)),
         ),
       ),
     );
