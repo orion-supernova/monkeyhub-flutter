@@ -95,4 +95,72 @@ void main() {
     expect(ticket.closed, isTrue);
     expect(ticket.reveal.value, 1);
   });
+
+  // The landing used to wrap the picture alone, and the flight aimed at the
+  // whole bubble: the caption's bubble sat on screen under an empty slot, and
+  // the picture squashed into the caption's room.
+  testWidgets('a caption flies with its picture and lands on the caption', (
+    tester,
+  ) async {
+    final image = await still(tester);
+    final show = ValueNotifier(false);
+    late BuildContext ctx;
+    await tester.pumpWidget(MaterialApp(
+      home: Builder(builder: (c) {
+        ctx = c;
+        return Stack(children: [
+          Positioned(
+            right: 10,
+            bottom: 100,
+            child: ValueListenableBuilder<bool>(
+              valueListenable: show,
+              builder: (_, v, _) => v
+                  ? const SendFlightLanding(
+                      kind: SendFlightKind.photo,
+                      color: Color(0xFF3478F6),
+                      textStyle: TextStyle(fontSize: 15),
+                      child: SizedBox(
+                        width: 200,
+                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          SendFlightMark(
+                            part: SendFlightPart.media,
+                            child: SizedBox(height: 240),
+                          ),
+                          SendFlightMark(
+                            part: SendFlightPart.caption,
+                            child: SizedBox(height: 40),
+                          ),
+                        ]),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        ]);
+      }),
+    ));
+
+    PhotoSendFlight.launch(
+      ctx,
+      image: image,
+      src: const Rect.fromLTWH(0, 0, 60, 80),
+      from: const Rect.fromLTWH(0, 100, 400, 530),
+      caption: 'sunset at the pier',
+      captionFrom: const Rect.fromLTWH(30, 700, 300, 21),
+      captionStyle: const TextStyle(fontSize: 16),
+    );
+    await tester.pump();
+    show.value = true;
+    await tester.pump();
+    final ticket = SendFlight.current!;
+    final space = tester.renderObject<RenderBox>(find.byType(Overlay).first);
+    expect(ticket.partIn(SendFlightPart.media, space)?.height, 240);
+    expect(ticket.partIn(SendFlightPart.caption, space)?.height, 40);
+    expect(ticket.textStyle?.fontSize, 15);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(landingOpacity(tester), 0, reason: 'caption and all, still away');
+    await tester.pumpAndSettle();
+    expect(landingOpacity(tester), 1);
+    expect(tester.takeException(), isNull);
+  });
 }

@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/widgets.dart';
 
 import 'capture_glyphs.dart' show glyphSpan;
+import 'message_bubble.dart' show kCaptionPadding;
 import 'send_flight.dart';
 
 /// The photo preview's Send: the picture itself flies down out of the
@@ -23,16 +24,30 @@ import 'send_flight.dart';
 /// The bubble stays hidden until the last stretch, then the two cross-fade.
 /// No bubble at all (the chat was left, the send refused) and the picture
 /// fades out where it got to.
+///
+/// A caption flies with it. The words leave the preview's caption field and
+/// land in the bubble's caption, set in the field's type on the way out and
+/// the bubble's on the way in (the two cross-fade mid-air, each scaled to the
+/// other's width so neither reflows), on a backing that turns from the
+/// field's dark glass into the bubble's fill. The landing holds the whole
+/// bubble back, caption included: a caption that was on screen before its
+/// picture arrived read as the send arriving in two pieces.
 class PhotoSendFlight {
   PhotoSendFlight._();
 
   /// Flies [image]'s [src] region from [from] (global coordinates) into the
   /// next outgoing photo bubble. Takes ownership of [image].
+  ///
+  /// [caption], set in [captionStyle] at [captionFrom] (global coordinates,
+  /// the text's own box), flies along into the bubble's caption.
   static void launch(
     BuildContext context, {
     required ui.Image image,
     required Rect src,
     required Rect from,
+    String? caption,
+    Rect? captionFrom,
+    TextStyle? captionStyle,
   }) {
     final overlay = Overlay.maybeOf(context, rootOverlay: true);
     if (overlay == null || MediaQuery.disableAnimationsOf(context)) {
@@ -46,6 +61,9 @@ class PhotoSendFlight {
         image: image,
         src: src,
         from: from,
+        caption: caption == null || caption.isEmpty || captionFrom == null
+            ? null
+            : _Caption(caption, captionFrom, captionStyle ?? const TextStyle()),
         ticket: ticket,
         onDone: () {
           entry.remove();
@@ -62,6 +80,7 @@ class _PhotoFlight extends StatefulWidget {
     required this.image,
     required this.src,
     required this.from,
+    required this.caption,
     required this.ticket,
     required this.onDone,
   });
@@ -69,6 +88,7 @@ class _PhotoFlight extends StatefulWidget {
   final ui.Image image;
   final Rect src;
   final Rect from;
+  final _Caption? caption;
   final SendFlightTicket ticket;
   final VoidCallback onDone;
 
@@ -93,6 +113,14 @@ class _PhotoFlightState extends State<_PhotoFlight>
     _Frame(widget.from, radius: 0, opacity: 1, shadow: 0),
   );
 
+  /// The caption's words in each end's type: the preview field's, laid out
+  /// at its width once, and the bubble's, laid out again only when the
+  /// landing's width changes.
+  TextPainter? _srcText;
+  TextPainter? _dstText;
+  double? _dstWidth;
+  TextStyle? _dstStyle;
+
   bool _done = false;
 
   @override
@@ -104,6 +132,8 @@ class _PhotoFlightState extends State<_PhotoFlight>
 
   @override
   void dispose() {
+    _srcText?.dispose();
+    _dstText?.dispose();
     _f.dispose();
     _frame.dispose();
     // Whatever happened, the bubble must not stay hidden.
@@ -125,7 +155,13 @@ class _PhotoFlightState extends State<_PhotoFlight>
     if (space is! RenderBox || !space.hasSize) return;
     final t = _f.value;
     final ticket = widget.ticket;
-    final target = ticket.claimed ? ticket.rectIn(space) : null;
+    final whole = ticket.claimed ? ticket.rectIn(space) : null;
+    // The picture's own part of the landing: with a caption the bubble is
+    // taller than the photograph, and aiming at the whole of it squashed the
+    // picture into the caption's room.
+    final target = whole == null
+        ? null
+        : ticket.partIn(SendFlightPart.media, space) ?? whole;
     final guess = _guess(space.size);
     final aim = _aim ?? guess;
     _aim = target == null
@@ -149,8 +185,89 @@ class _PhotoFlightState extends State<_PhotoFlight>
       opacity: opacity,
       // A small lift as it leaves the stage, gone by the time it lands.
       shadow: math.sin(math.pi * t),
+      caption: _captionFrame(space, rect, t, landing ? whole : null),
     );
   }
+
+  /// The caption's pose this frame: its backing, and where its words go.
+  _CaptionFrame? _captionFrame(
+      RenderBox space, Rect photo, double t, Rect? whole) {
+    final c = widget.caption;
+    if (c == null) return null;
+    final ticket = widget.ticket;
+    final src = _srcText ??= TextPainter(
+      text: TextSpan(text: c.text, style: c.style),
+      textDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
+    )..layout(maxWidth: math.max(1, c.from.width));
+    // The words' box as the preview had it, and the glass round them.
+    final from = space.globalToLocal(c.from.topLeft) & c.from.size;
+    final fromBox = Rect.fromLTRB(
+        from.left - 16, from.top - 9, from.right + 14, from.bottom + 9);
+
+    // The bubble's caption once it is measurable; until then, a guess just
+    // under the picture at its width.
+    final part =
+        whole == null ? null : ticket.partIn(SendFlightPart.caption, space);
+    final dstStyle = (ticket.textStyle ?? c.style)
+        .copyWith(decoration: TextDecoration.none);
+    final width = math.max(
+        1.0, (part?.width ?? photo.width) - kCaptionPadding.horizontal);
+    if (_dstText == null || _dstWidth != width || _dstStyle != dstStyle) {
+      _dstText?.dispose();
+      _dstWidth = width;
+      _dstStyle = dstStyle;
+      _dstText = TextPainter(
+        text: TextSpan(text: c.text, style: dstStyle),
+        textDirection: src.textDirection,
+      )..layout(maxWidth: width);
+    }
+    final dst = _dstText!;
+
+    // Docked under the picture as it flies, not flown on a path of its own:
+    // two pieces on two paths drifted apart and overlapped mid-air. It reaches
+    // the picture's lower edge a little before the picture lands.
+    final k = Curves.easeInOutCubic.transform(glyphSpan(t, 0, 0.75));
+    final m = Curves.easeInOutCubic.transform(t);
+    final mix = Curves.easeInOut.transform(glyphSpan(t, 0.3, 0.7));
+    final left = _lerp(fromBox.left, photo.left, k);
+    final boxWidth = _lerp(fromBox.width, photo.width, k);
+    final padL = _lerp(16, kCaptionPadding.left, m);
+    final padR = _lerp(14, kCaptionPadding.right, m);
+    final padT = _lerp(9, kCaptionPadding.top, m);
+    final padB = _lerp(9, kCaptionPadding.bottom, m);
+    final textWidth = math.max(1.0, boxWidth - padL - padR);
+    final srcScale = textWidth / math.max(1.0, src.width);
+    final dstScale = textWidth / math.max(1.0, dst.width);
+    // As tall as the words it holds this frame, so neither type spills out.
+    final textHeight =
+        _lerp(src.height * srcScale, dst.height * dstScale, mix);
+    final box = Rect.fromLTWH(
+      left,
+      _lerp(fromBox.top, photo.bottom, k),
+      boxWidth,
+      padT + textHeight + padB,
+    );
+    return _CaptionFrame(
+      box: box,
+      text: box.topLeft + Offset(padL, padT),
+      srcScale: srcScale,
+      dstScale: dstScale,
+      // Mid-air, and quickly: either type held at the wrong scale for long
+      // reads as a font glitch.
+      mix: mix,
+      fill: Color.lerp(
+        const Color(0x59000000),
+        ticket.color ?? const Color(0x59000000),
+        Curves.easeIn.transform(glyphSpan(t, 0.2, 0.8)),
+      )!,
+      radius: 20 - 2 * m,
+      dock: k,
+      src: src,
+      dst: dst,
+    );
+  }
+
+  static double _lerp(double a, double b, double t) => a + (b - a) * t;
 
   /// Across first, then down, so it swoops into the bubble rather than
   /// sliding along a ruler; the size follows the drop.
@@ -196,12 +313,54 @@ class _Frame {
     required this.radius,
     required this.opacity,
     required this.shadow,
+    this.caption,
   });
 
   final Rect rect;
   final double radius;
   final double opacity;
   final double shadow;
+  final _CaptionFrame? caption;
+}
+
+/// A caption handed to the flight: its words, where they were, in what type.
+class _Caption {
+  const _Caption(this.text, this.from, this.style);
+  final String text;
+  final Rect from;
+  final TextStyle style;
+}
+
+class _CaptionFrame {
+  const _CaptionFrame({
+    required this.box,
+    required this.text,
+    required this.srcScale,
+    required this.dstScale,
+    required this.mix,
+    required this.fill,
+    required this.radius,
+    required this.dock,
+    required this.src,
+    required this.dst,
+  });
+
+  /// The backing, and the words' top-left inside it.
+  final Rect box;
+  final Offset text;
+
+  /// Each type's scale to the words' width this frame.
+  final double srcScale, dstScale;
+
+  /// 0 all the preview's type, 1 all the bubble's.
+  final double mix;
+  final Color fill;
+  final double radius;
+
+  /// 0 apart, 1 docked under the picture: the seam between the two loses
+  /// its corners, so what lands is one bubble and not two pills.
+  final double dock;
+  final TextPainter src, dst;
 }
 
 class _FlightPainter extends CustomPainter {
@@ -216,7 +375,18 @@ class _FlightPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final f = frame.value;
     if (f.opacity <= 0 || f.rect.isEmpty) return;
-    final rrect = RRect.fromRectAndRadius(f.rect, Radius.circular(f.radius));
+    final c = f.caption;
+    final seam = Radius.circular(f.radius * (1 - (c?.dock ?? 0)));
+    final rrect = RRect.fromRectAndCorners(
+      f.rect,
+      topLeft: Radius.circular(f.radius),
+      topRight: Radius.circular(f.radius),
+      bottomLeft: seam,
+      bottomRight: seam,
+    );
+    // Under the picture, so the two meet the way the bubble's own photo and
+    // caption do: the picture's lower edge over the top of the caption.
+    if (c != null) _paintCaption(canvas, c, f.opacity);
     if (f.shadow > 0) {
       canvas.drawRRect(
         rrect.shift(const Offset(0, 6)),
@@ -235,6 +405,40 @@ class _FlightPainter extends CustomPainter {
         ..filterQuality = FilterQuality.medium
         ..color = Color.fromRGBO(0, 0, 0, f.opacity),
     );
+    canvas.restore();
+  }
+
+  static void _paintCaption(Canvas canvas, _CaptionFrame c, double opacity) {
+    final seam = Radius.circular(c.radius * (1 - c.dock));
+    final backing = RRect.fromRectAndCorners(
+      c.box,
+      topLeft: seam,
+      topRight: seam,
+      bottomLeft: Radius.circular(c.radius),
+      bottomRight: Radius.circular(c.radius),
+    );
+    canvas.drawRRect(
+      backing,
+      Paint()..color = c.fill.withValues(alpha: c.fill.a * opacity),
+    );
+    // The words stay inside their backing while the two types trade.
+    canvas.save();
+    canvas.clipRRect(backing);
+    void words(TextPainter p, double scale, double alpha) {
+      if (alpha <= 0.01) return;
+      final size = p.size * scale;
+      canvas.saveLayer(
+        c.text & Size(size.width + 2, size.height + 2),
+        Paint()..color = Color.fromRGBO(0, 0, 0, alpha),
+      );
+      canvas.translate(c.text.dx, c.text.dy);
+      canvas.scale(scale);
+      p.paint(canvas, Offset.zero);
+      canvas.restore();
+    }
+
+    words(c.src, c.srcScale, (1 - c.mix) * opacity);
+    words(c.dst, c.dstScale, c.mix * opacity);
     canvas.restore();
   }
 

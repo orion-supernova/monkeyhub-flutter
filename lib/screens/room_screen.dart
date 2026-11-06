@@ -2507,6 +2507,20 @@ class _RoomScreenState extends State<_RoomView>
     );
   }
 
+  /// A reply made on a whole row: the swipe, or the hover strip's arrow. On
+  /// an album that is the album, the same reply the menu's "All" side arms.
+  /// The row's [m] is the album's LAST item, so replying to it quoted one
+  /// photograph the reader never singled out (on a deck, usually one they
+  /// could not even see).
+  void _replyToRow(ChatMessage m, List<ChatMessage> album,
+      {bool haptic = true}) {
+    if (album.length > 1) {
+      _armReply(album.first, haptic: haptic, albumCount: album.length);
+    } else {
+      _armReply(m, haptic: haptic);
+    }
+  }
+
   void _armReply(ChatMessage m, {bool haptic = true, int? albumCount}) {
     _replyAlbumFor = albumCount == null ? null : m.id;
     _replyAlbumCount = albumCount ?? 0;
@@ -5474,20 +5488,6 @@ class _RoomScreenState extends State<_RoomView>
     return false;
   }
 
-  /// The room's own catalog shortcuts. Bound only for what this room can do
-  /// right now: no calls where the header has no call buttons, nothing that
-  /// needs the composer while a selection has replaced it. There is no
-  /// in-chat search in this room yet, so `searchInChat` is not bound and ⌘F
-  /// stays the app's search.
-  Map<ShortcutDef, VoidCallback> _roomShortcuts(ChatRoom room) {
-    final caps = widget.repo.capabilitiesFor(room);
-    final composing = !_selection.active;
-    final dmUser = room.isDm ? widget.repo.otherUserFor(room) : null;
-    final canCall = caps.canCall &&
-        FamilyService.maybeInstance?.canCall != false &&
-        (room.isDm ? dmUser != null : GroupCallService.maybeInstance != null);
-    void call(CallMediaKind kind) {
-      if (dmUser != null) {
   /// What tapping a call bubble does in [room], or null where calling is off
   /// (the same gates the header's call buttons use), which leaves the bubble a
   /// plain record. A 1:1 call rings the other person back with the same kind
@@ -5540,6 +5540,20 @@ class _RoomScreenState extends State<_RoomView>
     };
   }
 
+  /// The room's own catalog shortcuts. Bound only for what this room can do
+  /// right now: no calls where the header has no call buttons, nothing that
+  /// needs the composer while a selection has replaced it. There is no
+  /// in-chat search in this room yet, so `searchInChat` is not bound and ⌘F
+  /// stays the app's search.
+  Map<ShortcutDef, VoidCallback> _roomShortcuts(ChatRoom room) {
+    final caps = widget.repo.capabilitiesFor(room);
+    final composing = !_selection.active;
+    final dmUser = room.isDm ? widget.repo.otherUserFor(room) : null;
+    final canCall = caps.canCall &&
+        FamilyService.maybeInstance?.canCall != false &&
+        (room.isDm ? dmUser != null : GroupCallService.maybeInstance != null);
+    void call(CallMediaKind kind) {
+      if (dmUser != null) {
         CallButton(
           peerUserId: dmUser.id,
           peerName: dmUser.displayName,
@@ -7635,7 +7649,7 @@ class _RoomScreenState extends State<_RoomView>
                             ? null
                             : (r) => longPressOn(m,
                                 at: r.bottomLeft, reactionsOnly: true),
-                        onReply: canReply ? () => _armReply(m) : null,
+                        onReply: canReply ? () => _replyToRow(m, messageItem.album) : null,
                         onMore: (r) => longPressOn(m, at: r.bottomLeft),
                       )
                     : null;
@@ -7812,6 +7826,8 @@ class _RoomScreenState extends State<_RoomView>
                         onRetrySend: sendFailed ? onRetrySend : null,
                         onDiscardSend: sendFailed ? onDiscardSend : null,
                         album: messageItem.album,
+                        callRun: messageItem.callRun,
+                        onCallTap: _callBubbleTapFor(room),
                         // The block does not pulse when one of its pictures
                         // does. "One of these ten" is not the answer the trip
                         // was for — see [PhotoMosaic.highlightedPhotoId].
@@ -7826,8 +7842,6 @@ class _RoomScreenState extends State<_RoomView>
                         },
                         // A right-click on a card is that card's menu, at
                         // the pointer, not the row's (the album's last item).
-                        callRun: messageItem.callRun,
-                        onCallTap: _callBubbleTapFor(room),
                         onAlbumTileContextMenu: (target, at) {
                           if (target.id.startsWith('tmp_')) return;
                           longPressOn(target, at: at);
@@ -7886,7 +7900,8 @@ class _RoomScreenState extends State<_RoomView>
                       // A swipe that armed a reply mid-selection would put a
                       // composer card under a bar that has no composer.
                       enabled: canReply && !selecting,
-                      onReplyTriggered: () => _armReply(m, haptic: false),
+                      onReplyTriggered: () =>
+                          _replyToRow(m, messageItem.album, haptic: false),
                       child: bubble,
                     ),
                   ),

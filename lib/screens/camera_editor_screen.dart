@@ -601,8 +601,31 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   final GlobalKey _shotKey = GlobalKey();
 
   /// Set as the photo leaves in its send flight: the stage stops drawing, so
-  /// the picture is never on screen twice while this route goes.
+  /// the picture is never on screen twice while this route goes. The
+  /// caption's words go with it, so the field stops drawing them too.
   bool _flown = false;
+
+  /// The caption field's text box, for where a sent caption flies from.
+  final GlobalKey _captionTextKey = GlobalKey();
+
+  /// The caption field's type, for the flight to leave in.
+  TextStyle? _captionStyleUsed;
+
+  /// The caption's words and where they sit on screen, as Send is tapped.
+  ({String text, Rect from, TextStyle style})? _captionShot() {
+    final text = _caption.text.trim();
+    final style = _captionStyleUsed;
+    final box = _captionTextKey.currentContext?.findRenderObject();
+    if (text.isEmpty || style == null || box is! RenderBox || !box.attached) {
+      return null;
+    }
+    return (
+      text: text,
+      from: MatrixUtils.transformRect(
+          box.getTransformTo(null), Offset.zero & box.size),
+      style: style,
+    );
+  }
 
   /// Covers reading back an "add from library" pick — whole-file reads behind
   /// an OS sheet that has already slid away.
@@ -1352,6 +1375,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
     // Before anything changes on screen: the still is what was being looked
     // at when Send was tapped.
     final shot = _fliesOnSend(scheduleAt) ? _stageShot() : null;
+    final captionShot = shot == null ? null : _captionShot();
     _captionFocus.unfocus();
     final toast = AppToast.of(context);
     final l10n = AppLocalizations.of(context);
@@ -1403,6 +1427,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
         image: shot.image,
         src: shot.src,
         from: shot.from,
+        caption: captionShot?.text,
+        captionFrom: captionShot?.from,
+        captionStyle: captionShot?.style,
       );
       setState(() => _flown = true);
     }
@@ -2480,7 +2507,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
   Widget _captionField(AppTheme theme) {
     final l10n = AppLocalizations.of(context);
     final enabled = !_viewOnce && !_saving;
-    final style = theme.body.copyWith(
+    final style = _captionStyleUsed = theme.body.copyWith(
       color: MediaGlass.ink,
       fontSize: 16,
       height: 1.3,
@@ -2497,6 +2524,8 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
           child: SubmitOnEnter(
             controller: _caption,
             onSubmit: _sendFromKeyboard,
+            child: KeyedSubtree(
+            key: _captionTextKey,
             child: TextField(
             key: cameraEditorCaptionKey,
             controller: _viewOnce ? _noCaption : _caption,
@@ -2507,13 +2536,20 @@ class _CameraEditorScreenState extends State<CameraEditorScreen>
             textCapitalization: TextCapitalization.sentences,
             keyboardAppearance: Brightness.dark,
             cursorColor: theme.accent,
-            style: style,
+            // Flown: the words are in the air, so the field stops drawing
+            // them (transparent, not emptied: the box keeps its height
+            // while the route leaves).
+            style: _flown
+                ? style.copyWith(color: const Color(0x00000000))
+                : style,
+            showCursor: !_flown,
             decoration: InputDecoration.collapsed(
               hintText: _viewOnce
                   ? l10n.cameraEditorScreenCaptionViewOnceHint
                   : l10n.cameraEditorScreenCaptionHint,
               hintStyle: style.copyWith(color: MediaGlass.inkDim),
             ),
+          ),
           ),
           ),
         ),

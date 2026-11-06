@@ -171,6 +171,12 @@ class MediaPagerScreen extends StatefulWidget {
   final int initialIndex;
   final ChatApi api;
 
+  /// The id of the photograph the open gallery is showing, or null when no
+  /// gallery is open. An album dealt as cards follows it, so the flight home
+  /// lands on its front card rather than on one buried in the hand (see
+  /// `PhotoDeck`).
+  static final ValueNotifier<String?> showing = ValueNotifier(null);
+
   /// Pops the pager and asks the room to travel to this message. Null when
   /// there is nothing to travel back to.
   final void Function(ChatMessage message)? onShowInChat;
@@ -473,12 +479,25 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
     super.initState();
     _index = widget.initialIndex.clamp(0, widget.items.length - 1);
     _pager = PageController(initialPage: _index);
+    _publish();
     // Opened on one of the oldest few: ask now rather than on the first swipe.
     _maybeLoadOlder();
   }
 
+  /// Tells [MediaPagerScreen.showing] which photograph is on screen.
+  void _publish() {
+    _published = _items.isEmpty ? null : _items[_index].id;
+    MediaPagerScreen.showing.value = _published;
+  }
+
+  String? _published;
+
   @override
   void dispose() {
+    // Only if it is still ours: a gallery opened over this one has its own.
+    if (MediaPagerScreen.showing.value == _published) {
+      MediaPagerScreen.showing.value = null;
+    }
     _idleTimer?.cancel();
     _pager.dispose();
     _drag.dispose();
@@ -705,6 +724,7 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
         if (_pager.hasClients && _pager.page?.round() != _index) {
           _pager.jumpToPage(_index);
         }
+        _publish();
         widget.onPageChanged?.call(_items[_index]);
       });
 
@@ -915,6 +935,7 @@ class _MediaPagerScreenState extends State<MediaPagerScreen>
                     // gallery unswipeable with nothing on screen to explain why.
                     _zoomed = false;
                   });
+                  _publish();
                   widget.onPageChanged?.call(_items[i]);
                   _maybeLoadOlder();
                 },

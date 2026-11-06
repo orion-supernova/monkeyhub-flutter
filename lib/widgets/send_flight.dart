@@ -7,8 +7,9 @@ import 'package:flutter/widgets.dart';
 enum SendFlightKind { videoNote, voice, photo }
 
 /// The pieces of a landing bubble a flight lands its own pieces on, marked
-/// with [SendFlightMark]: a voice bubble's play disc, waveform and meta line.
-enum SendFlightPart { disc, wave, label }
+/// with [SendFlightMark]: a voice bubble's play disc, waveform and meta line;
+/// a photo bubble's picture and the caption under it.
+enum SendFlightPart { disc, wave, label, media, caption }
 
 /// A sent note flying down into the bubble it becomes: a video note's
 /// circle, or a voice note's strip or disc (see `composer_capture.dart`).
@@ -68,6 +69,11 @@ class SendFlightTicket extends ChangeNotifier {
   Color? get color => _landing?.widget.color ?? _lastColor;
   Color? _lastColor;
 
+  /// The style the landing sets its words in, for a flying caption to
+  /// arrive in.
+  TextStyle? get textStyle => _landing?.widget.textStyle ?? _lastTextStyle;
+  TextStyle? _lastTextStyle;
+
   /// The landing's waveform bar heights, 0..1, when it has one, for the
   /// flying bars to become.
   List<double>? get bars => _landing?.widget.bars ?? _lastBars;
@@ -92,6 +98,7 @@ class SendFlightTicket extends ChangeNotifier {
     if (_closed || claimed || landing.widget.kind != kind) return;
     _lastColor = landing.widget.color;
     _lastBars = landing.widget.bars;
+    _lastTextStyle = landing.widget.textStyle;
     _landing = landing;
     notifyListeners();
   }
@@ -139,10 +146,15 @@ class SendFlightLanding extends StatefulWidget {
     this.kind = SendFlightKind.videoNote,
     this.color,
     this.bars,
+    this.textStyle,
     required this.child,
   });
 
   final SendFlightKind kind;
+
+  /// The bubble's text style, for a caption flying in (see
+  /// [SendFlightTicket.textStyle]).
+  final TextStyle? textStyle;
 
   /// A voice bubble's waveform heights (see [SendFlightTicket.bars]).
   final List<double>? bars;

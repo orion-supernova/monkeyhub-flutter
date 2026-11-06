@@ -1,13 +1,16 @@
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
+import '../screens/media_pager_screen.dart' show MediaPagerScreen;
 import '../theme/app_theme.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
@@ -211,6 +214,36 @@ class _PhotoDeckState extends State<PhotoDeck>
   void initState() {
     super.initState();
     _dealHighlighted();
+    MediaPagerScreen.showing.addListener(_followGallery);
+  }
+
+  /// The fullscreen gallery paged to another photograph: if it is one of
+  /// this hand's, deal it to the front, out of sight under the gallery.
+  ///
+  /// The flight home lands on that photograph's card. Left where it was (two
+  /// places back on the left pile, tilted and shaded, or not even mounted),
+  /// the picture landed on a card buried in the hand, and the hand then
+  /// showed a different photograph in front from the one just closed.
+  void _followGallery() {
+    final id = MediaPagerScreen.showing.value;
+    if (id == null) return;
+    final i = widget.photos.indexWhere((m) => m.id == id);
+    if (i < 0 || (_position.value == i && !_position.isAnimating)) return;
+    void deal() {
+      if (!mounted || _dragging) return;
+      _position.stop();
+      _startedAt = i.toDouble();
+      _position.value = i.toDouble();
+    }
+
+    // Published from inside a build (the gallery's first frame) as often as
+    // from a swipe; a setState then would be one during someone else's build.
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => deal());
+    } else {
+      deal();
+    }
   }
 
   @override
@@ -233,6 +266,7 @@ class _PhotoDeckState extends State<PhotoDeck>
 
   @override
   void dispose() {
+    MediaPagerScreen.showing.removeListener(_followGallery);
     _position.dispose();
     super.dispose();
   }
@@ -449,13 +483,23 @@ class _PhotoDeckState extends State<PhotoDeck>
 
     // The swipe is heard over the label as well as the cards: a drag that
     // started an inch too high used to fall through to the row's reply
-    // swipe.
-    return GestureDetector(
+    // swipe. A swipe the hand has no card for (back on the first, on past
+    // the last) is left for the row's own pulls; see [_DeckDragRecognizer].
+    return RawGestureDetector(
       behavior: HitTestBehavior.opaque,
-      onHorizontalDragStart: _onStart,
-      onHorizontalDragUpdate: _onUpdate,
-      onHorizontalDragEnd: _onEnd,
-      onHorizontalDragCancel: _onCancel,
+      gestures: {
+        _DeckDragRecognizer:
+            GestureRecognizerFactoryWithHandlers<_DeckDragRecognizer>(
+          () => _DeckDragRecognizer(debugOwner: this),
+          (r) => r
+            ..canBack = (() => _dragging || _position.value > 0.02)
+            ..canForward = (() => _dragging || _position.value < _last - 0.02)
+            ..onStart = _onStart
+            ..onUpdate = _onUpdate
+            ..onEnd = _onEnd
+            ..onCancel = _onCancel,
+        ),
+      },
       child: deck,
     );
   }
@@ -563,6 +607,56 @@ class _PhotoDeckState extends State<PhotoDeck>
         ),
       ),
     );
+  }
+}
+
+/// The hand's horizontal drag, which steps aside for a swipe it has no card
+/// for: rightward on the first card, leftward on the last.
+///
+/// The hand sits inside the row's swipe-to-reply (and, on your own album,
+/// swipe-to-receipts), and as the deeper of the two its recognizer always
+/// reached the touch slop first and took every sideways drag. On a deck the
+/// reply swipe simply did not exist; it only rubber-banded the first card.
+///
+/// Stepping aside is a longer slop, not a refusal: a row pull wins at the
+/// ordinary slop, and where there is no row pull to win (somebody else's
+/// album has no receipts) the hand still takes the drag a little later and
+/// gives under the finger as it always did.
+class _DeckDragRecognizer extends HorizontalDragGestureRecognizer {
+  _DeckDragRecognizer({super.debugOwner});
+
+  /// Read at touch-down: whether there are cards that way to deal.
+  bool Function() canBack = _yes;
+  bool Function() canForward = _yes;
+  static bool _yes() => true;
+
+  bool _back = true, _forward = true;
+  double _dx = 0;
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    _back = canBack();
+    _forward = canForward();
+    _dx = 0;
+    super.addAllowedPointer(event);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    if (event is PointerMoveEvent) _dx += event.delta.dx;
+    super.handleEvent(event);
+  }
+
+  @override
+  bool hasSufficientGlobalDistanceToAccept(
+      PointerDeviceKind pointerDeviceKind, double? deviceTouchSlop) {
+    if (!super.hasSufficientGlobalDistanceToAccept(
+        pointerDeviceKind, deviceTouchSlop)) {
+      return false;
+    }
+    final open = _dx > 0 ? _back : _forward;
+    if (open) return true;
+    return _dx.abs() > computeHitSlop(pointerDeviceKind, gestureSettings) * 2.5;
   }
 }
 

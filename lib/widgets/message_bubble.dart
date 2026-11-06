@@ -1884,13 +1884,11 @@ Widget buildMessageContent({
           onRetrySend: onRetrySend,
           onDiscardSend: onDiscardSend,
         );
-        // A photo just sent from the preview is where its picture lands;
-        // hidden until it is on it (see `photo_send_flight.dart`).
+        // A photo just sent from the preview is where its picture lands
+        // (see `photo_send_flight.dart`). The landing itself wraps the whole
+        // bubble, caption included, below; this marks where the picture is.
         if (isMine) {
-          imageTile = SendFlightLanding(
-            kind: SendFlightKind.photo,
-            child: imageTile,
-          );
+          imageTile = SendFlightMark(part: SendFlightPart.media, child: imageTile);
         }
       } else if (id != null) {
         imageTile = _ImageTile(
@@ -1917,17 +1915,32 @@ Widget buildMessageContent({
           child: Icon(CupertinoIcons.photo, color: theme.inkMuted),
         );
       }
-      if (!hasCaption) return imageTile;
-      return _captionedAttachment(
-        context: context,
-        theme: theme,
-        message: message,
-        isMine: isMine,
-        deco: deco,
-        tile: imageTile,
-        stamp: stampFor(bubbleTone),
-        currentUserId: currentUserId,
-        onMentionTap: onMentionTap,
+      final Widget photo = !hasCaption
+          ? imageTile
+          : _captionedAttachment(
+              context: context,
+              theme: theme,
+              message: message,
+              isMine: isMine,
+              deco: deco,
+              tile: imageTile,
+              stamp: stampFor(bubbleTone),
+              currentUserId: currentUserId,
+              onMentionTap: onMentionTap,
+            );
+      // Hidden as one, caption and all, until the flying picture (and its
+      // flying caption) are on it. Wrapping the picture alone left the
+      // caption's bubble on screen under an empty slot for the whole flight.
+      if (message.upload == null || !isMine || message.viewOnce) return photo;
+      return SendFlightLanding(
+        kind: SendFlightKind.photo,
+        color: deco is ShapeDecoration
+            ? deco.color ?? deco.gradient?.colors.first
+            : deco is BoxDecoration
+                ? deco.color ?? deco.gradient?.colors.first
+                : null,
+        textStyle: _captionStyle(theme, isMine),
+        child: photo,
       );
     // Bare, like a photo: no bubble frame around a picture. `content` is the
     // alt text, never a caption, so there is no captioned variant.
@@ -2274,19 +2287,6 @@ Widget buildMessageContent({
         child: note,
       );
     case MessageType.system:
-      return Container(
-        decoration: deco,
-        child: _captionBody(theme, message.content, isMine,
-            stamp: stampFor(bubbleTone),
-            mentionHandles: message.mentionHandles,
-            mentionsEveryone: message.mentionsEveryone,
-            currentUserId: currentUserId,
-            onMentionTap: onMentionTap),
-      );
-    case MessageType.location:
-    case MessageType.liveLocation:
-      // No bubble frame, matching the media tiles above: alignment in the row
-      // already says mine/theirs, and a chat bubble drawn around a map card
       final call = CallEvent.parse(message.content);
       if (call != null) {
         // A call is drawn as a bubble of its own (sender-sided, in the chosen
@@ -2336,6 +2336,19 @@ Widget buildMessageContent({
               : null,
         );
       }
+      return Container(
+        decoration: deco,
+        child: _captionBody(theme, message.content, isMine,
+            stamp: stampFor(bubbleTone),
+            mentionHandles: message.mentionHandles,
+            mentionsEveryone: message.mentionsEveryone,
+            currentUserId: currentUserId,
+            onMentionTap: onMentionTap),
+      );
+    case MessageType.location:
+    case MessageType.liveLocation:
+      // No bubble frame, matching the media tiles above: alignment in the row
+      // already says mine/theirs, and a chat bubble drawn around a map card
       // reads as a frame around a frame.
       //
       // No caption branch either, unlike image and file. Nothing can attach text
@@ -2537,7 +2550,10 @@ Widget _captionedAttachment({
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         tile,
-        _captionBody(
+        // Free outside a send flight's landing: it finds none.
+        SendFlightMark(
+          part: SendFlightPart.caption,
+          child: _captionBody(
           theme,
           message.content,
           isMine,
@@ -2555,6 +2571,7 @@ Widget _captionedAttachment({
           // exactly the sheet a text bubble's does.
           onLinkEntityTap: (url) =>
               _LinkAwareBubble._confirmAndOpenEntityLink(context, url),
+        ),
         ),
         // Below the words, inside the frame — the same place and the same
         // `insideBubble` card the text bubble uses, so a link sent with a
@@ -2594,6 +2611,13 @@ Widget _captionedAttachment({
 /// a link, which is exactly how an App Store link shared from the iOS
 /// extension arrived: unclickable, unpreviewed, and sitting in a second bubble
 /// below the file it came with.
+/// A caption's padding inside its bubble. Public for the send flight, which
+/// sets its flying words exactly where these land.
+const EdgeInsets kCaptionPadding = EdgeInsets.fromLTRB(14, 10, 14, 10);
+
+TextStyle _captionStyle(AppTheme theme, bool isMine) =>
+    theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink);
+
 Widget _captionBody(
   AppTheme theme,
   String text,
@@ -2618,8 +2642,8 @@ Widget _captionBody(
   /// the formatting offsets index the ORIGINAL string.
   bool hideAutoUrls = false,
 }) {
-  const pad = EdgeInsets.fromLTRB(14, 10, 14, 10);
-  final style = theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink);
+  const pad = kCaptionPadding;
+  final style = _captionStyle(theme, isMine);
   final linkAccent = theme.linkInk(isMine: isMine);
   final mentionStyle = style.copyWith(
       color: linkAccent, fontWeight: FontWeight.w600);

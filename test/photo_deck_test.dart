@@ -11,7 +11,10 @@ import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/screens/media_pager_screen.dart'
+    show MediaPagerScreen;
 import 'package:monkeyhub/widgets/photo_deck.dart';
+import 'package:monkeyhub/widgets/swipe_to_reply.dart';
 import 'package:monkeyhub/widgets/photo_mosaic.dart' show MosaicTile;
 
 /// An album dealt as cards: a swipe toward the peeking edge deals the next
@@ -34,13 +37,31 @@ void main() {
       );
 
   late List<String> opened;
+  late int replies;
   final deck = GlobalKey();
 
   Future<void> pump(WidgetTester tester, int n,
       {String? highlight,
+      bool inReplyRow = false,
       bool Function(int i)? video,
       bool Function(int i)? spoiler}) async {
     opened = [];
+    replies = 0;
+    final hand = PhotoDeck(
+      key: deck,
+      photos: [
+        for (var i = 0; i < n; i++)
+          photo('m$i',
+              video: video?.call(i) ?? false,
+              spoiler: spoiler?.call(i) ?? false),
+      ],
+      api: api,
+      width: 260,
+      radius: BorderRadius.circular(18),
+      currentUserId: 'bob',
+      highlightedPhotoId: highlight,
+      onOpen: (m, {required sourceDecodeWidth}) => opened.add(m.id),
+    );
     await tester.pumpWidget(ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: MaterialApp(
@@ -48,21 +69,9 @@ void main() {
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Center(
-            child: PhotoDeck(
-              key: deck,
-              photos: [
-                for (var i = 0; i < n; i++)
-                  photo('m$i',
-                      video: video?.call(i) ?? false,
-                      spoiler: spoiler?.call(i) ?? false),
-              ],
-              api: api,
-              width: 260,
-              radius: BorderRadius.circular(18),
-              currentUserId: 'bob',
-              highlightedPhotoId: highlight,
-              onOpen: (m, {required sourceDecodeWidth}) => opened.add(m.id),
-            ),
+            child: inReplyRow
+                ? SwipeToReply(onReplyTriggered: () => replies++, child: hand)
+                : hand,
           ),
         ),
       ),
@@ -180,7 +189,10 @@ void main() {
         (w) => w is MosaicTile && w.message.id == 'm0');
     final rest = tester.getRect(tile);
     final g = await tester.startGesture(tester.getCenter(find.byKey(deck)));
+    // Backward off the first card the hand waits out a longer slop (a row's
+    // reply pull gets first claim on it), then takes the drag.
     await g.moveBy(const Offset(20, 0));
+    await g.moveBy(const Offset(40, 0));
     await g.moveBy(const Offset(80, 0));
     await tester.pump(const Duration(milliseconds: 16));
     final pulled = tester.getRect(tile).left - rest.left;
@@ -261,5 +273,49 @@ void main() {
     expect(find.text('1 / 5'), findsOneWidget);
     await swipe(tester, -200);
     expect(find.text('2 / 5'), findsOneWidget);
+  });
+
+  // The hand sits inside the row's reply pull, and as the deeper recognizer
+  // used to take every sideways drag: a deck could not be swiped to reply.
+  testWidgets('on the first card a swipe back is the row\'s reply',
+      (tester) async {
+    await pump(tester, 3, inReplyRow: true);
+    await swipe(tester, 160);
+    expect(replies, 1);
+    expect(await front(tester), 'm0');
+  });
+
+  testWidgets('past the first card a swipe back deals, it does not reply',
+      (tester) async {
+    await pump(tester, 3, inReplyRow: true);
+    await swipe(tester, -200);
+    expect(await front(tester), 'm1');
+    await swipe(tester, 200);
+    expect(replies, 0);
+    expect(await front(tester), 'm0');
+  });
+
+  // Opened on the last card, paged back two in the gallery, closed: the
+  // flight home landed on a card buried in the hand, and the hand showed a
+  // different photograph in front from the one just closed.
+  testWidgets('the hand follows the gallery to the photo it is showing',
+      (tester) async {
+    await pump(tester, 4);
+    await swipe(tester, -200);
+    await swipe(tester, -200);
+    await swipe(tester, -200);
+    expect(await front(tester), 'm3');
+    MediaPagerScreen.showing.value = 'm3';
+    MediaPagerScreen.showing.value = 'm2';
+    MediaPagerScreen.showing.value = 'm1';
+    await tester.pump();
+    MediaPagerScreen.showing.value = null;
+    await tester.pumpAndSettle();
+    expect(await front(tester), 'm1');
+    // Someone else's photograph moves nothing.
+    MediaPagerScreen.showing.value = 'elsewhere';
+    await tester.pumpAndSettle();
+    MediaPagerScreen.showing.value = null;
+    expect(await front(tester), 'm1');
   });
 }
