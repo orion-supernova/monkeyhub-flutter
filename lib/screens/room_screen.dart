@@ -98,6 +98,7 @@ import '../widgets/read_only_composer_footer.dart';
 import '../widgets/bulk_action_bar.dart';
 import '../widgets/busy_scrim.dart';
 import '../widgets/chat_bottom_inset.dart';
+import '../widgets/chat_dock.dart';
 import '../composer/capture_machine.dart';
 import '../composer/capture_recorder.dart';
 import '../widgets/chat_composer.dart';
@@ -134,6 +135,7 @@ import '../widgets/reaction_picker_sheet.dart';
 import '../widgets/pending_placeholder.dart';
 import '../widgets/schedule_message_sheet.dart';
 import '../widgets/scheduled_list_sheet.dart';
+import '../models/scheduled_message.dart';
 import '../widgets/scheduled_pill.dart';
 import '../widgets/scroll_to_latest.dart';
 import '../widgets/selection_check.dart';
@@ -375,6 +377,11 @@ class _RoomScreenState extends State<_RoomView>
   /// line several times per message, and the transcript must move for it
   /// WITHOUT every bubble in the viewport being rebuilt.
   final ChatBottomInset _bottomChrome = ChatBottomInset();
+
+  /// How visible the whole bottom dock and its floats are, 0 gone to 1 shown.
+  /// Nothing drives it yet: it is the hook for a takeover (the swipe-up fork)
+  /// that dims the dock while a gesture owns the screen. See [DockFade].
+  final ValueNotifier<double> dockFade = ValueNotifier<double>(1);
 
   /// id → user, for sender names, avatars and speaker colours.
   ///
@@ -1939,6 +1946,7 @@ class _RoomScreenState extends State<_RoomView>
     _seenOnResume.dispose();
     _unreadBelow.dispose();
     _bottomChrome.dispose();
+    dockFade.dispose();
     _jumpBack.removeListener(_onJumpBackChanged);
     _jumpBack.dispose();
     _selection.removeListener(_onSelectionChanged);
@@ -2141,6 +2149,40 @@ class _RoomScreenState extends State<_RoomView>
   /// and can cancel, so the absent gesture reads as "not now" rather than as a
   /// broken button.
   VoidCallback? get _composerSchedule => _editing != null ? null : _scheduleSend;
+
+  /// The dock's shelf (lane 3) for this room: persistent room state, in
+  /// registration order. Today only the scheduled pill; a huddle bar or a Join
+  /// pill registers here with `DockShelfPriority.huddle` / `.join` and the shelf
+  /// collapses the pill to a chip beside it. Empty with none queued or with the
+  /// badge-only indicator.
+  List<DockShelfItem> _shelfItems(
+    List<ScheduledMessage> scheduled,
+    ScheduledIndicator indicator,
+  ) {
+    if (!indicator.showsPill || scheduled.isEmpty) return const [];
+    final failed = scheduled.any((s) => s.hasFailed);
+    final pending = scheduled.where((s) => s.pending).length;
+    return [
+      DockShelfItem(
+        id: 'scheduled',
+        // A failure is something to deal with, so it outranks a calm queue.
+        priority: failed
+            ? DockShelfPriority.scheduledFailed
+            : DockShelfPriority.scheduled,
+        expanded: (_) => ScheduledPill(
+          scheduled: scheduled,
+          onTap: _openScheduledList,
+        ),
+        chip: (context) => DockShelfChip(
+          icon: CupertinoIcons.clock,
+          count: pending > 0 ? pending : null,
+          semanticLabel:
+              AppLocalizations.of(context).scheduledPillSemantics(pending),
+          onTap: _openScheduledList,
+        ),
+      ),
+    ];
+  }
 
   void _openScheduledList() {
     showScheduledListSheet(
@@ -5905,44 +5947,45 @@ class _RoomScreenState extends State<_RoomView>
                   // the composer's place. See `room_posting_policy.dart`.
                   : !_posting.canPost
                   ? const ReadOnlyComposerFooter()
-                  : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // `else if` rather than a sibling `if`: the two banners are
-                // mutually exclusive by state construction (see [_armEdit] /
-                // [_armReply]), and spelling that here means a bug in that
-                // invariant renders ONE wrong banner instead of two stacked
-                // ones.
-                if (_editing != null)
-                  ComposerEditCard(
-                    message: _editing!,
-                    onCancel: _cancelEdit,
-                  )
-                else if (_replyingTo != null)
-                  ComposerReplyCard(
-                    parent: _replyingTo!,
-                    albumCount: _replyAlbum,
-                    api: widget.api,
-                    onCancel: () => setState(() => _replyingTo = null),
-                  ),
-                if (_mention.isOpen)
-                  MentionPicker(session: _mention, api: widget.api),
-                // Below the reply/edit cards and above the composer: those
-                // describe the message being written right now, this describes
-                // messages already written, so it belongs further from the
-                // field. Zero-height when the room has none queued.
-                if (indicator.showsPill && scheduled.isNotEmpty)
-                  ScheduledPill(
-                    scheduled: scheduled,
-                    onTap: _openScheduledList,
-                  ),
-                // Zero-height unless the composer holds a lone emoji that a
-                // sticker stands for.
-                StickerSuggestions(
-                  composer: _composer,
-                  onSend: _sendSuggestedSticker,
-                ),
-                PickedMediaStrip(controller: _picker, onOpen: _openPick),
+                  : ChatDock(
+              dockFade: dockFade,
+              mentionOpen: _mention.isOpen,
+              // The scheduled pill used to sit between the reply card and the
+              // field it belongs to; on the shelf it is above both. Below the
+              // reply/edit cards still holds in spirit: those describe the
+              // message being written right now, this describes messages
+              // already written.
+              shelf: _shelfItems(scheduled, indicator),
+              // Two lanes, not a column of siblings: the dock's context lane
+              // has capacity one and edit wins. The two are also mutually
+              // exclusive by state construction (see [_armEdit] /
+              // [_armReply]), so a bug in that invariant renders ONE wrong
+              // banner instead of two stacked ones.
+              edit: _editing == null
+                  ? null
+                  : ComposerEditCard(
+                      message: _editing!,
+                      onCancel: _cancelEdit,
+                    ),
+              reply: _replyingTo == null
+                  ? null
+                  : ComposerReplyCard(
+                      parent: _replyingTo!,
+                      albumCount: _replyAlbum,
+                      api: widget.api,
+                      onCancel: () => setState(() => _replyingTo = null),
+                    ),
+              mention: _mention.isOpen
+                  ? MentionPicker(session: _mention, api: widget.api)
+                  : null,
+              // Zero-height unless the composer holds a lone emoji that a
+              // sticker stands for.
+              stickers: StickerSuggestions(
+                composer: _composer,
+                onSend: _sendSuggestedSticker,
+              ),
+              media: PickedMediaStrip(controller: _picker, onOpen: _openPick),
+              field:
                 ComposerSearchTakeover(
                   controller: _expressions,
                   child: ChatComposerClassic(
@@ -5984,6 +6027,7 @@ class _RoomScreenState extends State<_RoomView>
                       DropChannel.canReadClipboard ? _pasteMedia : null,
                 ),
                 ),
+              below: [
                 // The ancestor SafeArea already holds this clear of the home
                 // indicator.
                 if (_expressions.isOpen) _expressionPanel(bottomPadding: 0),
@@ -6185,38 +6229,37 @@ class _RoomScreenState extends State<_RoomView>
                         glass: true,
                         bottomInset: bottomSafe,
                       )
-                    : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Mirrors the classic column above — see the comment there.
-                if (_editing != null)
-                  ComposerEditCard(
-                    message: _editing!,
-                    onCancel: _cancelEdit,
-                  )
-                else if (_replyingTo != null)
-                  ComposerReplyCard(
-                    parent: _replyingTo!,
-                    albumCount: _replyAlbum,
-                    api: widget.api,
-                    onCancel: () => setState(() => _replyingTo = null),
-                  ),
-                if (_mention.isOpen)
-                  MentionPicker(session: _mention, api: widget.api),
-                // Mirrors the classic column above. Its space, like the reply
-                // card's and the picker's, comes out of the measured chrome
-                // height — see the note by `bottomChromeEstimate`.
-                if (indicator.showsPill && scheduled.isNotEmpty)
-                  ScheduledPill(
-                    scheduled: scheduled,
-                    onTap: _openScheduledList,
-                  ),
-                // Mirrors the classic column above.
-                StickerSuggestions(
-                  composer: _composer,
-                  onSend: _sendSuggestedSticker,
-                ),
-                PickedMediaStrip(controller: _picker, onOpen: _openPick),
+                    : ChatDock(
+              dockFade: dockFade,
+              mentionOpen: _mention.isOpen,
+              // Mirrors the classic column above — see the comments there. The
+              // shelf's space, like the reply card's and the picker's, comes
+              // out of the measured chrome height — see the note by
+              // `bottomChromeEstimate`.
+              shelf: _shelfItems(scheduled, indicator),
+              edit: _editing == null
+                  ? null
+                  : ComposerEditCard(
+                      message: _editing!,
+                      onCancel: _cancelEdit,
+                    ),
+              reply: _replyingTo == null
+                  ? null
+                  : ComposerReplyCard(
+                      parent: _replyingTo!,
+                      albumCount: _replyAlbum,
+                      api: widget.api,
+                      onCancel: () => setState(() => _replyingTo = null),
+                    ),
+              mention: _mention.isOpen
+                  ? MentionPicker(session: _mention, api: widget.api)
+                  : null,
+              stickers: StickerSuggestions(
+                composer: _composer,
+                onSend: _sendSuggestedSticker,
+              ),
+              media: PickedMediaStrip(controller: _picker, onOpen: _openPick),
+              field:
                 ComposerSearchTakeover(
                   controller: _expressions,
                   child: ChatComposerLiquid(
@@ -6264,6 +6307,7 @@ class _RoomScreenState extends State<_RoomView>
                       : null,
                 ),
                 ),
+              below: [
                 if (_expressions.isOpen)
                   _expressionPanel(bottomPadding: bottomSafe),
                 if (_picker.isOpen && !_expressions.isOpen)
@@ -7499,16 +7543,22 @@ class _RoomScreenState extends State<_RoomView>
                       ),
                       child: child,
                     ),
-                    child: Stack(
-                      alignment: Alignment.bottomCenter,
-                      children: [
+                    child: ChatDockFloats(
+                      fade: dockFade,
+                      rightInset: scrollFabRightInset(
+                        classic:
+                            SettingsStore.instance.chatStyle == ChatStyle.classic,
+                      ),
+                      // Transient only, one item, never wider than the screen
+                      // minus both thumb columns. Anything persistent belongs on
+                      // the dock's shelf instead.
                         // A warm cache makes the transcript useful before the
                         // server answers, but it can be stale by hours, so say
                         // a refresh is under way. Floated here rather than
                         // spent as a list row: a row has to leave again, and
                         // when it did the whole transcript dropped by its
                         // height a beat after the room opened.
-                        _TimelineSyncPill(pending: !serverAnswered),
+                      center: _TimelineSyncPill(pending: !serverAnswered),
                         // Every way of moving through the transcript, as one
                         // column of small round buttons standing directly over
                         // the composer's send / record button — the thumb's
@@ -7516,17 +7566,7 @@ class _RoomScreenState extends State<_RoomView>
                         // trail (transient), `@` (unseen mentions of the
                         // reader), the chevron (back to now, with how many
                         // unread wait below — the fixture, nearest the thumb).
-                        Align(
-                          alignment: Alignment.bottomRight,
-                          heightFactor: 1,
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              right: scrollFabRightInset(
-                                classic: SettingsStore.instance.chatStyle ==
-                                    ChatStyle.classic,
-                              ),
-                            ),
-                            child: ValueListenableBuilder<bool>(
+                      right: ValueListenableBuilder<bool>(
                               valueListenable: _scrolledUp,
                               builder: (context, scrolledUp, _) {
                                 // Two reasons to show the chevron: scrolled away
@@ -7592,9 +7632,6 @@ class _RoomScreenState extends State<_RoomView>
                                 );
                               },
                             ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
