@@ -56,7 +56,7 @@ import 'interaction_respondents_sheet.dart';
 import 'message_bubble.dart';
 import 'reaction_limit_notice.dart';
 import 'reaction_picker_sheet.dart';
-import 'message_deletions.dart';
+import 'message_exits.dart';
 import 'moderation_actions.dart';
 import 'report_sheet.dart';
 import 'scroll_to_latest.dart';
@@ -295,7 +295,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
     _fadeNow.dispose();
     widget.repo.removeListener(_onRepoChange);
     widget.repo.closeThread(widget.rootId);
-    _deletions.dispose();
+    _exits.dispose();
     _scroll.dispose();
     _scrolledUp.removeListener(_onBottomProximity);
     _scrolledUp.dispose();
@@ -405,13 +405,12 @@ class _ThreadSheetState extends State<_ThreadSheet>
   }
 
   /// Replies being deleted, turning to dust on their way out. The room
-  /// screen's ledger, for this list. See [MessageDeletions].
-  late final MessageDeletions _deletions = MessageDeletions(
+  /// screen's ledger, for this list. See [MessageExits].
+  late final MessageExits _exits = MessageExits(
     onChanged: () {
       if (mounted) setState(() {});
     },
   );
-  int _seenRemovals = 0;
 
   /// What the list drew last, held rows included: where a reply someone
   /// else deleted is looked up.
@@ -419,17 +418,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
 
   void _onRepoChange() {
     if (!mounted) return;
-    final removals = widget.repo.serverRemovals(widget.roomId);
-    if (removals.serial != _seenRemovals) {
-      _seenRemovals = removals.serial;
-      final gone = [
-        for (final m in _lastShown)
-          if (removals.ids.contains(m.id)) m,
-      ];
-      if (gone.isNotEmpty && gone.length <= 12) {
-        _deletions.begin(gone, haptic: false);
-      }
-    }
+    _exits.observeServerRemovals(
+      widget.repo.serverRemovals(widget.roomId),
+      _lastShown,
+    );
     // A thread emptied under the reader (ephemeral replies expiring) leaves no
     // list to scroll, so _onScroll can never clear this on its own — and the
     // pill would reappear over the next reply while already at the bottom.
@@ -1122,11 +1114,11 @@ class _ThreadSheetState extends State<_ThreadSheet>
           confirmLabel: l10n.roomScreenDeleteConfirmButton,
         );
         if (!confirmed || !mounted) break;
-        _deletions.begin([m]);
+        _exits.begin([m]);
         try {
           await widget.repo.deleteMessage(m.id);
         } catch (_) {
-          _deletions.cancel([m.id]);
+          _exits.cancel([m.id]);
           rethrow;
         }
         break;
@@ -1457,7 +1449,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
                                       Positioned.fill(
                                         child: _buildList(
                                           _lastShown =
-                                              _deletions.withHeld(messages),
+                                              _exits.withHeld(messages),
                                           loading,
                                         ),
                                       ),
@@ -1650,12 +1642,12 @@ class _ThreadSheetState extends State<_ThreadSheet>
             m.id,
             () => GlobalKey(debugLabel: 'thread-${m.id}'),
           );
-          if (!m.isEphemeral) _deletions.registerRow(m.id, [m.id], rowKey);
+          if (!m.isEphemeral) _exits.registerRow(m.id, [m.id], rowKey);
           return KeyedSubtree(
             key: rowKey,
             child: DissolvingRow(
-              entry: _deletions.entryFor(m.id),
-              onGone: () => _deletions.end(m.id),
+              entry: _exits.entryFor(m.id),
+              onGone: () => _exits.end(m.id),
               child: bubble,
             ),
           );

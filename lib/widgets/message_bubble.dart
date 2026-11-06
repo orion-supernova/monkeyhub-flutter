@@ -60,7 +60,7 @@ import 'reply_indicator.dart';
 import 'translation_slab.dart';
 import 'speaker_scope.dart';
 import 'user_avatar.dart';
-import 'message_departures.dart';
+import 'message_exits.dart';
 import 'message_hover_actions.dart';
 import 'video_message.dart';
 import 'secondary_click_recognizer.dart';
@@ -660,17 +660,17 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.bubbleKey,
     this.interaction,
     this.interactionActions = InteractionActions.none,
-    this.departures,
+    this.exits,
     this.rowKey,
   });
 
   /// Where this bubble reports its own expiry, and what rasters it for the
   /// exit. Null (a lifted preview, a thread pane, a test) means the bubble
   /// simply draws until its row is gone.
-  final MessageDepartures? departures;
+  final MessageExits? exits;
 
   /// The row's identity in the ledgers — stable across the `tmp_` → server
-  /// id swap. Required alongside [departures].
+  /// id swap. Required alongside [exits].
   final String? rowKey;
 
   /// The poll/checklist/event body, and what may be done to it. Carried here as
@@ -865,14 +865,14 @@ class EphemeralMessageBubble extends StatelessWidget {
     // bubble after this frame — which is why the bubble below still draws at
     // full strength — and swaps the row for the exit. Idempotent, so the
     // ticks that follow cost a map probe each.
-    final departures = this.departures;
+    final exits = this.exits;
     final rowKey = this.rowKey;
     final expires = message.expiresAt;
-    if (departures != null &&
+    if (exits != null &&
         rowKey != null &&
         expires != null &&
         !now.isBefore(expires)) {
-      departures.requestLocalDeparture(
+      exits.requestExpiry(
         rowKey,
         message,
         isMine: isMine,
@@ -1003,7 +1003,7 @@ class EphemeralMessageBubble extends StatelessWidget {
     // [DepartingRow] cuts into tiles. Only a bubble with a ledger to report
     // to pays for the layer.
     final anchor =
-        departures != null && rowKey != null ? departures!.anchorKeyFor(rowKey!) : null;
+        exits != null && rowKey != null ? exits!.anchorKeyFor(rowKey!) : null;
     final captured = anchor == null
         ? innerBubble
         : RepaintBoundary(key: anchor, child: innerBubble);

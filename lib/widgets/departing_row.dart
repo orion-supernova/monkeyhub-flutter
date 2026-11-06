@@ -7,7 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 import 'dust/dust_kit.dart';
-import 'message_departures.dart';
+import 'message_exits.dart';
 
 /// How a Chamber of Secrets message leaves the screen.
 ///
@@ -81,7 +81,7 @@ class DepartingRow extends StatefulWidget {
 
   /// Grains per bubble, at most. A wide bubble gets bigger grains rather
   /// than more of them.
-  static const int maxTiles = MessageDepartures.maxTiles;
+  static const int maxTiles = MessageExits.maxTiles;
 
   @override
   State<DepartingRow> createState() => _DepartingRowState();

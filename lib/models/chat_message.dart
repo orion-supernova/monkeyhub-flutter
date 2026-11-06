@@ -132,6 +132,7 @@ class ChatMessage {
     this.mediaDurationMs,
     this.posterStorageId,
     this.expiresAt,
+    this.vanishUntil,
     this.status = MessageStatus.sent,
     this.edited = false,
     this.editedAt,
@@ -231,6 +232,13 @@ class ChatMessage {
   String? posterStorageId;
 
   DateTime? expiresAt;
+
+  /// Set on a vanish-mode message: the 24-hour deadline it was stamped with
+  /// at send. The server burns it earlier, 10 seconds after everyone has
+  /// seen it; either way the row arrives as a removal, and this is what tells
+  /// `MessageExits` to play it as a vanish rather than an ordinary delete.
+  /// Null on every other message, and until the backend sends it.
+  DateTime? vanishUntil;
   MessageStatus status;
 
   /// The id the server minted for an optimistic message, recorded the moment
@@ -549,6 +557,9 @@ class ChatMessage {
       mediaDurationMs: (j['mediaDurationMs'] as num?)?.toInt(),
       posterStorageId: j['posterStorageId'] as String?,
       expiresAt: ex is num ? DateTime.fromMillisecondsSinceEpoch(ex.toInt()) : null,
+      vanishUntil: j['vanishUntil'] is num
+          ? DateTime.fromMillisecondsSinceEpoch((j['vanishUntil'] as num).toInt())
+          : null,
       edited: (j['edited'] ?? false) as bool,
       editedAt: _epochMs(j['editedAt']),
       formatting: FormattingEntity.parseList(j['formatting']),
@@ -630,6 +641,8 @@ class ChatMessage {
         if (mediaDurationMs != null) 'mediaDurationMs': mediaDurationMs,
         if (posterStorageId != null) 'posterStorageId': posterStorageId,
         if (expiresAt != null) 'expiresAt': expiresAt!.millisecondsSinceEpoch,
+        if (vanishUntil != null)
+          'vanishUntil': vanishUntil!.millisecondsSinceEpoch,
         'edited': edited,
         if (editedAt != null) 'editedAt': editedAt!.millisecondsSinceEpoch,
         // Has to round-trip through the disk cache like `mentions` below:
@@ -736,6 +749,7 @@ class ChatMessage {
         mediaDurationMs: mediaDurationMs,
         posterStorageId: posterStorageId,
         expiresAt: expiresAt,
+        vanishUntil: vanishUntil,
         status: status ?? this.status,
         edited: edited ?? this.edited,
         editedAt: editedAt ?? this.editedAt,

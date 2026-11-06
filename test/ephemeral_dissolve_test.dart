@@ -10,7 +10,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/highlight_pulse.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
-import 'package:monkeyhub/widgets/message_departures.dart';
+import 'package:monkeyhub/widgets/message_exits.dart';
 
 /// How a message in a Chamber of Secrets room leaves the screen.
 ///
@@ -19,7 +19,7 @@ import 'package:monkeyhub/widgets/message_departures.dart';
 /// moment an exit could happen, there was nothing on screen for it to happen
 /// to. Now the bubble stays at full strength; the theme's signature builds
 /// over it as a warning for its last three seconds; and at expiry the bubble
-/// asks the departures ledger to raster it and blow it apart (see
+/// asks the exits ledger to raster it and blow it apart (see
 /// `DepartingRow`). Each test below pins one of those.
 void main() {
   final api = ChatApi(ConvexBackend.instance);
@@ -42,7 +42,7 @@ void main() {
   Widget host(
     ChatMessage message,
     ValueNotifier<DateTime> clock, {
-    MessageDepartures? departures,
+    MessageExits? exits,
   }) => MaterialApp(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
@@ -60,8 +60,8 @@ void main() {
               api: api,
               author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),
               useHero: false,
-              departures: departures,
-              rowKey: departures == null ? null : 'm1',
+              exits: exits,
+              rowKey: exits == null ? null : 'm1',
             ),
           ),
         ),
@@ -246,15 +246,15 @@ void main() {
     tester,
   ) async {
     var changes = 0;
-    final ledger = MessageDepartures(onChanged: () => changes++);
+    final ledger = MessageExits(onChanged: () => changes++);
     addTearDown(ledger.dispose);
     final message = msg(const Duration(minutes: 10));
     final clock = ValueNotifier(born.add(const Duration(minutes: 9, seconds: 59)));
     addTearDown(clock.dispose);
 
-    await tester.pumpWidget(host(message, clock, departures: ledger));
+    await tester.pumpWidget(host(message, clock, exits: ledger));
     await land(tester);
-    expect(ledger.isDeparting('m1'), isFalse, reason: 'a second early is not yet');
+    expect(ledger.isExpiring('m1'), isFalse, reason: 'a second early is not yet');
     expect(find.byType(RepaintBoundary), findsWidgets,
         reason: 'but the raster boundary is already in place');
 
@@ -262,7 +262,7 @@ void main() {
     // The bubble asks during its build; the raster is taken at the end of
     // that same frame, so one pump is the whole exchange.
     await tester.pump();
-    expect(ledger.isDeparting('m1'), isTrue);
+    expect(ledger.isExpiring('m1'), isTrue);
     expect(changes, 1);
     final cap = ledger.captureFor('m1')!;
     expect(cap.image, isNotNull, reason: 'the bubble was rastered');

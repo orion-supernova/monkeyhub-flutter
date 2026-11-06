@@ -89,7 +89,7 @@ class DustDissolve extends StatefulWidget {
 
   /// This dissolve's share of the particle budget, at most [maxParticles].
   /// Several rows dissolving together split one budget between them (see
-  /// `MessageDeletions`), so ten deletes cost what one does.
+  /// `MessageExits`), so ten deletes cost what one does.
   final int particles;
 
   /// The whole run, the tail included. Telegram's burn is about two seconds

@@ -125,8 +125,7 @@ import '../widgets/pinned_list_sheet.dart';
 import '../widgets/mention_text_controller.dart';
 import '../widgets/departing_row.dart';
 import '../widgets/message_arrivals.dart';
-import '../widgets/message_deletions.dart';
-import '../widgets/message_departures.dart';
+import '../widgets/message_exits.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/message_stamp.dart' show formatClockTime;
 import '../widgets/reaction_details_sheet.dart';
@@ -936,7 +935,7 @@ class _RoomScreenState extends State<_RoomView>
       m.id == _highlightedMessageId ||
       m.id == _jumpTargetId ||
       m.id == _replyingTo?.id ||
-      _departures.isDeparting(_arrivals.keyFor(m)) ||
+      _exits.isExpiring(_arrivals.keyFor(m)) ||
       _dateTracks.containsKey('m_${m.id}');
 
   /// The outline a departing bubble takes flight from, for a capture taken
@@ -1224,27 +1223,17 @@ class _RoomScreenState extends State<_RoomView>
     },
   );
 
-  /// Which rows are leaving — the ledger behind a Chamber of Secrets
-  /// message's exit. It holds the bubble's last picture and keeps the row in
-  /// the list while the picture blows apart. See [MessageDepartures] for the
-  /// two moments that can start one and why the capture is synchronous.
-  late final MessageDepartures _departures = MessageDepartures(
+  /// Which rows are leaving, and are held on screen to play an exit first:
+  /// turning to dust when deleted (by anyone) or burned by vanish mode, and
+  /// blowing apart from a capture of the bubble when a Chamber of Secrets
+  /// message runs out of time. See [MessageExits] for how a removal is told
+  /// apart from paging, and for the two moments that can start an expiry and
+  /// why its capture is synchronous.
+  late final MessageExits _exits = MessageExits(
     onChanged: () {
       if (mounted) setState(() {});
     },
   );
-
-  /// Which rows are being DELETED, and are turning to dust on their way out.
-  /// Never an ephemeral row: those leave through [_departures]. See
-  /// [MessageDeletions] for how a deletion is told apart from paging.
-  late final MessageDeletions _deletions = MessageDeletions(
-    onChanged: () {
-      if (mounted) setState(() {});
-    },
-  );
-
-  /// The last [ChatRepository.serverRemovals] serial acted on.
-  int _seenRemovals = 0;
 
   /// The timeline the last build drew, ghosts included. What
   /// [_onRepoChange] diffs a delivery against to catch a row the server
@@ -1272,24 +1261,15 @@ class _RoomScreenState extends State<_RoomView>
     // Somebody else deleted messages that are on screen: they dissolve. Also
     // before the rebuild, so the rows are held in the frame that would have
     // dropped them.
-    final removals = widget.repo.serverRemovals(widget.roomId);
-    if (removals.serial != _seenRemovals) {
-      _seenRemovals = removals.serial;
-      final gone = [
-        for (final m in _lastTimeline)
-          if (removals.ids.contains(m.id)) m,
-      ];
-      // A burst is not a deletion anybody watched happen (a block, a
-      // moderator clearing a room): those rows just go.
-      if (gone.isNotEmpty && gone.length <= 12) {
-        _deletions.begin(gone, haptic: false);
-      }
-    }
+    _exits.observeServerRemovals(
+      widget.repo.serverRemovals(widget.roomId),
+      _lastTimeline,
+    );
     // BEFORE the rebuild below, and synchronously: a row the server just
     // deleted is still the last painted frame right now, and this is the
     // only moment its pixels can still be taken for the exit.
     if (_room?.messageLifetime != null) {
-      _departures.observeRemoval(
+      _exits.observeExpiredRemoval(
         _lastTimeline,
         current,
         keyFor: _arrivals.keyFor,
@@ -1932,8 +1912,7 @@ class _RoomScreenState extends State<_RoomView>
     _hideTimer?.cancel();
     _datePresentation.dispose();
     _arrivals.dispose();
-    _departures.dispose();
-    _deletions.dispose();
+    _exits.dispose();
     _scroll.removeListener(_onScroll);
     _scroll.removeListener(_hover.dismiss);
     _hover.dispose();
@@ -2314,12 +2293,12 @@ class _RoomScreenState extends State<_RoomView>
         await _forwardMessages(album);
       case MessageAction.delete:
         if (!await _confirmDelete(album.length) || !mounted) return;
-        _deletions.begin(album);
+        _exits.begin(album);
         for (final m in album) {
           try {
             await widget.repo.deleteMessage(m.id);
           } catch (_) {
-            _deletions.cancel([m.id]);
+            _exits.cancel([m.id]);
             rethrow;
           }
         }
@@ -2616,7 +2595,7 @@ class _RoomScreenState extends State<_RoomView>
     // Out of selection first, so the rows burn as they read normally — no
     // check marks in the dust — and in one wave, top to bottom.
     _selection.clear();
-    _deletions.begin(picked);
+    _exits.begin(picked);
     final ids = [for (final m in picked) m.id];
     final result = await deleteMessages(
       api: widget.api,
@@ -2626,9 +2605,9 @@ class _RoomScreenState extends State<_RoomView>
     if (!mounted) return;
 
     // No local removal: the room subscription carries the deletion back. The
-    // dissolved rows stay hidden until it does (see [MessageDeletions]); a
+    // dissolved rows stay hidden until it does (see [MessageExits]); a
     // delete that failed outright gives them back.
-    if (result.ok == 0) _deletions.cancel(ids);
+    if (result.ok == 0) _exits.cancel(ids);
     toast.show(result.summary);
   }
 
@@ -5699,9 +5678,7 @@ class _RoomScreenState extends State<_RoomView>
     // ...plus every message whose exit is still playing: the ledger keeps a
     // departed row in the list until its picture has blown away.
     // ...and every message being deleted, until its dust has left.
-    final messages = _departures.withGhosts(
-      _deletions.withHeld(widget.repo.timelineFor(widget.roomId)),
-    );
+    final messages = _exits.withHeld(widget.repo.timelineFor(widget.roomId));
     _lastTimeline = messages;
     final me = widget.repo.userId ?? '';
     // ListView is rendered with reverse:true so the viewport naturally
@@ -7114,11 +7091,11 @@ class _RoomScreenState extends State<_RoomView>
                       break;
                     case MessageAction.delete:
                       if (!await _confirmDelete(1) || !context.mounted) break;
-                      _deletions.begin([target]);
+                      _exits.begin([target]);
                       try {
                         await widget.repo.deleteMessage(target.id);
                       } catch (_) {
-                        _deletions.cancel([target.id]);
+                        _exits.cancel([target.id]);
                         rethrow;
                       }
                       break;
@@ -7235,7 +7212,7 @@ class _RoomScreenState extends State<_RoomView>
                 // replaced by the exit, which holds the row's height and
                 // then closes it. Tracked under the same key so the floating
                 // date reads it exactly as it read the bubble.
-                final departing = _departures.captureFor(rowKey);
+                final departing = _exits.captureFor(rowKey);
                 if (departing != null) {
                   return _trackedDate(
                     stableId: 'm_${m.id}',
@@ -7245,7 +7222,7 @@ class _RoomScreenState extends State<_RoomView>
                       key: ValueKey('depart_$rowKey'),
                       capture: departing,
                       calm: MotionScope.of(context).calm,
-                      onDone: () => _departures.end(rowKey),
+                      onDone: () => _exits.end(rowKey),
                     ),
                   );
                 }
@@ -7256,7 +7233,7 @@ class _RoomScreenState extends State<_RoomView>
                         now: _fadeNow,
                         currentUserId: me,
                         api: widget.api,
-                        departures: _departures,
+                        exits: _exits,
                         rowKey: rowKey,
                         author: author,
                         onLongPress: isPending ? null : onLongPress,
@@ -7451,12 +7428,12 @@ class _RoomScreenState extends State<_RoomView>
                 // The exit needs to know how tall this row was and where the
                 // bubble sat in it; the tracked key is that measurement.
                 if (m.isEphemeral) {
-                  _departures.registerRowBox(
+                  _exits.registerExpiringRow(
                     rowKey,
                     _dateTracks['m_${m.id}']!.key,
                   );
                 } else {
-                  _deletions.registerRow(
+                  _exits.registerRow(
                     m.id,
                     messageItem.album.isEmpty
                         ? [m.id]
@@ -7480,8 +7457,8 @@ class _RoomScreenState extends State<_RoomView>
                   // Always here, so a row that starts to dissolve keeps its
                   // element and burns exactly the frame it last painted.
                   child: DissolvingRow(
-                    entry: _deletions.entryFor(m.id),
-                    onGone: () => _deletions.end(m.id),
+                    entry: _exits.entryFor(m.id),
+                    onGone: () => _exits.end(m.id),
                     child: tracked,
                   ),
                 );

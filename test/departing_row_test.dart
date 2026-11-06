@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/widgets/departing_row.dart';
-import 'package:monkeyhub/widgets/message_departures.dart';
+import 'package:monkeyhub/widgets/message_exits.dart';
 
 /// How a captured bubble leaves: the row holds its height for the whole
 /// flight on one ticker, then closes; calm motion closes it at once with no
