@@ -472,6 +472,51 @@ Merge the two send rate buckets into one document (−1 write per send).
 </div>
 
 <!-- ───────────────────────────────────────────── -->
+<h3 id="status">Status (2026-11-07)</h3>
+<div class="tbl"><table>
+<tr><th>Item</th><th>State</th></tr>
+<tr><td>A1 presence mirror off</td><td>Done in production</td></tr>
+<tr><td>A2 file reaper</td><td>Dry run clean (nothing to reap); <code>FILE_REFS_REAP=1</code> waits for the operator</td></tr>
+<tr><td>A3 Cloudflare cache + purge</td><td>Code in <code>d2961c37</code>; needs the token, zone id and cache rule</td></tr>
+<tr><td>A4 home server</td><td>Retired; <code>deploy.sh</code> is VPS-only</td></tr>
+<tr><td>B1-B7, C2, C5, D2, D3</td><td>Code in <code>d2961c37</code> (wave 1); reviewed; not deployed</td></tr>
+<tr><td>C1, C4 server, D1 backend, D4</td><td>Code in <code>60c412fb</code> (wave 2, design in <code>c1-cursors-design.md</code>); reviewed; not deployed</td></tr>
+<tr><td>C4 app (archived split), D1 app fallbacks</td><td>Waiting: those screens are being reworked by other work</td></tr>
+<tr><td>C6 thumbnails</td><td>Not started: needs the media upload files other work is editing</td></tr>
+<tr><td>D5 container memory limit</td><td>Waits for the operator (remote write)</td></tr>
+<tr><td>Schema field removals (users.status/lastSeen, profile copies, roomMembers cursors), 6Z</td><td>After the migrations below have finished (a later deploy)</td></tr>
+</table></div>
+
+<h3 id="rollout">Rollout runbook (waves 1 and 2)</h3>
+<p>Run from <code>backend/</code>, in order. Each <code>run</code> is paged and self-chaining: wait for it to finish (watch <code>npx convex logs</code>) before the next numbered step. All are idempotent.</p>
+<pre><code>cd .. &amp;&amp; ./deploy.sh --convex-only &amp;&amp; cd backend      # 1. backend (dual-mode, safe for 1.3.137+)
+
+npx convex run userDerived:backfill '{}'              # 2. push state + pending counts (B5)
+npx convex run receipts:backfillMoves '{}'            # 3. receipt history rows (B2)
+npx convex run profileMigrations:backfillProfiles '{}'   # 4. profiles.feedLevels (B6)
+npx convex run expressions:refreshPackSummaries '{}'  # 5. sticker pack counts/covers (C5)
+npx convex run contentCounts:backfill '{}'            # 6. room counts (re-run is safe)
+
+npx convex run roomStateMigration:assignSeq '{}'      # 7. C1: message sequence per room
+npx convex run roomStateMigration:createStates '{}'   # 8. C1: state + receipt rows (re-run after 7 finishes)
+npx convex run roomStateMigration:shadowCompare '{}'  # 9. must report no mismatches (pass `next` as cursor)
+npx convex run roomStateMigration:finish '{}'         # 10. sets the marker; logs why if it refuses
+
+npx convex run presenceMigrations:stripUsersPresence '{}'   # 11. then countUsersWithPresenceFields = 0
+# 12. profile copies, once per table:
+for t in messages messageInteractions interactionResponses moments momentReactions \
+         momentComments momentCommentReactions recordReactions typingIndicators; do
+  npx convex run profileMigrations:stripCopies "{\"table\":\"$t\"}"
+done
+
+npx convex env set FILE_REFS_REAP 1                   # 13. A2
+# 14. A3: Cloudflare token (Zone, Cache Purge only) and zone id, then the cache rule
+npx convex env set CF_ZONE_ID &lt;zone-id&gt;
+npx convex env set CF_PURGE_TOKEN &lt;token&gt;
+# 15. D5 (on the VPS):
+#   docker update --memory 8g --memory-swap 8g monkeyhub-convex-backend</code></pre>
+<p>Then re-measure (section 8) and compare with section 2. The app build that follows ships the typing scope, background pause, lazy stickers and delivery change; the backend must be live first.</p>
+
 <h2 id="impact">7. Expected impact</h2>
 <p><span class="tag i">estimate</span> Projections from the measured window and the code, assuming the same usage. Re-measure after each phase.</p>
 
