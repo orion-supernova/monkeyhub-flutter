@@ -25074,6 +25074,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Moonlit Deck'**
   String get fightStageDeck;
+
+  /// Segment label in the secret-room message timer: the countdown starts when the message is read. Paired with 'After sent'.
+  ///
+  /// In en, this message translates to:
+  /// **'After seen'**
+  String get messageLifeAfterSeen;
+
+  /// Segment label in the secret-room message timer: the countdown starts the moment the message is sent. Paired with 'After seen'.
+  ///
+  /// In en, this message translates to:
+  /// **'After sent'**
+  String get messageLifeAfterSent;
+
+  /// Caption under the secret-room message timer when 'After seen' is chosen: unread messages still disappear within a day.
+  ///
+  /// In en, this message translates to:
+  /// **'Gone within 24 hours at most, seen or not.'**
+  String get messageLifeCaptionSeen;
+
+  /// Caption under the secret-room message timer when 'After sent' is chosen: the countdown does not wait for the message to be read.
+  ///
+  /// In en, this message translates to:
+  /// **'Counts from the moment it\'s sent.'**
+  String get messageLifeCaptionSent;
+
+  /// Screen-reader label for the draggable message timer ruler in a secret room's settings. The spoken value is a duration such as '30 seconds'.
+  ///
+  /// In en, this message translates to:
+  /// **'Message timer'**
+  String get messageLifeRulerLabel;
 }
 
 class _AppLocalizationsDelegate

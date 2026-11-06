@@ -14230,4 +14230,20 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get fightStageDeck => '月夜甲板';
+
+  @override
+  String get messageLifeAfterSeen => 'After seen';
+
+  @override
+  String get messageLifeAfterSent => 'After sent';
+
+  @override
+  String get messageLifeCaptionSeen =>
+      'Gone within 24 hours at most, seen or not.';
+
+  @override
+  String get messageLifeCaptionSent => 'Counts from the moment it\'s sent.';
+
+  @override
+  String get messageLifeRulerLabel => 'Message timer';
 }

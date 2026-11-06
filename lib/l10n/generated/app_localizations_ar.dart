@@ -15220,4 +15220,20 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get fightStageDeck => 'سطح السفينة تحت القمر';
+
+  @override
+  String get messageLifeAfterSeen => 'After seen';
+
+  @override
+  String get messageLifeAfterSent => 'After sent';
+
+  @override
+  String get messageLifeCaptionSeen =>
+      'Gone within 24 hours at most, seen or not.';
+
+  @override
+  String get messageLifeCaptionSent => 'Counts from the moment it\'s sent.';
+
+  @override
+  String get messageLifeRulerLabel => 'Message timer';
 }

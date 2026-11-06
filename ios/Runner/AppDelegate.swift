@@ -1552,6 +1552,25 @@ import WebRTC
   /// The user's brightness while the video-note flash holds it at full.
   private var brightnessBeforeFlash: CGFloat?
 
+  /// The impact generators the haptic ramp fires on, one per style, created
+  /// lazily on the main thread (method channel handlers run there).
+  private var hapticGenerators: [String: UIImpactFeedbackGenerator] = [:]
+
+  private func hapticGenerator(for style: String) -> UIImpactFeedbackGenerator {
+    if let existing = hapticGenerators[style] { return existing }
+    let feedbackStyle: UIImpactFeedbackGenerator.FeedbackStyle
+    switch style {
+    case "rigid": feedbackStyle = .rigid
+    case "soft": feedbackStyle = .soft
+    case "medium": feedbackStyle = .medium
+    case "heavy": feedbackStyle = .heavy
+    default: feedbackStyle = .light
+    }
+    let generator = UIImpactFeedbackGenerator(style: feedbackStyle)
+    hapticGenerators[style] = generator
+    return generator
+  }
+
   private func allowHapticsWhileRecording() {
     do {
       try AVAudioSession.sharedInstance().setAllowHapticsAndSystemSoundsDuringRecording(true)
@@ -1586,6 +1605,21 @@ import WebRTC
         switch call.method {
         case "allowDuringRecording":
           self?.allowHapticsWhileRecording()
+          result(nil)
+        // The swipe-up fork's haptic ramp (HapticTick in Dart). Flutter's
+        // HapticFeedback has four fixed strengths; a smooth ramp needs an
+        // intensity, which only impactOccurred(intensity:) takes (iOS 13+).
+        // One generator per style, kept so `prepare` on touch-down warms the
+        // very objects the ticks then fire on.
+        case "prepare":
+          self?.hapticGenerator(for: "light").prepare()
+          self?.hapticGenerator(for: "rigid").prepare()
+          result(nil)
+        case "tick":
+          let args = call.arguments as? [String: Any]
+          let intensity = min(max((args?["intensity"] as? Double) ?? 0.5, 0.0), 1.0)
+          let style = (args?["style"] as? String) ?? "light"
+          self?.hapticGenerator(for: style).impactOccurred(intensity: CGFloat(intensity))
           result(nil)
         default:
           result(FlutterMethodNotImplemented)

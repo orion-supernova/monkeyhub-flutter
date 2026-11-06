@@ -10,6 +10,7 @@ import '../theme/interaction.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'haptic_ramp.dart';
+import 'progress_ring.dart';
 
 /// How long a press has to last before the hold ring is allowed to appear.
 ///
@@ -212,11 +213,13 @@ class _HoldRingButtonState extends State<HoldRingButton>
                 // tap: while it is moving at all, the user is holding.
                 builder: (context, _) => _hold.value == 0
                     ? const SizedBox.shrink()
-                    : CustomPaint(
-                        painter: _HoldRingPainter(
-                          progress: _hold.value,
-                          color: color,
-                        ),
+                    : ProgressRing(
+                        progress: _hold.value,
+                        color: color,
+                        // The hold ring's own look: 2px, a touch translucent,
+                        // and faded in so a tap never flashes a stub of arc.
+                        opacity: 0.9,
+                        fadeIn: true,
                       ),
               ),
             ),
@@ -304,36 +307,4 @@ class _HoldRingButtonState extends State<HoldRingButton>
     }
     return body;
   }
-}
-
-/// The arc that sweeps around the button while it is held.
-class _HoldRingPainter extends CustomPainter {
-  const _HoldRingPainter({required this.progress, required this.color});
-
-  final double progress;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (progress <= 0) return;
-    final rect = Offset.zero & size;
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round
-      // Fades in over the first fifth of the sweep, so a tap that happens to
-      // register a few milliseconds of hold does not flash a stub of arc.
-      ..color = color.withValues(alpha: (progress * 5).clamp(0.0, 1.0) * 0.9);
-    canvas.drawArc(
-      rect.deflate(2),
-      -1.5707963267948966, // 12 o'clock
-      progress * 6.283185307179586,
-      false,
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_HoldRingPainter old) =>
-      old.progress != progress || old.color != color;
 }

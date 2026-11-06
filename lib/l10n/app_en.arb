@@ -18049,5 +18049,15 @@
   "fightStageCanyon": "Canyon Noon",
   "@fightStageCanyon": {"description": "Fight stage name: a sunbaked desert canyon at midday."},
   "fightStageDeck": "Moonlit Deck",
-  "@fightStageDeck": {"description": "Fight stage name: a ship deck at night under the moon."}
+  "@fightStageDeck": {"description": "Fight stage name: a ship deck at night under the moon."},
+  "messageLifeAfterSeen": "After seen",
+  "@messageLifeAfterSeen": {"description": "Segment label in the secret-room message timer: the countdown starts when the message is read. Paired with 'After sent'."},
+  "messageLifeAfterSent": "After sent",
+  "@messageLifeAfterSent": {"description": "Segment label in the secret-room message timer: the countdown starts the moment the message is sent. Paired with 'After seen'."},
+  "messageLifeCaptionSeen": "Gone within 24 hours at most, seen or not.",
+  "@messageLifeCaptionSeen": {"description": "Caption under the secret-room message timer when 'After seen' is chosen: unread messages still disappear within a day."},
+  "messageLifeCaptionSent": "Counts from the moment it's sent.",
+  "@messageLifeCaptionSent": {"description": "Caption under the secret-room message timer when 'After sent' is chosen: the countdown does not wait for the message to be read."},
+  "messageLifeRulerLabel": "Message timer",
+  "@messageLifeRulerLabel": {"description": "Screen-reader label for the draggable message timer ruler in a secret room's settings. The spoken value is a duration such as '30 seconds'."}
 }

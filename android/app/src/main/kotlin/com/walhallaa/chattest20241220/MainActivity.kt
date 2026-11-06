@@ -207,6 +207,64 @@ class MainActivity : FlutterActivity(), GamepadsCompatibleActivity {
                 }
             }
 
+        // monkeyhub/haptics — the continuous, two-way ramp of the swipe-up
+        // fork (HapticTick in lib/widgets/haptic_tick.dart). Flutter's own
+        // HapticFeedback has four fixed strengths; a smooth ramp needs an
+        // intensity, so ticks go to the Vibrator directly. That BYPASSES the
+        // system "touch feedback" switch (performHapticFeedback honours it, a
+        // raw vibration does not), which is why `capabilities` reports it and
+        // Dart goes silent when it is off. Also answers the iOS-only
+        // `allowDuringRecording` with a no-op so Dart need not special-case.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "monkeyhub/haptics")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "capabilities" -> {
+                        val vib = hapticVibrator()
+                        val primitives = try {
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && vib != null &&
+                                vib.areAllPrimitivesSupported(
+                                    android.os.VibrationEffect.Composition.PRIMITIVE_LOW_TICK,
+                                    android.os.VibrationEffect.Composition.PRIMITIVE_TICK,
+                                )
+                        } catch (_: Throwable) {
+                            false
+                        }
+                        val amplitude = try {
+                            vib?.hasAmplitudeControl() == true
+                        } catch (_: Throwable) {
+                            false
+                        }
+                        val touch = try {
+                            Settings.System.getInt(
+                                contentResolver,
+                                Settings.System.HAPTIC_FEEDBACK_ENABLED,
+                                1,
+                            ) != 0
+                        } catch (_: Throwable) {
+                            true
+                        }
+                        result.success(
+                            mapOf(
+                                "primitives" to primitives,
+                                "amplitude" to amplitude,
+                                "touchFeedbackEnabled" to touch,
+                            )
+                        )
+                    }
+                    "tick" -> {
+                        val intensity = (call.argument<Double>("intensity") ?: 0.5)
+                            .coerceIn(0.0, 1.0)
+                        val style = call.argument<String>("style") ?: "light"
+                        playHapticTick(intensity, style)
+                        result.success(null)
+                    }
+                    // Nothing to warm up: the Vibrator has no generator to
+                    // prepare. Kept so Dart can call it on every platform.
+                    "prepare", "allowDuringRecording" -> result.success(null)
+                    else -> result.notImplemented()
+                }
+            }
+
         // monkeyhub/screen — the front camera's "flash" for a video note is
         // the screen itself, white; it only lights a face at full brightness.
         // Overrides this window's brightness, never the system setting, and
@@ -837,6 +895,54 @@ class MainActivity : FlutterActivity(), GamepadsCompatibleActivity {
             "denied"
         } else {
             "notDetermined"
+        }
+    }
+
+    /// The phone's vibrator, through VibratorManager on Android 12+.
+    private fun hapticVibrator(): android.os.Vibrator? = try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? android.os.VibratorManager)
+                ?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+        }
+    } catch (_: Throwable) {
+        null
+    }
+
+    /// One tick of the haptic ramp, at [intensity] 0..1.
+    ///
+    /// Android 11+ with the tick primitives: a composition at that scale (the
+    /// crisp Pixel / Samsung flagship feel). Otherwise, with amplitude control,
+    /// a short one-shot whose amplitude is the intensity. Otherwise nothing:
+    /// a motor that can do neither renders a tick as a mushy buzz, and Dart
+    /// already drops it to landmarks-only before asking.
+    private fun playHapticTick(intensity: Double, style: String) {
+        val vib = hapticVibrator() ?: return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                vib.areAllPrimitivesSupported(
+                    android.os.VibrationEffect.Composition.PRIMITIVE_LOW_TICK,
+                    android.os.VibrationEffect.Composition.PRIMITIVE_TICK,
+                )
+            ) {
+                val primitive = when (style) {
+                    "light", "soft" -> android.os.VibrationEffect.Composition.PRIMITIVE_LOW_TICK
+                    else -> android.os.VibrationEffect.Composition.PRIMITIVE_TICK
+                }
+                vib.vibrate(
+                    android.os.VibrationEffect.startComposition()
+                        .addPrimitive(primitive, intensity.toFloat())
+                        .compose()
+                )
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && vib.hasAmplitudeControl()) {
+                val millis = if (style == "light" || style == "soft") 8L else 12L
+                val amplitude = (intensity * 255).toInt().coerceIn(1, 255)
+                vib.vibrate(android.os.VibrationEffect.createOneShot(millis, amplitude))
+            }
+        } catch (_: Throwable) {
+            // A haptic is never worth a crash.
         }
     }
 
