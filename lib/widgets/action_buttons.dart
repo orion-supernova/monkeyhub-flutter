@@ -220,7 +220,7 @@ class SheetActionButton extends StatelessWidget {
         material: _material,
         // Busy shows a spinner in the button; the native button has none, so
         // a busy button keeps the glass skin.
-        liquid: NativeControl.ready && !busy ? _liquid : null,
+        liquid: NativeControl.readyIn(context) && !busy ? _liquid : null,
       );
 
   /// The [UiKit.liquid] skin: a real glass button; the primary action is

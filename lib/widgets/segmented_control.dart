@@ -152,7 +152,7 @@ class _IosSegmentedControlState<T> extends State<IosSegmentedControl<T>> {
         material: _material,
         // Icons and badges have no native equivalent here: those controls
         // keep the glass skin rather than lose information.
-        liquid: NativeControl.ready &&
+        liquid: NativeControl.readyIn(context) &&
                 segments.every((s) => s.icon == null && !s.badge)
             ? _liquid
             : null,

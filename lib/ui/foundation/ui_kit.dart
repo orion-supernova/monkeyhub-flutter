@@ -38,6 +38,14 @@ enum UiKit {
 
   /// The kit the nearest [UiKitScope] resolved, or the app-wide resolution
   /// where there is no scope (tests, previews, overlays built before the app).
+  /// Whether this subtree draws native iOS controls (see
+  /// [UiKits.nativeControls]); only meaningful under [UiKit.liquid].
+  static bool nativeControlsOf(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<_UiKitInherited>()
+          ?.nativeControls ??
+      UiKits.nativeControls;
+
   static UiKit of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<_UiKitInherited>()?.kit ??
       UiKits.current;
@@ -58,13 +66,18 @@ enum UiKit {
 /// Resolution of the user's [UiKit] choice against what this device can do.
 abstract final class UiKits {
   /// Whether the [UiKit.liquid] kit draws REAL iOS controls (SwiftUI via
-  /// `lib/ui/native/native_control.dart`): the round chrome buttons, the
-  /// switch, the segmented control, the slider, the primary action button.
-  ///
-  /// Off until verified on a device: the native side is typechecked against
-  /// the iOS SDK but has never run, and a platform view costs list frame rate
-  /// (see NativeControl). Off, the liquid kit draws as it always has.
-  static bool nativeControlsReady = false;
+  /// `lib/ui/native/native_control.dart`) for every control with a native
+  /// form, rather than only the tab bar: the user's Settings › Glass ›
+  /// Native controls choice ([NativeScope]), on a device that has Liquid
+  /// Glass. Components ask `NativeControl.readyIn(context)`.
+  static bool get nativeControls =>
+      debugNativeControls ??
+      (Caps.nativeGlass &&
+          SettingsStore.instance.nativeScope == NativeScope.everything);
+
+  /// Forces [nativeControls] for a test or a preview. Null clears it.
+  @visibleForTesting
+  static bool? debugNativeControls;
 
   /// The Material kit has skins for the core components (button, icon button,
   /// field, search, switch, segmented, chip, check, slider, spinner, sheet,
@@ -157,23 +170,38 @@ class UiKitScope extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pinned = kit;
-    if (pinned != null) return _UiKitInherited(kit: pinned, child: child);
+    if (pinned != null) {
+      return _UiKitInherited(
+        kit: pinned,
+        nativeControls: UiKits.nativeControls,
+        child: child,
+      );
+    }
     return ListenableBuilder(
       listenable: SettingsStore.instance,
-      builder: (context, child) =>
-          _UiKitInherited(kit: UiKits.current, child: child!),
+      builder: (context, child) => _UiKitInherited(
+        kit: UiKits.current,
+        nativeControls: UiKits.nativeControls,
+        child: child!,
+      ),
       child: child,
     );
   }
 }
 
 class _UiKitInherited extends InheritedWidget {
-  const _UiKitInherited({required this.kit, required super.child});
+  const _UiKitInherited({
+    required this.kit,
+    required this.nativeControls,
+    required super.child,
+  });
 
   final UiKit kit;
+  final bool nativeControls;
 
   @override
-  bool updateShouldNotify(_UiKitInherited old) => old.kit != kit;
+  bool updateShouldNotify(_UiKitInherited old) =>
+      old.kit != kit || old.nativeControls != nativeControls;
 }
 
 /// Builds the skin for the current kit, walking [UiKit.fallback] until a skin

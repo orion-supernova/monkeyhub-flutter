@@ -159,7 +159,7 @@ class GlassIconButton extends StatelessWidget {
     final symbol = glyph == null && tint == null ? sfSymbolFor(icon) : null;
     if (tone == GlassTone.app &&
         kit == UiKit.liquid &&
-        NativeControl.ready &&
+        NativeControl.readyIn(context) &&
         symbol != null) {
       return NativeControl(
         size: Size.square(size),

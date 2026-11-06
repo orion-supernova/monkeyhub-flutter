@@ -113,6 +113,12 @@ final class NativeControlPlatformView: NSObject, FlutterPlatformView {
         self.model.spec = NativeControlSpec(call.arguments as? [String: Any] ?? [:])
         self.reportSize()
         result(nil)
+      case "focus":
+        self.model.focusTick += 1
+        result(nil)
+      case "blur":
+        self.model.blurTick += 1
+        result(nil)
       case "measure":
         self.reportSize(force: true)
         result(nil)
@@ -172,6 +178,15 @@ struct NativeControlSpec {
   let keyboard: String?
   let cornerRadius: CGFloat
   let fill: Bool
+  let leadingSymbol: String?
+  let submitLabel: String?
+  let plain: Bool
+  let clearButton: Bool
+  let dateMs: Double
+  let minDateMs: Double?
+  let maxDateMs: Double?
+  let dateMode: String
+  let dateStyle: String
 
   init(_ map: [String: Any]) {
     kind = map["kind"] as? String ?? "symbolButton"
@@ -199,6 +214,15 @@ struct NativeControlSpec {
     keyboard = map["keyboard"] as? String
     cornerRadius = CGFloat(map["cornerRadius"] as? Double ?? 22)
     fill = map["fill"] as? Bool ?? false
+    leadingSymbol = map["leadingSymbol"] as? String
+    submitLabel = map["submitLabel"] as? String
+    plain = map["plain"] as? Bool ?? false
+    clearButton = map["clearButton"] as? Bool ?? false
+    dateMs = map["dateMs"] as? Double ?? Date().timeIntervalSince1970 * 1000
+    minDateMs = map["minDateMs"] as? Double
+    maxDateMs = map["maxDateMs"] as? Double
+    dateMode = map["dateMode"] as? String ?? "dateTime"
+    dateStyle = map["dateStyle"] as? String ?? "compact"
   }
 }
 
@@ -236,6 +260,10 @@ struct NativeMenuItem: Identifiable {
 
 final class NativeControlModel: ObservableObject {
   @Published var spec: NativeControlSpec
+
+  /// Bumped by Dart's `focus` / `blur` calls; a text field follows them.
+  @Published var focusTick = 0
+  @Published var blurTick = 0
 
   init(spec: NativeControlSpec) {
     self.spec = spec
@@ -280,8 +308,10 @@ struct NativeControlRoot: View {
     case "segmented": NativeSegmented(spec: spec, emit: emit)
     case "slider": NativeSlider(spec: spec, emit: emit)
     case "menu": NativeMenu(spec: spec, emit: emit)
-    case "textField": NativeTextField(spec: spec, emit: emit)
+    case "textField", "searchField": NativeTextField(model: model, spec: spec, emit: emit)
     case "toolbar": NativeToolbar(spec: spec, emit: emit)
+    case "buttonGroup": NativeButtonGroup(spec: spec, emit: emit)
+    case "datePicker": NativeDatePicker(spec: spec, emit: emit)
     default: NativeSymbolButton(spec: spec, emit: emit)
     }
   }
@@ -496,22 +526,75 @@ struct NativeMenu: View {
   }
 }
 
-/// A single- or one-line text field in a glass rounded rect. Text flows back
-/// as `changed`; return as `submitted`.
+/// A one-line text field (or, as `searchField`, the search capsule): glass
+/// rounded rect, optional leading symbol and clear button. Text flows back as
+/// `changed`, return as `submitted`, focus as `focus`; Dart moves focus with
+/// the `focus` / `blur` channel calls.
 struct NativeTextField: View {
+  @ObservedObject var model: NativeControlModel
   let spec: NativeControlSpec
   let emit: (String, Any?) -> Void
   @State private var text: String
   @FocusState private var focused: Bool
 
-  init(spec: NativeControlSpec, emit: @escaping (String, Any?) -> Void) {
+  init(
+    model: NativeControlModel,
+    spec: NativeControlSpec,
+    emit: @escaping (String, Any?) -> Void
+  ) {
+    self.model = model
     self.spec = spec
     self.emit = emit
     _text = State(initialValue: spec.text)
   }
 
+  private var isSearch: Bool { spec.kind == "searchField" }
+
   var body: some View {
-    let field = Group {
+    let leading = spec.leadingSymbol ?? (isSearch ? "magnifyingglass" : nil)
+    let row = HStack(spacing: 8) {
+      if let leading {
+        Image(systemName: leading)
+          .font(.system(size: 17, weight: .medium))
+          .foregroundStyle(.secondary)
+      }
+      field
+      if (spec.clearButton || isSearch) && !text.isEmpty {
+        Button {
+          text = ""
+          emit("changed", "")
+        } label: {
+          Image(systemName: "xmark.circle.fill")
+            .font(.system(size: 17))
+            .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Clear"))
+      }
+    }
+    .padding(.horizontal, isSearch ? 14 : 16)
+    .frame(maxWidth: .infinity, minHeight: spec.size, maxHeight: .infinity)
+    .contentShape(Rectangle())
+    .onTapGesture { focused = true }
+    .onChange(of: model.focusTick) { _ in focused = true }
+    .onChange(of: model.blurTick) { _ in focused = false }
+    if spec.plain {
+      row
+    } else if #available(iOS 26.0, *) {
+      row.glassEffect(
+        .regular.interactive(),
+        in: RoundedRectangle(cornerRadius: isSearch ? spec.size / 2 : spec.cornerRadius)
+      )
+    } else {
+      row.background(
+        RoundedRectangle(cornerRadius: spec.cornerRadius).fill(.thinMaterial)
+      )
+    }
+  }
+
+  @ViewBuilder
+  private var field: some View {
+    Group {
       if spec.secure {
         SecureField(spec.placeholder, text: $text)
       } else {
@@ -523,20 +606,24 @@ struct NativeTextField: View {
     .focused($focused)
     .textContentType(contentType)
     .keyboardType(keyboardType)
-    .autocorrectionDisabled(spec.contentType != nil)
-    .submitLabel(.done)
+    .textInputAutocapitalization(isSearch || spec.contentType != nil ? .never : .sentences)
+    .autocorrectionDisabled(isSearch || spec.contentType != nil)
+    .submitLabel(submitLabel)
     .onSubmit { emit("submitted", text) }
     .onChange(of: spec.text) { if $0 != text { text = $0 } }
     .onChange(of: text) { if $0 != spec.text { emit("changed", $0) } }
     .onChange(of: focused) { emit("focus", $0) }
-    .padding(.horizontal, 16)
-    .frame(maxWidth: .infinity, minHeight: spec.size, maxHeight: .infinity)
-    if #available(iOS 26.0, *) {
-      field.glassEffect(.regular, in: RoundedRectangle(cornerRadius: spec.cornerRadius))
-    } else {
-      field.background(
-        RoundedRectangle(cornerRadius: spec.cornerRadius).fill(.thinMaterial)
-      )
+  }
+
+  private var submitLabel: SubmitLabel {
+    switch spec.submitLabel {
+    case "search": return .search
+    case "next": return .next
+    case "go": return .go
+    case "send": return .send
+    case "join": return .join
+    case "continue": return .continue
+    default: return isSearch ? .search : .done
     }
   }
 
@@ -548,6 +635,7 @@ struct NativeTextField: View {
     case "oneTimeCode": return .oneTimeCode
     case "emailAddress": return .emailAddress
     case "url": return .URL
+    case "name": return .name
     default: return nil
     }
   }
@@ -558,7 +646,77 @@ struct NativeTextField: View {
     case "url": return .URL
     case "number": return .numberPad
     case "phone": return .phonePad
-    default: return .default
+    default: return isSearch ? .webSearch : .default
+    }
+  }
+}
+
+/// Several symbol buttons sharing one glass capsule, the iOS 26 toolbar
+/// group (the chat list's add-person and compose pair). Taps report the
+/// option's `value` as `select`.
+struct NativeButtonGroup: View {
+  let spec: NativeControlSpec
+  let emit: (String, Any?) -> Void
+
+  var body: some View {
+    let row = HStack(spacing: 0) {
+      ForEach(spec.options) { option in
+        Button { emit("select", option.id) } label: {
+          Image(systemName: option.symbol ?? "circle")
+            .font(.system(size: spec.symbolSize, weight: .semibold))
+            .frame(width: spec.size, height: spec.size)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Color.primary)
+        .accessibilityLabel(Text(option.label))
+      }
+    }
+    .padding(.horizontal, 4)
+    if #available(iOS 26.0, *) {
+      row.glassEffect(.regular.interactive(), in: Capsule())
+    } else {
+      row.background(Capsule().fill(.thinMaterial))
+    }
+  }
+}
+
+/// The system date picker. Values travel as epoch milliseconds.
+struct NativeDatePicker: View {
+  let spec: NativeControlSpec
+  let emit: (String, Any?) -> Void
+  @State private var date: Date
+
+  init(spec: NativeControlSpec, emit: @escaping (String, Any?) -> Void) {
+    self.spec = spec
+    self.emit = emit
+    _date = State(initialValue: Date(timeIntervalSince1970: spec.dateMs / 1000))
+  }
+
+  private var components: DatePickerComponents {
+    switch spec.dateMode {
+    case "date": return [.date]
+    case "time": return [.hourAndMinute]
+    default: return [.date, .hourAndMinute]
+    }
+  }
+
+  var body: some View {
+    let lower = spec.minDateMs.map { Date(timeIntervalSince1970: $0 / 1000) } ?? .distantPast
+    let upper = spec.maxDateMs.map { Date(timeIntervalSince1970: $0 / 1000) } ?? .distantFuture
+    let picker = DatePicker(
+      spec.label,
+      selection: $date,
+      in: lower...Swift.max(upper, lower),
+      displayedComponents: components
+    )
+    .labelsHidden()
+    .onChange(of: spec.dateMs) { date = Date(timeIntervalSince1970: $0 / 1000) }
+    .onChange(of: date) { emit("changed", $0.timeIntervalSince1970 * 1000) }
+    switch spec.dateStyle {
+    case "graphical": picker.datePickerStyle(.graphical)
+    case "wheel": picker.datePickerStyle(.wheel)
+    default: picker.datePickerStyle(.compact)
     }
   }
 }

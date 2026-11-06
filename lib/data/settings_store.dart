@@ -99,6 +99,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kGlassSlots = 'mh.glass.slots';
   static const _kGlassPreset = 'mh.glass.preset';
   static const _kUiKit = 'mh.ui.kit';
+  static const _kNativeScope = 'mh.ui.nativeScope';
 
   /// Pre-[UiKit] storage of the Liquid Glass / Frosted choice. Read once to
   /// carry an explicit "Frosted" over; never written again.
@@ -132,7 +133,7 @@ class SettingsStore extends ChangeNotifier {
     _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
     _kVideoQualityTier, _kAutoLowerVideoQuality, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
-    _kGlassProfile, _kGlassSlots, _kGlassPreset, _kUiKit, _kLocale, _kMotionLevel, _kPowerSaving, _kHaptics,
+    _kGlassProfile, _kGlassSlots, _kGlassPreset, _kUiKit, _kNativeScope, _kLocale, _kMotionLevel, _kPowerSaving, _kHaptics,
     _kScheduledIndicator, _kSebastianEnabled, _kTranslationTarget,
     _kTranslatedRoomIds, _kMarloweBrainId, _kCompanionForceCpu,
   };
@@ -207,6 +208,7 @@ class SettingsStore extends ChangeNotifier {
   Set<String>? _diagHiddenCategories;
   FilterStyle _filterStyle = FilterStyle.chips;
   UiKit? _uiKit;
+  NativeScope _nativeScope = NativeScope.tabBar;
   RoomFilter _roomFilter = RoomFilter.empty;
   GlassProfile _glass = _presetById(kDefaultGlassPresetId).profile;
   List<GlassPreset> _glassSlots = const [];
@@ -527,6 +529,12 @@ class SettingsStore extends ChangeNotifier {
   /// device cannot honour (Liquid Glass off iOS 26) quietly means Automatic.
   UiKit? get uiKit => _uiKit;
 
+  /// Under Liquid Glass, how much of the interface iOS draws itself: just the
+  /// tab bar, or every control that has a native form (buttons, switches,
+  /// segmented controls, sliders, menus, text and search fields, date
+  /// pickers). Read through `NativeControl.readyIn(context)`, never here.
+  NativeScope get nativeScope => _nativeScope;
+
   /// Active chat-list filter. Persisted, so a cold start can open onto a
   /// filtered — possibly empty — list. The chat screen therefore always renders
   /// an active-filter cue and a one-tap "show all" escape when this is set.
@@ -803,6 +811,9 @@ class SettingsStore extends ChangeNotifier {
     // First-launch default is chips; honour an explicit 'drawer' selection.
     _filterStyle = fs == 'drawer' ? FilterStyle.drawer : FilterStyle.chips;
     _roomFilter = RoomFilter.decode(s[_kRoomFilter]);
+    _nativeScope = s[_kNativeScope] == 'everything'
+        ? NativeScope.everything
+        : NativeScope.tabBar;
     final kit = s[_kUiKit];
     _uiKit = kit != null
         ? UiKit.values.asNameMap()[kit]
@@ -965,6 +976,13 @@ class SettingsStore extends ChangeNotifier {
     _powerSaving = v;
     notifyListeners();
     await _storage.write(key: _kPowerSaving, value: v.name);
+  }
+
+  Future<void> setNativeScope(NativeScope scope) async {
+    if (_nativeScope == scope) return;
+    _nativeScope = scope;
+    notifyListeners();
+    await _storage.write(key: _kNativeScope, value: scope.name);
   }
 
   /// Null returns to Automatic.
@@ -1629,6 +1647,10 @@ class SettingsStore extends ChangeNotifier {
 /// * `cards` — the original bordered card per room, every fact about the room
 ///   spelled out as a pill. Kept for anyone who preferred it.
 /// * `grid` — two (or three) columns of tiles.
+/// How much of the Liquid Glass kit iOS draws itself. See
+/// [SettingsStore.nativeScope].
+enum NativeScope { tabBar, everything }
+
 enum RoomLayout { list, cards, grid }
 
 enum NavStyle { radial, pill }

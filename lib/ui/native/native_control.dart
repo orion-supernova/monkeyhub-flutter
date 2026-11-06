@@ -47,10 +47,14 @@ class NativeControl extends StatefulWidget {
   /// Whether a native control can be drawn here at all.
   static bool get available => Caps.iOS && Caps.nativeGlass;
 
-  /// Whether the liquid kit's skins should use native controls right now.
-  /// Components pass `liquid: NativeControl.ready ? _native : null` to
-  /// [KitSwitch], so with the flag off the liquid kit falls back to glass.
-  static bool get ready => UiKits.nativeControlsReady && available;
+  /// Whether the liquid kit's skins should use native controls here.
+  /// Components pass `liquid: NativeControl.readyIn(context) ? _liquid : null`
+  /// to [KitSwitch]; with Settings › Glass › Native controls on "Just the tab
+  /// bar" the liquid kit falls back to glass.
+  static bool readyIn(BuildContext context) =>
+      available &&
+      UiKit.of(context) == UiKit.liquid &&
+      UiKit.nativeControlsOf(context);
 
   @override
   State<NativeControl> createState() => _NativeControlState();

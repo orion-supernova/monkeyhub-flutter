@@ -973,7 +973,7 @@ class RowSwitch extends StatelessWidget {
   Widget build(BuildContext context) => KitSwitch(
         glass: _glass,
         material: _material,
-        liquid: NativeControl.ready ? _liquid : null,
+        liquid: NativeControl.readyIn(context) ? _liquid : null,
       );
 
   /// The [UiKit.liquid] skin: the system switch itself (a UISwitch), which

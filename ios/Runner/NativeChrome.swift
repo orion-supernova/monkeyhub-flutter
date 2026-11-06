@@ -19,7 +19,35 @@ import UIKit
 final class NativeChrome: NSObject, UITabBarDelegate {
   private let channel: FlutterMethodChannel
   private weak var hostController: UIViewController?
-  private var bar: UITabBar?
+  private var bar: UITabBar? {
+    didSet { bar == nil ? stopKeepingOnTop() : startKeepingOnTop() }
+  }
+
+  /// Keeps the bar above Flutter's platform views. Flutter adds each
+  /// platform view (a native control in the liquid kit) to the same host as
+  /// this bar, and re-inserts them whenever compositing changes, which put a
+  /// scrolled-under UISwitch on top of the tab bar. Once a frame the bar
+  /// checks it is still the host's last subview and lifts itself if not: one
+  /// pointer comparison, nothing while it already is.
+  private var keepOnTop: CADisplayLink?
+
+  private func startKeepingOnTop() {
+    guard keepOnTop == nil else { return }
+    let link = CADisplayLink(target: self, selector: #selector(raiseBar))
+    link.add(to: .main, forMode: .common)
+    keepOnTop = link
+  }
+
+  private func stopKeepingOnTop() {
+    keepOnTop?.invalidate()
+    keepOnTop = nil
+  }
+
+  @objc private func raiseBar() {
+    guard let bar, let host = bar.superview,
+          host.subviews.last !== bar else { return }
+    host.bringSubviewToFront(bar)
+  }
 
   /// The Dart widget instance that owns the bar. A theme change rebuilds the
   /// shell, so the new instance configures the bar BEFORE the old one is
