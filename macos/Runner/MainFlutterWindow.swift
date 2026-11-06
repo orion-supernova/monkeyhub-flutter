@@ -101,6 +101,39 @@ class MainFlutterWindow: NSWindow, NSDraggingDestination {
       }
     }
 
+    // monkeyhub/launcher_icon — the Dock / ⌘-Tab icon (LauncherIconService).
+    // Dart renders the chosen icon (squircle + margin already baked in: an
+    // image handed to `applicationIconImage` is NOT masked by the system the
+    // way an asset-catalog icon is) and sends the PNG. `nil` restores the
+    // bundle icon. It lives only as long as the process: the Dock shows the
+    // bundle icon again once the app quits, and the next launch re-applies it.
+    // The bundle on disk is never touched (that would break its signature).
+    let launcherIconChannel = FlutterMethodChannel(
+      name: "monkeyhub/launcher_icon",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    launcherIconChannel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "supportsAlternateIcons":
+        result(true)
+      case "setIconImage":
+        let args = call.arguments as? [String: Any]
+        if let data = (args?["png"] as? FlutterStandardTypedData)?.data {
+          guard let image = NSImage(data: data) else {
+            result(FlutterError(code: "bad_image", message: "PNG did not decode", details: nil))
+            return
+          }
+          NSApp.applicationIconImage = image
+        } else {
+          // Assigning nil restores the icon from the bundle.
+          NSApp.applicationIconImage = nil
+        }
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+
     // monkeyhub/haptics — Flutter's HapticFeedback, played on the Force Touch
     // trackpad. Dart never calls this by name: AppBinding (lib/services/
     // app_binding.dart) reroutes `HapticFeedback.vibrate` here, so every

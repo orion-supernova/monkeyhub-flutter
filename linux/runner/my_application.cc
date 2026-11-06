@@ -5,6 +5,7 @@
 #include <gdk/gdkx.h>
 #endif
 
+#include <gdk-pixbuf/gdk-pixbuf.h>
 #include <dlfcn.h>
 #include <string.h>
 
@@ -19,6 +20,9 @@ struct _MyApplication {
   // monkeyhub/window channel — raises the window when a desktop notification
   // is clicked (LinuxNotifier). Same lifetime as badge_channel.
   FlMethodChannel* window_channel;
+  // monkeyhub/launcher_icon channel — the icon the person picked in Settings,
+  // applied to the window and the tray. Same lifetime as badge_channel.
+  FlMethodChannel* launcher_icon_channel;
   // The one main window. Set by the first activate; a later activate (the
   // app launched again while running) presents it instead of opening another.
   GtkWindow* window;
@@ -110,6 +114,10 @@ typedef void (*AppIndicatorSetStatusFn)(gpointer, int);
 typedef void (*AppIndicatorSetMenuFn)(gpointer, GtkMenu*);
 typedef void (*AppIndicatorSetTargetFn)(gpointer, GtkWidget*);
 typedef void (*AppIndicatorSetTitleFn)(gpointer, const gchar*);
+typedef void (*AppIndicatorSetIconFn)(gpointer, const gchar*, const gchar*);
+
+// Kept so a changed app icon can be pushed to the tray after it was created.
+static AppIndicatorSetIconFn g_indicator_set_icon = nullptr;
 
 // From app-indicator.h, which is not included since nothing is linked.
 static const int kIndicatorCategoryCommunications = 1;
@@ -131,9 +139,25 @@ static gboolean tray_host_present() {
   return has_owner;
 }
 
+// The icon the person picked in Settings › App Icon, as written by
+// LauncherIconService (lib/services/launcher_icon_service.dart). The same file
+// is the per-user override of the theme icon named `monkeyhub`, which is what
+// the dock and launcher read; null when the original icon is in use.
+static gchar* user_icon_override() {
+  const gchar* data_home = g_get_user_data_dir();
+  gchar* png = g_build_filename(data_home, "icons", "hicolor", "512x512",
+                                "apps", "monkeyhub.png", nullptr);
+  if (g_file_test(png, G_FILE_TEST_IS_REGULAR)) return png;
+  g_free(png);
+  return nullptr;
+}
+
 // The tarball ships its icon beside the binary; the AUR package moves it
-// into the icon theme, where the bare name finds it.
+// into the icon theme, where the bare name finds it. A chosen icon wins over
+// both.
 static gchar* tray_icon() {
+  gchar* chosen = user_icon_override();
+  if (chosen != nullptr) return chosen;
   g_autofree gchar* exe = g_file_read_link("/proc/self/exe", nullptr);
   if (exe != nullptr) {
     g_autofree gchar* dir = g_path_get_dirname(exe);
@@ -167,6 +191,8 @@ static void create_tray(MyApplication* self) {
       dlsym(lib, "app_indicator_set_secondary_activate_target"));
   auto set_title = reinterpret_cast<AppIndicatorSetTitleFn>(
       dlsym(lib, "app_indicator_set_title"));
+  g_indicator_set_icon = reinterpret_cast<AppIndicatorSetIconFn>(
+      dlsym(lib, "app_indicator_set_icon_full"));
   if (indicator_new == nullptr || set_status == nullptr || set_menu == nullptr) {
     return;
   }
@@ -314,6 +340,65 @@ static void window_method_call_cb(FlMethodChannel* channel,
   }
 }
 
+// Handles monkeyhub/launcher_icon method calls from Dart
+// (LauncherIconService). By the time `setIconImage` arrives Dart has already
+// written the PNG into ~/.local/share/icons/hicolor (the dock/launcher icon,
+// which follows the .desktop file's `Icon=monkeyhub`, and the tray); this
+// sets the window's own icon, which is what window lists, Alt-Tab and
+// window managers without a .desktop match show. No PNG restores the default.
+static void launcher_icon_method_call_cb(FlMethodChannel* channel,
+                                         FlMethodCall* method_call,
+                                         gpointer user_data) {
+  MyApplication* self = MY_APPLICATION(user_data);
+  g_autoptr(FlMethodResponse) response = nullptr;
+  const gchar* method = fl_method_call_get_name(method_call);
+  if (strcmp(method, "supportsAlternateIcons") == 0) {
+    response = FL_METHOD_RESPONSE(
+        fl_method_success_response_new(fl_value_new_bool(TRUE)));
+  } else if (strcmp(method, "setIconImage") == 0) {
+    FlValue* args = fl_method_call_get_args(method_call);
+    FlValue* png = (args != nullptr &&
+                    fl_value_get_type(args) == FL_VALUE_TYPE_MAP)
+                       ? fl_value_lookup_string(args, "png")
+                       : nullptr;
+    gboolean ok = TRUE;
+    if (png != nullptr && fl_value_get_type(png) == FL_VALUE_TYPE_UINT8_LIST) {
+      GdkPixbufLoader* loader = gdk_pixbuf_loader_new();
+      g_autoptr(GError) error = nullptr;
+      if (gdk_pixbuf_loader_write(loader, fl_value_get_uint8_list(png),
+                                  fl_value_get_length(png), &error) &&
+          gdk_pixbuf_loader_close(loader, &error)) {
+        GdkPixbuf* pixbuf = gdk_pixbuf_loader_get_pixbuf(loader);
+        if (pixbuf != nullptr && self->window != nullptr) {
+          gtk_window_set_icon(self->window, pixbuf);
+        }
+      } else {
+        g_warning("launcher_icon: bad PNG: %s",
+                  error != nullptr ? error->message : "unknown");
+        ok = FALSE;
+      }
+      g_object_unref(loader);
+    } else if (self->window != nullptr) {
+      // Back to the original: the window falls back to the .desktop icon.
+      gtk_window_set_icon(self->window, nullptr);
+    }
+    if (ok && self->indicator != nullptr && g_indicator_set_icon != nullptr) {
+      g_autofree gchar* icon = tray_icon();
+      g_indicator_set_icon(self->indicator, icon, "MonkeyHub");
+    }
+    response = ok ? FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr))
+                  : FL_METHOD_RESPONSE(fl_method_error_response_new(
+                        "bad_image", "PNG did not decode", nullptr));
+  } else {
+    response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+  }
+
+  g_autoptr(GError) error = nullptr;
+  if (!fl_method_call_respond(method_call, response, &error)) {
+    g_warning("launcher_icon: failed to respond: %s", error->message);
+  }
+}
+
 // Called when first Flutter frame received.
 static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
@@ -411,6 +496,13 @@ static void my_application_activate(GApplication* application) {
   fl_method_channel_set_method_call_handler(
       self->window_channel, window_method_call_cb, self, nullptr);
 
+  // monkeyhub/launcher_icon — the app icon picked in Settings.
+  self->launcher_icon_channel =
+      fl_method_channel_new(fl_engine_get_binary_messenger(engine),
+                            "monkeyhub/launcher_icon", FL_METHOD_CODEC(codec));
+  fl_method_channel_set_method_call_handler(
+      self->launcher_icon_channel, launcher_icon_method_call_cb, self, nullptr);
+
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
 
@@ -478,6 +570,7 @@ static void my_application_dispose(GObject* object) {
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
   g_clear_object(&self->badge_channel);
   g_clear_object(&self->window_channel);
+  g_clear_object(&self->launcher_icon_channel);
   G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
 }
 

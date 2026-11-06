@@ -948,6 +948,17 @@ class MainActivity : FlutterActivity(), GamepadsCompatibleActivity {
         "mh_monkey_fields", "mh_monkey_hmm",
     )
 
+    /// The alias the launcher is showing, or null for the primary icon.
+    ///
+    /// Aliases are declared `android:enabled="false"`, so an alias the user has
+    /// never picked reports DEFAULT, which means disabled; only an explicit
+    /// ENABLED counts. MainActivity is the opposite (DEFAULT means enabled).
+    ///
+    /// Also a safety net: if nothing launchable is enabled (MainActivity
+    /// disabled and no known alias enabled, e.g. an update dropped the alias
+    /// that was live, or a swap was interrupted), the app has no home-screen
+    /// entry at all and Dart would think all is well because it sees `null`.
+    /// Put the primary icon back before answering.
     private fun currentAlternateIconName(): String? {
         val pm = packageManager
         for (id in aliasIds) {
@@ -955,6 +966,16 @@ class MainActivity : FlutterActivity(), GamepadsCompatibleActivity {
                 ComponentName(packageName, "$packageName.$id")
             )
             if (state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) return id
+        }
+        val main = ComponentName(packageName, "$packageName.MainActivity")
+        if (pm.getComponentEnabledSetting(main) ==
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+        ) {
+            pm.setComponentEnabledSetting(
+                main,
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                PackageManager.DONT_KILL_APP
+            )
         }
         return null
     }
@@ -971,8 +992,13 @@ class MainActivity : FlutterActivity(), GamepadsCompatibleActivity {
         // canonical icon is always a correct answer.
         val target = if (requested == null || requested in aliasIds) requested else null
 
-        // Enable MainActivity if target is null; otherwise disable it so two
-        // launcher entries don't appear.
+        // Order matters: ENABLE the new launcher entry first, then disable the
+        // old ones. The other way round leaves a window with no launchable
+        // component, and a process death inside it (DONT_KILL_APP does not
+        // protect against the system or the user) strands the app with no icon.
+        // Components already in the wanted state are left alone: each write is
+        // a package-changed broadcast the launcher reacts to, and rewriting an
+        // unchanged component makes some launchers flash or re-lay-out.
         //
         // Side effect worth knowing about: while an alias is the enabled
         // launcher entry, `getLaunchIntentForPackage` resolves to THAT
@@ -982,21 +1008,39 @@ class MainActivity : FlutterActivity(), GamepadsCompatibleActivity {
         // `.MainActivity` is not found and Android builds a second one. The
         // engine cache in [provideFlutterEngine] is what keeps that survivable;
         // don't remove it.
+        if (target == null) {
+            setComponent(pm, mainComponent, enabled = true)
+        } else {
+            setComponent(pm, ComponentName(packageName, "$packageName.$target"), enabled = true)
+        }
+
+        for (id in aliasIds) {
+            if (id == target) continue
+            setComponent(pm, ComponentName(packageName, "$packageName.$id"), enabled = false)
+        }
+
+        if (target != null) {
+            setComponent(pm, mainComponent, enabled = false)
+        }
+    }
+
+    /// Writes an enabled/disabled state only when it would change something.
+    /// DEFAULT is read through the manifest: MainActivity defaults to enabled,
+    /// every alias to disabled.
+    private fun setComponent(pm: PackageManager, component: ComponentName, enabled: Boolean) {
+        val current = pm.getComponentEnabledSetting(component)
+        val isMain = component.className.endsWith(".MainActivity")
+        val effectivelyEnabled = when (current) {
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED -> true
+            PackageManager.COMPONENT_ENABLED_STATE_DEFAULT -> isMain
+            else -> false
+        }
+        if (effectivelyEnabled == enabled) return
         pm.setComponentEnabledSetting(
-            mainComponent,
-            if (target == null) PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+            component,
+            if (enabled) PackageManager.COMPONENT_ENABLED_STATE_ENABLED
             else PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
             PackageManager.DONT_KILL_APP
         )
-
-        for (id in aliasIds) {
-            val alias = ComponentName(packageName, "$packageName.$id")
-            pm.setComponentEnabledSetting(
-                alias,
-                if (id == target) PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-                else PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                PackageManager.DONT_KILL_APP
-            )
-        }
     }
 }

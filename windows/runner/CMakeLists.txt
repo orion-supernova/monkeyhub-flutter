@@ -45,7 +45,7 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
 target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
 # Taskbar overlay badge: ITaskbarList3 (ole32) + GDI+ icon rendering (gdiplus).
-target_link_libraries(${BINARY_NAME} PRIVATE "ole32.lib" "gdiplus.lib")
+target_link_libraries(${BINARY_NAME} PRIVATE "ole32.lib" "gdiplus.lib" "shlwapi.lib")
 target_link_libraries(${BINARY_NAME} PRIVATE store_update)
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
