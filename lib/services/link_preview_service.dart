@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 
@@ -83,17 +84,12 @@ class LinkPreviewService {
       return null;
     }
 
-    // Many sites only emit rich OG/Twitter meta to known crawler UAs.
-    // facebookexternalhit is the most widely-served-against bot signature.
-    final response = await http.get(
-      uri,
-      headers: const {
-        'User-Agent':
-            'facebookexternalhit/1.1 (+https://www.facebook.com/externalhit_uatext.php)',
-        'Accept':
-            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      },
-    ).timeout(const Duration(seconds: 6));
+    final fetched = await _getFollowingRedirects(uri)
+        .timeout(const Duration(seconds: 6));
+    final response = fetched.response;
+    // Relative og:image paths resolve against the page that served them,
+    // not the short link the user pasted.
+    final pageUri = fetched.uri;
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       return LinkPreview(url: url);
@@ -139,9 +135,61 @@ class LinkPreviewService {
       url: url,
       title: _decodeEntities(title),
       description: _decodeEntities(description),
-      imageUrl: rawImage == null ? null : _resolveUrl(uri, rawImage),
+      imageUrl: rawImage == null ? null : _resolveUrl(pageUri, rawImage),
       siteName: _decodeEntities(siteName),
     );
+  }
+
+  // Many sites only emit rich OG/Twitter meta to known crawler UAs.
+  // facebookexternalhit is the most widely-served-against bot signature.
+  static const _headers = {
+    'User-Agent':
+        'facebookexternalhit/1.1 (+https://www.facebook.com/externalhit_uatext.php)',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  };
+
+  static const _maxRedirects = 6;
+
+  /// Follows redirects hop by hop instead of letting dart:io do it.
+  ///
+  /// dart:io's built-in redirect following lands Google Maps share links
+  /// (maps.app.goo.gl/...) on the generic "Google Maps" page, while the same
+  /// three hops followed by hand reach the place page with its name, rating,
+  /// address and photo in og:* meta. Doing it ourselves also tells us the
+  /// final URL. The browser client cannot see 3xx responses at all, so web
+  /// keeps the plain fetch.
+  Future<({http.Response response, Uri uri})> _getFollowingRedirects(
+    Uri start,
+  ) async {
+    if (kIsWeb) {
+      return (response: await http.get(start, headers: _headers), uri: start);
+    }
+    final client = http.Client();
+    try {
+      var current = start;
+      for (var hop = 0; ; hop++) {
+        final request = http.Request('GET', current)
+          ..followRedirects = false
+          ..headers.addAll(_headers);
+        final response =
+            await http.Response.fromStream(await client.send(request));
+        final location = response.headers['location'];
+        final isRedirect = response.statusCode >= 300 &&
+            response.statusCode < 400 &&
+            location != null &&
+            location.isNotEmpty;
+        if (!isRedirect || hop >= _maxRedirects) {
+          return (response: response, uri: current);
+        }
+        final next = current.resolve(location);
+        if (next.scheme != 'http' && next.scheme != 'https') {
+          return (response: response, uri: current);
+        }
+        current = next;
+      }
+    } finally {
+      client.close();
+    }
   }
 
   /// Pulls `href` from `<link rel="$rel">` — used to mine alternate image
