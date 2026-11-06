@@ -56,6 +56,17 @@ enum ComposerCaptureStyle { classic, liquid }
 class ComposerCaptureController extends ChangeNotifier {
   ComposerInputMode? _pending;
 
+  /// True while a recording is live (held, hands-free or locked). Written by
+  /// the capture host; read by the room, which hides the dock's shelf and
+  /// context lanes and refuses to arm the swipe-up fork meanwhile.
+  final ValueNotifier<bool> recording = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    recording.dispose();
+    super.dispose();
+  }
+
   /// Switch to [mode] and, when it records, start immediately and hands-free.
   void requestMode(ComposerInputMode mode) {
     _pending = mode;
@@ -421,7 +432,16 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   ComposerCaptureMachine _buildMachine() {
     final capture = widget.capture;
     final modes = _availableModes(capture);
-    return ComposerCaptureMachine(modes: modes, initial: modes.first);
+    return ComposerCaptureMachine(modes: modes, initial: modes.first)
+      ..addListener(_syncRecording);
+  }
+
+  /// Mirrors the machine's recording state onto the host's controller.
+  void _syncRecording() {
+    final notifier = widget.capture?.controller?.recording;
+    if (notifier == null) return;
+    final live = _machine.isRecording;
+    if (notifier.value != live) notifier.value = live;
   }
 
   /// The modes this host can actually deliver.
@@ -531,12 +551,25 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     unawaited(_abort(silent: true));
     _machine.dispose();
     _machine = _buildMachine();
+    _syncRecording();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.capture?.controller?.removeListener(_onExternalRequest);
+    final recording = widget.capture?.controller?.recording;
+    if (recording != null && recording.value) {
+      // Torn down mid-recording: the room's listener must not setState while
+      // the tree is unmounting.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          recording.value = false;
+        } catch (_) {
+          // The room (the notifier's owner) is gone too.
+        }
+      });
+    }
     _ticker?.cancel();
     _tooltipTimer?.cancel();
     _entranceTimer?.cancel();

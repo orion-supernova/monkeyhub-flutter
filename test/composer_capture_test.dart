@@ -225,6 +225,33 @@ void main() {
                 'composer comes back');
       });
 
+      testWidgets('the controller reports a live recording, and clears it',
+          (tester) async {
+        final recorder = _FakeRecorder();
+        final controller = ComposerCaptureController();
+        await tester.pumpWidget(host(build(
+          onCamera: () {},
+          capture: _capture(recorder: recorder, controller: controller),
+        )));
+        await tester.pumpAndSettle();
+        expect(controller.recording.value, isFalse);
+
+        await _toVoice(tester);
+        final gesture = await tester.startGesture(
+            tester.getCenter(find.byIcon(Icons.mic_none_outlined)));
+        await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+        await tester.pump();
+        await tester.pump();
+        expect(controller.recording.value, isTrue,
+            reason: 'the room hides the shelf and refuses the fork meanwhile');
+
+        await gesture.up();
+        await _frames(tester);
+        await tester.pump(const Duration(milliseconds: 700));
+        await tester.pump();
+        expect(controller.recording.value, isFalse);
+      });
+
       testWidgets('sliding up locks, and the strip grows a send button',
           (tester) async {
         final recorder = _FakeRecorder();

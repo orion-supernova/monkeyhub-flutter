@@ -73,3 +73,35 @@ Rules:
 Use the shared primitives (`LiquidGlass`, `GlassIconButton`, `ChatScrollFab`,
 `CallGlyphButton`, `ComposerContextCard`, `ContextRail`, `KickGlyph`,
 `SlideSwap`, `SpringPress`). Extend one with a parameter rather than copying it.
+
+## 6. Moments
+
+Chrome stays crisp: kicks (section 4), as today. A *moment* is a rare, meaningful
+event, and only moments get full motion graphics: particles, squash and stretch,
+elastic overshoot, colour waves, each synced with a haptic.
+
+Rules:
+- Reuse an existing effect before building one. Anything leaving a message
+  list is `DustDissolve`.
+- No celebration (confetti and the like) for routine actions. Creating a room
+  is a landing, not a party.
+- Loops are only for live states (recording, typing, a ringing call, a huddle).
+- A moment is one-shot, started by an action or by a state change.
+
+Guardrails:
+- 60 fps on a low-end Android phone, or it does not ship.
+- Never animate a blur. Fade, scale and translate only.
+- Reduce Motion or low power: a short crossfade, same haptic. `MotionScope.calm`.
+- Never block input. A moment plays over live UI, it does not gate it.
+- One moment at a time. A new one replaces the running one, never stacks.
+
+Current moments:
+
+| Moment | Where |
+|---|---|
+| Vanish burn: the message turns to dust and leaves | `DustDissolve`, driven by `MessageExits` |
+| Vanish turning on: a violet wave washes the chat | `lib/widgets/vanish_card.dart` (`VanishTint`) |
+| Huddle start: the huddle bar lands, sound rings pulse out | `lib/widgets/huddle_bar.dart` |
+| Fork bloom: the swipe-up orb, chips and commit flight | `lib/widgets/swipe_fork/` |
+| Room created: the preview card flies into the list | `lib/screens/create_room_sheet.dart` |
+| Two-way haptic ramp: the gesture is felt rising and easing | `lib/widgets/haptic_ramp.dart`, `lib/widgets/haptic_tick.dart` |

@@ -76,6 +76,8 @@ class SettingsStore extends ChangeNotifier {
   // Its value is left on disk unread; pick a new key if a default ever
   // comes back, or an old install would inherit an HD it turned on once.
   static const _kTipsSeen = 'mh.tipsSeen';
+  static const _kForkPeekCount = 'mh.forkPeekCount';
+  static const _kForkGestureDone = 'mh.forkGestureDone';
   static const _kVideoQualityTier = 'mh.videoQualityTier';
   static const _kAutoLowerVideoQuality = 'mh.autoLowerVideoQuality';
   // NOTE: 'mh.fullScreenIntentPrompted', 'mh.batteryOptPrompted' and
@@ -117,7 +119,7 @@ class SettingsStore extends ChangeNotifier {
     _kLayout, _kNav, _kSection, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
-    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
+    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
     _kVideoQualityTier, _kAutoLowerVideoQuality, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kLocale, _kMotionLevel, _kPowerSaving,
@@ -186,6 +188,8 @@ class SettingsStore extends ChangeNotifier {
   String? _recoveryPromptDismissedFor;
   Set<String> _composerModeHintSeenRoomIds = {};
   Set<String> _tipsSeen = {};
+  int _forkPeekCount = 0;
+  bool _forkGestureDone = false;
   Set<String>? _diagHiddenCategories;
   FilterStyle _filterStyle = FilterStyle.chips;
   GlassEngine _glassEngine = GlassEngine.native;
@@ -416,6 +420,32 @@ class SettingsStore extends ChangeNotifier {
   /// does" bubble, the first time it is turned on).
   bool tipSeen(String id) => _tipsSeen.contains(id);
 
+  /// How many times the swipe-up fork's chevron peek has played.
+  int get forkPeekCount => _forkPeekCount;
+
+  /// Whether the reader has completed the swipe-up fork once. The peek never
+  /// plays again after that.
+  bool get forkGestureDone => _forkGestureDone;
+
+  /// The peek plays on the first [kForkPeekMax] landings, and never after the
+  /// gesture has been completed once.
+  static const int kForkPeekMax = 3;
+  bool get shouldShowForkPeek =>
+      !_forkGestureDone && _forkPeekCount < kForkPeekMax;
+
+  /// Counts one play of the peek.
+  Future<void> markForkPeekShown() async {
+    _forkPeekCount++;
+    await _storage.write(key: _kForkPeekCount, value: '$_forkPeekCount');
+  }
+
+  /// The reader committed the fork once: the peek has taught what it can.
+  Future<void> markForkGestureDone() async {
+    if (_forkGestureDone) return;
+    _forkGestureDone = true;
+    await _storage.write(key: _kForkGestureDone, value: 'true');
+  }
+
   /// The diagnostics categories left out of the viewer's **All**, by name.
   /// Null until somebody first changes them, so the viewer can tell "never
   /// chosen" (its default applies) from "chose to hide nothing".
@@ -526,6 +556,11 @@ class SettingsStore extends ChangeNotifier {
 
   /// Which brain Marlowe is set to think with, or null if there is none yet.
   String? get marloweBrainId => _marloweBrainId;
+
+  /// Re-reads storage over whatever is in memory. For tests that seed the
+  /// mock keychain between cases.
+  @visibleForTesting
+  Future<void> reloadForTest() => _readStored();
 
   Future<void> load() async {
     if (_loaded) return;
@@ -717,6 +752,8 @@ class SettingsStore extends ChangeNotifier {
     _autoLowerVideoQuality = s[_kAutoLowerVideoQuality] != 'false'; // default true
     _recoveryPromptDismissedFor = s[_kRecoveryPromptDismissed];
     _tipsSeen = _decodeStringSet(s[_kTipsSeen]);
+    _forkPeekCount = int.tryParse(s[_kForkPeekCount] ?? '') ?? 0;
+    _forkGestureDone = s[_kForkGestureDone] == 'true';
     _composerModeHintSeenRoomIds = _decodeStringSet(
       s[_kComposerModeHintSeenRoomIds],
     );

@@ -10,6 +10,7 @@ import 'package:file_selector/file_selector.dart' show openFile;
 import 'package:flutter/foundation.dart' show kIsWeb, listEquals;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show SchedulerBinding, SchedulerPhase;
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart';
@@ -404,7 +405,26 @@ class _RoomScreenState extends State<_RoomView>
     onJoinHuddle: _forkJoinHuddle,
     onToggleVanish: _forkToggleVanish,
     failureText: _forkFailureText,
+    onCommitted: () => unawaited(SettingsStore.instance.markForkGestureDone()),
   );
+
+  /// The discoverability chevron is on screen. See [ForkPeek].
+  bool _forkPeekOn = false;
+  Timer? _forkPeekTimer;
+
+  /// The first few times the reader lands at the bottom of a chat where the
+  /// fork has an option, a one-second chevron rises above the composer. Never
+  /// after the gesture has been completed once; skipped under Reduce Motion
+  /// (the gate in [_forkCanArm] already excludes desktop, web and split shell).
+  void _maybeForkPeek() {
+    if (!mounted || _forkPeekOn) return;
+    if (!SettingsStore.instance.shouldShowForkPeek) return;
+    if (MotionScope.of(context).calm) return;
+    if (!_forkCanArm() || _fork.busy) return;
+    if (forkOptionsFor(_forkRoomState()).isEmpty) return;
+    unawaited(SettingsStore.instance.markForkPeekShown());
+    setState(() => _forkPeekOn = true);
+  }
 
   /// id → user, for sender names, avatars and speaker colours.
   ///
@@ -705,6 +725,10 @@ class _RoomScreenState extends State<_RoomView>
   @override
   void initState() {
     super.initState();
+    _captureController.recording.addListener(_onRecordingChanged);
+    if (SettingsStore.instance.shouldShowForkPeek) {
+      _forkPeekTimer = Timer(const Duration(milliseconds: 900), _maybeForkPeek);
+    }
     // The huddle bar / Join pill on the dock shelf follow the live calls.
     LiveCallsStore.instance.addListener(_onHuddleChanged);
     GroupCallService.maybeInstance?.addListener(_onHuddleChanged);
@@ -2004,6 +2028,7 @@ class _RoomScreenState extends State<_RoomView>
     DropIntake.instance.removeListener(_takeStagedDrop);
     _ticker.cancel();
     _fadeNow.dispose();
+    _captureController.recording.removeListener(_onRecordingChanged);
     _captureController.dispose();
     // Before the controller: the session is a listener on it.
     _mention.removeListener(_onMentionChanged);
@@ -2035,6 +2060,7 @@ class _RoomScreenState extends State<_RoomView>
     _seenOnResume.dispose();
     _unreadBelow.dispose();
     _bottomChrome.dispose();
+    _forkPeekTimer?.cancel();
     _fork.dispose();
     dockFade.dispose();
     _jumpBack.removeListener(_onJumpBackChanged);
@@ -3167,6 +3193,21 @@ class _RoomScreenState extends State<_RoomView>
   /// modes. See [ComposerCaptureController].
   final _captureController = ComposerCaptureController();
 
+  /// The dock hides its shelf and context lanes while a note records.
+  void _onRecordingChanged() {
+    if (!mounted) return;
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.persistentCallbacks ||
+        phase == SchedulerPhase.transientCallbacks ||
+        phase == SchedulerPhase.midFrameMicrotasks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+    } else {
+      setState(() {});
+    }
+  }
+
   /// What the composer's capture control is allowed to do in this room.
   ///
   /// Rebuilt on every `build` rather than cached, because it closes over
@@ -3228,6 +3269,8 @@ class _RoomScreenState extends State<_RoomView>
       return false;
     }
     if (_mention.isOpen || _picker.isOpen || _expressions.isOpen) return false;
+    // A recording (held, hands-free or locked) owns the composer.
+    if (_captureController.recording.value) return false;
     if (_composerFocus.hasFocus || MediaQuery.viewInsetsOf(context).bottom > 0) {
       return false;
     }
@@ -6105,6 +6148,32 @@ class _RoomScreenState extends State<_RoomView>
                     // The swipe-up fork's picture. Ignores pointers; paints
                     // only while a gesture (or its exit) is on screen.
                     SwipeForkOverlay(controller: _fork),
+                    if (_forkPeekOn)
+                      // Rides the MEASURED dock (shelf, reply card, field), so
+                      // a scheduled pill or a reply card can never cover it.
+                      // The classic style doesn't measure its column; there it
+                      // falls back to a composer's height over the safe area.
+                      ListenableBuilder(
+                        listenable: _bottomChrome,
+                        builder: (context, child) => Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: (_bottomChrome.height ??
+                                  MediaQuery.viewPaddingOf(context).bottom +
+                                      72) +
+                              12,
+                          child: child!,
+                        ),
+                        child: Center(
+                          child: ForkPeek(
+                            semanticLabel:
+                                AppLocalizations.of(context).forkHintSwipeUp,
+                            onDone: () {
+                              if (mounted) setState(() => _forkPeekOn = false);
+                            },
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -6234,6 +6303,7 @@ class _RoomScreenState extends State<_RoomView>
                     child: ChatDock(
               dockFade: dockFade,
               mentionOpen: _mention.isOpen,
+              recording: _captureController.recording.value,
               // The scheduled pill used to sit between the reply card and the
               // field it belongs to; on the shelf it is above both. Below the
               // reply/edit cards still holds in spirit: those describe the
@@ -6527,6 +6597,7 @@ class _RoomScreenState extends State<_RoomView>
                     child: ChatDock(
               dockFade: dockFade,
               mentionOpen: _mention.isOpen,
+              recording: _captureController.recording.value,
               // Mirrors the classic column above — see the comments there. The
               // shelf's space, like the reply card's and the picker's, comes
               // out of the measured chrome height — see the note by

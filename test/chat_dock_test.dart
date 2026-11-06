@@ -83,6 +83,7 @@ Widget buildScene({
   bool edit = false,
   bool mentionOpen = false,
   bool selection = false,
+  bool recording = false,
   List<DockShelfItem> shelf = const [],
   ValueNotifier<double>? fade,
   ChatBottomInset? inset,
@@ -90,6 +91,7 @@ Widget buildScene({
   Widget dock = ChatDock(
     dockFade: fade,
     mentionOpen: mentionOpen,
+    recording: recording,
     shelf: shelf,
     edit: edit ? _box(kEditKey, 48, const Color(0xFFE0A030), 'EDIT') : null,
     reply: reply ? _box(kReplyKey, 48, const Color(0xFF3070E0), 'REPLY') : null,
@@ -126,6 +128,20 @@ Widget buildScene({
 }
 
 void main() {
+  testWidgets('recording hides the shelf and the context lane, keeps the field',
+      (t) async {
+    await t.pumpWidget(
+        buildScene(reply: true, shelf: [scheduledItem()], recording: true));
+    expect(find.byType(ScheduledPill), findsNothing);
+    expect(find.byKey(kReplyKey), findsNothing);
+    expect(find.byKey(kFieldKey), findsOneWidget);
+    // Recording ends: both come back.
+    await t.pumpWidget(buildScene(reply: true, shelf: [scheduledItem()]));
+    await t.pumpAndSettle();
+    expect(find.byType(ScheduledPill), findsOneWidget);
+    expect(find.byKey(kReplyKey), findsOneWidget);
+  });
+
   double top(WidgetTester t, Finder f) => t.getTopLeft(f).dy;
   double bottom(WidgetTester t, Finder f) => t.getBottomLeft(f).dy;
 

@@ -13,6 +13,7 @@ export 'swipe_fork/fork_gesture.dart';
 export 'swipe_fork/fork_machine.dart';
 export 'swipe_fork/fork_options.dart';
 export 'swipe_fork/fork_overlay.dart';
+export 'swipe_fork/fork_peek.dart';
 
 /// A value an [Animation] can wrap without a ticker: [HapticRamp] listens to an
 /// [Animation], and the fork's pull and slide are just numbers the pointer sets.
@@ -64,6 +65,7 @@ class SwipeForkController {
     required this.onToggleVanish,
     this.dockFade,
     this.failureText,
+    this.onCommitted,
     this.rtl = false,
     this.hapticTier,
     ForkMachine? machine,
@@ -99,6 +101,9 @@ class SwipeForkController {
 
   /// Turns a failed commit into the line the orb shows.
   final String Function(Object error)? failureText;
+
+  /// The reader let go on an option (the gesture was completed once).
+  final VoidCallback? onCommitted;
 
   /// Mirrors the sides: vanish on the right, talk on the left.
   bool rtl;
@@ -390,6 +395,7 @@ class SwipeForkController {
   Future<void> _commit(ForkOption option) async {
     final gen = ++_gen;
     committed = option;
+    onCommitted?.call();
     exit = option.isVanish ? ForkExit.commitVanish : ForkExit.commitTalk;
     _holdDock();
     _tick(1, HapticKind.commit);

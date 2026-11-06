@@ -29,6 +29,8 @@
 ///
 /// Takeovers (what hides what):
 ///  * mention picker open: the shelf hides ([ChatDock.mentionOpen]);
+///  * a recording in progress: the shelf and the context lane hide
+///    ([ChatDock.recording]); both come back when it ends;
 ///  * selection mode: the host swaps the whole dock for the selection bar;
 ///  * read-only room: the host swaps the whole dock for the footer;
 ///  * a gesture (the swipe-up fork): [ChatDock.dockFade] / [ChatDockFloats.fade]
@@ -169,6 +171,7 @@ class ChatDock extends StatelessWidget {
     this.reply,
     this.shelf = const [],
     this.mentionOpen = false,
+    this.recording = false,
     this.below = const [],
     this.dockFade,
   });
@@ -197,6 +200,12 @@ class ChatDock extends StatelessWidget {
   /// call it shows keeps running) when the picker closes.
   final bool mentionOpen;
 
+  /// A voice or video note is recording (hands-free and locked included). The
+  /// shelf and the context lane hide so the recording strip has the space;
+  /// both return when it ends (a reply or edit is kept by the host, only
+  /// hidden).
+  final bool recording;
+
   /// Under the field and inside the same measured box: the emoji / picker
   /// panels.
   final List<Widget> below;
@@ -207,13 +216,13 @@ class ChatDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final card = edit ?? reply;
+    final card = recording ? null : (edit ?? reply);
     final column = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Lane 3, topmost: persistent room state, never between a card and the
         // field it belongs to.
-        _Shelf(items: mentionOpen ? const [] : shelf),
+        _Shelf(items: mentionOpen || recording ? const [] : shelf),
         // Lane 2: directly on top of the input lane. One slot, so edit and
         // reply can never both show. The cards animate themselves in.
         card ?? const SizedBox.shrink(),
