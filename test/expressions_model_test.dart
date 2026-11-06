@@ -4,6 +4,7 @@ import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/models/expression_item.dart';
 import 'package:monkeyhub/models/message_preview.dart';
+import 'package:monkeyhub/models/sticker_pack.dart';
 
 /// The GIF/sticker model: what a message carries, what recents remember, what
 /// `messages:send` is told, and the grid layout the picker draws with.
@@ -207,6 +208,49 @@ void main() {
       final rows = justifiedRows([const RowInput.fixed(600, 100)], maxWidth: 300);
       expect(rows.single.widths.single, 300);
       expect(rows.single.height, 50);
+    });
+  });
+
+  group('StickerPack lazy loading', () {
+    test('a packList row has a count and cover but no stickers yet', () {
+      final p = StickerPack.fromJson({
+        '_id': 'p1',
+        'slug': 'noto-moods',
+        'title': 'Moods',
+        'kind': 'official',
+        'count': 42,
+        'coverUrl': 'https://x/c.json',
+        'coverStorageId': 's1',
+        'coverFormat': 'lottie',
+      });
+      expect(p.stickersLoaded, isFalse);
+      expect(p.stickers, isEmpty);
+      expect(p.count, 42);
+      expect(p.previewSticker?.url, 'https://x/c.json');
+    });
+
+    test('withStickers fills the pack and keeps the count honest', () {
+      final p = StickerPack.fromJson({
+        '_id': 'p1', 'slug': 's', 'title': 'T', 'kind': 'official',
+        'count': 2,
+      });
+      final loaded = p.withStickers([
+        for (final id in ['a', 'b'])
+          PackSticker.fromJson({
+            '_id': id, 'storageId': id, 'url': 'u$id', 'format': 'lottie',
+          }, personal: false),
+      ]);
+      expect(loaded.count, 2);
+      expect(loaded.stickers.length, 2);
+    });
+
+    test('the old packs shape still parses as loaded', () {
+      final p = StickerPack.fromJson({
+        '_id': 'p', 'slug': 's', 'title': 'T', 'kind': 'personal',
+        'stickers': [],
+      });
+      expect(p.stickersLoaded, isTrue);
+      expect(p.personal, isTrue);
     });
   });
 }

@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backend Handbook</title>
+<style>
+:root {
+  --bg: #fbfaf8; --panel: #ffffff; --ink: #1b1d22; --muted: #5f6470; --line: #e4e2dc;
+  --accent: #2f6fde; --ok: #1f8a4c; --warn: #b26b00; --bad: #c2362f; --chip: #f0eee9;
+  --code: #f3f1ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111317; --panel: #181b21; --ink: #e8e9ec; --muted: #9aa0ab; --line: #2a2e37;
+    --accent: #6c9cff; --ok: #4cc283; --warn: #f0a63a; --bad: #ff6b62; --chip: #222631;
+    --code: #1f232b;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111317; --panel: #181b21; --ink: #e8e9ec; --muted: #9aa0ab; --line: #2a2e37;
+  --accent: #6c9cff; --ok: #4cc283; --warn: #f0a63a; --bad: #ff6b62; --chip: #222631;
+  --code: #1f232b;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 32px 16px 96px; }
+header h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -0.4px; }
+header p { color: var(--muted); margin: 0; }
+nav.toc { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 18px; margin: 24px 0 8px; }
+nav.toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 28px; }
+nav.toc li { margin: 2px 0; break-inside: avoid; }
+@media (max-width: 640px) { nav.toc ol { columns: 1; } }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h2 { font-size: 22px; margin: 44px 0 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+h3 { font-size: 17px; margin: 26px 0 8px; }
+p, li { max-width: 78ch; }
+code { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code);
+  padding: 1px 5px; border-radius: 5px; }
+pre { background: var(--code); padding: 12px 14px; border-radius: 10px; overflow-x: auto;
+  font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+pre code { background: none; padding: 0; }
+.tbl { overflow-x: auto; margin: 10px 0 16px; border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; background: var(--panel); }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 12.5px; text-transform: uppercase; letter-spacing: .3px; }
+tr:last-child td { border-bottom: none; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 16px 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.card .k { color: var(--muted); font-size: 12.5px; }
+.card .v { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.card .s { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.callout { border-left: 4px solid var(--accent); background: var(--panel); border-radius: 8px;
+  padding: 12px 16px; margin: 14px 0; }
+.callout.warn { border-color: var(--warn); }
+.callout.bad { border-color: var(--bad); }
+.callout.ok { border-color: var(--ok); }
+.tag { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 99px;
+  background: var(--chip); color: var(--muted); margin-right: 4px; white-space: nowrap; }
+.tag.v { color: var(--ok); } .tag.i { color: var(--warn); } .tag.b { color: var(--bad); }
+.tag.s { color: var(--accent); } .tag.ok { color: var(--ok); }
+.rule { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 8px 0; }
+.rule b { display: block; }
+.rule .why { color: var(--muted); font-size: 13.5px; }
+details { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 10px 0; }
+details > summary { cursor: pointer; font-weight: 600; }
+details[open] > summary { margin-bottom: 8px; }
+.item { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin: 12px 0; }
+.item h4 { margin: 0 0 6px; font-size: 15.5px; }
+.item .meta { margin-bottom: 6px; }
+.item dl { display: grid; grid-template-columns: 110px 1fr; gap: 4px 12px; margin: 6px 0 0; font-size: 14px; }
+.item dt { color: var(--muted); }
+.item dd { margin: 0; }
+@media (max-width: 560px) { .item dl { grid-template-columns: 1fr; } .item dt { margin-top: 6px; } }
+.muted { color: var(--muted); }
+footer { margin-top: 56px; color: var(--muted); font-size: 13px; }
+.theme { float: right; font-size: 12.5px; color: var(--muted); cursor: pointer; border: 1px solid var(--line);
+  border-radius: 99px; padding: 3px 10px; background: var(--panel); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="theme" id="themeBtn">Theme</span>
+  <h1>MonkeyHub backend handbook</h1>
+  <p>Architecture, rules, budgets and the improvement plan for the self-hosted Convex backend. Read the rules and budgets before any backend change; check a design against them before building it.</p>
+  <p class="muted" style="margin-top:6px">Written 2026-11-06 from: live production logs (VPS), a read-only health check of the box, live storage headers, and three code audits, with every load-bearing claim re-checked by hand. Builds on <code>docs/data-integrity-and-scale-plan-2026-10-22.md</code> and <code>docs/data-integrity-handoff.md</code> rather than repeating them.</p>
+  <p class="muted"><span class="tag v">verified</span> checked in code or production &nbsp; <span class="tag i">estimate</span> inferred or projected &nbsp; <span class="tag b">breaking</span> needs an app change &nbsp; <span class="tag s">server-only</span> no app change</p>
+</header>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#box">The box, measured</a></li>
+    <li><a href="#load">Where the load goes today</a></li>
+    <li><a href="#arch">Architecture map</a></li>
+    <li><a href="#rules">Rules (the checklist)</a></li>
+    <li><a href="#budgets">Budgets</a></li>
+    <li><a href="#plan">Improvement plan</a></li>
+    <li><a href="#impact">Expected impact</a></li>
+    <li><a href="#measure">How to measure</a></li>
+    <li><a href="#rejected">Designs rejected</a></li>
+    <li><a href="#decisions">Decisions for you</a></li>
+  </ol>
+</nav>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="box">1. The box, measured</h2>
+
+<div class="cards">
+  <div class="card"><div class="k">CPU</div><div class="v">2 cores</div><div class="s">Ampere A1, not 4: half the free allowance</div></div>
+  <div class="card"><div class="k">RAM</div><div class="v">12 GB</div><div class="s">no swap; ~8.7 GB page cache</div></div>
+  <div class="card"><div class="k">Data volume</div><div class="v">1.7 GB</div><div class="s">database and stored files together</div></div>
+  <div class="card"><div class="k">Disk</div><div class="v">45 GB</div><div class="s">22% used</div></div>
+</div>
+
+<ul>
+  <li><span class="tag v">verified</span> Host <code>129.151.223.191</code> (key in <code>deploy.sh</code>). Containers: <code>monkeyhub-convex-backend</code> (~1.9 GB RSS, <b>no CPU or memory limit</b>), its dashboard, a second app's Convex (<code>beanwise</code>, small) and three Cloudflare tunnels.</li>
+  <li><span class="tag v">verified</span> Idle load 0.2 to 0.6, CPU 100% idle at the moment of the check. There is a lot of headroom today; the point of this document is to keep it as users grow.</li>
+  <li><span class="tag v">verified</span> The home-server standby is unreachable over Tailscale and runs older functions (it missed the 2026-10-23 and 2026-11-06 deploys).</li>
+  <li><span class="tag v">verified</span> Stored files are served as <code>Cache-Control: private, max-age=2592000</code>. Phones cache them for 30 days, but Cloudflare does not (<code>cf-cache-status: DYNAMIC</code>), so every new device or reinstall pulls every file through the tunnel from the box. Images average <b>326 KB</b> (sample of the newest 400 files: 430 MB), the largest file is 25 MB, and there are no thumbnails.</li>
+</ul>
+
+<div class="callout warn"><b>Budget against 2 cores and a shared box.</b> Memory notes said 4 cores / 24 GB; that is the whole free allowance, not this machine. Every per-user number below should be read as "how many of these fit in 2 cores".</div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="load">2. Where the load goes today</h2>
+
+<p>Production log history, 2026-11-06 22:43 to 22:51 (7.7 minutes; the self-hosted server keeps only a short buffer), with a handful of testers active. <span class="tag v">verified</span></p>
+
+<div class="cards">
+  <div class="card"><div class="k">Executions</div><div class="v">1,108</div><div class="s">in 7.7 min</div></div>
+  <div class="card"><div class="k">Documents read</div><div class="v">24,938</div><div class="s">9.5 MB</div></div>
+  <div class="card"><div class="k">Documents written</div><div class="v">215</div><div class="s">360 KB; reads outnumber writes 116 to 1</div></div>
+  <div class="card"><div class="k">Query + mutation time</div><div class="v">~95 s</div><div class="s">~20% of one core, ~10% of the box</div></div>
+</div>
+
+<div class="tbl"><table>
+<tr><th>Function</th><th>Kind</th><th class="n">Runs</th><th class="n">Docs / run</th><th class="n">ms / run</th><th class="n">Total time</th><th>Why it runs</th></tr>
+<tr><td><code>rooms:listUserRooms</code></td><td>subscription</td><td class="n">118</td><td class="n">60</td><td class="n">203</td><td class="n">24.0 s</td><td>Every message in any of the user's rooms, plus their own read and delivery writes</td></tr>
+<tr><td><code>typing:getTypingForUser</code></td><td>subscription</td><td class="n">128</td><td class="n">36</td><td class="n">100</td><td class="n">12.8 s</td><td>Any typing in any room, plus every own membership write</td></tr>
+<tr><td><code>rooms:getMembers</code></td><td>subscription</td><td class="n">67</td><td class="n">25</td><td class="n">150</td><td class="n">10.0 s</td><td>Any member's receipt write; reads every member's <code>users</code> row</td></tr>
+<tr><td><code>messages:getReadState</code></td><td>subscription</td><td class="n">56</td><td class="n">23</td><td class="n">139</td><td class="n">7.8 s</td><td>Any member's receipt write</td></tr>
+<tr><td><code>messages:list</code></td><td>subscription</td><td class="n">25</td><td class="n">28</td><td class="n">218</td><td class="n">5.4 s</td><td>New or changed messages (inherent)</td></tr>
+<tr><td><code>matches:listForRoom</code></td><td>subscription</td><td class="n">28</td><td class="n">18</td><td class="n">181</td><td class="n">5.1 s</td><td>Open room with games</td></tr>
+<tr><td><code>push:_loadAlertTargets</code></td><td>query (from action)</td><td class="n">33</td><td class="n">85</td><td class="n">128</td><td class="n">4.2 s</td><td>12 for sends, <b>21 for "mark read" dismissals</b></td></tr>
+<tr><td><code>feed:board</code></td><td>subscription</td><td class="n">20</td><td class="n">77</td><td class="n">180</td><td class="n">3.6 s</td><td>Friends' moments, reactions, and their <code>users</code> rows</td></tr>
+<tr><td><code>typing:getTypingUsers</code></td><td>subscription</td><td class="n">59</td><td class="n">25</td><td class="n">40</td><td class="n">2.3 s</td><td>Typing in the open room</td></tr>
+<tr><td><code>messages:markDeliveredByPush</code></td><td>mutation</td><td class="n">22</td><td class="n">3</td><td class="n">100</td><td class="n">2.2 s</td><td><b>5 write conflicts (23%)</b></td></tr>
+<tr><td><code>messages:markRoomRead</code></td><td>mutation</td><td class="n">21</td><td class="n">11</td><td class="n">94</td><td class="n">2.0 s</td><td>Writes ~3.7 docs and <b>~11 KB</b> per call</td></tr>
+</table></div>
+
+<p class="muted">Actions (<code>push:sendAlert</code> 13.1 s, <code>notifications:dismissAndSync</code> 9.7 s, <code>sendMessagePush</code> 7.1 s) are left out of the CPU estimate: their time is mostly waiting on Apple and Google, not computing. They still hold a worker while they wait.</p>
+
+<div class="callout bad"><b>Headline.</b> Five subscriptions (<code>listUserRooms</code>, both typing queries, <code>getMembers</code>, <code>getReadState</code>) are about 60% of query time, and most of their re-runs are caused by our own bookkeeping writes (receipts, delivery, typing), not by anything the user sees change. <span class="tag i">estimate</span> At today's rate, a straight-line projection fills the 2 cores at roughly one hundred simultaneously active users. The plan below aims to cut per-user cost by about an order of magnitude.</div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="arch">3. Architecture map</h2>
+
+<h3>Request path</h3>
+<pre><code>App (Flutter) ──websocket──▶ Cloudflare ──tunnel──▶ Caddy ──▶ Convex (VPS)
+                                                               ├─ SQLite + files (1.7 GB)
+Phone ◀── APNs / FCM / Web Push ◀── push actions ◀─────────────┘
+Home server: warm standby (deploy.sh pushes both when reachable)</code></pre>
+
+<h3>Layers every function goes through</h3>
+<div class="tbl"><table>
+<tr><th>Layer</th><th>Where</th><th>What it guarantees</th></tr>
+<tr><td>Authentication</td><td><code>functions.ts</code></td><td>Every public <code>query</code>/<code>mutation</code>/<code>action</code> resolves the session and <b>overwrites</b> <code>userId</code> (or the named identity arg) with the caller. Unauthenticated entry points are spelled <code>public*</code> and allowlisted by a test.</td></tr>
+<tr><td>Write hooks</td><td><code>dbHooks.ts</code></td><td>Every mutation (public and internal) gets a wrapped <code>ctx.db</code>. Writes to hooked tables update derived rows in the same transaction. Today: <code>messages</code> → <code>roomContentCounts</code>. A test fails if a file imports a mutation builder from <code>_generated/server</code>.</td></tr>
+<tr><td>Reference rules</td><td><code>referenceRules.ts</code></td><td>Every <code>v.id</code> in the schema has a declared rule (cascade, setNull, restrict, history, ephemeral, softRef, file). A test fails on a new reference without one. A weekly integrity scan checks the live data.</td></tr>
+<tr><td>Deletion engine</td><td><code>deletionCore.ts</code>, <code>deletionPlans.ts</code>, <code>deletionSteps/</code></td><td>Account, room and message deletion run in bounded, resumable batches. Never delete a parent with children by hand.</td></tr>
+<tr><td>File references</td><td><code>files.ts</code>, <code>fileRefs</code>, <code>uploads</code></td><td>Each stored file has a ledger row and one ref per holder; release through <code>releaseRowFiles</code>. The reaper is coded but <b>not switched on</b> in production (section 6).</td></tr>
+<tr><td>Sweeps</td><td><code>sweep.ts</code>, <code>retention.ts</code>, <code>crons.ts</code></td><td>Every cleanup takes an index-ranged page and reschedules itself while pages are full (chains capped at 50). Idle cost is one index probe.</td></tr>
+</table></div>
+
+<h3>Side tables that keep hot rows cold</h3>
+<div class="tbl"><table>
+<tr><th>Table</th><th>Holds</th><th>Instead of</th><th>State</th></tr>
+<tr><td><code>presence</code>, <code>presenceBeats</code></td><td>status, last seen, heartbeats</td><td>patching <code>users</code></td><td>Live, but the compat mirror still patches <code>users</code> (section 6, A1)</td></tr>
+<tr><td><code>profiles</code></td><td>name, handle, photo</td><td>copying names into rows</td><td>Live; some readers still read <code>users</code></td></tr>
+<tr><td><code>receiptLogs</code></td><td>per-message read/delivered history</td><td><code>roomMembers.readLog</code>/<code>deliveredLog</code></td><td>Live; old fields still in the schema; whole array rewritten per move</td></tr>
+<tr><td><code>userRoomCounts</code></td><td>rooms per user</td><td>counting memberships</td><td>Live</td></tr>
+<tr><td><code>roomContentCounts</code></td><td>photos, videos, files, voice, links per room</td><td>scanning tabs on open</td><td>Live 2026-11-06, kept by the write hook</td></tr>
+</table></div>
+
+<h3>Hot documents (who writes them, who reads them)</h3>
+<div class="tbl"><table>
+<tr><th>Document</th><th>Written by</th><th>Read by (re-run on every write)</th></tr>
+<tr><td><code>rooms</code></td><td>every send, edit, delete (preview, time)</td><td><code>listUserRooms</code> of every member, <code>getRoom</code>, <code>roomInvitations:listIncoming</code>, delivery receipts</td></tr>
+<tr><td><code>roomMembers</code></td><td>read, delivered, pin, archive, mute, role</td><td><code>listUserRooms</code> (own), <code>getTypingForUser</code> (own), <code>getReadState</code> and <code>getMembers</code> (whole room)</td></tr>
+<tr><td><code>users</code></td><td>profile edits, legacy presence path, presence compat mirror</td><td><code>getMembers</code>, <code>listFriends</code>, <code>getFamilyContext</code>, <code>feed:board</code>, <code>setTyping</code></td></tr>
+<tr><td><code>typingIndicators</code></td><td><code>setTyping</code> (throttled to 4 s), <code>clearTyping</code></td><td>both typing queries; stale rows are read too</td></tr>
+</table></div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="rules">4. Rules (the checklist)</h2>
+<p>Every backend change is checked against these. A design that breaks one needs a written reason in the PR or commit.</p>
+
+<h3>Subscriptions</h3>
+<div class="rule"><b>R1. A subscription must not read a document that is written for bookkeeping.</b><span class="why">Convex re-runs a query when any document or index range it read changes. Receipts, delivery cursors, typing timestamps, rate buckets and engagement rows belong in side tables that only the screens that display them read.</span></div>
+<div class="rule"><b>R2. Never read a whole <code>users</code> row in a subscription.</b><span class="why">Read <code>profiles</code> for name/handle/photo and <code>presence</code> (via <code>presenceApi:forUsers</code>) for status. A <code>users</code> read couples your screen to every profile edit and presence write.</span></div>
+<div class="rule"><b>R3. Scope subscriptions to what is on screen.</b><span class="why">Pass the visible ids (rooms, people) as arguments; cap them (about 100). No session-long "everything about me" queries that re-run for off-screen data.</span></div>
+<div class="rule"><b>R4. Every read in a subscription is index-ranged and bounded.</b><span class="why"><code>.take(n)</code> or a range with both ends. No <code>.collect()</code> on anything that grows with time, friends or members. Expired rows must be outside the range, not filtered after reading.</span></div>
+<div class="rule"><b>R5. A client write must not re-run the writer's own subscriptions unless the screen changes.</b><span class="why">The delivery report currently re-runs the chat list that triggered it. Check the echo of every write you add.</span></div>
+<div class="rule"><b>R6. Return only what the screen renders.</b><span class="why">Spreading a whole document into a result ships every new field to every subscriber on every re-run.</span></div>
+<div class="rule"><b>R7. The app pauses non-visible subscriptions when backgrounded.</b><span class="why">Typing and the list keep re-running for a hidden app until the OS suspends the socket.</span></div>
+
+<h3>Writes</h3>
+<div class="rule"><b>R8. Keep derived numbers current at write time; never compute them on open.</b><span class="why">Counts, unread, badges: one small row updated in the same transaction (the <code>roomContentCounts</code> pattern). A full scan is allowed only as a one-off backfill.</span></div>
+<div class="rule"><b>R9. Route derived-data upkeep through <code>dbHooks.ts</code></b><span class="why">so no write path can forget it, and add a test that pins the behaviour.</span></div>
+<div class="rule"><b>R10. Never rewrite a growing array.</b><span class="why">Patch rewrites the whole document. Arrays inside hot documents stay small (about 20 entries) or move to rows.</span></div>
+<div class="rule"><b>R11. Shared documents are not touched by per-recipient work.</b><span class="why">A mutation that runs once per recipient or per device must not read or write the room document (that is what makes <code>markDeliveredByPush</code> conflict).</span></div>
+<div class="rule"><b>R12. No per-message scheduled jobs, no new crons for work an event can do.</b><span class="why">Range jobs and self-rescheduling sweeps only; idle cost is one index probe.</span></div>
+<div class="rule"><b>R13. Every new index is justified by a read path.</b><span class="why">Each index is a write on every insert and every patch that touches its fields. <code>messages</code> already has 14.</span></div>
+
+<h3>Data lifecycle</h3>
+<div class="rule"><b>R14. Every table has a growth story.</b><span class="why">Either bounded by its parent (cascade), or swept by retention, or explicitly "kept forever" with a reason. New tables need a reference rule (enforced by test) and a retention line in this doc.</span></div>
+<div class="rule"><b>R15. Files are released through refs, never deleted by hand.</b></div>
+<div class="rule"><b>R16. Whole-history work is batched.</b><span class="why">Anything that walks a user's or room's history goes through the deletion engine or a sweep, not one transaction.</span></div>
+
+<h3>Process</h3>
+<div class="rule"><b>R17. Every design comes with a cost table:</b><span class="why">reads and writes per action, re-runs it causes per recipient, and the idle cost, before vs after. Use section 5's budgets as the bar.</span></div>
+<div class="rule"><b>R18. Measure after deploy</b><span class="why">with the log script in section 8, and compare with the before numbers.</span></div>
+<div class="rule"><b>R19. Breaking changes are fine while testers-only, but every cutover has a minimum version and a removal step.</b><span class="why">After store launch, compatibility is mandatory.</span></div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="budgets">5. Budgets</h2>
+<p>Targets for new and changed code. "N" is room members, "R" the user's rooms. Today's numbers are from section 2; targets are what the plan reaches.</p>
+
+<div class="tbl"><table>
+<tr><th>Action</th><th>Today</th><th>Budget</th></tr>
+<tr><td>Open the app (all standing subscriptions, first run)</td><td>~8 subscriptions, chat list ~60 docs</td><td>≤ 3 docs per visible room, ≤ 150 docs total</td></tr>
+<tr><td>Chat list re-runs per incoming message, per recipient</td><td>2 to 3 (room patch, own delivery, own read)</td><td><b>1</b></td></tr>
+<tr><td>Send a text message</td><td>~14 reads, ~4.3 writes</td><td>≤ 12 reads, ≤ 4 writes, + 1 small write per member only if it replaces a scan</td></tr>
+<tr><td>Push fan-out, per recipient</td><td>~85 docs</td><td>≤ 15 docs</td></tr>
+<tr><td>Mark a room read</td><td>11 reads, 3.7 writes, 11 KB, plus a full push-target load</td><td>≤ 6 reads, ≤ 2 writes, ≤ 1 KB, no push work for a single device</td></tr>
+<tr><td>Delivery receipt (device-confirmed)</td><td>~4 reads, 2 writes, 23% conflicts</td><td>≤ 2 reads, ≤ 1 small write, 0 conflicts, per device</td></tr>
+<tr><td>Typing</td><td>~36 docs per run, re-runs on unrelated writes</td><td>≤ 3 docs per visible room, re-runs only on typing in visible rooms</td></tr>
+<tr><td>Open room info</td><td>1 read (counts, since 2026-11-06)</td><td>1 read</td></tr>
+<tr><td>Cron idle cost</td><td>1 probe per job</td><td>1 probe per job; nothing that grows with table size</td></tr>
+<tr><td>Document size, hot docs</td><td>receipt logs up to ~6 KB each</td><td>≤ 2 KB for anything patched more than once a minute</td></tr>
+<tr><td>Image bytes for a list row avatar</td><td>~326 KB full image</td><td>≤ 20 KB thumbnail</td></tr>
+</table></div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="plan">6. Improvement plan</h2>
+<p>Ordered by load saved per unit of effort. Each phase ships on its own; backend first, app second. Evidence is <code>file:line</code> in <code>backend/convex</code> unless noted.</p>
+
+<h3>Phase A: switches and settings (minutes, no code)</h3>
+
+<div class="item">
+<h4>A1. Turn off the presence compat mirror</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag s">server-only</span></div>
+<dl>
+<dt>Now</dt><dd><code>PRESENCE_COMPAT_MIRROR</code> is unset in production, so the mirror is on (<code>presenceCore.ts:41</code>). Every status change, and every 5 minutes while online, it patches <code>users.status</code>/<code>lastSeen</code>, which re-runs every friend's <code>listFriends</code>, guardians' <code>getFamilyContext</code>, <code>getMembers</code> and <code>feed:board</code>.</dd>
+<dt>Change</dt><dd><code>npx convex env set PRESENCE_COMPAT_MIRROR off</code>. The minimum supported app is 1.3.137, which reads presence through <code>presenceApi</code>. Only the stale home server still needs the old path, and it is unreachable anyway.</dd>
+<dt>Saves</dt><dd>The largest remaining cross-user invalidation source. <span class="tag i">estimate</span> friend-list and family re-runs drop ~70%.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>A2. Finish the file-reaper rollout</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag s">server-only</span></div>
+<dl>
+<dt>Now</dt><dd><code>FILE_REFS_REAP</code> and <code>FILE_REFS_ENFORCE</code> are unset. The Phase 3 runbook's step 7 was due 2026-10-24, so orphaned files have not been deleted since and disk only grows.</dd>
+<dt>Change</dt><dd>Follow the runbook in the plan's Phase 3 status: re-run the zero-ref report, then set <code>FILE_REFS_REAP=1</code>, a week later <code>FILE_REFS_ENFORCE=1</code>.</dd>
+<dt>Saves</dt><dd>Disk and backup size; no CPU change.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>A3. Cloudflare caches stored files, purged the moment one is deleted</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag s">server-only</span><span class="tag ok">decided 2026-11-06</span></div>
+<dl>
+<dt>Now</dt><dd><code>private, max-age=2592000</code> and <code>cf-cache-status: DYNAMIC</code>: every new device downloads every file from the box through the tunnel.</dd>
+<dt>Change</dt><dd>(1) A Cloudflare Cache Rule for <code>termio-api.walhallaa.com/api/storage/*</code>: eligible for cache, edge TTL 30 days, ignoring the origin's <code>private</code>. If Cloudflare won't override <code>private</code> on this plan, a Caddy header rule on the same path sends <code>public, max-age=2592000, immutable</code> instead. Storage ids are unique per upload, so a URL's content never changes. (2) <b>Purge on delete</b>: every path that deletes a stored file (<code>releaseRowFiles</code>, the reaper, account and room deletion through the engine) enqueues the file's URL in a small <code>cdnPurges</code> table. A self-rescheduling action drains it in batches of 30 through Cloudflare's purge-by-URL API. Because it rides the same file-release path, nothing can delete a file without purging it (R9, R15). View-once media keeps its own <code>no-store</code> route and is never cached.</dd>
+<dt>Privacy</dt><dd>A deleted file leaves Cloudflare's edge within seconds of the delete, not at expiry. The purge queue retries until Cloudflare confirms, and the integrity check flags any queue row older than an hour.</dd>
+<dt>Setup (once)</dt><dd>In the Cloudflare dashboard: an API token with only <i>Zone → Cache Purge</i> for the zone, stored as Convex env <code>CF_PURGE_TOKEN</code> with <code>CF_ZONE_ID</code>; then the cache rule. Claude can walk through it, or do it in Chrome, when this is built.</dd>
+<dt>Saves</dt><dd>Most repeat egress and tunnel bandwidth; the box stops serving the same avatar to every device.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>A4. Retire the home server</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag ok">done 2026-11-06</span></div>
+<dl>
+<dt>Decided</dt><dd>Retired as a standby: it had been offline for weeks and missed every deploy since 2026-10-23. <code>deploy.sh</code> now deploys to the VPS only; <code>--homeserver</code> opts back in. This unblocks D1: no server needs the compatibility paths any more.</dd>
+</dl>
+</div>
+
+<h3>Phase B: server-only fixes (days, no app release)</h3>
+
+<div class="item">
+<h4>B1. Stop the dismiss push on every "mark read"</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag s">server-only</span></div>
+<dl>
+<dt>Now</dt><dd><code>markRoomRead</code> always schedules <code>notifications.dismissAndSync</code> (<code>messages.ts:3834</code>), which runs a full <code>_loadAlertTargets</code> (~85 docs) to clear notifications on the reader's other devices. That was 21 of 33 push-target loads and 9.7 s of action time in the window.</dd>
+<dt>Change</dt><dd>Skip when the reader has one live device (the reading device clears locally). Otherwise debounce: one dismiss per user per room per few seconds, keyed by a tiny pending row, and only when that room actually had an undismissed alert.</dd>
+<dt>Saves</dt><dd>~64% of push-target loads; most of a reader's write-side cost.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>B2. Receipt history as tiny rows instead of a rewritten array</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag s">server-only</span><span class="tag ok">decided 2026-11-06</span></div>
+<dl>
+<dt>Now</dt><dd><code>writeReceiptLog</code> rewrites the whole <code>entries</code> array on every cursor move, for both the read and the delivered log (<code>receipts.ts:68</code>, cap 200 at <code>receiptLog.ts:32</code>): ~11 KB written per <code>markRoomRead</code>, the biggest write per call.</dd>
+<dt>Decided</dt><dd>Keep the feature exactly: device-confirmed "delivered", and per-message "delivered at" and "read at" times. They set us apart from competitors.</dd>
+<dt>Change</dt><dd>Each cursor move inserts one small row (<code>roomId, userId, kind, at, clock</code>, ~100 B) into a <code>receiptMoves</code> table, indexed <code>[roomId, userId, kind, at]</code>. The "seen by / delivered at" screen reads the moves around the message's time with a bounded range. Trimming keeps the same 200-move history: past 200 moves for a user in a room, each insert also deletes the oldest one (a point delete, not a rewrite). Backfill the current arrays once, then drop <code>receiptLogs.entries</code>.</dd>
+<dt>Saves</dt><dd>~11 KB → ~0.2 KB written per read, with the same history.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>B3. Typing reads only live rows</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag s">server-only</span></div>
+<dl>
+<dt>Now</dt><dd>Both typing queries <code>.collect()</code> every indicator row in a room, including rows that stopped typing hours ago (<code>clearTyping</code> only zeroes a timestamp). <code>getTypingUsers</code> also runs <code>lensFor</code>, which scans all of the viewer's friendships twice plus guardianships, on every typing change.</dd>
+<dt>Change</dt><dd>Index <code>by_room_updated [roomId, updatedAt]</code> and read <code>.gt("updatedAt", now - TTL)</code>; replace <code>lensFor</code> with <code>canSeeAs</code> point reads for the 1 or 2 typists (the <code>presenceApi.forUsers</code> pattern).</dd>
+<dt>Saves</dt><dd>Typing reads ~36 → ~3 per room, ~25 → ~4 per open room.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>B4. Delivery receipts stop conflicting</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag s">server-only</span></div>
+<dl>
+<dt>Now</dt><dd><code>advanceDelivered</code> reads the room document (<code>messages.ts:3912</code>) only for <code>memberCount</code> and <code>lastMessageTime</code>, but every send patches it, so receipts arriving right after a send conflict (5 of 22). App and notification extension report the same message separately.</dd>
+<dt>Change</dt><dd>Drop the room read (cap with <code>Math.min(upTo, now)</code>, as <code>markRoomRead</code> does; the push signature already proves <code>upTo</code>). Later (B8) batch delivery server-side.</dd>
+<dt>Saves</dt><dd>Conflicts to ~0; retries gone.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>B5. Push targets in ~12 docs instead of ~85</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag s">server-only</span></div>
+<dl>
+<dt>Now</dt><dd>Per recipient, <code>_loadAlertTargets</code> reads all devices and all sessions, and <code>badgeTotalFor</code> reads every membership, every room, unread messages per unread room, and <b>every</b> friendship pointing at the user to count pending requests (<code>badges.ts:107-165</code>).</dd>
+<dt>Change</dt><dd>(1) A per-user <code>userPushState</code> row with live device tokens, rewritten only when devices or sessions change. (2) A per-user <code>badgeState</code> row: unread total and pending-request count kept at write time (R8). (3) Pass membership data from <code>getMemberIds</code> through instead of re-reading.</dd>
+<dt>Saves</dt><dd>50-person group message: ~4,200 → ~600 docs.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>B6. Friends, family and feed stop reading <code>users</code></h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag s">server-only if shapes kept</span></div>
+<dl>
+<dt>Now</dt><dd><code>listFriends</code> reads each friend's full <code>users</code> row and runs <code>lensFor</code>, re-scanning friendships three times (<code>friends.ts:355</code>). <code>getMembers</code> reads every member's <code>users</code> row (<code>rooms.ts:701</code>). <code>feed:board</code> reads each friend's <code>users</code> row (<code>feed.ts:429</code>). <code>getFamilyContext</code> returns children's status from <code>users</code>.</dd>
+<dt>Change</dt><dd>Read <code>profiles</code> (and privacy flags copied there) instead; status comes from <code>presenceApi:forUsers</code>. Compute <code>lensFor</code> once and reuse it.</dd>
+<dt>Saves</dt><dd>These re-run only on real roster or profile changes. Friends ~49 → ~25 docs.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>B7. Small bounded-read fixes</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag s">server-only</span></div>
+<dl>
+<dt>What</dt><dd>
+<code>socialPush</code> <code>.collect()</code>s all friendships and all of the author's moments per fan-out (<code>socialPush.ts:598, 701, 864</code>) → <code>take()</code> bounds.
+<code>matches</code> replays every move to get the board (<code>matches.ts:1189</code>) → store the current position on the match.
+Merge the two send rate buckets into one document (−1 write per send).
+<code>files.repairRefs</code> daily → weekly (its idle cost grows with the table).
+</dd>
+</dl>
+</div>
+
+<h3>Phase C: structural (backend, then one app release)</h3>
+
+<div class="item">
+<h4>C1. Move cursors out of <code>roomMembers</code></h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag b">breaking</span></div>
+<dl>
+<dt>Now</dt><dd><code>roomMembers</code> mixes cold roster data (role, joined, mute) with hot cursors (<code>lastReadAt</code>, <code>lastDeliveredAt</code>, clocks). Every receipt re-runs, for every member, <code>getReadState</code> and <code>getMembers</code> (N rows each), and the owner's <code>listUserRooms</code> and <code>getTypingForUser</code>. The app even documents its own echo: a delivery report re-fires the list that triggered it (<code>lib/data/chat_repository.dart:1432</code>).</dd>
+<dt>Change</dt><dd>A <code>roomCursors</code> table keyed (roomId, userId): read/delivered cursors, clocks, unread count, mention flag. <code>send</code> increments unread for members (the R8 trade: N tiny writes per send, replacing up to 100-message unread scans per room in every list run and push). <code>markRoomRead</code> writes only cursors. <code>listUserRooms</code> reads membership + room + cursor. <code>getReadState</code> reads only cursors. <code>getMembers</code> reads only roster + profiles. Backfill once.</dd>
+<dt>Saves</dt><dd><span class="tag i">estimate</span> Chat list runs ~3 → 1 per incoming message; ~60 → ~30 docs per run; ~200 → ~60 ms. Roster queries stop re-running on receipts entirely. This is the biggest single win.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>C2. Typing subscribed for visible rooms only, and paused in the background</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag b">breaking</span></div>
+<dl>
+<dt>Now</dt><dd>The app subscribes <code>getTypingForUser</code> for every room for the whole session (<code>chat_repository.dart:1331</code>), never pauses it, and overlaps it with the open room's own typing query.</dd>
+<dt>Change</dt><dd>Take <code>roomIds</code> (visible list rows, open room excluded), check access by point reads, and unsubscribe on app pause. Stop calling <code>clearTyping</code>: the indicator already expires, and the client can hide a typist when their message lands.</dd>
+<dt>Saves</dt><dd>Typing runs 128 → ~20 per window; zero while backgrounded.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>C3. Device-confirmed delivery, made cheap</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag ok">decided 2026-11-06</span></div>
+<dl>
+<dt>Decided</dt><dd>"Delivered" stays device-confirmed (the phone really has the message), not "the push service accepted it". That is what makes the tick trustworthy.</dd>
+<dt>Change</dt><dd>Keep one report per device, but make each one cheap: after B4 it reads no shared document and cannot conflict; after C1 it writes only the user's cursor row, re-running nothing but that room's "seen by" screen; the server ignores a report that doesn't move the cursor, so the app and its notification extension reporting the same message cost one write, not two. Optionally the extension skips its report when the app is in the foreground and already reported.</dd>
+<dt>Saves</dt><dd>~4 reads and 2 writes with a 23% retry rate → ~2 reads and at most 1 small write, no retries, per device per message.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>C4. Chat list payload and dedupe</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag b">breaking</span></div>
+<dl>
+<dt>Change</dt><dd>Return only the fields <code>ChatRoom.fromJson</code> reads instead of spreading the room document. Store <code>dmPeerId</code> on DM rooms so the list stops scanning DM members (and stops re-running on the peer's writes). On the client, skip <code>scheduleSaveRooms</code> + <code>notifyListeners</code> when the payload signature didn't change (the pattern <code>roomInvitations</code> already uses). Split archived rooms into their own query.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>C5. Sticker packs load lazily</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag b">breaking</span></div>
+<dl>
+<dt>Now</dt><dd><code>expressions:packs</code> collects every official pack and every sticker, with a URL lookup each: 567 docs in one call, subscribed.</dd>
+<dt>Change</dt><dd><code>packs</code> returns pack metadata; <code>packStickers(packId)</code> loads when a tab opens. Static data, so a plain query (not kept subscribed) is enough.</dd>
+<dt>Saves</dt><dd>~99% of those reads.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>C6. Thumbnails</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag b">breaking</span></div>
+<dl>
+<dt>Change</dt><dd>The app uploads a 256 px avatar and a ~480 px preview next to each original (the box never resizes: no image work on 2 cores). Lists, bubbles and grids load the small one; full size only in the viewer. Pairs with A3.</dd>
+<dt>Saves</dt><dd><span class="tag i">estimate</span> 90%+ of image bytes for lists and grids.</dd>
+</dl>
+</div>
+
+<h3>Phase D: cutover cleanups and hygiene</h3>
+
+<div class="item">
+<h4>D1. Remove the compatibility paths</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag b">breaking for builds below 1.3.137 (already blocked)</span></div>
+<dl>
+<dt>What</dt><dd>The deferred cutovers from the 2026-10-22 plan (Phase 5 W3 to W5, Phase 6 W3 and 6Z, the Phase 2 shims): delete <code>users:heartbeat</code>/<code>users:updateStatus</code> and the app's fallbacks (<code>lib/app.dart:409-442</code>), the <code>users.status</code>/<code>lastSeen</code> fields, <code>users.sweepStalePresence</code>, the presence mirror code, <code>roomMembers.readLog</code>/<code>deliveredLog</code>. Unblocked: the home server is retired (A4) and the minimum app version is 1.3.137.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>D2. Index audit on <code>messages</code></h4>
+<div class="meta"><span class="tag i">estimate</span><span class="tag s">server-only</span></div>
+<dl>
+<dt>What</dt><dd>14 indexes; every message insert writes all of them, including sparse ones (rows with the field unset are indexed too). List every <code>withIndex</code> caller; drop or merge unused ones (candidates: <code>by_poster</code>, <code>by_album</code> vs <code>by_room_album</code>).</dd>
+<dt>Saves</dt><dd>Perhaps 20 to 35% of per-message write I/O.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>D3. Retention for the tables that still grow forever</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag s">server-only</span></div>
+<dl>
+<dt>What</dt><dd><code>callLog</code>, <code>deviceEngagement</code>, <code>mentionInbox</code> have no sweep. Add them to the <code>retention.ts</code> loop (90 days to 1 year). Disk only, no CPU.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>D4. Cron tidy-up</h4>
+<div class="meta"><span class="tag v">verified</span><span class="tag s">server-only</span></div>
+<dl>
+<dt>What</dt><dd>Merge the two presence sweeps (one goes away with D1), merge <code>gcStuckRinging</code>/<code>gcStuckActive</code> and the two terminal-call sweeps, move <code>gcConsumedSignals</code> from 2 to 5 minutes. Small fixed overhead; do last.</dd>
+</dl>
+</div>
+
+<div class="item">
+<h4>D5. Give the container limits</h4>
+<div class="meta"><span class="tag v">verified</span></div>
+<dl>
+<dt>What</dt><dd><code>monkeyhub-convex-backend</code> has no CPU or memory limit and shares the box. A runaway query can starve the tunnels and the other app. Set a memory limit (e.g. 8 GB) and leave CPU unbounded but give the tunnels priority.</dd>
+</dl>
+</div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="impact">7. Expected impact</h2>
+<p><span class="tag i">estimate</span> Projections from the measured window and the code, assuming the same usage. Re-measure after each phase.</p>
+
+<div class="tbl"><table>
+<tr><th>Path</th><th>Today</th><th>After A + B</th><th>After C</th></tr>
+<tr><td>Chat list, query time per window</td><td class="n">24.0 s</td><td class="n">~20 s</td><td class="n">~4 s</td></tr>
+<tr><td>Typing, query time per window</td><td class="n">15.1 s</td><td class="n">~4 s</td><td class="n">~1 s</td></tr>
+<tr><td>Roster queries (members, read state)</td><td class="n">17.8 s</td><td class="n">~12 s</td><td class="n">~3 s</td></tr>
+<tr><td>Push target loads</td><td class="n">33 × 85 docs</td><td class="n">~12 × 12 docs</td><td class="n">same</td></tr>
+<tr><td>Write bytes per "mark read"</td><td class="n">~11 KB</td><td class="n">~1 KB</td><td class="n">&lt; 0.5 KB</td></tr>
+<tr><td>Delivery conflicts</td><td class="n">23%</td><td class="n">~0%</td><td class="n">~0%</td></tr>
+<tr><td>Query + mutation time, whole window</td><td class="n">~95 s</td><td class="n">~60 s</td><td class="n">~20 s</td></tr>
+<tr><td>Simultaneously active users to fill 2 cores</td><td class="n">~100</td><td class="n">~160</td><td class="n">~500+</td></tr>
+</table></div>
+
+<div class="tbl"><table>
+<tr><th>One message, before → after B + C</th><th>Reads</th><th>Writes</th><th>Write bytes</th></tr>
+<tr><td>2-person DM (send, push, device-confirmed delivery, read, dismiss)</td><td>~205 → ~45</td><td>~10 → ~6</td><td>~16 KB → ~2 KB</td></tr>
+<tr><td>50-person group</td><td>~8,900 → ~1,100</td><td>~280 → ~110</td><td>~1 MB → ~60 KB</td></tr>
+</table></div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="measure">8. How to measure</h2>
+
+<h3>Per-function cost from production logs</h3>
+<pre><code># Dump the server's log buffer (the CLI keeps tailing; stop it after a minute).
+cd backend
+npx convex logs --history 100000 --jsonl --success &gt; /tmp/mh-logs.jsonl &amp;
+sleep 60; kill %1
+
+# Aggregate: runs, docs read, docs written, time, conflicts, per function.
+python3 -I - /tmp/mh-logs.jsonl &lt;&lt;'EOF'
+import json, sys, collections
+rows = [json.loads(l) for l in open(sys.argv[1]) if l.startswith('{')]
+rows = [e for e in rows if e.get('kind') == 'Completion']
+agg = collections.defaultdict(lambda: [0, 0, 0, 0.0, 0])
+for e in rows:
+    u = e.get('usageStats') or {}
+    a = agg[e['identifier']]
+    a[0] += 1; a[1] += u.get('databaseReadDocuments', 0)
+    a[2] += u.get('databaseWriteDocuments', 0); a[3] += e.get('executionTime') or 0
+    a[4] += 1 if e.get('occInfo') else 0
+t = sorted(e['timestamp'] for e in rows)
+print(f"{len(rows)} runs over {(t[-1]-t[0])/60:.1f} min")
+for k, a in sorted(agg.items(), key=lambda kv: -kv[1][3])[:20]:
+    print(f"{k:45} runs={a[0]:5} docs/run={a[1]//a[0]:4} writes={a[2]:4} "
+          f"ms/run={a[3]/a[0]*1000:5.0f} occ={a[4]}")
+EOF</code></pre>
+
+<h3>Box health (read-only)</h3>
+<pre><code>ssh -i ~/Documents/BelesMakinem/BelesAmpere.key ubuntu@129.151.223.191 \
+  'nproc; uptime; free -m; df -h /; docker stats --no-stream; docker system df -v | sed -n "/VOLUME NAME/,/^$/p"'</code></pre>
+
+<h3>Storage caching</h3>
+<pre><code>curl -sI https://termio-api.walhallaa.com/api/storage/&lt;id&gt; | grep -iE 'cache-control|cf-cache-status'</code></pre>
+
+<h3>Before any backend PR</h3>
+<ol>
+  <li>Write the cost table (R17): reads, writes, re-runs caused per recipient, idle cost.</li>
+  <li>List the documents each new subscription reads and who writes them (R1, R2).</li>
+  <li><code>cd backend &amp;&amp; npm run typecheck &amp;&amp; npx vitest run</code> (the hook-coverage, reference-rule and session-boundary tests guard R9, R14 and authentication).</li>
+  <li>After deploy, re-run the log script and compare.</li>
+</ol>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="rejected">9. Designs rejected</h2>
+<div class="tbl"><table>
+<tr><th>Option</th><th>Why not</th></tr>
+<tr><td>Bigger box or a second Convex instance</td><td>Doesn't remove the amplification; a 10× re-run problem costs 10× on any hardware. Revisit after Phase C.</td></tr>
+<tr><td>Typing over a separate realtime service (WebSocket relay, Redis)</td><td>A new moving part on a 2-core box. Bounded, visible-rooms-only typing in Convex (B3 + C2) is cheap enough.</td></tr>
+<tr><td>Unread computed on read with a higher cap</td><td>Exactly the scan-on-open pattern R8 forbids. Write-time counters (C1) cost N tiny writes per send, which already happen in spirit (every member's list re-runs on a send).</td></tr>
+<tr><td>Server-side image resizing</td><td>CPU on the scarce resource. The app already decodes images; let it upload the small variant (C6).</td></tr>
+<tr><td>Aggregate "read by k of N" for every room size now</td><td>Only needed for big groups; most rooms are DMs where read state is one row. Keep as an option if group sizes grow: above ~8 members, return the count and load the per-member list only when someone opens "seen by".</td></tr>
+<tr><td>"Delivered" when Apple/Google accept the push</td><td>Cheaper, but the tick would no longer mean the phone has the message. Rejected 2026-11-06: device-confirmed delivery and delivered-at times are a feature that sets us apart.</td></tr>
+<tr><td>Third-party aggregate libraries (convex-helpers triggers)</td><td>A dependency for something <code>dbHooks.ts</code> does in ~120 lines with a coverage test.</td></tr>
+</table></div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="decisions">10. Decisions</h2>
+<h3>Decided 2026-11-06</h3>
+<ol>
+  <li><b>Edge caching (A3):</b> yes, with <b>purge on delete</b>. Privacy comes first: a deleted file must leave Cloudflare's cache within seconds.</li>
+  <li><b>Delivered ticks (C3):</b> stay device-confirmed, not "push accepted".</li>
+  <li><b>Receipt history (B2):</b> keep per-message "delivered at" and "read at" times at the same 200-move depth; only the storage changes (rows, not a rewritten array).</li>
+  <li><b>Home server (A4):</b> retired. <code>deploy.sh</code> is VPS-only by default.</li>
+</ol>
+<h3>Recommended order</h3>
+<ol>
+  <li>Phase A: A1 (mirror off), A2 (file reaper), A3 (cache + purge; needs the Cloudflare token).</li>
+  <li>Phase B: B1 to B4 first (largest server-only wins), then B5 to B7.</li>
+  <li>Phase C: C1 + C2 + C4 together in one app release; C5 and C6 can follow.</li>
+  <li>Phase D once that release is the minimum version.</li>
+</ol>
+
+<footer>
+  Sources: production logs 2026-11-06 22:43 to 22:51 (1,108 executions); <code>ssh</code> health check of the VPS; <code>curl -I</code> on a live storage URL; <code>npx convex env get</code> for <code>PRESENCE_COMPAT_MIRROR</code>, <code>FILE_REFS_REAP</code>, <code>FILE_REFS_ENFORCE</code>; minimum supported version 1.3.137 from <code>releases:latest</code>; code audits of <code>backend/convex</code> and <code>lib/</code> with key claims re-checked by hand. Update this file when a phase ships.
+</footer>
+
+</div>
+<script>
+(function () {
+  var root = document.documentElement, btn = document.getElementById('themeBtn');
+  var order = ['auto', 'light', 'dark'], i = 0;
+  try { var saved = localStorage.getItem('mh-handbook-theme'); if (saved) i = Math.max(0, order.indexOf(saved)); } catch (e) {}
+  function apply() {
+    var t = order[i];
+    if (t === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', t);
+    btn.textContent = 'Theme: ' + t;
+    try { localStorage.setItem('mh-handbook-theme', t); } catch (e) {}
+  }
+  btn.addEventListener('click', function () { i = (i + 1) % order.length; apply(); });
+  apply();
+})();
+</script>
+</body>
+</html>

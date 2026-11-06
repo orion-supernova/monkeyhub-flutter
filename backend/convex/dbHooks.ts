@@ -3,6 +3,14 @@ import {
   mutation as baseMutation,
 } from "./_generated/server";
 import { COUNTED_FIELDS, applyMessageChange } from "./contentCountsCore";
+import {
+  FRIEND_PENDING_FIELDS,
+  INVITE_PENDING_FIELDS,
+  PUSH_DEVICE_FIELDS,
+  PUSH_SESSION_FIELDS,
+  applyPendingChange,
+  refreshPushState,
+} from "./userDerivedCore";
 
 /**
  * Write hooks: derived data kept true by the database layer itself, rather
@@ -25,62 +33,124 @@ import { COUNTED_FIELDS, applyMessageChange } from "./contentCountsCore";
  *    [COUNTED_FIELDS] (reactions, receipts, edits to text without links,
  *    the bulk of message writes) returns before any read. A delete or replace
  *    reads the old row once.
+ *  - `userDevices` and `sessions` → `userPushState` (see `userDerivedCore.ts`).
+ *    Recomputed for the owner when a push-relevant field changes (tokens,
+ *    pushEnabled, locale, revokedAt, deviceId). `lastSeenAt`-style touches skip.
+ *  - `friendships` and `roomInvitations` → `userBadgeCounts`. Moved by exact
+ *    deltas when status/stage/recipient change.
  */
 
-const HOOKED = "messages";
+type Hook = {
+  /** Fields whose change matters; a patch touching none returns before any read. null = every write. */
+  fields: readonly string[] | null;
+  /** Called after the write with the row before (null on insert) and after (null on delete). */
+  apply(db: any, before: any, after: any): Promise<void>;
+};
 
-function touchesCounted(value: Record<string, unknown> | undefined): boolean {
+const HOOKS: Record<string, Hook> = {
+  messages: { fields: COUNTED_FIELDS, apply: applyMessageChange },
+  userDevices: {
+    fields: PUSH_DEVICE_FIELDS,
+    apply: async (db, before, after) => {
+      const ids = new Set([before?.userId, after?.userId]);
+      for (const id of ids) await refreshPushState(db, id);
+    },
+  },
+  sessions: {
+    fields: PUSH_SESSION_FIELDS,
+    apply: async (db, before, after) => {
+      const ids = new Set([before?.userId, after?.userId]);
+      for (const id of ids) await refreshPushState(db, id);
+    },
+  },
+  friendships: {
+    fields: FRIEND_PENDING_FIELDS,
+    apply: (db, before, after) => applyPendingChange(db, "friend", before, after),
+  },
+  roomInvitations: {
+    fields: INVITE_PENDING_FIELDS,
+    apply: (db, before, after) => applyPendingChange(db, "invite", before, after),
+  },
+};
+
+function touches(hook: Hook, value: Record<string, unknown> | undefined): boolean {
   if (!value) return false;
-  for (const k of COUNTED_FIELDS) if (k in value) return true;
+  if (hook.fields === null) return true;
+  for (const k of hook.fields) if (k in value) return true;
+  return false;
+}
+
+/** Whether [value] moves any of [hook]'s fields away from [before]. */
+function changesHookedField(hook: Hook, before: any, value: Record<string, unknown>): boolean {
+  if (hook.fields === null) return true;
+  for (const k of hook.fields) {
+    if (!(k in value)) continue;
+    const a = before[k];
+    const b = value[k];
+    if (a === b) continue;
+    if (a !== null && b !== null && typeof a === "object" && typeof b === "object" &&
+        JSON.stringify(a) === JSON.stringify(b)) continue;
+    return true;
+  }
   return false;
 }
 
 /**
  * The id and table a write was aimed at, from either call shape:
- * `patch(id, value)` or `patch("table", id, value)`.
+ * `patch(id, value)` or `patch("table", id, value)`. `hook` is the table's
+ * hook, when it has one.
  */
-function target(db: any, args: any[]): { id: any; rest: any[]; hooked: boolean } {
+function target(db: any, args: any[]): { id: any; rest: any[]; hook: Hook | undefined } {
   if (typeof args[0] === "string" && args.length >= 2 && typeof args[1] === "string") {
     // The two-string form is ambiguous only in shape: a table name is never an
     // id, and `normalizeId` settles which one this is.
     if (db.normalizeId(args[0], args[1]) !== null) {
-      return { id: args[1], rest: args.slice(2), hooked: args[0] === HOOKED };
+      return { id: args[1], rest: args.slice(2), hook: HOOKS[args[0]] };
     }
   }
   const id = args[0];
-  return { id, rest: args.slice(1), hooked: db.normalizeId(HOOKED, id) !== null };
+  for (const table of Object.keys(HOOKS)) {
+    if (db.normalizeId(table, id) !== null) {
+      return { id, rest: args.slice(1), hook: HOOKS[table] };
+    }
+  }
+  return { id, rest: args.slice(1), hook: undefined };
 }
 
 export function hookDb(db: any): any {
   const overrides: Record<string, any> = {
     async insert(table: string, value: any) {
       const id = await db.insert(table, value);
-      if (table === HOOKED) await applyMessageChange(db, null, value);
+      const hook = HOOKS[table];
+      if (hook) await hook.apply(db, null, value);
       return id;
     },
     async patch(...args: any[]) {
-      const { id, rest, hooked } = target(db, args);
+      const { id, rest, hook } = target(db, args);
       const value = rest[0];
-      if (!hooked || !touchesCounted(value)) return db.patch(...args);
+      if (!hook || !touches(hook, value)) return db.patch(...args);
       const before = await db.get(id);
       await db.patch(...args);
+      // A patch that names a hooked field but leaves its value as it was (a
+      // device re-registering with the same platform) changes nothing derived.
+      if (before && !changesHookedField(hook, before, value)) return;
       // An `undefined` in a patch unsets the field, and reads as unset to
       // `contribution` too, so the merge is exact.
-      await applyMessageChange(db, before, before ? { ...before, ...value } : null);
+      await hook.apply(db, before, before ? { ...before, ...value } : null);
     },
     async replace(...args: any[]) {
-      const { id, rest, hooked } = target(db, args);
-      if (!hooked) return db.replace(...args);
+      const { id, rest, hook } = target(db, args);
+      if (!hook) return db.replace(...args);
       const before = await db.get(id);
       await db.replace(...args);
-      await applyMessageChange(db, before, { ...rest[0], roomId: rest[0]?.roomId ?? before?.roomId });
+      await hook.apply(db, before, { ...rest[0], roomId: rest[0]?.roomId ?? before?.roomId });
     },
     async delete(...args: any[]) {
-      const { id, hooked } = target(db, args);
-      if (!hooked) return db.delete(...args);
+      const { id, hook } = target(db, args);
+      if (!hook) return db.delete(...args);
       const before = await db.get(id);
       await db.delete(...args);
-      if (before) await applyMessageChange(db, before, null);
+      if (before) await hook.apply(db, before, null);
     },
   };
   return new Proxy(db, {

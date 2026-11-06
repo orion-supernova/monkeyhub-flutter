@@ -49,6 +49,12 @@ export const RETENTION = {
   consumedCodeMs: 1 * DAY,
   logRoomMessageMs: 90 * DAY,
   integrityRunMs: 8 * 7 * DAY,
+  /** Call history rows (per user), by `startedAt`. */
+  callLogMs: 365 * DAY,
+  /** Mention-stack rows. A seen mention is deleted by `seen`, so what is left is unread; a year of unread is abandoned. */
+  mentionInboxMs: 365 * DAY,
+  /** Which device a person chats on, by last stamp. */
+  deviceEngagementMs: 90 * DAY,
 } as const;
 
 /**
@@ -529,6 +535,63 @@ export const gcVanishBackstop = internalMutation({
   handler: async (ctx, { chain }) => {
     const full = await sweepOverdueVanish(ctx, Date.now());
     await continueSweep(ctx, internal.retention.gcVanishBackstop, full, chain);
+    return null;
+  },
+});
+
+// ── Call history, mention stack, device engagement ──────────────────────────
+
+/**
+ * Per-user call history older than a year. No files or children: the row is
+ * the whole record. Ranged by `startedAt` (bounded below by gt 0).
+ */
+export const gcCallLog = internalMutation({
+  args: sweepArgs,
+  returns: v.null(),
+  handler: async (ctx, { chain }) => {
+    const cutoff = Date.now() - RETENTION.callLogMs;
+    const rows = await ctx.db
+      .query("callLog")
+      .withIndex("by_started", (q) => q.gt("startedAt", 0).lt("startedAt", cutoff))
+      .take(PAGE);
+    for (const row of rows) await ctx.db.delete(row._id);
+    await continueSweep(ctx, internal.retention.gcCallLog, rows.length === PAGE, chain);
+    return null;
+  },
+});
+
+/**
+ * Mention-stack rows older than a year. There is no read flag: `seen` deletes a
+ * row, so anything still here is unread, and a mention unread for a year is
+ * dead weight. Unread mentions younger than a year are never touched.
+ */
+export const gcMentionInbox = internalMutation({
+  args: sweepArgs,
+  returns: v.null(),
+  handler: async (ctx, { chain }) => {
+    const cutoff = Date.now() - RETENTION.mentionInboxMs;
+    const rows = await ctx.db
+      .query("mentionInbox")
+      .withIndex("by_created", (q) => q.gt("createdAt", 0).lt("createdAt", cutoff))
+      .take(PAGE);
+    for (const row of rows) await ctx.db.delete(row._id);
+    await continueSweep(ctx, internal.retention.gcMentionInbox, rows.length === PAGE, chain);
+    return null;
+  },
+});
+
+/** Engagement stamps nobody refreshed for 90 days (the account went quiet). */
+export const gcDeviceEngagement = internalMutation({
+  args: sweepArgs,
+  returns: v.null(),
+  handler: async (ctx, { chain }) => {
+    const cutoff = Date.now() - RETENTION.deviceEngagementMs;
+    const rows = await ctx.db
+      .query("deviceEngagement")
+      .withIndex("by_at", (q) => q.gt("at", 0).lt("at", cutoff))
+      .take(PAGE);
+    for (const row of rows) await ctx.db.delete(row._id);
+    await continueSweep(ctx, internal.retention.gcDeviceEngagement, rows.length === PAGE, chain);
     return null;
   },
 });

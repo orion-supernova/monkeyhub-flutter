@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -138,6 +139,11 @@ class _StickerPackStoreState extends State<StickerPackStore> {
   void _onQuery(String text) {
     final gen = ++_gen;
     setState(() {});
+    // The search matches packs by the emoji their stickers stand for, so it
+    // needs every pack's stickers: fetched once per session, on first search.
+    if (text.trim().isNotEmpty) {
+      unawaited(ExpressionStore.instance.ensureAllLoaded());
+    }
     final index = _index;
     if (index == null || text.trim().isEmpty) {
       setState(() => _emojiHits = const {});
@@ -188,8 +194,12 @@ class _StickerPackStoreState extends State<StickerPackStore> {
               pack: p,
               installed: store.isInstalled(p.id),
               expanded: _expanded == p.id,
-              onTap: () => setState(
-                  () => _expanded = _expanded == p.id ? null : p.id),
+              onTap: () {
+                setState(() => _expanded = _expanded == p.id ? null : p.id);
+                if (_expanded == p.id) {
+                  unawaited(ExpressionStore.instance.ensureLoaded(p));
+                }
+              },
               onAdd: () async {
                 // Put the search keyboard away first, so the pack it opens
                 // shows at the panel's normal height.
@@ -459,7 +469,9 @@ class _PackRow extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final autoplay = expressionsAutoplay(context);
-    final preview = pack.stickers.take(4).toList();
+    final preview = pack.stickersLoaded
+        ? pack.stickers.take(4).toList()
+        : [?pack.cover];
     final credit = pack.author == null
         ? null
         : l10n.expressionPackCredit(pack.author!, pack.license ?? '');
@@ -487,8 +499,7 @@ class _PackRow extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             [
-                              l10n.expressionPackStickerCount(
-                                  pack.stickers.length),
+                              l10n.expressionPackStickerCount(pack.count),
                               ?credit,
                             ].join(' · '),
                             maxLines: 1,

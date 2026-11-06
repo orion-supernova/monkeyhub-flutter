@@ -229,17 +229,22 @@ describe("delivery claims only what the device has", () => {
     expect(row!.lastDeliveredAt!).toBeLessThan(second);
   });
 
-  test("a report past the newest message is clamped to it", async () => {
+  test("a report past now is clamped to now (the room is not read)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(at("2026-10-07T10:00:00Z"));
     const t = convexTest(schema);
     const { sender, reader, roomId } = await pair(t);
     const sent = await send(t, sender, roomId, "hi");
+    vi.setSystemTime(at("2026-10-07T10:00:05Z"));
     await t.mutation(api.messages.markRoomDelivered, {
       sessionToken: reader.token,
       roomId,
       userId: reader.userId as any,
-      upTo: sent + 60_000,
+      upTo: sent + 600_000,
     } as any);
-    expect((await readerRow(t, roomId, reader.userId))!.lastDeliveredAt).toBe(sent);
+    expect((await readerRow(t, roomId, reader.userId))!.lastDeliveredAt).toBe(
+      at("2026-10-07T10:00:05Z"),
+    );
   });
 });
 
@@ -312,13 +317,12 @@ describe("delivery reported by the push", () => {
     expect(again.status).toBe(204);
     const logs: any[] = await t.run((ctx: any) =>
       ctx.db
-        .query("receiptLogs")
-        .withIndex("by_room_user_kind", (q: any) =>
+        .query("receiptMoves")
+        .withIndex("by_room_user_kind_at", (q: any) =>
           q.eq("roomId", roomId).eq("userId", reader.userId).eq("kind", "delivered"),
         )
         .collect(),
     );
     expect(logs.length).toBe(1);
-    expect(logs[0].entries.length).toBe(1);
   });
 });

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -82,6 +84,12 @@ class _ExpressionSheet extends StatelessWidget {
         listenable: store,
         builder: (context, _) {
           final pack = store.packOf(item.stickerId);
+          // Packs load when opened, so a sticker from one not opened yet
+          // needs a lookup; the store notifies and this rebuilds.
+          final stickerId = item.stickerId;
+          if (pack == null && stickerId != null) {
+            unawaited(store.resolvePackOf(stickerId));
+          }
           final starred = store.isFavorite(item);
           final mine = pack?.personal ?? false;
           return Column(

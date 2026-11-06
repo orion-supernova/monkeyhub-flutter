@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../backend/chat_api.dart';
-import '../backend/convex_client.dart' show Subscription;
+import '../backend/convex_client.dart' show ConvexBackend, Subscription;
 import '../family/family_service.dart';
 import '../models/expression_item.dart';
 import '../models/sticker_pack.dart';
@@ -36,7 +36,88 @@ class ExpressionStore extends ChangeNotifier {
   KlipyClient? get klipy => _klipy;
 
   /// Every pack: the official catalog in its order, plus the viewer's own.
+  /// Official packs arrive as metadata only (`expressions:packList`) and gain
+  /// their stickers when first opened ([ensureLoaded]).
   List<StickerPack> _catalog = const [];
+
+  /// Official packs as listed, and the viewer's own pack (a live subscription,
+  /// it is small). [_catalog] is these two joined.
+  List<StickerPack> _official = const [];
+  StickerPack? _personal;
+
+  /// Stickers fetched this session, by pack id. The art never changes, so a
+  /// pack is read once per session.
+  final Map<String, List<PackSticker>> _loadedStickers = {};
+  final Set<String> _loading = {};
+
+  void _rebuildCatalog() {
+    _catalog = [
+      for (final p in _official)
+        if (_loadedStickers[p.id] case final s?) p.withStickers(s) else p,
+      ?_personal,
+    ];
+  }
+
+  /// Fetches [pack]'s stickers once, when its tab or row is opened. A no-op for
+  /// a pack that is loaded or loading, and for the viewer's own (live already).
+  Future<void> ensureLoaded(StickerPack pack) async {
+    if (pack.personal || pack.stickersLoaded) return;
+    final id = pack.id;
+    if (_loadedStickers.containsKey(id) || !_loading.add(id)) return;
+    final userId = _userId;
+    try {
+      final raw = await ConvexBackend.instance
+          .query('expressions:packStickers', {'packId': id});
+      if (_userId != userId) return;
+      _loadedStickers[id] = [
+        for (final s in (raw as List? ?? const []))
+          PackSticker.fromJson((s as Map).cast<String, dynamic>(),
+              personal: false),
+      ];
+      _rebuildCatalog();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[expressions] packStickers failed: $e');
+    } finally {
+      _loading.remove(id);
+    }
+  }
+
+  /// Loads every official pack's stickers, once per session. Only for the pack
+  /// store's search, which matches packs by the emoji their stickers stand for
+  /// and so needs them all; nothing else pays for the whole catalog.
+  Future<void> ensureAllLoaded() async {
+    await Future.wait([
+      for (final p in _official)
+        if (!p.stickersLoaded) ensureLoaded(p),
+    ]);
+  }
+
+  /// Sticker id → pack id, from [resolvePackOf]. Session cache.
+  final Map<String, String?> _packIdBySticker = {};
+
+  /// Finds the pack of [stickerId] on the server (one point read) and loads
+  /// that pack, so [packOf] answers for a sticker from a pack not opened yet.
+  /// Deduped per sticker; a pack that isn't visible to the viewer stays null.
+  Future<void> resolvePackOf(String stickerId) async {
+    if (_packIdBySticker.containsKey(stickerId)) return;
+    _packIdBySticker[stickerId] = null;
+    final userId = _userId;
+    try {
+      final packId = await ConvexBackend.instance
+          .query('expressions:packIdOfSticker', {'stickerId': stickerId});
+      if (_userId != userId || packId is! String) return;
+      _packIdBySticker[stickerId] = packId;
+      for (final p in _official) {
+        if (p.id == packId) {
+          await ensureLoaded(p);
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('[expressions] packIdOfSticker failed: $e');
+    }
+  }
 
   /// The official packs the viewer has added, in their order. Null until the
   /// state subscription answers — the strip waits for it rather than flashing
@@ -151,12 +232,22 @@ class ExpressionStore extends ChangeNotifier {
     _userId = userId;
 
     try {
-      _packsSub = await api.subscribeStickerPacks(onPacks: (packs) {
-        if (_userId != userId) return;
-        _catalog = packs;
-        _catalogLoaded = true;
-        notifyListeners();
-      });
+      // Pack metadata is static: one query a session, not a subscription.
+      unawaited(_loadPackList(userId));
+      // The viewer's own pack stays live (a sticker made on another device).
+      _packsSub = await ConvexBackend.instance.subscribe(
+        'expressions:personalPack',
+        const {},
+        onData: (raw) {
+          if (_userId != userId) return;
+          _personal = raw == null
+              ? null
+              : StickerPack.fromJson((raw as Map).cast<String, dynamic>());
+          _rebuildCatalog();
+          notifyListeners();
+        },
+        onError: (e) => debugPrint('[expressions] personal pack: $e'),
+      );
       _stateSub = await api.subscribeExpressionState(onState: (r, f, ids) {
         if (_userId != userId) return;
         _recents = r;
@@ -169,6 +260,22 @@ class ExpressionStore extends ChangeNotifier {
       debugPrint('[expressions] subscribe failed: $e');
     }
     unawaited(_loadConfig(api, userId));
+  }
+
+  Future<void> _loadPackList(String userId) async {
+    try {
+      final raw = await ConvexBackend.instance.query('expressions:packList', {});
+      if (_userId != userId) return;
+      _official = [
+        for (final p in (raw as List? ?? const []))
+          StickerPack.fromJson((p as Map).cast<String, dynamic>()),
+      ];
+      _catalogLoaded = true;
+      _rebuildCatalog();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[expressions] packList failed: $e');
+    }
   }
 
   Future<void> _loadConfig(ChatApi api, String userId) async {
@@ -203,6 +310,10 @@ class ExpressionStore extends ChangeNotifier {
     _klipy?.close();
     _klipy = null;
     _catalog = const [];
+    _official = const [];
+    _personal = null;
+    _loadedStickers.clear();
+    _loading.clear();
     _installedIds = null;
     _recents = const [];
     _favorites = const [];
@@ -266,6 +377,11 @@ class ExpressionStore extends ChangeNotifier {
   List<PackSticker> stickersFor(String emoji) {
     final want = _bare(emoji);
     if (want.isEmpty) return const [];
+    // Packs are fetched when opened; suggestions need the strip's packs, so
+    // start loading any that are not in yet (they show on the next call).
+    for (final p in packs) {
+      if (!p.stickersLoaded) unawaited(ensureLoaded(p));
+    }
     return [
       for (final p in packs)
         if (!p.personal || canUseOutsideMedia)

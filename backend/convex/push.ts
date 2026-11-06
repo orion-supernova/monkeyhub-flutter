@@ -11,8 +11,9 @@ import {
 import { badgeTotalFor } from "./badges";
 import { mayReachDevices } from "./deployment";
 import { liveSessionDeviceIds } from "./sessionCore";
+import { buildPushDevices } from "./userDerivedCore";
 import { resolveMute } from "./mute";
-import { receiptFields } from "./receiptToken";
+import { DELIVERY_MEMBER_LIMIT, receiptFields } from "./receiptToken";
 import { engagedDeviceId } from "./engagement";
 import { SERVER_BURST_PLATFORMS } from "./alertBurst";
 
@@ -390,6 +391,43 @@ type AlertTarget = {
 };
 
 /**
+ * The devices a push may reach for [userId]: pushEnabled, holding a credential,
+ * and with a live session on that handset (see [liveSessionDeviceIds] for why a
+ * `userDevices` row alone is no evidence of a signed-in account).
+ *
+ * One read of the derived `userPushState` row, kept current by the
+ * `userDevices`/`sessions` write hooks. A user with no row yet gets the full
+ * computation (all devices + all sessions) until the backfill reaches them.
+ */
+async function alertDevicesFor(ctx: any, userId: Id<"users">): Promise<AlertDevice[]> {
+  const row = await ctx.db
+    .query("userPushState")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .first();
+  if (row) {
+    // Belt and braces on the one field where stale means a privacy failure: a
+    // signed-out phone must never get a banner, even if some write reached
+    // `sessions` without passing the hook (a dashboard edit, an import). The
+    // live-sessions index range is the handful of signed-in devices, not the
+    // user's whole session history.
+    const live = await ctx.db
+      .query("sessions")
+      .withIndex("by_user_live_seen", (q: any) =>
+        q.eq("userId", userId).eq("revokedAt", undefined),
+      )
+      .take(50);
+    const liveIds = new Set<string>(live.map((s: any) => s.deviceId));
+    return (row.devices as AlertDevice[]).filter((d) => liveIds.has(d.deviceId));
+  }
+  const rows = await ctx.db
+    .query("userDevices")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .collect();
+  const live = await liveSessionDeviceIds(ctx, userId);
+  return buildPushDevices(rows, live) as AlertDevice[];
+}
+
+/**
  * Everything the fan-out needs for one batch of recipients, in one query:
  * their push-capable devices, their absolute badge total, and — when the push
  * belongs to a room — their read cursor.
@@ -424,42 +462,7 @@ export const _loadAlertTargets = internalQuery({
       ? (await ctx.db.get(roomId))?.type === "secret"
       : false;
     for (const userId of userIds) {
-      const rows = await ctx.db
-        .query("userDevices")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .collect();
-      // One read for the whole account, reused by every row below.
-      const live = await liveSessionDeviceIds(ctx, userId);
-      const devices: AlertDevice[] = [];
-      for (const r of rows) {
-        // undefined means enabled — every row predating the field.
-        if (r.pushEnabled === false) continue;
-        // Signed out on this handset. A `userDevices` row outlives the session
-        // whenever the client could not delete it, and a banner for an account
-        // the phone can no longer open is exactly what that leaves behind —
-        // reported by a user sitting on the login screen, locked out, still
-        // being notified. See [liveSessionDeviceIds].
-        if (!live.has(r.deviceId)) continue;
-        const web =
-          r.webEndpoint && r.webP256dh && r.webAuth
-            ? {
-                endpoint: r.webEndpoint,
-                p256dh: r.webP256dh,
-                auth: r.webAuth,
-              }
-            : undefined;
-        if (!r.apnsToken && !r.fcmToken && !web) continue;
-        devices.push({
-          deviceRowId: r._id,
-          deviceId: r.deviceId,
-          platform: r.platform,
-          apnsToken: r.apnsToken,
-          apnsEnv: r.apnsEnv,
-          fcmToken: r.fcmToken,
-          web,
-          locale: r.locale,
-        });
-      }
+      const devices = await alertDevicesFor(ctx, userId);
       const { total } = await badgeTotalFor(ctx, userId);
       let lastReadAt = 0;
       let mutesNotifications = false;
@@ -589,7 +592,16 @@ export const sendAlert = internalAction({
         // The delivery proof this recipient's phone posts back on arrival —
         // the second tick without the app having to be opened. Per recipient
         // because it is signed over who they are. See receiptToken.ts.
-        if (a.kind === "message" && a.roomId && spec.data.createdAt) {
+        // Not in rooms past DELIVERY_MEMBER_LIMIT (recipients are everyone but
+        // the sender): the extension would otherwise report delivery where the
+        // app deliberately doesn't, and `advanceDelivered` no longer reads the
+        // room to refuse it.
+        if (
+          a.kind === "message" &&
+          a.roomId &&
+          spec.data.createdAt &&
+          a.userIds.length < DELIVERY_MEMBER_LIMIT
+        ) {
           const proof = await receiptFields(
             a.roomId.toString(),
             t.userId.toString(),

@@ -571,3 +571,74 @@ describe("official packs", () => {
     expect(after[0].author).toBe("A");
   });
 });
+
+describe("packList / packStickers / personalPack (C5)", () => {
+  test("packList is metadata only: count and cover, no stickers; derives when summary is unset", async () => {
+    const { t, me } = await setup();
+    const { packId } = await officialSticker(t); // no stickerCount set
+    const list = await t.query(api.expressions.packList, {
+      sessionToken: me.token,
+    } as any);
+    expect(list).toHaveLength(1);
+    expect(list[0]).toMatchObject({ _id: packId, count: 1, coverFormat: "lottie" });
+    expect(list[0].coverUrl).toBeTruthy();
+    expect((list[0] as any).stickers).toBeUndefined();
+  });
+
+  test("packList reads the stored summary and hides empty packs", async () => {
+    const { t, me } = await setup();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("stickerPacks", {
+        slug: "empty", title: "Empty", kind: "official", order: 1,
+        createdAt: Date.now(), stickerCount: 0,
+      });
+    });
+    const list = await t.query(api.expressions.packList, {
+      sessionToken: me.token,
+    } as any);
+    expect(list).toHaveLength(0);
+  });
+
+  test("packStickers returns an official pack, is bounded, hides others' personal packs", async () => {
+    const { t, me } = await setup();
+    const { packId } = await officialSticker(t);
+    const rows = await t.query(api.expressions.packStickers, {
+      sessionToken: me.token, packId,
+    } as any);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].url).toBeTruthy();
+
+    // Bound: 320 stickers in one pack come back as at most 300.
+    const bigId = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("stickerPacks", {
+        slug: "big", title: "Big", kind: "official", order: 2, createdAt: Date.now(),
+      });
+      const storageId = await ctx.storage.store(new Blob(["{}"]));
+      for (let i = 0; i < 320; i++) {
+        await ctx.db.insert("stickers", {
+          packId: id, storageId, format: "lottie", emoji: "x",
+          width: 1, height: 1, order: i, createdAt: Date.now(),
+        });
+      }
+      return id;
+    });
+    const big = await t.query(api.expressions.packStickers, {
+      sessionToken: me.token, packId: bigId,
+    } as any);
+    expect(big.length).toBe(300);
+
+    // Someone else's personal pack is not readable.
+    const other = await signUp(t, "other");
+    const mine = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("stickerPacks", {
+        slug: "personal:x", title: "Mine", kind: "personal",
+        ownerId: other.userId as any, order: 0, createdAt: Date.now(),
+      });
+      return id;
+    });
+    const hidden = await t.query(api.expressions.packStickers, {
+      sessionToken: me.token, packId: mine,
+    } as any);
+    expect(hidden).toEqual([]);
+  });
+});

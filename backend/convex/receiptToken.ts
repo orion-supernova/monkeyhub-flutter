@@ -70,6 +70,15 @@ function fromBase64Url(s: string): Uint8Array<ArrayBuffer> | null {
  * deployment serves them at the root of its `.convex.site` twin instead.
  * `RECEIPT_URL` overrides both, for a host laid out some third way.
  */
+/**
+ * Rooms with more members than this stay on one tick: no delivery reports from
+ * the app, and no delivery proof in the push for the notification extension to
+ * post back. Shared by `messages.ts` (the report path) and `push.ts` (proof
+ * minting) so the two can't drift; mirrored client-side in
+ * `ChatRepository.kDeliveryMemberLimit`.
+ */
+export const DELIVERY_MEMBER_LIMIT = 50;
+
 export function receiptEndpoint(): string | null {
   const explicit = (process.env.RECEIPT_URL ?? "").trim();
   if (explicit) return explicit;

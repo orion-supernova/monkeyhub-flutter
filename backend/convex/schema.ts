@@ -442,6 +442,48 @@ export default defineSchema({
     tooLarge: v.optional(v.boolean()),
   }).index("by_room", ["roomId"]),
 
+  // Derived, one row per user: exactly what push targeting needs, so
+  // `push._loadAlertTargets` reads one doc instead of every device and every
+  // session. The alertable devices (pushEnabled, a credential, AND a live
+  // session on that handset), kept current by the `userDevices` and `sessions`
+  // write hooks in `dbHooks.ts`. A MISSING row means "not computed yet": readers
+  // fall back to the old computation. See `userDerivedCore.ts`.
+  userPushState: defineTable({
+    userId: v.id("users"),
+    devices: v.array(
+      v.object({
+        // A `userDevices` id, kept as a string so this derived copy is not a
+        // reference the deletion rules must chase.
+        deviceRowId: v.string(),
+        deviceId: v.string(),
+        platform: v.string(),
+        apnsToken: v.optional(v.string()),
+        apnsEnv: v.optional(
+          v.union(v.literal("sandbox"), v.literal("production")),
+        ),
+        fcmToken: v.optional(v.string()),
+        web: v.optional(
+          v.object({
+            endpoint: v.string(),
+            p256dh: v.string(),
+            auth: v.string(),
+          }),
+        ),
+        locale: v.optional(v.string()),
+      }),
+    ),
+  }).index("by_user", ["userId"]),
+
+  // Derived, one row per user: pending requests and invitations addressed to
+  // them that have been released to them (the badge's non-message part). Kept
+  // current by the `friendships` and `roomInvitations` write hooks. A MISSING
+  // row means "not computed yet": `badges.badgeTotalFor` falls back to scanning.
+  userBadgeCounts: defineTable({
+    userId: v.id("users"),
+    requests: v.number(),
+    invites: v.number(),
+  }).index("by_user", ["userId"]),
+
   roomMembers: defineTable({
     roomId: v.id("rooms"),
     userId: v.id("users"),
@@ -594,6 +636,51 @@ export default defineSchema({
   })
     .index("by_room_user_kind", ["roomId", "userId", "kind"])
     .index("by_user", ["userId"]),
+
+  // One row per receipt cursor move (replaces rewriting `receiptLogs.entries`,
+  // ~4 KB per move, with a ~100 B insert). `at` is the cursor position the move
+  // reached (a message `createdAt`; indexed, so "first move that covered this
+  // message" is one range read), `clock` the wall-clock time of the move (0 =
+  // unknown stretch), `seq` a per-(room,user,kind) counter that lets the writer
+  // trim to the newest 200 moves without counting. See receipts.ts.
+  receiptMoves: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    kind: v.union(v.literal("read"), v.literal("delivered")),
+    at: v.number(),
+    clock: v.number(),
+    seq: v.number(),
+  })
+    .index("by_room_user_kind_at", ["roomId", "userId", "kind", "at"])
+    .index("by_user", ["userId"]),
+
+  // Named one-off migrations that have finished (`receipts:backfillMoves`).
+  migrationMarkers: defineTable({
+    name: v.string(),
+    doneAt: v.number(),
+  }).index("by_name", ["name"]),
+
+  // Debounce for the "you read this room" dismissal push to the reader's other
+  // devices. At most one live row per (room, user) while reads keep coming. See
+  // readDismiss.ts.
+  dismissPending: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    until: v.number(),
+    trailing: v.boolean(),
+  })
+    .index("by_room_user", ["roomId", "userId"])
+    .index("by_user", ["userId"]),
+
+  // Both send-rate windows (10 s and 1 h) for one user in a single row, so a
+  // send is one write instead of two. See messages.ts `throttleSend`.
+  sendBuckets: defineTable({
+    userId: v.id("users"),
+    shortStart: v.number(),
+    shortCount: v.number(),
+    hourStart: v.number(),
+    hourCount: v.number(),
+  }).index("by_user", ["userId"]),
 
   // ── Group invites ─────────────────────────────────────────────────────────
 
@@ -1497,9 +1584,9 @@ export default defineSchema({
     .index("by_room_user_client", ["roomId", "userId", "clientId"])
     .index("by_replyTo", ["replyToId"])
     .index("by_root_time", ["rootId", "createdAt"])
-    // An album's members, to count them for a reply to the whole album.
-    .index("by_album", ["albumId", "createdAt"])
-    // Album size within one room (the send path's reply-to-album count).
+    // Album size within one room (the send path's reply-to-album count). The
+    // only album index: a global `by_album` had no reader and cost a write on
+    // every message (removed 2026-11-06, handbook D2).
     .index("by_room_album", ["roomId", "albumId"])
     // Account teardown walks every message a user ever sent.
     .index("by_user", ["userId"])
@@ -1758,6 +1845,8 @@ export default defineSchema({
   })
     // The reader's stack for one room, oldest first. Also account teardown.
     .index("by_user_room", ["userId", "roomId", "createdAt"])
+    // Retention sweep (retention.gcMentionInbox).
+    .index("by_created", ["createdAt"])
     // Seen / message teardown / idempotent insert.
     .index("by_message_user", ["messageId", "userId"])
     // Room teardown and leaving a room.
@@ -1804,6 +1893,13 @@ export default defineSchema({
     // Where it sorts in the picker's pack strip.
     order: v.number(),
     createdAt: v.number(),
+    // Official packs: live sticker count and the first live sticker's art,
+    // kept by `insertOfficialSticker`/`retireOfficialStickers` so
+    // `expressions:packList` is one document per pack. Unset on rows seeded
+    // before these existed; packList then derives them (slower, still right).
+    stickerCount: v.optional(v.number()),
+    coverStorageId: v.optional(v.id("_storage")),
+    coverFormat: v.optional(v.string()),
   })
     .index("by_slug", ["slug"])
     .index("by_kind_order", ["kind", "order"])
@@ -2700,7 +2796,9 @@ export default defineSchema({
     // Account teardown clears every room this user was typing in.
     .index("by_user", ["userId"])
     // Retention sweep (retention.ts): rows idle for a day.
-    .index("by_updated", ["updatedAt"]),
+    .index("by_updated", ["updatedAt"])
+    // The typing queries read only LIVE rows: a range above now - TTL.
+    .index("by_room_updated", ["roomId", "updatedAt"]),
 
   friendRequestMessages: defineTable({
     requestId: v.id("friendships"),
@@ -2819,6 +2917,8 @@ export default defineSchema({
     ),
   })
     .index("by_user_started", ["userId", "startedAt"])
+    // Retention sweep (retention.gcCallLog).
+    .index("by_started", ["startedAt"])
     .index("by_user_outcome_started", ["userId", "outcome", "startedAt"])
     .index("by_call_user", ["callId", "userId"])
     .index("by_group_call_user", ["groupCallId", "userId"]),
@@ -3224,6 +3324,21 @@ export default defineSchema({
     liftedAt: v.optional(v.number()),
     // `files.repairRefs` resumes from this `deletionCore.cursorOf` string.
     refCursor: v.optional(v.string()),
+  }),
+
+  // Files deleted from storage whose public URL must leave the CDN cache.
+  // See cdnPurge.ts.
+  cdnPurges: defineTable({
+    url: v.string(),
+    enqueuedAt: v.number(),
+    attempts: v.number(),
+    lastError: v.optional(v.string()),
+  }).index("by_enqueuedAt", ["enqueuedAt"]),
+
+  // Singleton: whether a cdnPurge.drain is already scheduled, so a burst of
+  // deletes schedules one drain, not one per file.
+  cdnPurgeState: defineTable({
+    scheduledAt: v.optional(v.number()),
   }),
 
   authAttempts: defineTable({
@@ -3638,7 +3753,10 @@ export default defineSchema({
     userId: v.id("users"),
     deviceId: v.string(),
     at: v.number(),
-  }).index("by_user", ["userId"]),
+  })
+    .index("by_user", ["userId"])
+    // Retention sweep (retention.gcDeviceEngagement).
+    .index("by_at", ["at"]),
 
   // Phase 6: the one place a person's name and face live for readers. Written
   // by profilesCore.syncProfile in the same transaction as every `users` change
@@ -3650,6 +3768,18 @@ export default defineSchema({
     username: v.string(),
     avatarStorageId: v.optional(v.id("_storage")),
     avatarLevel: v.optional(v.string()),
+    // B6: copy of users.visibility.feed/points/puzzle/pointsPast (stored values
+    // only, absent key = default), so feed:board needs no users read. The OBJECT
+    // being present means "synced"; absent = not backfilled yet, readers fall
+    // back to the users row. Kept by profilesCore.syncProfile.
+    feedLevels: v.optional(
+      v.object({
+        feed: v.optional(v.string()),
+        points: v.optional(v.string()),
+        puzzle: v.optional(v.string()),
+        pointsPast: v.optional(v.string()),
+      }),
+    ),
     deleted: v.optional(v.boolean()),
     isSystem: v.optional(v.boolean()),
     updatedAt: v.number(),

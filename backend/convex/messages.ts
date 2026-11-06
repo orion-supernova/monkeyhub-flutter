@@ -3,6 +3,7 @@ import { internalMutation } from "./dbHooks";
 import { mutation, query } from "./functions";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import { DELIVERY_MEMBER_LIMIT } from "./receiptToken";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
   ACCOUNT_CHILD,
@@ -26,8 +27,12 @@ import { deleteCapped, enqueueDeletion, getLiveRoom, tuning } from "./deletionCo
 import { forkInteraction, purgeInteraction } from "./interactionCore";
 import { purgeChallengeForMessage, purgeMatchForMessage } from "./matchCore";
 import { lensFor } from "./visibility";
-import { receiptTimeFor } from "./receiptLog";
-import { receiptEntries, writeReceiptLog } from "./receipts";
+import {
+  appendReceiptMove,
+  receiptMovesBackfilled,
+  receiptTimeAt,
+} from "./receipts";
+import { scheduleReadDismiss } from "./readDismiss";
 import {
   assertRoomAllows,
   postKindOf,
@@ -40,7 +45,7 @@ import { isSystemAccount, isSystemRoom } from "./systemAccount";
 import { canReadRoom } from "./roomAccess";
 import { noteEngaged } from "./engagement";
 import { copiesOn } from "./profileCopyGate";
-import { consume } from "./rateLimit";
+import { ERR_RATE_LIMITED, consume } from "./rateLimit";
 import { recordMentions } from "./mentions";
 import { alertBurstStep } from "./alertBurst";
 import {
@@ -67,7 +72,6 @@ import {
  * changes. Mirrored client-side in `ChatRepository.kDeliveryMemberLimit` so the
  * call is skipped before the round trip — keep the two in step.
  */
-const DELIVERY_MEMBER_LIMIT = 50;
 
 /** Longest message, in UTF-16 units. Generous: Telegram stops at 4096. */
 export const MAX_CONTENT_CHARS = 8000;
@@ -83,9 +87,43 @@ const MAX_READS_PER_MINUTE = 240;
 
 /** Spends [count] sends from [userId]'s budget, or refuses. */
 export async function throttleSend(ctx: any, userId: any, count: number) {
+  // Both fixed windows (10 s and 1 h) live in ONE row per user, so a send is
+  // one write, not two. Same semantics as two `consume` calls per send.
+  const now = Date.now();
+  const row = await ctx.db
+    .query("sendBuckets")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .first();
+  let shortStart = row?.shortStart ?? now;
+  let shortCount = row?.shortCount ?? 0;
+  let hourStart = row?.hourStart ?? now;
+  let hourCount = row?.hourCount ?? 0;
   for (let i = 0; i < count; i++) {
-    await consume(ctx, `send:${userId}`, MAX_SENDS_PER_10S, 10 * 1000);
-    await consume(ctx, `sendh:${userId}`, MAX_SENDS_PER_HOUR, 60 * 60 * 1000);
+    if (now - shortStart >= 10 * 1000) {
+      shortStart = now;
+      shortCount = 0;
+    } else if (shortCount >= MAX_SENDS_PER_10S) {
+      throw new Error(ERR_RATE_LIMITED);
+    }
+    shortCount++;
+    if (now - hourStart >= 60 * 60 * 1000) {
+      hourStart = now;
+      hourCount = 0;
+    } else if (hourCount >= MAX_SENDS_PER_HOUR) {
+      throw new Error(ERR_RATE_LIMITED);
+    }
+    hourCount++;
+  }
+  if (row) {
+    await ctx.db.patch(row._id, { shortStart, shortCount, hourStart, hourCount });
+  } else {
+    await ctx.db.insert("sendBuckets", {
+      userId,
+      shortStart,
+      shortCount,
+      hourStart,
+      hourCount,
+    });
   }
 }
 
@@ -3795,19 +3833,19 @@ export const markRoomRead = mutation({
     // can know it.
     // The logs go to `receiptLogs`; the member row keeps only the cursors and
     // sheds any legacy log it still carries (receipts.ts).
-    const readClear = await writeReceiptLog(ctx, membership, "read", {
+    const readClear = await appendReceiptMove(ctx, membership, "read", {
       before: membership.lastReadAt ?? 0,
       upTo: cursor,
       at: clock,
     });
-    const deliveredClear = await writeReceiptLog(
-      ctx,
-      membership,
-      "delivered",
+    const deliveredClear =
       cursor > deliveredBefore
-        ? { before: deliveredBefore, upTo: cursor, at: clock }
-        : null,
-    );
+        ? await appendReceiptMove(ctx, membership, "delivered", {
+            before: deliveredBefore,
+            upTo: cursor,
+            at: clock,
+          })
+        : {};
     await ctx.db.patch(membership._id, {
       lastReadAt: cursor,
       lastReadClock: clock,
@@ -3831,10 +3869,12 @@ export const markRoomRead = mutation({
     // ids it had just read out of `pushReceipts`, but that table only ever
     // existed to hold OneSignal notification ids for cancellation, and the
     // client never used the list for the whole-room case.
-    await ctx.scheduler.runAfter(0, internal.notifications.dismissAndSync, {
-      userIds: [userId],
-      roomId,
-    });
+    //
+    // Only when there is something to clear and somewhere to clear it: the
+    // cursor moved past unread messages (so alerts went out), the reader has
+    // another push-reachable device, and the room is not fully muted. Debounced
+    // per (user, room); see readDismiss.ts.
+    await scheduleReadDismiss(ctx, { userId, roomId, membership });
   },
 });
 
@@ -3909,27 +3949,32 @@ async function advanceDelivered(
     .first();
   if (!membership) return; // not a member, silently no-op
 
-  const room = await getLiveRoom(ctx, roomId);
-
-  // Above this many members the receipt stops being worth its fan-out: one
-  // patch re-runs `getReadState` for every member, so the cost climbs with
-  // room size exactly as the signal loses meaning ("someone's device has it"
-  // is trivially true the moment a large room is posted to). The client
-  // carries the same threshold and skips the call — this copy is what makes
-  // it hold for an old or misbehaving one, and it is free because the room
-  // is already loaded. One knob, two places, deliberately: see
-  // `ChatRepository.kDeliveryMemberLimit`.
-  if ((room?.memberCount ?? 0) > DELIVERY_MEMBER_LIMIT) return;
-
-  // Never past the room's newest message: nothing can have been delivered
-  // that has not been sent.
-  const newest = room?.lastMessageTime ?? 0;
-  const target = upTo === undefined ? newest : Math.min(upTo, newest);
+  // The room document is NOT read: every send patches it, so a receipt that
+  // read it conflicted with the send it was acknowledging (OCC retries).
+  //
+  // Never past now: the push signature (or the device) vouches for `upTo`,
+  // exactly as `markRoomRead` trusts its own. Clients from before the argument
+  // send none and get the room's newest message, which is the one read left.
+  //
+  // The member-count ceiling (DELIVERY_MEMBER_LIMIT) is no longer enforced
+  // here, because the count lives on that hot document. The client skips the
+  // call above the limit (`kDeliveryMemberLimit`); the push path should not
+  // mint delivery proofs above it either (push.ts, where the member list is
+  // already in hand).
+  let target: number;
+  if (upTo === undefined) {
+    const room = await getLiveRoom(ctx, roomId);
+    if ((room?.memberCount ?? 0) > DELIVERY_MEMBER_LIMIT) return;
+    target = room?.lastMessageTime ?? 0;
+  } else {
+    target = Math.min(upTo, Date.now());
+  }
   const cursor = membership.lastDeliveredAt ?? 0;
+  // Nothing to move: no write at all.
   if (cursor >= target) return;
 
   const clock = Date.now();
-  const legacyClear = await writeReceiptLog(ctx, membership, "delivered", {
+  const legacyClear = await appendReceiptMove(ctx, membership, "delivered", {
     before: cursor,
     upTo: target,
     at: clock,
@@ -4080,6 +4125,7 @@ export const getReceiptTimes = query({
       readAt: number | null;
       deliveredAt: number | null;
     }> = [];
+    const backfilled = await receiptMovesBackfilled(ctx);
     for (const m of members) {
       if (lens.isSelf(m.userId)) continue;
       const subject = { _id: m.userId, visibility: { seen: m.seenVisibility } };
@@ -4091,14 +4137,11 @@ export const getReceiptTimes = query({
         userId: m.userId,
         readAt:
           (m.lastReadAt ?? 0) >= createdAt
-            ? receiptTimeFor(await receiptEntries(ctx, m, "read"), createdAt)
+            ? await receiptTimeAt(ctx, m, "read", createdAt, backfilled)
             : null,
         deliveredAt:
           (m.lastDeliveredAt ?? 0) >= createdAt
-            ? receiptTimeFor(
-                await receiptEntries(ctx, m, "delivered"),
-                createdAt,
-              )
+            ? await receiptTimeAt(ctx, m, "delivered", createdAt, backfilled)
             : null,
       });
     }

@@ -121,7 +121,7 @@ crons.interval(
 // Drops refs whose holder, field or ledger row is gone. See files.repairRefs.
 crons.interval(
   "files.repairRefs",
-  { hours: 24 },
+  { hours: 24 * 7 },
   internal.files.repairRefs,
   {},
 );
@@ -422,6 +422,9 @@ for (const [name, fn] of [
   ["retention.gcLogRoomMessages", internal.retention.gcLogRoomMessages],
   ["retention.gcIntegrityRuns", internal.retention.gcIntegrityRuns],
   ["retention.gcVanishBackstop", internal.retention.gcVanishBackstop],
+  ["retention.gcCallLog", internal.retention.gcCallLog],
+  ["retention.gcMentionInbox", internal.retention.gcMentionInbox],
+  ["retention.gcDeviceEngagement", internal.retention.gcDeviceEngagement],
 ] as const) {
   crons.interval(name, { hours: 24 }, fn, {});
 }

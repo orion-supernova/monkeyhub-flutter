@@ -11,6 +11,7 @@ import {
   isReservedName,
 } from "./systemAccount";
 import { lensFor } from "./visibility";
+import { presenceOf } from "./profileView";
 import { v } from "convex/values";
 import { markOffline, markOnline } from "./presenceCore";
 import {
@@ -1257,6 +1258,7 @@ export const getFamilyContext = query({
       if (!u) continue;
       const n = await pendingForChild(ctx, k);
       pendingCount += n;
+      const kidPresence = await presenceOf(ctx, k);
 
       // Who else supervises this child. Lets the guardian screen list
       // co-parents, and tell whether "stop supervising" would strand the
@@ -1269,8 +1271,11 @@ export const getFamilyContext = query({
 
       children.push({
         ...briefOf(lens, u),
-        status: u.status,
-        lastSeen: u.lastSeen,
+        // B6: from `presence` (the users copy is no longer mirrored). A
+        // guardian sees their child's status regardless of the child's levels
+        // (the supervised-account promise), so no level check here.
+        status: kidPresence?.status,
+        lastSeen: kidPresence?.lastSeen,
         childPolicy: u.childPolicy ?? DEFAULT_CHILD_POLICY,
         pendingCount: n,
         guardians: coGuardians,

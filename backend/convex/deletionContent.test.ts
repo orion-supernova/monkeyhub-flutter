@@ -8,6 +8,7 @@ import { planFor } from "./deletionPlans";
 import { STALL_MS } from "./deletions";
 import { eraseMatch } from "./matchCore";
 import { removeMessageAndFanout } from "./messages";
+import { tombstoneProfile } from "./profilesCore";
 import schema from "./schema";
 
 /**
@@ -543,7 +544,11 @@ describe("reads while a deletion is in flight", () => {
     await t.mutation(api.friends.acceptRequest, { ...as(b), requesterId: a.userId as any } as any);
   }
   const tombstone = (t: T, userId: any) =>
-    t.run((ctx) => ctx.db.patch(userId, { deletingAt: Date.now() }));
+    // Production tombstones the profile in the same transaction (deletionCore).
+    t.run(async (ctx) => {
+      await ctx.db.patch(userId, { deletingAt: Date.now() });
+      await tombstoneProfile(ctx, userId);
+    });
 
   test("a tombstoned user has no profile, no search hit, no board entry and no comments", async () => {
     const t = convexTest(schema);

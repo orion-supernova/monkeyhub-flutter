@@ -527,6 +527,16 @@ export function formatDuration(ms: number | undefined): string {
  */
 const MAX_FANOUT = 200;
 
+/**
+ * Friendship rows read per person: MAX_FANOUT accepted friends plus headroom
+ * for pending requests (there is no status index). Past this a friend is
+ * simply not notified, the same as past MAX_FANOUT.
+ */
+const MAX_FRIEND_ROWS = MAX_FANOUT * 5;
+
+/** Moments counted for "N new things today"; a count past this reads as this. */
+const MAX_TODAY_COUNT = 100;
+
 /** Device rows read per recipient. See `dailyNudge.DEVICES_PER_USER`. */
 const DEVICES_PER_USER = 50;
 
@@ -595,7 +605,7 @@ async function audienceOf(
   const links = await ctx.db
     .query("friendships")
     .withIndex("by_user", (q: any) => q.eq("userId", actorId))
-    .collect();
+    .take(MAX_FRIEND_ROWS);
   const friendIds: Id<"users">[] = links
     .filter((f: any) => f.status === "accepted")
     .slice(0, MAX_FANOUT)
@@ -698,7 +708,7 @@ export const _momentAudience = internalQuery({
       .withIndex("by_user_day", (q: any) =>
         q.eq("userId", m.userId).eq("dayKey", m.dayKey),
       )
-      .collect();
+      .take(MAX_TODAY_COUNT);
 
     // Built now, from the profile: a rename shows in the push, and a moment
     // written without copies still has a name. A deleted author: no push.
@@ -861,7 +871,7 @@ export const _commentAudience = internalQuery({
         await ctx.db
           .query("friendships")
           .withIndex("by_user", (q: any) => q.eq("userId", c.userId))
-          .collect()
+          .take(MAX_FRIEND_ROWS)
       )
         .filter((f: any) => f.status === "accepted")
         .map((f: any) => f.friendId.toString()),

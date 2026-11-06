@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:convert' show utf8;
+import 'dart:convert' show jsonEncode, utf8;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart'
+    show AppLifecycleState, WidgetsBinding, WidgetsBindingObserver;
 
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
@@ -74,7 +76,7 @@ const kLongMessageFileName = 'message.txt';
 ///   - per-room cached message lists
 ///   - active subscriptions (rooms; messages of currently open room)
 ///   - optimistic pending sends
-class ChatRepository extends ChangeNotifier {
+class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
   /// Every change to an unsent message already announces itself here — a new
   /// bubble, a status flip, an upload landing, a discard, a reconciliation — so
   /// this is where the outbox follows it to disk, rather than at each of the
@@ -184,6 +186,10 @@ class ChatRepository extends ChangeNotifier {
   set _rooms(List<ChatRoom> next) {
     _roomsStore = next;
     _facetCounts = null;
+    // Any replacement other than the subscription's own (which re-stamps it
+    // right after) invalidates the payload dedup: an optimistic local change
+    // must not make a later identical server payload look like "no news".
+    _roomsPayloadSig = null;
     // The one place a room list can appear, so the one place an unread anchor
     // waiting on it can be answered — see [_resolveUnreadAnchor]. A no-op once
     // it has been, which is every write after the first.
@@ -359,6 +365,9 @@ class ChatRepository extends ChangeNotifier {
   /// user's to answer.
   List<RoomInvitation> _roomInvitations = [];
   String _roomInvitationsSig = '';
+
+  /// `jsonEncode` of the last `rooms:listUserRooms` payload applied; see its onData.
+  String? _roomsPayloadSig;
   List<RoomInvitation> get roomInvitations => List.unmodifiable(_roomInvitations);
 
   final Map<String, List<ChatMessage>> _messages = {}; // roomId → ordered list
@@ -440,6 +449,158 @@ class ChatRepository extends ChangeNotifier {
 
   /// Repaints the moment the soonest indicator lapses, so it goes away on
   /// time with nothing else happening in the room.
+  // ───────────── global typing subscription ─────────────
+
+  /// How many chat-list rooms the global typing subscription watches. Mirrors
+  /// the server's `TYPING_ROOM_IDS_CAP`.
+  static const _kTypingRoomCap = 30;
+
+  /// Mirrors the server's `TYPING_TTL_MS`.
+  static const _kTypingTtlMs = 8000;
+
+  /// Sorted ids the live global typing subscription was opened for; null when
+  /// there is none. A fire of the rooms list that leaves this set unchanged
+  /// must not resubscribe.
+  String? _typingRoomsKey;
+  int _typingSubGen = 0;
+  bool _appForeground = true;
+  bool _lifecycleHooked = false;
+
+  bool _hookLifecycle() {
+    if (_lifecycleHooked) return true;
+    try {
+      WidgetsBinding.instance.addObserver(this);
+      return true;
+    } catch (_) {
+      return false; // no binding (plain unit test)
+    }
+  }
+
+  void _unhookLifecycle() {
+    if (!_lifecycleHooked) return;
+    try {
+      WidgetsBinding.instance.removeObserver(this);
+    } catch (_) {}
+    _lifecycleHooked = false;
+  }
+
+  /// The rooms the chat list shows (not archived, pinned first, then newest),
+  /// capped, minus the open room: that one has its own `getTypingUsers`.
+  List<String> _typingRoomIds() {
+    final rooms = _rooms.where((r) => !r.isArchived && r.id != _activeRoomId).toList()
+      ..sort((a, b) {
+        if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
+        final at = a.lastMessageTime?.millisecondsSinceEpoch ?? 0;
+        final bt = b.lastMessageTime?.millisecondsSinceEpoch ?? 0;
+        return bt.compareTo(at);
+      });
+    return [for (final r in rooms.take(_kTypingRoomCap)) r.id];
+  }
+
+  void _dropGlobalTyping() {
+    _typingSubGen++;
+    _globalTypingSub?.cancel();
+    _globalTypingSub = null;
+    _typingRoomsKey = null;
+    _typingByRoom.clear();
+    _typingUntilByRoom.clear();
+  }
+
+  /// Opens, re-opens or closes the global typing subscription so it matches
+  /// [_typingRoomIds]. A no-op when the id set is unchanged (sorted-ids key),
+  /// so the churn of the rooms list never resubscribes. While the app is
+  /// backgrounded nothing is subscribed; resuming calls this with `force`.
+  Future<void> _syncGlobalTyping({bool force = false}) async {
+    final userId = _userId;
+    if (userId == null) return;
+    if (!_appForeground) {
+      if (_globalTypingSub != null) {
+        _dropGlobalTyping();
+        notifyListeners();
+      }
+      return;
+    }
+    final ids = _typingRoomIds();
+    final key = (List.of(ids)..sort()).join(',');
+    if (!force && key == _typingRoomsKey && _globalTypingSub != null) return;
+    if (!force && ids.isEmpty && _globalTypingSub == null) return;
+    _typingSubGen++;
+    final gen = _typingSubGen;
+    _globalTypingSub?.cancel();
+    _globalTypingSub = null;
+    _typingRoomsKey = key;
+    if (ids.isEmpty) {
+      if (_typingByRoom.isNotEmpty) {
+        _typingByRoom.clear();
+        _typingUntilByRoom.clear();
+        notifyListeners();
+      }
+      return;
+    }
+    final sub = await cv.subscribe(
+      'typing:getTypingForUser',
+      {'userId': userId, 'withUntil': true, 'roomIds': ids},
+      onData: (data) {
+        if (gen != _typingSubGen) return;
+        _typingByRoom.clear();
+        _typingUntilByRoom.clear();
+        // `{rooms, until}` from a server that knows `withUntil`; the bare
+        // room map from one that does not.
+        var rooms = data;
+        if (data is Map && data['rooms'] is Map) {
+          rooms = data['rooms'];
+          final until = data['until'];
+          if (until is Map) {
+            until.forEach((roomId, t) {
+              if (t is num) _typingUntilByRoom[roomId.toString()] = t.toInt();
+            });
+          }
+        }
+        if (rooms is Map) {
+          rooms.forEach((roomId, names) {
+            if (names is List) {
+              // This stream carries names only — the room list renders a
+              // label, not avatars. Wrapped in a name-only [ChatUser] so the
+              // shared typing widgets take one type regardless of which
+              // subscription filled the map. [typingIn] prefers the open
+              // room's richer entry over anything written here.
+              _typingByRoom[roomId.toString()] = names
+                  .map((e) => e.toString())
+                  .where((s) => s.isNotEmpty)
+                  .map((n) => ChatUser(id: '', username: '', name: n))
+                  .toList();
+            }
+          });
+        }
+        _armTypingExpiry();
+        notifyListeners();
+      },
+      onError: (err) => debugPrint('typing(global) sub error: $err'),
+    );
+    if (gen != _typingSubGen) {
+      sub.cancel(); // superseded while subscribing
+      return;
+    }
+    _globalTypingSub = sub;
+  }
+
+  /// Background pauses the typing subscription (nobody sees an indicator on a
+  /// hidden app); `rooms:listUserRooms` keeps running because it drives
+  /// delivery reports.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_appForeground) return;
+      _appForeground = true;
+      unawaited(_syncGlobalTyping(force: true));
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      if (!_appForeground) return;
+      _appForeground = false;
+      unawaited(_syncGlobalTyping());
+    }
+  }
+
   Timer? _typingExpiry;
 
   bool _typingLive(int? until) =>
@@ -450,11 +611,48 @@ class ChatRepository extends ChangeNotifier {
     // including when it says nobody is typing.
     if (roomId == _openTypingRoomId) {
       return List.unmodifiable(
-        _openTypingUsers.where((u) => _typingLive(_openTypingUntil[u.id])),
+        _openTypingUsers.where(
+          (u) =>
+              _typingLive(_openTypingUntil[u.id]) &&
+              !_typistSpoke(roomId, u.id, _openTypingUntil[u.id]),
+        ),
       );
     }
-    if (!_typingLive(_typingUntilByRoom[roomId])) return const [];
+    final until = _typingUntilByRoom[roomId];
+    if (!_typingLive(until)) return const [];
+    // The sender's message arrived after their last typing write: they are
+    // done typing, whether or not the server row has been cleared.
+    if (until != null) {
+      for (final r in _rooms) {
+        if (r.id != roomId) continue;
+        final at = r.lastMessageTime?.millisecondsSinceEpoch;
+        if (at != null &&
+            at > until - _kTypingTtlMs &&
+            r.lastMessageSenderId != null &&
+            !r.isLastMessageFrom(_userId)) {
+          return const [];
+        }
+        break;
+      }
+    }
     return List.unmodifiable(_typingByRoom[roomId] ?? const []);
+  }
+
+  /// Whether [userId] posted in [roomId] after their last typing write
+  /// (`until - TTL`). The server no longer clears the indicator when a
+  /// message is sent, so the arrival of the message is what retires it.
+  bool _typistSpoke(String roomId, String userId, int? until) {
+    if (until == null) return false;
+    final list = _messages[roomId];
+    if (list == null) return false;
+    final since = until - _kTypingTtlMs;
+    var looked = 0;
+    for (var i = list.length - 1; i >= 0 && looked < 6; i--, looked++) {
+      final m = list[i];
+      if (m.createdAt.millisecondsSinceEpoch <= since) return false;
+      if (m.senderId == userId) return true;
+    }
+    return false;
   }
 
   void _armTypingExpiry() {
@@ -1237,10 +1435,22 @@ class ChatRepository extends ChangeNotifier {
       'rooms:listUserRooms',
       {'userId': userId},
       onData: (data) {
+        // This query re-fires for reasons the list does not show (it reads the
+        // viewer's own membership rows, which every read/delivery/pin write
+        // patches). An identical payload is no news: skip the parse, the
+        // cache write and the rebuild. The delivery report's inputs
+        // (unread, newest message, delivered cursor) are all in the payload,
+        // so an unchanged payload leaves nothing for it to do either.
+        String? sig;
+        try {
+          sig = jsonEncode(data);
+        } catch (_) {}
+        if (sig != null && sig == _roomsPayloadSig && _hasLiveRoomList) return;
         final list = (data as List?) ?? const [];
         _rooms = list
             .map((e) => ChatRoom.fromJson((e as Map).cast<String, dynamic>()))
             .toList();
+        _roomsPayloadSig = sig;
         _roomsLoaded = true;
         // The server has spoken — see [hasLiveRoomList]. Only here, and not
         // beside the two weaker sources that also set `_roomsLoaded`: this is
@@ -1251,6 +1461,7 @@ class ChatRepository extends ChangeNotifier {
         // This stream landing IS the delivery: the traffic it describes is on
         // this device now, whichever screen the user happens to be looking at.
         _scheduleDeliveryReport(userId);
+        _syncGlobalTyping();
         notifyListeners();
       },
       onError: (err) => debugPrint('rooms sub error: $err'),
@@ -1327,46 +1538,11 @@ class ChatRepository extends ChangeNotifier {
       onError: (err) => debugPrint('room invitations sub error: $err'),
     );
 
-    // Global typing — used to surface a thin indicator on room cards.
-    _globalTypingSub = await cv.subscribe(
-      'typing:getTypingForUser',
-      {'userId': userId, 'withUntil': true},
-      onData: (data) {
-        _typingByRoom.clear();
-        _typingUntilByRoom.clear();
-        // `{rooms, until}` from a server that knows `withUntil`; the bare
-        // room map from one that does not.
-        var rooms = data;
-        if (data is Map && data['rooms'] is Map) {
-          rooms = data['rooms'];
-          final until = data['until'];
-          if (until is Map) {
-            until.forEach((roomId, t) {
-              if (t is num) _typingUntilByRoom[roomId.toString()] = t.toInt();
-            });
-          }
-        }
-        if (rooms is Map) {
-          rooms.forEach((roomId, names) {
-            if (names is List) {
-              // This stream carries names only — the room list renders a
-              // label, not avatars. Wrapped in a name-only [ChatUser] so the
-              // shared typing widgets take one type regardless of which
-              // subscription filled the map. [typingIn] prefers the open
-              // room's richer entry over anything written here.
-              _typingByRoom[roomId.toString()] = names
-                  .map((e) => e.toString())
-                  .where((s) => s.isNotEmpty)
-                  .map((n) => ChatUser(id: '', username: '', name: n))
-                  .toList();
-            }
-          });
-        }
-        _armTypingExpiry();
-        notifyListeners();
-      },
-      onError: (err) => debugPrint('typing(global) sub error: $err'),
-    );
+    // Global typing — a thin indicator on room cards. Scoped to the rooms on
+    // screen (see [_syncGlobalTyping]); paused while the app is backgrounded.
+    _typingRoomsKey = null;
+    _lifecycleHooked = _hookLifecycle();
+    await _syncGlobalTyping(force: true);
 
     // Manual speaker colours — see [_speakerColors]. Deliberately NOT gated on
     // the reader's `speakerTint` preference: a reader who turns colours off and
@@ -1725,6 +1901,9 @@ class ChatRepository extends ChangeNotifier {
     _incomingSub?.cancel();
     _outgoingSub?.cancel();
     _roomInvitationsSub?.cancel();
+    _unhookLifecycle();
+    _typingSubGen++;
+    _typingRoomsKey = null;
     _globalTypingSub?.cancel();
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
@@ -1789,6 +1968,7 @@ class ChatRepository extends ChangeNotifier {
     _outgoingRequests = [];
     _roomInvitations = [];
     _roomInvitationsSig = '';
+    _roomsPayloadSig = null;
     _messages.clear();
     // Unlike [closeRoom], which keeps these so re-entry paints instantly, this
     // is a sign-out: they are the previous account's room state.
@@ -2354,6 +2534,7 @@ class ChatRepository extends ChangeNotifier {
     final gen = ++_openGen;
     DiagLog.roomOpen('open', roomId);
     _activeRoomId = roomId;
+    unawaited(_syncGlobalTyping());
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
     _readStateSub?.cancel();
@@ -3037,6 +3218,7 @@ class ChatRepository extends ChangeNotifier {
     _interactionsSub = null;
     _membersSub = null;
     _activeRoomId = null;
+    unawaited(_syncGlobalTyping());
     // Nothing left for [_attach]'s repair to re-open. The anchor itself stays:
     // a route transition disposes the OUTGOING screen after its replacement has
     // already pinned the room, and clearing here would throw away the answer
@@ -3433,7 +3615,13 @@ class ChatRepository extends ChangeNotifier {
     _stopTypingTimer = Timer(const Duration(seconds: 3), _stopTyping);
   }
 
-  void _stopTyping() {
+  /// [sent]: the user sent a message instead of going idle. The server row is
+  /// then left to expire (8s) rather than cleared: receivers retire the
+  /// indicator themselves when the message arrives ([ChatRepository.typingIn]),
+  /// and skipping `clearTyping` saves a write that re-runs both typing queries
+  /// for the whole room. An idle stop (3s without a key) still clears, or the
+  /// indicator would hang up to 5s after the user stopped.
+  void _stopTyping({bool sent = false}) {
     _stopTypingTimer?.cancel();
     _typingHeartbeat?.cancel();
     _stopTypingTimer = null;
@@ -3442,7 +3630,7 @@ class ChatRepository extends ChangeNotifier {
     _typingActive = false;
     final id = _userId;
     final roomId = _activeRoomId;
-    if (id != null && roomId != null) {
+    if (!sent && id != null && roomId != null) {
       api.clearTyping(roomId: roomId, userId: id).catchError((_) {});
     }
   }
@@ -4143,12 +4331,12 @@ class ChatRepository extends ChangeNotifier {
         false;
     if (behind) {
       _sendFailures[optimistic.id] = 0;
-      _stopTyping();
+      _stopTyping(sent: true);
       await _sendSweep();
       return;
     }
     final posted = _postMessage(roomId, optimistic);
-    _stopTyping();
+    _stopTyping(sent: true);
     await posted;
   }
 

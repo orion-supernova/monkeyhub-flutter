@@ -1346,6 +1346,11 @@ class _StickersTabState extends State<_StickersTab> {
           body = _StickerGrid(items: favorites, onSend: widget.onSend);
         } else if (section != null) {
           final pack = packs.firstWhere((p) => p.id == section);
+          // Stickers are fetched when the pack's tab is first shown.
+          if (!pack.stickersLoaded) {
+            WidgetsBinding.instance
+                .addPostFrameCallback((_) => store.ensureLoaded(pack));
+          }
           body = _PackGrid(
             pack: pack,
             onSend: widget.onSend,
@@ -1431,12 +1436,12 @@ class _StickersTabState extends State<_StickersTab> {
                         selected: section == p.id,
                         label: p.personal ? l10n.expressionMyStickers : p.title,
                         onTap: () => _select(p.id),
-                        child: p.stickers.isEmpty
+                        child: p.previewSticker == null
                             ? Icon(CupertinoIcons.person_crop_circle,
                                 size: 20, color: theme.inkMuted)
                             : StickerArt(
-                                item: p.stickers.first.toItem(),
-                                url: p.stickers.first.url,
+                                item: p.previewSticker!.toItem(),
+                                url: p.previewSticker!.url,
                                 size: 28,
                                 play: false,
                               ),

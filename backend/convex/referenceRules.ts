@@ -247,11 +247,18 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   // ── rooms and membership ──────────────────────────────────────────────────
   "receiptLogs.roomId": { rule: "cascade", index: "by_room_user_kind", why: "Room teardown; the log of a deleted room means nothing." },
   "receiptLogs.userId": { rule: "cascade", index: "by_user", why: "A deleted account's receipt history goes with it." },
+  "receiptMoves.roomId": { rule: "cascade", index: "by_room_user_kind_at", why: "Room teardown; the move history of a deleted room means nothing." },
+  "receiptMoves.userId": { rule: "cascade", index: "by_user", why: "A deleted account's receipt history goes with it." },
+  "dismissPending.roomId": { rule: "cascade", index: "by_room_user", why: "A debounce row for a deleted room means nothing." },
+  "dismissPending.userId": { rule: "cascade", index: "by_user", why: "Ephemeral debounce row; goes with the account." },
+  "sendBuckets.userId": { rule: "cascade", index: "by_user", why: "A deleted account's send counters go with it." },
   "roomAccess.roomId": { rule: "cascade", index: "by_room_user", why: "revokeAllRoomAccess on teardown." },
   "roomAccess.userId": { rule: "cascade", index: "by_user", why: "revokeUserRoomAccess on account deletion." },
   "roomBans.roomId": { rule: "cascade", index: "by_room_user", why: "A ban on a deleted room means nothing." },
   "roomBans.userId": { rule: "cascade", index: "by_user", why: "A deleted account's bans go with it; expired bans are swept via by_until." },
   "roomChangeRequests.decidedBy": { rule: "setNull", index: "by_decider", why: "Other people's request history is kept; only the decider pointer is cleared." },
+  "userBadgeCounts.userId": { rule: "cascade", index: "by_user", why: "Derived badge counts (userDerivedCore.ts) die with the account; generic step." },
+  "userPushState.userId": { rule: "cascade", index: "by_user", why: "Derived push targets (userDerivedCore.ts) die with the account; generic step." },
   "roomContentCounts.roomId": { rule: "cascade", index: "by_room", why: "The shared-content counter (contentCounts.ts) dies with the room; generic step." },
   "roomChangeRequests.roomId": { rule: "cascade", index: "by_room_status", why: "Room teardown, every status." },
   "roomChangeRequests.storageId": { rule: "file", fileHold: "ref", index: "by_storage", why: "Owner: the request while pending; an approved row's file is the room's avatar (rooms.avatarStorageId owns it), so the field must be cleared on release." },
@@ -283,6 +290,7 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "speakerColors.viewerId": { rule: "cascade", index: "by_viewer_room_subject", why: "purgeSpeakerColorsForUser / ForMember." },
 
   // ── stickers, expressions ─────────────────────────────────────────────────
+  "stickerPacks.coverStorageId": { rule: "file", fileHold: "copy", why: "Owner: stickers.storageId of the pack's first live sticker (borrowed copy for packList); refreshPackSummary re-points it when stickers are added or retired." },
   "stickerPacks.ownerId": { rule: "setNull", index: "by_owner", why: "The pack is tombstoned, not deleted, so existing uses still resolve (purgeUserExpressions)." },
   "stickers.packId": { rule: "cascade", index: "by_pack_order", why: "Stickers belong to their pack; packs are never hard-deleted today, so this has no deleting path." },
   "stickers.storageId": { rule: "file", fileHold: "ref", why: "Owner: the sticker row. Official art stays; a personal sticker's file goes with its owner and the row is tombstoned.", today: "verified: soft delete (deletePersonalSticker) releases the sticker's own ref and the file lives while any message or comment holds a ref, then the reaper frees it; account deletion force-deletes a personal sticker's file and tombstones the row (Phase 0 chose delete for privacy over the plan's always-tombstone). Official art is permanent" },

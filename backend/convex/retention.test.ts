@@ -584,3 +584,59 @@ describe("daily results fold", () => {
     expect(years[0]).toMatchObject({ game: "tango", year: "2025", solves: 1, best: 5 });
   });
 });
+
+describe("call log, mention inbox, device engagement (D3)", () => {
+  test("callLog: drains rows older than a year, keeps newer, boundary exact", async () => {
+    const t = convexTest(schema);
+    const { userId, room } = await world(t);
+    const mk = (startedAt: number) => ({
+      userId, roomId: room, kind: "direct" as const, type: "audio",
+      direction: "out" as const, outcome: "answered" as const,
+      startedAt, endedAt: startedAt + 1000, durationMs: 1000,
+    });
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 450; i++) await ctx.db.insert("callLog", mk(NOW - 365 * DAY - 1 - i));
+      await ctx.db.insert("callLog", mk(NOW - 365 * DAY)); // exactly a year: kept
+      await ctx.db.insert("callLog", mk(NOW - DAY));
+    });
+    await t.mutation(internal.retention.gcCallLog, {});
+    await drain(t);
+    expect(await all(t, "callLog")).toHaveLength(2);
+  });
+
+  test("mentionInbox: drains year-old rows, keeps younger unread ones", async () => {
+    const t = convexTest(schema);
+    const { userId, room } = await world(t);
+    const messageId = await t.run(async (ctx) =>
+      (await (ctx.db.query("messages") as any).first())?._id ??
+      (await ctx.db.insert("messages", {
+        roomId: room, userId, content: "hi", createdAt: NOW,
+      } as any)));
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 450; i++) {
+        await ctx.db.insert("mentionInbox", { userId, roomId: room, messageId, createdAt: NOW - 365 * DAY - 1 - i });
+      }
+      await ctx.db.insert("mentionInbox", { userId, roomId: room, messageId, createdAt: NOW - 365 * DAY });
+      await ctx.db.insert("mentionInbox", { userId, roomId: room, messageId, createdAt: NOW - 30 * DAY });
+    });
+    await t.mutation(internal.retention.gcMentionInbox, {});
+    await drain(t);
+    expect(await all(t, "mentionInbox")).toHaveLength(2);
+  });
+
+  test("deviceEngagement: drains rows idle 90 days, keeps newer", async () => {
+    const t = convexTest(schema);
+    const { userId, otherId } = await world(t);
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 450; i++) {
+        await ctx.db.insert("deviceEngagement", { userId, deviceId: `d${i}`, at: NOW - 90 * DAY - 1 - i });
+      }
+      await ctx.db.insert("deviceEngagement", { userId, deviceId: "edge", at: NOW - 90 * DAY });
+      await ctx.db.insert("deviceEngagement", { userId: otherId, deviceId: "new", at: NOW - DAY });
+    });
+    await t.mutation(internal.retention.gcDeviceEngagement, {});
+    await drain(t);
+    const left = await all(t, "deviceEngagement");
+    expect(left.map((r: any) => r.deviceId).sort()).toEqual(["edge", "new"]);
+  });
+});

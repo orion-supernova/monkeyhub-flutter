@@ -117,6 +117,163 @@ export const packs = query({
   },
 });
 
+/** One sticker as the picker draws it (the shape `packs` has always used). */
+function stickerShape(s: any, url: string) {
+  return {
+    _id: s._id,
+    storageId: s.storageId,
+    url,
+    format: s.format,
+    emoji: s.emoji,
+    width: s.width,
+    height: s.height,
+  };
+}
+
+/** Most stickers one pack call returns; the biggest official pack is far below. */
+const MAX_PACK_STICKERS = 300;
+
+/** The live stickers of [packId] with URLs, at most [MAX_PACK_STICKERS]. */
+async function stickersOfPack(ctx: any, packId: any) {
+  const rows = await ctx.db
+    .query("stickers")
+    .withIndex("by_pack_order", (q: any) => q.eq("packId", packId))
+    .take(MAX_PACK_STICKERS);
+  const out = [];
+  for (const s of rows) {
+    if (s.deletedAt !== undefined) continue;
+    const url = await ctx.storage.getUrl(s.storageId);
+    if (url) out.push(stickerShape(s, url));
+  }
+  return out;
+}
+
+/**
+ * Pack metadata only: one document per official pack and one URL lookup for
+ * its cover. No stickers. The picker opens a pack with [packStickers] when its
+ * tab or sheet is shown. Static data: the client asks once per session.
+ */
+export const packList = query({
+  args: {},
+  handler: async (ctx) => {
+    const official = await ctx.db
+      .query("stickerPacks")
+      .withIndex("by_kind_order", (q) => q.eq("kind", "official"))
+      .take(200);
+    const out = [];
+    for (const pack of official) {
+      let count = pack.stickerCount;
+      let coverStorageId = pack.coverStorageId;
+      let coverFormat = pack.coverFormat;
+      if (count === undefined) {
+        // Seeded before the summary existed: derive it (reads the pack).
+        const live = (await stickersOfPack(ctx, pack._id)) as any[];
+        count = live.length;
+        coverStorageId = live[0]?.storageId;
+        coverFormat = live[0]?.format;
+      }
+      // A pack whose seed failed half-way is not worth a tab.
+      if (count === 0) continue;
+      const coverUrl = coverStorageId ? await ctx.storage.getUrl(coverStorageId) : null;
+      out.push({
+        _id: pack._id,
+        slug: pack.slug,
+        title: pack.title,
+        kind: pack.kind,
+        author: pack.author,
+        license: pack.license,
+        sourceUrl: pack.sourceUrl,
+        count,
+        coverUrl,
+        coverStorageId: coverStorageId ?? null,
+        coverFormat: coverFormat ?? null,
+      });
+    }
+    return out;
+  },
+});
+
+/**
+ * One pack's stickers (bounded). Official packs are readable by anyone; a
+ * personal pack only by its owner.
+ */
+export const packStickers = query({
+  args: { packId: v.id("stickerPacks") },
+  handler: async (ctx, { packId, userId }) => {
+    const pack = await ctx.db.get(packId);
+    if (!pack) return [];
+    if (pack.kind !== "official" && pack.ownerId !== userId) return [];
+    return await stickersOfPack(ctx, packId);
+  },
+});
+
+/**
+ * Which pack a sticker belongs to: one point read, so the sticker sheet can
+ * offer "add this pack" for a sticker someone sent without the app loading the
+ * whole catalog. Same visibility as [packStickers]: an official pack, or the
+ * caller's own; anything else answers null.
+ */
+export const packIdOfSticker = query({
+  args: { stickerId: v.id("stickers") },
+  handler: async (ctx, { stickerId, userId }) => {
+    const sticker = await ctx.db.get(stickerId);
+    if (!sticker) return null;
+    const pack = await ctx.db.get(sticker.packId);
+    if (!pack) return null;
+    if (pack.kind !== "official" && pack.ownerId !== userId) return null;
+    return pack._id;
+  },
+});
+
+/** The caller's own pack (live, a few hundred rows at most), or null. */
+export const personalPack = query({
+  args: {},
+  handler: async (ctx, { userId }) => {
+    const pack = await ctx.db
+      .query("stickerPacks")
+      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
+      .first();
+    if (!pack) return null;
+    return {
+      _id: pack._id,
+      slug: pack.slug,
+      title: pack.title,
+      kind: pack.kind,
+      author: pack.author,
+      license: pack.license,
+      sourceUrl: pack.sourceUrl,
+      stickers: await stickersOfPack(ctx, pack._id),
+    };
+  },
+});
+
+/** Recomputes an official pack's count and cover (seeding, retiring, backfill). */
+async function refreshPackSummary(ctx: any, packId: any) {
+  const rows = await ctx.db
+    .query("stickers")
+    .withIndex("by_pack_order", (q: any) => q.eq("packId", packId))
+    .collect();
+  const live = rows.filter((r: any) => r.deletedAt === undefined);
+  await ctx.db.patch(packId, {
+    stickerCount: live.length,
+    coverStorageId: live[0]?.storageId,
+    coverFormat: live[0]?.format,
+  });
+}
+
+/** Operator backfill: `npx convex run expressions:refreshPackSummaries`. */
+export const refreshPackSummaries = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const packs = await ctx.db
+      .query("stickerPacks")
+      .withIndex("by_kind_order", (q) => q.eq("kind", "official"))
+      .take(200);
+    for (const p of packs) await refreshPackSummary(ctx, p._id);
+    return { packs: packs.length };
+  },
+});
+
 /**
  * The packs a user starts with before they have chosen any — the ones that
  * cover the most everyday feelings. Slugs rather than ids so they survive a
@@ -833,6 +990,8 @@ export const insertOfficialSticker = internalMutation({
       format: format === "image" ? "image" : "lottie",
       createdAt: Date.now(),
     });
+    // Keep the pack's summary (packList reads only that).
+    await refreshPackSummary(ctx, args.packId);
   },
 });
 
@@ -862,6 +1021,7 @@ export const retireOfficialStickers = internalMutation({
       await ctx.db.patch(r._id, { deletedAt: Date.now() });
       retired++;
     }
+    await refreshPackSummary(ctx, pack._id);
     return { retired };
   },
 });

@@ -69,6 +69,7 @@ const member = (t: T, roomId: any, userId: any) =>
   ) as Promise<any>;
 
 const logRows = (t: T) => t.run((ctx: any) => ctx.db.query("receiptLogs").collect()) as Promise<any[]>;
+const moveRows = (t: T) => t.run((ctx: any) => ctx.db.query("receiptMoves").collect()) as Promise<any[]>;
 
 async function times(t: T, viewer: any, roomId: any, createdAt: number, userId: any) {
   const rows: any[] = await t.query(api.messages.getReceiptTimes, {
@@ -108,8 +109,9 @@ describe("writers", () => {
     expect(row.readLog).toBeUndefined();
     expect(row.deliveredLog).toBeUndefined();
     expect(row.lastReadAt).toBe(sent);
-    const logs = await logRows(t);
+    const logs = await moveRows(t);
     expect(logs.map((l) => l.kind).sort()).toEqual(["delivered", "read"]);
+    expect(await logRows(t)).toHaveLength(0);
 
     // Seen-by is unchanged.
     const r = await times(t, sender, roomId, sent, reader.userId);
@@ -127,7 +129,7 @@ describe("writers", () => {
       userId: reader.userId as any,
       upTo: sent,
     } as any);
-    expect((await logRows(t)).map((l) => l.kind)).toEqual(["delivered"]);
+    expect((await moveRows(t)).map((l) => l.kind)).toEqual(["delivered"]);
     expect((await member(t, roomId, reader.userId)).deliveredLog).toBeUndefined();
   });
 
@@ -347,7 +349,7 @@ describe("seenVisibility fan-out", () => {
   }, 20_000); // 130 rooms (just past one 100-row page): ~2 s alone, slower under suite load
 });
 
-describe("deletion cleans receiptLogs", () => {
+describe("deletion cleans receiptMoves", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -359,7 +361,7 @@ describe("deletion cleans receiptLogs", () => {
     const { sender, reader, roomId } = await pair(t);
     const sent = await send(t, sender, roomId, "hi");
     await read(t, reader, roomId, sent);
-    expect((await logRows(t)).length).toBe(2);
+    expect((await moveRows(t)).length).toBe(2);
     return { reader, roomId };
   }
 
@@ -368,7 +370,7 @@ describe("deletion cleans receiptLogs", () => {
     const { roomId } = await withLogs(t);
     await t.run((ctx) => startRoomDeletion(ctx, roomId));
     await drainDeletions(t, vi.runAllTimers);
-    expect(await logRows(t)).toHaveLength(0);
+    expect(await moveRows(t)).toHaveLength(0);
   });
 
   test("user deletion", async () => {
@@ -376,6 +378,6 @@ describe("deletion cleans receiptLogs", () => {
     const { reader } = await withLogs(t);
     await t.run((ctx) => startUserDeletion(ctx, reader.userId as any));
     await drainDeletions(t, vi.runAllTimers);
-    expect(await logRows(t)).toHaveLength(0);
+    expect(await moveRows(t)).toHaveLength(0);
   });
 });

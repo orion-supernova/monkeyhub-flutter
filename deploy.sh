@@ -112,19 +112,17 @@ DL_MANIFEST="$VM_DL_DIR/artifacts.json"
 # ----- flags -----
 SKIP_VERSION_BUMP=false
 RUN_CONVEX=""      # ""=undecided (menu/default), true/false once resolved
-# A Convex deploy lands on BOTH deployments, not just the one serving traffic.
-# The VPS is primary and the home server is a warm standby switchServer.sh can
-# flip to, and a standby running last fortnight's functions is not a standby —
-# it is an outage with a DNS record. Set false
-# (or --no-homeserver) when the home server is unreachable and you accept the
-# drift; deploy.sh says so loudly in the summary either way.
+# The home server is RETIRED as a standby (2026-11-06, the user's call: it had
+# been offline for weeks and missed every deploy since 2026-10-23). Deploys go
+# to the VPS only. --homeserver opts back in for a one-off push if the box is
+# ever revived; it then lands on BOTH deployments, functions and release rows.
 #
 # This governs the release ROWS too (publish_release, set_min_supported), not
 # just the function push. They were split for a while, and the split is what
 # made 1.3.89 ship to a home server (primary back then) still telling every
 # client 1.3.88 was the newest build — the deploy said success, because the box
 # it wrote to agreed.
-RUN_HOMESERVER=true
+RUN_HOMESERVER=false
 DEPLOY_IOS=""
 DEPLOY_MACOS=false # --macos: App Store Connect. Also included by --all.
 DEPLOY_ANDROID=""
@@ -193,10 +191,9 @@ Platform flags (any of these skips the picker):
                         web + site.
   --convex-only         Backend only — no builds, no version bump.
   --no-convex           Skip 'npx convex deploy'.
-  --no-homeserver       Push Convex to the VPS only, not the home server —
-                        functions AND the release rows a shipped build
-                        announces. Leaves the two backends disagreeing about
-                        both; --sync-releases fixes the second half.
+  --homeserver          Also push to the retired home server (functions AND
+                        release rows). Off by default since 2026-11-06.
+  --no-homeserver       VPS only (the default; kept for old muscle memory).
 
 Standalone actions (run alone and exit):
   --rollback-web        Put the previous web build back. Run it twice to undo.
@@ -262,6 +259,7 @@ while [[ $# -gt 0 ]]; do
         --skip-version-bump) SKIP_VERSION_BUMP=true ;;
         --no-convex)         RUN_CONVEX=false ;;
         --no-homeserver)     RUN_HOMESERVER=false ;;
+        --homeserver)        RUN_HOMESERVER=true ;;
         --no-upload)         RUN_UPLOAD=false ;;
         --no-git)            RUN_GIT=false ;;
         --no-announce)
@@ -1865,7 +1863,7 @@ run_convex() {
         homeserver_admin_key || true
         run_with_spinner "Deploying Convex backend → home server" convex_deploy_homeserver || return 1
     else
-        echo "  ⚠️  --no-homeserver: the home server keeps its current functions." >&2
+        echo "  ℹ️  Home server retired: VPS only (--homeserver to include it)." >&2
     fi
     return 0
 }

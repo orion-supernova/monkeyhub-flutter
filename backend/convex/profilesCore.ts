@@ -23,6 +23,7 @@ type ProfileFields = {
   username: string;
   avatarStorageId: any;
   avatarLevel: string | undefined;
+  feedLevels: Record<string, string> | undefined;
   deleted: boolean | undefined;
   isSystem: boolean | undefined;
 };
@@ -34,6 +35,25 @@ async function profileRow(ctx: any, userId: any) {
     .first();
 }
 
+/** The stored feed levels only (absent key = the reader's default). */
+function feedLevelsOf(user: any): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const k of ["feed", "points", "puzzle", "pointsPast"]) {
+    const x = user.visibility?.[k];
+    if (typeof x === "string") out[k] = x;
+  }
+  return out;
+}
+
+function sameField(a: any, b: any): boolean {
+  if (a === b) return true;
+  if (a && b && typeof a === "object" && typeof b === "object") {
+    const ka = Object.keys(a);
+    return ka.length === Object.keys(b).length && ka.every((k) => a[k] === b[k]);
+  }
+  return false;
+}
+
 /** The row `users` implies, or null when the user row is gone. */
 function desiredFrom(user: any): ProfileFields {
   if (user.deletingAt !== undefined) return TOMBSTONE;
@@ -42,6 +62,7 @@ function desiredFrom(user: any): ProfileFields {
     username: user.username,
     avatarStorageId: user.avatarStorageId,
     avatarLevel: user.visibility?.avatar,
+    feedLevels: feedLevelsOf(user),
     deleted: undefined,
     isSystem: isSystemAccount(user) ? true : undefined,
   };
@@ -52,6 +73,7 @@ const TOMBSTONE: ProfileFields = {
   username: "",
   avatarStorageId: undefined,
   avatarLevel: undefined,
+  feedLevels: {},
   deleted: true,
   isSystem: undefined,
 };
@@ -61,6 +83,7 @@ const FIELDS: (keyof ProfileFields)[] = [
   "username",
   "avatarStorageId",
   "avatarLevel",
+  "feedLevels",
   "deleted",
   "isSystem",
 ];
@@ -78,7 +101,7 @@ async function write(
   }
   const patch: Record<string, unknown> = {};
   for (const f of FIELDS) {
-    if (existing[f] !== want[f]) patch[f] = want[f];
+    if (!sameField(existing[f], want[f])) patch[f] = want[f];
   }
   if (Object.keys(patch).length === 0) return { changed: false };
   patch.updatedAt = Math.max((existing.updatedAt ?? 0) + 1, now);

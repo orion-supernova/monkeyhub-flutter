@@ -14,6 +14,7 @@ import {
 } from "./childGuard";
 import { ERR_SYSTEM_ACCOUNT, isSystemAccount } from "./systemAccount";
 import { lensFor, publicUserView } from "./visibility";
+import { personFor, relFromFriends } from "./profileView";
 import { ROLE_OWNER, addMembership } from "./roomAdmin";
 import { getLiveUser, isTombstoned } from "./deletionCore";
 import {
@@ -361,15 +362,19 @@ export const listFriends = query({
       .collect();
     const friendships = rows.filter((f) => f.status === "accepted");
 
-    const friends = (
-      await Promise.all(friendships.map((f) => ctx.db.get(f.friendId)))
-    ).filter((u) => !isTombstoned(u));
-    // Everyone here IS a friend of the viewer, so "friends" passes and only a
-    // "nobody" setting redacts — but the lens is still what decides that, not
-    // an assumption made in this handler.
-    const lens = await lensFor(ctx, userId);
-    const now = Date.now();
-    return friends.filter(Boolean).map((u) => publicUserView(lens, u!, now));
+    // B6 (handbook R2): name/photo from `profiles`, status from `presence`,
+    // and the privacy relationship from the friendships already read above
+    // (everyone here IS a friend; one guardianships scan finds the wards), so
+    // this follows neither the users rows nor three more friendship scans.
+    const rel = await relFromFriends(
+      ctx,
+      userId,
+      friendships.map((f) => f.friendId),
+    );
+    const people = await Promise.all(
+      friendships.map((f) => personFor(ctx, rel, f.friendId)),
+    );
+    return people.filter(Boolean);
   },
 });
 

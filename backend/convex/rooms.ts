@@ -31,6 +31,7 @@ import {
   assertNotRemoved,
 } from "./roomAdmin";
 import { grantRoomAccess } from "./roomAccess";
+import { personFor } from "./profileView";
 import {
   assertNotLocked,
   clearFailures,
@@ -695,17 +696,20 @@ export const getMembers = query({
     // Members only; the roster is already read, so this costs nothing.
     if (!members.some((m) => m.userId === viewerUserId)) return [];
     const lens = await lensFor(ctx, viewerUserId);
-    const now = Date.now();
+    // B6 (handbook R2): name/photo from `profiles`, status from `presence`.
+    // The relationship comes from the lens (friendships + guardianships), so a
+    // users-row write (profile, presence mirror, anything) no longer re-runs
+    // this for the whole room.
     const users = await Promise.all(
       members.map(async (m) => {
-        const user = await ctx.db.get(m.userId);
         // A scrubbed ghost (account deletion in flight) is not a member to show.
-        if (!user || isTombstoned(user)) return null;
+        const person = await personFor(ctx, lens, m.userId);
+        if (!person) return null;
         return {
           // No `email`. Sharing a room with someone is not consent to hand
           // them your address — a public room would have leaked it to every
           // member. users.getProfile serves it to self only.
-          ...publicUserView(lens, user, now),
+          ...person,
           role: m.role,
           // When they joined, not who they are — and not redacted with the
           // rest, because it says nothing about the person: everyone in the

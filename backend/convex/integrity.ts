@@ -403,6 +403,17 @@ async function finish(
   run: { _id: Id<"integrityRuns"> },
 ) {
   await ctx.db.patch(run._id, { status: "done", finishedAt: Date.now() });
+  // A deleted file still cacheable at the edge after an hour: the purge queue
+  // is stuck (Cloudflare unreachable, or CF_PURGE_TOKEN unset).
+  const stuckPurge = await ctx.db
+    .query("cdnPurges")
+    .withIndex("by_enqueuedAt", (q) => q.lt("enqueuedAt", Date.now() - 60 * 60 * 1000))
+    .first();
+  if (stuckPurge) {
+    console.warn(
+      `[integrity] cdnPurges: rows older than 1 hour (oldest enqueued ${new Date(stuckPurge.enqueuedAt).toISOString()}, attempts ${stuckPurge.attempts})`,
+    );
+  }
   const s = summarize({ counts: await countsOf(ctx, run._id) });
   if (s.violations.length > 0) {
     // Ids and counts only, never user data.

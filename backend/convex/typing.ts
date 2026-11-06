@@ -1,6 +1,6 @@
 import { mutation, query } from "./functions";
 import { v } from "convex/values";
-import { lensFor } from "./visibility";
+import { canSeeAs } from "./visibilityPoint";
 import { canReadRoom } from "./roomAccess";
 import { copiesOn, nameResolver } from "./profileCopyGate";
 
@@ -45,8 +45,7 @@ const TYPING_REFRESH_MS = 4000;
  * from the row supplies, so this reuses the one real privacy check in
  * `visibility.ts` rather than re-deriving it.
  */
-function typistOf(lens: any, row: any, name: string, face: any) {
-  const subject = { _id: row.userId, visibility: { avatar: face.level } };
+function typistOf(canSeeAvatar: boolean, row: any, name: string, face: any) {
   return {
     _id: row.userId,
     username: "",
@@ -58,10 +57,28 @@ function typistOf(lens: any, row: any, name: string, face: any) {
     // later was served that cached answer. The client hides the typist once
     // this passes (see `ChatRepository.typingIn`). Old builds ignore it.
     typingUntil: row.updatedAt + TYPING_TTL_MS,
-    avatarStorageId: lens.canSee(subject, "avatar")
-      ? face.avatarStorageId
-      : undefined,
+    avatarStorageId: canSeeAvatar ? face.avatarStorageId : undefined,
   };
+}
+
+/** Most live typists one room read returns; a room never has this many at once. */
+const MAX_LIVE_TYPISTS = 20;
+/** Most rooms one `getTypingForUser` call may watch via `roomIds`. */
+export const TYPING_ROOM_IDS_CAP = 30;
+
+/**
+ * The room's rows that are still true, read as an index RANGE so expired rows
+ * (people who stopped typing long ago, and rows `clearTyping` zeroed) are
+ * outside what the subscription reads at all, instead of being collected and
+ * filtered. Costs ~one doc per live typist, not one per person who ever typed.
+ */
+async function liveTypingRows(ctx: any, roomId: any, now: number) {
+  return await ctx.db
+    .query("typingIndicators")
+    .withIndex("by_room_updated", (q: any) =>
+      q.eq("roomId", roomId).gt("updatedAt", now - TYPING_TTL_MS),
+    )
+    .take(MAX_LIVE_TYPISTS);
 }
 
 /**
@@ -176,10 +193,20 @@ export const getTypingForUser = query({
      * people's hands read every key of the bare map as a room.
      */
     withUntil: v.optional(v.boolean()),
+    /**
+     * The rooms on screen (capped at [TYPING_ROOM_IDS_CAP]). When given, access
+     * is one point read per room and nothing else is read: no scan of the
+     * viewer's `roomMembers` rows, which every read/delivery/pin/mute write
+     * would otherwise re-run. Absent = the old whole-session scan, for builds
+     * that do not send it.
+     */
+    roomIds: v.optional(v.array(v.id("rooms"))),
   },
-  handler: async (ctx, { userId, roomId, withUntil }) => {
+  handler: async (ctx, { userId, roomId, withUntil, roomIds }) => {
     const now = Date.now();
-    const memberships = roomId
+    const memberships: { roomId: any }[] = roomIds
+      ? []
+      : roomId
       ? await ctx.db
           .query("roomMembers")
           .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
@@ -189,20 +216,24 @@ export const getTypingForUser = query({
           .withIndex("by_user", (q) => q.eq("userId", userId))
           .collect();
 
+    if (roomIds) {
+      const seen = new Set<string>();
+      for (const id of roomIds.slice(0, TYPING_ROOM_IDS_CAP)) {
+        if (seen.has(id.toString())) continue;
+        seen.add(id.toString());
+        if (await canReadRoom(ctx, id, userId)) memberships.push({ roomId: id });
+      }
+    }
+
     const result: Record<string, string[]> = {};
     const until: Record<string, number> = {};
     // One profile lookup per distinct typist across every room.
     const nameFor = nameResolver(ctx);
     for (const m of memberships) {
-      const indicators = await ctx.db
-        .query("typingIndicators")
-        .withIndex("by_room_user", (q) => q.eq("roomId", m.roomId))
-        .collect();
+      const indicators = await liveTypingRows(ctx, m.roomId, now);
 
       const active = indicators.filter(
-        (t) =>
-          t.userId.toString() !== userId.toString() &&
-          now - t.updatedAt < TYPING_TTL_MS
+        (t: any) => t.userId.toString() !== userId.toString(),
       );
 
       if (active.length > 0) {
@@ -210,12 +241,12 @@ export const getTypingForUser = query({
         // `userName` yet — they age out of the TTL within seconds, same as
         // any other stale row, rather than being resolved with a users read.
         const names = (
-          await Promise.all(active.map((t) => nameFor(t.userId, t.userName)))
+          await Promise.all(active.map((t: any) => nameFor(t.userId, t.userName)))
         ).filter((n): n is string => Boolean(n));
         if (names.length > 0) {
           result[m.roomId.toString()] = names;
           until[m.roomId.toString()] =
-            Math.max(...active.map((t) => t.updatedAt)) + TYPING_TTL_MS;
+            Math.max(...active.map((t: any) => t.updatedAt)) + TYPING_TTL_MS;
         }
       }
     }
@@ -228,29 +259,33 @@ export const getTypingUsers = query({
   handler: async (ctx, { roomId, currentUserId, userId }) => {
     if (!(await canReadRoom(ctx, roomId, userId))) return [];
     const now = Date.now();
-    const indicators = await ctx.db
-      .query("typingIndicators")
-      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
-      .collect();
+    const indicators = await liveTypingRows(ctx, roomId, now);
 
-    // Filter out stale entries and self
+    // Self is dropped; expired rows were never read (see `liveTypingRows`).
     const active = indicators.filter(
-      (t) =>
-        t.userId.toString() !== currentUserId.toString() &&
-        now - t.updatedAt < TYPING_TTL_MS
+      (t: any) => t.userId.toString() !== currentUserId.toString(),
     );
 
-    const lens = await lensFor(ctx, currentUserId);
     // Legacy rows written a moment before this field existed have no
     // `userName` yet — they age out of the TTL within seconds, same as any
     // other stale row, rather than being resolved with a users read.
     const nameFor = nameResolver(ctx);
     const typists = await Promise.all(
-      active.map(async (t) => {
+      active.map(async (t: any) => {
         const name = await nameFor(t.userId, t.userName);
         // A deleted (or unresolvable) typist is not shown.
         if (name === "") return null;
-        return typistOf(lens, t, name, await faceOf(ctx, t));
+        const face = await faceOf(ctx, t);
+        // Point probes for the 1-2 typists, not `lensFor`'s scan of every
+        // friendship the viewer has.
+        const canSeeAvatar = await canSeeAs(
+          ctx,
+          currentUserId,
+          t.userId,
+          face.level,
+          "avatar",
+        );
+        return typistOf(canSeeAvatar, t, name, face);
       }),
     );
     return typists.filter((x) => x !== null);

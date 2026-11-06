@@ -4,6 +4,7 @@ import {
 } from "./childGuard";
 import { resolveMute } from "./mute";
 import { isTombstoned } from "./deletionCore";
+import { computePendingCounts } from "./userDerivedCore";
 
 /**
  * Per-room unread counts and the single "needs attention" number that drives
@@ -82,6 +83,61 @@ export async function unreadForRoom(
 }
 
 /**
+ * The unread-messages share of the badge, and the per-room breakdown. Isolated
+ * so the read-cursor redesign can replace it without touching the rest.
+ */
+async function unreadBadgePart(
+  ctx: any,
+  userId: any,
+): Promise<{ unread: number; perRoom: Array<{ roomId: any; count: number }> }> {
+  const memberships = await ctx.db
+    .query("roomMembers")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .collect();
+
+  const now = Date.now();
+  const perRoom: Array<{ roomId: any; count: number }> = [];
+  let unread = 0;
+  for (const m of memberships) {
+    if (resolveMute(m, now).badges) continue;
+    const room = await ctx.db.get(m.roomId);
+    // A room being deleted counts for nothing (row already in hand).
+    if (!room || isTombstoned(room)) continue;
+    const { count } = await unreadForRoom(
+      ctx,
+      m.roomId,
+      userId,
+      m.lastReadAt,
+      room.lastMessageTime,
+    );
+    if (count > 0) {
+      perRoom.push({ roomId: m.roomId, count });
+      unread += count;
+    }
+  }
+  return { unread, perRoom };
+}
+
+/**
+ * Pending friend requests and group invites released to this person (the same
+ * `isReleasedToRecipient` gate as before). Reads the derived `userBadgeCounts`
+ * row, kept by the `friendships`/`roomInvitations` write hooks; a user with no
+ * row yet gets the scan (every friendship pointing at them) until the backfill
+ * reaches them.
+ */
+async function pendingBadgePart(
+  ctx: any,
+  userId: any,
+): Promise<{ requests: number; invites: number }> {
+  const row = await ctx.db
+    .query("userBadgeCounts")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .first();
+  if (row) return { requests: row.requests, invites: row.invites };
+  return await computePendingCounts(ctx.db, userId);
+}
+
+/**
  * Everything the badge aggregates for one user: unread messages across every
  * room they're in, plus friend/direct requests sitting in their queue.
  *
@@ -111,53 +167,8 @@ export async function badgeTotalFor(
   total: number;
   perRoom: Array<{ roomId: any; count: number }>;
 }> {
-  const memberships = await ctx.db
-    .query("roomMembers")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .collect();
-
-  const now = Date.now();
-  const perRoom: Array<{ roomId: any; count: number }> = [];
-  let unread = 0;
-  for (const m of memberships) {
-    if (resolveMute(m, now).badges) continue;
-    const room = await ctx.db.get(m.roomId);
-    // A room being deleted counts for nothing (row already in hand).
-    if (!room || isTombstoned(room)) continue;
-    const { count } = await unreadForRoom(
-      ctx,
-      m.roomId,
-      userId,
-      m.lastReadAt,
-      room.lastMessageTime,
-    );
-    if (count > 0) {
-      perRoom.push({ roomId: m.roomId, count });
-      unread += count;
-    }
-  }
-
-  const friendRows = await ctx.db
-    .query("friendships")
-    .withIndex("by_friend", (q: any) => q.eq("friendId", userId))
-    .collect();
-  const requests = friendRows.filter(
-    (f: any) => f.status === "pending" && isReleasedToRecipient(f.stage),
-  ).length;
-
-  // Group invites, on the same terms as friend requests: only the ones a
-  // guardian has actually released to this person. An invite still sitting at
-  // a guardian hop belongs on the GUARDIAN's badge, counted below, and must
-  // not appear on the invitee's — they are not allowed to know it exists yet.
-  const inviteRows = await ctx.db
-    .query("roomInvitations")
-    .withIndex("by_invitee_status", (q: any) =>
-      q.eq("inviteeId", userId).eq("status", "pending"),
-    )
-    .collect();
-  const invites = inviteRows.filter((r: any) =>
-    isReleasedToRecipient(r.stage),
-  ).length;
+  const { unread, perRoom } = await unreadBadgePart(ctx, userId);
+  const { requests, invites } = await pendingBadgePart(ctx, userId);
 
   // Anything waiting on this person AS A GUARDIAN.
   //

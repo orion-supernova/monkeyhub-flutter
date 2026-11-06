@@ -11,6 +11,7 @@ import { MAX_GUESSES, SLOTS, answerFor, pegsForSlots, score } from "./puzzle";
 import { getLiveUser } from "./deletionCore";
 import { deleteMomentCore } from "./momentCleanup";
 import { lensFor } from "./visibility";
+import { profileOf, userLikeOfProfile } from "./profileView";
 import { byNameThenId, competitionPlaces } from "./ranking";
 import { copiesOn } from "./profileCopyGate";
 
@@ -240,6 +241,9 @@ async function identityOfProfile(ctx: any, userId: any): Promise<Identity> {
   return identityOfRow(await ctx.db.get(userId));
 }
 
+/** Most reactions one moment contributes to the board payload. */
+export const BOARD_REACTIONS_CAP = 300;
+
 /** What [momentView] needs to shape reactors; see [reactorLens]. */
 type ReactorLens = {
   lens: Awaited<ReturnType<typeof lensFor>>;
@@ -295,7 +299,15 @@ async function reactorLens(
       }
       if (missing.size === 0) return;
       const ids = [...missing];
-      const docs = await Promise.all(ids.map((id) => ctx.db.get(id as any)));
+      // B6 (R2): a reactor's name and photo level come from `profiles`, so a
+      // reactor's presence or any other users write does not re-run the board.
+      // Until `backfillProfiles` has made the row, the users row stands in.
+      const docs = await Promise.all(
+        ids.map(async (id) => {
+          const p = await profileOf(ctx, id);
+          return p ? userLikeOfProfile(p) : await ctx.db.get(id as any);
+        }),
+      );
       ids.forEach((id, i) => people.set(id, docs[i]));
     },
   };
@@ -426,7 +438,15 @@ export const board = query({
         // on a friend's presence heartbeat. Accepted as the cost of the
         // settings being real; denormalizing a privacy flag onto every moment
         // would mean a change to it silently not applying to older rows.
-        const author = await ctx.db.get(authorId);
+        // B6 (R2): the friend's PROFILE row (name, photo level, and the feed
+        // levels copied there by syncProfile), not their users row, so presence
+        // and every other users write stop re-running the board. A profile not
+        // yet synced for the feed levels falls back to the users row.
+        const prof = await profileOf(ctx, authorId);
+        const author =
+          prof && prof.feedLevels !== undefined
+            ? userLikeOfProfile(prof)
+            : await ctx.db.get(authorId);
         // A friend being deleted drops off the board at once (the row is
         // already in hand, so this costs no read).
         if (!author || author.deletingAt !== undefined) continue;
@@ -479,10 +499,12 @@ export const board = query({
           continue;
         }
 
+        // Bounded (R4): the board renders per-emoji counts and a reactor
+        // list, never the full roll of a runaway moment.
         const reactions = await ctx.db
           .query("momentReactions")
           .withIndex("by_moment", (q: any) => q.eq("momentId", m._id))
-          .collect();
+          .take(BOARD_REACTIONS_CAP);
         await reactors.prepare(reactions);
 
         const seenRow = mine
@@ -528,9 +550,15 @@ export const board = query({
       const isMe = playerId === userId;
       let playerName = "";
       if (!isMe) {
-        const player = authors.has(playerId)
-          ? authors.get(playerId)
-          : await ctx.db.get(playerId);
+        let player = authors.get(playerId);
+        if (!player) {
+          // Not loaded above (a friend who was skipped there): profile first.
+          const prof = await profileOf(ctx, playerId);
+          player =
+            prof && prof.feedLevels !== undefined
+              ? userLikeOfProfile(prof)
+              : await ctx.db.get(playerId);
+        }
         if (!player) continue;
         if (!visibilityOf(player).puzzle) continue;
         // The scoreboard needs a name, and this row is already loaded for the

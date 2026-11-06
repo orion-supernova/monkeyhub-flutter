@@ -7,6 +7,7 @@ import { consume } from "./rateLimit";
 import { internal } from "./_generated/api";
 import { cursorOf, pageAfter } from "./deletionCore";
 import { FILE_FIELDS } from "./referenceRules";
+import { enqueuePurge } from "./cdnPurge";
 
 // Kept importable from here for the call sites; the table lives in referenceRules.ts.
 export { FILE_FIELDS };
@@ -283,7 +284,7 @@ export const sweepUnclaimed = internalMutation({
         });
         continue;
       }
-      await ctx.storage.delete(f._id);
+      await destroy(ctx, f._id);
       deleted++;
     }
     const cursor = page.length > 0 ? page[page.length - 1]._creationTime : from;
@@ -603,13 +604,18 @@ export async function legacyInUse(ctx: any, storageId: any, except?: FileHolder)
   return false;
 }
 
-/** Deletes the file and its ledger row. Not checked: callers decide. */
+/**
+ * Deletes the file and its ledger row, and queues its public URL for a CDN
+ * purge. Not checked: callers decide. THE choke point: nothing else may call
+ * `ctx.storage.delete` (guarded by cdnPurge.test.ts).
+ */
 export async function destroy(ctx: any, storageId: any): Promise<void> {
   if (!storageId) return;
   await releaseLedger(ctx, storageId);
   try {
     await ctx.storage.delete(storageId);
   } catch (_) {/* already gone */}
+  await enqueuePurge(ctx, storageId);
 }
 
 /**
