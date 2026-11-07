@@ -18,6 +18,7 @@ void main() {
       bool lowTier = false,
       bool android = false,
       bool materialReady = false,
+      bool mobile = false,
     }) =>
         UiKits.resolveWith(
           choice,
@@ -25,6 +26,7 @@ void main() {
           lowTier: lowTier,
           android: android,
           materialReady: materialReady,
+          mobile: mobile,
         );
 
     test('automatic: iOS 26 gets Liquid Glass, even on a low-RAM phone', () {
@@ -42,8 +44,8 @@ void main() {
       expect(resolve(null, android: true), UiKit.glass,
           reason: 'Material needs a ready kit');
       expect(resolve(null, android: true, materialReady: true), UiKit.material);
-      expect(resolve(null, materialReady: true), UiKit.glass,
-          reason: 'Material is Android only');
+      expect(resolve(null, materialReady: true, mobile: true), UiKit.glass,
+          reason: 'Automatic gives Material to Android only, not iOS');
     });
 
     test('an explicit choice wins when the device can draw it', () {
@@ -57,7 +59,14 @@ void main() {
       expect(resolve(UiKit.liquid, lowTier: true), UiKit.lite);
       expect(resolve(UiKit.material, android: true), UiKit.glass);
       expect(resolve(UiKit.material, materialReady: true), UiKit.glass,
-          reason: 'not on iOS or desktop');
+          reason: 'not on web or desktop');
+      expect(resolve(UiKit.material, materialReady: true, mobile: true),
+          UiKit.material,
+          reason: 'iOS may choose it, just for fun');
+      expect(resolve(UiKit.material, materialReady: true, mobile: true,
+              nativeGlass: true),
+          UiKit.material,
+          reason: 'even on iOS 26');
       expect(resolve(UiKit.material, android: true, materialReady: true),
           UiKit.material);
       expect(
@@ -68,15 +77,25 @@ void main() {
     });
   });
 
-  test('the Material kit is built and offered on Android only', () {
+  test('the Material kit is offered on phones (Android, iOS), never desktop or web',
+      () {
     expect(UiKits.materialReady, isTrue);
     // flutter_test reports Android by default.
     expect(UiKits.available(UiKit.material), isTrue);
     expect(UiKits.offered, contains(UiKit.material));
-    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     try {
-      expect(UiKits.available(UiKit.material), isFalse);
-      expect(UiKits.offered, isNot(contains(UiKit.material)));
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      expect(UiKits.available(UiKit.material), isTrue);
+      expect(UiKits.offered, contains(UiKit.material));
+      for (final p in [
+        TargetPlatform.macOS,
+        TargetPlatform.windows,
+        TargetPlatform.linux,
+      ]) {
+        debugDefaultTargetPlatformOverride = p;
+        expect(UiKits.available(UiKit.material), isFalse, reason: '$p');
+        expect(UiKits.offered, isNot(contains(UiKit.material)), reason: '$p');
+      }
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }

@@ -4427,5 +4427,7 @@
   "nativeScopeEverythingBody": "الأزرار والمفاتيح والقوائم والحقول وغيرها يرسمها iOS",
   "nativeScopeTabBarTitle": "شريط التبويب فقط",
   "nativeScopeTabBarBody": "يرسم iOS شريط التبويب ويرسم التطبيق الباقي",
-  "controlsLabTitle": "مختبر عناصر التحكم"
+  "controlsLabTitle": "مختبر عناصر التحكم",
+  "glassInteractiveTitle": "زجاج تفاعلي",
+  "glassInteractiveBody": "يتفاعل الزجاج مع إصبعك: ينضغط ويتمدد ويضيء عند موضع اللمس."
 }

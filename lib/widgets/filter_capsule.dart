@@ -6,6 +6,8 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
 import '../ui/kits/material/material_kit_theme.dart';
+import '../ui/kits/shader/shader_skin.dart';
+import '../theme/app_theme.dart';
 import '../ui/native/native_control.dart';
 import 'odometer_number.dart';
 import 'spring_press.dart';
@@ -58,6 +60,7 @@ class FilterCapsule extends StatelessWidget {
   Widget build(BuildContext context) => KitSwitch(
     glass: _glass,
     material: _material,
+    shader: _shader,
     // A real iOS 26 glass capsule; a colour mark or a custom fill keeps the
     // Flutter skin, which can draw them.
     liquid: NativeControl.readyIn(context) &&
@@ -158,10 +161,6 @@ class FilterCapsule extends StatelessWidget {
   Widget _glass(BuildContext context) {
     final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
-    final onFill = activeInk ?? theme.accentInk;
-    final n = count;
-    final empty = n == 0;
-    final showCount = n != null && (n > 0 || showZeroCount);
     return FocusableTap(
       onTap: onTap == null ? null : _tap,
       semanticLabel: semanticLabel ?? label,
@@ -191,49 +190,92 @@ class FilterCapsule extends StatelessWidget {
               ),
               // Hugs its label (a Container `alignment` would stretch the
               // capsule across a Wrap); centred in whatever height it is given.
-              child: Center(
-                widthFactor: 1,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (leading != null) ...[
-                      leading!,
-                      const SizedBox(width: 6),
-                    ],
-                    AnimatedDefaultTextStyle(
-                      duration: motion.d(theme.motionFast),
-                      style: theme.bodySoft.copyWith(
-                        fontSize: 15,
-                        fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                        letterSpacing: -0.2,
-                        color: active
-                            ? onFill
-                            // A filter matching nothing is dimmed rather than
-                            // hidden — a row that reshuffled itself every time a
-                            // count hit zero would be impossible to aim at.
-                            : (empty ? theme.inkMuted : theme.inkSoft),
-                      ),
-                      child: Text(label),
-                    ),
-                    if (showCount) ...[
-                      const SizedBox(width: 5),
-                      // Rolls as the count moves under a live list.
-                      OdometerNumber(
-                        value: n,
-                        // The body face, not the caption slot (tracked mono on
-                        // a character theme).
-                        style: theme.bodySoft.copyWith(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                          color: active
-                              ? onFill.withValues(alpha: 0.75)
-                              : theme.inkMuted,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+              child: _content(context, theme, motion),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The leading mark, label and count, shared by the glass and shader skins.
+  Widget _content(BuildContext context, AppTheme theme, MotionScope motion) {
+    final onFill = activeInk ?? theme.accentInk;
+    final n = count;
+    final empty = n == 0;
+    final showCount = n != null && (n > 0 || showZeroCount);
+    return Center(
+      widthFactor: 1,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (leading != null) ...[
+            leading!,
+            const SizedBox(width: 6),
+          ],
+          AnimatedDefaultTextStyle(
+            duration: motion.d(theme.motionFast),
+            style: theme.bodySoft.copyWith(
+              fontSize: 15,
+              fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+              letterSpacing: -0.2,
+              color: active
+                  ? onFill
+                  // A filter matching nothing is dimmed rather than
+                  // hidden — a row that reshuffled itself every time a
+                  // count hit zero would be impossible to aim at.
+                  : (empty ? theme.inkMuted : theme.inkSoft),
+            ),
+            child: Text(label),
+          ),
+          if (showCount) ...[
+            const SizedBox(width: 5),
+            // Rolls as the count moves under a live list.
+            OdometerNumber(
+              value: n,
+              // The body face, not the caption slot (tracked mono on
+              // a character theme).
+              style: theme.bodySoft.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                fontFeatures: const [FontFeature.tabularFigures()],
+                color: active
+                    ? onFill.withValues(alpha: 0.75)
+                    : theme.inkMuted,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// The [UiKit.shader] skin: the package's glass button as a capsule, tinted
+  /// when on. Same label, count, leading mark, haptic and semantics.
+  Widget _shader(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
+    return Semantics(
+      button: true,
+      selected: active,
+      enabled: onTap != null,
+      label: semanticLabel ?? label,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onLongPress: onLongPress,
+        child: Opacity(
+          opacity: faded && !active ? 0.5 : 1,
+          child: ShaderSkin.button(
+            context,
+            shape: ShaderSkin.capsule,
+            tint: active ? (activeColor ?? theme.accent) : null,
+            enabled: true,
+            onTap: onTap == null ? () {} : _tap,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(leading == null ? 14 : 11, 0, 14, 0),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 34),
+                child: _content(context, theme, motion),
               ),
             ),
           ),

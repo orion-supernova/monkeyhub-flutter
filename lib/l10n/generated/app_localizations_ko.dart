@@ -15513,4 +15513,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get controlsLabTitle => '컨트롤 랩';
+
+  @override
+  String get glassInteractiveTitle => '인터랙티브 글라스';
+
+  @override
+  String get glassInteractiveBody => '글라스가 손가락에 반응합니다. 눌리고, 늘어나고, 닿은 곳이 빛납니다.';
 }

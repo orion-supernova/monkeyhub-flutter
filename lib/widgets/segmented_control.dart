@@ -14,6 +14,7 @@ import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
 import '../ui/native/native_control.dart';
 import '../ui/kits/material/material_kit_theme.dart';
+import '../ui/kits/shader/shader_skin.dart';
 import 'fit_label.dart';
 
 /// One option of an [IosSegmentedControl].
@@ -156,7 +157,36 @@ class _IosSegmentedControlState<T> extends State<IosSegmentedControl<T>> {
                 segments.every((s) => s.icon == null && !s.badge)
             ? _liquid
             : null,
+        // Icons, badges and a value outside the list keep the glass skin.
+        shader: _valueIndex >= 0 &&
+                segments.every((s) => s.icon == null && !s.badge)
+            ? _shader
+            : null,
       );
+
+  /// The [UiKit.shader] skin: the package's glass segmented control. Same
+  /// commit rule (delivered a frame after the tap), same haptic.
+  Widget _shader(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final base = theme.body.copyWith(
+      fontSize: 13,
+      color: theme.ink,
+      decoration: TextDecoration.none,
+    );
+    return ShaderSkin.segmented(
+      context,
+      labels: [for (final s in segments) sentenceCaseOf(context, s.label)],
+      selected: _valueIndex,
+      onSelected: widget.onChanged == null
+          ? null
+          : (i) {
+              HapticFeedback.selectionClick();
+              _commit(i);
+            },
+      selectedStyle: base.copyWith(fontWeight: FontWeight.w600),
+      unselectedStyle: base.copyWith(fontWeight: FontWeight.w500),
+    );
+  }
 
   /// The [UiKit.liquid] skin: the system segmented control. Values travel as
   /// their index; the commit rule is the same as the glass skin's.

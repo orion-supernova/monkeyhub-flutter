@@ -4427,5 +4427,7 @@
   "nativeScopeEverythingBody": "按钮、开关、菜单、输入框等由 iOS 绘制",
   "nativeScopeTabBarTitle": "仅标签栏",
   "nativeScopeTabBarBody": "标签栏由 iOS 绘制，其余由应用绘制",
-  "controlsLabTitle": "控件实验室"
+  "controlsLabTitle": "控件实验室",
+  "glassInteractiveTitle": "交互式玻璃",
+  "glassInteractiveBody": "玻璃会对手指做出反应：按下时凹陷、拉伸，触摸处会亮起。"
 }

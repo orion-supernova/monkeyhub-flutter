@@ -16166,4 +16166,11 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get controlsLabTitle => 'कंट्रोल लैब';
+
+  @override
+  String get glassInteractiveTitle => 'इंटरैक्टिव ग्लास';
+
+  @override
+  String get glassInteractiveBody =>
+      'ग्लास आपकी उंगली पर प्रतिक्रिया करता है: वह दबता है, खिंचता है और जहां आप छूते हैं वहां चमकता है।';
 }

@@ -15,6 +15,7 @@ import '../ui/foundation/ui_kit.dart';
 import '../ui/native/native_control.dart';
 import '../ui/native/native_cut.dart';
 import '../ui/kits/material/material_kit_theme.dart';
+import '../ui/kits/shader/shader_skin.dart';
 import 'count_badge.dart' show CountBadge;
 import 'glass_buttons.dart';
 import 'spring_press.dart';
@@ -978,7 +979,26 @@ class RowSwitch extends StatelessWidget {
         glass: _glass,
         material: _material,
         liquid: NativeControl.readyIn(context) ? _liquid : null,
+        shader: _shader,
       );
+
+  /// The [UiKit.shader] skin: the package's glass switch. Same haptic rule
+  /// and read-only rule as the glass skin.
+  Widget _shader(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return ShaderSkin.toggle(
+      context,
+      value: value,
+      activeColor: theme.success,
+      inactiveColor: theme.ink.withValues(alpha: 0.16),
+      onChanged: onChanged == null
+          ? null
+          : (v) {
+              onChanged!(v);
+              HapticFeedback.lightImpact();
+            },
+    );
+  }
 
   /// The [UiKit.liquid] skin: the system switch itself (a UISwitch), which
   /// plays its own haptic.

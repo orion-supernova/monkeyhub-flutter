@@ -16231,4 +16231,11 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get controlsLabTitle => 'Kontrollabb';
+
+  @override
+  String get glassInteractiveTitle => 'Interaktivt glas';
+
+  @override
+  String get glassInteractiveBody =>
+      'Glaset reagerar på ditt finger: det trycks in, töjs och lyser upp där du rör.';
 }

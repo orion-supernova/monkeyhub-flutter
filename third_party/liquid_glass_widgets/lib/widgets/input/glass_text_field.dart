@@ -111,6 +111,12 @@ class GlassTextField extends StatefulWidget {
     this.glowColor,
     this.glowRadius = 1.5,
     this.onTapOutside,
+    // MONKEYHUB PATCH: pass-through of the text input knobs the package drops.
+    this.textCapitalization = TextCapitalization.none,
+    this.autocorrect = true,
+    this.enableSuggestions = true,
+    this.autofillHints,
+    this.keyboardAppearance,
   }) : assert(
           height == null || (minHeight == null && maxHeight == null),
           'height is mutually exclusive with minHeight / maxHeight. '
@@ -151,6 +157,12 @@ class GlassTextField extends StatefulWidget {
     this.glowColor,
     this.glowRadius = 1.5,
     this.onTapOutside,
+    // MONKEYHUB PATCH: pass-through of the text input knobs the package drops.
+    this.textCapitalization = TextCapitalization.none,
+    this.autocorrect = true,
+    this.enableSuggestions = true,
+    this.autofillHints,
+    this.keyboardAppearance,
   })  : obscureText = false,
         keyboardType = TextInputType.text,
         textInputAction = TextInputAction.search,
@@ -239,6 +251,21 @@ class GlassTextField extends StatefulWidget {
   ///
   /// Defaults to unfocusing the field, which dismisses the keyboard.
   final TapRegionCallback? onTapOutside;
+
+  /// MONKEYHUB PATCH: capitalization, forwarded to the inner field.
+  final TextCapitalization textCapitalization;
+
+  /// MONKEYHUB PATCH: autocorrect, forwarded to the inner field.
+  final bool autocorrect;
+
+  /// MONKEYHUB PATCH: suggestions, forwarded to the inner field.
+  final bool enableSuggestions;
+
+  /// MONKEYHUB PATCH: autofill hints, forwarded to the inner field.
+  final Iterable<String>? autofillHints;
+
+  /// MONKEYHUB PATCH: keyboard appearance, forwarded to the inner field.
+  final Brightness? keyboardAppearance;
 
   /// Called when the number of rendered text lines changes.
   ///
@@ -685,6 +712,11 @@ class _GlassTextFieldState extends State<GlassTextField> {
             controller: widget.controller,
             focusNode: _focusNode,
             obscureText: widget.obscureText,
+            textCapitalization: widget.textCapitalization,
+            autocorrect: widget.autocorrect,
+            enableSuggestions: widget.enableSuggestions,
+            autofillHints: widget.autofillHints,
+            keyboardAppearance: widget.keyboardAppearance,
             keyboardType: widget.keyboardType,
             textInputAction: widget.textInputAction,
             maxLines: widget.maxLines,

@@ -26724,6 +26724,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Controls lab'**
   String get controlsLabTitle;
+
+  /// Settings > Glass switch title (shown under Liquid Glass and Shader glass): whether glass reacts to a press.
+  ///
+  /// In en, this message translates to:
+  /// **'Interactive glass'**
+  String get glassInteractiveTitle;
+
+  /// Settings > Glass switch subtitle under Interactive glass.
+  ///
+  /// In en, this message translates to:
+  /// **'Glass reacts to your finger: it presses in, stretches and lights up where you touch.'**
+  String get glassInteractiveBody;
 }
 
 class _AppLocalizationsDelegate

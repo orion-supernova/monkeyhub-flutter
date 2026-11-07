@@ -4427,5 +4427,7 @@
   "nativeScopeEverythingBody": "ボタン、スイッチ、メニュー、入力欄などをiOSが描画します",
   "nativeScopeTabBarTitle": "タブバーのみ",
   "nativeScopeTabBarBody": "タブバーはiOS、そのほかはアプリが描画します",
-  "controlsLabTitle": "コントロールラボ"
+  "controlsLabTitle": "コントロールラボ",
+  "glassInteractiveTitle": "インタラクティブガラス",
+  "glassInteractiveBody": "ガラスが指に反応します。押し込まれ、伸び、触れた場所が光ります。"
 }

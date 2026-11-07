@@ -748,6 +748,10 @@ class SheetPanel extends StatelessWidget {
         child: child,
       );
     }
+    // The shader kit's sheet is glass drawn by the route: no fill, no light.
+    if (UiKit.of(context) == UiKit.shader) {
+      return Container(constraints: constraints, child: child);
+    }
     return Container(
       constraints: constraints,
       child: CustomPaint(

@@ -4427,5 +4427,7 @@
   "nativeScopeEverythingBody": "Botões, interruptores, menus, campos e mais são desenhados pelo iOS",
   "nativeScopeTabBarTitle": "Só a barra de abas",
   "nativeScopeTabBarBody": "O iOS desenha a barra de abas, o app desenha o resto",
-  "controlsLabTitle": "Laboratório de controles"
+  "controlsLabTitle": "Laboratório de controles",
+  "glassInteractiveTitle": "Vidro interativo",
+  "glassInteractiveBody": "O vidro reage ao seu dedo: afunda, estica e acende onde você toca."
 }

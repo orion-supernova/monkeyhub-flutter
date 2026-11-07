@@ -19157,5 +19157,13 @@
   "controlsLabTitle": "Controls lab",
   "@controlsLabTitle": {
     "description": "Row at the bottom of Settings > Glass that opens a page listing every shared control in the active style (a developer and design review tool)."
+  },
+  "glassInteractiveTitle": "Interactive glass",
+  "@glassInteractiveTitle": {
+    "description": "Settings > Glass switch title (shown under Liquid Glass and Shader glass): whether glass reacts to a press."
+  },
+  "glassInteractiveBody": "Glass reacts to your finger: it presses in, stretches and lights up where you touch.",
+  "@glassInteractiveBody": {
+    "description": "Settings > Glass switch subtitle under Interactive glass."
   }
 }

@@ -4427,5 +4427,7 @@
   "nativeScopeEverythingBody": "Boutons, interrupteurs, menus, champs et plus sont dessinés par iOS",
   "nativeScopeTabBarTitle": "Seulement la barre d'onglets",
   "nativeScopeTabBarBody": "iOS dessine la barre d'onglets, l'app dessine le reste",
-  "controlsLabTitle": "Labo des commandes"
+  "controlsLabTitle": "Labo des commandes",
+  "glassInteractiveTitle": "Verre interactif",
+  "glassInteractiveBody": "Le verre réagit à votre doigt : il s’enfonce, s’étire et s’illumine là où vous touchez."
 }

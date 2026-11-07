@@ -10,6 +10,7 @@ import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
+import '../ui/kits/shader/shader_skin.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart';
 import '../ui/native/native_control.dart';
@@ -408,6 +409,28 @@ class _SearchFieldState extends State<SearchField> with RouteLanding {
         height: widget.compact ? searchFieldCompactHeight : searchFieldHeight,
         onChanged: widget.onChanged,
         onSubmitted: widget.onSubmitted,
+      );
+    }
+    // The shader kit's own glass search bar, for the plain field.
+    if (accessory == null &&
+        widget.heroTag == null &&
+        widget.onClear == null &&
+        UiKit.of(context) == UiKit.shader) {
+      return ShaderSkin.searchBar(
+        context,
+        controller: controller,
+        focusNode: _node,
+        placeholder: sentenceCaseOf(context, widget.hintText),
+        height: widget.compact ? searchFieldCompactHeight : searchFieldHeight,
+        style: groupedTitleStyle(theme).copyWith(
+          decoration: TextDecoration.none,
+        ),
+        hintStyle: groupedValueStyle(theme).copyWith(
+          decoration: TextDecoration.none,
+        ),
+        onChanged: widget.onChanged,
+        onSubmitted: widget.onSubmitted,
+        clearLabel: l10n.pullRevealClearSearchSemanticLabel,
       );
     }
     final input = TextField(

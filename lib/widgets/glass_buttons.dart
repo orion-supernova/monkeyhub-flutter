@@ -15,6 +15,7 @@ import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
 import '../ui/native/native_control.dart';
 import '../ui/kits/material/material_kit_theme.dart';
+import '../ui/kits/shader/shader_skin.dart';
 import 'hover_hint.dart';
 import 'liquid_glass.dart';
 import 'route_depth.dart';
@@ -175,6 +176,25 @@ class GlassIconButton extends StatelessWidget {
         onEvent: (event, _) {
           if (event == 'tap') onTap?.call();
         },
+      );
+    }
+    // The shader kit's own GlassButton: clear iOS 27 glass with the package's
+    // jelly press and glow. A still disc (on a sheet or card, which slide)
+    // keeps the blur-free chrome disc below.
+    if (tone == GlassTone.app && kit == UiKit.shader && !still) {
+      final theme = ThemeScope.of(context);
+      final ink = color ??
+          (tint != null
+              ? theme.accentInk
+              : (enabled ? theme.ink : theme.inkMuted));
+      return ShaderSkin.button(
+        context,
+        width: size,
+        height: size,
+        tint: tint,
+        label: semanticLabel ?? '',
+        onTap: onTap,
+        child: glyph ?? Icon(icon, size: iconSize, color: ink),
       );
     }
     // Real glass on pages, as it shipped in 1.3.114 — the user preferred it
@@ -654,6 +674,46 @@ class GlassPillButton extends StatelessWidget {
         },
       );
     }
+    final body = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (glyph != null) ...[
+            glyph!,
+            const SizedBox(width: 8),
+          ],
+          Text(
+            sentenceCaseOf(context, label),
+            style: TextStyle(
+              color: ink,
+              fontSize: type,
+              fontWeight: FontWeight.w500,
+              letterSpacing: -0.2,
+              // Explicit, not inherited: this chrome can float over a
+              // photo outside any Material, and must never fall back to
+              // Flutter's debug text style (yellow underlines).
+              decoration: TextDecoration.none,
+            ),
+          ),
+          if (icon != null && glyph == null) ...[
+            const SizedBox(width: 7),
+            Icon(icon, size: type, color: ink),
+          ],
+        ],
+      ),
+    );
+    if (tone == GlassTone.app && UiKit.of(context) == UiKit.shader) {
+      return ShaderSkin.button(
+        context,
+        shape: ShaderSkin.capsule,
+        height: height,
+        tint: t,
+        label: semanticLabel ?? label,
+        onTap: onTap,
+        child: body,
+      );
+    }
     return Semantics(
       button: true,
       enabled: enabled,
@@ -666,35 +726,7 @@ class GlassPillButton extends StatelessWidget {
         onTap: onTap,
         child: SizedBox(
           height: height,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (glyph != null) ...[
-                  glyph!,
-                  const SizedBox(width: 8),
-                ],
-                Text(
-                  sentenceCaseOf(context, label),
-                  style: TextStyle(
-                    color: ink,
-                    fontSize: type,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: -0.2,
-                    // Explicit, not inherited: this chrome can float over a
-                    // photo outside any Material, and must never fall back to
-                    // Flutter's debug text style (yellow underlines).
-                    decoration: TextDecoration.none,
-                  ),
-                ),
-                if (icon != null && glyph == null) ...[
-                  const SizedBox(width: 7),
-                  Icon(icon, size: type, color: ink),
-                ],
-              ],
-            ),
-          ),
+          child: body,
         ),
       ),
     );
@@ -770,7 +802,33 @@ class GlassButtonGroup extends StatelessWidget {
     liquid: NativeControl.readyIn(context) && _hasNativeForm(context)
         ? _liquid
         : null,
+    // Over photos (media tone) the group keeps its own dark recipe.
+    shader: tone == GlassTone.app ? _shader : null,
   );
+
+  /// The [UiKit.shader] skin: the package's merged button group. Each slot is
+  /// the same lit disc / glyph / label the glass skin draws, so a lit slot
+  /// still reads; the capsule takes the jelly press.
+  Widget _shader(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final lit = accent ?? theme.accent;
+    return ShaderSkin.group(
+      context,
+      slots: [
+        for (final item in items)
+          (
+            widget: _slotFace(item, lit, theme),
+            onTap: item.onTap == null
+                ? null
+                : () {
+                    if (haptic) HapticFeedback.selectionClick();
+                    item.onTap!();
+                  },
+            label: item.semanticLabel,
+          ),
+      ],
+    );
+  }
 
   /// Native only when every slot is a plain symbol: a lit slot, a text slot
   /// or a drawn glyph would lose information in the system capsule.
@@ -833,6 +891,22 @@ class GlassButtonGroup extends StatelessWidget {
 
   Widget _slot(GlassGroupItem item, Color lit, AppTheme theme) {
     final enabled = item.onTap != null;
+    final glyph = _glyphOf(item, theme);
+    // The label carries the state too ("HD: on"), which is just what a hover
+    // should say about a glyph.
+    return HoverHint(
+      label: item.semanticLabel,
+      enabled: enabled,
+      child: _slotPress(item, glyph, lit),
+    );
+  }
+
+  /// The lit disc, glyph or label of a slot, 38pt, without the press wrapper.
+  Widget _slotFace(GlassGroupItem item, Color lit, AppTheme theme) =>
+      _lit(item, _glyphOf(item, theme), lit);
+
+  Widget _glyphOf(GlassGroupItem item, AppTheme theme) {
+    final enabled = item.onTap != null;
     final media = tone == GlassTone.media;
     final Color ink;
     if (item.active) {
@@ -842,7 +916,7 @@ class GlassButtonGroup extends StatelessWidget {
     } else {
       ink = item.color ?? (media ? MediaGlass.ink : theme.ink);
     }
-    final glyph = item.glyph ??
+    return item.glyph ??
         (item.icon != null
         ? Icon(item.icon, size: 20, color: ink)
         : Text(
@@ -856,14 +930,21 @@ class GlassButtonGroup extends StatelessWidget {
               decoration: TextDecoration.none,
             ),
           ));
-    // The label carries the state too ("HD: on"), which is just what a hover
-    // should say about a glyph.
-    return HoverHint(
-      label: item.semanticLabel,
-      enabled: enabled,
-      child: _slotPress(item, glyph, lit),
-    );
   }
+
+  Widget _lit(GlassGroupItem item, Widget glyph, Color lit) =>
+      AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOut,
+        width: 38,
+        height: 38,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: item.active ? lit : const Color(0x00000000),
+          shape: BoxShape.circle,
+        ),
+        child: glyph,
+      );
 
   Widget _slotPress(GlassGroupItem item, Widget glyph, Color lit) {
     return SpringPress(
@@ -876,20 +957,7 @@ class GlassButtonGroup extends StatelessWidget {
       child: SizedBox(
         width: 44,
         height: 44,
-        child: Center(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            curve: Curves.easeOut,
-            width: 38,
-            height: 38,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: item.active ? lit : const Color(0x00000000),
-              shape: BoxShape.circle,
-            ),
-            child: glyph,
-          ),
-        ),
+        child: Center(child: _lit(item, glyph, lit)),
       ),
     );
   }

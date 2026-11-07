@@ -4427,5 +4427,7 @@
   "nativeScopeEverythingBody": "Knappar, reglage, menyer, fält och mer ritas av iOS",
   "nativeScopeTabBarTitle": "Bara flikfältet",
   "nativeScopeTabBarBody": "iOS ritar flikfältet, appen ritar resten",
-  "controlsLabTitle": "Kontrollabb"
+  "controlsLabTitle": "Kontrollabb",
+  "glassInteractiveTitle": "Interaktivt glas",
+  "glassInteractiveBody": "Glaset reagerar på ditt finger: det trycks in, töjs och lyser upp där du rör."
 }

@@ -16343,4 +16343,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get controlsLabTitle => 'Laboratorio de controles';
+
+  @override
+  String get glassInteractiveTitle => 'Cristal interactivo';
+
+  @override
+  String get glassInteractiveBody =>
+      'El cristal responde a tu dedo: se hunde, se estira y se ilumina donde tocas.';
 }

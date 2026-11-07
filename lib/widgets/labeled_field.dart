@@ -9,6 +9,7 @@ import '../theme/theme_scope.dart';
 import '../l10n/text_case.dart';
 import '../ui/foundation/ui_kit.dart';
 import '../ui/kits/material/material_kit_theme.dart';
+import '../ui/kits/shader/shader_skin.dart';
 import '../ui/native/native_control.dart';
 import '../ui/native/native_text_input.dart';
 import 'notice.dart';
@@ -399,7 +400,50 @@ class _TextBox extends StatelessWidget {
     glass: _glass,
     liquid: NativeControl.readyIn(context) && _hasNativeForm ? _liquid : null,
     material: _material,
+    // A custom fill (a field on a photo) keeps the glass skin.
+    shader: fill == null ? _shader : null,
   );
+
+  /// The [UiKit.shader] skin: the package's glass text field, the same
+  /// controller, focus node, keyboard and autofill settings as the glass skin.
+  Widget _shader(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final style = theme.body.copyWith(
+      color: theme.ink,
+      fontSize: 17,
+      height: textHeight,
+      decoration: TextDecoration.none,
+    );
+    return ShaderSkin.textField(
+      context,
+      controller: controller,
+      focusNode: focusNode,
+      style: style,
+      hintStyle: style.copyWith(color: theme.inkMuted),
+      placeholder: hint == null ? null : _hintText(context, hint!),
+      leading: leadingIcon == null
+          ? null
+          : Icon(leadingIcon, size: 18, color: theme.inkMuted),
+      trailing: trailing,
+      obscure: obscure,
+      minLines: minLines,
+      maxLines: maxLines,
+      maxLength: maxLength,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      textCapitalization: textCapitalization,
+      enabled: enabled,
+      autofocus: autofocus,
+      autocorrect: autocorrect,
+      enableSuggestions: enableSuggestions,
+      autofillHints: autofillHints,
+      keyboardAppearance:
+          keyboardAppearance ??
+          (theme.isLight ? Brightness.light : Brightness.dark),
+      onChanged: onChanged,
+      onSubmitted: onSubmitted,
+    );
+  }
 
   /// The native field is a single line with no custom widgets: multi-line
   /// growth, a character limit, a trailing widget or a custom fill keep the

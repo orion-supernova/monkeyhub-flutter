@@ -27,8 +27,9 @@ enum UiKit {
 
   /// Android's own design language: Flutter's Material 3 widgets, dressed in
   /// the current app theme's colours and fonts (`lib/ui/kits/material/`).
-  /// Android only: [UiKits.available] is false everywhere else. The one kit
-  /// with ripples.
+  /// Offered on Android and, as an opt-in, on iOS ([Caps.nativeMobile]);
+  /// [UiKits.available] is false on web and desktop. Automatic picks it on
+  /// Android only. The one kit with ripples.
   material,
 
   /// The low-end kit: no backdrop blur anywhere, opaque plates, no drop
@@ -100,7 +101,9 @@ abstract final class UiKits {
 
   /// The Material kit has skins for the core components (button, icon button,
   /// field, search, switch, segmented, chip, check, slider, spinner, sheet,
-  /// surface). It is drawn on Android only; see [available].
+  /// surface). It is drawn on phones and tablets (Android, and iOS "just for
+  /// fun"), never on web or desktop; see [available]. Only Android gets it
+  /// from Automatic.
   static const bool materialReady = true;
 
   /// Whether [kit] can be drawn on this device right now.
@@ -108,8 +111,8 @@ abstract final class UiKits {
     UiKit.glass => true,
     UiKit.lite => true,
     UiKit.liquid => Caps.nativeGlass,
-    UiKit.material => materialReady && Caps.android,
-    UiKit.shader => shaderUsable && (Caps.android || Caps.iOS),
+    UiKit.material => materialReady && Caps.nativeMobile,
+    UiKit.shader => shaderUsable && Caps.nativeMobile,
   };
 
   /// Whether the shader engine started. Flipped off by `ShaderGlassEngine`
@@ -148,7 +151,7 @@ abstract final class UiKits {
     bool can(UiKit k) => switch (k) {
       UiKit.glass || UiKit.lite => true,
       UiKit.liquid => nativeGlass,
-      UiKit.material => materialReady && android,
+      UiKit.material => materialReady && (android || mobile),
       UiKit.shader => mobile && UiKits.shaderUsable,
     };
     if (choice != null && can(choice)) return choice;

@@ -2,7 +2,9 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart';
 
 import '../ui/native/native_control.dart';
+import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
+import '../ui/kits/shader/shader_skin.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart' show GlassTone;
 import 'pull_down_menu.dart';
@@ -126,12 +128,46 @@ class _PullDownButtonState<T> extends State<PullDownButton<T>> {
     );
   }
 
+  /// The [UiKit.shader] skin (round form): the package's pull-down button,
+  /// whose glass disc morphs into a glass menu of the same items.
+  Widget _shader(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final items = widget.items;
+    return ShaderSkin.pullDown(
+      context,
+      icon: Icon(widget.icon, size: 20, color: theme.ink),
+      size: widget.size ?? 44,
+      semanticLabel: widget.semanticLabel,
+      items: [
+        for (var i = 0; i < items.length; i++) ...[
+          if (items[i].startsGroup && i > 0) ShaderSkin.menuDivider(),
+          ShaderSkin.menuItem(
+            title: items[i].label,
+            icon: items[i].icon,
+            destructive: items[i].destructive,
+            checked: items[i].checked,
+            onTap: () => widget.onSelected(items[i].value),
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final native =
         widget.tone == GlassTone.app &&
         NativeControl.readyIn(context) &&
         (widget.label != null || sfSymbolFor(widget.icon) != null);
-    return KitSwitch(glass: _flutter, liquid: native ? _liquid : null);
+    final shader =
+        widget.tone == GlassTone.app &&
+        widget.label == null &&
+        widget.icon != null &&
+        widget.items.isNotEmpty;
+    return KitSwitch(
+      glass: _flutter,
+      liquid: native ? _liquid : null,
+      shader: shader ? _shader : null,
+    );
   }
 }

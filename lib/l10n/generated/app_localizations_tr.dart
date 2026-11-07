@@ -16125,4 +16125,11 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get controlsLabTitle => 'Denetim laboratuvarı';
+
+  @override
+  String get glassInteractiveTitle => 'Etkileşimli cam';
+
+  @override
+  String get glassInteractiveBody =>
+      'Cam parmağınıza tepki verir: basılır, esner ve dokunduğunuz yerde parlar.';
 }

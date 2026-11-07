@@ -16431,4 +16431,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get controlsLabTitle => 'مختبر عناصر التحكم';
+
+  @override
+  String get glassInteractiveTitle => 'زجاج تفاعلي';
+
+  @override
+  String get glassInteractiveBody =>
+      'يتفاعل الزجاج مع إصبعك: ينضغط ويتمدد ويضيء عند موضع اللمس.';
 }

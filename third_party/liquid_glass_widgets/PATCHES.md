@@ -12,9 +12,13 @@ The pill and the selected-colour mask also read the bar's `tabPadding` (`slotPad
 
 Touched: `resolveVariableTabPill` (`tab_bar_layout_utils.dart`), `AnimatedGlassIndicator`, `JellyClipper` (the selected-colour mask, must match the pill), `TabIndicator`, `TabBarBottomLayout`, `GlassTabBar`.
 
+## Text input knobs (MonkeyHub patch)
+
+`GlassTextField` (and `.search`) dropped the inner field's `textCapitalization`, `autocorrect`, `enableSuggestions`, `autofillHints` and `keyboardAppearance`, which the app needs (login autofill, no-autocorrect usernames, dark keyboards). They are now optional constructor parameters forwarded to the `CupertinoTextField`. Marked `MONKEYHUB PATCH` in `lib/widgets/input/glass_text_field.dart`.
+
 ## Upgrading
 
-Upstream 1.17.0 (2026-11-07) does not include per-tab pill widths, so every `SWIRL PATCH` block was re-applied by diffing pristine 1.16.1 against our 1.16.1 and patching the result onto 1.17.0 (the indicator needed its import re-added by hand; `glass_tab_bar.dart` needed three hunks re-placed). To upgrade again: copy the new release over this folder and re-apply the `SWIRL PATCH` blocks (9 marked lines in 6 files). `example/` and `skills/` stay dropped.
+Upstream 1.17.0 (2026-11-07) does not include per-tab pill widths, so every `SWIRL PATCH` block was re-applied by diffing pristine 1.16.1 against our 1.16.1 and patching the result onto 1.17.0 (the indicator needed its import re-added by hand; `glass_tab_bar.dart` needed three hunks re-placed). To upgrade again: copy the new release over this folder and re-apply the `SWIRL PATCH` blocks (9 marked lines in 6 files) and the `MONKEYHUB PATCH` in `glass_text_field.dart`. `example/` and `skills/` stay dropped.
 
 ## What 1.17.0 changed that matters to MonkeyHub
 

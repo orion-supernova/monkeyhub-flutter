@@ -9,6 +9,7 @@ import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
 import '../ui/native/native_control.dart';
 import '../ui/kits/material/material_kit_theme.dart';
+import '../ui/kits/shader/shader_skin.dart';
 import 'app_spinner.dart';
 import 'liquid_glass.dart' show SpecularRim;
 import 'spring_press.dart';
@@ -221,7 +222,81 @@ class SheetActionButton extends StatelessWidget {
         // Busy shows a spinner in the button; the native button has none, so
         // a busy button keeps the glass skin.
         liquid: NativeControl.readyIn(context) && !busy ? _liquid : null,
+        shader: _shader,
       );
+
+  /// The [UiKit.shader] skin: the package's glass button as a capsule. The
+  /// primary action and destructive are tinted glass, tonal is plain glass.
+  Widget _shader(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final enabled = onTap != null;
+    final Color? tint;
+    final Color ink;
+    if (!enabled) {
+      tint = null;
+      ink = theme.inkMuted;
+    } else if (tonal) {
+      tint = null;
+      ink = destructive ? theme.danger : theme.ink;
+    } else {
+      tint = destructive ? theme.danger : theme.accent;
+      ink = destructive ? Colors.white : theme.accentInk;
+    }
+    final text = sentenceCaseOf(context, label);
+    final style = actionButtonLabelStyle(theme).copyWith(color: ink);
+    final content = Row(
+      mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: kActionButtonIcon, color: ink),
+          const SizedBox(width: kActionButtonIconGap),
+        ],
+        Flexible(
+          child: Text(text, textAlign: TextAlign.center, style: style),
+        ),
+      ],
+    );
+    return ShaderSkin.button(
+      context,
+      shape: ShaderSkin.capsule,
+      width: expand ? double.infinity : null,
+      tint: tint,
+      enabled: enabled,
+      label: semanticLabel ?? text,
+      onTap: enabled
+          ? () {
+              if (busy) return;
+              if (haptic) HapticFeedback.selectionClick();
+              onTap!();
+            }
+          : null,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: minHeight),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: kActionButtonHPad,
+            vertical: 12,
+          ),
+          child: busy
+              ? Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Visibility(
+                      visible: false,
+                      maintainSize: true,
+                      maintainAnimation: true,
+                      maintainState: true,
+                      child: content,
+                    ),
+                    AppSpinner(color: ink),
+                  ],
+                )
+              : Center(widthFactor: 1, child: content),
+        ),
+      ),
+    );
+  }
 
   /// The [UiKit.liquid] skin: a real glass button; the primary action is
   /// prominent (tinted), tonal is plain glass, destructive is red.
@@ -606,7 +681,70 @@ class RowPillButton extends StatelessWidget {
     glass: _glass,
     liquid: NativeControl.readyIn(context) && !busy ? _liquid : null,
     material: _material,
+    shader: _shader,
   );
+
+  /// The [UiKit.shader] skin: a small glass capsule from the package's
+  /// button, tinted when [filled].
+  Widget _shader(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final enabled = onTap != null;
+    final tone = destructive ? theme.danger : theme.accent;
+    final tint = enabled && filled ? tone : null;
+    final ink = !enabled
+        ? theme.inkMuted
+        : filled
+            ? (destructive ? Colors.white : theme.accentInk)
+            : tone;
+    final text = sentenceCaseOf(context, label);
+    final labelWidget = Text(
+      text,
+      maxLines: 1,
+      softWrap: false,
+      style: theme.bodySoft.copyWith(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: ink,
+        letterSpacing: -0.1,
+        decoration: TextDecoration.none,
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(start: 8),
+      child: ShaderSkin.button(
+        context,
+        shape: ShaderSkin.capsule,
+        tint: tint,
+        enabled: enabled,
+        label: semanticLabel ?? text,
+        onTap: enabled ? (busy ? () {} : onTap) : null,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 32),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+            child: Center(
+              widthFactor: 1,
+              child: busy
+                  ? Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Visibility(
+                          visible: false,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: labelWidget,
+                        ),
+                        AppSpinner(color: ink, radius: 8),
+                      ],
+                    )
+                  : labelWidget,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   /// The system glass button, small. A busy pill keeps the Flutter skin: the
   /// system button has no in-place spinner.

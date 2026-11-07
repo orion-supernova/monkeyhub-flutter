@@ -16411,4 +16411,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get controlsLabTitle => 'Labo des commandes';
+
+  @override
+  String get glassInteractiveTitle => 'Verre interactif';
+
+  @override
+  String get glassInteractiveBody =>
+      'Le verre réagit à votre doigt : il s’enfonce, s’étire et s’illumine là où vous touchez.';
 }

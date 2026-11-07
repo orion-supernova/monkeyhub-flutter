@@ -18,6 +18,7 @@ import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
+import '../ui/kits/shader/shader_tab_bar.dart';
 import '../update/update_availability.dart';
 import '../widgets/count_badge.dart';
 import '../widgets/radial_floating_menu.dart';
@@ -286,6 +287,14 @@ class _HomeShellState extends State<HomeShell> {
                 onSelect: _select,
                 badges: _badges,
               ),
+            )
+          else if (UiKit.of(context) == UiKit.shader)
+            // The shader kit's own bar: the package's GlassTabBar with
+            // per-tab pill widths.
+            ShaderTabBar(
+              active: settings.section,
+              onSelect: _select,
+              badges: _badges,
             )
           else
             PillBottomNav(

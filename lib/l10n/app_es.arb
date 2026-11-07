@@ -4427,5 +4427,7 @@
   "nativeScopeEverythingBody": "iOS dibuja los botones, interruptores, menús, campos y más",
   "nativeScopeTabBarTitle": "Solo la barra de pestañas",
   "nativeScopeTabBarBody": "iOS dibuja la barra de pestañas y la app dibuja el resto",
-  "controlsLabTitle": "Laboratorio de controles"
+  "controlsLabTitle": "Laboratorio de controles",
+  "glassInteractiveTitle": "Cristal interactivo",
+  "glassInteractiveBody": "El cristal responde a tu dedo: se hunde, se estira y se ilumina donde tocas."
 }

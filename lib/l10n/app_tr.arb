@@ -4427,5 +4427,7 @@
   "nativeScopeEverythingBody": "Düğmeler, anahtarlar, menüler, alanlar ve daha fazlasını iOS çizer",
   "nativeScopeTabBarTitle": "Yalnızca sekme çubuğu",
   "nativeScopeTabBarBody": "Sekme çubuğunu iOS, gerisini uygulama çizer",
-  "controlsLabTitle": "Denetim laboratuvarı"
+  "controlsLabTitle": "Denetim laboratuvarı",
+  "glassInteractiveTitle": "Etkileşimli cam",
+  "glassInteractiveBody": "Cam parmağınıza tepki verir: basılır, esner ve dokunduğunuz yerde parlar."
 }

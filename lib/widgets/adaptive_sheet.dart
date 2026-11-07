@@ -6,10 +6,13 @@ import '../theme/layout.dart';
 import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart';
+import '../ui/kits/shader/shader_skin.dart';
 import 'glass_reveal.dart';
 import 'glass_surface.dart';
 import 'sheet_drag.dart';
-import 'sheet_kit.dart' show DialogEdge, dialogShadows, sheetRadius;
+import 'sheet_kit.dart'
+    show DialogEdge, dialogShadows, sheetFill, sheetRadius;
 
 /// Presents modal content adaptively: a bottom sheet on compact (phone)
 /// windows, a floating desktop popover on wider (desktop/web) windows — where
@@ -231,7 +234,22 @@ class _FloatingSheetRoute<T> extends PopupRoute<T> {
     // the lit edge painted over the content (see [DialogEdge]). The fill and
     // its sunlight are the content's own (`SheetPanel`), solid, so nothing
     // blurs while the sheet slides.
-    Widget panel() => DecoratedBox(
+    // The shader kit's sheet is clear glass from the package's engine (its own
+    // rim and lift), washed with the sheet colour, not the solid panel.
+    final shader = UiKit.of(context) == UiKit.shader;
+    Widget glassPanel() => ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: ShaderSkin.sheet(
+        context,
+        radius: radius,
+        fill: sheetFill(theme),
+        child: Material(
+          type: MaterialType.transparency,
+          child: Builder(builder: builder),
+        ),
+      ),
+    );
+    Widget solidPanel() => DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
         boxShadow: dialogShadows(theme),
@@ -276,7 +294,7 @@ class _FloatingSheetRoute<T> extends PopupRoute<T> {
                     enabled: enableDrag && isDismissible,
                     animateIn: true,
                     offscreenExtra: lift + 32,
-                    child: panel(),
+                    child: shader ? glassPanel() : solidPanel(),
                   ),
                 ),
               ),

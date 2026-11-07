@@ -216,9 +216,9 @@ caller moved. Platform channel names live once in <code>lib/ui/foundation/channe
   <div class="card"><div class="k">UiKit.lite</div><div class="v">Lite</div>
     <p>No backdrop blur, opaque plates, no drop shadows. Auto on low-RAM phones. Offered everywhere.</p></div>
   <div class="card"><div class="k">UiKit.material</div><div class="v">Material</div>
-    <p>Android only, built (2026-11-07): Flutter's Material 3 widgets dressed from the current <code>AppTheme</code> (<code>lib/ui/kits/material/</code>). Offered only where <code>Caps.android</code>; Automatic on Android unless the phone is low-RAM (then Lite). The one kit with ripples.</p></div>
+    <p>Built (2026-11-07): Flutter's Material 3 widgets dressed from the current <code>AppTheme</code> (<code>lib/ui/kits/material/</code>). Offered on phones and tablets (<code>Caps.nativeMobile</code>: Android, and iOS "just for fun" since 2026-11-07), never on web or desktop. Automatic gives it to Android only, unless the phone is low-RAM (then Lite). The one kit with ripples.</p></div>
   <div class="card"><div class="k">UiKit.shader</div><div class="v">Shader glass</div>
-    <p>Added 2026-11-07 at the user's request. Glass drawn by the vendored <code>liquid_glass_widgets</code> GPU shader engine (<code>third_party/liquid_glass_widgets</code>, skin in <code>lib/ui/kits/shader/</code>): a real lens with refraction, chromatic aberration and a lit rim. <strong>Android and iOS only</strong> (<code>Caps.android || Caps.iOS</code>), never web or desktop, never chosen by Automatic. If the shader cannot start, <code>UiKits.shaderUsable</code> flips off and the app is drawn as Frosted. Falls back to glass component by component.</p></div>
+    <p>Added 2026-11-07 at the user's request. Glass drawn by the vendored <code>liquid_glass_widgets</code> GPU shader engine (<code>third_party/liquid_glass_widgets</code>, skin in <code>lib/ui/kits/shader/</code>): a real lens with refraction and a lit rim, in the package's <strong>iOS 27</strong> optics (<code>ios27Light</code> / <code>ios27Dark</code> by page brightness, Swirl's "clear native" recipe, so it reads as clear refracting glass, not frost). Every shared component wears the package's own widget (see the skin list below). <strong>Android and iOS only</strong> (<code>Caps.nativeMobile</code>), never web or desktop, never chosen by Automatic. If the shader cannot start, <code>UiKits.shaderUsable</code> flips off and the app is drawn as Frosted. Falls back to glass component by component.</p></div>
 </div>
 
 <h3>Resolution</h3>
@@ -240,17 +240,26 @@ the old default (<code>native</code>) migrates to Automatic, which resolves to t
 Frosted. Settings' Glass row names the active kit. Under Shader glass the Frosted dials give way to the engine's own
 (thickness, blur, refraction, chromatic aberration, light intensity and angle, rim light, saturation, tint, plus a
 full-lens switch), kept in <code>SettingsStore.shaderGlass</code> (<code>mh.glass.shader</code>, a sparse JSON map of
-the dials moved off standard; <code>lib/data/shader_glass_config.dart</code>).</p>
+the dials moved off standard; <code>lib/data/shader_glass_config.dart</code>). The dials map onto the iOS 27 preset
+(<code>ShaderGlassConfig.settings</code>): a dial at standard leaves the preset alone; moved, thickness, blur (as frost), tint, rim and
+saturation scale it, and refraction, chromatic aberration, light intensity and angle replace its value.
+Under Liquid Glass and Shader glass, Settings › Glass also shows <strong>Interactive glass</strong>
+(<code>SettingsStore.glassInteractive</code>, <code>mh.glass.interactive</code>, default on): the press jelly, stretch and glow. Off, the
+shader kit's buttons, tab bar, switch, slider and segmented control press without scaling, stretching or glowing
+(<code>ShaderSkin.themed</code> sets the package theme's <code>GlassInteractionSettings</code>).</p>
 <h3>The shader kit's performance contract</h3>
 <ul>
   <li>Default quality is the library's lightweight shader: one backdrop filter plus a small fragment pass per surface,
   every surface its own layer. The premium multi-pass lens (real refraction of a captured backdrop) is the user's
   "Full lens refraction" switch, off by default, and is forced back to lightweight on <code>Perf.low</code> and
-  while <code>LowPowerMode.active</code>. Chromatic aberration is dropped in the same cases.</li>
+  while <code>LowPowerMode.active</code>. Chromatic aberration is dropped in the same cases.
+  Exception (<code>ShaderSkin.heroQuality</code>): the bottom tab bar, switch, slider and segmented control take the premium lens
+  on every device that is not low-tier or saving power. The tab bar is one surface per screen; the switch and slider
+  mount their shader only while pressed or dragged (the package's own rule). Everything else stays lightweight.</li>
   <li>Shaders are warmed once (<code>ShaderGlassEngine.ensureStarted</code>): at launch only if the saved kit is Shader
   glass, otherwise the first time one is built or chosen. Nothing loads for anyone on another kit.</li>
   <li>Media-tone glass (over photos and video) keeps its own dark recipe in this kit; only app glass is shader-drawn.
-  Menus, sheets and the bottom bar draw through <code>LiquidGlass</code> and so pick it up with no per-component work.</li>
+  The generic <code>LiquidGlass</code> surface picks the iOS 27 clear recipe with no per-component work.</li>
   <li>Safety: a failed start calls <code>ShaderGlassEngine.markFailed</code>, which makes the kit unavailable so the app
   resolves to Frosted; a shader that fails per surface falls back to the library's frosted fallback. Under
   <code>flutter test</code> the pre-warm is skipped (the library looks for its shaders where a package under test has
@@ -427,6 +436,25 @@ vertical content padding. Add field behaviour there, never in one style.</p>
 <code>ValueSlider</code> (<code>Slider</code>, still 0..1), <code>AppSpinner</code>, <code>SheetPanel</code>/<code>SheetHandle</code> (M3 surface and 32x4 handle).
 <strong>Fall back to glass/plate:</strong> media-tone glass over photos (no blur, as Lite), <code>GlassButtonGroup</code>, every component not listed.
 The kit's shared pieces live in <code>lib/ui/kits/material/material_kit_theme.dart</code>.</p>
+<p><strong>Shader skins</strong> (Android and iOS; every skin goes through <code>ShaderSkin</code> in
+<code>lib/ui/kits/shader/shader_skin.dart</code>, which supplies the iOS 27 settings, the quality tier and the package theme;
+behaviour such as taps, haptics, hover hints and semantics stays in the shared component):
+<code>GlassIconButton</code>/<code>GlassBackButton</code>/<code>GlassCloseButton</code> and <code>GlassPillButton</code> (the package's
+<code>GlassButton</code>, jelly press and glow), <code>GlassButtonGroup</code> (the package's merged <code>GlassButtonGroup.icons</code>; lit
+slots, labels and drawn glyphs keep their face), <code>SheetActionButton</code> and <code>RowPillButton</code> (<code>GlassButton</code>
+capsule, tinted when primary), <code>FilterCapsule</code> (<code>GlassButton</code> capsule, tinted when on),
+<code>RowSwitch</code> (<code>GlassSwitch</code>), <code>ValueSlider</code> (<code>GlassSlider</code>), <code>IosSegmentedControl</code>
+(<code>GlassSegmentedControl</code>; a segment with an icon or badge keeps the glass skin), <code>ThemedInput</code>/<code>SheetTextField</code>/<code>PasswordField</code>
+(<code>GlassTextField</code> with a MonkeyHub patch that forwards capitalization, autocorrect, suggestions, autofill hints and keyboard appearance;
+the password eye stays our own trailing widget), <code>SearchField</code> plain mode (<code>GlassSearchBar</code>),
+<code>PullDownButton</code> round form (<code>GlassPullDownButton</code> with <code>GlassMenuItem</code> rows), the bottom bar
+(<code>ShaderTabBar</code>, the package's <code>GlassTabBar.bottom</code> with Swirl's per-tab pill widths
+<code>indicatorItemWidths</code>, measured from the labels; counts are laid over the icons), floating sheets
+(<code>showAdaptiveSheet</code>: <code>AdaptiveGlass</code> washed with the sheet colour, <code>SheetPanel</code> paints no fill), and the generic
+<code>LiquidGlass</code> surface (<code>AdaptiveGlass</code> with the clear iOS 27 recipe).
+<strong>Fall back to glass/plate:</strong> media-tone glass over photos, still discs on sheets and cards (<code>still</code>),
+<code>TextLinkButton</code> (no surface), a field with a custom fill, the labelled pull-down pill (it is a <code>GlassPillButton</code> that opens
+<code>showPullDownMenu</code>), a search field with a scope tag, hero flight or custom clear, and the draggable sheet's own fill.</p>
 
 <!-- ======================================================================= -->
 <h2 id="layout">6. Layout: phone, tablet, desktop</h2>
@@ -481,7 +509,8 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
 <tr><td>3</td><td>Pages</td><td>Done: <code>PageBar</code> extracted from <code>IosPage</code> and used by receipts, text file viewer, room content, friend request; one <code>MenuRow</code> for the four menus (hold, chat row, pull-down, desk pointer). Left on purpose: search screen (its header is already the shared <code>SearchField</code> with its own Cancel), theme carousel (full-bleed black viewer), <code>_HeaderAction</code> (a 44pt <code>TextLinkButton</code> would grow the section header), <code>_ListScaffold</code> (shared wrapper over <code>IosPage</code> + <code>AdaptivePageBody</code>, used twice), onboarding screens (already use <code>GlassBackButton</code>/<code>GlassCloseButton</code>), viewer bars (<code>media_pager _TopBar</code> and <code>fullscreen _BottomBar</code> already compose <code>ViewerTopBar</code>/<code>ViewerToolbar</code>; moment viewer <code>_StageTopBar</code> is the stories chrome with a deliberate trailing ×), the confirm-sheet merge (see Confirm row)</td><td><span class="pill warn">partial</span></td></tr>
 <tr><td>4</td><td>StatusPill + Notice</td><td>One read-only pill with tone and a per-kit skin; one inline banner with tone (<code>SoftNote</code>, <code>FormErrorBanner</code> are presets). Specialised strips and cards stay separate, see §5.</td><td><span class="pill ok">done</span></td></tr>
 <tr><td>5</td><td>Composer</td><td>Merge <code>chat_composer</code> classic/liquid field into <code>ComposerTextField</code> (also used by the friend-request draft; shared send-pop transition) <span class="pill ok">done</span>; command palette search field; leftover relative-time families (<code>roomTimeAgo</code>, <code>requestAgo</code>, devices, family, remove-contact) still planned</td><td><span class="pill">partial</span></td></tr>
-<tr><td>6</td><td>Material kit</td><td>Flutter Material 3 chosen; skins for the core set (LiquidGlass, icon/back/close/ChromeDisc/pill buttons, SheetActionButton, TextLinkButton, RowPillButton, text fields, SearchField, RowSwitch, segmented, FilterCapsule, SelectionCheck, ValueSlider, <code>AppSpinner</code>, SheetPanel/SheetHandle); <code>materialReady = true</code>, Android only. Media-tone glass over photos and the glass button group keep the blur-free plate. Not yet seen on a device.</td><td><span class="pill ok">built</span></td></tr>
+<tr><td>6</td><td>Material kit</td><td>Flutter Material 3 chosen; skins for the core set (LiquidGlass, icon/back/close/ChromeDisc/pill buttons, SheetActionButton, TextLinkButton, RowPillButton, text fields, SearchField, RowSwitch, segmented, FilterCapsule, SelectionCheck, ValueSlider, <code>AppSpinner</code>, SheetPanel/SheetHandle); <code>materialReady = true</code>, Android and iOS (2026-11-07), never web or desktop. Media-tone glass over photos and the glass button group keep the blur-free plate. Not yet seen on a device.</td><td><span class="pill ok">built</span></td></tr>
+<tr><td>6b</td><td>Shader kit skins</td><td>2026-11-07: vendored <code>liquid_glass_widgets</code> upgraded 1.16.1 &rarr; 1.17.0 (iOS 27 default style; calibrated tab bar, switch, slider, segmented control, menus and sheets), the <code>SWIRL PATCH</code> per-tab pill widths re-applied (see <code>third_party/liquid_glass_widgets/PATCHES.md</code>). Every shared control now draws the package's own widget (see "Shader skins" in &sect;5), the dials map onto the iOS 27 preset, new Settings &rsaquo; Glass &rsaquo; Interactive glass switch. <code>UiKits.available</code>: Material on iOS and Android, Shader on iOS and Android, native controls iOS only. Rendered in a widget test (<code>test/design_preview/shader_controls_preview.dart</code>); never run on a device.</td><td><span class="pill warn">built, unverified on device</span></td></tr>
 <tr><td>7</td><td>Native iOS 26 controls</td><td>Real SwiftUI controls for the liquid kit (<code>ios/Runner/NativeControls.swift</code>, <code>lib/ui/native/native_control.dart</code>): symbol buttons (back, close, icon), switch, segmented, slider, primary button; also text field, menu and toolbar specs ready. Phase 7 now covers buttons, button groups, merged toolbar discs, labelled buttons, text / secure / search fields, pull-down menus, date wheel, viewer toolbar and call buttons, behind the Settings &rsaquo; Glass &rsaquo; Native controls scope (default: tab bar only) and checked in the Controls lab. Never run on a device yet. Next: device pass (frame rate with platform views, field focus and keyboard, menu morph), sibling-view hosting for fixed chrome, native sheets.</td><td><span class="pill warn">built, gated, unverified on device</span></td></tr>
 <tr><td>8</td><td>Haptics setting</td><td>Global on/off wired into <code>AppBinding.send</code> and <code>HapticTick.current()</code></td><td><span class="pill ok">done</span></td></tr>
 </table></div>
@@ -505,6 +534,8 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
 <tr><td>child_policy_screen</td><td><code>visiblePassword</code> keyboard used as a no-suggestions hack for usernames</td><td><span class="pill ok">fixed</span></td></tr>
 <tr><td>voice_transcript, klipy_ad_tile</td><td>Unawaited clipboard / launch: errors dropped</td><td><span class="pill ok">fixed</span></td></tr>
 <tr><td>Analyzer</td><td>47–50 lint infos/warnings (unused field, deprecated APIs, async-gap context)</td><td><span class="pill ok">0 issues</span></td></tr>
+<tr><td>Shader kit (<code>shader_glass_config.dart</code>, <code>ShaderGlassSurface</code>)</td><td>Only one surface with the old classic recipe (frosted body, 6pt blur): the kit "just looked like frosted" and none of the package's interactive widgets was used. Now iOS 27 clear optics and the package's own controls</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>Vendored <code>liquid_glass_widgets</code></td><td>1.17.0 dropped nothing but also had no per-tab pill widths: the patch had to be re-applied by diffing pristine 1.16.1 against our copy (one import and three constructor hunks did not apply cleanly)</td><td><span class="pill ok">fixed</span></td></tr>
 <tr><td>liquid_glass.dart</td><td>Kit read outside the settings listener left a mounted button on the old recipe (caught by test while building phase 1)</td><td><span class="pill ok">fixed</span></td></tr>
 </table></div>
 
@@ -555,6 +586,12 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
   addition: Frosted, Liquid Glass, Material and Lite are unchanged. Not picked by Automatic because per-surface shader
   glass costs more GPU than Frosted; the premium lens is a second opt-in inside it. Desktop and web are excluded
   because the pipeline is tuned for mobile GPUs and the library caps itself there anyway.</li>
+  <li><strong>2026-11-07</strong> The shader kit uses the package's own widgets for every control, in iOS 27 optics by
+  page brightness, copying Swirl's <code>package_glass.dart</code> ("clear native") approach. The app keeps owning behaviour
+  (haptics, hover hints, commit rules, semantics); the package owns the pixels and the press effects. The tab bar,
+  switch, slider and segmented control take the premium lens (not behind the Full lens switch) because there is one per
+  screen or they mount their shader only while held; everything else stays lightweight. Material is also offered on iOS.
+  The only patch beyond Swirl's pill widths is a MonkeyHub one on <code>GlassTextField</code> (text input knobs).</li>
   <li><strong>2026-10-02</strong> Native glass is a sibling <code>UITabBar</code>, never a platform view in Flutter
   content (performance).</li>
 </ul>

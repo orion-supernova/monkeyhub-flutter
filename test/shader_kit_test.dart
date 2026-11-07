@@ -87,7 +87,7 @@ void main() {
         isNot(contains('blur')));
     expect(ShaderGlassConfig.decode('not json'), const ShaderGlassConfig());
     final s = d.settings(isLight: true);
-    expect(s.blur, kShaderBlur.max);
+    expect(s.frost, greaterThan(1.5 * 3));
   });
 
   test('full lens only on a normal tier, not saving power', () {

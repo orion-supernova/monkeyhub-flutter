@@ -8,6 +8,7 @@ import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
 import '../ui/native/native_control.dart';
 import '../ui/kits/material/material_kit_theme.dart';
+import '../ui/kits/shader/shader_skin.dart';
 
 /// Continuous 0..1 control.
 ///
@@ -42,7 +43,24 @@ class ValueSlider extends StatelessWidget {
         glass: _glass,
         material: _material,
         liquid: NativeControl.readyIn(context) ? _liquid : null,
+        shader: _shader,
       );
+
+  /// The [UiKit.shader] skin: the package's glass slider, still a 0..1
+  /// position, still double-tap to reset.
+  Widget _shader(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return GestureDetector(
+      onDoubleTap: enabled ? onReset : null,
+      child: ShaderSkin.slider(
+        context,
+        value: value.clamp(0.0, 1.0),
+        onChanged: enabled ? onChanged : null,
+        activeColor: theme.accent,
+        inactiveColor: theme.divider,
+      ),
+    );
+  }
 
   /// The [UiKit.liquid] skin: the system slider, 0..1 continuous.
   Widget _liquid(BuildContext context) => GestureDetector(

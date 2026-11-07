@@ -189,33 +189,51 @@ class ShaderGlassConfig {
     }
   }
 
-  /// The engine settings. [isLight] is the page's brightness (tint is white on
-  /// light pages and smoke on dark), [boost] scales the tint (a pressed or
-  /// `tinted` control), [lowPower] drops the optional extras.
+  /// The engine settings: the package's iOS 27 glass in Swirl's "clear
+  /// native" form (a light wash, a light frost, the paraxial lens that bends
+  /// only in a soft band at the rim), so the kit reads as clear refracting
+  /// glass and not as frost.
+  ///
+  /// The dials move that look. A dial at its standard leaves the preset
+  /// alone; moved, it scales (thickness, blur as frost, tint, rim, light,
+  /// saturation) or replaces (refraction, chromatic aberration, light angle)
+  /// the preset's own value. [isLight] picks `ios27Light` or `ios27Dark`;
+  /// [tintBoost] adds wash (a pressed control); [lowPower] drops the colour
+  /// split.
   LiquidGlassSettings settings({
     required bool isLight,
     Color? color,
     double tintBoost = 0,
     bool lowPower = false,
   }) {
-    final tint = of(kShaderTint);
-    final base = color ??
-        (isLight
-            ? const Color(0xFFFFFFFF).withValues(alpha: (tint * 0.8).clamp(0, 1))
-            : const Color(0xFFFFFFFF).withValues(alpha: (tint * 0.35).clamp(0, 1)));
-    return LiquidGlassSettings(
+    double scale(GlassKnob k, double preset) =>
+        k.standard == 0 ? preset : preset * of(k) / k.standard;
+    bool moved(GlassKnob k) => values.containsKey(k.id);
+    final base =
+        isLight ? LiquidGlassSettings.ios27Light : LiquidGlassSettings.ios27Dark;
+    final washAlpha = (0x14 / 0xFF * of(kShaderTint) / kShaderTint.standard)
+        .clamp(0.0, 1.0);
+    final wash = color ?? Color.fromRGBO(255, 255, 255, washAlpha);
+    return base.copyWith(
       glassColor: tintBoost > 0 && color == null
-          ? base.withValues(alpha: (base.a + tintBoost).clamp(0.0, 1.0))
-          : base,
-      thickness: of(kShaderThickness),
-      blur: of(kShaderBlur),
-      refractiveIndex: of(kShaderRefraction),
-      chromaticAberration: lowPower ? 0 : of(kShaderChromatic),
-      lightIntensity: of(kShaderLight),
-      lightAngle: of(kShaderAngle) * math.pi / 180,
-      saturation: of(kShaderSaturation),
-      rimLight: of(kShaderRim),
-      bodyMode: color != null ? GlassBodyMode.clear : GlassBodyMode.adaptive,
+          ? wash.withValues(alpha: (wash.a + tintBoost).clamp(0.0, 1.0))
+          : wash,
+      thickness: scale(kShaderThickness, 32),
+      frost: scale(kShaderBlur, 1.5),
+      saturation: scale(kShaderSaturation, 1.6),
+      rimLight: scale(kShaderRim, 0.5).clamp(0.0, 2.0),
+      rimShade: 0.5,
+      lightIntensity:
+          moved(kShaderLight) ? of(kShaderLight) : base.lightIntensity,
+      lightAngle: moved(kShaderAngle)
+          ? of(kShaderAngle) * math.pi / 180
+          : base.lightAngle,
+      refractiveIndex:
+          moved(kShaderRefraction) ? of(kShaderRefraction) : base.refractiveIndex,
+      chromaticAberration: lowPower
+          ? 0
+          : (moved(kShaderChromatic) ? of(kShaderChromatic) : 0),
+      bodyMode: color != null ? GlassBodyMode.clear : base.bodyMode,
     );
   }
 

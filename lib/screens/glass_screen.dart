@@ -1775,6 +1775,28 @@ class _NativeScopeChooser extends StatelessWidget {
             ],
           ),
         ],
+        // Press jelly, glow and stretch: the native controls' own under Liquid
+        // Glass, the package's under Shader glass.
+        if (UiKits.current == UiKit.liquid ||
+            UiKits.current == UiKit.shader) ...[
+          const SizedBox(height: 22),
+          GroupedSection(
+            margin: EdgeInsets.zero,
+            children: [
+              GroupedRow(
+                icon: CupertinoIcons.hand_point_right_fill,
+                tone: TileTone.indigo,
+                title: l10n.glassInteractiveTitle,
+                subtitle: l10n.glassInteractiveBody,
+                chevron: false,
+                trailing: RowSwitch(
+                  value: store.glassInteractive,
+                  onChanged: store.setGlassInteractive,
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 22),
         GroupedSection(
           margin: EdgeInsets.zero,
