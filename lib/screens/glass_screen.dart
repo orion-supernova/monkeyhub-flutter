@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
@@ -1866,13 +1867,14 @@ Future<void> _runApplying(Object key, Future<void> Function() work) async {
 
 Future<void> _applyKit(UiKit? kit) => _runApplying(kit ?? _kAuto, () async {
       if (kit == UiKit.shader) await ShaderGlassEngine.ensureStarted();
-      await SettingsStore.instance.setUiKit(kit);
+      // The choice applies (and notifies) at once; only the disk write is
+      // async, and the spinner waits for the repaint, not for it.
+      unawaited(SettingsStore.instance.setUiKit(kit));
     });
 
-Future<void> _applyScope(NativeScope scope) => _runApplying(
-      scope,
-      () => SettingsStore.instance.setNativeScope(scope),
-    );
+Future<void> _applyScope(NativeScope scope) => _runApplying(scope, () async {
+      unawaited(SettingsStore.instance.setNativeScope(scope));
+    });
 
 class _Tick extends StatelessWidget {
   const _Tick({required this.on, this.busyKey});
