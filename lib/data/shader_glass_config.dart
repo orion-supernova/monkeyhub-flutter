@@ -213,13 +213,20 @@ class ShaderGlassConfig {
         isLight ? LiquidGlassSettings.ios27Light : LiquidGlassSettings.ios27Dark;
     final washAlpha = (0x14 / 0xFF * of(kShaderTint) / kShaderTint.standard)
         .clamp(0.0, 1.0);
-    final wash = color ?? Color.fromRGBO(255, 255, 255, washAlpha);
+    // Swirl's glass level at its shipped default (0.5, between Clear and
+    // Tinted): halfway to a milky wash in light, a smoky one in dark, with
+    // extra frost. iOS 26's own glass is not fully Clear, and pure Clear
+    // glass over a dark page reads as a white outline.
+    const level = 0.5;
+    final clear = Color.fromRGBO(255, 255, 255, washAlpha);
+    final tinted = isLight ? const Color(0x80FFFFFF) : const Color(0x73000000);
+    final wash = color ?? Color.lerp(clear, tinted, level)!;
     return base.copyWith(
       glassColor: tintBoost > 0 && color == null
           ? wash.withValues(alpha: (wash.a + tintBoost).clamp(0.0, 1.0))
           : wash,
       thickness: scale(kShaderThickness, 32),
-      frost: scale(kShaderBlur, 1.5),
+      frost: scale(kShaderBlur, 1.5 + 10 * 0.5),
       saturation: scale(kShaderSaturation, 1.6),
       rimLight: scale(kShaderRim, 0.5).clamp(0.0, 2.0),
       rimShade: 0.5,

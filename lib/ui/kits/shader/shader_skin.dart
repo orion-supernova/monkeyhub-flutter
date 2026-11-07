@@ -11,7 +11,6 @@ import '../../../theme/low_power.dart';
 import '../../../theme/perf_tier.dart';
 import '../../../theme/theme_scope.dart';
 import 'shader_engine.dart';
-import 'shader_glass_surface.dart';
 
 /// Shared plumbing for the [UiKit.shader] skins of every component: which
 /// glass settings to wear, which quality tier, and the package theme that
@@ -35,10 +34,10 @@ abstract final class ShaderSkin {
   static bool isLight(BuildContext context) =>
       ThemeScope.of(context).background.computeLuminance() > 0.5;
 
-  /// Lightweight shader by default; the premium multi-pass lens only when the
-  /// user turned on Full lens refraction and the device can afford it.
-  static GlassQuality get quality =>
-      ShaderGlassSurface.qualityFor(config, saving: LowPowerMode.active);
+  /// The premium lens on every control, as Swirl ships it: the lightweight
+  /// shader draws a hairline white rim that reads as a border, not as iOS
+  /// glass. Low-tier devices and power saving keep the lightweight one.
+  static GlassQuality get quality => heroQuality;
 
   /// The tab bar is one surface per screen, so it is allowed the premium lens
   /// (real refraction, the iOS 27 look) on every device that is not low-tier
