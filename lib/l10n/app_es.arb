@@ -4429,5 +4429,6 @@
   "nativeScopeTabBarBody": "iOS dibuja la barra de pestañas y la app dibuja el resto",
   "controlsLabTitle": "Laboratorio de controles",
   "glassInteractiveTitle": "Cristal interactivo",
-  "glassInteractiveBody": "El cristal responde a tu dedo: se hunde, se estira y se ilumina donde tocas."
+  "glassInteractiveBody": "El cristal responde a tu dedo: se hunde, se estira y se ilumina donde tocas.",
+  "glassExperimentalTag": "Experimental"
 }

@@ -15349,4 +15349,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get glassInteractiveBody => '玻璃会对手指做出反应：按下时凹陷、拉伸，触摸处会亮起。';
+
+  @override
+  String get glassExperimentalTag => '实验性';
 }

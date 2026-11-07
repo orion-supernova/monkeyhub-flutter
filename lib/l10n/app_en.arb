@@ -19165,5 +19165,9 @@
   "glassInteractiveBody": "Glass reacts to your finger: it presses in, stretches and lights up where you touch.",
   "@glassInteractiveBody": {
     "description": "Settings > Glass switch subtitle under Interactive glass."
+  },
+  "glassExperimentalTag": "Experimental",
+  "@glassExperimentalTag": {
+    "description": "Small tag beside a Settings › Glass option that is still being tuned (native controls, shader glass)."
   }
 }

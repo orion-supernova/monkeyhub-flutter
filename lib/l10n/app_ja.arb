@@ -4429,5 +4429,6 @@
   "nativeScopeTabBarBody": "タブバーはiOS、そのほかはアプリが描画します",
   "controlsLabTitle": "コントロールラボ",
   "glassInteractiveTitle": "インタラクティブガラス",
-  "glassInteractiveBody": "ガラスが指に反応します。押し込まれ、伸び、触れた場所が光ります。"
+  "glassInteractiveBody": "ガラスが指に反応します。押し込まれ、伸び、触れた場所が光ります。",
+  "glassExperimentalTag": "実験的"
 }

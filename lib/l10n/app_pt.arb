@@ -4429,5 +4429,6 @@
   "nativeScopeTabBarBody": "O iOS desenha a barra de separadores, a app desenha o resto",
   "controlsLabTitle": "Laboratório de controlos",
   "glassInteractiveTitle": "Vidro interativo",
-  "glassInteractiveBody": "O vidro reage ao seu dedo: afunda, estica e ilumina onde toca."
+  "glassInteractiveBody": "O vidro reage ao seu dedo: afunda, estica e ilumina onde toca.",
+  "glassExperimentalTag": "Experimental"
 }

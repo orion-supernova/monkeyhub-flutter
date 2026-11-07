@@ -26736,6 +26736,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Glass reacts to your finger: it presses in, stretches and lights up where you touch.'**
   String get glassInteractiveBody;
+
+  /// Small tag beside a Settings › Glass option that is still being tuned (native controls, shader glass).
+  ///
+  /// In en, this message translates to:
+  /// **'Experimental'**
+  String get glassExperimentalTag;
 }
 
 class _AppLocalizationsDelegate

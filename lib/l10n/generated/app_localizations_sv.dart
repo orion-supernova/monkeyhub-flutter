@@ -16238,4 +16238,7 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get glassInteractiveBody =>
       'Glaset reagerar på ditt finger: det trycks in, töjs och lyser upp där du rör.';
+
+  @override
+  String get glassExperimentalTag => 'Experimentell';
 }

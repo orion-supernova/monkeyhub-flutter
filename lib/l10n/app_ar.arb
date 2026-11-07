@@ -4429,5 +4429,6 @@
   "nativeScopeTabBarBody": "يرسم iOS شريط التبويب ويرسم التطبيق الباقي",
   "controlsLabTitle": "مختبر عناصر التحكم",
   "glassInteractiveTitle": "زجاج تفاعلي",
-  "glassInteractiveBody": "يتفاعل الزجاج مع إصبعك: ينضغط ويتمدد ويضيء عند موضع اللمس."
+  "glassInteractiveBody": "يتفاعل الزجاج مع إصبعك: ينضغط ويتمدد ويضيء عند موضع اللمس.",
+  "glassExperimentalTag": "تجريبي"
 }

@@ -1706,6 +1706,7 @@ class _GlassStyleChooser extends StatelessWidget {
                 icon: CupertinoIcons.sparkles,
                 tone: TileTone.purple,
                 title: l10n.uiKitShaderTitle,
+                titleTrailing: const _ExperimentalTag(),
                 subtitle: l10n.uiKitShaderBody,
                 chevron: false,
                 onTap: () {
@@ -1725,6 +1726,32 @@ class _GlassStyleChooser extends StatelessWidget {
               ),
           },
       ],
+    );
+  }
+}
+
+/// "Experimental", beside a glass option still being tuned (native controls
+/// everywhere, shader glass).
+class _ExperimentalTag extends StatelessWidget {
+  const _ExperimentalTag();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFF9F0A).withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        AppLocalizations.of(context).glassExperimentalTag,
+        style: groupedMetaStyle(theme).copyWith(
+          fontWeight: FontWeight.w600,
+          // The system orange: "still being tuned", not an error.
+          color: const Color(0xFFFF9F0A),
+        ),
+      ),
     );
   }
 }
@@ -1758,6 +1785,7 @@ class _NativeScopeChooser extends StatelessWidget {
                 icon: CupertinoIcons.square_grid_2x2_fill,
                 tone: TileTone.blue,
                 title: l10n.nativeScopeEverythingTitle,
+                titleTrailing: const _ExperimentalTag(),
                 subtitle: l10n.nativeScopeEverythingBody,
                 chevron: false,
                 onTap: () => store.setNativeScope(NativeScope.everything),

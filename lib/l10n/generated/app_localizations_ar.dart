@@ -16438,4 +16438,7 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get glassInteractiveBody =>
       'يتفاعل الزجاج مع إصبعك: ينضغط ويتمدد ويضيء عند موضع اللمس.';
+
+  @override
+  String get glassExperimentalTag => 'تجريبي';
 }

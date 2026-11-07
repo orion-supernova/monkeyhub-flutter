@@ -15519,4 +15519,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get glassInteractiveBody => '글라스가 손가락에 반응합니다. 눌리고, 늘어나고, 닿은 곳이 빛납니다.';
+
+  @override
+  String get glassExperimentalTag => '실험적';
 }

@@ -16418,4 +16418,7 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get glassInteractiveBody =>
       'Le verre réagit à votre doigt : il s’enfonce, s’étire et s’illumine là où vous touchez.';
+
+  @override
+  String get glassExperimentalTag => 'Expérimental';
 }

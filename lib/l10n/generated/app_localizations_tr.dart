@@ -16132,4 +16132,7 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get glassInteractiveBody =>
       'Cam parmağınıza tepki verir: basılır, esner ve dokunduğunuz yerde parlar.';
+
+  @override
+  String get glassExperimentalTag => 'Deneysel';
 }

@@ -4429,5 +4429,6 @@
   "nativeScopeTabBarBody": "탭 바는 iOS가, 나머지는 앱이 그립니다",
   "controlsLabTitle": "컨트롤 랩",
   "glassInteractiveTitle": "인터랙티브 글라스",
-  "glassInteractiveBody": "글라스가 손가락에 반응합니다. 눌리고, 늘어나고, 닿은 곳이 빛납니다."
+  "glassInteractiveBody": "글라스가 손가락에 반응합니다. 눌리고, 늘어나고, 닿은 곳이 빛납니다.",
+  "glassExperimentalTag": "실험적"
 }

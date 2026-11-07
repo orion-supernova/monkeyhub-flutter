@@ -4429,5 +4429,6 @@
   "nativeScopeTabBarBody": "टैब बार iOS बनाता है, बाकी सब ऐप बनाता है",
   "controlsLabTitle": "कंट्रोल लैब",
   "glassInteractiveTitle": "इंटरैक्टिव ग्लास",
-  "glassInteractiveBody": "ग्लास आपकी उंगली पर प्रतिक्रिया करता है: वह दबता है, खिंचता है और जहां आप छूते हैं वहां चमकता है।"
+  "glassInteractiveBody": "ग्लास आपकी उंगली पर प्रतिक्रिया करता है: वह दबता है, खिंचता है और जहां आप छूते हैं वहां चमकता है।",
+  "glassExperimentalTag": "प्रयोगात्मक"
 }

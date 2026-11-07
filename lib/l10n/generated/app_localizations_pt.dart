@@ -16352,6 +16352,9 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get glassInteractiveBody =>
       'O vidro reage ao seu dedo: afunda, estica e ilumina onde toca.';
+
+  @override
+  String get glassExperimentalTag => 'Experimental';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -32681,4 +32684,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get glassInteractiveBody =>
       'O vidro reage ao seu dedo: afunda, estica e acende onde você toca.';
+
+  @override
+  String get glassExperimentalTag => 'Experimental';
 }

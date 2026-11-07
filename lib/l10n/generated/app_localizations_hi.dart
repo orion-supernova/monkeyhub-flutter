@@ -16173,4 +16173,7 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get glassInteractiveBody =>
       'ग्लास आपकी उंगली पर प्रतिक्रिया करता है: वह दबता है, खिंचता है और जहां आप छूते हैं वहां चमकता है।';
+
+  @override
+  String get glassExperimentalTag => 'प्रयोगात्मक';
 }
