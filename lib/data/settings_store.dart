@@ -110,6 +110,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kMotionLevel = 'mh.motionLevel';
   static const _kPowerSaving = 'mh.powerSaving';
   static const _kHaptics = 'mh.haptics';
+  static const _kGlassInteractive = 'mh.glass.interactive';
   static const _kScheduledIndicator = 'mh.schedule.indicator';
   static const _kDiagHidden = 'mh.diag.hidden';
 
@@ -227,6 +228,7 @@ class SettingsStore extends ChangeNotifier {
   MotionLevel? _motionLevel;
   PowerSaving _powerSaving = PowerSaving.auto;
   bool _hapticsEnabled = true;
+  bool _glassInteractive = true;
   ScheduledIndicator _scheduledIndicator = ScheduledIndicator.pill;
 
   // Off until asked for. Sebastian costs a 328 MB download, and a default-on
@@ -513,6 +515,11 @@ class SettingsStore extends ChangeNotifier {
   /// The global haptics switch (default on). Mirrored into [Haptics.enabled],
   /// the single static the haptic hooks read.
   bool get hapticsEnabled => _hapticsEnabled;
+
+  /// Settings › Glass › Interactive glass (default on): whether glass reacts
+  /// to a press (the native stretch and shine, the shader kit's jelly and
+  /// glow). Read by the liquid kit's native controls and the shader skins.
+  bool get glassInteractive => _glassInteractive;
 
   /// How a room announces that it is holding messages you have not sent yet.
   ///
@@ -854,6 +861,7 @@ class SettingsStore extends ChangeNotifier {
     _motionLevel = MotionLevel.parse(s[_kMotionLevel]);
     _powerSaving = PowerSaving.parse(s[_kPowerSaving]);
     _hapticsEnabled = s[_kHaptics] != 'false';
+    _glassInteractive = s[_kGlassInteractive] != 'false';
     Haptics.enabled = _hapticsEnabled;
     _scheduledIndicator = ScheduledIndicator.parse(s[_kScheduledIndicator]);
     _sebastianEnabled = s[_kSebastianEnabled] == 'true';
@@ -976,6 +984,13 @@ class SettingsStore extends ChangeNotifier {
     Haptics.enabled = v;
     notifyListeners();
     await _storage.write(key: _kHaptics, value: v.toString());
+  }
+
+  Future<void> setGlassInteractive(bool v) async {
+    if (_glassInteractive == v) return;
+    _glassInteractive = v;
+    notifyListeners();
+    await _storage.write(key: _kGlassInteractive, value: v.toString());
   }
 
   Future<void> setPowerSaving(PowerSaving v) async {
