@@ -9,6 +9,7 @@ import '../models/chat_user.dart' show initialOf;
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/app_spinner.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/ios_kit.dart';
@@ -1670,8 +1671,8 @@ class _GlassStyleChooser extends StatelessWidget {
           title: l10n.uiKitAutoTitle,
           subtitle: l10n.uiKitAutoBody(kitTitle(l10n, UiKits.automatic)),
           chevron: false,
-          onTap: () => store.setUiKit(null),
-          trailing: _Tick(on: auto),
+          onTap: () => _applyKit(null),
+          trailing: _Tick(on: auto, busyKey: _kAuto),
         ),
         for (final kit in UiKits.offered)
           switch (kit) {
@@ -1681,8 +1682,8 @@ class _GlassStyleChooser extends StatelessWidget {
                 title: l10n.glassStyleLiquidTitle,
                 subtitle: l10n.glassStyleLiquidBody,
                 chevron: false,
-                onTap: () => store.setUiKit(UiKit.liquid),
-                trailing: _Tick(on: on(UiKit.liquid)),
+                onTap: () => _applyKit(UiKit.liquid),
+                trailing: _Tick(on: on(UiKit.liquid), busyKey: UiKit.liquid),
               ),
             UiKit.material => GroupedRow(
                 icon: Icons.android,
@@ -1690,8 +1691,8 @@ class _GlassStyleChooser extends StatelessWidget {
                 title: l10n.uiKitMaterialTitle,
                 subtitle: l10n.uiKitMaterialBody,
                 chevron: false,
-                onTap: () => store.setUiKit(UiKit.material),
-                trailing: _Tick(on: on(UiKit.material)),
+                onTap: () => _applyKit(UiKit.material),
+                trailing: _Tick(on: on(UiKit.material), busyKey: UiKit.material),
               ),
             UiKit.glass => GroupedRow(
                 icon: CupertinoIcons.circle_grid_hex_fill,
@@ -1699,8 +1700,8 @@ class _GlassStyleChooser extends StatelessWidget {
                 title: l10n.glassStyleFrostedTitle,
                 subtitle: l10n.glassStyleFrostedBody,
                 chevron: false,
-                onTap: () => store.setUiKit(UiKit.glass),
-                trailing: _Tick(on: on(UiKit.glass)),
+                onTap: () => _applyKit(UiKit.glass),
+                trailing: _Tick(on: on(UiKit.glass), busyKey: UiKit.glass),
               ),
             UiKit.shader => GroupedRow(
                 icon: CupertinoIcons.sparkles,
@@ -1709,11 +1710,8 @@ class _GlassStyleChooser extends StatelessWidget {
                 titleTrailing: const _ExperimentalTag(),
                 subtitle: l10n.uiKitShaderBody,
                 chevron: false,
-                onTap: () {
-                  ShaderGlassEngine.ensureStarted();
-                  store.setUiKit(UiKit.shader);
-                },
-                trailing: _Tick(on: on(UiKit.shader)),
+                onTap: () => _applyKit(UiKit.shader),
+                trailing: _Tick(on: on(UiKit.shader), busyKey: UiKit.shader),
               ),
             UiKit.lite => GroupedRow(
                 icon: CupertinoIcons.square_fill,
@@ -1721,8 +1719,8 @@ class _GlassStyleChooser extends StatelessWidget {
                 title: l10n.uiKitLiteTitle,
                 subtitle: l10n.uiKitLiteBody,
                 chevron: false,
-                onTap: () => store.setUiKit(UiKit.lite),
-                trailing: _Tick(on: on(UiKit.lite)),
+                onTap: () => _applyKit(UiKit.lite),
+                trailing: _Tick(on: on(UiKit.lite), busyKey: UiKit.lite),
               ),
           },
       ],
@@ -1788,8 +1786,8 @@ class _NativeScopeChooser extends StatelessWidget {
                 titleTrailing: const _ExperimentalTag(),
                 subtitle: l10n.nativeScopeEverythingBody,
                 chevron: false,
-                onTap: () => store.setNativeScope(NativeScope.everything),
-                trailing: _Tick(on: everything),
+                onTap: () => _applyScope(NativeScope.everything),
+                trailing: _Tick(on: everything, busyKey: NativeScope.everything),
               ),
               GroupedRow(
                 icon: CupertinoIcons.rectangle_split_3x1_fill,
@@ -1797,8 +1795,8 @@ class _NativeScopeChooser extends StatelessWidget {
                 title: l10n.nativeScopeTabBarTitle,
                 subtitle: l10n.nativeScopeTabBarBody,
                 chevron: false,
-                onTap: () => store.setNativeScope(NativeScope.tabBar),
-                trailing: _Tick(on: !everything),
+                onTap: () => _applyScope(NativeScope.tabBar),
+                trailing: _Tick(on: !everything, busyKey: NativeScope.tabBar),
               ),
             ],
           ),
@@ -1846,12 +1844,57 @@ class _NativeScopeChooser extends StatelessWidget {
 
 /// The chooser's checkmark: springs in on the chosen row, and keeps its width
 /// on the other so the two rows' text never shifts as the choice moves.
+/// The glass choice being applied right now, or null. A kit switch rebuilds
+/// every surface (and the shader kit first loads its engine), so the row shows
+/// a spinner until the new look has painted instead of looking stuck.
+final ValueNotifier<Object?> _applying = ValueNotifier<Object?>(null);
+const Object _kAuto = 'auto';
+
+Future<void> _runApplying(Object key, Future<void> Function() work) async {
+  if (_applying.value != null) return;
+  _applying.value = key;
+  try {
+    // The spinner paints before the heavy rebuild starts.
+    await WidgetsBinding.instance.endOfFrame;
+    await work();
+    await WidgetsBinding.instance.endOfFrame;
+    await WidgetsBinding.instance.endOfFrame;
+  } finally {
+    _applying.value = null;
+  }
+}
+
+Future<void> _applyKit(UiKit? kit) => _runApplying(kit ?? _kAuto, () async {
+      if (kit == UiKit.shader) await ShaderGlassEngine.ensureStarted();
+      await SettingsStore.instance.setUiKit(kit);
+    });
+
+Future<void> _applyScope(NativeScope scope) => _runApplying(
+      scope,
+      () => SettingsStore.instance.setNativeScope(scope),
+    );
+
 class _Tick extends StatelessWidget {
-  const _Tick({required this.on});
+  const _Tick({required this.on, this.busyKey});
   final bool on;
 
+  /// Which choice this row applies: a spinner replaces the tick while it is
+  /// being applied.
+  final Object? busyKey;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ValueListenableBuilder<Object?>(
+        valueListenable: _applying,
+        builder: (context, applying, _) => applying != null &&
+                applying == busyKey
+            ? const SizedBox.square(
+                dimension: 22,
+                child: Center(child: AppSpinner(radius: 9)),
+              )
+            : _tick(context),
+      );
+
+  Widget _tick(BuildContext context) {
     final theme = ThemeScope.of(context);
     return AnimatedScale(
       scale: on ? 1 : 0,
