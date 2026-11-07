@@ -115,6 +115,22 @@ class MatchesApi {
   /// a move has killed it).
   Future<void> answerTakeback(String userId, String matchId, bool accept) =>
       _call('answerTakeback', userId, matchId, {'accept': accept});
+
+  /// Asks the other player of a turn by turn duel to play it live. Refused
+  /// with `NOT_AVAILABLE` (they are not online), `ALREADY_LIVE`, `TOO_SOON`
+  /// (declined a moment ago), `REQUEST_PENDING` (they asked first).
+  Future<void> requestLive(String userId, String matchId) =>
+      _call('requestLive', userId, matchId);
+
+  /// Withdraws the caller's own request. Never refused.
+  Future<void> cancelLive(String userId, String matchId) =>
+      _call('cancelLive', userId, matchId);
+
+  /// Answers a standing go-live request. Yes turns the SAME game into a live
+  /// one. `NO_REQUEST` once it has lapsed or the asker left the board.
+  Future<void> answerLive(String userId, String matchId, bool accept) =>
+      _call('answerLive', userId, matchId, {'accept': accept});
+
   Future<void> requestSeat(String userId, String matchId, int seat) =>
       _call('requestSeat', userId, matchId, {'seat': seat});
   Future<void> cancelSeatRequest(String userId, String matchId) =>

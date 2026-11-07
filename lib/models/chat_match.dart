@@ -167,6 +167,10 @@ class ChatMatch {
     this.takebackDeclinedSeat,
     this.takebackDeclinedSeq,
     this.takebacks = const [],
+    this.liveRequestSeat,
+    this.liveRequestAt,
+    this.liveDeclinedSeat,
+    this.liveDeclinedAt,
     this.winner,
     this.winners,
     this.draw = false,
@@ -237,6 +241,34 @@ class ChatMatch {
 
   /// Takebacks granted per seat (index = seat). Empty from an older server.
   final List<int> takebacks;
+
+  /// A turn by turn duel: [liveRequestSeat] asked the other player to play it
+  /// live, at [liveRequestAt] (server time). The server lets it lapse after
+  /// [kLiveRequestTtl] without clearing the row, so a screen decides whether
+  /// it still stands by when IT first saw it (see `MatchScreen`).
+  final int? liveRequestSeat;
+  final DateTime? liveRequestAt;
+
+  /// The last go-live request that was declined, and when.
+  final int? liveDeclinedSeat;
+  final DateTime? liveDeclinedAt;
+
+  /// Whether [userId] may offer to go live, as far as the row can tell: a
+  /// seated player of an active two-player turn game that is played a move
+  /// at a time. Whether the other one is online is the screen's to know
+  /// (presence), and the server checks it again.
+  bool canAskLive(String userId) {
+    final seat = seatOf(userId);
+    if (seat < 0 || party || !isDuel || mode != MatchMode.async) return false;
+    if (status != MatchStatus.active || game == 'fight') return false;
+    final no = liveDeclinedAt;
+    if (liveDeclinedSeat == seat &&
+        no != null &&
+        DateTime.now().difference(no).abs() < kLiveRequestCooldown) {
+      return false;
+    }
+    return true;
+  }
 
   /// The winning seat, when there is one.
   final int? winner;
@@ -391,6 +423,10 @@ class ChatMatch {
         takebackDeclinedSeat: takebackDeclinedSeat,
         takebackDeclinedSeq: takebackDeclinedSeq,
         takebacks: takebacks,
+        liveRequestSeat: liveRequestSeat,
+        liveRequestAt: liveRequestAt,
+        liveDeclinedSeat: liveDeclinedSeat,
+        liveDeclinedAt: liveDeclinedAt,
         winner: winner,
         winners: winners,
         draw: draw,
@@ -414,6 +450,8 @@ class ChatMatch {
     final drawNo = j['drawDeclined'];
     final takeback = j['takebackOffer'];
     final takebackNo = j['takebackDeclined'];
+    final liveAsk = j['liveRequest'];
+    final liveNo = j['liveDeclined'];
     int? field(Object? m, String k) =>
         m is Map ? (m[k] as num?)?.toInt() : null;
     return ChatMatch(
@@ -462,6 +500,10 @@ class ChatMatch {
         for (final n in (j['takebacks'] as List?) ?? const [])
           if (n is num) n.toInt(),
       ],
+      liveRequestSeat: field(liveAsk, 'seat'),
+      liveRequestAt: liveAsk is Map ? _at(liveAsk['at']) : null,
+      liveDeclinedSeat: field(liveNo, 'seat'),
+      liveDeclinedAt: liveNo is Map ? _at(liveNo['at']) : null,
       winner: (j['winner'] as num?)?.toInt(),
       winners: j['winners'] is List
           ? [
@@ -482,6 +524,13 @@ class ChatMatch {
 /// Takebacks the opponent may grant one seat in one game
 /// (`matches.MAX_TAKEBACKS`).
 const kMaxTakebacks = 3;
+
+/// How long a go-live request stands (`matches.LIVE_REQUEST_TTL_MS`).
+const kLiveRequestTtl = Duration(seconds: 45);
+
+/// How long after a declined go-live request the same player may not ask
+/// again (`matches.LIVE_REQUEST_COOLDOWN_MS`).
+const kLiveRequestCooldown = Duration(minutes: 2);
 
 /// Moves that must land before a seat whose draw offer was declined may offer
 /// again (`matches.DRAW_REOFFER_AFTER`).

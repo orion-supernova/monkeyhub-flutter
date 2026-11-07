@@ -571,6 +571,9 @@ void main() {
       expect(api.calls.where((x) => x.startsWith('move')), isEmpty);
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpWidget(const SizedBox());
+      // The go-live offer's presence lease lets go 3 s after the screen does,
+      // and the store forgets the value 2 min after that.
+      await tester.pump(const Duration(minutes: 3));
     });
   });
 
@@ -600,6 +603,9 @@ void main() {
       expect(api.calls.where((x) => x.startsWith('move')), ['move:4']);
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpWidget(const SizedBox());
+      // The go-live offer's presence lease lets go 3 s after the screen does,
+      // and the store forgets the value 2 min after that.
+      await tester.pump(const Duration(minutes: 3));
     });
 
 

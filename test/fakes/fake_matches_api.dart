@@ -205,6 +205,15 @@ class FakeMatchesApi implements MatchesApi {
     bool accept,
   ) async => calls.add('answerTakeback:$accept');
   @override
+  Future<void> requestLive(String userId, String matchId) async =>
+      calls.add('requestLive');
+  @override
+  Future<void> cancelLive(String userId, String matchId) async =>
+      calls.add('cancelLive');
+  @override
+  Future<void> answerLive(String userId, String matchId, bool accept) async =>
+      calls.add('answerLive:$accept');
+  @override
   Future<void> requestSeat(String userId, String matchId, int seat) async =>
       calls.add('requestSeat:$seat');
   @override

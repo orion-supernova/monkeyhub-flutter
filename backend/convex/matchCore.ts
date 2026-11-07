@@ -60,6 +60,13 @@ export async function finishMatch(
     drawOffer: undefined,
     takebackOffer: undefined,
     seatRequest: undefined,
+    liveRequest: undefined,
+    liveDeclined: undefined,
+    // A game that went live from async ends as the turn game it began as:
+    // a rematch, the transcript and "your move" all key on `async`.
+    ...(match.mode === "live" && match.wentLiveAt !== undefined
+      ? { mode: "async" }
+      : {}),
     // Live viewers of a game that is over mean nothing, and the ids would
     // outlive the accounts they name.
     watchers: undefined,

@@ -72,6 +72,20 @@ class ActiveGamesBanner extends StatelessWidget {
   }
 }
 
+/// A go-live request from the other player of [g] that should still stand.
+/// Read against this device's clock with room to spare; a phone whose clock
+/// is far off simply gets no strip, and the question still waits on the
+/// game's own screen.
+bool _asksMe(ChatMatch g, String userId) {
+  final seat = g.liveRequestSeat;
+  final at = g.liveRequestAt;
+  if (seat == null || at == null || seat >= g.seats.length) return false;
+  if (g.mode != MatchMode.async || g.status != MatchStatus.active) return false;
+  if (!g.isSeated(userId) || g.seats[seat].userId == userId) return false;
+  final age = DateTime.now().difference(at);
+  return age < kLiveRequestTtl && age > const Duration(seconds: -5);
+}
+
 class _Banner extends StatelessWidget {
   const _Banner({
     required this.games,
@@ -88,13 +102,19 @@ class _Banner extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final mine = games.where((g) => g.isTurnOf(userId)).length;
-    final one = games.length == 1 ? games.first : null;
+    // Somebody just asked to play live: the strip says so, so the question
+    // is not missed by a player who is in the chat rather than at the board.
+    final ask = games.where((g) => _asksMe(g, userId)).firstOrNull;
+    final one = ask ?? (games.length == 1 ? games.first : null);
     final title = one != null
         ? sentenceCaseOf(context, chatGameName(l10n, one.game))
         : sentenceCaseOf(context, l10n.chatGameBannerCount(games.length));
+    final asker = ask == null ? null : ask.seats[ask.liveRequestSeat!];
     final meta = sentenceCaseOf(
       context,
-      one != null
+      asker != null
+          ? l10n.chatGameLiveWants(asker.name)
+          : one != null
           ? matchStatusLine(l10n, one, userId)
           : mine > 0
           ? l10n.chatGameBannerYourMoves(mine)
@@ -109,7 +129,7 @@ class _Banner extends StatelessWidget {
       child: Row(
         children: [
           const SizedBox(width: 9),
-          _Lead(yourMove: mine > 0),
+          _Lead(yourMove: mine > 0 || ask != null),
           const SizedBox(width: 10),
           Expanded(
             child: Text.rich(
@@ -132,8 +152,12 @@ class _Banner extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           StripPill(
-            label: mine > 0 ? l10n.chatGamePlay : l10n.chatGameOpen,
-            prominent: mine > 0,
+            label: ask != null
+                ? l10n.chatGameLivePlay
+                : mine > 0
+                ? l10n.chatGamePlay
+                : l10n.chatGameOpen,
+            prominent: mine > 0 || ask != null,
           ),
           const SizedBox(width: 8),
         ],

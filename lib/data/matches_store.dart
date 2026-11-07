@@ -625,6 +625,11 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
           return;
         }
         _learnClock(m);
+        // Went live under a staged move: the staged move belongs to the
+        // turn by turn game that just ended; live moves are sent as played.
+        if (_match?.mode == MatchMode.async && m.mode == MatchMode.live) {
+          _staged = null;
+        }
         _match = m;
         final p = _pending;
         if (p != null && m.seq > p.expectedSeq) _pending = null;
@@ -638,7 +643,8 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
           _historyStarted = true;
           unawaited(_watchHistory());
         }
-        if (m.status.isOpen && m.mode == MatchMode.live) {
+        if (m.status.isOpen &&
+            (m.mode == MatchMode.live || _asking(m))) {
           _ensureBeating();
         } else {
           _stopBeating();
@@ -847,6 +853,13 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
     if (!_disposed) notifyListeners();
   }
 
+  /// The viewer's own go-live request is standing: they beat while it does,
+  /// so the other player's yes can tell they are still at the board.
+  bool _asking(ChatMatch m) =>
+      m.mode == MatchMode.async &&
+      m.liveRequestSeat != null &&
+      m.liveRequestSeat == m.seatOf(userId);
+
   void _ensureBeating() {
     if (_beat != null || !_foreground || _disposed) return;
     unawaited(_api.beat(userId, matchId).catchError((_) {}));
@@ -887,6 +900,9 @@ class MatchController extends ChangeNotifier with WidgetsBindingObserver {
     final m = _match;
     if (m != null && m.mode == MatchMode.live && m.status.isOpen) {
       unawaited(_api.away(userId, matchId).catchError((_) {}));
+    } else if (m != null && _asking(m)) {
+      // Leaving the board withdraws the question: nobody is here to hear yes.
+      unawaited(_api.cancelLive(userId, matchId).catchError((_) {}));
     }
     super.dispose();
   }

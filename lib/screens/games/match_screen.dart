@@ -10,6 +10,7 @@ import '../../games/how_to/how_to_play.dart';
 import '../../backend/matches_api.dart';
 import '../../chat_games/match_copy.dart';
 import '../../chat_games/game_side_panel.dart';
+import '../../chat_games/go_live.dart';
 import '../../chat_games/match_face.dart';
 import '../../chat_games/move_history.dart';
 import '../../chat_games/move_notation.dart';
@@ -125,6 +126,19 @@ class _MatchScreenState extends State<MatchScreen> {
 
   bool _busy = false;
 
+  // ── Going live (see go_live.dart) ──
+  // The server lets a request lapse without clearing its row, so a screen
+  // decides it is over by when IT first saw that request: no clocks compared.
+  String? _liveKey;
+  DateTime? _liveSeenAt;
+  bool _liveExpired = false;
+  Timer? _liveTimer;
+  MatchMode? _lastMode;
+
+  /// Bumped for each ignite, so a second one restarts the animation.
+  int _igniteGen = 0;
+  bool _igniting = false;
+
   /// A fight reached this screen and was passed on to its own.
   bool _handedOff = false;
 
@@ -164,6 +178,7 @@ class _MatchScreenState extends State<MatchScreen> {
   void initState() {
     super.initState();
     _lastStatus = widget.initial?.status;
+    _lastMode = widget.initial?.mode;
     _c.addListener(_onChange);
     _c.start();
   }
@@ -172,6 +187,7 @@ class _MatchScreenState extends State<MatchScreen> {
   void dispose() {
     _countdownTimer?.cancel();
     _clock?.cancel();
+    _liveTimer?.cancel();
     _c
       ..removeListener(_onChange)
       ..dispose();
@@ -211,6 +227,14 @@ class _MatchScreenState extends State<MatchScreen> {
         HapticFeedback.mediumImpact();
       }
       _lastStatus = m.status;
+      _trackLive(m);
+      if (_lastMode == MatchMode.async &&
+          m.mode == MatchMode.live &&
+          m.status == MatchStatus.active &&
+          m.isSeated(widget.userId)) {
+        _ignite();
+      }
+      _lastMode = m.mode;
       final ticking = m.status == MatchStatus.paused;
       if (ticking && _clock == null) {
         _clock = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -226,6 +250,59 @@ class _MatchScreenState extends State<MatchScreen> {
       _sayRejection(_c.lastRejection);
     }
     setState(() {});
+  }
+
+  /// Follows the standing go-live request (if any) and arms the moment this
+  /// screen will treat it as lapsed.
+  void _trackLive(ChatMatch m) {
+    final seat = m.liveRequestSeat;
+    final key = seat == null || m.mode != MatchMode.async
+        ? null
+        : '$seat@${m.liveRequestAt?.millisecondsSinceEpoch}';
+    if (key == _liveKey) return;
+    _liveKey = key;
+    _liveTimer?.cancel();
+    _liveExpired = false;
+    if (key == null) {
+      _liveSeenAt = null;
+      return;
+    }
+    // Counted from when the server stamped it when the clocks agree (a
+    // screen opened late must not offer a question already dead), and from
+    // now when they do not.
+    final at = m.liveRequestAt;
+    final age = at == null ? Duration.zero : DateTime.now().difference(at);
+    final used = age.isNegative ? Duration.zero : age;
+    _liveSeenAt = DateTime.now().subtract(used);
+    final left = kLiveRequestTtl - used;
+    if (left <= Duration.zero) {
+      _liveExpired = true;
+      return;
+    }
+    _liveTimer = Timer(left, () {
+      if (!mounted) return;
+      setState(() => _liveExpired = true);
+    });
+  }
+
+  /// A go-live request that still stands, as far as this screen can tell.
+  bool _liveStands(ChatMatch m) =>
+      m.mode == MatchMode.async &&
+      m.status == MatchStatus.active &&
+      m.liveRequestSeat != null &&
+      m.liveRequestSeat! < m.seats.length &&
+      !_liveExpired;
+
+  /// Both said yes: a double tap of haptics and the spark over the board.
+  void _ignite() {
+    HapticFeedback.heavyImpact();
+    Future<void>.delayed(const Duration(milliseconds: 110), () {
+      if (mounted) HapticFeedback.mediumImpact();
+    });
+    setState(() {
+      _igniteGen++;
+      _igniting = true;
+    });
   }
 
   void _startCountdown() {
@@ -298,6 +375,9 @@ class _MatchScreenState extends State<MatchScreen> {
             'TOO_SOON' => tooSoon ?? l10n.chatGameNudged,
             'NO_TAKEBACKS_LEFT' => l10n.chatGameTakebacksLeft(0),
             'REQUEST_PENDING' => l10n.chatGameTakebackAsked,
+            'NOT_AVAILABLE' => l10n.chatGameLiveUnavailable,
+            'ALREADY_LIVE' => l10n.chatGameLiveBusy,
+            'NO_REQUEST' => l10n.chatGameLiveExpired,
             'FULL' => l10n.chatGameErrGeneric,
             _ => l10n.chatGameErrGeneric,
           },
@@ -700,6 +780,14 @@ class _MatchScreenState extends State<MatchScreen> {
         ),
         if (_countdown != null)
           _Countdown(value: _countdown!, label: l10n.chatGameGo),
+        if (_igniting)
+          LiveIgnite(
+            key: ValueKey(_igniteGen),
+            label: l10n.chatGameLiveNow,
+            onDone: () {
+              if (mounted) setState(() => _igniting = false);
+            },
+          ),
       ],
     );
   }
@@ -871,6 +959,16 @@ class _MatchScreenState extends State<MatchScreen> {
                   _act(() => _api.nudge(me, m.id));
                 },
         ),
+        if (!_c.isDraft && m.canAskLive(me) && !_liveStands(m))
+          GoLiveEntry(
+            match: m,
+            viewerId: me,
+            busy: _busy,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              _act(() => _api.requestLive(me, m.id));
+            },
+          ),
       ];
     }
     if (timeLeft == null) return const [];
@@ -1077,6 +1175,33 @@ class _MatchScreenState extends State<MatchScreen> {
           onDecline: () => _act(() => _api.cancelSeatRequest(me, m.id)),
         ));
       }
+    }
+    if (!_c.isDraft && _liveStands(m) && m.isSeated(me)) {
+      final asker = m.seats[m.liveRequestSeat!];
+      final asked = m.seats[1 - m.liveRequestSeat!];
+      final mine = asker.userId == me;
+      final left = kLiveRequestTtl -
+          DateTime.now().difference(_liveSeenAt ?? DateTime.now());
+      cards.add(LiveRequestCard(
+        key: ValueKey(_liveKey),
+        roomId: m.roomId,
+        asker: asker,
+        asked: asked,
+        viewerIsAsker: mine,
+        remaining: left.isNegative ? Duration.zero : left,
+        busy: _busy,
+        onCancel: () => _act(
+          () => mine
+              ? _api.cancelLive(me, m.id)
+              : _api.answerLive(me, m.id, false),
+        ),
+        onAccept: mine
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                _act(() => _api.answerLive(me, m.id, true));
+              },
+      ));
     }
     if (m.takebackOfferedTo(me)) {
       final from = m.seats[m.takebackOfferSeat!];

@@ -130,6 +130,10 @@ export const LIVENESS_EVERY_MS = 15_000;
 export const LOBBY_IDLE_MS = 90_000;
 /** The most watchers a game names; the rest are only counted. */
 export const WATCHERS_SHOWN = 12;
+/** How long a go-live request stands before it lapses on its own. */
+export const LIVE_REQUEST_TTL_MS = 45_000;
+/** After a declined go-live request, the same player may not ask again for this long. */
+export const LIVE_REQUEST_COOLDOWN_MS = 2 * 60_000;
 /** How long a seat request stands before somebody else may ask instead. */
 export const SEAT_REQUEST_TTL_MS = 60_000;
 /** Takebacks the opponent may grant one seat in one game. */
@@ -203,6 +207,14 @@ async function openMatches(ctx: any, roomId: any) {
     );
   }
   return out;
+}
+
+/**
+ * Whether this game's moves are chat bubbles: an async game, and a live
+ * session an async game was switched to (so the transcript stays whole).
+ */
+function inTranscript(match: any): boolean {
+  return match.mode === "async" || match.wentLiveAt !== undefined;
 }
 
 /** Arms an async turn's reminder and deadline, both fenced on [seq]. */
@@ -316,6 +328,9 @@ function view(match: any) {
     takebackOffer: match.takebackOffer,
     takebackDeclined: match.takebackDeclined,
     takebacks: match.takebacks ?? [],
+    // Async duels: a standing go-live request, and the last one declined.
+    liveRequest: match.liveRequest,
+    liveDeclined: match.liveDeclined,
     winner: match.winner,
     winners: match.winners,
     draw: match.draw === true,
@@ -936,7 +951,7 @@ export const move = mutation({
       lastMove: move,
     });
     after = await autoplayOut(ctx, after);
-    if (after.mode === "async") {
+    if (inTranscript(after)) {
       const bubble = await postMoveBubble(
         ctx, after, seat, userId, move, match.seq + 1, rules.encode(next),
       );
@@ -1317,7 +1332,7 @@ export const answerTakeback = mutation({
       takebackOffer: undefined,
       takebackDeclined: undefined,
     });
-    if (match.mode === "async") {
+    if (inTranscript(match)) {
       // The bubble showed a move that no longer exists.
       const bubbleId = undone.row.messageId;
       if (bubbleId) {
@@ -1325,6 +1340,8 @@ export const answerTakeback = mutation({
         if (bubble) await removeMessageAndFanout(ctx, bubble, bubbleId);
         await ctx.db.patch(undone.row._id, { messageId: undefined });
       }
+    }
+    if (match.mode === "async") {
       await armAsyncTurn(ctx, matchId, after.seq);
       await pushAbout(
         ctx, matchId, requester.userId, userId, "takebackGiven",
@@ -1528,6 +1545,17 @@ export const beat = mutation({
   args: { matchId: v.id("matches"), userId: v.id("users") },
   handler: async (ctx, { matchId, userId }) => {
     const match = await loadMatch(ctx, matchId);
+    // The asker of a go-live request beats while it stands, so the other
+    // player's yes can tell the asker is still at the board.
+    if (
+      match.mode === "async" &&
+      match.liveRequest &&
+      match.seats[match.liveRequest.seat]?.userId === userId &&
+      Date.now() - match.liveRequest.at < LIVE_REQUEST_TTL_MS
+    ) {
+      await beatOnce(ctx, matchId, userId);
+      return null;
+    }
     if (match.mode !== "live" || !isOpen(match.status)) return null;
     await assertMember(ctx, match.roomId, userId);
     await beatOnce(ctx, matchId, userId);
@@ -1669,6 +1697,26 @@ export const graceExpire = internalMutation({
     let match = await ctx.db.get(matchId);
     if (!match || match.status !== "paused") return null;
     if ((match.pauseEpoch ?? 0) !== epoch) return null;
+    if (match.wentLiveAt !== undefined) {
+      // A live session by consent, not a game that began live: nobody
+      // forfeits for it. The game goes back to turn by turn, where it was.
+      const waiting = match.turnSeat !== undefined
+        ? match.seats[match.turnSeat]
+        : undefined;
+      await ctx.db.patch(matchId, {
+        mode: "async",
+        status: "active",
+        wentLiveAt: undefined,
+        seats: match.seats.map((s: any) => ({ ...s, away: undefined })),
+      });
+      await armAsyncTurn(ctx, matchId, match.seq);
+      const turnUserId = match.turnUserId;
+      if (waiting?.away && turnUserId) {
+        const other = match.seats.find((s: any) => s.userId !== turnUserId);
+        await pushAbout(ctx, matchId, turnUserId, other?.userId, "yourMove");
+      }
+      return null;
+    }
     const away = match.seats
       .map((s: any, i: number) => (s.away && !s.out ? i : -1))
       .filter((i: number) => i >= 0);
@@ -1685,6 +1733,138 @@ export const graceExpire = internalMutation({
       await maybeResume(ctx, { ...match, status: "paused" }, seats);
     }
     return null;
+  },
+});
+
+// ── Going live (async duels) ────────────────────────────────────────────────
+
+/**
+ * Asks the other player of a turn by turn duel to play it live, right now.
+ * Both must be here: the partner's `presence` row must say online (one
+ * indexed read; a hidden or offline partner answers the same `NOT_AVAILABLE`,
+ * so this leaks nothing the partner hid), and the asker beats while the
+ * request stands so [answerLive] can tell they are still at the board.
+ *
+ * State lives on the game row (`liveRequest`), dead [LIVE_REQUEST_TTL_MS]
+ * after `at` with no scheduled job: every reader and [answerLive] compare
+ * `at` to the clock. Cost: ~6 reads (game, member, partner presence, the
+ * room's open games), 2 writes (game, asker's presence row).
+ */
+export const requestLive = mutation({
+  args: { matchId: v.id("matches"), userId: v.id("users") },
+  handler: async (ctx, { matchId, userId }) => {
+    const match = await loadMatch(ctx, matchId);
+    await assertMember(ctx, match.roomId, userId);
+    if (match.mode !== "async" || match.status !== "active") {
+      throw new Error("NOT_ACTIVE");
+    }
+    if (!rulesFor(match.game) || match.seats.length !== 2) {
+      throw new Error("NO_LIVE");
+    }
+    const seat = seatOf(match, userId);
+    if (seat < 0 || match.seats[seat].out) throw new Error("NOT_SEATED");
+    const now = Date.now();
+    const standing = match.liveRequest;
+    if (standing && now - standing.at < LIVE_REQUEST_TTL_MS) {
+      if (standing.seat === seat) return { asked: true };
+      throw new Error("REQUEST_PENDING");
+    }
+    const declined = match.liveDeclined;
+    if (
+      declined &&
+      declined.seat === seat &&
+      now - declined.at < LIVE_REQUEST_COOLDOWN_MS
+    ) {
+      throw new Error("TOO_SOON");
+    }
+    const partner = match.seats[1 - seat].userId;
+    const there = await ctx.db
+      .query("presence")
+      .withIndex("by_user", (q: any) => q.eq("userId", partner))
+      .first();
+    if (there?.status !== "online") throw new Error("NOT_AVAILABLE");
+    await assertRoomAtTable(ctx, match.roomId, "live");
+    await ctx.db.patch(matchId, { liveRequest: { seat, at: now } });
+    await beatOnce(ctx, matchId, userId);
+    return { asked: true };
+  },
+});
+
+/** The asker withdraws (or leaves the screen). Idempotent, never throws. */
+export const cancelLive = mutation({
+  args: { matchId: v.id("matches"), userId: v.id("users") },
+  handler: async (ctx, { matchId, userId }) => {
+    const match = await ctx.db.get(matchId);
+    if (!match?.liveRequest) return null;
+    if (match.seats[match.liveRequest.seat]?.userId !== userId) return null;
+    await ctx.db.patch(matchId, { liveRequest: undefined });
+    return null;
+  },
+});
+
+/**
+ * The other player answers. No: the request is cleared quietly (the asker
+ * may not ask again for [LIVE_REQUEST_COOLDOWN_MS]). Yes: the SAME game row
+ * becomes a live game (`mode: "live"`, so every live-game path applies as is:
+ * heartbeats, pause, grace, liveness), the async deadline is dropped (the
+ * reminder and expiry jobs see the mode and do nothing), and the liveness
+ * job starts. The asker must still be at the board (a fresh heartbeat),
+ * otherwise the request is void.
+ *
+ * Cost: ~8 reads (game, member, asker's heartbeat, room's open games),
+ * 3 writes (game, accepter's presence row, liveness job).
+ */
+export const answerLive = mutation({
+  args: {
+    matchId: v.id("matches"),
+    userId: v.id("users"),
+    accept: v.boolean(),
+  },
+  handler: async (ctx, { matchId, userId, accept }) => {
+    const match = await loadMatch(ctx, matchId);
+    await assertMember(ctx, match.roomId, userId);
+    if (match.mode !== "async" || match.status !== "active") {
+      throw new Error("NOT_ACTIVE");
+    }
+    const seat = seatOf(match, userId);
+    const req = match.liveRequest;
+    if (!req || Date.now() - req.at >= LIVE_REQUEST_TTL_MS) {
+      throw new Error("NO_REQUEST");
+    }
+    if (seat < 0 || req.seat === seat) throw new Error("NOT_SEATED");
+    const now = Date.now();
+    if (!accept) {
+      await ctx.db.patch(matchId, {
+        liveRequest: undefined,
+        liveDeclined: { seat: req.seat, at: now },
+      });
+      return { live: false };
+    }
+    const asker = match.seats[req.seat].userId;
+    const beat = await ctx.db
+      .query("matchPresence")
+      .withIndex("by_match_user", (q: any) =>
+        q.eq("matchId", matchId).eq("userId", asker),
+      )
+      .first();
+    if (!beat || now - beat.lastBeatAt >= BEAT_FRESH_MS) {
+      await ctx.db.patch(matchId, { liveRequest: undefined });
+      throw new Error("NO_REQUEST");
+    }
+    await assertRoomAtTable(ctx, match.roomId, "live");
+    await ctx.db.patch(matchId, {
+      mode: "live",
+      wentLiveAt: now,
+      liveRequest: undefined,
+      liveDeclined: undefined,
+      deadlineAt: undefined,
+      seats: match.seats.map((s: any) => ({ ...s, away: undefined })),
+    });
+    await beatOnce(ctx, matchId, userId);
+    await ctx.scheduler.runAfter(LIVENESS_EVERY_MS, internal.matches.liveness, {
+      matchId,
+    });
+    return { live: true };
   },
 });
 
@@ -1719,6 +1899,8 @@ export const asyncRemind = internalMutation({
   handler: async (ctx, { matchId, seq }) => {
     const match = await ctx.db.get(matchId);
     if (!match || match.status !== "active" || match.seq !== seq) return null;
+    // A game switched to live since this was armed has no deadline.
+    if (match.mode !== "async") return null;
     const other = match.seats.find((s: any) => s.userId !== match.turnUserId);
     await pushAbout(ctx, matchId, match.turnUserId, other?.userId, "reminder");
     return null;
@@ -1730,6 +1912,7 @@ export const asyncExpire = internalMutation({
   handler: async (ctx, { matchId, seq }) => {
     const match = await ctx.db.get(matchId);
     if (!match || match.status !== "active" || match.seq !== seq) return null;
+    if (match.mode !== "async") return null;
     if (match.turnSeat === undefined) return null;
     const loser = match.seats[match.turnSeat]?.userId;
     const after = await forfeitSeat(ctx, match, match.turnSeat, "timeout");
@@ -1746,6 +1929,8 @@ export const asyncExpire = internalMutation({
  */
 async function announceEnd(ctx: any, match: any, actorId: any) {
   if (!match || match.mode !== "async" || isOpen(match.status)) return;
+  // Played out live: both players were looking at the board.
+  if (match.wentLiveAt !== undefined) return;
   for (let i = 0; i < match.seats.length; i++) {
     const to = match.seats[i].userId;
     if (to === actorId) continue;

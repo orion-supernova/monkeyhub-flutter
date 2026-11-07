@@ -3408,6 +3408,19 @@ export default defineSchema({
     ),
     // Takebacks granted per seat (index = seat), capped per game.
     takebacks: v.optional(v.array(v.number())),
+    // Async duel: one player asking the other to play it live, right now.
+    // `at` is when; the request is dead [LIVE_REQUEST_TTL_MS] later with no
+    // job to clear it (readers and `answerLive` compare `at` to the clock).
+    liveRequest: v.optional(v.object({ seat: v.number(), at: v.number() })),
+    // The last go-live request that was declined, so it is not asked again at
+    // once (`matches.requestLive`).
+    liveDeclined: v.optional(v.object({ seat: v.number(), at: v.number() })),
+    // Set when an async game was switched to live by consent. Such a game is
+    // a TEMPORARY live session: when the pause runs out it goes back to
+    // async instead of forfeiting, and its moves still land in the transcript.
+    // Cleared on that revert; kept on a finish so no "you lost" push goes to
+    // a player who was looking at the board.
+    wentLiveAt: v.optional(v.number()),
     // How it ended. `winner` is a seat; absent with `draw` true is a draw;
     // both absent on an abandoned game.
     winner: v.optional(v.number()),
