@@ -44,10 +44,16 @@ class ShaderGlassSurface extends StatelessWidget {
   /// Dials for this surface; null reads the user's, live.
   final ShaderGlassConfig? config;
 
-  /// The quality tier the current device and power state allow.
+  /// The quality tier the current device and power state allow: the premium
+  /// lens, as Swirl draws every surface. The standard tier approximates the
+  /// glass with a blur and a specular rim stroke, and that stroke reads as a
+  /// white outline (on-device check, 2026-11-07). Low-tier devices and power
+  /// saving keep the standard tier; Full lens asks for premium on a low-tier
+  /// device too, never while saving power.
   static GlassQuality qualityFor(ShaderGlassConfig cfg, {bool? saving}) {
     final calm = saving ?? LowPowerMode.active;
-    if (cfg.fullLens && !Perf.low && !calm) return GlassQuality.premium;
+    if (calm) return GlassQuality.standard;
+    if (cfg.fullLens || !Perf.low) return GlassQuality.premium;
     return GlassQuality.standard;
   }
 

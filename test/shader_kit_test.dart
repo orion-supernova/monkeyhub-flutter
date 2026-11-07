@@ -95,12 +95,14 @@ void main() {
     expect(c.settings(isLight: false).rimLight, 0);
   });
 
-  test('full lens only on a normal tier, not saving power', () {
+  test('premium lens unless saving power', () {
     const on = ShaderGlassConfig(fullLens: true);
     expect(ShaderGlassSurface.qualityFor(on, saving: false).name, 'premium');
     expect(ShaderGlassSurface.qualityFor(on, saving: true).name, 'standard');
+    // Premium by default too: the standard tier's rim stroke read as a
+    // white outline.
     expect(ShaderGlassSurface.qualityFor(const ShaderGlassConfig(), saving: false).name,
-        'standard');
+        'premium');
   });
 
   testWidgets('LiquidGlass draws the shader skin under the shader kit',
