@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
+import '../ui/native/native_cut.dart';
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
@@ -718,7 +719,11 @@ class _HomeScreenState extends State<HomeScreen>
                 // requires bouncing physics — Flutter dispatches
                 // OverscrollNotification on a drag past either edge under
                 // any ScrollPhysics, which is what already powers that glow.
-                child: NotificationListener<OverscrollIndicatorNotification>(
+                // Native filter chips stop at the floating header's bar
+                // instead of drawing over its buttons.
+                child: NativeCut(
+                  top: MediaQuery.paddingOf(context).top + _kHeaderBar,
+                  child: NotificationListener<OverscrollIndicatorNotification>(
                   onNotification: (n) {
                     n.disallowIndicator();
                     return true;
@@ -903,6 +908,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ],
                     ),
                   ),
+                ),
                 ),
               ),
               Positioned(

@@ -57,6 +57,16 @@ abstract final class ShaderSkin {
     );
   }
 
+  /// The tab bar's glass: Swirl's `clearNative`, the iOS 27 preset tuned
+  /// against a native bar. Only the bar wears it.
+  static LiquidGlassSettings barSettings(BuildContext context) {
+    ShaderGlassEngine.ensureStarted();
+    return config.nativeSettings(
+      isLight: isLight(context),
+      lowPower: LowPowerMode.active || Perf.low,
+    );
+  }
+
   /// The package theme for this subtree: iOS 27 optics in the page's
   /// brightness, with the press effects on or off.
   static Widget themed(BuildContext context, Widget child) {

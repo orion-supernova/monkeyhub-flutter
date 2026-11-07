@@ -107,7 +107,9 @@ class CallButtonPair extends StatelessWidget {
               ),
             ],
             spacing: gap,
-            blend: gap * 2,
+            // Two discs apart at rest (the user found them "touching"); the
+            // glass still flows between them while one is pressed.
+            blend: 0,
           ),
           onEvent: (event, value) {
             if (event != 'select') return;

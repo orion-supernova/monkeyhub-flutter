@@ -86,8 +86,13 @@ void main() {
     expect(d.with_(kShaderBlur, kShaderBlur.standard).values.keys,
         isNot(contains('blur')));
     expect(ShaderGlassConfig.decode('not json'), const ShaderGlassConfig());
+    // The blur dial scales the chrome blur (Swirl's 5 + 4 at mid level)…
     final s = d.settings(isLight: true);
-    expect(s.frost, greaterThan(1.5 * 3));
+    expect(s.blur, greaterThan(7.0 * 3));
+    // …and the tab bar's iOS 27 frost.
+    expect(d.nativeSettings(isLight: true).frost, greaterThan(6.5 * 3));
+    // No drawn rim on controls: that is what read as a white outline.
+    expect(c.settings(isLight: false).rimLight, 0);
   });
 
   test('full lens only on a normal tier, not saving power', () {

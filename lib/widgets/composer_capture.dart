@@ -10,6 +10,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
+import '../ui/native/native_control.dart';
 import '../composer/capture_machine.dart';
 import '../composer/capture_permissions.dart';
 import '../composer/capture_compose.dart';
@@ -1622,6 +1623,26 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
             child: glyph,
           )
         : LiquidGlass(shape: LiquidGlassShape.circle, size: Size(diameter, diameter), child: glyph);
+    // Native controls: the same disc in system glass. It only draws; the
+    // hold-to-record and drag-to-switch gestures below stay Flutter's, so
+    // touches pass through it.
+    if (widget.style != ComposerCaptureStyle.classic && NativeControl.readyIn(context)) {
+      body = NativeControl(
+        size: Size(diameter, diameter),
+        standIn: body,
+        spec: NativeSpec.symbolButton(
+          symbol: switch (mode) {
+            ComposerInputMode.camera => 'camera',
+            ComposerInputMode.voice => 'mic',
+            ComposerInputMode.videoNote => 'video',
+          },
+          label: _modeLabel(mode),
+          size: diameter,
+          symbolSize: diameter * 17 / 44,
+          passthrough: true,
+        ),
+      );
+    }
 
     // The gesture detector is INSIDE FocusableTap and carries the same onTap —
     // FocusableTap registers no recognizer of its own, so a wrapper without

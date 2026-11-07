@@ -113,7 +113,7 @@ class ShaderTabBar extends StatelessWidget {
     final barBottom = navBottomKeepOut(safeBottom) + geo.of(kBarBottom);
     final selected = dests.indexWhere((d) => d.section == active);
     final dark = !ShaderSkin.isLight(context);
-    final glass = ShaderSkin.settings(context);
+    final glass = ShaderSkin.barSettings(context);
 
     Widget bar = LayoutBuilder(
       builder: (context, box) {

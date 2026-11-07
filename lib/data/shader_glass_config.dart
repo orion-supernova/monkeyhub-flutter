@@ -189,7 +189,57 @@ class ShaderGlassConfig {
     }
   }
 
-  /// The engine settings: the package's iOS 27 glass in Swirl's "clear
+  /// The engine settings for every control and surface: Swirl's chrome
+  /// recipe (`tintedGlass(Colors.transparent)` there). The package's own
+  /// glass, not the iOS 27 preset: a clear body, a light blur (5, plus 4 at
+  /// Swirl's mid glass level), thickness 20, the adaptive body that keeps
+  /// text behind readable, and no drawn rim. The iOS 27 preset's rim light
+  /// and shade read as a white outline on a dark page; Swirl keeps that
+  /// preset for the tab bar alone ([nativeSettings]).
+  ///
+  /// The dials scale this the same way they scale [nativeSettings].
+  LiquidGlassSettings settings({
+    required bool isLight,
+    Color? color,
+    double tintBoost = 0,
+    bool lowPower = false,
+  }) {
+    double scale(GlassKnob k, double preset) =>
+        k.standard == 0 ? preset : preset * of(k) / k.standard;
+    bool moved(GlassKnob k) => values.containsKey(k.id);
+    const level = 0.5;
+    final wash = color ??
+        Color.fromRGBO(
+          255,
+          255,
+          255,
+          ((0x14 / 0xFF) * of(kShaderTint) / kShaderTint.standard * level +
+                  tintBoost)
+              .clamp(0.0, 1.0),
+        );
+    const base = LiquidGlassSettings();
+    return base.copyWith(
+      glassColor: wash,
+      blur: scale(kShaderBlur, 5 + 4 * level),
+      thickness: scale(kShaderThickness, 20),
+      saturation: moved(kShaderSaturation) ? of(kShaderSaturation) : base.saturation,
+      lightIntensity:
+          moved(kShaderLight) ? of(kShaderLight) : base.lightIntensity,
+      lightAngle: moved(kShaderAngle)
+          ? of(kShaderAngle) * math.pi / 180
+          : base.lightAngle,
+      refractiveIndex:
+          moved(kShaderRefraction) ? of(kShaderRefraction) : base.refractiveIndex,
+      chromaticAberration: lowPower
+          ? 0
+          : (moved(kShaderChromatic)
+              ? of(kShaderChromatic)
+              : base.chromaticAberration),
+      bodyMode: color != null ? GlassBodyMode.clear : GlassBodyMode.adaptive,
+    );
+  }
+
+  /// The tab bar's settings: the package's iOS 27 glass in Swirl's "clear
   /// native" form (a light wash, a light frost, the paraxial lens that bends
   /// only in a soft band at the rim), so the kit reads as clear refracting
   /// glass and not as frost.
@@ -200,7 +250,7 @@ class ShaderGlassConfig {
   /// the preset's own value. [isLight] picks `ios27Light` or `ios27Dark`;
   /// [tintBoost] adds wash (a pressed control); [lowPower] drops the colour
   /// split.
-  LiquidGlassSettings settings({
+  LiquidGlassSettings nativeSettings({
     required bool isLight,
     Color? color,
     double tintBoost = 0,

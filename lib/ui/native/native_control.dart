@@ -230,24 +230,28 @@ class _NativeControlState extends State<NativeControl> {
   /// changed since the last sync.
   Map<String, Object?>? _placement() {
     final box = context.findRenderObject();
-    var visible = mounted &&
-        box is RenderBox &&
-        box.attached &&
-        box.hasSize &&
-        _tickerOn &&
-        NativeOverlay.suppressed.value == 0 &&
-        _routeSettled();
+    String? why;
+    if (!mounted || box is! RenderBox || !box.attached || !box.hasSize) {
+      why = 'unlaid';
+    } else if (!_tickerOn) {
+      why = 'ticker';
+    } else if (NativeOverlay.suppressed.value != 0) {
+      why = 'suppressed';
+    } else if (!_routeSettled()) {
+      why = 'route';
+    }
     Rect rect = Rect.zero;
     Rect clip = Rect.zero;
-    if (visible) {
-      final b = box;
+    if (why == null) {
+      final b = box as RenderBox;
       rect = MatrixUtils.transformRect(
         b.getTransformTo(null),
         Offset.zero & b.size,
       );
       clip = _clip(rect);
-      if (clip.isEmpty) visible = false;
+      if (clip.isEmpty) why = 'clipped';
     }
+    final visible = why == null;
     final placement = <String, Object?>{
       'x': _r(rect.left),
       'y': _r(rect.top),
@@ -258,6 +262,7 @@ class _NativeControlState extends State<NativeControl> {
       'cw': _r(clip.width),
       'ch': _r(clip.height),
       'visible': visible,
+      'why': ?why,
     };
     if (_specEquals(placement, _lastPlacement)) return null;
     _lastPlacement = placement;
@@ -372,7 +377,10 @@ class _NativeControlState extends State<NativeControl> {
     final size = widget.size ?? _reported ?? const Size(44, 44);
     final standIn = widget.standIn;
     return SizedBox(
-      width: size.width.isFinite ? size.width : null,
+      // A full-width control takes the full width whether or not its
+      // stand-in is drawn: an empty box would shrink to zero, read as
+      // clipped, hide, bring the stand-in back, widen, show, and blink.
+      width: size.width,
       height: size.height,
       child: _revealed || standIn == null
           ? null
@@ -422,6 +430,8 @@ class NativeSpec {
   Map<String, Object?> toMap() => _map;
 
   /// The round chrome button: a 44 pt glass circle, a 17 pt SF Symbol.
+  /// [passthrough] draws it only: touches fall through to the Flutter
+  /// gestures under it (the composer's hold-to-record mode button).
   factory NativeSpec.symbolButton({
     required String symbol,
     required String label,
@@ -430,8 +440,10 @@ class NativeSpec {
     bool enabled = true,
     double size = 44,
     double symbolSize = 17,
+    bool passthrough = false,
   }) => NativeSpec._({
     'kind': 'symbolButton',
+    'passthrough': passthrough,
     'symbol': symbol,
     'label': label,
     'prominent': prominent,

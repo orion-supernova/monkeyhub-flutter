@@ -198,9 +198,12 @@ final class NativeOverlaySlot {
   private var settled = false
   private var clipRect: CGRect = .zero
 
+  private var kindName: String { model.spec.kind }
+
   init(id: String, spec: [String: Any], emit: @escaping (String, Any?) -> Void) {
     self.emit = emit
     model = NativeControlModel(spec: NativeControlSpec(spec))
+    passthrough = spec["passthrough"] as? Bool ?? false
     host = UIHostingController(rootView: NativeControlRoot(model: model, emit: emit))
     host.view.backgroundColor = .clear
     if #available(iOS 16.4, *) { host.safeAreaRegions = [] }
@@ -217,15 +220,28 @@ final class NativeOverlaySlot {
 
   func update(_ spec: [String: Any]) {
     model.spec = NativeControlSpec(spec)
+    passthrough = spec["passthrough"] as? Bool ?? false
+    clip.isUserInteractionEnabled = revealed && !passthrough
     reportSize()
   }
+
+  /// Draws only: touches go to Flutter under it.
+  private var passthrough = false
 
   func place(_ item: [String: Any]) {
     func num(_ key: String) -> CGFloat { CGFloat((item[key] as? NSNumber)?.doubleValue ?? 0) }
     clipRect = CGRect(x: num("cx"), y: num("cy"), width: num("cw"), height: num("ch"))
     let rect = CGRect(x: num("x"), y: num("y"), width: num("w"), height: num("h"))
     host.view.frame = rect.offsetBy(dx: -clipRect.minX, dy: -clipRect.minY)
-    wantsVisible = item["visible"] as? Bool ?? false
+    let wants = item["visible"] as? Bool ?? false
+    #if DEBUG
+    // Why a control hid (`route`, `clipped`, `ticker`...): read with
+    // `log show --predicate 'eventMessage CONTAINS "[nativeOverlay]"'`.
+    if wants != wantsVisible {
+      NSLog("[nativeOverlay] %@ %@ %@", kindName, wants ? "show" : "hide", item["why"] as? String ?? "")
+    }
+    #endif
+    wantsVisible = wants
     applyReveal()
   }
 
@@ -236,7 +252,7 @@ final class NativeOverlaySlot {
     // never jumps.
     if next != revealed {
       revealed = next
-      clip.isUserInteractionEnabled = next
+      clip.isUserInteractionEnabled = next && !passthrough
       if !next { model.blurTick += 1 }
       emit("revealed", next)
     }
