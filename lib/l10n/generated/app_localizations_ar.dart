@@ -16557,4 +16557,28 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get glassExperimentalTag => 'تجريبي';
+
+  @override
+  String feedNavBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count جديد من الأصدقاء',
+      many: '$count جديدًا من الأصدقاء',
+      few: '$count جديدة من الأصدقاء',
+      two: 'جديدان من الأصدقاء',
+      one: 'جديد واحد من الأصدقاء',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String feedActivityNewPill(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count جديد',
+    );
+    return '$_temp0';
+  }
 }

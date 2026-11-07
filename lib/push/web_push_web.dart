@@ -57,6 +57,7 @@ class WebPush {
 
   static void Function(String momentId)? _onOpenMoment;
   static void Function()? _onOpenGames;
+  static void Function()? _onOpenGameResult;
   static bool _targetWired = false;
 
   /// Route a friend-activity notification click — a highlight or point to its
@@ -72,9 +73,11 @@ class WebPush {
   static void setOnOpenTarget({
     required void Function(String momentId) onMoment,
     required void Function() onGames,
+    void Function()? onGameResult,
   }) {
     _onOpenMoment = onMoment;
     _onOpenGames = onGames;
+    _onOpenGameResult = onGameResult;
     if (_targetWired) return;
     _targetWired = true;
     try {
@@ -85,7 +88,7 @@ class WebPush {
               final id = momentId.toDart;
               if (id.isNotEmpty) _onOpenMoment?.call(id);
             case 'game_result':
-              _onOpenGames?.call();
+              (_onOpenGameResult ?? _onOpenGames)?.call();
           }
         }).toJS,
       );

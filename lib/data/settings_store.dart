@@ -42,6 +42,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kSection = 'mh.section';
   static const _kShowCallsTab = 'mh.showCallsTab';
   static const _kCallsSeenAt = 'mh.callsSeenAt';
+  static const _kFeedActivitySeenAt = 'mh.feedActivitySeenAt';
   static const _kCallsFavSnoozed = 'mh.callsFavSnoozed';
   static const _kPushEnabled = 'mh.pushEnabled';
   static const _kGameReminders = 'mh.gameReminders';
@@ -157,6 +158,7 @@ class SettingsStore extends ChangeNotifier {
   HomeSection _section = HomeSection.chat;
   bool _showCallsTab = true;
   int _callsSeenAt = 0;
+  int _feedActivitySeenAt = 0;
   // peerId -> epoch ms until which the Calls tab will not suggest pinning them.
   Map<String, int> _callsFavSnoozed = {};
   // Null until the user drags the split shell's divider; the shell owns the
@@ -323,6 +325,13 @@ class SettingsStore extends ChangeNotifier {
   /// When the Calls tab was last opened, epoch ms; 0 before the first open.
   /// Local only: the badge counts missed calls newer than this.
   int get callsSeenAt => _callsSeenAt;
+
+  /// The finish time (epoch ms) of the newest friend result the viewer has had
+  /// on screen in the Feed's Activity board; 0 before the first look. Local
+  /// only: the Feed tab's badge and the board's "new" marks count friends'
+  /// results newer than this. A server timestamp rather than the device
+  /// clock, so a fast or slow phone clock cannot hide a fresh result.
+  int get feedActivitySeenAt => _feedActivitySeenAt;
 
   /// Epoch ms until which "add to favourites?" is not suggested for [peerId];
   /// 0 when it is not snoozed. Local only.
@@ -732,6 +741,7 @@ class SettingsStore extends ChangeNotifier {
     _section = HomeSection.parse(sec);
     _showCallsTab = s[_kShowCallsTab] != 'false'; // default true
     _callsSeenAt = int.tryParse(s[_kCallsSeenAt] ?? '') ?? 0;
+    _feedActivitySeenAt = int.tryParse(s[_kFeedActivitySeenAt] ?? '') ?? 0;
     _callsFavSnoozed = _parseSnoozes(s[_kCallsFavSnoozed]);
     _chatListWidth = double.tryParse(s[_kChatListWidth] ?? '');
     final push = s[_kPushEnabled];
@@ -1105,6 +1115,14 @@ class SettingsStore extends ChangeNotifier {
     _callsSeenAt = at;
     notifyListeners();
     await _storage.write(key: _kCallsSeenAt, value: at.toString());
+  }
+
+  /// Marks friends' results up to [at] (epoch ms) as seen. Never moves back.
+  Future<void> markFeedActivitySeen(int at) async {
+    if (at <= _feedActivitySeenAt) return;
+    _feedActivitySeenAt = at;
+    notifyListeners();
+    await _storage.write(key: _kFeedActivitySeenAt, value: at.toString());
   }
 
   static Map<String, int> _parseSnoozes(String? raw) {

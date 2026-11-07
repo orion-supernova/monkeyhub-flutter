@@ -111,6 +111,37 @@ class FeedStore extends ChangeNotifier {
   /// ring, and the count on the Feed tab's nav badge.
   int get unseenCount => _moments.where((m) => !m.mine && !m.seen).length;
 
+  /// Finish times (epoch ms) of FRIENDS' finished dailies on the board: the
+  /// four timed games plus the code, never the viewer's own. Unsorted and
+  /// allocation-light, because the nav badge reads it on every shell build.
+  Iterable<int> get _friendPlayTimes sync* {
+    final me = _userId;
+    for (final p in _plays) {
+      if (p.userId != me) yield p.finishedAt.millisecondsSinceEpoch;
+    }
+    for (final s in _puzzle.scores) {
+      if (s.userId != me) yield s.finishedAt.millisecondsSinceEpoch;
+    }
+  }
+
+  /// Friends' results finished after [seenAt]: what the Activity board marks
+  /// "new" and what the Feed tab's badge adds to [unseenCount]. Counts results,
+  /// not people, because "3 new" must be 3 things to look at.
+  int newPlayCount(int seenAt) =>
+      _friendPlayTimes.where((t) => t > seenAt).length;
+
+  /// The finish time of the newest friend result, or 0: the watermark the
+  /// board writes once it has been on screen, so it can never run ahead of
+  /// what was actually shown.
+  int get newestFriendPlayAt =>
+      _friendPlayTimes.fold<int>(0, (a, b) => b > a ? b : a);
+
+  /// Friends' highlights the viewer has not opened: the Activity board's
+  /// other "new" source, cleared by opening the picture, not by looking.
+  int get unseenHighlightCount => _moments
+      .where((m) => m.tag == null && !m.mine && !m.seen)
+      .length;
+
   /// Untagged moments — the HIGHLIGHTS rail. Photos and videos worth showing.
   ///
   /// Split from [points] because these are two different things to a person

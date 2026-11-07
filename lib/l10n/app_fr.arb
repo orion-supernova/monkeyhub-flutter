@@ -4462,5 +4462,7 @@
   "controlsLabTitle": "Labo des commandes",
   "glassInteractiveTitle": "Verre interactif",
   "glassInteractiveBody": "Le verre réagit à votre doigt : il s’enfonce, s’étire et s’illumine là où vous touchez.",
-  "glassExperimentalTag": "Expérimental"
+  "glassExperimentalTag": "Expérimental",
+  "feedNavBadgeSemantics": "{count, plural, =1{1 nouveauté de vos amis} other{{count} nouveautés de vos amis}}",
+  "feedActivityNewPill": "{count, plural, =1{1 nouvelle} other{{count} nouvelles}}"
 }

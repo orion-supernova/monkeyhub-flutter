@@ -100,6 +100,23 @@ class UiSelectionStore extends ChangeNotifier {
     return pending;
   }
 
+  /// A friend's shared game result was tapped: land on the Feed's Activity
+  /// board, where that result is listed, and count it as seen. One-shot like
+  /// [requestGamesView]; the Feed consumes it, so it survives a cold start.
+  bool _activityViewPending = false;
+  bool get activityViewPending => _activityViewPending;
+
+  void requestActivityView() {
+    _activityViewPending = true;
+    _notify();
+  }
+
+  bool consumeActivityView() {
+    final pending = _activityViewPending;
+    _activityViewPending = false;
+    return pending;
+  }
+
   /// The same one-shot for a friend-activity notification: open THIS moment's
   /// viewer on the Feed.
   ///

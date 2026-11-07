@@ -396,11 +396,11 @@ import WebRTC
       completionHandler()
       return
     }
-    // A friend shared a game result. Lands on the games shelf, where the
-    // standings they are now on top of live — the same destination as the
-    // nudge, because there is no per-result screen to open.
+    // A friend shared a game result. Lands on the Feed's Activity board, where
+    // the result is listed. (Older Dart builds ignore the new method name; the
+    // Dart side falls back to the games shelf for them.)
     if (info["kind"] as? String) == "game_result" {
-      invokeNotifOrQueue("onOpenGames", args: [:])
+      invokeNotifOrQueue("onOpenGameResult", args: [:])
       completionHandler()
       return
     }

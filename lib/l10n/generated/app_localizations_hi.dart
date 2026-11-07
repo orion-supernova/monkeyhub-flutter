@@ -16290,4 +16290,24 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get glassExperimentalTag => 'प्रयोगात्मक';
+
+  @override
+  String feedNavBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'दोस्तों की $count नई गतिविधि',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String feedActivityNewPill(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count नई',
+    );
+    return '$_temp0';
+  }
 }

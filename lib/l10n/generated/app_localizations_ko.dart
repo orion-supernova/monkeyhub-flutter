@@ -15634,4 +15634,24 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get glassExperimentalTag => '실험적';
+
+  @override
+  String feedNavBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '친구의 새 소식 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String feedActivityNewPill(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '새 소식 $count',
+    );
+    return '$_temp0';
+  }
 }

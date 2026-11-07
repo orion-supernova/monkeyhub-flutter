@@ -651,6 +651,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     PushManager.instance.setOnOpenRoom(_openRoomFromPush);
     PushManager.instance.setOnOpenRequests(_openRequestsFromPush);
     PushManager.instance.setOnOpenGames(_openGamesFromPush);
+    PushManager.instance.setOnOpenGameResult(_openGameResultFromPush);
     PushManager.instance.setOnOpenMoment(_openMomentFromPush);
     // Midnight passed with the app open. Daylight saving moves at 3am, when
     // nobody resumes anything, so without this a phone left on a nightstand
@@ -698,6 +699,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     WebPush.setOnOpenTarget(
       onMoment: _openMomentFromPush,
       onGames: _openGamesFromPush,
+      onGameResult: _openGameResultFromPush,
     );
     // Web: the address bar follows the open chat and section, Back/Forward
     // walk them, and a reload or pasted `#/c/<id>` reopens the chat through
@@ -938,6 +940,20 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   void _openGamesFromPush() {
     UiSelectionStore.instance.requestGamesView();
     SettingsStore.instance.setSection(HomeSection.games, persist: false);
+    final nav = rootNavigatorKey.currentState;
+    if (nav == null) return;
+    nav.popUntil((r) => r.isFirst);
+  }
+
+  /// A tapped shared game result: the Feed's Activity board, where friends'
+  /// results are listed, scrolled into view and counted as seen (see
+  /// `FeedScreen._consumeActivityView`). The same three moves as the taps
+  /// around it: the request waits in [UiSelectionStore] for a cold start, the
+  /// section is steered without persisting, and whatever was pushed over the
+  /// shell is popped.
+  void _openGameResultFromPush() {
+    UiSelectionStore.instance.requestActivityView();
+    SettingsStore.instance.setSection(HomeSection.feed, persist: false);
     final nav = rootNavigatorKey.currentState;
     if (nav == null) return;
     nav.popUntil((r) => r.isFirst);

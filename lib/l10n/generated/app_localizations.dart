@@ -26928,6 +26928,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Experimental'**
   String get glassExperimentalTag;
+
+  /// Spoken label of the Feed tab's badge in the navigation bar, read after the tab name ("Feed, 3 new from friends"). {count} is how many things friends did that the viewer has not seen yet: highlights not opened plus game results not looked at. Always 1 or more.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 new from friends} other{{count} new from friends}}'**
+  String feedNavBadgeSemantics(int count);
+
+  /// Small accent pill on the Feed board's Activity header: how many of the listed things are new to the viewer ("3 new"). Fades away once the viewer has seen them. {count} is always 1 or more.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} new'**
+  String feedActivityNewPill(int count);
 }
 
 class _AppLocalizationsDelegate

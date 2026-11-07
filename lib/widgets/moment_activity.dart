@@ -66,6 +66,7 @@ class MomentActivity extends StatefulWidget {
     this.plays = const [],
     this.onOpenPlay,
     this.faceOf,
+    this.playsNewSince,
     this.inline = 10,
   });
 
@@ -85,6 +86,11 @@ class MomentActivity extends StatefulWidget {
   /// A friend's profile picture, for a game result (which carries no face of
   /// its own). Highlights bring theirs.
   final String? Function(String userId)? faceOf;
+
+  /// Epoch ms the viewer last had the board on screen for. A friend's result
+  /// finished after it carries the unseen dot; moving it forward fades the
+  /// dots out (see [PlayerFace.fadeDot]). Null marks nothing, for the sheet.
+  final int? playsNewSince;
 
   /// Top-level rows shown before "See all". A group is one row however many
   /// games it holds, and opening it never pushes another row out.
@@ -169,6 +175,7 @@ class _MomentActivityState extends State<MomentActivity> {
             api: w.api,
             index: i,
             faceOf: w.faceOf,
+            playsNewSince: w.playsNewSince,
             onOpen: w.onOpen,
             onOpenPlay: w.onOpenPlay,
             open: _open.contains(activityKeyOf(shown[i])),
@@ -208,6 +215,7 @@ class ActivityRow extends StatelessWidget {
     required this.onOpen,
     this.onOpenPlay,
     this.faceOf,
+    this.playsNewSince,
     this.index = 0,
     this.open = false,
     this.onToggle,
@@ -219,6 +227,9 @@ class ActivityRow extends StatelessWidget {
   final void Function(Moment moment, Rect? origin) onOpen;
   final void Function(GamePlay play)? onOpenPlay;
   final String? Function(String userId)? faceOf;
+
+  /// See [MomentActivity.playsNewSince].
+  final int? playsNewSince;
   final int index;
 
   /// A group's state, held by the list so it survives refreshes.
@@ -249,12 +260,18 @@ class ActivityRow extends StatelessWidget {
         onToggle: onToggle,
         onOpenPlay: onOpenPlay,
         face: faceOf?.call(plays.first.userId),
+        anyNew: plays.any(_isNew),
       );
     } else {
       return const SizedBox.shrink();
     }
     return _Entrance(index: index, child: row);
   }
+
+  bool _isNew(GamePlay p) =>
+      playsNewSince != null &&
+      p.userId != viewerId &&
+      p.finishedAt.millisecondsSinceEpoch > playsNewSince!;
 
   Widget _momentRow(BuildContext context, Moment moment) {
     final theme = ThemeScope.of(context);
@@ -328,6 +345,8 @@ class ActivityRow extends StatelessWidget {
         label: play.name,
         size: kPersonRowAvatar,
         storageId: faceOf?.call(play.userId),
+        dot: _isNew(play),
+        fadeDot: playsNewSince != null,
         // A miss reads as one at a glance; a solve needs no mark.
         badge: play.solved
             ? null
@@ -408,10 +427,14 @@ class _PlayRun extends StatelessWidget {
     required this.onToggle,
     required this.onOpenPlay,
     required this.face,
+    this.anyNew = false,
   });
 
   /// Newest first, two or more, all one friend's.
   final List<GamePlay> plays;
+
+  /// At least one of them is a result the viewer has not seen yet.
+  final bool anyNew;
   final bool open;
   final VoidCallback? onToggle;
   final void Function(GamePlay play)? onOpenPlay;
@@ -444,6 +467,8 @@ class _PlayRun extends StatelessWidget {
           label: who.name,
           size: kPersonRowAvatar,
           storageId: face,
+          dot: anyNew,
+          fadeDot: true,
           badge: solved > 0
               ? null
               : Icon(

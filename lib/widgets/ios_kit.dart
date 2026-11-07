@@ -1530,10 +1530,15 @@ class PageSectionHeader extends StatelessWidget {
     this.onAction,
     this.actionSemanticLabel,
     this.actions = const [],
+    this.accessory,
     this.padding = const EdgeInsets.fromLTRB(0, 0, 0, 10),
   });
 
   final String title;
+
+  /// A small status widget (a "3 new" pill) after the title, before the
+  /// actions. The caller owns its motion and its semantics.
+  final Widget? accessory;
 
   /// The band's own buttons, drawn as [SectionActionButton]s in place of the
   /// "Label ›" link: for a tab root whose sections each have a real thing to
@@ -1588,6 +1593,7 @@ class PageSectionHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(child: heading),
+          if (accessory != null) ...[const SizedBox(width: 8), accessory!],
           if (actions.isNotEmpty)
             for (final a in actions) ...[
               const SizedBox(width: 8),

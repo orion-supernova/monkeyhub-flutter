@@ -4462,5 +4462,7 @@
   "controlsLabTitle": "कंट्रोल लैब",
   "glassInteractiveTitle": "इंटरैक्टिव ग्लास",
   "glassInteractiveBody": "ग्लास आपकी उंगली पर प्रतिक्रिया करता है: वह दबता है, खिंचता है और जहां आप छूते हैं वहां चमकता है।",
-  "glassExperimentalTag": "प्रयोगात्मक"
+  "glassExperimentalTag": "प्रयोगात्मक",
+  "feedNavBadgeSemantics": "{count, plural, other{दोस्तों की {count} नई गतिविधि}}",
+  "feedActivityNewPill": "{count, plural, other{{count} नई}}"
 }

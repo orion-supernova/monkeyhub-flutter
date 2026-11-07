@@ -4462,5 +4462,7 @@
   "controlsLabTitle": "Laboratório de controles",
   "glassInteractiveTitle": "Vidro interativo",
   "glassInteractiveBody": "O vidro reage ao seu dedo: afunda, estica e acende onde você toca.",
-  "glassExperimentalTag": "Experimental"
+  "glassExperimentalTag": "Experimental",
+  "feedNavBadgeSemantics": "{count, plural, =1{1 novidade dos amigos} other{{count} novidades dos amigos}}",
+  "feedActivityNewPill": "{count, plural, =1{1 nova} other{{count} novas}}"
 }

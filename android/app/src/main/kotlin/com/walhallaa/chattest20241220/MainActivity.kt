@@ -840,8 +840,8 @@ class MainActivity : FlutterActivity(), GamepadsCompatibleActivity {
             // push, which opens the card with its conversation already up.
             kind == "friend_moment" && momentId.isNotEmpty() ->
                 mapOf("method" to "onOpenMoment", "momentId" to momentId, "focus" to focus)
-            // A friend's shared game result: the games shelf and its standings.
-            kind == "game_result" -> mapOf("method" to "onOpenGames")
+            // A friend's shared game result: the Feed's Activity board.
+            kind == "game_result" -> mapOf("method" to "onOpenGameResult")
             else -> return
         }
         val method = event["method"] as String

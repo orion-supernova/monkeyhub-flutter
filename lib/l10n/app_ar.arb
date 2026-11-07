@@ -4462,5 +4462,7 @@
   "controlsLabTitle": "مختبر عناصر التحكم",
   "glassInteractiveTitle": "زجاج تفاعلي",
   "glassInteractiveBody": "يتفاعل الزجاج مع إصبعك: ينضغط ويتمدد ويضيء عند موضع اللمس.",
-  "glassExperimentalTag": "تجريبي"
+  "glassExperimentalTag": "تجريبي",
+  "feedNavBadgeSemantics": "{count, plural, =1{جديد واحد من الأصدقاء} =2{جديدان من الأصدقاء} few{{count} جديدة من الأصدقاء} many{{count} جديدًا من الأصدقاء} other{{count} جديد من الأصدقاء}}",
+  "feedActivityNewPill": "{count, plural, other{{count} جديد}}"
 }

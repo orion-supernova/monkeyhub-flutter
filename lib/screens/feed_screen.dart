@@ -22,6 +22,7 @@ import '../theme/layout.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/count_badge.dart';
 import '../widgets/feed_depth_field.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/sunlit_surface.dart' show SunlitBackdrop;
@@ -112,6 +113,133 @@ class _FeedScreenState extends State<FeedScreen>
     // post-frame callback above only fires on mount, and steering the shell to
     // a section it is already showing remounts nothing.
     UiSelectionStore.instance.addListener(_consumePendingMoment);
+    // A tapped shared-result notification: same two doors, same reasons.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _consumeActivityView());
+    UiSelectionStore.instance.addListener(_consumeActivityView);
+    // Whether the Activity board is on screen changes as the page scrolls.
+    _scroll.addListener(_onScroll);
+    // Marking the board seen fades its "new" marks. Settings notifies for
+    // everything; only the watermark moving is worth a rebuild here.
+    SettingsStore.instance.addListener(_onSeenAtChanged);
+  }
+
+  int _builtSeenAt = 0;
+
+  void _onSeenAtChanged() {
+    if (!mounted) return;
+    if (SettingsStore.instance.feedActivitySeenAt != _builtSeenAt) {
+      setState(() {});
+    }
+  }
+
+  // ───────── Activity: "new" until it has actually been on screen ─────────
+
+  final _activityKey = GlobalKey();
+
+  /// Armed once the Activity board has been in view; commits the watermark
+  /// after [_kSeenDwell] so a flick past it does not count as having looked.
+  Timer? _seenTimer;
+
+  /// Set at build: friends' results newer than the watermark exist. Keeps the
+  /// scroll listener a single bool read when there is nothing to clear.
+  bool _hasNewPlays = false;
+
+  /// When a result notification landed here. Within [_kPushSeenWindow] the
+  /// board counts as seen on arrival, with no dwell: the person tapped the
+  /// banner to see exactly this.
+  DateTime? _pushLandedAt;
+
+  static const _kSeenDwell = Duration(milliseconds: 1200);
+  static const _kPushSeenWindow = Duration(seconds: 8);
+
+  void _onScroll() {
+    if (_hasNewPlays) _checkSeen();
+  }
+
+  /// True while the Activity board's header and first row are inside the
+  /// viewport, between the bar and the nav, on the current route, with the app
+  /// in the foreground.
+  bool _activityOnScreen() {
+    if (ModalRoute.of(context)?.isCurrent == false) return false;
+    final life = WidgetsBinding.instance.lifecycleState;
+    if (life != null && life != AppLifecycleState.resumed) return false;
+    final box = _activityKey.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.attached || !box.hasSize) return false;
+    final top = box.localToGlobal(Offset.zero).dy;
+    final bottom = top + box.size.height;
+    final visibleTop = TabRootBar.clearance(context);
+    final visibleBottom = MediaQuery.sizeOf(context).height - 90;
+    return top < visibleBottom - 56 && bottom > visibleTop + 56;
+  }
+
+  void _checkSeen() {
+    if (!mounted) return;
+    final store = FeedStore.instance;
+    final newest = store.newestFriendPlayAt;
+    if (newest <= SettingsStore.instance.feedActivitySeenAt) {
+      _seenTimer?.cancel();
+      _seenTimer = null;
+      return;
+    }
+    final landed = _pushLandedAt;
+    if (landed != null &&
+        DateTime.now().difference(landed) < _kPushSeenWindow) {
+      _commitSeen();
+      return;
+    }
+    if (_activityOnScreen()) {
+      _seenTimer ??= Timer(_kSeenDwell, () {
+        _seenTimer = null;
+        if (mounted && _activityOnScreen()) _commitSeen();
+      });
+    } else {
+      _seenTimer?.cancel();
+      _seenTimer = null;
+    }
+  }
+
+  void _commitSeen() {
+    _seenTimer?.cancel();
+    _seenTimer = null;
+    _pushLandedAt = null;
+    unawaited(
+      SettingsStore.instance.markFeedActivitySeen(
+        FeedStore.instance.newestFriendPlayAt,
+      ),
+    );
+  }
+
+  /// The shared-result notification tap: scroll the Activity board into view
+  /// and count it as seen.
+  void _consumeActivityView() {
+    if (!mounted || !UiSelectionStore.instance.consumeActivityView()) return;
+    _pushLandedAt = DateTime.now();
+    _scrollToActivity(retries: 3);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkSeen());
+  }
+
+  void _scrollToActivity({required int retries}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final ctx = _activityKey.currentContext;
+      if (ctx != null) {
+        unawaited(
+          Scrollable.ensureVisible(
+            ctx,
+            duration: MotionScope.of(context).d(const Duration(milliseconds: 420)),
+            curve: Curves.easeOutCubic,
+            alignment: 0.1,
+          ),
+        );
+        return;
+      }
+      // The list builds lazily and the Activity band is its last child (and
+      // is absent until the board lands): go to the end, then look again.
+      if (retries > 0 && _scroll.hasClients) {
+        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+        _scrollToActivity(retries: retries - 1);
+      }
+    });
   }
 
   /// Whether a tapped moment is already being fetched or shown, so a rebuild
@@ -186,6 +314,10 @@ class _FeedScreenState extends State<FeedScreen>
   void dispose() {
     FeedStore.instance.removeListener(_onChange);
     UiSelectionStore.instance.removeListener(_consumePendingMoment);
+    UiSelectionStore.instance.removeListener(_consumeActivityView);
+    _seenTimer?.cancel();
+    SettingsStore.instance.removeListener(_onSeenAtChanged);
+    _scroll.removeListener(_onScroll);
     widget.repo.removeListener(_onChange);
     _scroll.dispose();
     super.dispose();
@@ -378,6 +510,15 @@ class _FeedScreenState extends State<FeedScreen>
     // keeps the hint, because that is what would fill it.
     final noFriends = widget.repo.friends.isEmpty;
     final showActivity = activity.isNotEmpty || plays.isNotEmpty || noFriends;
+    // Friends' results the viewer has not had on screen yet. The board marks
+    // them with a dot and a "N new" pill, and clears both with a fade once it
+    // has been in view long enough to have been read (see [_checkSeen]).
+    final seenAt = _builtSeenAt = SettingsStore.instance.feedActivitySeenAt;
+    final newCount = store.unseenHighlightCount + store.newPlayCount(seenAt);
+    _hasNewPlays = store.newestFriendPlayAt > seenAt;
+    if (_hasNewPlays) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _checkSeen());
+    }
 
     // Sections are assembled as a list so the entrance stagger can index them
     // without every section needing to know its own position. Deeper sections
@@ -456,7 +597,9 @@ class _FeedScreenState extends State<FeedScreen>
         (
           id: 'activity',
           child: _SectionShell(
+            key: _activityKey,
             label: l10n.feedBoardActivityLabel,
+            accessory: _NewPill(count: newCount),
             body: activity.isEmpty && plays.isEmpty && noFriends
                 // Distinct from "quiet today": someone with no friends yet
                 // needs to know what would fill this, not that nothing
@@ -473,6 +616,7 @@ class _FeedScreenState extends State<FeedScreen>
                     // A game result carries no face; friends' come from the
                     // list the app already holds.
                     faceOf: (id) => widget.repo.userById(id)?.avatarStorageId,
+                    playsNewSince: seenAt,
                     onOpen: _openFromActivity,
                     onOpenPlay: (play) => _openLeaderboard(
                       tab: LeaderboardScreen.tabOf(play.game),
@@ -791,6 +935,8 @@ const double _kGutter = 20;
 
 class _SectionShell extends StatelessWidget {
   const _SectionShell({
+    super.key,
+    this.accessory,
     required this.label,
     required this.body,
     this.actions = const [],
@@ -799,6 +945,9 @@ class _SectionShell extends StatelessWidget {
 
   final String label;
   final Widget body;
+
+  /// A status widget on the header, after the title (the Activity "N new").
+  final Widget? accessory;
 
   /// The body runs to the screen's edges (a sideways row that lays the
   /// margin inside its own scroll view); only the header keeps the page
@@ -821,10 +970,62 @@ class _SectionShell extends StatelessWidget {
         children: [
           Padding(
             padding: EdgeInsets.symmetric(horizontal: bleed ? _kGutter : 0),
-            child: PageSectionHeader(label, actions: actions),
+            child: PageSectionHeader(
+              label,
+              actions: actions,
+              accessory: accessory,
+            ),
           ),
           body,
         ],
+      ),
+    );
+  }
+}
+
+/// "3 new" on the Activity header. Fades in when something arrives and out
+/// when the board has been seen; while fading out it keeps the last number it
+/// showed instead of flashing "0 new".
+///
+/// Idle cost is nil: an implicit opacity animation, no controller of its own
+/// and no repeating motion. The arrival pop belongs to the nav badge, not to
+/// this: a header the viewer is already looking at needs no fanfare.
+class _NewPill extends StatefulWidget {
+  const _NewPill({required this.count});
+
+  final int count;
+
+  @override
+  State<_NewPill> createState() => _NewPillState();
+}
+
+class _NewPillState extends State<_NewPill> {
+  int _last = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.count > 0) _last = widget.count;
+    if (_last == 0) return const SizedBox.shrink();
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final shown = widget.count > 0;
+    return ExcludeSemantics(
+      excluding: !shown,
+      child: Semantics(
+        label: l10n.feedNavBadgeSemantics(_last),
+        excludeSemantics: true,
+        child: IgnorePointer(
+          child: AnimatedOpacity(
+            opacity: shown ? 1 : 0,
+            duration: const Duration(milliseconds: 450),
+            curve: Curves.easeOut,
+            child: CountBadge.label(
+              text: l10n.feedActivityNewPill(_last),
+              fill: theme.accent,
+              ink: theme.accentInk,
+            ),
+          ),
+        ),
       ),
     );
   }

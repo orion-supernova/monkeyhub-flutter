@@ -155,6 +155,7 @@ class PlayerFace extends StatelessWidget {
     this.storageId,
     this.badge,
     this.dot = false,
+    this.fadeDot = false,
   });
 
   final String userId;
@@ -164,6 +165,11 @@ class PlayerFace extends StatelessWidget {
 
   /// The unseen dot at the upper right.
   final bool dot;
+
+  /// The dot leaves with a soft fade instead of vanishing when [dot] turns
+  /// false (the Activity board marking a friend's result seen). Keeps the dot's
+  /// slot in the tree, so the face must hold a stable identity (a keyed row).
+  final bool fadeDot;
 
   /// The picture, when the caller holds it: the records board carries its
   /// own, for holders who have not played today. Otherwise today's standings.
@@ -191,7 +197,7 @@ class PlayerFace extends StatelessWidget {
       showStatus: false,
     );
     final mark = badge;
-    if (mark == null && !dot) {
+    if (mark == null && !dot && !fadeDot) {
       return SizedBox.square(dimension: size, child: face);
     }
     final theme = ThemeScope.of(context);
@@ -219,7 +225,20 @@ class PlayerFace extends StatelessWidget {
                 child: mark,
               ),
             ),
-          if (dot)
+          if (fadeDot)
+            Positioned(
+              top: -2,
+              right: -2,
+              child: IgnorePointer(
+                child: AnimatedOpacity(
+                  opacity: dot ? 1 : 0,
+                  duration: const Duration(milliseconds: 450),
+                  curve: Curves.easeOut,
+                  child: const MomentUnseenDot(size: 9),
+                ),
+              ),
+            )
+          else if (dot)
             const Positioned(top: -2, right: -2, child: MomentUnseenDot(size: 9)),
         ],
       ),

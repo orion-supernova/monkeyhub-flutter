@@ -16357,4 +16357,20 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get glassExperimentalTag => 'Experimentell';
+
+  @override
+  String feedNavBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nyheter från vänner',
+      one: '1 nyhet från vänner',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String feedActivityNewPill(int count) {
+    return '$count nya';
+  }
 }

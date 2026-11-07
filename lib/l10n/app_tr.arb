@@ -4462,5 +4462,7 @@
   "controlsLabTitle": "Denetim laboratuvarı",
   "glassInteractiveTitle": "Etkileşimli cam",
   "glassInteractiveBody": "Cam parmağınıza tepki verir: basılır, esner ve dokunduğunuz yerde parlar.",
-  "glassExperimentalTag": "Deneysel"
+  "glassExperimentalTag": "Deneysel",
+  "feedNavBadgeSemantics": "{count, plural, other{{count} yeni arkadaş etkinliği}}",
+  "feedActivityNewPill": "{count, plural, other{{count} yeni}}"
 }

@@ -381,8 +381,10 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
       invokeNotifOrQueue("onOpenRoom", args: ["roomId": roomId, "focus": focus])
     } else if kind == "approval" {
       invokeNotifOrQueue("onOpenRequests", args: [:])
-    } else if kind == "daily_games" || kind == "game_result" {
+    } else if kind == "daily_games" {
       invokeNotifOrQueue("onOpenGames", args: [:])
+    } else if kind == "game_result" {
+      invokeNotifOrQueue("onOpenGameResult", args: [:])
     } else if kind == "friend_moment",
               let momentId = info["momentId"] as? String, !momentId.isEmpty {
       let focus = info["focus"] as? String ?? ""

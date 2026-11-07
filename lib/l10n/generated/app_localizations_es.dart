@@ -16469,4 +16469,26 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get glassExperimentalTag => 'Experimental';
+
+  @override
+  String feedNavBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count novedades de tus amigos',
+      one: '1 novedad de tus amigos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String feedActivityNewPill(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nuevas',
+      one: '1 nueva',
+    );
+    return '$_temp0';
+  }
 }

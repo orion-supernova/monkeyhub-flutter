@@ -7,7 +7,6 @@ import '../../../data/settings_store.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../screens/navigation/destinations.dart';
 import '../../../theme/theme_scope.dart';
-import '../../../widgets/count_badge.dart';
 import 'shader_skin.dart';
 
 /// The [UiKit.shader] bottom bar: the package's own [GlassTabBar.bottom], with
@@ -105,7 +104,8 @@ class ShaderTabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final dests = navDestinations(AppLocalizations.of(context));
+    final l10n = AppLocalizations.of(context);
+    final dests = navDestinations(l10n);
     final profile = SettingsStore.instance.glass;
     final geo = profile.geometry;
     final margin = geo.of(kBarMargin);
@@ -124,7 +124,7 @@ class ShaderTabBar extends StatelessWidget {
                 icon: Icon(d.icon),
                 label: d.label,
                 semanticLabel: (badges[d.section] ?? 0) > 0
-                    ? '${d.label}, ${badges[d.section]}'
+                    ? '${d.label}, ${navBadgeSemantics(l10n, d.section, badges[d.section]!) ?? badges[d.section]}'
                     : d.label,
               ),
           ],
@@ -165,7 +165,10 @@ class ShaderTabBar extends StatelessWidget {
                   top: 6,
                   left: tabInset + slot * (i + 0.5) + 6,
                   child: IgnorePointer(
-                    child: CountBadge.tab(count: badges[dests[i].section]!),
+                    child: NavTabBadge(
+                      section: dests[i].section,
+                      count: badges[dests[i].section]!,
+                    ),
                   ),
                 ),
           ],

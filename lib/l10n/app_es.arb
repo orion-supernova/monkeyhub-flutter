@@ -4462,5 +4462,7 @@
   "controlsLabTitle": "Laboratorio de controles",
   "glassInteractiveTitle": "Cristal interactivo",
   "glassInteractiveBody": "El cristal responde a tu dedo: se hunde, se estira y se ilumina donde tocas.",
-  "glassExperimentalTag": "Experimental"
+  "glassExperimentalTag": "Experimental",
+  "feedNavBadgeSemantics": "{count, plural, =1{1 novedad de tus amigos} other{{count} novedades de tus amigos}}",
+  "feedActivityNewPill": "{count, plural, =1{1 nueva} other{{count} nuevas}}"
 }

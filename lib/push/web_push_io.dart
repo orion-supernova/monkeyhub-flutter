@@ -8,6 +8,7 @@ class WebPush {
   static void setOnOpenTarget({
     required void Function(String momentId) onMoment,
     required void Function() onGames,
+    void Function()? onGameResult,
   }) {}
   static Future<WebPushSubscription?> subscribe(String vapidPublicKey) async =>
       null;

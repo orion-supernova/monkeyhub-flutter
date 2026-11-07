@@ -4462,5 +4462,7 @@
   "controlsLabTitle": "コントロールラボ",
   "glassInteractiveTitle": "インタラクティブガラス",
   "glassInteractiveBody": "ガラスが指に反応します。押し込まれ、伸び、触れた場所が光ります。",
-  "glassExperimentalTag": "実験的"
+  "glassExperimentalTag": "実験的",
+  "feedNavBadgeSemantics": "{count, plural, other{友だちからの新着{count}件}}",
+  "feedActivityNewPill": "{count, plural, other{新着{count}件}}"
 }

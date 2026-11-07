@@ -5,6 +5,7 @@ import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../theme/layout.dart';
 import '../../ui/foundation/caps.dart';
+import '../../widgets/count_badge.dart';
 
 /// One destination in the shell's navigation, in nav order.
 ///
@@ -208,4 +209,40 @@ List<NavDest> navDestinations(AppLocalizations l10n) {
         ),
       },
   ];
+}
+
+/// What a screen reader says for a destination's badge, or null to let the
+/// bare number stand. The Feed's count is a mix of things (friends' unopened
+/// highlights and results nobody has looked at yet), so the number alone says
+/// nothing about what it counts.
+String? navBadgeSemantics(
+  AppLocalizations l10n,
+  HomeSection section,
+  int count,
+) => switch (section) {
+  HomeSection.feed => l10n.feedNavBadgeSemantics(count),
+  _ => null,
+};
+
+/// THE tab badge of every nav chrome: [CountBadge.tab] plus the destination's
+/// spoken form, so the pill, the side rail and the shader bar cannot disagree
+/// about what a number means. (The native iOS tab bar draws its own badge from
+/// the same counts.)
+class NavTabBadge extends StatelessWidget {
+  const NavTabBadge({super.key, required this.section, required this.count});
+
+  final HomeSection section;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final badge = CountBadge.tab(count: count);
+    final label = navBadgeSemantics(
+      AppLocalizations.of(context),
+      section,
+      count,
+    );
+    if (label == null) return badge;
+    return Semantics(label: label, excludeSemantics: true, child: badge);
+  }
 }

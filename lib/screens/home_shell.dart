@@ -20,7 +20,6 @@ import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
 import '../ui/kits/shader/shader_tab_bar.dart';
 import '../update/update_availability.dart';
-import '../widgets/count_badge.dart';
 import '../widgets/radial_floating_menu.dart';
 import '../widgets/terms_consent.dart';
 import '../widgets/ios_kit.dart' show quietFill;
@@ -83,8 +82,10 @@ class _HomeShellState extends State<HomeShell> {
     widget.family.addListener(_onSettings);
     // Keep the Chat tab's unread badge live as rooms gain/clear unread state.
     widget.repo.addListener(_onSettings);
-    // Same for the Feed tab's unseen-moments badge.
-    FeedStore.instance.addListener(_onSettings);
+    // Same for the Feed tab's badge. Its own listener: the board changes on
+    // every comment, reaction and guess, and only a change of the NUMBER is
+    // worth rebuilding the nav for.
+    FeedStore.instance.addListener(_onFeed);
     // Missed calls move the Calls tab's badge.
     CallLogStore.instance.addListener(_onSettings);
     // Lights the Settings tab the moment either the launch check or a manual
@@ -136,10 +137,28 @@ class _HomeShellState extends State<HomeShell> {
     SettingsStore.instance.removeListener(_onSettings);
     widget.family.removeListener(_onSettings);
     widget.repo.removeListener(_onSettings);
-    FeedStore.instance.removeListener(_onSettings);
+    FeedStore.instance.removeListener(_onFeed);
     CallLogStore.instance.removeListener(_onSettings);
     UpdateAvailability.instance.removeListener(_onSettings);
     super.dispose();
+  }
+
+  /// The Feed tab's badge as last built, so [_onFeed] can tell a board change
+  /// that moves the number from the many that do not.
+  int _feedBadge = -1;
+
+  /// Friends' unopened moments plus friends' results the Activity board has
+  /// not yet been on screen for. Everything it reads is already loaded by the
+  /// app-wide board subscription: no query of its own.
+  int _feedBadgeNow() =>
+      FeedStore.instance.unseenCount +
+      FeedStore.instance.newPlayCount(
+        SettingsStore.instance.feedActivitySeenAt,
+      );
+
+  void _onFeed() {
+    if (!mounted || _feedBadgeNow() == _feedBadge) return;
+    _onSettings();
   }
 
   void _onSettings() {
@@ -179,12 +198,13 @@ class _HomeShellState extends State<HomeShell> {
     // one shared "missed" subscription; zero when the tab is switched off.
     if (SettingsStore.instance.showCallsTab)
       HomeSection.calls: CallLogStore.instance.badgeCount,
-    // Moments from friends the user hasn't opened. One entry lights the badge
-    // in all three nav chromes, and it is the only reason anyone opens this
-    // tab on day thirty. FeedStore is subscribed app-wide (attached in
+    // What friends did that the user hasn't seen: moments not yet opened plus
+    // finished results the Activity board hasn't been on screen for. One
+    // entry lights the badge in all the nav chromes, and it is the only
+    // reason anyone opens this tab on day thirty. FeedStore is subscribed app-wide (attached in
     // app.dart, not by the Feed screen), so this stays live while the user is
     // on another tab.
-    HomeSection.feed: FeedStore.instance.unseenCount,
+    HomeSection.feed: _feedBadge = _feedBadgeNow(),
     // Approvals plus "there's a new version" share the one badge slot
     // Settings has always had — same rationale as the other three rows: one
     // number saying the tab has something to show you, not a taxonomy of why.
@@ -779,7 +799,7 @@ class _SideRail extends StatelessWidget {
                       Positioned(
                         top: -6,
                         left: 13,
-                        child: CountBadge.tab(count: badge),
+                        child: NavTabBadge(section: s, count: badge),
                       ),
                   ],
                 ),

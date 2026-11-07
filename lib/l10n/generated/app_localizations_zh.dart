@@ -15462,4 +15462,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get glassExperimentalTag => '实验性';
+
+  @override
+  String feedNavBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '来自好友的 $count 条新动态',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String feedActivityNewPill(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条新',
+    );
+    return '$_temp0';
+  }
 }

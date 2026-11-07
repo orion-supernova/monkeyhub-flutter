@@ -51,6 +51,7 @@ class PushManager {
   void Function(String roomId, {String? focus})? _onOpenRoom;
   VoidCallback? _onOpenRequests;
   VoidCallback? _onOpenGames;
+  VoidCallback? _onOpenGameResult;
   void Function(String momentId, {bool comments})? _onOpenMoment;
   String? Function()? _activeRoomIdProvider;
 
@@ -166,6 +167,13 @@ class PushManager {
   /// without this a tap merely raises the app.
   void setOnOpenGames(VoidCallback handler) {
     _onOpenGames = handler;
+  }
+
+  /// Where a friend's shared game result tap should land: the Feed's Activity
+  /// board, where the result is listed. Falls back to the games shelf if no
+  /// handler is wired.
+  void setOnOpenGameResult(VoidCallback handler) {
+    _onOpenGameResult = handler;
   }
 
   /// Where a friend-activity tap should land: the Feed, with that moment's
@@ -322,6 +330,9 @@ class PushManager {
         return null;
       case 'onOpenGames':
         _onOpenGames?.call();
+        return null;
+      case 'onOpenGameResult':
+        (_onOpenGameResult ?? _onOpenGames)?.call();
         return null;
       case 'onOpenMoment':
         final args = (call.arguments as Map?) ?? const {};

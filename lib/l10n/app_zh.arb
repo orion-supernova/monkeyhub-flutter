@@ -4462,5 +4462,7 @@
   "controlsLabTitle": "控件实验室",
   "glassInteractiveTitle": "交互式玻璃",
   "glassInteractiveBody": "玻璃会对手指做出反应：按下时凹陷、拉伸，触摸处会亮起。",
-  "glassExperimentalTag": "实验性"
+  "glassExperimentalTag": "实验性",
+  "feedNavBadgeSemantics": "{count, plural, other{来自好友的 {count} 条新动态}}",
+  "feedActivityNewPill": "{count, plural, other{{count} 条新}}"
 }

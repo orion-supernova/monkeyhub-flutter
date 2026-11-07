@@ -4462,5 +4462,7 @@
   "controlsLabTitle": "Kontrollabb",
   "glassInteractiveTitle": "Interaktivt glas",
   "glassInteractiveBody": "Glaset reagerar på ditt finger: det trycks in, töjs och lyser upp där du rör.",
-  "glassExperimentalTag": "Experimentell"
+  "glassExperimentalTag": "Experimentell",
+  "feedNavBadgeSemantics": "{count, plural, =1{1 nyhet från vänner} other{{count} nyheter från vänner}}",
+  "feedActivityNewPill": "{count} nya"
 }

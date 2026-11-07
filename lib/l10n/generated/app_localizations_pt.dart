@@ -16473,6 +16473,28 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get glassExperimentalTag => 'Experimental';
+
+  @override
+  String feedNavBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count novidades dos amigos',
+      one: '1 novidade dos amigos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String feedActivityNewPill(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count novas',
+      one: '1 nova',
+    );
+    return '$_temp0';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -32921,4 +32943,26 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get glassExperimentalTag => 'Experimental';
+
+  @override
+  String feedNavBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count novidades dos amigos',
+      one: '1 novidade dos amigos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String feedActivityNewPill(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count novas',
+      one: '1 nova',
+    );
+    return '$_temp0';
+  }
 }

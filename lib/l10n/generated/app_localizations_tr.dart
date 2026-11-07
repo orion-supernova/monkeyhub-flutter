@@ -16249,4 +16249,24 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get glassExperimentalTag => 'Deneysel';
+
+  @override
+  String feedNavBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count yeni arkadaş etkinliği',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String feedActivityNewPill(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count yeni',
+    );
+    return '$_temp0';
+  }
 }

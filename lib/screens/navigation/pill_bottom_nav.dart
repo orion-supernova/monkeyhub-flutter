@@ -12,7 +12,6 @@ import '../../theme/app_theme.dart';
 import '../../theme/motion.dart';
 import '../../theme/spring.dart';
 import '../../theme/theme_scope.dart';
-import '../../widgets/count_badge.dart';
 import '../../widgets/liquid_glass.dart';
 import 'destinations.dart';
 
@@ -924,7 +923,8 @@ class _PillBottomNavState extends State<PillBottomNav>
                                 // quiet in-list badge was accent digits on a
                                 // faint fill, near-invisible on an inactive
                                 // tab and letter-spaced on character themes.
-                                child: CountBadge.tab(
+                                child: NavTabBadge(
+                                  section: d.section,
                                   count: widget.badges[d.section]!,
                                 ),
                               ),

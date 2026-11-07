@@ -19327,5 +19327,23 @@
   "glassExperimentalTag": "Experimental",
   "@glassExperimentalTag": {
     "description": "Small tag beside a Settings › Glass option that is still being tuned (native controls, shader glass)."
+  },
+  "feedNavBadgeSemantics": "{count, plural, =1{1 new from friends} other{{count} new from friends}}",
+  "@feedNavBadgeSemantics": {
+    "description": "Spoken label of the Feed tab's badge in the navigation bar, read after the tab name (\"Feed, 3 new from friends\"). {count} is how many things friends did that the viewer has not seen yet: highlights not opened plus game results not looked at. Always 1 or more.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "feedActivityNewPill": "{count} new",
+  "@feedActivityNewPill": {
+    "description": "Small accent pill on the Feed board's Activity header: how many of the listed things are new to the viewer (\"3 new\"). Fades away once the viewer has seen them. {count} is always 1 or more.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }
