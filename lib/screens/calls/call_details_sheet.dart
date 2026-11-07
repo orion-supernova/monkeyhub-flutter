@@ -154,21 +154,6 @@ class CallDetailsSheet extends StatelessWidget {
                             color: e.isMissed ? theme.danger : theme.inkMuted,
                           ),
                         ),
-                        // The one number people open this for, said in
-                        // words, not a "+12:34" offset on the Ended row.
-                        if (e.wasAnswered && e.durationMs > 0)
-                          Text(
-                            l10n.callsTabDetailsTalked(
-                              clockDuration(e.durationMs),
-                            ),
-                            style: theme.bodyEmph.copyWith(
-                              fontSize: 15,
-                              color: theme.ink,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
                       ],
                     ),
                   ),
@@ -176,6 +161,43 @@ class CallDetailsSheet extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               _Timeline(events: events, startedAt: e.startedAt),
+              // The one number people open this for, labelled with what it
+              // counts: an answered call's talk, or how long one that never
+              // connected rang.
+              Builder(builder: (context) {
+                final talked = e.wasAnswered && e.durationMs > 0;
+                final ms = talked
+                    ? e.durationMs
+                    : (events.isEmpty ? 0 : events.last.at - e.startedAt);
+                if (ms <= 0) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 22),
+                      Expanded(
+                        child: Text(
+                          talked
+                              ? l10n.callsTabDetailsTalkTime
+                              : l10n.callsTabDetailsRingTime,
+                          style: theme.bodySoft.copyWith(
+                            fontSize: 15.5,
+                            color: theme.inkSoft,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        clockDuration(ms),
+                        style: theme.bodyEmph.copyWith(
+                          fontSize: 15.5,
+                          color: theme.ink,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
               if (quality != null) ...[
                 const SizedBox(height: 12),
                 Text(

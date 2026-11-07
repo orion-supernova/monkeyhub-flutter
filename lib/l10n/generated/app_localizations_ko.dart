@@ -15255,6 +15255,12 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get callsTabDetailsTalkTime => '통화 시간';
+
+  @override
+  String get callsTabDetailsRingTime => '벨 울린 시간';
+
+  @override
   String get callsTabDetailsEnded => '종료';
 
   @override

@@ -4375,6 +4375,8 @@
   "callsTabDetailsAnswered": "已接听",
   "callsTabDetailsAnsweredOn": "在 {platform} 上接听",
   "callsTabDetailsMovedTo": "已转移到 {platform}",
+  "callsTabDetailsTalkTime": "通话时长",
+  "callsTabDetailsRingTime": "响铃时长",
   "callsTabDetailsEnded": "结束",
   "callsTabDetailsTalked": "通话时长 {duration}",
   "callsTabDetailsMessage": "消息",

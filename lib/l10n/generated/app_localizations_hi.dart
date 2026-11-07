@@ -15888,6 +15888,12 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String get callsTabDetailsTalkTime => 'बातचीत का समय';
+
+  @override
+  String get callsTabDetailsRingTime => 'घंटी बजने का समय';
+
+  @override
   String get callsTabDetailsEnded => 'समाप्त';
 
   @override

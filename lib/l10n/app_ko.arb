@@ -4375,6 +4375,8 @@
   "callsTabDetailsAnswered": "응답",
   "callsTabDetailsAnsweredOn": "{platform}에서 응답",
   "callsTabDetailsMovedTo": "{platform}(으)로 이동",
+  "callsTabDetailsTalkTime": "통화 시간",
+  "callsTabDetailsRingTime": "벨 울린 시간",
   "callsTabDetailsEnded": "종료",
   "callsTabDetailsTalked": "통화 시간 {duration}",
   "callsTabDetailsMessage": "메시지",

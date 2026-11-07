@@ -4375,6 +4375,8 @@
   "callsTabDetailsAnswered": "Besvarades",
   "callsTabDetailsAnsweredOn": "Besvarades på {platform}",
   "callsTabDetailsMovedTo": "Flyttades till {platform}",
+  "callsTabDetailsTalkTime": "Samtalstid",
+  "callsTabDetailsRingTime": "Ringtid",
   "callsTabDetailsEnded": "Avslutades",
   "callsTabDetailsTalked": "Pratade i {duration}",
   "callsTabDetailsMessage": "Meddelande",

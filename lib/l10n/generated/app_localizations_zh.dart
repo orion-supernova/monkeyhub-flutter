@@ -15086,6 +15086,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get callsTabDetailsTalkTime => '通话时长';
+
+  @override
+  String get callsTabDetailsRingTime => '响铃时长';
+
+  @override
   String get callsTabDetailsEnded => '结束';
 
   @override

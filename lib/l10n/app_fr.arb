@@ -4375,6 +4375,8 @@
   "callsTabDetailsAnswered": "Décroché",
   "callsTabDetailsAnsweredOn": "Décroché sur {platform}",
   "callsTabDetailsMovedTo": "Transféré sur {platform}",
+  "callsTabDetailsTalkTime": "Durée de l'appel",
+  "callsTabDetailsRingTime": "Temps de sonnerie",
   "callsTabDetailsEnded": "Terminé",
   "callsTabDetailsTalked": "Durée : {duration}",
   "callsTabDetailsMessage": "Message",

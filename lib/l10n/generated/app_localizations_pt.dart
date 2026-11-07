@@ -16069,6 +16069,12 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get callsTabDetailsTalkTime => 'Duração da chamada';
+
+  @override
+  String get callsTabDetailsRingTime => 'Tempo a tocar';
+
+  @override
   String get callsTabDetailsEnded => 'Terminada';
 
   @override
@@ -32538,6 +32544,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String callsTabDetailsMovedTo(String platform) {
     return 'Movida para $platform';
   }
+
+  @override
+  String get callsTabDetailsTalkTime => 'Duração da chamada';
+
+  @override
+  String get callsTabDetailsRingTime => 'Tempo tocando';
 
   @override
   String get callsTabDetailsEnded => 'Encerrada';

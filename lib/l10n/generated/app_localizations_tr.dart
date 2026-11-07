@@ -15846,6 +15846,12 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get callsTabDetailsTalkTime => 'Konuşma süresi';
+
+  @override
+  String get callsTabDetailsRingTime => 'Çalma süresi';
+
+  @override
   String get callsTabDetailsEnded => 'Bitti';
 
   @override

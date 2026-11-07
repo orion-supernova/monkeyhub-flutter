@@ -4375,6 +4375,8 @@
   "callsTabDetailsAnswered": "Cevaplandı",
   "callsTabDetailsAnsweredOn": "{platform} üzerinde cevaplandı",
   "callsTabDetailsMovedTo": "{platform} cihazına taşındı",
+  "callsTabDetailsTalkTime": "Konuşma süresi",
+  "callsTabDetailsRingTime": "Çalma süresi",
   "callsTabDetailsEnded": "Bitti",
   "callsTabDetailsTalked": "{duration} konuşuldu",
   "callsTabDetailsMessage": "Mesaj",

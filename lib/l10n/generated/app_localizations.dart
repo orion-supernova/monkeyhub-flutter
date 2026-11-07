@@ -26401,6 +26401,18 @@ abstract class AppLocalizations {
   /// **'Moved to {platform}'**
   String callsTabDetailsMovedTo(String platform);
 
+  /// Call details: label of the row giving how long an answered call lasted.
+  ///
+  /// In en, this message translates to:
+  /// **'Talk time'**
+  String get callsTabDetailsTalkTime;
+
+  /// Call details: label of the row giving how long an unanswered call rang before it ended.
+  ///
+  /// In en, this message translates to:
+  /// **'Ring time'**
+  String get callsTabDetailsRingTime;
+
   /// Call details timeline: when the call ended.
   ///
   /// In en, this message translates to:

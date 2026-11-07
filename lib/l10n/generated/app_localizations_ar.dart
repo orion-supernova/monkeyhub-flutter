@@ -16129,6 +16129,12 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get callsTabDetailsTalkTime => 'مدة المكالمة';
+
+  @override
+  String get callsTabDetailsRingTime => 'مدة الرنين';
+
+  @override
   String get callsTabDetailsEnded => 'انتهت';
 
   @override

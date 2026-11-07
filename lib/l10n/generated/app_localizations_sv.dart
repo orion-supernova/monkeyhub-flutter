@@ -15954,6 +15954,12 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String get callsTabDetailsTalkTime => 'Samtalstid';
+
+  @override
+  String get callsTabDetailsRingTime => 'Ringtid';
+
+  @override
   String get callsTabDetailsEnded => 'Avslutades';
 
   @override

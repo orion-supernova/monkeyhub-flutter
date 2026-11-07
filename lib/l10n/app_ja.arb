@@ -4375,6 +4375,8 @@
   "callsTabDetailsAnswered": "応答",
   "callsTabDetailsAnsweredOn": "{platform}で応答",
   "callsTabDetailsMovedTo": "{platform}に移動",
+  "callsTabDetailsTalkTime": "通話時間",
+  "callsTabDetailsRingTime": "呼び出し時間",
   "callsTabDetailsEnded": "終了",
   "callsTabDetailsTalked": "通話時間 {duration}",
   "callsTabDetailsMessage": "メッセージ",

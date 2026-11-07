@@ -15223,6 +15223,12 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get callsTabDetailsTalkTime => '通話時間';
+
+  @override
+  String get callsTabDetailsRingTime => '呼び出し時間';
+
+  @override
   String get callsTabDetailsEnded => '終了';
 
   @override

@@ -4375,6 +4375,8 @@
   "callsTabDetailsAnswered": "उठाई गई",
   "callsTabDetailsAnsweredOn": "{platform} पर उठाई गई",
   "callsTabDetailsMovedTo": "{platform} पर ले जाई गई",
+  "callsTabDetailsTalkTime": "बातचीत का समय",
+  "callsTabDetailsRingTime": "घंटी बजने का समय",
   "callsTabDetailsEnded": "समाप्त",
   "callsTabDetailsTalked": "बात का समय {duration}",
   "callsTabDetailsMessage": "संदेश",

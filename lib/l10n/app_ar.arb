@@ -4375,6 +4375,8 @@
   "callsTabDetailsAnswered": "تم الرد",
   "callsTabDetailsAnsweredOn": "تم الرد على {platform}",
   "callsTabDetailsMovedTo": "نُقلت إلى {platform}",
+  "callsTabDetailsTalkTime": "مدة المكالمة",
+  "callsTabDetailsRingTime": "مدة الرنين",
   "callsTabDetailsEnded": "انتهت",
   "callsTabDetailsTalked": "مدة المحادثة {duration}",
   "callsTabDetailsMessage": "رسالة",

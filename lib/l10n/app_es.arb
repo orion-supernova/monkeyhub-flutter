@@ -4375,6 +4375,8 @@
   "callsTabDetailsAnswered": "Respondida",
   "callsTabDetailsAnsweredOn": "Respondida en {platform}",
   "callsTabDetailsMovedTo": "Pasó a {platform}",
+  "callsTabDetailsTalkTime": "Duración de la llamada",
+  "callsTabDetailsRingTime": "Tiempo sonando",
   "callsTabDetailsEnded": "Terminó",
   "callsTabDetailsTalked": "Hablasteis {duration}",
   "callsTabDetailsMessage": "Mensaje",

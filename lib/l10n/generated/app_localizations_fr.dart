@@ -16134,6 +16134,12 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get callsTabDetailsTalkTime => 'Durée de l\'appel';
+
+  @override
+  String get callsTabDetailsRingTime => 'Temps de sonnerie';
+
+  @override
   String get callsTabDetailsEnded => 'Terminé';
 
   @override

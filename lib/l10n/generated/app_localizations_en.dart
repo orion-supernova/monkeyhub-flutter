@@ -15918,6 +15918,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get callsTabDetailsTalkTime => 'Talk time';
+
+  @override
+  String get callsTabDetailsRingTime => 'Ring time';
+
+  @override
   String get callsTabDetailsEnded => 'Ended';
 
   @override

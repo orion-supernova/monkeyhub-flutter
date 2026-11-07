@@ -18865,6 +18865,14 @@
       }
     }
   },
+  "callsTabDetailsTalkTime": "Talk time",
+  "@callsTabDetailsTalkTime": {
+    "description": "Call details: label of the row giving how long an answered call lasted."
+  },
+  "callsTabDetailsRingTime": "Ring time",
+  "@callsTabDetailsRingTime": {
+    "description": "Call details: label of the row giving how long an unanswered call rang before it ended."
+  },
   "callsTabDetailsEnded": "Ended",
   "@callsTabDetailsEnded": {
     "description": "Call details timeline: when the call ended."
