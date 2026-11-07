@@ -11,6 +11,7 @@ import 'ios_kit.dart';
 import 'sunlit_surface.dart' show SunlitBackdrop;
 import 'teardown_safe.dart';
 import 'notice.dart';
+import '../ui/native/native_cut.dart';
 
 // The account-area half of the iOS vocabulary in ios_kit.dart: the Contacts /
 // Telegram profile shape (a big face, a name, a row of action tiles, then
@@ -151,7 +152,9 @@ class _HeroPageState extends State<HeroPage> {
         body: Stack(
           children: [
             const SunlitBackdrop(),
-            NotificationListener<ScrollEndNotification>(
+            NativeCut(
+              top: clearance,
+              child: NotificationListener<ScrollEndNotification>(
               onNotification: _settle,
               child: CustomScrollView(
                 controller: _scroll,
@@ -168,6 +171,7 @@ class _HeroPageState extends State<HeroPage> {
                   ...readableSlivers(context, widget.children),
                 ],
               ),
+            ),
             ),
             Positioned(
               top: 0,

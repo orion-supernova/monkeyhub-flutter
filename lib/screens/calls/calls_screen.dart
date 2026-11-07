@@ -32,6 +32,7 @@ import 'calls_format.dart';
 import 'calls_live_strip.dart';
 import 'calls_talk_time.dart';
 import 'new_call_sheet.dart';
+import '../../ui/native/native_cut.dart';
 
 /// The Calls tab: live calls, favourites, this week's talk time, then the
 /// history (All / Missed) grouped by day.
@@ -450,7 +451,7 @@ class _CallsScreenState extends State<CallsScreen>
         MediaQuery.removePadding(
           context: context,
           removeTop: true,
-          child: AdaptivePageBody(
+          child: NativeCut(top: TabRootBar.clearance(context), child: AdaptivePageBody(
             child: CustomScrollView(
               controller: _scroll,
               key: const PageStorageKey('calls_list_v1'),
@@ -462,7 +463,7 @@ class _CallsScreenState extends State<CallsScreen>
                 ...slivers,
               ],
             ),
-          ),
+          )),
         ),
         TabRootBar(
           title: l10n.callsTabNavLabel,

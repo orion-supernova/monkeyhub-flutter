@@ -177,6 +177,36 @@ class _NativeControlState extends State<NativeControl> {
   }
 }
 
+/// The size a labelled native button ([NativeSpec.button]) draws at, measured
+/// here because a platform view needs its box before SwiftUI has laid out:
+/// the label at the system button font (15 pt below 34 pt tall, 17 pt above),
+/// plus the glass button's own side padding and an optional symbol.
+Size nativeButtonSize(
+  BuildContext context,
+  String label, {
+  required double height,
+  bool symbol = false,
+}) {
+  final small = height <= 34;
+  final painter = TextPainter(
+    text: TextSpan(
+      text: label,
+      style: TextStyle(
+        fontSize: small ? 15 : 17,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  final pad = small ? 12.0 : (height <= 40 ? 16.0 : 20.0);
+  final width =
+      painter.width + pad * 2 + (symbol ? (small ? 21.0 : 23.0) : 0) + 2;
+  painter.dispose();
+  return Size(width.ceilToDouble(), height);
+}
+
 /// What a [NativeControl] draws. Built with the named constructors; the map is
 /// the wire format `NativeControls.swift` decodes (every field optional there).
 @immutable

@@ -228,7 +228,14 @@ class SheetActionButton extends StatelessWidget {
   Widget _liquid(BuildContext context) {
     final text = sentenceCaseOf(context, label);
     final button = NativeControl(
-      size: Size(expand ? double.infinity : text.length * 9.0 + 64, minHeight),
+      size: expand
+          ? Size(double.infinity, minHeight)
+          : nativeButtonSize(
+              context,
+              text,
+              height: minHeight,
+              symbol: sfSymbolFor(icon) != null,
+            ),
       spec: NativeSpec.button(
         label: text,
         symbol: sfSymbolFor(icon),
@@ -605,6 +612,7 @@ class RowPillButton extends StatelessWidget {
   Widget _liquid(BuildContext context) => Padding(
     padding: const EdgeInsetsDirectional.only(start: 8),
     child: NativeControl(
+      size: nativeButtonSize(context, sentenceCaseOf(context, label), height: 32),
       spec: NativeSpec.button(
         label: sentenceCaseOf(context, label),
         prominent: filled,

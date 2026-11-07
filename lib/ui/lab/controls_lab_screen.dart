@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/room_filter.dart';
 import '../../widgets/count_badge.dart';
+import '../../theme/theme_scope.dart';
 import '../../widgets/ios_kit.dart';
 import '../../widgets/labeled_field.dart';
 import '../../widgets/liquid_glass.dart' show GlassTone;
@@ -47,6 +48,33 @@ class _ControlsLabScreenState extends State<ControlsLabScreen> {
   RoomFilter _filter = RoomFilter(const {});
   int _taps = 0;
 
+  /// `--dart-define=LAB_SECTION=2` scrolls to that section (0-3) on open, so
+  /// a headless simulator screenshot can reach every control.
+  static const int _openSection = int.fromEnvironment('LAB_SECTION');
+  final _sections = List.generate(4, (_) => GlobalKey());
+
+  @override
+  void initState() {
+    super.initState();
+    if (_openSection > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Later sections are not built yet in the lazy list, so scroll the
+        // list itself (through the first section, which always is), then
+        // settle on the section once it exists.
+        final first = _sections[0].currentContext;
+        if (first == null || !first.mounted) return;
+        final position = Scrollable.of(first).position;
+        position.jumpTo(
+          (_openSection * 640.0).clamp(0.0, position.maxScrollExtent),
+        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final c = _sections[_openSection.clamp(0, 3)].currentContext;
+          if (c != null && c.mounted) Scrollable.ensureVisible(c);
+        });
+      });
+    }
+  }
+
   @override
   void dispose() {
     _text.dispose();
@@ -68,7 +96,7 @@ class _ControlsLabScreenState extends State<ControlsLabScreen> {
         Expanded(
           child: Text(
             title,
-            style: DefaultTextStyle.of(context).style.copyWith(fontSize: 15),
+            style: groupedTitleStyle(ThemeScope.of(context)),
           ),
         ),
         child,
@@ -102,6 +130,7 @@ class _ControlsLabScreenState extends State<ControlsLabScreen> {
           ' · taps $_taps · picked $_picked',
       children: [
         GroupedSection(
+          key: _sections[0],
           header: 'Buttons',
           children: [
             _row(
@@ -184,6 +213,7 @@ class _ControlsLabScreenState extends State<ControlsLabScreen> {
           ],
         ),
         GroupedSection(
+          key: _sections[1],
           header: 'Toggles and pickers',
           children: [
             GroupedRow.toggle(
@@ -236,6 +266,7 @@ class _ControlsLabScreenState extends State<ControlsLabScreen> {
           ],
         ),
         GroupedSection(
+          key: _sections[2],
           header: 'Fields',
           children: [
             _block(
@@ -257,7 +288,7 @@ class _ControlsLabScreenState extends State<ControlsLabScreen> {
             ),
             _row(
               'Field text',
-              Text(_text.text, style: DefaultTextStyle.of(context).style),
+              Text(_text.text, style: groupedValueStyle(ThemeScope.of(context))),
             ),
             _row(
               'Clear and focus',
@@ -272,6 +303,7 @@ class _ControlsLabScreenState extends State<ControlsLabScreen> {
           ],
         ),
         GroupedSection(
+          key: _sections[3],
           header: 'Indicators',
           children: [
             _row(

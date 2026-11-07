@@ -81,6 +81,9 @@ final class NativeControlPlatformView: NSObject, FlutterPlatformView {
   ) {
     container = UIView(frame: frame)
     container.backgroundColor = .clear
+    // The box Flutter laid out is the control's box: a SwiftUI control a few
+    // points taller than asked must not paint over its neighbours.
+    container.clipsToBounds = true
     channel = FlutterMethodChannel(
       name: "monkeyhub/native_control/\(viewId)",
       binaryMessenger: messenger
@@ -372,11 +375,12 @@ struct NativeTextButton: View {
     }
     .font(.system(size: spec.size <= 34 ? 15 : 17, weight: .semibold))
     .frame(maxWidth: spec.fill ? .infinity : nil)
-    .frame(minHeight: spec.size <= 34 ? nil : spec.size - 16)
     let button = Button(role: spec.destructive ? .destructive : nil) {
       emit("tap", nil)
     } label: { label }
-      .controlSize(spec.size <= 34 ? .small : (spec.size <= 40 ? .regular : .large))
+      .controlSize(spec.size <= 34 ? .small : (spec.size < 50 ? .regular : .large))
+      // Glass styles ignore the destructive role's colour: say it.
+      .tint(spec.destructive ? Color.red : spec.tint)
     if #available(iOS 26.0, *) {
       if spec.prominent {
         button.buttonStyle(.glassProminent)
@@ -507,9 +511,11 @@ struct NativeMenu: View {
       }
     } label: {
       if let s = spec.symbol, spec.label.isEmpty {
+        // The glass button style pads its label; this inner box plus that
+        // padding comes out at the requested disc size.
         Image(systemName: s)
           .font(.system(size: spec.symbolSize, weight: .semibold))
-          .frame(width: spec.size, height: spec.size)
+          .frame(width: spec.size - 14, height: spec.size - 14)
       } else {
         HStack(spacing: 4) {
           if let s = spec.symbol { Image(systemName: s) }

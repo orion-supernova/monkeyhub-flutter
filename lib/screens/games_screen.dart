@@ -25,6 +25,7 @@ import 'games/streak_card.dart';
 import 'navigation/destinations.dart';
 import 'navigation/scroll_memory.dart';
 import 'navigation/tab_reselect.dart';
+import '../ui/native/native_cut.dart';
 
 /// The Games tab: the viewer's streaks, today's dailies, and the bot.
 ///
@@ -219,7 +220,7 @@ class _GamesScreenState extends State<GamesScreen>
           MediaQuery.removePadding(
             context: context,
             removeTop: true,
-            child: AdaptivePageBody(
+            child: NativeCut(top: TabRootBar.clearance(context), child: AdaptivePageBody(
               maxWidth: ContentWidth.wide,
               child: ListView(
                 key: const PageStorageKey('games_tab_v1'),
@@ -232,7 +233,7 @@ class _GamesScreenState extends State<GamesScreen>
                 ),
                 children: children,
               ),
-            ),
+            )),
           ),
           TabRootBar(title: l10n.destinationsGamesLabel, scroll: _scroll),
         ],

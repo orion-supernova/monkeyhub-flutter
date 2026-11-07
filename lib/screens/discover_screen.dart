@@ -28,6 +28,7 @@ import 'search_screen.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/sunlit_surface.dart' show SunlitBackdrop;
 import '../l10n/text_case.dart';
+import '../ui/native/native_cut.dart';
 
 /// How many friends and rooms Discover shows before handing off to a
 /// full-list screen.
@@ -553,7 +554,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               ),
             ),
           )
-        : AdaptivePageBody(
+        : NativeCut(top: TabRootBar.clearance(context), child: AdaptivePageBody(
             child: ListView(
               // Bumped whenever the section order changes; the old key would
               // restore a scroll offset measured against a different page.
@@ -575,7 +576,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 ],
               ],
             ),
-          );
+          ));
 
     return Scaffold(
       backgroundColor: Colors.transparent,

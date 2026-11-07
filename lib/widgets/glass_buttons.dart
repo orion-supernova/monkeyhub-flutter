@@ -636,6 +636,11 @@ class GlassPillButton extends StatelessWidget {
         icon == null &&
         NativeControl.readyIn(context)) {
       return NativeControl(
+        size: nativeButtonSize(
+          context,
+          sentenceCaseOf(context, label),
+          height: height,
+        ),
         spec: NativeSpec.button(
           label: sentenceCaseOf(context, label),
           prominent: tint != null,

@@ -38,6 +38,7 @@ import 'feed/points_explainer.dart';
 import 'games/leaderboard_screen.dart';
 import 'navigation/destinations.dart';
 import 'navigation/tab_reselect.dart';
+import '../ui/native/native_cut.dart';
 
 /// TODAY — the friends-activity board.
 ///
@@ -570,7 +571,7 @@ class _FeedScreenState extends State<FeedScreen>
               ),
             ),
           )
-        : AdaptivePageBody(
+        : NativeCut(top: TabRootBar.clearance(context), child: AdaptivePageBody(
             child: ListView(
               controller: _scroll,
               // Versioned so the offset can be deliberately dropped when the
@@ -589,7 +590,7 @@ class _FeedScreenState extends State<FeedScreen>
               ),
               children: [for (final s in sections) staggered(s.id)],
             ),
-          );
+          ));
 
     return Stack(
       children: [

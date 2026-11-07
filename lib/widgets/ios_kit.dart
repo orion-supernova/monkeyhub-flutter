@@ -13,6 +13,7 @@ import '../theme/theme_scope.dart';
 import 'action_buttons.dart';
 import '../ui/foundation/ui_kit.dart';
 import '../ui/native/native_control.dart';
+import '../ui/native/native_cut.dart';
 import '../ui/kits/material/material_kit_theme.dart';
 import 'count_badge.dart' show CountBadge;
 import 'glass_buttons.dart';
@@ -179,7 +180,9 @@ class _IosPageState extends State<IosPage> {
             SizedBox.expand(child: ColoredBox(color: theme.background))
           else
             const SunlitBackdrop(),
-          CustomScrollView(
+          NativeCut(
+            top: clearance,
+            child: CustomScrollView(
             controller: _scroll,
             // The bounce is what reveals the refresh spinner, so a
             // refreshable page asks for it on every platform.
@@ -201,6 +204,7 @@ class _IosPageState extends State<IosPage> {
               ...header,
               ...body,
             ],
+          ),
           ),
           Positioned(
             top: 0,
@@ -979,7 +983,8 @@ class RowSwitch extends StatelessWidget {
   /// The [UiKit.liquid] skin: the system switch itself (a UISwitch), which
   /// plays its own haptic.
   Widget _liquid(BuildContext context) => NativeControl(
-        size: const Size(51, 31),
+        // iOS 26's switch is 64 x 28 (it grew from 51 x 31).
+        size: const Size(64, 31),
         spec: NativeSpec.toggle(
           value: value,
           label: '',
