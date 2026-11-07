@@ -9347,6 +9347,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'They stay still until you tap one. Saves data.';
 
   @override
+  String get settingsForkFullScreenLabel => 'Full-screen swipe-up choice';
+
+  @override
+  String get settingsForkFullScreenOnBody =>
+      'Swiping up in a chat splits the screen in two: one half for vanish, one for a huddle.';
+
+  @override
+  String get settingsForkFullScreenOffBody =>
+      'Swiping up in a chat shows two buttons that follow your finger.';
+
+  @override
   String get settingsAutoplayExpressionsOnBody =>
       'GIFs and animated stickers play by themselves. Reduce Motion pauses them.';
 
@@ -12554,6 +12565,43 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get chatGameLivePlay => 'Play live';
+
+  @override
+  String chatGameLiveOnline(String name) {
+    return '$name is online right now';
+  }
+
+  @override
+  String chatGameLiveAsking(String name) {
+    return 'Asking $name to play live';
+  }
+
+  @override
+  String get chatGameLiveAskingSub => 'Waiting for their answer';
+
+  @override
+  String chatGameLiveWants(String name) {
+    return '$name wants to play live';
+  }
+
+  @override
+  String get chatGameLiveWantsSub =>
+      'Switch to a live game, one move after another, right now';
+
+  @override
+  String get chatGameLiveNow => 'Everyone plays at the same time, right now.';
+
+  @override
+  String get chatGameLiveUnavailable => 'They are not online right now';
+
+  @override
+  String get chatGameLiveBusy => 'A live game is already running in this chat';
+
+  @override
+  String get chatGameLiveExpired => 'That request has run out';
+
+  @override
   String get chatGameCancel => 'Cancel';
 
   @override
@@ -13344,9 +13392,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => 'Play live';
-
-  @override
-  String get chatGameLiveNow => 'Everyone plays at the same time, right now.';
 
   @override
   String get chatGameLivePause =>
@@ -14600,6 +14645,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'On right now: your battery is low';
 
   @override
+  String get failedSendSheetTitle => 'Message not sent';
+
+  @override
+  String get failedSendSheetBody =>
+      'This message did not go through. Try sending it again, or delete it.';
+
+  @override
+  String get failedSendSheetRetry => 'Try again';
+
+  @override
   String get longMessageSentAsFileToast =>
       'Too long for one message, so it was sent as a text file';
 
@@ -15724,6 +15779,66 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get callsTabOpenChat => 'Open chat';
+
+  @override
+  String get callsStatsPeriodMonth => '30 days';
+
+  @override
+  String get callsStatsPeriodAll => 'All time';
+
+  @override
+  String get callsStatsAnswered => 'Answered';
+
+  @override
+  String get callsStatsMissed => 'Missed';
+
+  @override
+  String get callsStatsLongest => 'Longest call';
+
+  @override
+  String get callsStatsAverage => 'Average call';
+
+  @override
+  String get callsStatsVoice => 'Voice';
+
+  @override
+  String get callsStatsVideo => 'Video';
+
+  @override
+  String get callsStatsOutgoing => 'Outgoing';
+
+  @override
+  String get callsStatsIncoming => 'Incoming';
+
+  @override
+  String get callsStatsBusiestHour => 'Busiest hour';
+
+  @override
+  String get callsStatsBusiestDay => 'Busiest day';
+
+  @override
+  String get callsStatsStreak => 'Streak';
+
+  @override
+  String callsStatsDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days',
+      one: '1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsStatsBestStreak(String days) {
+    return 'Best: $days';
+  }
+
+  @override
+  String callsStatsAllTimeNote(int count) {
+    return 'Based on your latest $count calls. Counts only the time you were connected.';
+  }
 
   @override
   String get callsTabDeleteFromHistory => 'Delete from history';

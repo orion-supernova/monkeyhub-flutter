@@ -9450,6 +9450,18 @@ class AppLocalizationsEs extends AppLocalizations {
       'Se quedan quietos hasta que tocas uno. Ahorra datos.';
 
   @override
+  String get settingsForkFullScreenLabel =>
+      'Elección a pantalla completa al deslizar';
+
+  @override
+  String get settingsForkFullScreenOnBody =>
+      'Al deslizar hacia arriba en un chat, la pantalla se divide en dos: una mitad para desaparición y otra para charla.';
+
+  @override
+  String get settingsForkFullScreenOffBody =>
+      'Al deslizar hacia arriba en un chat aparecen dos botones que siguen tu dedo.';
+
+  @override
   String get settingsAutoplayExpressionsOnBody =>
       'Los GIF y stickers animados se reproducen solos. Reducir movimiento los pausa.';
 
@@ -12667,6 +12679,43 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get chatGameLivePlay => 'Jugar en directo';
+
+  @override
+  String chatGameLiveOnline(String name) {
+    return '$name está en línea ahora';
+  }
+
+  @override
+  String chatGameLiveAsking(String name) {
+    return 'Proponiendo a $name jugar en directo';
+  }
+
+  @override
+  String get chatGameLiveAskingSub => 'Esperando su respuesta';
+
+  @override
+  String chatGameLiveWants(String name) {
+    return '$name quiere jugar en directo';
+  }
+
+  @override
+  String get chatGameLiveWantsSub =>
+      'Pasad a una partida en directo, jugada tras jugada, ahora mismo';
+
+  @override
+  String get chatGameLiveNow => 'Todos juegan a la vez, ahora mismo.';
+
+  @override
+  String get chatGameLiveUnavailable => 'Ahora no está en línea';
+
+  @override
+  String get chatGameLiveBusy => 'Ya hay una partida en directo en este chat';
+
+  @override
+  String get chatGameLiveExpired => 'La solicitud ha caducado';
+
+  @override
   String get chatGameCancel => 'Cancelar';
 
   @override
@@ -13460,9 +13509,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => 'Jugar en vivo';
-
-  @override
-  String get chatGameLiveNow => 'Todos juegan a la vez, ahora mismo.';
 
   @override
   String get chatGameLivePause =>
@@ -14736,6 +14782,16 @@ class AppLocalizationsEs extends AppLocalizations {
       'Activo ahora: tienes poca batería';
 
   @override
+  String get failedSendSheetTitle => 'Mensaje no enviado';
+
+  @override
+  String get failedSendSheetBody =>
+      'Este mensaje no se envió. Prueba a enviarlo de nuevo o elimínalo.';
+
+  @override
+  String get failedSendSheetRetry => 'Reintentar';
+
+  @override
   String get longMessageSentAsFileToast =>
       'Era demasiado largo para un mensaje, así que se envió como archivo de texto';
 
@@ -15302,10 +15358,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get forkSubJoin => 'para unirte';
 
   @override
-  String get forkSubVanishOn => 'para activar desaparición';
+  String get forkSubVanishOn => 'para activar el modo desaparición';
 
   @override
-  String get forkSubVanishOff => 'para desactivar desaparición';
+  String get forkSubVanishOff => 'para desactivar el modo desaparición';
 
   @override
   String get forkReleaseTalk => 'Suelta para hablar';
@@ -15314,10 +15370,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get forkReleaseJoin => 'Suelta para unirte';
 
   @override
-  String get forkReleaseVanishOn => 'Suelta para activar desaparición';
+  String get forkReleaseVanishOn => 'Suelta para activarlo';
 
   @override
-  String get forkReleaseVanishOff => 'Suelta para desactivar desaparición';
+  String get forkReleaseVanishOff => 'Suelta para desactivarlo';
 
   @override
   String get forkDragDownCancel => 'arrastra hacia abajo para cancelar';
@@ -15614,7 +15670,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get forkChipTurnOffSub => 'Los mensajes se quedan';
 
   @override
-  String get forkChipTalkSub => 'No suena a nadie';
+  String get forkChipTalkSub => 'A nadie le suena';
 
   @override
   String forkChipJoinSub(int count) {
@@ -15869,6 +15925,66 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get callsTabOpenChat => 'Abrir chat';
+
+  @override
+  String get callsStatsPeriodMonth => '30 días';
+
+  @override
+  String get callsStatsPeriodAll => 'Todo';
+
+  @override
+  String get callsStatsAnswered => 'Contestadas';
+
+  @override
+  String get callsStatsMissed => 'Perdidas';
+
+  @override
+  String get callsStatsLongest => 'Llamada más larga';
+
+  @override
+  String get callsStatsAverage => 'Llamada media';
+
+  @override
+  String get callsStatsVoice => 'Voz';
+
+  @override
+  String get callsStatsVideo => 'Vídeo';
+
+  @override
+  String get callsStatsOutgoing => 'Salientes';
+
+  @override
+  String get callsStatsIncoming => 'Entrantes';
+
+  @override
+  String get callsStatsBusiestHour => 'Hora más activa';
+
+  @override
+  String get callsStatsBusiestDay => 'Día más activo';
+
+  @override
+  String get callsStatsStreak => 'Racha';
+
+  @override
+  String callsStatsDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count días',
+      one: '1 día',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsStatsBestStreak(String days) {
+    return 'Mejor: $days';
+  }
+
+  @override
+  String callsStatsAllTimeNote(int count) {
+    return 'Según tus últimas $count llamadas. Solo cuenta el tiempo que estuviste conectado.';
+  }
 
   @override
   String get callsTabDeleteFromHistory => 'Eliminar del historial';

@@ -9391,6 +9391,17 @@ class AppLocalizationsSv extends AppLocalizations {
       'De står still tills du trycker på en. Sparar data.';
 
   @override
+  String get settingsForkFullScreenLabel => 'Helskärmsval vid svep uppåt';
+
+  @override
+  String get settingsForkFullScreenOnBody =>
+      'Svep uppåt i en chatt delar skärmen i två: en halva för försvinnande, en för pratstund.';
+
+  @override
+  String get settingsForkFullScreenOffBody =>
+      'Svep uppåt i en chatt visar två knappar som följer ditt finger.';
+
+  @override
   String get settingsAutoplayExpressionsOnBody =>
       'GIF:ar och animerade klistermärken spelas upp av sig själva. Minska rörelse pausar dem.';
 
@@ -12580,6 +12591,44 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String get chatGameLivePlay => 'Spela live';
+
+  @override
+  String chatGameLiveOnline(String name) {
+    return '$name är online just nu';
+  }
+
+  @override
+  String chatGameLiveAsking(String name) {
+    return 'Frågar $name om ni ska spela live';
+  }
+
+  @override
+  String get chatGameLiveAskingSub => 'Väntar på svar';
+
+  @override
+  String chatGameLiveWants(String name) {
+    return '$name vill spela live';
+  }
+
+  @override
+  String get chatGameLiveWantsSub =>
+      'Byt till live-spel, drag för drag, direkt';
+
+  @override
+  String get chatGameLiveNow => 'Alla spelar samtidigt, just nu.';
+
+  @override
+  String get chatGameLiveUnavailable => 'Hen är inte online just nu';
+
+  @override
+  String get chatGameLiveBusy =>
+      'Det pågår redan ett live-spel i den här chatten';
+
+  @override
+  String get chatGameLiveExpired => 'Förfrågan har gått ut';
+
+  @override
   String get chatGameCancel => 'Avbryt';
 
   @override
@@ -13371,9 +13420,6 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => 'Spela live';
-
-  @override
-  String get chatGameLiveNow => 'Alla spelar samtidigt, just nu.';
 
   @override
   String get chatGameLivePause =>
@@ -14632,6 +14678,16 @@ class AppLocalizationsSv extends AppLocalizations {
   String get powerSavingAutoLowBatterySub => 'På just nu: batteriet är lågt';
 
   @override
+  String get failedSendSheetTitle => 'Meddelandet skickades inte';
+
+  @override
+  String get failedSendSheetBody =>
+      'Det här meddelandet gick inte iväg. Försök skicka det igen eller ta bort det.';
+
+  @override
+  String get failedSendSheetRetry => 'Försök igen';
+
+  @override
   String get longMessageSentAsFileToast =>
       'För långt för ett meddelande, så det skickades som en textfil';
 
@@ -15195,10 +15251,10 @@ class AppLocalizationsSv extends AppLocalizations {
   String get forkSubJoin => 'för att gå med';
 
   @override
-  String get forkSubVanishOn => 'för att slå på försvinnande';
+  String get forkSubVanishOn => 'för att slå på försvinnandeläge';
 
   @override
-  String get forkSubVanishOff => 'för att stänga av försvinnande';
+  String get forkSubVanishOff => 'för att stänga av försvinnandeläge';
 
   @override
   String get forkReleaseTalk => 'Släpp för att prata';
@@ -15207,16 +15263,16 @@ class AppLocalizationsSv extends AppLocalizations {
   String get forkReleaseJoin => 'Släpp för att gå med';
 
   @override
-  String get forkReleaseVanishOn => 'Släpp för att slå på försvinnande';
+  String get forkReleaseVanishOn => 'Släpp för att slå på';
 
   @override
-  String get forkReleaseVanishOff => 'Släpp för att stänga av försvinnande';
+  String get forkReleaseVanishOff => 'Släpp för att stänga av';
 
   @override
   String get forkDragDownCancel => 'dra nedåt för att avbryta';
 
   @override
-  String get forkChipVanish => 'Försvinn';
+  String get forkChipVanish => 'Försvinnande';
 
   @override
   String get forkChipTurnOff => 'Stäng av';
@@ -15759,6 +15815,66 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get callsTabOpenChat => 'Öppna chatten';
+
+  @override
+  String get callsStatsPeriodMonth => '30 dagar';
+
+  @override
+  String get callsStatsPeriodAll => 'Alla';
+
+  @override
+  String get callsStatsAnswered => 'Besvarade';
+
+  @override
+  String get callsStatsMissed => 'Missade';
+
+  @override
+  String get callsStatsLongest => 'Längsta samtal';
+
+  @override
+  String get callsStatsAverage => 'Genomsnittligt samtal';
+
+  @override
+  String get callsStatsVoice => 'Röst';
+
+  @override
+  String get callsStatsVideo => 'Video';
+
+  @override
+  String get callsStatsOutgoing => 'Utgående';
+
+  @override
+  String get callsStatsIncoming => 'Inkommande';
+
+  @override
+  String get callsStatsBusiestHour => 'Mest aktiva timmen';
+
+  @override
+  String get callsStatsBusiestDay => 'Mest aktiva dagen';
+
+  @override
+  String get callsStatsStreak => 'Svit';
+
+  @override
+  String callsStatsDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dagar',
+      one: '1 dag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsStatsBestStreak(String days) {
+    return 'Bäst: $days';
+  }
+
+  @override
+  String callsStatsAllTimeNote(int count) {
+    return 'Baserat på dina senaste $count samtal. Bara tiden du var uppkopplad räknas.';
+  }
 
   @override
   String get callsTabDeleteFromHistory => 'Ta bort från historiken';

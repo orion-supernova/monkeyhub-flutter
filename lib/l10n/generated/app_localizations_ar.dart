@@ -9527,6 +9527,18 @@ class AppLocalizationsAr extends AppLocalizations {
       'تبقى ثابتة حتى تضغط على أحدها. يوفّر البيانات.';
 
   @override
+  String get settingsForkFullScreenLabel =>
+      'اختيار بملء الشاشة عند السحب لأعلى';
+
+  @override
+  String get settingsForkFullScreenOnBody =>
+      'عند السحب لأعلى في المحادثة تنقسم الشاشة نصفين: نصف للاختفاء ونصف للدردشة الصوتية.';
+
+  @override
+  String get settingsForkFullScreenOffBody =>
+      'عند السحب لأعلى في المحادثة يظهر زران يتبعان إصبعك.';
+
+  @override
   String get settingsAutoplayExpressionsOnBody =>
       'تُشغَّل صور GIF والملصقات المتحركة تلقائيًا. خيار تقليل الحركة يوقفها مؤقتًا.';
 
@@ -12755,6 +12767,43 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get chatGameLivePlay => 'العب مباشرة';
+
+  @override
+  String chatGameLiveOnline(String name) {
+    return '$name متصل الآن';
+  }
+
+  @override
+  String chatGameLiveAsking(String name) {
+    return 'تطلب من $name اللعب مباشرة';
+  }
+
+  @override
+  String get chatGameLiveAskingSub => 'بانتظار الرد';
+
+  @override
+  String chatGameLiveWants(String name) {
+    return '$name يريد اللعب مباشرة';
+  }
+
+  @override
+  String get chatGameLiveWantsSub =>
+      'انتقلا إلى لعبة مباشرة، نقلة بعد نقلة، الآن';
+
+  @override
+  String get chatGameLiveNow => 'الجميع يلعبون في الوقت نفسه، الآن.';
+
+  @override
+  String get chatGameLiveUnavailable => 'ليس متصلاً الآن';
+
+  @override
+  String get chatGameLiveBusy => 'توجد لعبة مباشرة قيد التشغيل في هذه المحادثة';
+
+  @override
+  String get chatGameLiveExpired => 'انتهت صلاحية الطلب';
+
+  @override
   String get chatGameCancel => 'إلغاء';
 
   @override
@@ -13553,9 +13602,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => 'العب مباشرة';
-
-  @override
-  String get chatGameLiveNow => 'الجميع يلعبون في الوقت نفسه، الآن.';
 
   @override
   String get chatGameLivePause =>
@@ -14783,6 +14829,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get powerSavingAutoLowBatterySub => 'مفعّل الآن: البطارية منخفضة';
 
   @override
+  String get failedSendSheetTitle => 'لم يتم إرسال الرسالة';
+
+  @override
+  String get failedSendSheetBody =>
+      'لم تصل هذه الرسالة. حاول إرسالها مرة أخرى أو احذفها.';
+
+  @override
+  String get failedSendSheetRetry => 'حاول مرة أخرى';
+
+  @override
   String get longMessageSentAsFileToast =>
       'الرسالة طويلة جدًا، لذا أُرسلت كملف نصي';
 
@@ -15934,6 +15990,66 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get callsTabOpenChat => 'فتح المحادثة';
+
+  @override
+  String get callsStatsPeriodMonth => '30 يومًا';
+
+  @override
+  String get callsStatsPeriodAll => 'الكل';
+
+  @override
+  String get callsStatsAnswered => 'تم الرد';
+
+  @override
+  String get callsStatsMissed => 'فائتة';
+
+  @override
+  String get callsStatsLongest => 'أطول مكالمة';
+
+  @override
+  String get callsStatsAverage => 'متوسط المكالمة';
+
+  @override
+  String get callsStatsVoice => 'صوتية';
+
+  @override
+  String get callsStatsVideo => 'فيديو';
+
+  @override
+  String get callsStatsOutgoing => 'صادرة';
+
+  @override
+  String get callsStatsIncoming => 'واردة';
+
+  @override
+  String get callsStatsBusiestHour => 'أكثر ساعة نشاطًا';
+
+  @override
+  String get callsStatsBusiestDay => 'أكثر يوم نشاطًا';
+
+  @override
+  String get callsStatsStreak => 'أيام متتالية';
+
+  @override
+  String callsStatsDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count أيام',
+      one: 'يوم واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsStatsBestStreak(String days) {
+    return 'الأفضل: $days';
+  }
+
+  @override
+  String callsStatsAllTimeNote(int count) {
+    return 'استنادًا إلى آخر $count مكالمة لك. يُحتسب وقت الاتصال فقط.';
+  }
 
   @override
   String get callsTabDeleteFromHistory => 'حذف من السجل';

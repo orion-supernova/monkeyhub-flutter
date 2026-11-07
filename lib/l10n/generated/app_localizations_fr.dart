@@ -9501,6 +9501,18 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ils restent immobiles jusqu’à ce que tu en touches un. Économise des données.';
 
   @override
+  String get settingsForkFullScreenLabel =>
+      'Choix en plein écran au glissement';
+
+  @override
+  String get settingsForkFullScreenOnBody =>
+      'Quand tu glisses vers le haut dans une discussion, l’écran se coupe en deux : une moitié pour l’éphémère, l’autre pour la discussion vocale.';
+
+  @override
+  String get settingsForkFullScreenOffBody =>
+      'Quand tu glisses vers le haut dans une discussion, deux boutons suivent ton doigt.';
+
+  @override
   String get settingsAutoplayExpressionsOnBody =>
       'Les GIF et stickers animés se lancent tout seuls. Réduire les animations les met en pause.';
 
@@ -12724,6 +12736,44 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get chatGameLivePlay => 'Jouer en direct';
+
+  @override
+  String chatGameLiveOnline(String name) {
+    return '$name est en ligne';
+  }
+
+  @override
+  String chatGameLiveAsking(String name) {
+    return 'Tu proposes à $name de jouer en direct';
+  }
+
+  @override
+  String get chatGameLiveAskingSub => 'En attente de sa réponse';
+
+  @override
+  String chatGameLiveWants(String name) {
+    return '$name veut jouer en direct';
+  }
+
+  @override
+  String get chatGameLiveWantsSub =>
+      'Passez en partie live, coup après coup, tout de suite';
+
+  @override
+  String get chatGameLiveNow => 'Tout le monde joue en même temps, maintenant.';
+
+  @override
+  String get chatGameLiveUnavailable => 'Cette personne n\'est pas en ligne';
+
+  @override
+  String get chatGameLiveBusy =>
+      'Une partie en direct est déjà en cours dans cette discussion';
+
+  @override
+  String get chatGameLiveExpired => 'La demande a expiré';
+
+  @override
   String get chatGameCancel => 'Annuler';
 
   @override
@@ -13522,9 +13572,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => 'Jouer en direct';
-
-  @override
-  String get chatGameLiveNow => 'Tout le monde joue en même temps, maintenant.';
 
   @override
   String get chatGameLivePause =>
@@ -14807,6 +14854,16 @@ class AppLocalizationsFr extends AppLocalizations {
       'Activé en ce moment : ta batterie est faible';
 
   @override
+  String get failedSendSheetTitle => 'Message non envoyé';
+
+  @override
+  String get failedSendSheetBody =>
+      'Ce message n\'est pas parti. Réessaie de l\'envoyer ou supprime-le.';
+
+  @override
+  String get failedSendSheetRetry => 'Réessayer';
+
+  @override
   String get longMessageSentAsFileToast =>
       'Trop long pour un seul message, il a donc été envoyé en fichier texte';
 
@@ -15361,7 +15418,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get messageLifeRulerLabel => 'Minuteur des messages';
 
   @override
-  String get forkHintSwipeUp => 'Balaie vers le haut';
+  String get forkHintSwipeUp => 'Glisse vers le haut';
 
   @override
   String get forkSubChoose => 'pour parler ou faire disparaître';
@@ -15373,10 +15430,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get forkSubJoin => 'pour rejoindre';
 
   @override
-  String get forkSubVanishOn => 'pour activer l\'éphémère';
+  String get forkSubVanishOn => 'pour activer le mode éphémère';
 
   @override
-  String get forkSubVanishOff => 'pour désactiver l\'éphémère';
+  String get forkSubVanishOff => 'pour désactiver le mode éphémère';
 
   @override
   String get forkReleaseTalk => 'Relâche pour parler';
@@ -15385,10 +15442,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get forkReleaseJoin => 'Relâche pour rejoindre';
 
   @override
-  String get forkReleaseVanishOn => 'Relâche pour activer l\'éphémère';
+  String get forkReleaseVanishOn => 'Relâche pour l\'activer';
 
   @override
-  String get forkReleaseVanishOff => 'Relâche pour désactiver l\'éphémère';
+  String get forkReleaseVanishOff => 'Relâche pour le désactiver';
 
   @override
   String get forkDragDownCancel => 'glisse vers le bas pour annuler';
@@ -15938,6 +15995,66 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get callsTabOpenChat => 'Ouvrir la discussion';
+
+  @override
+  String get callsStatsPeriodMonth => '30 jours';
+
+  @override
+  String get callsStatsPeriodAll => 'Tout';
+
+  @override
+  String get callsStatsAnswered => 'Répondus';
+
+  @override
+  String get callsStatsMissed => 'Manqués';
+
+  @override
+  String get callsStatsLongest => 'Appel le plus long';
+
+  @override
+  String get callsStatsAverage => 'Appel moyen';
+
+  @override
+  String get callsStatsVoice => 'Vocal';
+
+  @override
+  String get callsStatsVideo => 'Vidéo';
+
+  @override
+  String get callsStatsOutgoing => 'Sortants';
+
+  @override
+  String get callsStatsIncoming => 'Entrants';
+
+  @override
+  String get callsStatsBusiestHour => 'Heure la plus active';
+
+  @override
+  String get callsStatsBusiestDay => 'Jour le plus actif';
+
+  @override
+  String get callsStatsStreak => 'Série';
+
+  @override
+  String callsStatsDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jours',
+      one: '1 jour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsStatsBestStreak(String days) {
+    return 'Record : $days';
+  }
+
+  @override
+  String callsStatsAllTimeNote(int count) {
+    return 'D\'après vos $count derniers appels. Seul le temps de connexion est compté.';
+  }
 
   @override
   String get callsTabDeleteFromHistory => 'Supprimer de l\'historique';

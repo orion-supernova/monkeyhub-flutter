@@ -15649,6 +15649,24 @@ abstract class AppLocalizations {
   /// **'They stay still until you tap one. Saves data.'**
   String get settingsAutoplayExpressionsOffBody;
 
+  /// Settings toggle title: how the swipe-up fork (vanish mode or huddle) shows its two options.
+  ///
+  /// In en, this message translates to:
+  /// **'Full-screen swipe-up choice'**
+  String get settingsForkFullScreenLabel;
+
+  /// Explanation under the swipe-up fork toggle when it is on.
+  ///
+  /// In en, this message translates to:
+  /// **'Swiping up in a chat splits the screen in two: one half for vanish, one for a huddle.'**
+  String get settingsForkFullScreenOnBody;
+
+  /// Explanation under the swipe-up fork toggle when it is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Swiping up in a chat shows two buttons that follow your finger.'**
+  String get settingsForkFullScreenOffBody;
+
   /// Explanation under the autoplay toggle when it is on.
   ///
   /// In en, this message translates to:
@@ -21043,6 +21061,66 @@ abstract class AppLocalizations {
   /// **'Asked {name}'**
   String chatGameSwapAsked(String name);
 
+  /// Button in a turn by turn chat game: ask the other player, who is online right now, to switch the game to live.
+  ///
+  /// In en, this message translates to:
+  /// **'Play live'**
+  String get chatGameLivePlay;
+
+  /// Line under the Play live button: the other player is online.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is online right now'**
+  String chatGameLiveOnline(String name);
+
+  /// Card shown to the player who asked to go live, while waiting for the answer.
+  ///
+  /// In en, this message translates to:
+  /// **'Asking {name} to play live'**
+  String chatGameLiveAsking(String name);
+
+  /// Second line of the asking card.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for their answer'**
+  String get chatGameLiveAskingSub;
+
+  /// Card shown to the player who is asked to switch a turn by turn game to live. Buttons Decline / Play live follow.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} wants to play live'**
+  String chatGameLiveWants(String name);
+
+  /// Second line of the card that asks to go live.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to a live game, one move after another, right now'**
+  String get chatGameLiveWantsSub;
+
+  /// Live mode card, first line: everyone is playing at the same moment.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone plays at the same time, right now.'**
+  String get chatGameLiveNow;
+
+  /// Toast: a go-live request was refused because the other player is not online.
+  ///
+  /// In en, this message translates to:
+  /// **'They are not online right now'**
+  String get chatGameLiveUnavailable;
+
+  /// Toast: cannot go live because the chat already has a live game.
+  ///
+  /// In en, this message translates to:
+  /// **'A live game is already running in this chat'**
+  String get chatGameLiveBusy;
+
+  /// Toast: a go-live request was answered too late.
+  ///
+  /// In en, this message translates to:
+  /// **'That request has run out'**
+  String get chatGameLiveExpired;
+
   /// Button: cancel your own pending request in a chat game.
   ///
   /// In en, this message translates to:
@@ -22290,12 +22368,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Play live'**
   String get chatGameLiveTitle;
-
-  /// Live mode card, first line: everyone is playing at the same moment.
-  ///
-  /// In en, this message translates to:
-  /// **'Everyone plays at the same time, right now.'**
-  String get chatGameLiveNow;
 
   /// Live mode card, second line: leaving pauses the game; 2 minutes to come back or that player forfeits.
   ///
@@ -24277,6 +24349,24 @@ abstract class AppLocalizations {
   /// **'On right now: your battery is low'**
   String get powerSavingAutoLowBatterySub;
 
+  /// Headline of the sheet opened by pressing a message that failed to send.
+  ///
+  /// In en, this message translates to:
+  /// **'Message not sent'**
+  String get failedSendSheetTitle;
+
+  /// Body of the sheet opened by pressing a message that failed to send.
+  ///
+  /// In en, this message translates to:
+  /// **'This message did not go through. Try sending it again, or delete it.'**
+  String get failedSendSheetBody;
+
+  /// Button in the failed-send sheet that re-sends the message.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get failedSendSheetRetry;
+
   /// Toast after sending a text longer than one message allows: instead of being refused, it was sent as a .txt file attachment.
   ///
   /// In en, this message translates to:
@@ -26070,6 +26160,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open chat'**
   String get callsTabOpenChat;
+
+  /// Calls stats sheet period tab: the last 30 days.
+  ///
+  /// In en, this message translates to:
+  /// **'30 days'**
+  String get callsStatsPeriodMonth;
+
+  /// Calls stats sheet period tab: all calls on record.
+  ///
+  /// In en, this message translates to:
+  /// **'All time'**
+  String get callsStatsPeriodAll;
+
+  /// Calls stats tile: number of calls that were picked up.
+  ///
+  /// In en, this message translates to:
+  /// **'Answered'**
+  String get callsStatsAnswered;
+
+  /// Calls stats tile: number of calls that rang the user and were never picked up.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed'**
+  String get callsStatsMissed;
+
+  /// Calls stats tile: the longest single call.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest call'**
+  String get callsStatsLongest;
+
+  /// Calls stats tile: average talk time of answered calls.
+  ///
+  /// In en, this message translates to:
+  /// **'Average call'**
+  String get callsStatsAverage;
+
+  /// Calls stats split bar: voice calls.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice'**
+  String get callsStatsVoice;
+
+  /// Calls stats split bar: video calls.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get callsStatsVideo;
+
+  /// Calls stats split bar: calls the user placed.
+  ///
+  /// In en, this message translates to:
+  /// **'Outgoing'**
+  String get callsStatsOutgoing;
+
+  /// Calls stats split bar: calls the user received.
+  ///
+  /// In en, this message translates to:
+  /// **'Incoming'**
+  String get callsStatsIncoming;
+
+  /// Calls stats card: the hour of day with the most calls.
+  ///
+  /// In en, this message translates to:
+  /// **'Busiest hour'**
+  String get callsStatsBusiestHour;
+
+  /// Calls stats tile: the weekday with the most calls.
+  ///
+  /// In en, this message translates to:
+  /// **'Busiest day'**
+  String get callsStatsBusiestDay;
+
+  /// Calls stats tile: consecutive days with at least one answered call.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak'**
+  String get callsStatsStreak;
+
+  /// A number of days ('3 days').
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 day} other{{count} days}}'**
+  String callsStatsDays(int count);
+
+  /// Caption under the streak: the longest streak. {days} is already formatted ('5 days').
+  ///
+  /// In en, this message translates to:
+  /// **'Best: {days}'**
+  String callsStatsBestStreak(String days);
+
+  /// Footnote of the all-time calls stats.
+  ///
+  /// In en, this message translates to:
+  /// **'Based on your latest {count} calls. Counts only the time you were connected.'**
+  String callsStatsAllTimeNote(int count);
 
   /// Hold menu action on a call: remove it from my call history.
   ///

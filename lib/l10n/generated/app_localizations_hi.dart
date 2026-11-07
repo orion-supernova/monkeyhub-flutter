@@ -9368,6 +9368,17 @@ class AppLocalizationsHi extends AppLocalizations {
       'जब तक आप टैप न करें, ये रुके रहते हैं। डेटा बचता है।';
 
   @override
+  String get settingsForkFullScreenLabel => 'ऊपर स्वाइप पर फ़ुल-स्क्रीन चुनाव';
+
+  @override
+  String get settingsForkFullScreenOnBody =>
+      'चैट में ऊपर स्वाइप करने पर स्क्रीन दो हिस्सों में बँट जाती है: एक हिस्सा वैनिश का, दूसरा वॉइस चैट का।';
+
+  @override
+  String get settingsForkFullScreenOffBody =>
+      'चैट में ऊपर स्वाइप करने पर दो बटन दिखते हैं जो आपकी उँगली के साथ चलते हैं।';
+
+  @override
   String get settingsAutoplayExpressionsOnBody =>
       'GIF और एनिमेटेड स्टिकर अपने-आप चलते हैं। मोशन कम करें इन्हें रोक देता है।';
 
@@ -12544,6 +12555,42 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String get chatGameLivePlay => 'लाइव खेलें';
+
+  @override
+  String chatGameLiveOnline(String name) {
+    return '$name अभी ऑनलाइन हैं';
+  }
+
+  @override
+  String chatGameLiveAsking(String name) {
+    return '$name से लाइव खेलने को पूछ रहे हैं';
+  }
+
+  @override
+  String get chatGameLiveAskingSub => 'जवाब का इंतज़ार है';
+
+  @override
+  String chatGameLiveWants(String name) {
+    return '$name लाइव खेलना चाहते हैं';
+  }
+
+  @override
+  String get chatGameLiveWantsSub => 'अभी लाइव गेम पर आ जाएँ, चाल दर चाल';
+
+  @override
+  String get chatGameLiveNow => 'सब एक ही टाइम पर, अभी खेलते हैं।';
+
+  @override
+  String get chatGameLiveUnavailable => 'वे अभी ऑनलाइन नहीं हैं';
+
+  @override
+  String get chatGameLiveBusy => 'इस चैट में एक लाइव गेम पहले से चल रहा है';
+
+  @override
+  String get chatGameLiveExpired => 'यह अनुरोध समाप्त हो गया';
+
+  @override
   String get chatGameCancel => 'रद्द करें';
 
   @override
@@ -13323,9 +13370,6 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => 'लाइव खेलो';
-
-  @override
-  String get chatGameLiveNow => 'सब एक ही टाइम पर, अभी खेलते हैं।';
 
   @override
   String get chatGameLivePause =>
@@ -14572,6 +14616,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get powerSavingAutoLowBatterySub => 'अभी चालू: बैटरी कम है';
 
   @override
+  String get failedSendSheetTitle => 'मैसेज नहीं भेजा गया';
+
+  @override
+  String get failedSendSheetBody =>
+      'यह मैसेज नहीं गया। इसे दोबारा भेजकर देखें, या हटा दें।';
+
+  @override
+  String get failedSendSheetRetry => 'फिर से कोशिश करें';
+
+  @override
   String get longMessageSentAsFileToast =>
       'एक मैसेज के लिए बहुत लंबा था, इसलिए टेक्स्ट फ़ाइल के रूप में भेजा गया';
 
@@ -15695,6 +15749,66 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get callsTabOpenChat => 'चैट खोलें';
+
+  @override
+  String get callsStatsPeriodMonth => '30 दिन';
+
+  @override
+  String get callsStatsPeriodAll => 'अब तक';
+
+  @override
+  String get callsStatsAnswered => 'उठाई गईं';
+
+  @override
+  String get callsStatsMissed => 'छूटी हुई';
+
+  @override
+  String get callsStatsLongest => 'सबसे लंबी कॉल';
+
+  @override
+  String get callsStatsAverage => 'औसत कॉल';
+
+  @override
+  String get callsStatsVoice => 'वॉइस';
+
+  @override
+  String get callsStatsVideo => 'वीडियो';
+
+  @override
+  String get callsStatsOutgoing => 'डायल की गईं';
+
+  @override
+  String get callsStatsIncoming => 'आईं';
+
+  @override
+  String get callsStatsBusiestHour => 'सबसे व्यस्त घंटा';
+
+  @override
+  String get callsStatsBusiestDay => 'सबसे व्यस्त दिन';
+
+  @override
+  String get callsStatsStreak => 'लगातार दिन';
+
+  @override
+  String callsStatsDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count दिन',
+      one: '1 दिन',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsStatsBestStreak(String days) {
+    return 'सर्वश्रेष्ठ: $days';
+  }
+
+  @override
+  String callsStatsAllTimeNote(int count) {
+    return 'आपकी पिछली $count कॉल पर आधारित। केवल जुड़े रहने का समय गिना जाता है।';
+  }
 
   @override
   String get callsTabDeleteFromHistory => 'इतिहास से हटाएँ';

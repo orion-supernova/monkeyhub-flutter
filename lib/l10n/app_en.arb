@@ -10746,6 +10746,18 @@
     "description": "Settings toggle title."
   },
   "settingsAutoplayExpressionsOffBody": "They stay still until you tap one. Saves data.",
+  "settingsForkFullScreenLabel": "Full-screen swipe-up choice",
+  "@settingsForkFullScreenLabel": {
+    "description": "Settings toggle title: how the swipe-up fork (vanish mode or huddle) shows its two options."
+  },
+  "settingsForkFullScreenOnBody": "Swiping up in a chat splits the screen in two: one half for vanish, one for a huddle.",
+  "@settingsForkFullScreenOnBody": {
+    "description": "Explanation under the swipe-up fork toggle when it is on."
+  },
+  "settingsForkFullScreenOffBody": "Swiping up in a chat shows two buttons that follow your finger.",
+  "@settingsForkFullScreenOffBody": {
+    "description": "Explanation under the swipe-up fork toggle when it is off."
+  },
   "@settingsAutoplayExpressionsOffBody": {
     "description": "Explanation under the autoplay toggle when it is off."
   },
@@ -14919,6 +14931,61 @@
       }
     }
   },
+  "chatGameLivePlay": "Play live",
+  "@chatGameLivePlay": {
+    "description": "Button in a turn by turn chat game: ask the other player, who is online right now, to switch the game to live."
+  },
+  "chatGameLiveOnline": "{name} is online right now",
+  "@chatGameLiveOnline": {
+    "description": "Line under the Play live button: the other player is online.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameLiveAsking": "Asking {name} to play live",
+  "@chatGameLiveAsking": {
+    "description": "Card shown to the player who asked to go live, while waiting for the answer.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameLiveAskingSub": "Waiting for their answer",
+  "@chatGameLiveAskingSub": {
+    "description": "Second line of the asking card."
+  },
+  "chatGameLiveWants": "{name} wants to play live",
+  "@chatGameLiveWants": {
+    "description": "Card shown to the player who is asked to switch a turn by turn game to live. Buttons Decline / Play live follow.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatGameLiveWantsSub": "Switch to a live game, one move after another, right now",
+  "@chatGameLiveWantsSub": {
+    "description": "Second line of the card that asks to go live."
+  },
+  "chatGameLiveNow": "Live",
+  "@chatGameLiveNow": {
+    "description": "Word that flashes on the board the moment a turn by turn game becomes live."
+  },
+  "chatGameLiveUnavailable": "They are not online right now",
+  "@chatGameLiveUnavailable": {
+    "description": "Toast: a go-live request was refused because the other player is not online."
+  },
+  "chatGameLiveBusy": "A live game is already running in this chat",
+  "@chatGameLiveBusy": {
+    "description": "Toast: cannot go live because the chat already has a live game."
+  },
+  "chatGameLiveExpired": "That request has run out",
+  "@chatGameLiveExpired": {
+    "description": "Toast: a go-live request was answered too late."
+  },
   "chatGameCancel": "Cancel",
   "@chatGameCancel": {
     "description": "Button: cancel your own pending request in a chat game."
@@ -17478,6 +17545,18 @@
   "@powerSavingAutoLowBatterySub": {
     "description": "Subtitle of the Automatic power saving option while the app is calm because the battery is low (20% or less), not because of the phone's own power mode."
   },
+  "failedSendSheetTitle": "Message not sent",
+  "@failedSendSheetTitle": {
+    "description": "Headline of the sheet opened by pressing a message that failed to send."
+  },
+  "failedSendSheetBody": "This message did not go through. Try sending it again, or delete it.",
+  "@failedSendSheetBody": {
+    "description": "Body of the sheet opened by pressing a message that failed to send."
+  },
+  "failedSendSheetRetry": "Try again",
+  "@failedSendSheetRetry": {
+    "description": "Button in the failed-send sheet that re-sends the message."
+  },
   "longMessageSentAsFileToast": "Too long for one message, so it was sent as a text file",
   "@longMessageSentAsFileToast": {
     "description": "Toast after sending a text longer than one message allows: instead of being refused, it was sent as a .txt file attachment."
@@ -18600,6 +18679,85 @@
   "callsTabOpenChat": "Open chat",
   "@callsTabOpenChat": {
     "description": "Hold menu action on a call: open the chat."
+  },
+  "callsStatsPeriodMonth": "30 days",
+  "@callsStatsPeriodMonth": {
+    "description": "Calls stats sheet period tab: the last 30 days."
+  },
+  "callsStatsPeriodAll": "All time",
+  "@callsStatsPeriodAll": {
+    "description": "Calls stats sheet period tab: all calls on record."
+  },
+  "callsStatsAnswered": "Answered",
+  "@callsStatsAnswered": {
+    "description": "Calls stats tile: number of calls that were picked up."
+  },
+  "callsStatsMissed": "Missed",
+  "@callsStatsMissed": {
+    "description": "Calls stats tile: number of calls that rang the user and were never picked up."
+  },
+  "callsStatsLongest": "Longest call",
+  "@callsStatsLongest": {
+    "description": "Calls stats tile: the longest single call."
+  },
+  "callsStatsAverage": "Average call",
+  "@callsStatsAverage": {
+    "description": "Calls stats tile: average talk time of answered calls."
+  },
+  "callsStatsVoice": "Voice",
+  "@callsStatsVoice": {
+    "description": "Calls stats split bar: voice calls."
+  },
+  "callsStatsVideo": "Video",
+  "@callsStatsVideo": {
+    "description": "Calls stats split bar: video calls."
+  },
+  "callsStatsOutgoing": "Outgoing",
+  "@callsStatsOutgoing": {
+    "description": "Calls stats split bar: calls the user placed."
+  },
+  "callsStatsIncoming": "Incoming",
+  "@callsStatsIncoming": {
+    "description": "Calls stats split bar: calls the user received."
+  },
+  "callsStatsBusiestHour": "Busiest hour",
+  "@callsStatsBusiestHour": {
+    "description": "Calls stats card: the hour of day with the most calls."
+  },
+  "callsStatsBusiestDay": "Busiest day",
+  "@callsStatsBusiestDay": {
+    "description": "Calls stats tile: the weekday with the most calls."
+  },
+  "callsStatsStreak": "Streak",
+  "@callsStatsStreak": {
+    "description": "Calls stats tile: consecutive days with at least one answered call."
+  },
+  "callsStatsDays": "{count, plural, one{1 day} other{{count} days}}",
+  "@callsStatsDays": {
+    "description": "A number of days ('3 days').",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "callsStatsBestStreak": "Best: {days}",
+  "@callsStatsBestStreak": {
+    "description": "Caption under the streak: the longest streak. {days} is already formatted ('5 days').",
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "callsStatsAllTimeNote": "Based on your latest {count} calls. Counts only the time you were connected.",
+  "@callsStatsAllTimeNote": {
+    "description": "Footnote of the all-time calls stats.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "callsTabDeleteFromHistory": "Delete from history",
   "@callsTabDeleteFromHistory": {

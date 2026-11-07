@@ -8868,6 +8868,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAutoplayExpressionsOffBody => '点击前保持静止，更省流量。';
 
   @override
+  String get settingsForkFullScreenLabel => '上滑选择使用全屏';
+
+  @override
+  String get settingsForkFullScreenOnBody => '在聊天中上滑时，屏幕会分成两半：一半是消失模式，一半是语音聊天。';
+
+  @override
+  String get settingsForkFullScreenOffBody => '在聊天中上滑时，会出现两个跟随手指的按钮。';
+
+  @override
   String get settingsAutoplayExpressionsOnBody =>
       'GIF 和动态贴纸会自动播放。开启“减弱动态效果”时会暂停。';
 
@@ -11926,6 +11935,42 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get chatGameLivePlay => '实时对战';
+
+  @override
+  String chatGameLiveOnline(String name) {
+    return '$name 现在在线';
+  }
+
+  @override
+  String chatGameLiveAsking(String name) {
+    return '正在邀请 $name 实时对战';
+  }
+
+  @override
+  String get chatGameLiveAskingSub => '等待对方回应';
+
+  @override
+  String chatGameLiveWants(String name) {
+    return '$name 想实时对战';
+  }
+
+  @override
+  String get chatGameLiveWantsSub => '马上切换成实时对局，你一步我一步';
+
+  @override
+  String get chatGameLiveNow => '大家同一时间，现在就玩。';
+
+  @override
+  String get chatGameLiveUnavailable => '对方现在不在线';
+
+  @override
+  String get chatGameLiveBusy => '这个聊天里已经有一局实时对战在进行';
+
+  @override
+  String get chatGameLiveExpired => '请求已过期';
+
+  @override
   String get chatGameCancel => '取消';
 
   @override
@@ -12687,9 +12732,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => '实时玩';
-
-  @override
-  String get chatGameLiveNow => '大家同一时间，现在就玩。';
 
   @override
   String get chatGameLivePause => '有人离开会暂停。2 分钟内不回来就算输。';
@@ -13807,6 +13849,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get powerSavingAutoLowBatterySub => '当前已开启：电量低';
 
   @override
+  String get failedSendSheetTitle => '消息未发送';
+
+  @override
+  String get failedSendSheetBody => '这条消息没有发送出去。可以重新发送，或者删除它。';
+
+  @override
+  String get failedSendSheetRetry => '重试';
+
+  @override
   String get longMessageSentAsFileToast => '内容太长，无法作为一条消息发送，已改为文本文件发送';
 
   @override
@@ -14341,19 +14392,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get forkHintSwipeUp => '向上滑动';
 
   @override
-  String get forkSubChoose => '来语聊或让消息消失';
+  String get forkSubChoose => '选择语聊或消失模式';
 
   @override
-  String get forkSubTalk => '来语聊';
+  String get forkSubTalk => '开始语聊';
 
   @override
-  String get forkSubJoin => '来加入';
+  String get forkSubJoin => '加入语聊';
 
   @override
-  String get forkSubVanishOn => '来开启消失模式';
+  String get forkSubVanishOn => '开启消失模式';
 
   @override
-  String get forkSubVanishOff => '来关闭消失模式';
+  String get forkSubVanishOff => '关闭消失模式';
 
   @override
   String get forkReleaseTalk => '松手开始语聊';
@@ -14898,6 +14949,65 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get callsTabOpenChat => '打开聊天';
+
+  @override
+  String get callsStatsPeriodMonth => '30 天';
+
+  @override
+  String get callsStatsPeriodAll => '全部';
+
+  @override
+  String get callsStatsAnswered => '已接';
+
+  @override
+  String get callsStatsMissed => '未接';
+
+  @override
+  String get callsStatsLongest => '最长通话';
+
+  @override
+  String get callsStatsAverage => '平均通话';
+
+  @override
+  String get callsStatsVoice => '语音';
+
+  @override
+  String get callsStatsVideo => '视频';
+
+  @override
+  String get callsStatsOutgoing => '呼出';
+
+  @override
+  String get callsStatsIncoming => '呼入';
+
+  @override
+  String get callsStatsBusiestHour => '最忙时段';
+
+  @override
+  String get callsStatsBusiestDay => '最忙的一天';
+
+  @override
+  String get callsStatsStreak => '连续天数';
+
+  @override
+  String callsStatsDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 天',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsStatsBestStreak(String days) {
+    return '最高：$days';
+  }
+
+  @override
+  String callsStatsAllTimeNote(int count) {
+    return '基于你最近的 $count 通通话。仅统计接通的时长。';
+  }
 
   @override
   String get callsTabDeleteFromHistory => '从记录中删除';

@@ -8988,6 +8988,17 @@ class AppLocalizationsKo extends AppLocalizations {
       '탭하기 전까지 멈춰 있어요. 데이터를 아낄 수 있어요.';
 
   @override
+  String get settingsForkFullScreenLabel => '위로 밀 때 전체 화면으로 선택';
+
+  @override
+  String get settingsForkFullScreenOnBody =>
+      '채팅에서 위로 밀면 화면이 반으로 나뉘어요. 한쪽은 사라지는 모드, 다른 쪽은 음성 채팅이에요.';
+
+  @override
+  String get settingsForkFullScreenOffBody =>
+      '채팅에서 위로 밀면 손가락을 따라오는 버튼 두 개가 나타나요.';
+
+  @override
   String get settingsAutoplayExpressionsOnBody =>
       'GIF와 움직이는 스티커가 자동으로 재생돼요. 동작 줄이기를 켜면 멈춰요.';
 
@@ -12065,6 +12076,42 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get chatGameLivePlay => '라이브로 하기';
+
+  @override
+  String chatGameLiveOnline(String name) {
+    return '$name님이 지금 온라인이에요';
+  }
+
+  @override
+  String chatGameLiveAsking(String name) {
+    return '$name님에게 라이브로 하자고 묻는 중';
+  }
+
+  @override
+  String get chatGameLiveAskingSub => '답을 기다리고 있어요';
+
+  @override
+  String chatGameLiveWants(String name) {
+    return '$name님이 라이브로 하고 싶어 해요';
+  }
+
+  @override
+  String get chatGameLiveWantsSub => '지금 바로 라이브로 바꿔서 한 수씩 주고받아요';
+
+  @override
+  String get chatGameLiveNow => '모두 동시에, 지금 바로 해요.';
+
+  @override
+  String get chatGameLiveUnavailable => '상대가 지금 온라인이 아니에요';
+
+  @override
+  String get chatGameLiveBusy => '이 채팅에서는 이미 라이브 게임이 진행 중이에요';
+
+  @override
+  String get chatGameLiveExpired => '요청이 만료되었어요';
+
+  @override
   String get chatGameCancel => '취소';
 
   @override
@@ -12827,9 +12874,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => '실시간으로 하기';
-
-  @override
-  String get chatGameLiveNow => '모두 동시에, 지금 바로 해요.';
 
   @override
   String get chatGameLivePause => '누가 나가면 일시정지돼요. 2분 안에 안 돌아오면 패배예요.';
@@ -13971,6 +14015,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get powerSavingAutoLowBatterySub => '지금 켜짐: 배터리가 부족합니다';
 
   @override
+  String get failedSendSheetTitle => '메시지를 보내지 못했어요';
+
+  @override
+  String get failedSendSheetBody => '이 메시지가 전송되지 않았어요. 다시 보내거나 삭제해 주세요.';
+
+  @override
+  String get failedSendSheetRetry => '다시 시도';
+
+  @override
   String get longMessageSentAsFileToast => '메시지 하나로 보내기엔 너무 길어서 텍스트 파일로 보냈어요';
 
   @override
@@ -15065,6 +15118,65 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get callsTabOpenChat => '채팅 열기';
+
+  @override
+  String get callsStatsPeriodMonth => '30일';
+
+  @override
+  String get callsStatsPeriodAll => '전체';
+
+  @override
+  String get callsStatsAnswered => '받은 전화';
+
+  @override
+  String get callsStatsMissed => '부재중';
+
+  @override
+  String get callsStatsLongest => '가장 긴 통화';
+
+  @override
+  String get callsStatsAverage => '평균 통화';
+
+  @override
+  String get callsStatsVoice => '음성';
+
+  @override
+  String get callsStatsVideo => '영상';
+
+  @override
+  String get callsStatsOutgoing => '발신';
+
+  @override
+  String get callsStatsIncoming => '수신';
+
+  @override
+  String get callsStatsBusiestHour => '가장 많은 시간대';
+
+  @override
+  String get callsStatsBusiestDay => '가장 많은 요일';
+
+  @override
+  String get callsStatsStreak => '연속';
+
+  @override
+  String callsStatsDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count일',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsStatsBestStreak(String days) {
+    return '최고: $days';
+  }
+
+  @override
+  String callsStatsAllTimeNote(int count) {
+    return '최근 통화 $count건 기준입니다. 연결된 시간만 집계됩니다.';
+  }
 
   @override
   String get callsTabDeleteFromHistory => '기록에서 삭제';

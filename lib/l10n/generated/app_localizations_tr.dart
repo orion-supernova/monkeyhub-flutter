@@ -9317,6 +9317,17 @@ class AppLocalizationsTr extends AppLocalizations {
       'Birine dokunana kadar hareketsiz kalırlar. Veri tasarrufu sağlar.';
 
   @override
+  String get settingsForkFullScreenLabel => 'Tam ekran yukarı kaydırma seçimi';
+
+  @override
+  String get settingsForkFullScreenOnBody =>
+      'Sohbette yukarı kaydırınca ekran ikiye bölünür: bir yarısı kaybolan mesajlar, diğer yarısı sesli sohbet için.';
+
+  @override
+  String get settingsForkFullScreenOffBody =>
+      'Sohbette yukarı kaydırınca parmağını izleyen iki düğme çıkar.';
+
+  @override
   String get settingsAutoplayExpressionsOnBody =>
       'GIF’ler ve hareketli çıkartmalar kendiliğinden oynar. Hareketi Azalt onları duraklatır.';
 
@@ -12501,6 +12512,42 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get chatGameLivePlay => 'Canlı oyna';
+
+  @override
+  String chatGameLiveOnline(String name) {
+    return '$name şu an çevrimiçi';
+  }
+
+  @override
+  String chatGameLiveAsking(String name) {
+    return '$name ile canlı oynamayı öneriyorsun';
+  }
+
+  @override
+  String get chatGameLiveAskingSub => 'Cevabı bekleniyor';
+
+  @override
+  String chatGameLiveWants(String name) {
+    return '$name canlı oynamak istiyor';
+  }
+
+  @override
+  String get chatGameLiveWantsSub => 'Hamle hamle, şimdi canlı oyuna geçin';
+
+  @override
+  String get chatGameLiveNow => 'Herkes aynı anda, hemen şimdi oynar.';
+
+  @override
+  String get chatGameLiveUnavailable => 'Karşındaki şu an çevrimiçi değil';
+
+  @override
+  String get chatGameLiveBusy => 'Bu sohbette zaten canlı bir oyun sürüyor';
+
+  @override
+  String get chatGameLiveExpired => 'İstek zaman aşımına uğradı';
+
+  @override
   String get chatGameCancel => 'Vazgeç';
 
   @override
@@ -13283,9 +13330,6 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => 'Canlı oyna';
-
-  @override
-  String get chatGameLiveNow => 'Herkes aynı anda, hemen şimdi oynar.';
 
   @override
   String get chatGameLivePause =>
@@ -14530,6 +14574,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get powerSavingAutoLowBatterySub => 'Şu an açık: pilin azaldı';
 
   @override
+  String get failedSendSheetTitle => 'Mesaj gönderilemedi';
+
+  @override
+  String get failedSendSheetBody =>
+      'Bu mesaj gitmedi. Tekrar göndermeyi dene ya da sil.';
+
+  @override
+  String get failedSendSheetRetry => 'Tekrar dene';
+
+  @override
   String get longMessageSentAsFileToast =>
       'Tek mesaj için çok uzundu, metin dosyası olarak gönderildi';
 
@@ -15085,43 +15139,43 @@ class AppLocalizationsTr extends AppLocalizations {
   String get forkHintSwipeUp => 'Yukarı kaydır';
 
   @override
-  String get forkSubChoose => 'konuşmak ya da kaybolmak için';
+  String get forkSubChoose => 'sesli sohbet ya da kaybolan mesajlar için';
 
   @override
-  String get forkSubTalk => 'konuşmak için';
+  String get forkSubTalk => 'sesli sohbet için';
 
   @override
-  String get forkSubJoin => 'katılmak için';
+  String get forkSubJoin => 'sesli sohbete katılmak için';
 
   @override
-  String get forkSubVanishOn => 'kaybolmayı açmak için';
+  String get forkSubVanishOn => 'kaybolan mesajları açmak için';
 
   @override
-  String get forkSubVanishOff => 'kaybolmayı kapatmak için';
+  String get forkSubVanishOff => 'kaybolan mesajları kapatmak için';
 
   @override
-  String get forkReleaseTalk => 'Konuşmak için bırak';
+  String get forkReleaseTalk => 'Sesli sohbet için bırak';
 
   @override
   String get forkReleaseJoin => 'Katılmak için bırak';
 
   @override
-  String get forkReleaseVanishOn => 'Kaybolmayı açmak için bırak';
+  String get forkReleaseVanishOn => 'Açmak için bırak';
 
   @override
-  String get forkReleaseVanishOff => 'Kaybolmayı kapatmak için bırak';
+  String get forkReleaseVanishOff => 'Kapatmak için bırak';
 
   @override
-  String get forkDragDownCancel => 'iptal etmek için aşağı çek';
+  String get forkDragDownCancel => 'vazgeçmek için aşağı kaydır';
 
   @override
-  String get forkChipVanish => 'Kaybolsun';
+  String get forkChipVanish => 'Kaybolan mesaj';
 
   @override
   String get forkChipTurnOff => 'Kapat';
 
   @override
-  String get forkChipTalk => 'Konuş';
+  String get forkChipTalk => 'Sesli sohbet';
 
   @override
   String get forkChipJoin => 'Katıl';
@@ -15139,16 +15193,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get forkActionJoinHuddle => 'Sesli sohbete katıl';
 
   @override
-  String get forkActionVanishOn => 'Kaybolma modunu aç';
+  String get forkActionVanishOn => 'Kaybolan mesajları aç';
 
   @override
-  String get forkActionVanishOff => 'Kaybolma modunu kapat';
+  String get forkActionVanishOff => 'Kaybolan mesajları kapat';
 
   @override
-  String get forkToastVanishAlreadyOn => 'Kaybolma modu zaten açık';
+  String get forkToastVanishAlreadyOn => 'Kaybolan mesajlar zaten açık';
 
   @override
-  String get forkToastVanishAlreadyOff => 'Kaybolma modu zaten kapalı';
+  String get forkToastVanishAlreadyOff => 'Kaybolan mesajlar zaten kapalı';
 
   @override
   String newRoomInviteFailed(String names) {
@@ -15388,10 +15442,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get forkSlideToChoose => 'Seçmek için kaydır';
 
   @override
-  String get forkLetGoCancel => 'iptal etmek için burada bırak';
+  String get forkLetGoCancel => 'vazgeçmek için burada bırak';
 
   @override
-  String get forkSlideBackCancel => 'iptal etmek için geri kaydır';
+  String get forkSlideBackCancel => 'vazgeçmek için ortaya kaydır';
 
   @override
   String get forkChipVanishSub => 'Mesajlar kaybolur';
@@ -15400,7 +15454,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get forkChipTurnOffSub => 'Mesajlar kalır';
 
   @override
-  String get forkChipTalkSub => 'Kimse aranmaz';
+  String get forkChipTalkSub => 'Kimsenin telefonu çalmaz';
 
   @override
   String forkChipJoinSub(int count) {
@@ -15653,6 +15707,66 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get callsTabOpenChat => 'Sohbeti aç';
+
+  @override
+  String get callsStatsPeriodMonth => '30 gün';
+
+  @override
+  String get callsStatsPeriodAll => 'Tüm zamanlar';
+
+  @override
+  String get callsStatsAnswered => 'Yanıtlanan';
+
+  @override
+  String get callsStatsMissed => 'Cevapsız';
+
+  @override
+  String get callsStatsLongest => 'En uzun arama';
+
+  @override
+  String get callsStatsAverage => 'Ortalama arama';
+
+  @override
+  String get callsStatsVoice => 'Sesli';
+
+  @override
+  String get callsStatsVideo => 'Görüntülü';
+
+  @override
+  String get callsStatsOutgoing => 'Giden';
+
+  @override
+  String get callsStatsIncoming => 'Gelen';
+
+  @override
+  String get callsStatsBusiestHour => 'En yoğun saat';
+
+  @override
+  String get callsStatsBusiestDay => 'En yoğun gün';
+
+  @override
+  String get callsStatsStreak => 'Seri';
+
+  @override
+  String callsStatsDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count gün',
+      one: '1 gün',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String callsStatsBestStreak(String days) {
+    return 'En iyi: $days';
+  }
+
+  @override
+  String callsStatsAllTimeNote(int count) {
+    return 'Son $count aramana göre. Yalnızca bağlı kaldığın süre sayılır.';
+  }
 
   @override
   String get callsTabDeleteFromHistory => 'Geçmişten sil';
