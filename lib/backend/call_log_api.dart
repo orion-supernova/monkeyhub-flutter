@@ -82,12 +82,33 @@ class CallLogApi implements CallLogSource {
 
   @override
   Future<CallLogSummary> summary({required int since, int tzOffsetMin = 0}) async {
-    final res = await _cv.query(
-      'callLog:summary',
-      {'since': since, 'tzOffsetMin': tzOffsetMin},
-    );
+    Object? res;
+    if (_tzRejected) {
+      res = await _cv.query('callLog:summary', {'since': since});
+    } else {
+      try {
+        res = await _cv.query(
+          'callLog:summary',
+          {'since': since, 'tzOffsetMin': tzOffsetMin},
+        );
+      } catch (e) {
+        // A server older than the stats sheet validates `since` alone and
+        // rejects the extra field, which blanked the whole talk-time card.
+        // Ask again the old way (totals still show; the clock-bucketed
+        // figures come back empty) and stop sending it this session.
+        if (!'$e'.contains('ArgumentValidationError') &&
+            !'$e'.contains('tzOffsetMin')) {
+          rethrow;
+        }
+        _tzRejected = true;
+        res = await _cv.query('callLog:summary', {'since': since});
+      }
+    }
     return CallLogSummary.fromJson((res as Map).cast<String, dynamic>());
   }
+
+  /// The server refused `tzOffsetMin` once; don't send it again.
+  static bool _tzRejected = false;
 
   @override
   Future<void> remove(String id) async {

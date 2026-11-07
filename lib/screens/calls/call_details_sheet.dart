@@ -148,14 +148,27 @@ class CallDetailsSheet extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          e.wasAnswered && e.durationMs > 0
-                              ? '$detail · ${clockDuration(e.durationMs)}'
-                              : detail,
+                          detail,
                           style: theme.bodySoft.copyWith(
                             fontSize: 14.5,
                             color: e.isMissed ? theme.danger : theme.inkMuted,
                           ),
                         ),
+                        // The one number people open this for, said in
+                        // words, not a "+12:34" offset on the Ended row.
+                        if (e.wasAnswered && e.durationMs > 0)
+                          Text(
+                            l10n.callsTabDetailsTalked(
+                              clockDuration(e.durationMs),
+                            ),
+                            style: theme.bodyEmph.copyWith(
+                              fontSize: 15,
+                              color: theme.ink,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -273,12 +286,7 @@ class _Timeline extends StatelessWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 5),
-                  child: Text(
-                    i == 0
-                        ? clockTime(context, events[i].at)
-                        : '${clockTime(context, events[i].at)}  +${clockDuration(events[i].at - startedAt)}',
-                    style: time,
-                  ),
+                  child: Text(clockTime(context, events[i].at), style: time),
                 ),
               ],
             ),
