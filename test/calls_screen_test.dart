@@ -107,8 +107,8 @@ void main() {
       expect(SettingsStore.instance.showCallsTab, isTrue);
       expect(navOrder.take(3), [
         HomeSection.calls,
-        HomeSection.chat,
         HomeSection.feed,
+        HomeSection.chat,
       ]);
     });
 

@@ -134,20 +134,20 @@ double segmentAlignmentAt(double position, int count) {
 /// needed in places that have no [AppLocalizations] to hand — the pill's
 /// `didUpdateWidget`, and the shell deciding which way a section transition
 /// should travel.
-/// Calls leads, Chats second (user's call, Nov 2026). Leading the bar is not
+/// Calls leads, then Feed, then Chats (user's call, Nov 2026). Leading the bar is not
 /// where the app opens: that is the remembered section, Chats when there is
 /// none (see [SettingsStore.section]).
 const List<HomeSection> _fullNavOrder = [
   HomeSection.calls,
-  HomeSection.chat,
   HomeSection.feed,
+  HomeSection.chat,
   HomeSection.games,
   HomeSection.settings,
 ];
 
 const List<HomeSection> _noCallsNavOrder = [
-  HomeSection.chat,
   HomeSection.feed,
+  HomeSection.chat,
   HomeSection.games,
   HomeSection.settings,
 ];

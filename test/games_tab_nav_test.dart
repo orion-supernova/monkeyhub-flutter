@@ -23,25 +23,25 @@ void main() {
   group('nav order', () {
     tearDown(() => SettingsStore.instance.setShowCallsTab(true));
 
-    test('Calls leads, Games sits between Feed and Settings, no Discover', () {
+    test('Calls leads, then Feed, then Chat, Games before Settings, no Discover', () {
       expect(navOrder, [
         HomeSection.calls,
-        HomeSection.chat,
         HomeSection.feed,
+        HomeSection.chat,
         HomeSection.games,
         HomeSection.settings,
       ]);
       expect(
         navDestinations(AppLocalizationsEn()).map((d) => d.label),
-        ['Calls', 'Chat', 'Feed', 'Games', 'Settings'],
+        ['Calls', 'Feed', 'Chat', 'Games', 'Settings'],
       );
     });
 
     test('with Calls off the bar is four, Games still in it', () async {
       await SettingsStore.instance.setShowCallsTab(false);
       expect(navOrder, [
-        HomeSection.chat,
         HomeSection.feed,
+        HomeSection.chat,
         HomeSection.games,
         HomeSection.settings,
       ]);
