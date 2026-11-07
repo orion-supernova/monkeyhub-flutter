@@ -122,7 +122,8 @@ void main() {
 
     /// A bubble wired the way `message_bubble.dart`'s detector is: the
     /// recognizer opens the menu and forwards the rest of the hold.
-    Future<List<MessageActionResult?>> pumpBubble(WidgetTester tester) async {
+    Future<List<MessageActionResult?>> pumpBubble(WidgetTester tester,
+        {List<String>? reacted}) async {
       final results = <MessageActionResult?>[];
       final anchor = GlobalKey();
       tester.view.physicalSize = const Size(393, 852);
@@ -154,6 +155,12 @@ void main() {
                                 const ColoredBox(color: Colors.blue),
                             isMine: false,
                             capabilities: caps,
+                            onReact: reacted == null
+                                ? null
+                                : (e, _) {
+                                    reacted.add(e);
+                                    return true;
+                                  },
                           ));
                         }
                         ..onLongPressStart = ((_) => HoldScrub.start())
@@ -189,13 +196,63 @@ void main() {
       final g = await hold(tester);
       await g.moveTo(tester.getCenter(pillEmoji('😂')));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 60));
-      // Magnified above the pill: a second, larger copy of the glyph.
-      expect(find.text('😂'), findsNWidgets(2));
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      // Magnified IN PLACE: one glyph, still in its slot (never a hole with a
+      // copy floating above it), and grown.
+      expect(find.text('😂'), findsOneWidget);
+      final grown = tester
+          .widgetList<Transform>(find.ancestor(
+              of: find.text('😂'), matching: find.byType(Transform)))
+          .map((t) => t.transform.storage[0])
+          .reduce((a, b) => a > b ? a : b);
+      expect(grown, greaterThan(1.3), reason: 'swollen under the finger');
       await g.up();
       await settle(tester);
       expect(results, hasLength(1));
       expect(results.single?.emoji, '😂');
+    });
+
+    testWidgets('a pick is applied the moment it is made, not after the close',
+        (tester) async {
+      final reacted = <String>[];
+      final results = await pumpBubble(tester, reacted: reacted);
+      final g = await hold(tester);
+      await g.moveTo(tester.getCenter(pillEmoji('😂')));
+      await tester.pump();
+      await g.up();
+      // One frame in: the menu is still on screen, the reaction is made.
+      await tester.pump();
+      expect(reacted, ['😂']);
+      expect(results, isEmpty, reason: 'the overlay has not closed yet');
+      await settle(tester);
+      expect(results.single?.emoji, '😂');
+      expect(results.single?.applied, isTrue);
+    });
+
+    testWidgets('sliding never leaves a hole or shrinks a glyph below rest',
+        (tester) async {
+      await pumpBubble(tester);
+      final g = await hold(tester);
+      double scaleOf(String e) => tester
+          .widgetList<Transform>(find.ancestor(
+              of: find.text(e), matching: find.byType(Transform)))
+          .map((t) => t.transform.storage[0])
+          .reduce((a, b) => a * b);
+      for (final e in ['👍', '😂', '🔥', '❤️']) {
+        await g.moveTo(tester.getCenter(pillEmoji(e)));
+        for (var i = 0; i < 25; i++) {
+          await tester.pump(const Duration(milliseconds: 16));
+          for (final q in ['👍', '❤️', '😂', '😮', '😢', '🔥']) {
+            expect(find.text(q), findsOneWidget, reason: '$q slot is never empty');
+            expect(scaleOf(q), greaterThanOrEqualTo(0.999),
+                reason: '$q never below its resting size');
+          }
+        }
+      }
+      await g.up();
+      await settle(tester);
     });
 
     testWidgets('scrubbing follows the finger across the pill', (tester) async {

@@ -222,6 +222,13 @@ class LiquidGlass extends StatelessWidget {
   /// The engine-aware material: which recipe the glass wears.
   Widget _material(BuildContext context, bool pressed) {
     final kit = UiKit.of(context);
+    // Under a [GlassStill] (chrome that is fading or being scaled), app glass
+    // draws its blur-free plate: a BackdropFilter inside a fading or scaling
+    // layer samples an empty buffer or a stretched copy of the page, which is
+    // a blurred rectangle for the length of the move.
+    if (tone == GlassTone.app && GlassStill.appOf(context)) {
+      return _plate(context, pressed);
+    }
     if (kit == UiKit.shader && tone == GlassTone.app) {
       return _shader(context, pressed);
     }

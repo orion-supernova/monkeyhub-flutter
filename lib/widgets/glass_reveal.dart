@@ -88,16 +88,35 @@ class GlassContentFade extends InheritedWidget {
 /// One signal over the subtree rather than a `still:` threaded to every
 /// button, pill and panel in it: a control added to the rail later follows
 /// the rule without anyone remembering to pass it. App-tone glass ignores it
-/// (it has no blur-free twin of its own).
+/// unless [app] is set, in which case it draws its blur-free plate: for
+/// chrome that fades AND scales (the message menu's close), where a scaled
+/// blur reads as a stretched, blurred copy of the page.
 class GlassStill extends InheritedWidget {
-  const GlassStill({super.key, required this.still, required super.child});
+  const GlassStill({
+    super.key,
+    required this.still,
+    this.app = false,
+    required super.child,
+  });
 
   final bool still;
+
+  /// App-tone glass goes still too. Off by default: rails that stay still
+  /// for good (staged capture controls, video-note controls) keep their
+  /// app glass frosted.
+  final bool app;
 
   /// False when no [GlassStill] is above.
   static bool of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<GlassStill>()?.still ?? false;
 
+  /// True when the nearest [GlassStill] is still AND covers app glass.
+  static bool appOf(BuildContext context) {
+    final g = context.dependOnInheritedWidgetOfExactType<GlassStill>();
+    return g != null && g.still && g.app;
+  }
+
   @override
-  bool updateShouldNotify(GlassStill old) => old.still != still;
+  bool updateShouldNotify(GlassStill old) =>
+      old.still != still || old.app != app;
 }

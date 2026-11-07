@@ -124,14 +124,17 @@ void main() {
 
   /// The glass card that holds [text] — the reaction pill for an emoji, the
   /// action list for a row label.
-  Rect cardAround(WidgetTester tester, String text) => tester.getRect(
-        find
-            .ancestor(
-              of: find.text(text),
-              matching: find.byType(GlassSurface),
-            )
-            .first,
-      );
+  Rect cardAround(WidgetTester tester, String text) {
+    // The pill's glyphs are drawn over its glass (so a magnified one can rise
+    // out of it), not inside it: the pill is the first glass, the list the
+    // one around the row labels.
+    if (text == '👍') return tester.getRect(find.byType(GlassSurface).first);
+    return tester.getRect(
+      find
+          .ancestor(of: find.text(text), matching: find.byType(GlassSurface))
+          .first,
+    );
+  }
 
   Future<void> openMenu(WidgetTester tester, GlobalKey anchor) async {
     await tester.tap(find.byKey(anchor), warnIfMissed: false);

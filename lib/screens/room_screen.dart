@@ -117,7 +117,8 @@ import '../composer/capture_recorder.dart';
 import '../widgets/chat_composer.dart';
 import '../widgets/composer_capture.dart';
 import '../widgets/chat_pane.dart';
-import '../widgets/destructive_sheet.dart' show showConfirmSheet;
+import '../widgets/destructive_sheet.dart'
+    show showConfirmSheet, showConfirmSheetChoice;
 import '../widgets/edge_bleed.dart';
 import '../widgets/forward_target_sheet.dart';
 import '../widgets/glass_pill.dart';
@@ -7205,6 +7206,28 @@ class _RoomScreenState extends State<_RoomView>
                 Future<void> onRetrySend() =>
                     widget.repo.retryPending(m.id);
                 void onDiscardSend() => widget.repo.discardPending(m.id);
+                // A failed send has no action menu (a message that never
+                // arrived cannot be replied to, pinned or reacted to), so
+                // text, files and GIFs, which draw no retry/discard controls
+                // of their own, had no way out at all. This is it: Delete
+                // wipes it from the outbox for good, Try again re-posts it
+                // (an over-length text goes through the long-text file path).
+                Future<void> onFailedSendMenu() async {
+                  HapticFeedback.mediumImpact();
+                  final l10n = AppLocalizations.of(context);
+                  final del = await showConfirmSheetChoice(
+                    context,
+                    headline: l10n.failedSendSheetTitle,
+                    body: l10n.failedSendSheetBody,
+                    confirmLabel: l10n.messageActionMenuDeleteLabel,
+                    cancelLabel: l10n.failedSendSheetRetry,
+                  );
+                  if (del == true) {
+                    onDiscardSend();
+                  } else if (del == false) {
+                    await onRetrySend();
+                  }
+                }
                 // A row's pulse is not always about the row's own message. An
                 // album draws several, and the id a jump landed on is any one
                 // of them — comparing against `m.id` alone (which is the LAST
@@ -7385,6 +7408,15 @@ class _RoomScreenState extends State<_RoomView>
                     fileName:
                         target.type == MessageType.file ? target.fileName : null,
                     album: albumMenu,
+                    // Applied the instant the emoji is picked, while the menu
+                    // is still closing: the repository paints it optimistically,
+                    // so the badge is on the row the frame the overlay is gone.
+                    // An album-wide pick is left to `_actOnAlbum` below.
+                    onReact: (emoji, whole) {
+                      if (whole && albumRow != null) return false;
+                      unawaited(_toggleReaction(target, emoji));
+                      return true;
+                    },
                     // A photo or video, alone or a card of an album, lifts
                     // smaller than it sits: at full size it and the menu
                     // together outgrow the screen.
@@ -7507,7 +7539,9 @@ class _RoomScreenState extends State<_RoomView>
                     return;
                   }
                   if (result.emoji != null) {
-                    await _toggleReaction(target, result.emoji!);
+                    if (!result.applied) {
+                      await _toggleReaction(target, result.emoji!);
+                    }
                     return;
                   }
                   if (result.openFullReactionPicker) {
@@ -7775,9 +7809,15 @@ class _RoomScreenState extends State<_RoomView>
                         exits: _exits,
                         rowKey: rowKey,
                         author: author,
-                        onLongPress: isPending ? null : onLongPress,
-                        onDoubleTap: isPending ? null : onLongPress,
-                        onContextMenu: isPending ? null : onContextMenu,
+                        onLongPress: isPending
+                            ? (sendFailed ? onFailedSendMenu : null)
+                            : onLongPress,
+                        onDoubleTap: isPending
+                            ? (sendFailed ? onFailedSendMenu : null)
+                            : onLongPress,
+                        onContextMenu: isPending
+                            ? (sendFailed ? (_) => onFailedSendMenu() : null)
+                            : onContextMenu,
                         hover: hover,
                         onReactionTap: onReactionTap,
                         onReactionLongPress: onReactionLongPress,
@@ -7827,9 +7867,15 @@ class _RoomScreenState extends State<_RoomView>
                         currentUserId: me,
                         api: widget.api,
                         author: author,
-                        onLongPress: isPending ? null : onLongPress,
-                        onDoubleTap: isPending ? null : onLongPress,
-                        onContextMenu: isPending ? null : onContextMenu,
+                        onLongPress: isPending
+                            ? (sendFailed ? onFailedSendMenu : null)
+                            : onLongPress,
+                        onDoubleTap: isPending
+                            ? (sendFailed ? onFailedSendMenu : null)
+                            : onLongPress,
+                        onContextMenu: isPending
+                            ? (sendFailed ? (_) => onFailedSendMenu() : null)
+                            : onContextMenu,
                         hover: hover,
                         onReactionTap: onReactionTap,
                         onReactionLongPress: onReactionLongPress,

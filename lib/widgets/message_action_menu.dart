@@ -121,18 +121,26 @@ class MessageActionResult {
   const MessageActionResult.action(MessageAction this.action,
       {this.album = false})
       : emoji = null,
+        applied = false,
         openFullReactionPicker = false;
-  const MessageActionResult.emoji(String this.emoji, {this.album = false})
+  const MessageActionResult.emoji(String this.emoji,
+      {this.album = false, this.applied = false})
       : action = null,
         openFullReactionPicker = false;
   const MessageActionResult.fullPicker({this.album = false})
       : action = null,
         emoji = null,
+        applied = false,
         openFullReactionPicker = true;
 
   final MessageAction? action;
   final String? emoji;
   final bool openFullReactionPicker;
+
+  /// The emoji was already handed to [showMessageActionMenu]'s `onReact` at
+  /// the moment it was picked, and that call took it: the caller must not
+  /// apply it a second time (it would toggle it straight back off).
+  final bool applied;
 
   /// The choice was made with the menu's album switch on "All": it applies
   /// to the whole album, not the one photo that was pressed. Always false
@@ -227,6 +235,13 @@ Future<MessageActionResult?> showMessageActionMenu({
   /// and the pill and list are laid out around the smaller size. Set for
   /// photos and videos, which at full size crowd the menu off the screen.
   double? previewMaxHeight,
+
+  /// Called the instant an emoji is picked, BEFORE the menu has finished
+  /// closing, so the badge is already on the message when the overlay is gone.
+  /// Return true when the reaction was applied here; the result then carries
+  /// `applied` and the caller skips it. Return false to leave it to the result
+  /// (an album-wide reaction, say).
+  bool Function(String emoji, bool album)? onReact,
 }) async {
   final overlay = Overlay.of(context, rootOverlay: true);
   final anchorCtx = anchorKey.currentContext;
@@ -274,6 +289,8 @@ Future<MessageActionResult?> showMessageActionMenu({
           ? 1
           : math.min(1.0, previewMaxHeight / bubbleRect.height),
       backdrop: backdrop,
+      anchorKey: anchorKey,
+      onReact: onReact,
       onResolve: (result) {
         if (!completer.isCompleted) completer.complete(result);
         backdrop?.image.dispose();
@@ -304,8 +321,16 @@ class _MessageActionMenuOverlay extends StatefulWidget {
     required this.album,
     required this.previewScale,
     required this.backdrop,
+    required this.anchorKey,
+    required this.onReact,
     required this.onResolve,
   });
+
+  /// The row the bubble was lifted from, re-measured after a reaction lands
+  /// so the lifted copy settles where the row now is (a badge makes the row
+  /// taller, and the list moves).
+  final GlobalKey anchorKey;
+  final bool Function(String emoji, bool album)? onReact;
 
   /// How big the preview settles, relative to the pressed bubble. See
   /// [showMessageActionMenu]'s `previewMaxHeight`.
@@ -368,9 +393,20 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
   /// and the hint says so.
   bool _offPill = false;
 
-  /// Set once an emoji is picked: where the magnified glyph flies to as the
-  /// menu closes, so the reaction visibly lands on the message.
+  /// Set once an emoji is picked: where the glyph flies to as the menu
+  /// closes, so the reaction visibly lands on the message.
   Offset? _flyTo;
+
+  /// The picked glyph's slot, which the pill row stops drawing (the flight
+  /// carries it), and where the flight starts.
+  int? _flyIndex;
+  Offset? _flyFrom;
+  bool _flyScrubbed = false;
+
+  /// How far the row moved once the reaction was applied (a badge makes it
+  /// taller). The lifted copy glides home to there rather than to where the
+  /// row was, so nothing jumps when the overlay is removed.
+  Offset _landing = Offset.zero;
 
   /// The album switch's side: true acts on the whole album. Starts there
   /// whenever there is an album to act on.
@@ -384,7 +420,8 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 560),
-      reverseDuration: const Duration(milliseconds: 200),
+      // Fast: the chrome is a fade, the bubble a short glide home.
+      reverseDuration: const Duration(milliseconds: 150),
     );
     _ctrl.forward();
     _held = HoldScrub.isHeld && widget.capabilities.canReact;
@@ -463,22 +500,56 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
   void _pickEmoji(String e, bool whole) {
     if (_closing) return;
     HapticFeedback.lightImpact();
-    // Picked by a tap or by a release, the glyph does the same thing: rises
-    // out of its slot and drops onto the message as everything else closes.
+    // Applied NOW, not after the menu has closed: the badge is on the message
+    // (optimistically, see `ChatRepository.toggleReaction`) while the chrome
+    // is still fading, so the frame the overlay is gone already shows it.
+    final applied = widget.onReact?.call(e, whole) ?? false;
+    final calm = MotionScope.of(context).calm;
     final i = _pillEmojis.indexOf(e);
     final r = widget.bubbleRect;
+    final from = calm || i < 0 ? null : _slotCenter(i);
     setState(() {
-      if (i >= 0) _focus = i;
+      if (from != null) {
+        _flyIndex = i;
+        _flyFrom = from;
+        _flyScrubbed = _focus == i;
+        _flyTo = Offset(
+          widget.isMine ? r.right - 22 : r.left + 22,
+          r.bottom - 6,
+        );
+      }
       _offPill = false;
-      _flyTo = Offset(
-        widget.isMine ? r.right - 22 : r.left + 22,
-        r.bottom - 6,
-      );
     });
+    if (applied) _trackLanding();
     _resolve(
-      MessageActionResult.emoji(e, album: whole),
-      linger: _ScrubMagnifier.flight,
+      MessageActionResult.emoji(e, album: whole, applied: applied),
+      linger: from == null ? Duration.zero : _FlightGlyph.duration,
     );
+  }
+
+  /// Where slot [i]'s glyph sits at rest, in window coordinates.
+  Offset? _slotCenter(int i) {
+    final box = _pillKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached) return null;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    final x = _ReactionPill.padding + _PillEmoji.size * (i + 0.5);
+    return box.localToGlobal(
+      Offset(rtl ? box.size.width - x : x, box.size.height / 2),
+    );
+  }
+
+  /// A frame after the reaction landed, re-reads where the row is: the badge
+  /// grows it, and the list shifts under the menu.
+  void _trackLanding() {
+    final before = widget.bubbleRect.topLeft;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final rb = widget.anchorKey.currentContext?.findRenderObject();
+      if (rb is! RenderBox || !rb.attached) return;
+      final moved = rb.localToGlobal(Offset.zero) - before;
+      if (moved.distanceSquared < 0.25) return;
+      setState(() => _landing = moved);
+    });
   }
 
   void _pickMore(bool whole) {
@@ -491,7 +562,13 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     Duration linger = Duration.zero,
   }) async {
     if (_closing) return;
-    _closing = true;
+    setState(() => _closing = true);
+    // Reduce Motion: no fade, no flight; the overlay is simply gone.
+    if (MotionScope.of(context).calm) {
+      _ctrl.value = 0;
+      widget.onResolve(result);
+      return;
+    }
     // [linger] keeps the entry up past the close for a flight that is still
     // landing; the menu itself closes on its usual beat either way.
     await Future.wait([
@@ -684,6 +761,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
             rect: pressed,
             settle: k,
             dy: liftDy,
+            landing: _landing,
             isMine: widget.isMine,
             // A still photograph, not a live bubble. `_LiftedBubble` forces
             // this into the rect the real one occupied at press time, so
@@ -729,6 +807,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
           right: edgeRight,
           child: _AnimatedEntry(
             t: curved,
+            closing: _closing,
             fromAbove: false,
             alignment: widget.isMine ? Alignment.centerRight : Alignment.centerLeft,
             child: _ReactionPill(
@@ -739,6 +818,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
               ),
               selected: whole ? album.myReactions : widget.myReactions,
               focus: _focus,
+              hideIndex: _flyIndex,
               onEmoji: (e) => _pickEmoji(e, whole),
               onMore: () => _pickMore(whole),
             ),
@@ -770,6 +850,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
           right: edgeRight,
           child: _AnimatedEntry(
             t: curved,
+            closing: _closing,
             fromAbove: true,
             delay: 0.08,
             alignment: widget.isMine ? Alignment.topRight : Alignment.topLeft,
@@ -802,19 +883,16 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
             ),
           ),
         ),
-        // The emoji under a sliding finger, magnified and lifted clear of the
-        // pill (the pill's glass clips its contents, so it cannot grow in
-        // place). One glyph that glides from slot to slot rather than one per
-        // slot, and that flies down onto the message once picked. Last in the
-        // stack so the flight passes over the bubble, not under it.
-        _ScrubMagnifier(
-          pillKey: _pillKey,
-          emojis: _pillEmojis,
-          index: _focus != null && _focus! < _pillEmojis.length
-              ? _focus
-              : null,
-          flyTo: _flyTo,
-        ),
+        // The picked glyph's flight onto the message. Last in the stack so it
+        // passes over the bubble, and outside the chrome so it does not fade
+        // with it.
+        if (_flyFrom != null && _flyTo != null)
+          _FlightGlyph(
+            from: _flyFrom!,
+            to: _flyTo!,
+            glyph: _pillEmojis[_flyIndex!],
+            fromScale: _flyScrubbed ? _PillRow.peakScale : 1,
+          ),
         ],
         ),
       ),
@@ -832,7 +910,12 @@ class _LiftedBubble extends StatelessWidget {
     required this.child,
     this.dy = 0,
     this.settle = 1,
+    this.landing = Offset.zero,
   });
+
+  /// Where the row ended up after a reaction changed it, relative to where it
+  /// was pressed. The bubble glides home to there.
+  final Offset landing;
   final Animation<double> t;
   final Rect rect;
 
@@ -860,7 +943,7 @@ class _LiftedBubble extends StatelessWidget {
             // that the bubble reads as raised rather than zoomed.
             final scale = (1 + (settle - 1) * t.value) * (1 + 0.03 * t.value);
             return Transform.translate(
-              offset: Offset(0, dy * t.value),
+              offset: Offset(0, dy * t.value) + landing * (1 - t.value),
               child: Transform.scale(
                 scale: scale,
                 alignment:
@@ -889,12 +972,17 @@ class _AnimatedEntry extends StatelessWidget {
     required this.fromAbove,
     required this.alignment,
     required this.child,
+    this.closing = false,
     this.delay = 0.04,
   });
   final Animation<double> t;
   final bool fromAbove;
   final Alignment alignment;
   final Widget child;
+
+  /// The menu is on its way out: the chrome FADES (a short, nearly flat
+  /// settle), it does not grow back toward the bubble.
+  final bool closing;
   // Fraction of the animation to delay this entry (0..1).
   final double delay;
 
@@ -903,21 +991,41 @@ class _AnimatedEntry extends StatelessWidget {
     return AnimatedBuilder(
       animation: t,
       builder: (_, c) {
+        // One tree shape in and out (a different one remounts the rows).
         final raw = (t.value - delay) / (1 - delay);
         final v = raw.clamp(0.0, 1.0);
-        // The jelly's overshoot, which the reveal below cannot show (it
-        // clamps): the glass swells past full size and rings back.
+        // Closing: glass cannot be faded or scaled honestly (a backdrop blur
+        // inside a shrinking layer is a blurred rectangle over the page, which
+        // is what the reversed grow used to leave over the messages). So on
+        // the way out it is the blur-free plate, fading, barely moving.
+        final out = t.value.clamp(0.0, 1.0);
+        // Opening: the jelly's overshoot, which the reveal below cannot show
+        // (it clamps): the glass swells past full size and rings back.
         final swell = raw > 1 ? 1 + (raw - 1) * 0.5 : 1.0;
-        final dy = (fromAbove ? -6 : 6) * (1 - v);
-        // Grown, not faded: the pill and the action list are glass, and a
-        // fading layer leaves glass blurring an empty buffer, a flat white
-        // flash on every open and close. See [GlassReveal].
-        return Transform.translate(
-          offset: Offset(0, dy),
-          child: Transform.scale(
-            scale: swell,
-            alignment: alignment,
-            child: GlassReveal(t: v, alignment: alignment, from: 0.6, child: c!),
+        final dy = closing ? 0.0 : (fromAbove ? -6 : 6) * (1 - v);
+        // Opening grows rather than fades, for the reason [GlassReveal] gives,
+        // and while still small (the first half) it is the blur-free plate: a
+        // backdrop blur scaled to 60% is a blurred rectangle over the page.
+        return GlassStill(
+          still: closing || raw < 0.5,
+          app: true,
+          child: Opacity(
+            // Opening: invisible for the first instant, so a small plate never
+            // shows as a dark rectangle over the messages.
+            opacity: closing ? out : (v / 0.3).clamp(0.0, 1.0),
+            child: Transform.translate(
+              offset: Offset(0, dy),
+              child: Transform.scale(
+                scale: closing ? 0.96 + 0.04 * out : swell,
+                alignment: alignment,
+                child: GlassReveal(
+                  t: closing ? 1 : v,
+                  alignment: alignment,
+                  from: 0.6,
+                  child: c!,
+                ),
+              ),
+            ),
           ),
         );
       },
@@ -966,6 +1074,7 @@ class _ReactionPill extends StatelessWidget {
     required this.onEmoji,
     required this.onMore,
     this.focus,
+    this.hideIndex,
   });
   final bool isMine;
 
@@ -975,10 +1084,13 @@ class _ReactionPill extends StatelessWidget {
   final ValueChanged<String> onEmoji;
   final VoidCallback onMore;
 
-  /// The slot under a sliding finger (`emojis.length` is the `+`). The
-  /// focused emoji is drawn magnified ABOVE the pill by the overlay, so here
-  /// it steps aside; its neighbours swell a little toward it.
+  /// The slot under a sliding finger (`emojis.length` is the `+`). That emoji
+  /// swells IN PLACE and rises above the pill; its neighbours swell a little
+  /// and make room. Nothing ever leaves its slot.
   final int? focus;
+
+  /// A slot whose glyph is flying onto the message (see [_FlightGlyph]).
+  final int? hideIndex;
 
   /// Horizontal inset of the glass around the first and last slot. The
   /// scrub's hit test reads it, so it is the one number for both.
@@ -986,109 +1098,108 @@ class _ReactionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final f = focus;
-    double scaleOf(int i) {
-      if (f == null) return 1;
-      if (i == f) return i == emojis.length ? 1.1 : 0;
-      if ((i - f).abs() == 1) return 1.06;
-      return 1;
-    }
-
-    return GlassSurface(
-      radius: 999,
-      padding: const EdgeInsets.symmetric(horizontal: padding, vertical: 6),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final (i, e) in emojis.indexed)
-            _PillEmoji(
-              emoji: e,
-              selected: selected.contains(e),
-              scrubScale: scaleOf(i),
-              onTap: () => onEmoji(e),
-            ),
-          _PillMore(
-            onTap: onMore,
-            theme: theme,
-            scrubScale: scaleOf(emojis.length),
+    final n = emojis.length;
+    // The glass is only the capsule. The glyphs are drawn over it by
+    // [_PillRow], unclipped, because the capsule's glass clips its contents
+    // and a magnified emoji has to rise out of it.
+    final rowW = _PillEmoji.size * n + _PillMore.slotWidth;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        GlassSurface(
+          radius: 999,
+          padding: const EdgeInsets.symmetric(horizontal: padding, vertical: 6),
+          child: SizedBox(width: rowW, height: _PillEmoji.size),
+        ),
+        Positioned(
+          left: padding,
+          top: 6,
+          width: rowW,
+          height: _PillEmoji.size,
+          child: _PillRow(
+            emojis: emojis,
+            selected: selected,
+            focus: focus,
+            hideIndex: hideIndex,
+            onEmoji: onEmoji,
+            onMore: onMore,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-/// The emoji under a sliding finger, drawn large over its slot in the pill:
-/// the keyboard key-popup, so the finger never covers what it is choosing.
+/// The glyphs of the reaction pill, drawn over its glass.
 ///
-/// Everything about it moves rather than cuts: it grows out of the pill when
-/// the finger arrives, glides sideways from slot to slot, swaps its glyph with
-/// a quick scale, sinks back into the pill when the finger leaves, and, when
-/// [flyTo] is set, arcs down onto the message and shrinks into it.
-class _ScrubMagnifier extends StatefulWidget {
-  const _ScrubMagnifier({
-    required this.pillKey,
+/// Magnification is a wave centred on the finger, not a swap of one slot for a
+/// floating copy: every glyph's scale is a function of its distance to a
+/// spring-driven position, so the one under the finger swells and rises, the
+/// ones beside it swell less and are pushed aside to make room, and it all
+/// glides when the finger does. No slot is ever emptied and nothing scales
+/// toward zero; the smallest any glyph gets is its resting size.
+class _PillRow extends StatefulWidget {
+  const _PillRow({
     required this.emojis,
-    required this.index,
-    required this.flyTo,
+    required this.selected,
+    required this.focus,
+    required this.hideIndex,
+    required this.onEmoji,
+    required this.onMore,
   });
-  final GlobalKey pillKey;
   final List<String> emojis;
+  final Set<String> selected;
+  final int? focus;
+  final int? hideIndex;
+  final ValueChanged<String> onEmoji;
+  final VoidCallback onMore;
 
-  /// The focused EMOJI slot (never the `+`), or null.
-  final int? index;
-  final Offset? flyTo;
+  /// The focused glyph's scale at full magnification.
+  static const double peakScale = 1.8;
 
-  static const Duration flight = Duration(milliseconds: 460);
+  /// How far (points) the focused glyph rises.
+  static const double rise = 24;
+
+  /// Slots, either side, the wave reaches.
+  static const double reach = 1.6;
+
+  /// Scale of the glyph at [distance] slots from the finger, at full grow.
+  static double bump(double distance) {
+    final d = distance.abs();
+    if (d >= reach) return 0;
+    return (math.cos(math.pi * d / reach) + 1) / 2;
+  }
 
   @override
-  State<_ScrubMagnifier> createState() => _ScrubMagnifierState();
+  State<_PillRow> createState() => _PillRowState();
 }
 
-/// Driven by retargetable springs ([Spring]) rather than fixed tweens, so a
-/// finger that changes its mind mid-glide bends the motion instead of
-/// restarting it, and the glyph lags, overshoots and rings like jelly:
-///
-///  * [_x] chases the focused slot, a little loose, so it swings past and
-///    settles back.
-///  * [_grow] blows it up out of the pill and lets it wobble at full size.
-///  * its own speed squashes and stretches it along the direction of travel,
-///    and tilts it into the turn.
-class _ScrubMagnifierState extends State<_ScrubMagnifier>
-    with TickerProviderStateMixin {
-  static const double _box = 48;
-
-  final Spring _x = Spring(response: 0.26, ratio: 0.72);
-  final Spring _grow = Spring(response: 0.32, ratio: 0.62);
+class _PillRowState extends State<_PillRow> with SingleTickerProviderStateMixin {
+  final Spring _pos = Spring(response: 0.2, ratio: 0.78);
+  final Spring _grow = Spring(response: 0.26, ratio: 0.72);
   late final Ticker _ticker = createTicker(_onTick);
   Duration _last = Duration.zero;
 
-  late final AnimationController _fly = AnimationController(
-    vsync: this,
-    duration: _ScrubMagnifier.flight,
-  )..addListener(() => setState(() {}));
+  bool get _calm => MotionScope.of(context).calm;
 
-  String _glyph = '';
-  double _y = 0;
-
-  /// Where the glyph sits over [index]'s slot, in window coordinates (the
-  /// overlay fills the window).
-  Offset? _slotCenter(int index) {
-    final box = widget.pillKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null || !box.attached) return null;
-    final rtl = Directionality.of(context) == TextDirection.rtl;
-    final x = _ReactionPill.padding + _PillEmoji.size * (index + 0.5);
-    // Centered on the pill's top edge: lifted just clear of the finger,
-    // still reading as the slot's own emoji rather than a separate bubble.
-    return box.localToGlobal(Offset(rtl ? box.size.width - x : x, 0));
+  int? get _emojiFocus {
+    final f = widget.focus;
+    return f != null && f < widget.emojis.length ? f : null;
   }
 
-  bool get _calm => MotionScope.of(context).calm;
+  @override
+  void initState() {
+    super.initState();
+    final f = _emojiFocus;
+    if (f != null) {
+      _pos.snap(f.toDouble());
+      _grow.snap(1);
+    }
+  }
 
   void _kick() {
     if (_calm) {
-      _x.snap(_x.target);
+      _pos.snap(_pos.target);
       _grow.snap(_grow.target);
       setState(() {});
       return;
@@ -1100,140 +1211,204 @@ class _ScrubMagnifierState extends State<_ScrubMagnifier>
   }
 
   void _onTick(Duration now) {
-    final dt = _last == Duration.zero
-        ? 1 / 60
-        : (now - _last).inMicroseconds / 1e6;
+    final dt =
+        _last == Duration.zero ? 1 / 60 : (now - _last).inMicroseconds / 1e6;
     _last = now;
-    _x.tick(dt);
+    _pos.tick(dt);
     _grow.tick(dt);
     setState(() {});
-    if (_x.atRest && _grow.atRest) _ticker.stop();
-  }
-
-  void _aim(int i) {
-    final at = _slotCenter(i);
-    if (at == null) return;
-    _glyph = widget.emojis[i];
-    _y = at.dy;
-    if (_grow.value < 0.05 && _grow.target == 0) {
-      // Arriving from nothing: appear over the slot, then blow up.
-      _x.snap(at.dx);
-    } else {
-      _x.retarget(at.dx);
-    }
-    _grow.retarget(1, response: 0.32, ratio: 0.62);
-    _kick();
+    if (_pos.atRest && _grow.atRest) _ticker.stop();
   }
 
   @override
-  void didUpdateWidget(_ScrubMagnifier old) {
+  void didUpdateWidget(_PillRow old) {
     super.didUpdateWidget(old);
-    final i = widget.index;
-    if (widget.flyTo != null) {
-      if (old.flyTo == null) {
-        if (i != null && (_grow.target == 0 || _glyph != widget.emojis[i])) {
-          _aim(i);
-        }
-        _calm ? _fly.value = 1 : _fly.forward();
-      }
-      return;
-    }
-    if (i == null) {
+    final f = _emojiFocus;
+    if (f == null) {
       if (_grow.target != 0) {
-        // Critically damped on the way OUT: a wobbly spring would swing
-        // through zero and back, and the glyph would blink up again.
-        _grow.retarget(0, response: 0.22, ratio: 1);
+        // Critically damped on the way out: no overshoot below rest size.
+        _grow.retarget(0, response: 0.2, ratio: 1);
         _kick();
       }
       return;
     }
-    if (i != old.index || _grow.target == 0) _aim(i);
+    final arriving = _grow.target == 0 && _grow.value < 0.05;
+    if (arriving) {
+      _pos.snap(f.toDouble());
+    } else {
+      _pos.retarget(f.toDouble());
+    }
+    _grow.retarget(1, response: 0.26, ratio: 0.72);
+    _kick();
   }
 
   @override
   void dispose() {
     _ticker.dispose();
-    _fly.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Never below zero: an underdamped spring heading to 0 swings past it,
-    // and a negative scale draws a mirrored glyph (the trace this replaced).
-    final g = math.max(0.0, _grow.value);
-    final f = _fly.value;
-    if (g < 0.01 && f == 0) {
-      return const Positioned(left: 0, top: 0, child: SizedBox.shrink());
+    final n = widget.emojis.length;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    final theme = ThemeScope.of(context);
+    final g = _grow.value.clamp(0.0, 1.2);
+    final pos = _pos.value.clamp(0.0, n - 1.0);
+    const slot = _PillEmoji.size;
+
+    // Scale per slot, never below 1.
+    double scaleOf(int i) => i >= n
+        ? 1.0 + (widget.focus == n ? 0.1 : 0.0)
+        : 1 + g * (_PillRow.peakScale - 1) * _PillRow.bump(i - pos);
+
+    // Each slot is as wide as its glyph has grown to (half as much, so the
+    // wave is felt without the row ballooning), laid end to end; the row is
+    // then slid so the slot under the finger stays where it was at rest.
+    final widths = [
+      for (var i = 0; i <= n; i++)
+        (i < n ? slot : _PillMore.slotWidth) +
+            (i < n ? (scaleOf(i) - 1) * slot * 0.45 : 0),
+    ];
+    final lefts = <double>[];
+    var acc = 0.0;
+    for (final w in widths) {
+      lefts.add(acc);
+      acc += w;
     }
-    var c = Offset(_x.value, _y);
-    var scale = g;
-    var opacity = 1.0;
+    double centerOf(int i) => lefts[i] + widths[i] / 2;
+    final lo = pos.floor().clamp(0, n - 1);
+    final hi = pos.ceil().clamp(0, n - 1);
+    final t = pos - lo;
+    final grown = centerOf(lo) + (centerOf(hi) - centerOf(lo)) * t;
+    final rest = slot * (lo + 0.5) + slot * t;
+    final shift = (rest - grown) * g.clamp(0.0, 1.0);
 
-    // Jelly: squash and stretch along the direction of travel, lean into it.
-    final v = _x.velocity;
-    final stretch = (v.abs() / 6000).clamp(0.0, 0.1);
-    var sx = 1 + stretch;
-    var sy = 1 - stretch * 0.6;
-    var tilt = (v / 14000).clamp(-0.08, 0.08);
-
-    final target = widget.flyTo;
-    if (target != null && f > 0) {
-      // An arc onto the message: up and over, then down, shrinking toward
-      // chip size, rolling forward as it goes, and a soft squash as it lands.
-      final p = Curves.easeInOutCubic.transform(f);
-      c = Offset.lerp(c, target, p)! -
-          Offset(0, 22 * math.sin(math.pi * f));
-      scale *= 1 - 0.55 * Curves.easeIn.transform(f);
-      tilt += 0.12 * math.sin(math.pi * f) * (target.dx < c.dx ? -1 : 1);
-      final land = ((f - 0.78) / 0.22).clamp(0.0, 1.0);
-      final squash = math.sin(math.pi * land) * 0.08;
-      sx *= 1 + squash;
-      sy *= 1 - squash;
-      opacity = f > 0.86 ? (1 - (f - 0.86) / 0.14).clamp(0.0, 1.0) : 1;
+    double xOf(int i) {
+      final c = centerOf(i) + shift;
+      final w = i < n ? slot : _PillMore.slotWidth;
+      final x = c - w / 2;
+      return rtl ? (slot * n + _PillMore.slotWidth) - x - w : x;
     }
 
-    return Positioned(
-      left: c.dx - _box / 2,
-      top: c.dy - _box / 2,
-      width: _box,
-      height: _box,
-      child: IgnorePointer(
-        child: Opacity(
-          opacity: opacity,
-          child: Transform(
-            alignment: Alignment.bottomCenter,
-            transform: Matrix4.identity()
-              ..rotateZ(tilt)
-              ..scaleByDouble(scale * sx, scale * sy, 1, 1),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 380),
-              switchInCurve: const JellyCurve(overshoot: 0.08),
-              switchOutCurve: Curves.easeInCubic,
-              // `t` is already jelly-curved and runs past 1, so nothing here
-              // may feed it into another Curve (they assert 0..1; chaining an
-              // Interval threw on every overshoot frame). Plain math instead.
-              transitionBuilder: (child, t) => AnimatedBuilder(
-                animation: t,
-                builder: (_, c) => Opacity(
-                  opacity: (t.value / 0.3).clamp(0.0, 1.0),
+    final fade = GlassContentFade.of(context);
+    return Opacity(
+      opacity: fade,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (var i = 0; i < n; i++)
+            Positioned(
+              left: xOf(i),
+              top: 0,
+              width: slot,
+              height: slot,
+              child: Opacity(
+                opacity: widget.hideIndex == i ? 0 : 1,
+                child: Transform.translate(
+                  offset: Offset(
+                      0, -_PillRow.rise * g * _PillRow.bump(i - pos)),
                   child: Transform.scale(
-                    scale: math.max(0.0, t.value),
-                    child: c,
+                    scale: scaleOf(i),
+                    child: _PillEmoji(
+                      emoji: widget.emojis[i],
+                      selected: widget.selected.contains(widget.emojis[i]),
+                      onTap: () => widget.onEmoji(widget.emojis[i]),
+                    ),
                   ),
                 ),
-                child: child,
-              ),
-              layoutBuilder: (current, previous) => Stack(
-                alignment: Alignment.center,
-                children: [...previous, ?current],
-              ),
-              child: Center(
-                key: ValueKey(_glyph),
-                child: Text(_glyph, style: const TextStyle(fontSize: 32)),
               ),
             ),
+          Positioned(
+            left: xOf(n),
+            top: 0,
+            width: _PillMore.slotWidth,
+            height: slot,
+            child: Transform.scale(
+              scale: scaleOf(n),
+              child: _PillMore(onTap: widget.onMore, theme: theme),
+            ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The picked glyph, flying from its slot onto the message as the menu closes.
+///
+/// Quick (a fifth of a second) and drawn outside the chrome so it does not
+/// fade with it. It never shrinks below 70% of its resting size, and it
+/// is gone the frame the overlay is: the reaction badge was applied when the
+/// emoji was picked, and is already on the message underneath.
+class _FlightGlyph extends StatefulWidget {
+  const _FlightGlyph({
+    required this.from,
+    required this.to,
+    required this.glyph,
+    required this.fromScale,
+  });
+  final Offset from;
+  final Offset to;
+  final String glyph;
+  final double fromScale;
+
+  static const Duration duration = Duration(milliseconds: 220);
+
+  @override
+  State<_FlightGlyph> createState() => _FlightGlyphState();
+}
+
+class _FlightGlyphState extends State<_FlightGlyph>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: _FlightGlyph.duration,
+  )..forward();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (_, _) {
+            final f = _c.value;
+            final p = Curves.easeInOutCubic.transform(f);
+            final c = Offset.lerp(widget.from, widget.to, p)! -
+                Offset(0, 18 * math.sin(math.pi * f));
+            final scale = widget.fromScale +
+                (0.7 - widget.fromScale) * Curves.easeOut.transform(f);
+            final opacity =
+                f > 0.8 ? (1 - (f - 0.8) / 0.2).clamp(0.0, 1.0) : 1.0;
+            const box = 48.0;
+            return Stack(
+              children: [
+                Positioned(
+                  left: c.dx - box / 2,
+                  top: c.dy - box / 2,
+                  width: box,
+                  height: box,
+                  child: Opacity(
+                    opacity: opacity,
+                    child: Transform.scale(
+                      scale: scale,
+                      child: Center(
+                        child: Text(widget.glyph,
+                            style: const TextStyle(fontSize: 22)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -1320,17 +1495,12 @@ class _PillEmoji extends StatefulWidget {
     required this.emoji,
     required this.onTap,
     this.selected = false,
-    this.scrubScale = 1,
   });
   final String emoji;
   final VoidCallback onTap;
 
   /// Width of one slot. The scrub's hit test divides by it.
   static const double size = 38;
-
-  /// Set by a sliding finger: 0 when this one is magnified above the pill,
-  /// a little over 1 beside it. See [_ReactionPill.focus].
-  final double scrubScale;
 
   /// Already one of the viewer's reactions — tapping it takes it back.
   final bool selected;
@@ -1359,24 +1529,10 @@ class _PillEmojiState extends State<_PillEmoji>
         onTapCancel: () => setState(() => _pressed = false),
         onTapUp: (_) => setState(() => _pressed = false),
         onTap: widget.onTap,
-        // Leaving for the magnifier, the glyph is gone from its slot in the
-        // SAME frame the magnifier starts growing out of it: a hand-off, not
-        // two glyphs. It used to shrink to 0 on easeOutBack, which swings
-        // below zero and drew a tiny mirrored copy for a few frames; a quick
-        // fade instead still left a ghost. Everything else (swelling beside
-        // the finger, popping back in when the finger leaves) rings like
-        // jelly.
-        child: AnimatedOpacity(
-          opacity: widget.scrubScale == 0 ? 0 : 1,
-          duration: widget.scrubScale == 0
-              ? Duration.zero
-              : const Duration(milliseconds: 160),
-          child: AnimatedScale(
-          scale: _pressed ? 1.22 : math.max(widget.scrubScale, 0.35),
-          duration: widget.scrubScale == 0
-              ? Duration.zero
-              : const Duration(milliseconds: 480),
-          curve: const JellyCurve(overshoot: 0.08),
+        child: AnimatedScale(
+          scale: _pressed ? 1.22 : 1,
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutBack,
           // The selected disc is the iMessage tapback's: a soft accent wash
           // behind the glyph, no outline — the glass pill already has an
           // edge, and a ring inside it read as a second border.
@@ -1393,23 +1549,18 @@ class _PillEmojiState extends State<_PillEmoji>
             child: Text(widget.emoji, style: const TextStyle(fontSize: 22)),
           ),
         ),
-        ),
       ),
     );
   }
 }
 
 class _PillMore extends StatefulWidget {
-  const _PillMore({
-    required this.onTap,
-    required this.theme,
-    this.scrubScale = 1,
-  });
+  const _PillMore({required this.onTap, required this.theme});
   final VoidCallback onTap;
   final AppTheme theme;
 
-  /// See [_PillEmoji.scrubScale].
-  final double scrubScale;
+  /// The `+`'s slot: the 38pt disc and the 2pt it sits off the last emoji.
+  static const double slotWidth = 40;
 
   @override
   State<_PillMore> createState() => _PillMoreState();
@@ -1434,7 +1585,7 @@ class _PillMoreState extends State<_PillMore>
         onTapUp: (_) => setState(() => _pressed = false),
         onTap: widget.onTap,
         child: AnimatedScale(
-          scale: _pressed ? 1.15 : widget.scrubScale,
+          scale: _pressed ? 1.15 : 1,
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOutBack,
           child: Container(

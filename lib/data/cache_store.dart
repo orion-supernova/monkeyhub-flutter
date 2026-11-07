@@ -472,6 +472,13 @@ class CacheStore {
       return out;
     } catch (e) {
       debugPrint('cache loadOutbox failed: $e');
+      // An unreadable file would fail the same way on every launch and, as the
+      // next save only replaces it when something is unsent, could outlive
+      // everything it once held. Unrecoverable, so it goes.
+      try {
+        final f = File('${(await _ensureDir(userId)).path}/outbox/outbox.json');
+        if (await f.exists()) await f.delete();
+      } catch (_) {}
       return const [];
     }
   }
