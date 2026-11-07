@@ -106,6 +106,7 @@ class _PullDownButtonState<T> extends State<PullDownButton<T>> {
       );
     }
     return NativeControl(
+      standIn: FlutterSkinsOnly(child: Builder(builder: build)),
       size: label == null ? Size.square(size) : null,
       spec: NativeSpec.menu(
         label: label,

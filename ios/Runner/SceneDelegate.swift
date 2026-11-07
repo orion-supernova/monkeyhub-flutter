@@ -12,6 +12,7 @@ class SceneDelegate: FlutterSceneDelegate {
   /// The native Liquid Glass tab bar's bridge. Held for the scene's life;
   /// idle until Dart configures it.
   private var nativeChrome: NativeChrome?
+  private var nativeOverlay: NativeOverlay?
 
   override func scene(
     _ scene: UIScene,
@@ -29,6 +30,12 @@ class SceneDelegate: FlutterSceneDelegate {
       let window = UIWindow(windowScene: windowScene)
       window.rootViewController = flutterViewController
       nativeChrome = NativeChrome(
+        messenger: engine.binaryMessenger,
+        hostController: flutterViewController
+      )
+      // The Liquid Glass kit's real controls, above the Flutter view. See
+      // NativeControls.swift.
+      nativeOverlay = NativeOverlay(
         messenger: engine.binaryMessenger,
         hostController: flutterViewController
       )

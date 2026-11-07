@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
+import '../ui/native/native_control.dart';
+
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
@@ -350,13 +352,42 @@ class _StripState extends State<_Strip> {
     // shape, the user's glass dials, and — because the blur goes through
     // `BackdropFilter.grouped` — their single rasterization pass.
     if (glass) {
+      final flutter = LiquidGlass(
+        shape: LiquidGlassShape.rounded,
+        radius: _kGlassRadius,
+        child: row,
+      );
+      final Widget bar;
+      if (NativeControl.readyIn(context)) {
+        // The same strip as a native iOS 26 glass view: ticks, pin, sender
+        // and preview, and the list button.
+        final m = pin.message;
+        bar = Semantics(
+          button: true,
+          label: l10n.pinnedBannerJumpToPinnedSemanticLabel,
+          child: NativeControl(
+            size: const Size(double.infinity, kPinnedBannerHeight),
+            standIn: flutter,
+            spec: NativeSpec.pinBar(
+              title: m.resolvedSenderName(context),
+              preview: messagePreviewLine(m, hasThumbnail: false),
+              count: pins.length,
+              activeIndex: active,
+              height: kPinnedBannerHeight,
+              cornerRadius: _kGlassRadius,
+            ),
+            onEvent: (event, _) {
+              if (event == 'tap') widget.onTap();
+              if (event == 'list') widget.onOpenList();
+            },
+          ),
+        );
+      } else {
+        bar = flutter;
+      }
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: _kGlassGutter),
-        child: LiquidGlass(
-          shape: LiquidGlassShape.rounded,
-          radius: _kGlassRadius,
-          child: row,
-        ),
+        child: bar,
       );
     }
 

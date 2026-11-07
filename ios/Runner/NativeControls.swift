@@ -2,21 +2,16 @@ import Flutter
 import SwiftUI
 import UIKit
 
-// The Liquid Glass kit's real controls: SwiftUI views hosted one per Flutter
-// platform view (`UiKitView`, view type `monkeyhub/native_control`).
+// The Liquid Glass kit's real controls: SwiftUI views in one overlay above
+// the Flutter view (`NativeOverlay`, channel `monkeyhub/native_overlay`).
 //
-// Dart owns all state (`lib/ui/native/native_control.dart`). It creates a view
-// with a spec — a plain map: `kind` plus that kind's fields — pushes a new spec
-// over `monkeyhub/native_control/<id>` whenever it changes (`update`), and
-// hears back what the person did (`tap`, `changed`, `submitted`, `select`,
-// `size`). This side never decides anything; it renders the spec it was last
-// given, so a hot restart or a rebuilt widget resyncs by sending it again.
-//
-// Cost, read before using one in a list: any platform view on screen drops
-// every Flutter list from 120 Hz to bursts of 60 (flutter/flutter#190815) and
-// doubles the cost of a BackdropFilter beside it (flutter/flutter#138656). See
-// `NativeChrome.swift` for the sibling-view alternative fixed chrome can use,
-// and docs/architecture/ui-architecture.html §4 for when each is right.
+// Dart owns all state (`lib/ui/native/native_control.dart`). It sends each
+// control's spec (`set`: a plain map, `kind` plus that kind's fields), then
+// after every frame where it moved, its rectangle and visible clip (`sync`),
+// and hears back what the person did as `event` {id, name, value}: `tap`,
+// `changed`, `changeEnd`, `submitted`, `select`, `focus`, `size`, `revealed`.
+// This side never decides anything; it renders the spec it was last given,
+// so a hot restart resyncs by sending `reset` and everything again.
 //
 // Lessons carried over from the React Native port (docs/native-ui.md there):
 // - every host ignores the safe area, or SwiftUI offsets its content by the
@@ -26,128 +21,238 @@ import UIKit
 // - chrome buttons are 44 pt with a 17 pt semibold symbol: SwiftUI's own
 //   control sizes are far smaller.
 
-// MARK: - Factory
+// MARK: - Overlay
 
-final class NativeControlFactory: NSObject, FlutterPlatformViewFactory {
-  static let viewType = "monkeyhub/native_control"
+/// The controls live in ONE plain view above the Flutter view, never in
+/// platform views. A platform view is clipped by Flutter with a mask view
+/// whenever any ancestor clips (every scroll view does), and a masked Liquid
+/// Glass view renders offscreen as a flat grey rectangle: the "cut-outs".
+/// Swirl's `NativeGlassOverlay` settled the same question the same way.
+///
+/// Dart measures where each control landed after every frame and sends the
+/// rectangle, the visible clip (its scroll viewport, minus the page bars) and
+/// whether it may show at all (`sync`). A clip is a plain `clipsToBounds`
+/// ancestor, which cuts pixels and leaves the glass sampling normally.
+/// Hiding is a clip to nothing, never alpha or `isHidden`: alpha does not
+/// fade Liquid Glass, and a hidden view drops out of the backdrop group and
+/// comes back with a frame of flat dark.
+final class NativeOverlay: NSObject {
+  static let channelName = "monkeyhub/native_overlay"
 
-  private let messenger: FlutterBinaryMessenger
-
-  init(messenger: FlutterBinaryMessenger) {
-    self.messenger = messenger
-    super.init()
-  }
-
-  func create(
-    withFrame frame: CGRect,
-    viewIdentifier viewId: Int64,
-    arguments args: Any?
-  ) -> FlutterPlatformView {
-    NativeControlPlatformView(
-      frame: frame,
-      viewId: viewId,
-      spec: args as? [String: Any] ?? [:],
-      messenger: messenger
-    )
-  }
-
-  func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
-    FlutterStandardMessageCodec.sharedInstance()
-  }
-
-  /// Registers the factory. Call once per engine, beside the app's channels.
-  static func register(with registrar: FlutterPluginRegistrar) {
-    registrar.register(
-      NativeControlFactory(messenger: registrar.messenger()),
-      withId: viewType
-    )
-  }
-}
-
-// MARK: - Platform view
-
-final class NativeControlPlatformView: NSObject, FlutterPlatformView {
-  private let container: UIView
   private let channel: FlutterMethodChannel
-  private let model: NativeControlModel
-  private var host: UIHostingController<NativeControlRoot>?
-  private var lastReported: CGSize = .zero
+  fileprivate weak var hostController: UIViewController?
+  private var layer: NativeOverlayLayer?
+  private var slots: [String: NativeOverlaySlot] = [:]
 
-  init(
-    frame: CGRect,
-    viewId: Int64,
-    spec: [String: Any],
-    messenger: FlutterBinaryMessenger
-  ) {
-    container = UIView(frame: frame)
-    container.backgroundColor = .clear
-    // The box Flutter laid out is the control's box: a SwiftUI control a few
-    // points taller than asked must not paint over its neighbours.
-    container.clipsToBounds = true
-    channel = FlutterMethodChannel(
-      name: "monkeyhub/native_control/\(viewId)",
-      binaryMessenger: messenger
-    )
-    model = NativeControlModel(spec: NativeControlSpec(spec))
+  init(messenger: FlutterBinaryMessenger, hostController: UIViewController) {
+    channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: messenger)
+    self.hostController = hostController
     super.init()
-
-    let emit: (String, Any?) -> Void = { [weak self] event, value in
-      self?.channel.invokeMethod(event, arguments: value)
-    }
-    let host = UIHostingController(
-      rootView: NativeControlRoot(model: model, emit: emit)
-    )
-    host.view.backgroundColor = .clear
-    host.view.frame = container.bounds
-    host.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-    if #available(iOS 16.4, *) {
-      host.safeAreaRegions = []
-    }
-    container.addSubview(host.view)
-    self.host = host
-
     channel.setMethodCallHandler { [weak self] call, result in
       guard let self else {
         result(nil)
         return
       }
-      switch call.method {
-      case "update":
-        self.model.spec = NativeControlSpec(call.arguments as? [String: Any] ?? [:])
-        self.reportSize()
+      self.handle(call, result)
+    }
+  }
+
+  private func hostLayer() -> NativeOverlayLayer? {
+    if let layer, layer.superview != nil { return layer }
+    guard let host = hostController?.viewIfLoaded, host.window != nil else { return nil }
+    let view = NativeOverlayLayer(frame: host.bounds)
+    view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    // Below anything native already there (the tab bar), above Flutter.
+    host.insertSubview(view, at: 0)
+    layer = view
+    return view
+  }
+
+  private func handle(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
+    let args = call.arguments as? [String: Any] ?? [:]
+    switch call.method {
+    case "reset":
+      slots.values.forEach { $0.remove() }
+      slots = [:]
+      result(nil)
+    case "set":
+      guard let id = args["id"] as? String,
+            let spec = args["spec"] as? [String: Any] else {
         result(nil)
-      case "focus":
-        self.model.focusTick += 1
-        result(nil)
-      case "blur":
-        self.model.blurTick += 1
-        result(nil)
-      case "measure":
-        self.reportSize(force: true)
-        result(nil)
-      default:
-        result(FlutterMethodNotImplemented)
+        return
       }
+      if let slot = slots[id] {
+        slot.update(spec)
+      } else if let layer = hostLayer() {
+        let slot = NativeOverlaySlot(id: id, spec: spec) { [weak self] name, value in
+          self?.channel.invokeMethod(
+            "event",
+            arguments: ["id": id, "name": name, "value": value as Any]
+          )
+        }
+        layer.addSubview(slot.clip)
+        slots[id] = slot
+      }
+      result(nil)
+    case "sync":
+      CATransaction.begin()
+      CATransaction.setDisableActions(true)
+      for item in args["items"] as? [[String: Any]] ?? [] {
+        guard let id = item["id"] as? String else { continue }
+        slots[id]?.place(item)
+      }
+      CATransaction.commit()
+      result(nil)
+    case "remove":
+      if let id = args["id"] as? String {
+        slots[id]?.remove()
+        slots[id] = nil
+      }
+      result(nil)
+    case "actionSheet":
+      presentActionSheet(args, result)
+    case "focus", "blur", "measure":
+      if let id = args["id"] as? String, let slot = slots[id] {
+        if call.method == "focus" { slot.model.focusTick += 1 }
+        if call.method == "blur" { slot.model.blurTick += 1 }
+        if call.method == "measure" { slot.reportSize(force: true) }
+      }
+      result(nil)
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+}
+
+extension NativeOverlay {
+  /// A system action sheet (an alert when [alert]): the real iOS sheet, glass
+  /// on iOS 26. Answers the picked action's id, or nil when dismissed.
+  fileprivate func presentActionSheet(_ args: [String: Any], _ result: @escaping FlutterResult) {
+    guard var top = hostController else {
+      result(nil)
+      return
+    }
+    while let next = top.presentedViewController { top = next }
+    let title = args["title"] as? String
+    let message = args["message"] as? String
+    let alert = UIAlertController(
+      title: (title?.isEmpty ?? true) ? nil : title,
+      message: (message?.isEmpty ?? true) ? nil : message,
+      preferredStyle: (args["alert"] as? Bool ?? false) ? .alert : .actionSheet
+    )
+    var answered = false
+    let answer: (String?) -> Void = { id in
+      guard !answered else { return }
+      answered = true
+      result(id)
+    }
+    for action in args["actions"] as? [[String: Any]] ?? [] {
+      let id = action["id"] as? String ?? ""
+      let style: UIAlertAction.Style =
+        (action["cancel"] as? Bool ?? false) ? .cancel
+        : (action["destructive"] as? Bool ?? false) ? .destructive : .default
+      alert.addAction(UIAlertAction(title: action["label"] as? String ?? "", style: style) { _ in
+        answer(style == .cancel ? nil : id)
+      })
+    }
+    if let popover = alert.popoverPresentationController {
+      popover.sourceView = top.view
+      popover.sourceRect = CGRect(x: top.view.bounds.midX, y: top.view.bounds.maxY - 80, width: 1, height: 1)
+      popover.permittedArrowDirections = []
+    }
+    top.present(alert, animated: true)
+  }
+}
+
+/// Touches on bare overlay fall through to Flutter.
+final class NativeOverlayLayer: UIView {
+  override init(frame: CGRect) {
+    super.init(frame: frame)
+    backgroundColor = .clear
+  }
+
+  @available(*, unavailable)
+  required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+  override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+    let hit = super.hitTest(point, with: event)
+    if hit === self || hit is NativeOverlayClip { return nil }
+    return hit
+  }
+}
+
+final class NativeOverlayClip: UIView {}
+
+/// One control: a clip view (the visible part of its scroll viewport, in the
+/// layer's coordinates) holding the SwiftUI host at the control's rectangle.
+final class NativeOverlaySlot {
+  let clip = NativeOverlayClip()
+  let model: NativeControlModel
+  private let host: UIHostingController<NativeControlRoot>
+  private let emit: (String, Any?) -> Void
+  private var lastReported: CGSize = .zero
+  private var wantsVisible = false
+  private var revealed = false
+  /// A fresh glass view paints before its first backdrop sample; it stays
+  /// cut away this long so it never flashes flat.
+  private var settled = false
+  private var clipRect: CGRect = .zero
+
+  init(id: String, spec: [String: Any], emit: @escaping (String, Any?) -> Void) {
+    self.emit = emit
+    model = NativeControlModel(spec: NativeControlSpec(spec))
+    host = UIHostingController(rootView: NativeControlRoot(model: model, emit: emit))
+    host.view.backgroundColor = .clear
+    if #available(iOS 16.4, *) { host.safeAreaRegions = [] }
+    clip.backgroundColor = .clear
+    clip.clipsToBounds = true
+    clip.frame = .zero
+    clip.addSubview(host.view)
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
+      self?.settled = true
+      self?.applyReveal()
     }
     DispatchQueue.main.async { [weak self] in self?.reportSize(force: true) }
   }
 
-  func view() -> UIView { container }
+  func update(_ spec: [String: Any]) {
+    model.spec = NativeControlSpec(spec)
+    reportSize()
+  }
 
-  /// The size the control wants, for a Dart wrapper that sizes to its content
-  /// (a text button, a menu label). Fixed-size controls ignore it.
-  private func reportSize(force: Bool = false) {
-    guard let host else { return }
+  func place(_ item: [String: Any]) {
+    func num(_ key: String) -> CGFloat { CGFloat((item[key] as? NSNumber)?.doubleValue ?? 0) }
+    clipRect = CGRect(x: num("cx"), y: num("cy"), width: num("cw"), height: num("ch"))
+    let rect = CGRect(x: num("x"), y: num("y"), width: num("w"), height: num("h"))
+    host.view.frame = rect.offsetBy(dx: -clipRect.minX, dy: -clipRect.minY)
+    wantsVisible = item["visible"] as? Bool ?? false
+    applyReveal()
+  }
+
+  private func applyReveal() {
+    let next = wantsVisible && settled
+    clip.frame = next ? clipRect : CGRect(origin: clipRect.origin, size: .zero)
+    // The host stays where the clip origin puts it while cut, so a reveal
+    // never jumps.
+    if next != revealed {
+      revealed = next
+      clip.isUserInteractionEnabled = next
+      if !next { model.blurTick += 1 }
+      emit("revealed", next)
+    }
+  }
+
+  func reportSize(force: Bool = false) {
     let fit = host.sizeThatFits(
       in: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
     )
     guard force || fit != lastReported else { return }
     lastReported = fit
-    channel.invokeMethod("size", arguments: ["width": fit.width, "height": fit.height])
+    emit("size", ["width": fit.width, "height": fit.height])
   }
 
-  deinit {
-    channel.setMethodCallHandler(nil)
+  func remove() {
+    clip.removeFromSuperview()
   }
 }
 
@@ -195,6 +300,19 @@ struct NativeControlSpec {
   let autocorrect: Bool?
   let spacing: CGFloat
   let blend: CGFloat?
+  /// Settings › Glass › Interactive glass: the press stretch and shine.
+  let interactive: Bool
+  /// titlePill / pinBar.
+  let subtitle: String
+  let subtitleColor: Color?
+  let avatarPath: String?
+  let avatarSymbol: String?
+  let initials: String
+  let avatarColor: Color?
+  let avatarSize: CGFloat
+  let count: Int
+  let activeIndex: Int
+  let accentLabel: Bool
 
   init(_ map: [String: Any]) {
     kind = map["kind"] as? String ?? "symbolButton"
@@ -236,6 +354,17 @@ struct NativeControlSpec {
     autocorrect = map["autocorrect"] as? Bool
     spacing = CGFloat(map["spacing"] as? Double ?? 8)
     blend = (map["blend"] as? Double).map { CGFloat($0) }
+    interactive = map["interactive"] as? Bool ?? true
+    subtitle = map["subtitle"] as? String ?? ""
+    subtitleColor = (map["subtitleColor"] as? Int).map(Color.init(argb:))
+    avatarPath = map["avatarPath"] as? String
+    avatarSymbol = map["avatarSymbol"] as? String
+    initials = map["initials"] as? String ?? ""
+    avatarColor = (map["avatarColor"] as? Int).map(Color.init(argb:))
+    avatarSize = CGFloat(map["avatarSize"] as? Double ?? 34)
+    count = map["count"] as? Int ?? 0
+    activeIndex = map["activeIndex"] as? Int ?? 0
+    accentLabel = map["accentLabel"] as? Bool ?? false
   }
 }
 
@@ -329,6 +458,14 @@ struct NativeControlRoot: View {
     case "toolbar": NativeToolbar(spec: spec, emit: emit)
     case "buttonGroup": NativeButtonGroup(spec: spec, emit: emit)
     case "datePicker": NativeDatePicker(spec: spec, emit: emit)
+    case "titlePill", "pinBar":
+      if #available(iOS 26.0, *) {
+        if spec.kind == "titlePill" {
+          NativeTitlePill(spec: spec, emit: emit)
+        } else {
+          NativePinBar(spec: spec, emit: emit)
+        }
+      }
     default: NativeSymbolButton(spec: spec, emit: emit)
     }
   }
@@ -353,7 +490,7 @@ struct NativeSymbolButton: View {
       } else {
         button.buttonStyle(.plain)
           .foregroundStyle(spec.destructive ? Color.red : Color.primary)
-          .glassEffect(.regular.interactive(), in: Circle())
+          .glassEffect(.regular.interactive(spec.interactive), in: Circle())
       }
     } else {
       // Below iOS 26 this kit is never resolved; the capsule is only a
@@ -602,7 +739,7 @@ struct NativeTextField: View {
       row
     } else if #available(iOS 26.0, *) {
       row.glassEffect(
-        .regular.interactive(),
+        .regular.interactive(spec.interactive),
         in: RoundedRectangle(cornerRadius: isSearch ? spec.size / 2 : spec.cornerRadius)
       )
     } else {
@@ -705,7 +842,7 @@ struct NativeButtonGroup: View {
       }
     }
     if #available(iOS 26.0, *) {
-      row.glassEffect(.regular.interactive(), in: Capsule())
+      row.glassEffect(.regular.interactive(spec.interactive), in: Capsule())
     } else {
       row.background(Capsule().fill(.thinMaterial))
     }
@@ -774,7 +911,7 @@ struct NativeToolbar: View {
             .disabled(option.disabled)
             .opacity(option.disabled ? 0.4 : 1)
             .accessibilityLabel(Text(option.label))
-            .glassEffect(.regular.interactive(), in: Circle())
+            .glassEffect(.regular.interactive(spec.interactive), in: Circle())
           }
         }
       }
@@ -791,5 +928,135 @@ struct NativeToolbar: View {
         }
       }
     }
+  }
+}
+
+// MARK: - Chat chrome
+
+/// Decoded avatars, so a header rebuild never reads the file again.
+private let nativeAvatarCache = NSCache<NSString, UIImage>()
+
+/// A chat's face: the cached picture, a symbol on a quiet disc (Saved
+/// Messages), or initials on the room's colour.
+struct NativeAvatar: View {
+  let spec: NativeControlSpec
+
+  var body: some View {
+    let d = spec.avatarSize
+    Group {
+      if let path = spec.avatarPath, let image = Self.image(path) {
+        Image(uiImage: image).resizable().scaledToFill()
+      } else if let symbol = spec.avatarSymbol {
+        Image(systemName: symbol)
+          .font(.system(size: d * 0.42, weight: .semibold))
+          .foregroundStyle(spec.tint ?? .accentColor)
+          .frame(width: d, height: d)
+          .background(Color.primary.opacity(0.08))
+      } else {
+        Text(spec.initials)
+          .font(.system(size: d * 0.4, weight: .semibold))
+          .foregroundStyle(.white)
+          .frame(width: d, height: d)
+          .background(spec.avatarColor ?? Color.gray)
+      }
+    }
+    .frame(width: d, height: d)
+    .clipShape(Circle())
+  }
+
+  static func image(_ path: String) -> UIImage? {
+    if let hit = nativeAvatarCache.object(forKey: path as NSString) { return hit }
+    guard let image = UIImage(contentsOfFile: path) else { return nil }
+    nativeAvatarCache.setObject(image, forKey: path as NSString)
+    return image
+  }
+}
+
+/// The chat header's title capsule: avatar, name, and the status line, on
+/// interactive glass. A tap is `tap` (room info), the avatar alone `avatar`.
+@available(iOS 26.0, *)
+struct NativeTitlePill: View {
+  let spec: NativeControlSpec
+  let emit: (String, Any?) -> Void
+
+  var body: some View {
+    HStack(spacing: 9) {
+      NativeAvatar(spec: spec)
+        .contentShape(Circle())
+        .highPriorityGesture(TapGesture().onEnded { emit("avatar", nil) })
+      VStack(alignment: .leading, spacing: 1) {
+        Text(spec.label)
+          .font(.system(size: 17, weight: .semibold))
+          .foregroundStyle(.primary)
+          .lineLimit(1)
+        if !spec.subtitle.isEmpty {
+          Text(spec.subtitle)
+            .font(.system(size: 13))
+            .foregroundStyle(spec.subtitleColor ?? .secondary)
+            .lineLimit(1)
+            .contentTransition(.opacity)
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    .padding(.leading, 5)
+    .padding(.trailing, 16)
+    .frame(height: spec.size)
+    .contentShape(Capsule())
+    .onTapGesture { emit("tap", nil) }
+    .glassEffect(.regular.interactive(spec.interactive), in: Capsule())
+    .animation(.easeOut(duration: 0.22), value: spec.subtitle)
+  }
+}
+
+/// The pinned-message bar: position ticks, the pin, sender and preview on one
+/// line (`tap` jumps to it), and the list button (`list`).
+@available(iOS 26.0, *)
+struct NativePinBar: View {
+  let spec: NativeControlSpec
+  let emit: (String, Any?) -> Void
+
+  var body: some View {
+    HStack(spacing: 0) {
+      if spec.count > 1 {
+        VStack(spacing: 2) {
+          ForEach(0..<min(spec.count, 5), id: \.self) { i in
+            Capsule()
+              .fill(i == min(spec.activeIndex, 4) ? (spec.tint ?? .accentColor) : Color.primary.opacity(0.16))
+              .frame(width: 2.5)
+          }
+        }
+        .frame(height: 22)
+        .padding(.leading, 12)
+      }
+      Image(systemName: "pin.fill")
+        .font(.system(size: 13))
+        .foregroundStyle(.secondary)
+        .padding(.leading, spec.count > 1 ? 10 : 14)
+      (Text(spec.label).fontWeight(.semibold).foregroundColor(.primary)
+        + Text(spec.subtitle.isEmpty ? "" : "  " + spec.subtitle).foregroundColor(.secondary))
+        .font(.system(size: 15))
+        .lineLimit(1)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, 8)
+        .contentShape(Rectangle())
+        .onTapGesture { emit("tap", nil) }
+        .id(spec.activeIndex)
+        .transition(.push(from: .bottom))
+      Button { emit("list", nil) } label: {
+        Image(systemName: "list.bullet")
+          .font(.system(size: 17))
+          .foregroundStyle(.secondary)
+          .frame(width: 44, height: spec.size)
+      }
+      .buttonStyle(.plain)
+      .padding(.trailing, 4)
+    }
+    .frame(height: spec.size)
+    .glassEffect(
+      .regular.interactive(spec.interactive),
+      in: RoundedRectangle(cornerRadius: spec.cornerRadius, style: .continuous)
+    )
+    .animation(.snappy, value: spec.activeIndex)
   }
 }

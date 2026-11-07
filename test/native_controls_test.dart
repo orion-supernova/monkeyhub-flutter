@@ -39,23 +39,31 @@ void main() {
     });
   }
 
-  int lastViewId = 0;
+  /// The overlay channel's traffic: every `set` (id, spec) in order.
+  final sets = <(String, Map<String, Object?>)>[];
 
   Future<void> pump(WidgetTester tester, Widget child, {UiKit kit = UiKit.liquid}) async {
     tester.view.physicalSize = const Size(393, 852);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
+    sets.clear();
+    const overlay = MethodChannel('monkeyhub/native_overlay');
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      SystemChannels.platform_views,
+      overlay,
       (call) async {
-        if (call.method != 'create') return null;
-        lastViewId = (call.arguments as Map)['id'] as int;
-        return lastViewId;
+        if (call.method == 'set') {
+          final m = (call.arguments as Map).cast<String, Object?>();
+          sets.add((
+            m['id'] as String,
+            (m['spec'] as Map).cast<String, Object?>(),
+          ));
+        }
+        return null;
       },
     );
     addTearDown(
       () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform_views,
+        overlay,
         null,
       ),
     );
@@ -76,8 +84,8 @@ void main() {
   }
 
   List<Map> specs(WidgetTester tester) => [
-    for (final v in tester.widgetList<UiKitView>(find.byType(UiKitView)))
-      (v.creationParams as Map).cast<String, Object?>(),
+    for (final v in tester.widgetList<NativeControl>(find.byType(NativeControl)))
+      v.spec.toMap(),
   ];
 
   String kindOf(WidgetTester tester) {
@@ -161,13 +169,13 @@ void main() {
     iosTest('${entry.key}: no platform view with native controls off', (tester) async {
       UiKits.debugNativeControls = false;
       await pump(tester, entry.value.$1());
-      expect(find.byType(UiKitView), findsNothing);
+      expect(find.byType(NativeControl), findsNothing);
     });
 
     iosTest('${entry.key}: no platform view in the frosted kit', (tester) async {
       UiKits.debugNativeControls = true;
       await pump(tester, entry.value.$1(), kit: UiKit.glass);
-      expect(find.byType(UiKitView), findsNothing);
+      expect(find.byType(NativeControl), findsNothing);
     });
   }
 
@@ -177,7 +185,7 @@ void main() {
       tester,
       ThemedInput(controller: TextEditingController(), hint: 'Notes', maxLines: 4),
     );
-    expect(find.byType(UiKitView), findsNothing);
+    expect(find.byType(NativeControl), findsNothing);
   });
 
   iosTest('a field with a character limit keeps the Flutter skin', (tester) async {
@@ -186,13 +194,13 @@ void main() {
       tester,
       SheetTextField(controller: TextEditingController(), hint: 'Bio', maxLength: 80),
     );
-    expect(find.byType(UiKitView), findsNothing);
+    expect(find.byType(NativeControl), findsNothing);
   });
 
   iosTest('a busy row pill keeps the Flutter skin', (tester) async {
     UiKits.debugNativeControls = true;
     await pump(tester, RowPillButton(label: 'Remove', busy: true, onTap: () {}));
-    expect(find.byType(UiKitView), findsNothing);
+    expect(find.byType(NativeControl), findsNothing);
   });
 
   iosTest('a lit group slot keeps the Flutter skin', (tester) async {
@@ -211,46 +219,58 @@ void main() {
         ],
       ),
     );
-    expect(find.byType(UiKitView), findsNothing);
+    expect(find.byType(NativeControl), findsNothing);
   });
 
   iosTest('native typing reaches the controller; an outside edit bumps textRev', (tester) async {
     UiKits.debugNativeControls = true;
     final controller = TextEditingController(text: 'hi');
-    final updates = <Map>[];
     String? changed;
     await pump(
       tester,
       ThemedInput(controller: controller, hint: 'Name', onChanged: (v) => changed = v),
     );
     await tester.pump(const Duration(milliseconds: 50));
-    final channel = MethodChannel('monkeyhub/native_control/$lastViewId');
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
-      if (call.method == 'update') updates.add((call.arguments as Map).cast<String, Object?>());
-      return null;
-    });
+    final id = sets.last.$1;
+    List<Map<String, Object?>> updates() =>
+        [for (final (i, spec) in sets) if (i == id) spec];
     final sent = specs(tester).single;
     expect(sent['text'], 'hi');
     expect(sent['textRev'], 0);
+    final before = updates().length;
 
     const codec = StandardMethodCodec();
     await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
-      'monkeyhub/native_control/$lastViewId',
-      codec.encodeMethodCall(const MethodCall('changed', 'hello')),
+      'monkeyhub/native_overlay',
+      codec.encodeMethodCall(
+        MethodCall('event', {'id': id, 'name': 'changed', 'value': 'hello'}),
+      ),
       (_) {},
     );
     await tester.pump();
     expect(controller.text, 'hello');
     expect(controller.selection.baseOffset, 5);
     expect(changed, 'hello');
-    expect(updates.where((u) => u['textRev'] != 0), isEmpty,
+    expect(updates().skip(before).where((u) => u['textRev'] != 0), isEmpty,
         reason: 'typing must not be echoed back');
 
     controller.text = '';
     await tester.pump();
-    expect(updates.last['text'], '');
-    expect(updates.last['textRev'], 1);
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, null);
+    expect(updates().last['text'], '');
+    expect(updates().last['textRev'], 1);
+  });
+
+  iosTest('a keyed control keeps one copy of its key (the stand-in is its build)', (tester) async {
+    UiKits.debugNativeControls = true;
+    final key = GlobalKey();
+    await pump(
+      tester,
+      GlassIconButton(key: key, icon: CupertinoIcons.plus, onTap: () {}),
+    );
+    expect(tester.takeException(), isNull);
+    expect(find.byType(NativeControl), findsOneWidget);
+    // The stand-in shows until the native view reports it is on screen.
+    expect(find.byIcon(CupertinoIcons.plus), findsOneWidget);
   });
 
   test('NativeSpec wire format', () {

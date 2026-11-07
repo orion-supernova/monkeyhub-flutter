@@ -1,28 +1,41 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../media/file_url_cache.dart';
+import '../../media/storage/media_image_cache.dart';
+
+import '../../data/settings_store.dart';
 import '../../theme/theme_preference.dart';
 import '../../theme/theme_scope.dart';
 import '../foundation/caps.dart';
 import '../foundation/ui_kit.dart';
+import 'native_cut.dart';
 
 /// A real iOS control (SwiftUI, Liquid Glass on iOS 26) inside the Flutter
-/// tree: the [UiKit.liquid] kit's skins draw with these.
+/// layout: the [UiKit.liquid] kit's skins draw with these.
 ///
-/// One `UiKitView` per control, rendered by `ios/Runner/NativeControls.swift`.
-/// Dart owns all state: the [spec] goes over on creation and again whenever it
-/// changes; what the person does comes back as [onEvent] (`tap`, `changed`,
-/// `changeEnd`, `submitted`, `select`, `focus`).
+/// The control is NOT a platform view. It is a native view in one overlay
+/// above the Flutter view (`ios/Runner/NativeControls.swift`, [NativeOverlay]
+/// below): this widget only holds its place in the layout, and after every
+/// frame its rectangle, the visible part of its scroll viewport (minus the
+/// page bars, see [NativeCut]) and whether it may show at all go over in one
+/// batched message. Flutter clips a platform view with a mask, and a masked
+/// Liquid Glass view renders as a flat grey rectangle; the overlay clips with
+/// plain rectangles and the glass stays live.
 ///
-/// **Cost.** Any platform view on screen drops every Flutter list to bursts of
-/// 60 Hz (flutter/flutter#190815) and doubles a nearby BackdropFilter's cost
-/// (#138656). That is why the kit only uses these when
-/// [UiKits.nativeControlsReady] is on, and why docs/architecture/
-/// ui-architecture.html §4 says which controls should become sibling views
-/// (like the native tab bar) instead.
+/// A native view is always above Flutter, so it hides (and [standIn], the
+/// Flutter skin, takes its place) whenever Flutter draws something over it:
+/// another route on top or animating in, an offstage tab, or a Flutter
+/// overlay that called [NativeOverlay.suppress].
+///
+/// Dart owns all state: the [spec] goes over whenever it changes; what the
+/// person does comes back as [onEvent] (`tap`, `changed`, `changeEnd`,
+/// `submitted`, `select`, `focus`).
 class NativeControl extends StatefulWidget {
   const NativeControl({
     super.key,
@@ -31,6 +44,7 @@ class NativeControl extends StatefulWidget {
     this.size,
     this.gestures = const {},
     this.handle,
+    this.standIn,
   });
 
   /// Lets the owner move focus in a native text field (`focus` / `blur`).
@@ -43,10 +57,13 @@ class NativeControl extends StatefulWidget {
   /// menu label) after its first layout.
   final Size? size;
 
-  /// Gestures the native control must win over an enclosing Flutter
-  /// scrollable: a slider or segmented control in a vertical list needs a
-  /// horizontal drag; a button needs nothing.
+  /// Kept for call sites written for the platform-view version; the overlay
+  /// receives its own touches, so nothing needs to win an arena any more.
   final Set<Factory<OneSequenceGestureRecognizer>> gestures;
+
+  /// What shows while the native view cannot: the same control's Flutter
+  /// skin. Null shows nothing.
+  final Widget? standIn;
 
   /// Whether a native control can be drawn here at all.
   static bool get available => Caps.iOS && Caps.nativeGlass;
@@ -65,47 +82,118 @@ class NativeControl extends StatefulWidget {
 }
 
 /// The Dart→native calls of one [NativeControl]: focus and blur of a text
-/// field. A call made before the platform view exists is replayed once it
+/// field. A call made before the control exists natively is replayed once it
 /// does (autofocus).
 class NativeControlHandle {
-  MethodChannel? _channel;
+  String? _id;
   String? _pending;
 
-  void _attach(MethodChannel? channel) {
-    _channel = channel;
+  void _attach(String? id) {
+    _id = id;
     final pending = _pending;
-    if (channel != null && pending != null) {
+    if (id != null && pending != null) {
       _pending = null;
       _invoke(pending);
     }
   }
 
   void _invoke(String method) {
-    final channel = _channel;
-    if (channel == null) {
+    final id = _id;
+    if (id == null) {
       _pending = method;
       return;
     }
-    channel.invokeMethod<void>(method).catchError((Object _) {});
+    NativeOverlay._call(method, {'id': id});
   }
 
   void focus() => _invoke('focus');
   void blur() => _invoke('blur');
 }
 
-class _NativeControlState extends State<NativeControl> {
-  MethodChannel? _channel;
+/// The one bridge to the native overlay. Every [NativeControl] registers
+/// here; after each frame the overlay measures them all and sends what moved
+/// in one `sync`.
+class NativeOverlay {
+  NativeOverlay._();
 
-  /// The spec the native side last received, and the newest one built.
+  static const MethodChannel _channel = MethodChannel('monkeyhub/native_overlay');
+  static final Map<String, _NativeControlState> _controls = {};
+  static int _nextId = 0;
+  static bool _started = false;
+
+  /// Flutter overlays drawn above native controls (a hold menu, a Flutter
+  /// pull-down) bump this while open; every control hides meanwhile.
+  static final ValueNotifier<int> suppressed = ValueNotifier<int>(0);
+
+  /// Runs [body] with native controls hidden, for an overlay that is not a
+  /// route (routes hide them on their own).
+  static void suppress() => suppressed.value++;
+  static void release() =>
+      suppressed.value = suppressed.value > 0 ? suppressed.value - 1 : 0;
+
+  static Future<void> _call(String method, Map<String, Object?> args) async {
+    try {
+      await _channel.invokeMethod<void>(method, args);
+    } catch (_) {}
+  }
+
+  static void _start() {
+    if (_started) return;
+    _started = true;
+    // A hot restart leaves the previous run's views on screen.
+    _call('reset', const {});
+    _channel.setMethodCallHandler((call) async {
+      if (call.method != 'event') return;
+      final m = (call.arguments as Map).cast<String, Object?>();
+      _controls[m['id']]?._event(m['name'] as String, m['value']);
+    });
+    SchedulerBinding.instance.addPersistentFrameCallback((_) {
+      if (_controls.isEmpty) return;
+      SchedulerBinding.instance.addPostFrameCallback((_) => _sync());
+    });
+  }
+
+  static String _register(_NativeControlState state) {
+    _start();
+    final id = 'nc${_nextId++}';
+    _controls[id] = state;
+    // A control that registers between frames is placed after the next one.
+    SchedulerBinding.instance.ensureVisualUpdate();
+    return id;
+  }
+
+  static void _unregister(String id) {
+    _controls.remove(id);
+    _call('remove', {'id': id});
+  }
+
+  static void _sync() {
+    final items = <Map<String, Object?>>[];
+    for (final entry in _controls.entries) {
+      final placement = entry.value._placement();
+      if (placement == null) continue;
+      items.add({'id': entry.key, ...placement});
+    }
+    if (items.isNotEmpty) _call('sync', {'items': items});
+  }
+}
+
+class _NativeControlState extends State<NativeControl> {
+  late final String _id = NativeOverlay._register(this);
+
+  /// The spec the native side last received.
   Map<String, Object?>? _sent;
-  Map<String, Object?>? _latest;
   Size? _reported;
+  bool _revealed = false;
+  Map<String, Object?>? _lastPlacement;
+  ModalRoute<Object?>? _route;
+  bool _tickerOn = true;
+  double? Function()? _cutLine;
 
   void _push(Map<String, Object?> spec) {
-    final channel = _channel;
-    if (channel == null || _specEquals(spec, _sent)) return;
+    if (_specEquals(spec, _sent)) return;
     _sent = spec;
-    channel.invokeMethod('update', spec).catchError((Object _) {});
+    NativeOverlay._call('set', {'id': _id, 'spec': spec});
   }
 
   Map<String, Object?> _resolved(BuildContext context) {
@@ -113,22 +201,16 @@ class _NativeControlState extends State<NativeControl> {
     return {
       'dark': !theme.isLight,
       'tint': theme.accent.toARGB32(),
+      'interactive': SettingsStore.instance.glassInteractive,
       ...widget.spec.toMap(),
     };
   }
 
-  void _created(int id) {
-    final channel = MethodChannel('monkeyhub/native_control/$id');
-    _channel = channel;
-    widget.handle?._attach(channel);
-    // A rebuild between creating the view and its channel opening changed
-    // the spec the view was created with.
-    final latest = _latest;
-    if (latest != null) _push(latest);
-    channel.setMethodCallHandler((call) async {
-      if (!mounted) return;
-      if (call.method == 'size') {
-        final m = (call.arguments as Map).cast<String, Object?>();
+  void _event(String name, Object? value) {
+    if (!mounted) return;
+    switch (name) {
+      case 'size':
+        final m = (value as Map).cast<String, Object?>();
         final size = Size(
           (m['width'] as num).toDouble(),
           (m['height'] as num).toDouble(),
@@ -136,10 +218,132 @@ class _NativeControlState extends State<NativeControl> {
         if (widget.size == null && size != _reported) {
           setState(() => _reported = size);
         }
-        return;
+      case 'revealed':
+        final on = value == true;
+        if (on != _revealed) setState(() => _revealed = on);
+      default:
+        widget.onEvent?.call(name, value);
+    }
+  }
+
+  /// Where the control is and whether it may show, or null when nothing
+  /// changed since the last sync.
+  Map<String, Object?>? _placement() {
+    final box = context.findRenderObject();
+    var visible = mounted &&
+        box is RenderBox &&
+        box.attached &&
+        box.hasSize &&
+        _tickerOn &&
+        NativeOverlay.suppressed.value == 0 &&
+        _routeSettled();
+    Rect rect = Rect.zero;
+    Rect clip = Rect.zero;
+    if (visible) {
+      final b = box;
+      rect = MatrixUtils.transformRect(
+        b.getTransformTo(null),
+        Offset.zero & b.size,
+      );
+      clip = _clip(rect);
+      if (clip.isEmpty) visible = false;
+    }
+    final placement = <String, Object?>{
+      'x': _r(rect.left),
+      'y': _r(rect.top),
+      'w': _r(rect.width),
+      'h': _r(rect.height),
+      'cx': _r(clip.left),
+      'cy': _r(clip.top),
+      'cw': _r(clip.width),
+      'ch': _r(clip.height),
+      'visible': visible,
+    };
+    if (_specEquals(placement, _lastPlacement)) return null;
+    _lastPlacement = placement;
+    // Hiding is immediate on this side: the stand-in shows the same frame.
+    if (!visible && _revealed) setState(() => _revealed = false);
+    return placement;
+  }
+
+  static double _r(double v) => (v * 2).roundToDouble() / 2;
+
+  bool _routeSettled() {
+    final route = _route;
+    if (route == null) return true;
+    if (!route.isCurrent || !route.isActive) return false;
+    final a = route.animation;
+    final s = route.secondaryAnimation;
+    return (a == null || a.status == AnimationStatus.completed) &&
+        (s == null || s.status == AnimationStatus.dismissed);
+  }
+
+  /// The visible part of the control: every clipping ancestor (scroll
+  /// viewports, ClipRects, collapsing AnimatedSizes) cut at the page bar
+  /// ([NativeCut]). Empty when an ancestor hides it outright: a zero
+  /// opacity (a fade-out), or offstage. A native view sees none of Flutter's
+  /// compositing, so this walk is how it learns.
+  Rect _clip(Rect rect) {
+    var clip = rect;
+    final box = context.findRenderObject();
+    RenderObject? node = box?.parent;
+    while (node != null) {
+      if (node is RenderOpacity && node.opacity < 0.05) return Rect.zero;
+      if (node is RenderAnimatedOpacity && node.opacity.value < 0.05) {
+        return Rect.zero;
       }
-      widget.onEvent?.call(call.method, call.arguments);
-    });
+      if (node is RenderOffstage && node.offstage) return Rect.zero;
+      final clips = node is RenderClipRect ||
+          node is RenderClipRRect ||
+          node is RenderClipPath ||
+          node is RenderClipOval ||
+          (node is RenderViewportBase && node.clipBehavior != Clip.none);
+      if (clips && node is RenderBox && node.hasSize) {
+        clip = clip.intersect(
+          MatrixUtils.transformRect(
+            node.getTransformTo(null),
+            Offset.zero & node.size,
+          ),
+        );
+        if (clip.width <= 0 || clip.height <= 0) return Rect.zero;
+      }
+      node = node.parent;
+    }
+    final cut = _cutLine?.call();
+    if (cut != null && clip.top < cut) {
+      clip = Rect.fromLTRB(clip.left, cut, clip.right, clip.bottom);
+    }
+    if (clip.width <= 0 || clip.height <= 0) return Rect.zero;
+    return clip;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.handle?._attach(_id);
+    NativeOverlay.suppressed.addListener(_poke);
+    SettingsStore.instance.addListener(_settingsChanged);
+  }
+
+  void _poke() => SchedulerBinding.instance.ensureVisualUpdate();
+
+  void _settingsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != _route) {
+      _route?.animation?.removeListener(_poke);
+      _route?.secondaryAnimation?.removeListener(_poke);
+      _route = route;
+      route?.animation?.addListener(_poke);
+      route?.secondaryAnimation?.addListener(_poke);
+    }
+    _tickerOn = TickerMode.valuesOf(context).enabled;
+    _cutLine = NativeCut.lineOf(context);
   }
 
   @override
@@ -147,32 +351,32 @@ class _NativeControlState extends State<NativeControl> {
     super.didUpdateWidget(old);
     if (old.handle != widget.handle) {
       old.handle?._attach(null);
-      widget.handle?._attach(_channel);
+      widget.handle?._attach(_id);
     }
   }
 
   @override
   void dispose() {
     widget.handle?._attach(null);
-    _channel?.setMethodCallHandler(null);
+    _route?.animation?.removeListener(_poke);
+    _route?.secondaryAnimation?.removeListener(_poke);
+    NativeOverlay.suppressed.removeListener(_poke);
+    SettingsStore.instance.removeListener(_settingsChanged);
+    NativeOverlay._unregister(_id);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final spec = _latest = _resolved(context);
-    _push(spec);
+    _push(_resolved(context));
     final size = widget.size ?? _reported ?? const Size(44, 44);
+    final standIn = widget.standIn;
     return SizedBox(
       width: size.width.isFinite ? size.width : null,
       height: size.height,
-      child: UiKitView(
-        viewType: 'monkeyhub/native_control',
-        creationParams: _sent ??= spec,
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _created,
-        gestureRecognizers: widget.gestures,
-      ),
+      child: _revealed || standIn == null
+          ? null
+          : Center(child: standIn),
     );
   }
 }
@@ -433,6 +637,51 @@ class NativeSpec {
     'enabled': enabled,
   });
 
+  /// The chat header's title capsule. The avatar is a cached picture file
+  /// ([avatarPath]), else [avatarSymbol] on a quiet disc, else [initials] on
+  /// [avatarColor]. Events: `tap` (the capsule), `avatar` (the picture).
+  factory NativeSpec.titlePill({
+    required String title,
+    String subtitle = '',
+    Color? subtitleColor,
+    String? avatarPath,
+    String? avatarSymbol,
+    String initials = '',
+    Color? avatarColor,
+    double avatarSize = 34,
+    double height = 44,
+  }) => NativeSpec._({
+    'kind': 'titlePill',
+    'label': title,
+    'subtitle': subtitle,
+    'subtitleColor': ?subtitleColor?.toARGB32(),
+    'avatarPath': ?avatarPath,
+    'avatarSymbol': ?avatarSymbol,
+    'initials': initials,
+    'avatarColor': ?avatarColor?.toARGB32(),
+    'avatarSize': avatarSize,
+    'size': height,
+  });
+
+  /// The pinned-message bar: [title] (the sender) and [preview] on one line,
+  /// [count] position ticks. Events: `tap` (jump), `list`.
+  factory NativeSpec.pinBar({
+    required String title,
+    String preview = '',
+    int count = 1,
+    int activeIndex = 0,
+    double height = 44,
+    double cornerRadius = 22,
+  }) => NativeSpec._({
+    'kind': 'pinBar',
+    'label': title,
+    'subtitle': preview,
+    'count': count,
+    'activeIndex': activeIndex,
+    'size': height,
+    'cornerRadius': cornerRadius,
+  });
+
   @override
   bool operator ==(Object other) =>
       other is NativeSpec && _specEquals(other._map, _map);
@@ -609,4 +858,66 @@ bool _specEquals(Object? a, Object? b) {
     return true;
   }
   return a == b;
+}
+
+/// The local file of a stored picture, for a native view to draw: the URL
+/// from [FileUrlCache], the bytes from the same disk cache the Flutter
+/// images use. Null when it cannot be had (offline and never fetched).
+Future<String?> nativeImageFile(
+  String storageId,
+  Future<String?> Function() fetchUrl,
+) async {
+  try {
+    final url = await FileUrlCache.instance.resolve(storageId, fetchUrl);
+    if (url == null) return null;
+    final file = await MediaImageCache.manager.getSingleFile(url);
+    return file.path;
+  } catch (_) {
+    return null;
+  }
+}
+
+/// One choice in [showNativeActionSheet].
+@immutable
+class NativeSheetAction {
+  const NativeSheetAction({
+    required this.id,
+    required this.label,
+    this.destructive = false,
+    this.cancel = false,
+  });
+
+  final String id;
+  final String label;
+  final bool destructive;
+  final bool cancel;
+}
+
+/// The system action sheet (an [alert] when asked): a real iOS sheet, Liquid
+/// Glass on iOS 26. Use only where [NativeControl.readyIn]; answers the
+/// picked action's id, null when dismissed or cancelled.
+Future<String?> showNativeActionSheet({
+  String title = '',
+  String message = '',
+  required List<NativeSheetAction> actions,
+  bool alert = false,
+}) async {
+  try {
+    return await NativeOverlay._channel.invokeMethod<String>('actionSheet', {
+      'title': title,
+      'message': message,
+      'alert': alert,
+      'actions': [
+        for (final a in actions)
+          {
+            'id': a.id,
+            'label': a.label,
+            'destructive': a.destructive,
+            'cancel': a.cancel,
+          },
+      ],
+    });
+  } catch (_) {
+    return null;
+  }
 }

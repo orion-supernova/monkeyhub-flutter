@@ -48,6 +48,7 @@ class ValueSlider extends StatelessWidget {
   Widget _liquid(BuildContext context) => GestureDetector(
         onDoubleTap: enabled ? onReset : null,
         child: NativeControl(
+          standIn: FlutterSkinsOnly(child: Builder(builder: build)),
           size: const Size(double.infinity, 34),
           gestures: {
             Factory<HorizontalDragGestureRecognizer>(

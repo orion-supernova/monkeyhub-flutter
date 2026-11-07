@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../family/family_service.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../ui/foundation/ui_kit.dart' show FlutterSkinsOnly;
 import '../ui/native/native_control.dart';
 import 'call_button.dart';
 import 'call_models.dart';
@@ -90,6 +91,7 @@ class CallButtonPair extends StatelessWidget {
         if (_busy) return row;
         final l10n = AppLocalizations.of(context);
         return NativeControl(
+          standIn: FlutterSkinsOnly(child: Builder(builder: build)),
           size: Size(44 * 2 + gap, 44),
           spec: NativeSpec.toolbar(
             options: [

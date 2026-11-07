@@ -983,6 +983,7 @@ class RowSwitch extends StatelessWidget {
   /// The [UiKit.liquid] skin: the system switch itself (a UISwitch), which
   /// plays its own haptic.
   Widget _liquid(BuildContext context) => NativeControl(
+        standIn: FlutterSkinsOnly(child: Builder(builder: build)),
         // iOS 26's switch is 64 x 28 (it grew from 51 x 31).
         size: const Size(64, 31),
         spec: NativeSpec.toggle(

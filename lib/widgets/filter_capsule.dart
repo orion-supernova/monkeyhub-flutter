@@ -6,6 +6,7 @@ import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
 import '../ui/kits/material/material_kit_theme.dart';
+import '../ui/native/native_control.dart';
 import 'odometer_number.dart';
 import 'spring_press.dart';
 
@@ -54,8 +55,43 @@ class FilterCapsule extends StatelessWidget {
   final String? semanticLabel;
 
   @override
-  Widget build(BuildContext context) =>
-      KitSwitch(glass: _glass, material: _material);
+  Widget build(BuildContext context) => KitSwitch(
+    glass: _glass,
+    material: _material,
+    // A real iOS 26 glass capsule; a colour mark or a custom fill keeps the
+    // Flutter skin, which can draw them.
+    liquid: NativeControl.readyIn(context) &&
+            leading == null &&
+            activeColor == null
+        ? _liquid
+        : null,
+  );
+
+  /// The [UiKit.liquid] skin: a native glass capsule, tinted when on.
+  Widget _liquid(BuildContext context) {
+    final n = count;
+    final showCount = n != null && (n > 0 || showZeroCount);
+    final text = showCount ? '$label  $n' : label;
+    return Semantics(
+      button: true,
+      selected: active,
+      label: semanticLabel ?? label,
+      excludeSemantics: true,
+      child: NativeControl(
+        standIn: FlutterSkinsOnly(child: Builder(builder: build)),
+        size: nativeButtonSize(context, text, height: 32),
+        spec: NativeSpec.button(
+          label: text,
+          prominent: active,
+          enabled: onTap != null || active,
+          height: 32,
+        ),
+        onEvent: (event, _) {
+          if (event == 'tap' && onTap != null) _tap();
+        },
+      ),
+    );
+  }
 
   /// The [UiKit.material] skin: a Material 3 [FilterChip] (tonal when on,
   /// outlined at rest, a check when on and there is no [leading] mark).

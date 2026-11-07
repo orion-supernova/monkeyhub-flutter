@@ -161,6 +161,7 @@ class _IosSegmentedControlState<T> extends State<IosSegmentedControl<T>> {
   /// The [UiKit.liquid] skin: the system segmented control. Values travel as
   /// their index; the commit rule is the same as the glass skin's.
   Widget _liquid(BuildContext context) => NativeControl(
+        standIn: FlutterSkinsOnly(child: Builder(builder: build)),
         size: const Size(double.infinity, 32),
         gestures: {
           Factory<HorizontalDragGestureRecognizer>(

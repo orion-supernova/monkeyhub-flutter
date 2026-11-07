@@ -8,6 +8,7 @@ import '../theme/density.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/chrome_motion.dart';
+import '../ui/foundation/ui_kit.dart' show FlutterSkinsOnly;
 import '../ui/native/native_control.dart';
 import '../widgets/liquid_glass.dart';
 import 'call_models.dart';
@@ -226,6 +227,7 @@ class _CallGlyphButtonState extends State<CallGlyphButton> {
     // handset's rock and the camera's pop, so it is the idle-state skin only.
     if (widget.enabled && onTap != null && NativeControl.readyIn(context)) {
       return NativeControl(
+        standIn: FlutterSkinsOnly(child: Builder(builder: build)),
         size: Size.square(widget.size),
         spec: NativeSpec.symbolButton(
           symbol: widget.kind == CallMediaKind.audio ? 'phone' : 'video',

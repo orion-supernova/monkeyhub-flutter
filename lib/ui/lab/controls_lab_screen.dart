@@ -351,6 +351,7 @@ class _DateField extends StatelessWidget {
   Widget build(BuildContext context) {
     if (NativeControl.readyIn(context)) {
       return NativeControl(
+        standIn: FlutterSkinsOnly(child: Builder(builder: build)),
         spec: NativeSpec.datePicker(
           ms: value.millisecondsSinceEpoch,
           style: 'compact',

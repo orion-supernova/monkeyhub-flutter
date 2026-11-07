@@ -102,6 +102,7 @@ import 'view_once_viewer.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
+import '../ui/native/native_control.dart';
 import '../widgets/anchored_scroll.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
@@ -6582,6 +6583,32 @@ class _RoomScreenState extends State<_RoomView>
               bottomChrome: bottomChrome,
             ),
           ),
+          // The scroll edge under the status bar and the floating header: the
+          // transcript fades out up there instead of running under the clock,
+          // as it does under an iOS 26 bar. Painted by Flutter, so native
+          // glass above samples it like any other content.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: Container(
+                height: MediaQuery.paddingOf(context).top + 44,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      ThemeScope.of(context).background,
+                      ThemeScope.of(context).background.withValues(alpha: 0.85),
+                      ThemeScope.of(context).background.withValues(alpha: 0),
+                    ],
+                    stops: const [0, 0.55, 1],
+                  ),
+                ),
+              ),
+            ),
+          ),
           Positioned(
             top: 0,
             left: 0,
@@ -9174,6 +9201,44 @@ Widget? roomHeaderStatus(
 /// the answer is a minutes figure, so "just now" does not outlive the minute
 /// it was true in; older answers only change at midnight, which the next
 /// rebuild catches.
+/// "Last seen 5 minutes ago" and its [short] form, for [at].
+String lastSeenLabel(BuildContext context, DateTime at, {required bool short}) {
+  final l10n = AppLocalizations.of(context);
+  final local = at.toLocal();
+  final now = DateTime.now();
+  final ago = now.difference(local);
+  if (ago.inMinutes < 1) {
+    return short
+        ? l10n.roomHeaderSeenShortJustNow
+        : l10n.roomHeaderLastSeenJustNow;
+  }
+  if (ago.inMinutes < 60) {
+    return short
+        ? l10n.roomHeaderSeenShortMinutes(ago.inMinutes)
+        : l10n.roomHeaderLastSeenMinutes(ago.inMinutes);
+  }
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(local.year, local.month, local.day);
+  final time = formatClockTime(local);
+  if (day == today) {
+    return short
+        ? l10n.roomHeaderSeenShortToday(time)
+        : l10n.roomHeaderLastSeenToday(time);
+  }
+  if (today.difference(day).inDays == 1) {
+    return short
+        ? l10n.roomHeaderSeenShortYesterday(time)
+        : l10n.roomHeaderLastSeenYesterday(time);
+  }
+  final material = MaterialLocalizations.of(context);
+  final date = day.year == now.year
+      ? material.formatShortMonthDay(day)
+      : material.formatShortDate(day);
+  return short
+      ? l10n.roomHeaderSeenShortDate(date)
+      : l10n.roomHeaderLastSeenDate(date, time);
+}
+
 class _LastSeenLine extends StatefulWidget {
   const _LastSeenLine({required this.at, required this.style});
 
@@ -9221,42 +9286,8 @@ class _LastSeenLineState extends State<_LastSeenLine> {
     super.dispose();
   }
 
-  String _label(BuildContext context, {required bool short}) {
-    final l10n = AppLocalizations.of(context);
-    final local = widget.at.toLocal();
-    final now = DateTime.now();
-    final ago = now.difference(local);
-    if (ago.inMinutes < 1) {
-      return short
-          ? l10n.roomHeaderSeenShortJustNow
-          : l10n.roomHeaderLastSeenJustNow;
-    }
-    if (ago.inMinutes < 60) {
-      return short
-          ? l10n.roomHeaderSeenShortMinutes(ago.inMinutes)
-          : l10n.roomHeaderLastSeenMinutes(ago.inMinutes);
-    }
-    final today = DateTime(now.year, now.month, now.day);
-    final day = DateTime(local.year, local.month, local.day);
-    final time = formatClockTime(local);
-    if (day == today) {
-      return short
-          ? l10n.roomHeaderSeenShortToday(time)
-          : l10n.roomHeaderLastSeenToday(time);
-    }
-    if (today.difference(day).inDays == 1) {
-      return short
-          ? l10n.roomHeaderSeenShortYesterday(time)
-          : l10n.roomHeaderLastSeenYesterday(time);
-    }
-    final material = MaterialLocalizations.of(context);
-    final date = day.year == now.year
-        ? material.formatShortMonthDay(day)
-        : material.formatShortDate(day);
-    return short
-        ? l10n.roomHeaderSeenShortDate(date)
-        : l10n.roomHeaderLastSeenDate(date, time);
-  }
+  String _label(BuildContext context, {required bool short}) =>
+      lastSeenLabel(context, widget.at, short: short);
 
   /// Shrinks no further than this before the compact wording takes over.
   static const _minScale = 0.85;
@@ -9480,12 +9511,50 @@ class _LiquidHeader extends StatelessWidget {
     return [CallButtonPair.group(roomId: room.id, gap: _controlGap)];
   }
 
+  /// The title capsule in Flutter glass: every kit but native controls, and
+  /// the native capsule's stand-in.
+  Widget _flutterPill(BuildContext context, String title) {
+    final theme = ThemeScope.of(context);
+    return LiquidGlass(
+    shape: LiquidGlassShape.capsule,
+    padding: const EdgeInsets.fromLTRB(5, 5, 16, 5),
+    onTap: onOpenInfo,
+    pressScale: 0.98,
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildAvatar(context),
+        const SizedBox(width: 9),
+        Flexible(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.body.copyWith(
+                  fontSize: 17,
+                  height: 1.2,
+                  fontWeight: FontWeight.w600,
+                  color: theme.ink,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              ?_status(context),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+  }
+
   Widget? _status(BuildContext context) =>
       roomHeaderStatus(context, room: room, dmUser: dmUser, typists: typists);
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     final title = room.isSavedMessages
         ? AppLocalizations.of(context).savedMessagesTitle
         : (dmUser?.displayName ?? room.name);
@@ -9508,39 +9577,20 @@ class _LiquidHeader extends StatelessWidget {
             // line, then ellipsizes. There is no expand-on-tap any more: a tap
             // goes straight to Room Info, which shows the full name anyway.
             child: Center(
-              child: LiquidGlass(
-                shape: LiquidGlassShape.capsule,
-                padding: const EdgeInsets.fromLTRB(5, 5, 16, 5),
-                onTap: onOpenInfo,
-                pressScale: 0.98,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildAvatar(context),
-                    const SizedBox(width: 9),
-                    Flexible(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: theme.body.copyWith(
-                              fontSize: 17,
-                              height: 1.2,
-                              fontWeight: FontWeight.w600,
-                              color: theme.ink,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          ?_status(context),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              child: NativeControl.readyIn(context)
+                  ? _NativeTitlePill(
+                      room: room,
+                      api: api,
+                      dmUser: dmUser,
+                      typists: typists,
+                      title: title,
+                      onOpenInfo: onOpenInfo,
+                      onAvatar: _avatarStorageId == null
+                          ? onOpenInfo
+                          : () => _openAvatarFullscreen(context),
+                      standIn: _flutterPill(context, title),
+                    )
+                  : _flutterPill(context, title),
             ),
           ),
           const SizedBox(width: 12),
@@ -9548,6 +9598,185 @@ class _LiquidHeader extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// The title capsule as a native iOS 26 glass view (Settings › Glass ›
+/// Native controls on Everything): the same avatar, name and status line as
+/// the Flutter capsule, drawn by SwiftUI so the glass is the system's.
+class _NativeTitlePill extends StatefulWidget {
+  const _NativeTitlePill({
+    required this.room,
+    required this.api,
+    required this.dmUser,
+    required this.typists,
+    required this.title,
+    required this.onOpenInfo,
+    required this.onAvatar,
+    required this.standIn,
+  });
+
+  final ChatRoom room;
+  final ChatApi api;
+  final ChatUser? dmUser;
+  final List<ChatUser> typists;
+  final String title;
+  final VoidCallback onOpenInfo;
+  final VoidCallback onAvatar;
+  final Widget standIn;
+
+  @override
+  State<_NativeTitlePill> createState() => _NativeTitlePillState();
+}
+
+class _NativeTitlePillState extends State<_NativeTitlePill> {
+  String? _storageId;
+  String? _path;
+
+  /// "Last seen 5 minutes ago" goes stale; re-read while it is a minutes one.
+  Timer? _tick;
+
+  String? get _wantedId {
+    final id = widget.dmUser != null
+        ? widget.dmUser!.avatarStorageId
+        : widget.room.avatarStorageId;
+    return (id == null || id.isEmpty || widget.room.isSavedMessages) ? null : id;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _resolve();
+    _tick = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void didUpdateWidget(_NativeTitlePill old) {
+    super.didUpdateWidget(old);
+    _resolve();
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  void _resolve() {
+    final id = _wantedId;
+    if (id == _storageId) return;
+    _storageId = id;
+    _path = null;
+    if (id == null) return;
+    nativeImageFile(id, () => widget.api.getFileUrl(id)).then((path) {
+      if (!mounted || _storageId != id) return;
+      setState(() => _path = path);
+    });
+  }
+
+  /// The status line's words and colour, as [roomHeaderStatus] draws them.
+  ({String text, Color color})? _status(PresenceView? presence) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final room = widget.room;
+    final dm = widget.dmUser;
+    if (widget.typists.isNotEmpty) {
+      return (
+        text: dm != null && widget.typists.length == 1
+            ? l10n.roomHeaderStatusTyping
+            : typingLabel(context, widget.typists),
+        color: theme.accent,
+      );
+    }
+    if (room.vanishMode) {
+      return (text: l10n.vanishHeaderStatus, color: VanishPalette(theme).vanish);
+    }
+    if (room.isSavedMessages) return null;
+    if (dm != null) {
+      if (presence == null) return null;
+      if (presence.status == 'online') {
+        return (text: l10n.roomHeaderStatusOnline, color: theme.success);
+      }
+      final seen = presence.lastSeen;
+      if (seen == null) return null;
+      return (
+        text: lastSeenLabel(context, seen, short: false),
+        color: theme.inkMuted,
+      );
+    }
+    if (room.isGroupChat) {
+      return (
+        text: l10n.roomHeaderStatusMembers(room.memberCount),
+        color: theme.inkMuted,
+      );
+    }
+    return null;
+  }
+
+  Widget _pill(BuildContext context, PresenceView? presence) {
+    final theme = ThemeScope.of(context);
+    final status = _status(presence);
+    const avatar = kChatHeaderAvatarSize;
+    final scaler = MediaQuery.textScalerOf(context);
+    double width(String text, double size, FontWeight weight) {
+      final painter = TextPainter(
+        text: TextSpan(
+          text: text,
+          style: TextStyle(fontSize: size, fontWeight: weight),
+        ),
+        textDirection: Directionality.of(context),
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      final w = painter.width;
+      painter.dispose();
+      return w;
+    }
+
+    final textWidth = math.max(
+      width(widget.title, 17, FontWeight.w600),
+      status == null ? 0.0 : width(status.text, 13, FontWeight.w400),
+    );
+    final initial = widget.dmUser?.displayInitial ??
+        (widget.room.name.isEmpty ? '#' : widget.room.name.characters.first.toUpperCase());
+    return LayoutBuilder(
+      builder: (context, box) {
+        final natural = (5 + avatar + 9 + textWidth + 16 + 2).ceilToDouble();
+        final w = box.hasBoundedWidth ? math.min(natural, box.maxWidth) : natural;
+        return Semantics(
+          button: true,
+          label: widget.title,
+          child: NativeControl(
+            size: Size(w, avatar + 10),
+            standIn: widget.standIn,
+            spec: NativeSpec.titlePill(
+              title: widget.title,
+              subtitle: status?.text ?? '',
+              subtitleColor: status?.color,
+              avatarPath: _path,
+              avatarSymbol: widget.room.isSavedMessages ? 'bookmark.fill' : null,
+              initials: initial,
+              avatarColor: theme.accent,
+              avatarSize: avatar,
+              height: avatar + 10,
+            ),
+            onEvent: (event, _) {
+              if (event == 'tap') widget.onOpenInfo();
+              if (event == 'avatar') widget.onAvatar();
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dm = widget.dmUser;
+    if (dm == null || widget.room.isSavedMessages) return _pill(context, null);
+    return PresenceBuilder(user: dm, builder: _pill);
   }
 }
 

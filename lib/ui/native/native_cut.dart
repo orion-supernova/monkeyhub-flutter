@@ -1,40 +1,61 @@
-import 'dart:math' as math;
-
 import 'package:flutter/widgets.dart';
 
-import 'native_control.dart';
-
-/// Cuts a page's scrolling content off at the bottom of its bar, but only
-/// while native iOS controls are drawn ([NativeControl.readyIn]).
+/// Marks where a page's bar ends, so native iOS controls in the page's
+/// scrolling content stop there ([NativeControl] cuts its overlay view at
+/// this line).
 ///
-/// A native control is a platform view: Flutter's soft top edge cannot fade
-/// it and the glass bar cannot cover it, so a switch scrolled under the bar
-/// drew over the bar and the status bar. Flutter does apply a clip to a
-/// platform view, so under native controls the content stops at the bar
-/// instead of fading under it. Every other kit keeps the soft edge.
-class NativeCut extends StatelessWidget {
+/// Native controls are views above Flutter: the glass bar cannot cover them
+/// and the soft top edge cannot fade them, so without this a switch scrolled
+/// under the bar would draw over the bar and the status bar. Flutter content
+/// itself is never clipped here: it keeps scrolling softly under the bar in
+/// every kit.
+class NativeCut extends StatefulWidget {
   const NativeCut({super.key, required this.top, required this.child});
 
+  /// The bar's bottom, measured from this widget's top.
   final double top;
   final Widget child;
 
-  @override
-  Widget build(BuildContext context) {
-    if (!NativeControl.readyIn(context)) return child;
-    return ClipRect(clipper: _BelowClipper(top), child: child);
+  /// A function giving the line in global coordinates, or null outside any
+  /// [NativeCut]. Measured when called, so it follows the page.
+  static double? Function()? lineOf(BuildContext context) {
+    final scope = context.dependOnInheritedWidgetOfExactType<_NativeCutScope>();
+    final state = scope?.state;
+    if (state == null) return null;
+    return state._line;
   }
+
+  @override
+  State<NativeCut> createState() => _NativeCutState();
 }
 
-class _BelowClipper extends CustomClipper<Rect> {
-  const _BelowClipper(this.top);
+class _NativeCutState extends State<NativeCut> {
+  double? _line() {
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.attached || !box.hasSize) return null;
+    final rect = MatrixUtils.transformRect(
+      box.getTransformTo(null),
+      Offset.zero & box.size,
+    );
+    return rect.top + widget.top;
+  }
 
+  @override
+  Widget build(BuildContext context) =>
+      _NativeCutScope(state: this, top: widget.top, child: widget.child);
+}
+
+class _NativeCutScope extends InheritedWidget {
+  const _NativeCutScope({
+    required this.state,
+    required this.top,
+    required super.child,
+  });
+
+  final _NativeCutState state;
   final double top;
 
   @override
-  Rect getClip(Size size) =>
-      Rect.fromLTRB(0, math.min(top, size.height), size.width, size.height);
-
-  @override
-  bool shouldReclip(_BelowClipper old) => old.top != top;
+  bool updateShouldNotify(_NativeCutScope old) =>
+      old.state != state || old.top != top;
 }
-

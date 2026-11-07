@@ -328,7 +328,9 @@ class SettingsStore extends ChangeNotifier {
   bool get pushEnabled => _pushEnabled;
   bool get gameReminders => _gameReminders;
   bool get friendActivity => _friendActivity;
-  ChatStyle get chatStyle => _chatStyle;
+  ChatStyle get chatStyle =>
+      ChatStyle.values.asNameMap()[const String.fromEnvironment('CHAT_STYLE')] ??
+      _chatStyle;
   ReplyStyle get replyStyle => _replyStyle;
 
   /// The shape family every message bubble is drawn with. Defaults to

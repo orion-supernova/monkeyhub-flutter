@@ -44,6 +44,10 @@ import '../ui/lab/controls_lab_screen.dart';
 
 const bool _kOpenLab = bool.fromEnvironment('OPEN_LAB');
 
+/// `--dart-define=OPEN_ROOM=<n or name>` opens the n-th chat (or the first
+/// whose name contains it) once rooms load: a headless simulator cannot tap.
+const String _kOpenRoom = String.fromEnvironment('OPEN_ROOM');
+
 /// Hosts the active major section (Chat / Discover / Feed / Settings) and
 /// switches via the [RadialFloatingMenu] (or a conventional bottom-pill nav,
 /// depending on [SettingsStore.navStyle]).
@@ -94,6 +98,10 @@ class _HomeShellState extends State<HomeShell> {
     // Debug convenience for simulator screenshots:
     // `--dart-define=OPEN_LAB=true` opens the Controls lab after the first
     // frame of the shell.
+    if (_kOpenRoom.isNotEmpty) {
+      widget.repo.addListener(_openRoomOnce);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openRoomOnce());
+    }
     if (_kOpenLab) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -104,8 +112,26 @@ class _HomeShellState extends State<HomeShell> {
     }
   }
 
+  bool _openedRoom = false;
+
+  void _openRoomOnce() {
+    final rooms = widget.repo.rooms;
+    if (_openedRoom || !mounted || rooms.isEmpty) return;
+    final index = int.tryParse(_kOpenRoom);
+    final room = index != null
+        ? rooms[index.clamp(0, rooms.length - 1)]
+        : rooms.firstWhere(
+            (r) => r.name.toLowerCase().contains(_kOpenRoom.toLowerCase()),
+            orElse: () => rooms.first,
+          );
+    _openedRoom = true;
+    widget.repo.removeListener(_openRoomOnce);
+    openRoom(context, roomId: room.id, repo: widget.repo, api: widget.api);
+  }
+
   @override
   void dispose() {
+    if (_kOpenRoom.isNotEmpty) widget.repo.removeListener(_openRoomOnce);
     SettingsStore.instance.removeListener(_onSettings);
     widget.family.removeListener(_onSettings);
     widget.repo.removeListener(_onSettings);

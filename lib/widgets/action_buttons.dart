@@ -228,6 +228,7 @@ class SheetActionButton extends StatelessWidget {
   Widget _liquid(BuildContext context) {
     final text = sentenceCaseOf(context, label);
     final button = NativeControl(
+      standIn: FlutterSkinsOnly(child: Builder(builder: build)),
       size: expand
           ? Size(double.infinity, minHeight)
           : nativeButtonSize(
@@ -612,6 +613,7 @@ class RowPillButton extends StatelessWidget {
   Widget _liquid(BuildContext context) => Padding(
     padding: const EdgeInsetsDirectional.only(start: 8),
     child: NativeControl(
+      standIn: FlutterSkinsOnly(child: Builder(builder: build)),
       size: nativeButtonSize(context, sentenceCaseOf(context, label), height: 32),
       spec: NativeSpec.button(
         label: sentenceCaseOf(context, label),

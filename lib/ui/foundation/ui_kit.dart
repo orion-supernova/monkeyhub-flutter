@@ -228,6 +228,24 @@ class UiKitScope extends StatelessWidget {
   }
 }
 
+/// [child] drawn with Flutter skins only: native controls off below here.
+/// A [NativeControl]'s stand-in is the same component's `build` run under
+/// this (`FlutterSkinsOnly(child: Builder(builder: build))`), so it is the
+/// exact Flutter twin of the native control. Never the widget itself: a
+/// component with a GlobalKey would then be in the tree twice.
+class FlutterSkinsOnly extends StatelessWidget {
+  const FlutterSkinsOnly({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => _UiKitInherited(
+    kit: UiKit.of(context),
+    nativeControls: false,
+    child: child,
+  );
+}
+
 class _UiKitInherited extends InheritedWidget {
   const _UiKitInherited({
     required this.kit,

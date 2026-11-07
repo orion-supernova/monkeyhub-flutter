@@ -1,6 +1,9 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../theme/theme_scope.dart';
+import '../../widgets/liquid_glass.dart';
 import 'native_control.dart';
 
 /// A native one-line text field (or the search capsule) that behaves like the
@@ -242,9 +245,50 @@ class _NativeTextInputState extends State<NativeTextInput> {
             box.hasBoundedWidth ? box.maxWidth : double.infinity,
             widget.height,
           ),
+          standIn: _standIn(context),
           spec: spec,
           handle: _handle,
           onEvent: _onEvent,
+        ),
+      ),
+    );
+  }
+
+  /// What shows while the native field cannot (a page sliding in): the same
+  /// capsule in Flutter glass with the text or placeholder, not editable.
+  /// Never a Flutter text field, which would fight the native one for the
+  /// [FocusNode].
+  Widget _standIn(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final text = widget.controller.text;
+    final shown = widget.secure ? '•' * text.length : text;
+    return IgnorePointer(
+      child: LiquidGlass(
+        shape: LiquidGlassShape.rounded,
+        radius: widget.cornerRadius,
+        size: Size(double.infinity, widget.height),
+        shadow: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              if (widget.search) ...[
+                Icon(CupertinoIcons.search, size: 17, color: theme.inkMuted),
+                const SizedBox(width: 6),
+              ],
+              Expanded(
+                child: Text(
+                  shown.isEmpty ? widget.placeholder : shown,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 17,
+                    color: shown.isEmpty ? theme.inkMuted : theme.ink,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -7,6 +7,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../ui/native/native_control.dart';
 import 'adaptive_sheet.dart';
 import 'chat_list_row.dart' show ChatRoomAvatar;
 import 'ios_kit.dart';
@@ -71,6 +72,52 @@ Future<bool> showConfirmSheet(
 /// the three outcomes apart — true for confirm, false for the second button,
 /// null when the sheet was dismissed without answering.
 Future<bool?> showConfirmSheetChoice(
+  BuildContext context, {
+  required String headline,
+  required String body,
+  required String confirmLabel,
+  String? cancelLabel,
+  IconData? icon,
+  bool destructive = true,
+}) async {
+  // Native controls on: the system's own sheet, Liquid Glass on iOS 26.
+  if (NativeControl.readyIn(context)) {
+    final l10n = AppLocalizations.of(context);
+    final picked = await showNativeActionSheet(
+      title: headline,
+      message: body,
+      actions: [
+        NativeSheetAction(
+          id: 'confirm',
+          label: confirmLabel,
+          destructive: destructive,
+        ),
+        if (cancelLabel != null)
+          NativeSheetAction(id: 'second', label: cancelLabel),
+        NativeSheetAction(
+          id: 'cancel',
+          label: l10n.destructiveSheetCancelButtonLabel,
+          cancel: true,
+        ),
+      ],
+    );
+    if (picked == 'confirm') return true;
+    if (picked == 'second') return false;
+    return cancelLabel == null ? false : null;
+  }
+  if (!context.mounted) return null;
+  return _flutterConfirm(
+    context,
+    headline: headline,
+    body: body,
+    confirmLabel: confirmLabel,
+    cancelLabel: cancelLabel,
+    icon: icon,
+    destructive: destructive,
+  );
+}
+
+Future<bool?> _flutterConfirm(
   BuildContext context, {
   required String headline,
   required String body,
