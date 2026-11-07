@@ -80,18 +80,26 @@ class FilterCapsule extends StatelessWidget {
       selected: active,
       label: semanticLabel ?? label,
       excludeSemantics: true,
-      child: NativeControl(
-        standIn: FlutterSkinsOnly(child: Builder(builder: build)),
-        size: nativeButtonSize(context, text, height: 32),
-        spec: NativeSpec.button(
-          label: text,
-          prominent: active,
-          enabled: onTap != null || active,
-          height: 32,
+      // Filters sit at the top of a scrolling list (and in a sideways row):
+      // a native button would take every touch that lands on it, so a drag
+      // that started on a capsule scrolled nothing. The glass only draws;
+      // the tap is Flutter's, and a tap recognizer never claims a drag, so
+      // both scrolls win from anywhere on the row.
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap == null ? null : _tap,
+        onLongPress: onLongPress,
+        child: NativeControl(
+          standIn: FlutterSkinsOnly(child: Builder(builder: build)),
+          size: nativeButtonSize(context, text, height: 32),
+          spec: NativeSpec.button(
+            label: text,
+            prominent: active,
+            enabled: onTap != null || active,
+            height: 32,
+            passthrough: true,
+          ),
         ),
-        onEvent: (event, _) {
-          if (event == 'tap' && onTap != null) _tap();
-        },
       ),
     );
   }
@@ -213,7 +221,11 @@ class FilterCapsule extends StatelessWidget {
             leading!,
             const SizedBox(width: 6),
           ],
-          AnimatedDefaultTextStyle(
+          // Flexible + clip: a capsule squeezed by its slot (or mid-resize)
+          // trims its label by a sub-pixel instead of throwing an overflow;
+          // clip, not ellipsis, so a rounding sliver never shows a "…".
+          Flexible(
+            child: AnimatedDefaultTextStyle(
             duration: motion.d(theme.motionFast),
             style: theme.bodySoft.copyWith(
               fontSize: 15,
@@ -226,7 +238,9 @@ class FilterCapsule extends StatelessWidget {
                   // count hit zero would be impossible to aim at.
                   : (empty ? theme.inkMuted : theme.inkSoft),
             ),
-            child: Text(label),
+            child: Text(label,
+                maxLines: 1, softWrap: false, overflow: TextOverflow.clip),
+            ),
           ),
           if (showCount) ...[
             const SizedBox(width: 5),

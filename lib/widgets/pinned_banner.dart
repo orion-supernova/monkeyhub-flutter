@@ -387,7 +387,19 @@ class _StripState extends State<_Strip> {
       }
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: _kGlassGutter),
-        child: bar,
+        // The strip floats over the transcript, and only the label and the
+        // list button were hit-testable: a drag that started on the ticks,
+        // the pin or a gap fell through and scrolled the chat, and one that
+        // started on the label lost the arena to the list. Opaque, and the
+        // pill claims both drag axes, so touching it never moves the chat.
+        // Taps still reach the targets inside (a tap never enters the drag
+        // arena past slop).
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onVerticalDragStart: (_) {},
+          onHorizontalDragStart: (_) {},
+          child: bar,
+        ),
       );
     }
 

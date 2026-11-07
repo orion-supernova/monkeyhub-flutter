@@ -274,4 +274,58 @@ void main() {
 
     expect(taps, 1);
   });
+
+  testWidgets('a drag on the floating glass pill never scrolls the chat', (
+    tester,
+  ) async {
+    final scroll = ScrollController();
+    var taps = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: ThemeScope(
+          controller: ThemeController(BasicTheme.midnight()),
+          child: Scaffold(
+            body: Stack(
+              children: [
+                ListView.builder(
+                  controller: scroll,
+                  itemCount: 200,
+                  itemBuilder: (_, i) => SizedBox(height: 40, child: Text('$i')),
+                ),
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    width: 400,
+                    child: PinnedMessageBanner(
+                      pins: [pin('m1', 'deploy at 4pm')],
+                      activeIndex: 0,
+                      onTap: () => taps++,
+                      onOpenList: () {},
+                      glass: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    final pill = tester.getRect(find.byType(PinnedMessageBanner));
+    // From the label, and from the far-left ticks (a gap with no target).
+    for (final from in [
+      tester.getCenter(find.text('alice  deploy at 4pm')),
+      Offset(pill.left + 22, pill.center.dy),
+    ]) {
+      await tester.dragFrom(from, const Offset(0, -200));
+      await tester.pumpAndSettle();
+      expect(scroll.offset, 0, reason: 'dragged from $from');
+    }
+    await tester.tap(find.text('alice  deploy at 4pm'));
+    await tester.pump();
+    expect(taps, 1, reason: 'taps still reach the row');
+  });
 }

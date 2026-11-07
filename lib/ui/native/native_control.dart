@@ -454,6 +454,9 @@ class NativeSpec {
   });
 
   /// A labelled glass button; [prominent] is the tinted primary action.
+  /// [passthrough] draws it only (see [NativeSpec.symbolButton]): for a
+  /// button inside a scrolling row, where a drag that starts on it must
+  /// scroll, the caller takes the tap in Flutter instead.
   factory NativeSpec.button({
     required String label,
     String? symbol,
@@ -462,8 +465,10 @@ class NativeSpec {
     bool enabled = true,
     bool fill = false,
     double height = 50,
+    bool passthrough = false,
   }) => NativeSpec._({
     'kind': 'button',
+    'passthrough': passthrough,
     'label': label,
     'symbol': ?symbol,
     'prominent': prominent,
