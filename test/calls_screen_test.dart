@@ -9,13 +9,13 @@ import 'package:monkeyhub/screens/calls/call_details_sheet.dart';
 import 'package:monkeyhub/screens/calls/call_log_models.dart';
 import 'package:monkeyhub/screens/calls/call_log_store.dart';
 import 'package:monkeyhub/models/chat_user.dart';
-import 'package:monkeyhub/screens/calls/call_swipe_row.dart';
 import 'package:monkeyhub/screens/calls/calls_fav_suggestion.dart';
 import 'package:monkeyhub/screens/calls/calls_format.dart';
 import 'package:monkeyhub/screens/calls/calls_screen.dart';
 import 'package:monkeyhub/screens/navigation/destinations.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/glass_buttons.dart';
 import 'package:monkeyhub/widgets/people_picker.dart';
 
 import 'fakes/fake_call_log.dart';
@@ -181,62 +181,6 @@ void main() {
     });
   });
 
-  group('swipe', () {
-    Future<void> pumpRow(
-      WidgetTester tester,
-      List<String> log,
-    ) async {
-      await tester.pumpWidget(_app(
-        CallSwipeRow(
-          voiceLabel: 'Voice',
-          videoLabel: 'Video',
-          onVoice: () => log.add('voice'),
-          onVideo: () => log.add('video'),
-          child: const SizedBox(height: 60, width: double.infinity),
-        ),
-      ));
-    }
-
-    testWidgets('a long drag right calls on release, left video-calls', (tester) async {
-      final log = <String>[];
-      await pumpRow(tester, log);
-      final g = await tester.startGesture(tester.getCenter(find.byType(CallSwipeRow)));
-      await g.moveBy(const Offset(140, 0));
-      await tester.pump();
-      expect(log, isEmpty, reason: 'nothing before the finger lifts');
-      await g.up();
-      await tester.pumpAndSettle();
-      expect(log, ['voice']);
-
-      final g2 = await tester.startGesture(tester.getCenter(find.byType(CallSwipeRow)));
-      await g2.moveBy(const Offset(-140, 0));
-      await g2.up();
-      await tester.pumpAndSettle();
-      expect(log, ['voice', 'video']);
-    });
-
-    testWidgets('a short drag springs back without calling', (tester) async {
-      final log = <String>[];
-      await pumpRow(tester, log);
-      final g = await tester.startGesture(tester.getCenter(find.byType(CallSwipeRow)));
-      await g.moveBy(const Offset(30, 0));
-      await g.up();
-      await tester.pumpAndSettle();
-      expect(log, isEmpty);
-    });
-
-    testWidgets('dragging back under the line before release cancels', (tester) async {
-      final log = <String>[];
-      await pumpRow(tester, log);
-      final g = await tester.startGesture(tester.getCenter(find.byType(CallSwipeRow)));
-      await g.moveBy(const Offset(140, 0));
-      await g.moveBy(const Offset(-130, 0));
-      await g.up();
-      await tester.pumpAndSettle();
-      expect(log, isEmpty);
-    });
-  });
-
   group('screen', () {
     late FakeCallLogSource src;
     late CallLogStore store;
@@ -360,6 +304,47 @@ void main() {
       expect(find.text('Started'), findsOneWidget);
       expect(find.text('Ended'), findsOneWidget);
       expect(find.text('Message'), findsOneWidget);
+    });
+
+    testWidgets('each row carries voice and video buttons of at least 44pt',
+        (tester) async {
+      await open(tester);
+      final voice = find.bySemanticsLabel('Voice call');
+      final video = find.bySemanticsLabel('Video call');
+      expect(voice, findsWidgets);
+      expect(video, findsWidgets);
+      final size = tester.getSize(find
+          .ancestor(
+              of: find.byIcon(CupertinoIcons.phone_fill),
+              matching: find.byType(GlassIconButton))
+          .first);
+      expect(size.width, greaterThanOrEqualTo(44));
+      expect(size.height, greaterThanOrEqualTo(44));
+    });
+
+    testWidgets('swipe left reveals Delete; tapping it removes the entry',
+        (tester) async {
+      await open(tester);
+      await tester.drag(find.text('Climbing crew'), const Offset(-150, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete'), findsOneWidget);
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      expect(src.removed, ['g1']);
+    });
+
+    testWidgets('a full swipe left deletes on release', (tester) async {
+      await open(tester);
+      await tester.drag(find.text('Climbing crew'), const Offset(-700, 0));
+      await tester.pumpAndSettle();
+      expect(src.removed, ['g1']);
+    });
+
+    testWidgets('a short swipe does not delete', (tester) async {
+      await open(tester);
+      await tester.drag(find.text('Climbing crew'), const Offset(-30, 0));
+      await tester.pumpAndSettle();
+      expect(src.removed, isEmpty);
     });
 
     testWidgets('opening the tab marks the missed calls seen', (tester) async {

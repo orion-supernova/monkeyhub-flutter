@@ -10,6 +10,7 @@ import '../../calls/widgets/call_chrome.dart' show kCallAcceptGreen;
 import '../../l10n/generated/app_localizations.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_sheet.dart';
+import '../../widgets/quick_actions.dart';
 import '../../widgets/sheet_kit.dart';
 import 'call_log_models.dart';
 import 'call_row_tile.dart' show resolveSubject;
@@ -114,103 +115,118 @@ class CallDetailsSheet extends StatelessWidget {
     final events = buildTimeline(l10n, e);
     final quality = qualityLine(l10n, e.qualitySamples);
     final detail = callDetail(l10n, e);
+    // No `maxHeightFraction`: any fraction makes the frame FILL that share of
+    // the screen. Without one the sheet hugs its content, and only scrolls
+    // when the content is taller than the screen allows.
     return SheetFrame(
       showClose: true,
-      maxHeightFraction: 0.92,
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
       child: Material(
         type: MaterialType.transparency,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(child: subject.avatar(72)),
-            const SizedBox(height: 12),
-            Text(
-              subject.name,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: theme.displaySmall.copyWith(color: theme.ink),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              detail,
-              textAlign: TextAlign.center,
-              style: theme.bodySoft.copyWith(
-                fontSize: 15,
-                color: e.isMissed ? theme.danger : theme.inkMuted,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Who and what, side by side: one tight header, not a poster.
+              Row(
+                children: [
+                  subject.avatar(56),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          subject.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.bodyEmph.copyWith(
+                            fontSize: 20,
+                            color: theme.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          e.wasAnswered && e.durationMs > 0
+                              ? '$detail · ${clockDuration(e.durationMs)}'
+                              : detail,
+                          style: theme.bodySoft.copyWith(
+                            fontSize: 14.5,
+                            color: e.isMissed ? theme.danger : theme.inkMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
-            if (e.wasAnswered && e.durationMs > 0) ...[
-              const SizedBox(height: 2),
-              Text(
-                l10n.callsTabDetailsTalked(clockDuration(e.durationMs)),
-                textAlign: TextAlign.center,
-                style: theme.bodySoft.copyWith(fontSize: 14, color: theme.inkMuted),
-              ),
-            ],
-            const SizedBox(height: 22),
-            _Timeline(events: events, startedAt: e.startedAt),
-            if (quality != null) ...[
-              const SizedBox(height: 20),
-              Text(
-                l10n.callsTabQualityTitle,
-                style: theme.bodyEmph.copyWith(fontSize: 15, color: theme.inkSoft),
-              ),
-              const SizedBox(height: 8),
-              QualityStrip(samples: e.qualitySamples),
-              const SizedBox(height: 8),
-              Text(
-                quality.text,
-                style: theme.bodySoft.copyWith(fontSize: 14, color: theme.inkMuted),
-              ),
-            ],
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: SheetActionButton(
-                    label: l10n.callsTabVoiceCall,
-                    icon: CupertinoIcons.phone_fill,
-                    tonal: true,
-                    onTap: () => onCall(CallMediaKind.audio),
+              const SizedBox(height: 14),
+              _Timeline(events: events, startedAt: e.startedAt),
+              if (quality != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  l10n.callsTabQualityTitle,
+                  style: theme.bodyEmph.copyWith(
+                    fontSize: 14.5,
+                    color: theme.inkSoft,
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: SheetActionButton(
-                    label: l10n.callsTabVideoCall,
-                    icon: CupertinoIcons.videocam_fill,
-                    tonal: true,
-                    onTap: () => onCall(CallMediaKind.video),
+                const SizedBox(height: 6),
+                QualityStrip(samples: e.qualitySamples),
+                const SizedBox(height: 6),
+                Text(
+                  quality.text,
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 13.5,
+                    color: theme.inkMuted,
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 10),
-            SheetActionButton(
-              label: l10n.callsTabDetailsMessage,
-              icon: CupertinoIcons.bubble_left_fill,
-              onTap: onMessage,
-            ),
-            if (isFavourite != null && onToggleFavourite != null) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
+              // One row of icon-over-label tiles, iOS Contacts style: four
+              // wide pill buttons in a 2x2 grid let long labels (Turkish,
+              // Hindi) wrap and made the sheet taller than its content.
               ListenableBuilder(
                 listenable: refresh ?? const AlwaysStoppedAnimation<double>(0),
                 builder: (context, _) {
-                  final fav = isFavourite!();
-                  if (fav == null) return const SizedBox.shrink();
-                  return SheetActionButton(
-                    label: fav ? l10n.callsTabFavRemove : l10n.callsTabFavAdd,
-                    icon: fav ? CupertinoIcons.star_slash : CupertinoIcons.star,
-                    tonal: true,
-                    onTap: onToggleFavourite!,
+                  final fav = isFavourite == null || onToggleFavourite == null
+                      ? null
+                      : isFavourite!();
+                  return SheetQuickActions(
+                    onSheet: true,
+                    actions: [
+                      QuickAction(
+                        icon: CupertinoIcons.phone_fill,
+                        label: l10n.callsTabVoiceCall,
+                        onTap: () => onCall(CallMediaKind.audio),
+                      ),
+                      QuickAction(
+                        icon: CupertinoIcons.videocam_fill,
+                        label: l10n.callsTabVideoCall,
+                        onTap: () => onCall(CallMediaKind.video),
+                      ),
+                      QuickAction(
+                        icon: CupertinoIcons.bubble_left_fill,
+                        label: l10n.callsTabDetailsMessage,
+                        onTap: onMessage,
+                      ),
+                      if (fav != null)
+                        QuickAction(
+                          icon: fav
+                              ? CupertinoIcons.star_slash_fill
+                              : CupertinoIcons.star_fill,
+                          label: fav
+                              ? l10n.callsTabFavRemove
+                              : l10n.callsTabFavAdd,
+                          onTap: onToggleFavourite!,
+                        ),
+                    ],
                   );
                 },
               ),
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -251,12 +267,12 @@ class _Timeline extends StatelessWidget {
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 5),
                     child: Text(events[i].label, style: label),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 5),
                   child: Text(
                     i == 0
                         ? clockTime(context, events[i].at)

@@ -38,6 +38,7 @@ class FakeCallLogSource implements CallLogSource {
   /// Every first-page subscription opened, by filter.
   final List<String> subscribed = [];
   final List<String> removed = [];
+  final List<int> summaryCalls = [];
   final Map<String, void Function(CallLogPage)> _sinks = {};
 
   /// Pushes a new first page to a live subscription.
@@ -66,7 +67,8 @@ class FakeCallLogSource implements CallLogSource {
       const CallLogPage(rows: [], isDone: true);
 
   @override
-  Future<CallLogSummary> summary({required int since}) async {
+  Future<CallLogSummary> summary({required int since, int tzOffsetMin = 0}) async {
+    summaryCalls.add(since);
     // The week is the shorter window: the caller asks for it first.
     return since > DateTime.now().subtract(const Duration(days: 10)).millisecondsSinceEpoch
         ? week

@@ -6,7 +6,8 @@ Status: in progress (2026-11-06). Three phases, built in order, one contract.
    then the same bubble settles into its final state.
 2. **Calls tab**: a fifth home section, on by default, toggle in
    Settings › Navigation. Live-now strip, All / Missed pill, recent list,
-   swipe-to-call, call details sheet, new-call button.
+   call buttons in every row, swipe-to-delete, call details sheet, new-call
+   button.
 3. **Extras**: favourites row, talk-time header, quality timeline in details.
 
 Huddles keep their centered `HuddleHistoryLine` (nobody called anybody). They
@@ -137,9 +138,14 @@ Room deletion leaves them (the tab shows "Deleted chat").
 - `list({ paginationOpts, filter: "all" | "missed" })`: newest first.
   Returns the rows as stored plus `_id`. No profile copies: the client resolves
   peers and rooms from what it already has (rooms store, user lookups).
-- `summary({ since })`: `{ totalMs, calls, top: [{ peerId, ms, calls }] }` over
-  `by_user_started >= since`, `take(1000)` bounded, top 8 by `ms`, direct
-  calls only for `top`.
+- `summary({ since, tzOffsetMin? })`: one `by_user_started >= since` read,
+  `take(1000)` bounded, folded in a single pass into: `totalMs`, `calls`,
+  `top` (8 by `ms`, direct calls only), `answered`, `missed`, `outgoing`,
+  `incoming`, `audioCalls/videoCalls`, `audioMs/videoMs`, `longestMs`,
+  `byHour[24]`, `byWeekday[7]` (Sunday first), `activeDays`, `bestStreak`,
+  `currentStreak` (days with an answered call). Hour, weekday and streak fall on
+  the viewer's clock via `tzOffsetMin`. All figures past `top` are additive:
+  an older backend omits them and the sheet shows the totals only.
 - `remove({ id })`: deletes one of my rows. `clear()`: deletes up to 500 of
   mine per call, returns `{ more }`.
 - `reportQuality({ callId?, groupCallId?, samples })`: patches MY row's
@@ -179,3 +185,43 @@ wobble once on first view, talk-time ring fill, favourites pop-in), crisp
 chrome everywhere else. Idle loops only while a call is live. Never animate a
 `BackdropFilter`. No InkWell. Reuse `chrome_motion.dart`, the shared glass /
 icon-button / press primitives, and the hold menu.
+
+## 4. Rows, swipes and the stats sheet (2026-11-07)
+
+**Row**: avatar 48, name / direction + sentence / time, then two 44pt glass
+icon buttons (voice, video) on the trailing side (`GlassIconButton`, `still`).
+Tap on the left part opens details (or expands a merged row); hold opens the
+menu. There is no swipe-right: the buttons replaced it.
+
+**Swipe left = Delete** via the app-wide `ChatRowSwipe` (the same primitive as
+the chat list and archive): the button grows out of the edge, a full swipe
+(62% of the width) stretches it across, lands a haptic at the threshold and
+commits on release. Arms in only. `ChatRowSwipe` already fires its outermost
+action on a full swipe for both edges, so every user of it (chat list pin /
+mute / archive, archived list, calls delete) shares that behaviour. Delete =
+`CallLogStore.remove` (optimistic, rolls back on failure) -> `callLog:remove`
+per entry id (a merged row removes all its entries). Nothing new on the
+backend for delete.
+
+**Details sheet** hugs its content (no `maxHeightFraction`: any fraction makes
+`SheetFrame` fill that share of the screen): one header row, a compact
+timeline, a 2x2 grid of actions.
+
+**Stats sheet** (tap the talk-time header): This week / 30 days / All time.
+Hero total, answered / missed / longest / average, voice vs video (time and
+calls), outgoing vs incoming, busiest hour (24 bars), busiest weekday, streak
+and best streak, top people. "All time" is the newest 1000 calls and says so.
+
+### Stats cost table (`callLog:summary`)
+
+| | Reads | Writes | Re-runs per recipient | Idle cost |
+|---|---|---|---|---|
+| Opening the tab | 2 one-shot queries (week, 30 days), each at most 1000 `callLog` rows of the caller's own index range: unchanged from before | 0 | none, not subscribed | 0 |
+| Picking "All time" in the sheet | +1 one-shot query, at most 1000 rows, only on that tap, cached for the session, dropped after a delete | 0 | none | 0 |
+| Richer figures | 0 extra (same rows, one more pass of CPU in the same loop) | 0 | none | 0 |
+| Call end | unchanged | unchanged | n/a | 0 |
+
+No schema change, no rollup table, no cron, no new subscription (R4: indexed,
+bounded read; R1/R5: nothing re-runs on other people's writes). Deploy need:
+backend must ship before the stats sheet shows more than totals; the app
+degrades gracefully against the old backend.

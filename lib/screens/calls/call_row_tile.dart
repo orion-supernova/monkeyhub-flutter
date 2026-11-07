@@ -9,11 +9,12 @@ import '../../models/chat_user.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/chat_list_row.dart' show ChatRoomAvatar, MonogramAvatar;
 import '../../widgets/chat_row_action_menu.dart' show ChatRowLongPress;
+import '../../widgets/chat_row_swipe.dart';
+import '../../widgets/glass_buttons.dart';
 import '../../widgets/pull_down_menu.dart';
 import '../../widgets/spring_press.dart';
 import '../../widgets/user_avatar.dart';
 import 'call_log_models.dart';
-import 'call_swipe_row.dart';
 import 'calls_directory.dart';
 import 'calls_format.dart';
 
@@ -157,101 +158,141 @@ class _CallRowTileState extends State<CallRowTile> {
         : callDetail(l10n, e);
     final time = clockTime(context, e.startedAt);
     final nameColor = missed ? theme.danger : theme.ink;
-    return CallSwipeRow(
-      voiceLabel: l10n.callsTabVoiceCall,
-      videoLabel: l10n.callsTabVideoCall,
-      onVoice: () => widget.onAction(row, CallRowAction.voice),
-      onVideo: () => widget.onAction(row, CallRowAction.video),
+    // Swipe left: Delete (a full swipe commits it). Calling back lives in the
+    // two buttons on the row, so there is no swipe-right.
+    return ChatRowSwipe(
+      trailing: [
+        SwipeAction(
+          label: l10n.messageActionMenuDeleteLabel,
+          icon: CupertinoIcons.delete_solid,
+          color: const Color(0xFFFF3B30),
+          onTap: () => widget.onAction(row, CallRowAction.delete),
+        ),
+      ],
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           ChatRowLongPress(
             key: _anchor,
             onLongPress: _menu,
-            child: SpringPress(
-              onTap: merged
-                  ? widget.onToggleExpanded
-                  : () => widget.onOpenDetails(e),
-              scale: 0.985,
-              haptic: false,
-              semanticLabel: l10n.callsTabRowSemantic(detail, subject.name, time),
-              focusRadius: 14,
-              hoverRadius: 14,
-              builder: (context, pressed) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Row(
-                  children: [
-                    subject.avatar(46),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(text: subject.name),
-                                if (merged)
-                                  TextSpan(
-                                    text: '  ×${row.count}',
-                                    style: TextStyle(
-                                      color: theme.inkMuted,
-                                      fontWeight: FontWeight.w500,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(end: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SpringPress(
+                      onTap: merged
+                          ? widget.onToggleExpanded
+                          : () => widget.onOpenDetails(e),
+                      scale: 0.985,
+                      haptic: false,
+                      semanticLabel:
+                          l10n.callsTabRowSemantic(detail, subject.name, time),
+                      focusRadius: 14,
+                      hoverRadius: 14,
+                      builder: (context, pressed) => Padding(
+                        padding: const EdgeInsetsDirectional.fromSTEB(
+                            20, 10, 4, 10),
+                        child: Row(
+                          children: [
+                            subject.avatar(48),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        TextSpan(text: subject.name),
+                                        if (merged)
+                                          TextSpan(
+                                            text: '  ×${row.count}',
+                                            style: TextStyle(
+                                              color: theme.inkMuted,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.bodyEmph.copyWith(
+                                      fontSize: 16,
+                                      color: nameColor,
                                     ),
                                   ),
-                              ],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.bodyEmph.copyWith(
-                              fontSize: 16,
-                              color: nameColor,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              Icon(
-                                e.incoming
-                                    ? CupertinoIcons.arrow_down_left
-                                    : CupertinoIcons.arrow_up_right,
-                                size: 13,
-                                color: missed ? theme.danger : theme.inkMuted,
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  detail,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.bodySoft.copyWith(
-                                    fontSize: 14,
-                                    color: missed ? theme.danger : theme.inkMuted,
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        e.incoming
+                                            ? CupertinoIcons.arrow_down_left
+                                            : CupertinoIcons.arrow_up_right,
+                                        size: 13,
+                                        color: missed
+                                            ? theme.danger
+                                            : theme.inkMuted,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          detail,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.bodySoft.copyWith(
+                                            fontSize: 14,
+                                            color: missed
+                                                ? theme.danger
+                                                : theme.inkMuted,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    time,
+                                    maxLines: 1,
+                                    style: theme.bodySoft.copyWith(
+                                      fontSize: 13,
+                                      color: theme.inkMuted,
+                                      fontFeatures: const [
+                                        FontFeature.tabularFigures(),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          time,
-                          style: theme.bodySoft.copyWith(
-                            fontSize: 13,
-                            color: theme.inkMuted,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 4),
+                  // Calling back is a visible control, not a gesture. `still`:
+                  // the row slides, so no backdrop blur under the discs.
+                  GlassIconButton(
+                    icon: CupertinoIcons.phone_fill,
+                    size: 44,
+                    iconSize: 19,
+                    still: true,
+                    color: theme.accent,
+                    semanticLabel: l10n.callsTabVoiceCall,
+                    onTap: () => widget.onAction(row, CallRowAction.voice),
+                  ),
+                  const SizedBox(width: 8),
+                  GlassIconButton(
+                    icon: CupertinoIcons.videocam_fill,
+                    size: 44,
+                    iconSize: 20,
+                    still: true,
+                    color: theme.accent,
+                    semanticLabel: l10n.callsTabVideoCall,
+                    onTap: () => widget.onAction(row, CallRowAction.video),
+                  ),
+                ],
               ),
             ),
           ),

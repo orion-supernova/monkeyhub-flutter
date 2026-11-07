@@ -169,33 +169,105 @@ class CallFavourite {
       ];
 }
 
-/// `callLog:summary`: connected time and the people talked to most.
+/// `callLog:summary`: connected time, the people talked to most, and the
+/// breakdowns the stats sheet shows. Everything past [top] is optional on the
+/// wire (an older backend omits it): [hasDetail] says whether it arrived.
 @immutable
 class CallLogSummary {
   const CallLogSummary({
     required this.totalMs,
     required this.calls,
     required this.top,
+    this.answered = 0,
+    this.missed = 0,
+    this.outgoing = 0,
+    this.incoming = 0,
+    this.audioCalls = 0,
+    this.videoCalls = 0,
+    this.audioMs = 0,
+    this.videoMs = 0,
+    this.longestMs = 0,
+    this.byHour = const [],
+    this.byWeekday = const [],
+    this.activeDays = 0,
+    this.bestStreak = 0,
+    this.currentStreak = 0,
   });
   final int totalMs;
   final int calls;
   final List<CallTopPeer> top;
+  final int answered;
+  final int missed;
+  final int outgoing;
+  final int incoming;
+  final int audioCalls;
+  final int videoCalls;
+  final int audioMs;
+  final int videoMs;
+  final int longestMs;
+
+  /// Calls started in each local hour (24), and on each weekday (7, Sunday
+  /// first).
+  final List<int> byHour;
+  final List<int> byWeekday;
+  final int activeDays;
+  final int bestStreak;
+  final int currentStreak;
+
+  bool get hasDetail => byHour.length == 24 && byWeekday.length == 7;
+
+  /// Mean talk time over the calls that were answered; 0 when none were.
+  int get averageMs => answered <= 0 ? 0 : (totalMs / answered).round();
+
+  /// Index of the largest value, or -1 when all are zero.
+  static int peak(List<int> v) {
+    var best = -1;
+    var max = 0;
+    for (var i = 0; i < v.length; i++) {
+      if (v[i] > max) {
+        max = v[i];
+        best = i;
+      }
+    }
+    return best;
+  }
 
   static const empty = CallLogSummary(totalMs: 0, calls: 0, top: []);
 
-  factory CallLogSummary.fromJson(Map<String, dynamic> j) => CallLogSummary(
-        totalMs: (j['totalMs'] as num?)?.toInt() ?? 0,
-        calls: (j['calls'] as num?)?.toInt() ?? 0,
-        top: [
-          for (final t in (j['top'] as List?) ?? const [])
-            if (t is Map && t['peerId'] != null)
-              CallTopPeer(
-                peerId: t['peerId'].toString(),
-                ms: (t['ms'] as num?)?.toInt() ?? 0,
-                calls: (t['calls'] as num?)?.toInt() ?? 0,
-              ),
-        ],
-      );
+  factory CallLogSummary.fromJson(Map<String, dynamic> j) {
+    int n(String k) => (j[k] as num?)?.toInt() ?? 0;
+    List<int> list(String k) => [
+          for (final x in (j[k] as List?) ?? const [])
+            if (x is num) x.toInt(),
+        ];
+    return CallLogSummary(
+      totalMs: n('totalMs'),
+      calls: n('calls'),
+      top: [
+        for (final t in (j['top'] as List?) ?? const [])
+          if (t is Map && t['peerId'] != null)
+            CallTopPeer(
+              peerId: t['peerId'].toString(),
+              ms: (t['ms'] as num?)?.toInt() ?? 0,
+              calls: (t['calls'] as num?)?.toInt() ?? 0,
+            ),
+      ],
+      answered: n('answered'),
+      missed: n('missed'),
+      outgoing: n('outgoing'),
+      incoming: n('incoming'),
+      audioCalls: n('audioCalls'),
+      videoCalls: n('videoCalls'),
+      audioMs: n('audioMs'),
+      videoMs: n('videoMs'),
+      longestMs: n('longestMs'),
+      byHour: list('byHour'),
+      byWeekday: list('byWeekday'),
+      activeDays: n('activeDays'),
+      bestStreak: n('bestStreak'),
+      currentStreak: n('currentStreak'),
+    );
+  }
 }
 
 /// A line of the grouped list: a day header or a (possibly merged) call row.

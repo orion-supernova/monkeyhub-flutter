@@ -354,6 +354,7 @@ class _CallsScreenState extends State<CallsScreen>
         weekStart: weekStart(context),
         directory: widget.directory,
         api: widget.api,
+        store: _store,
       ),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),

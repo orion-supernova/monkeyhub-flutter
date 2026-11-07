@@ -342,6 +342,9 @@ dependencies:
 
   flutter_localizations:
     sdk: flutter
+  # Pinned by flutter_localizations; direct because the calls stats sheet
+  # names weekdays with DateFormat. `any` keeps the SDK's pin in charge.
+  intl: any
 
   # Chess rules of record on the client (lib/turn_games/chess.dart): a port of
   # chess.js, which the server runs. MIT + BSD-2-Clause, both permissive; the

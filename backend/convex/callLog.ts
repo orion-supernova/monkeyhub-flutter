@@ -42,20 +42,41 @@ export const list = query({
 });
 
 /**
- * Talk time and the people you talk to most since [since]. Bounded: the newest
- * 1000 rows in range, which is more calls than anyone makes in a window the
- * tab shows. `top` counts direct calls only (a group has no single peer).
+ * The stats behind the Calls tab's talk-time sheet, over [since]..now. One
+ * bounded read (newest 1000 rows in range, the same read the plain totals
+ * always did); every figure below is folded out of those rows in the same
+ * pass, so a richer sheet costs CPU for a loop, not another read. `top`
+ * counts direct calls only (a group has no single peer).
+ *
+ * [tzOffsetMin] is the viewer's UTC offset in minutes (local = UTC + offset),
+ * so hour-of-day, weekday and streak buckets fall on THEIR clock. Absent: UTC.
+ * Streaks count days with an ANSWERED call, in range; `currentStreak` is the
+ * run ending today or yesterday.
  */
 export const summary = query({
-  args: { since: v.number() },
+  args: { since: v.number(), tzOffsetMin: v.optional(v.number()) },
   returns: v.object({
     totalMs: v.number(),
     calls: v.number(),
     top: v.array(
       v.object({ peerId: v.id("users"), ms: v.number(), calls: v.number() }),
     ),
+    answered: v.number(),
+    missed: v.number(),
+    outgoing: v.number(),
+    incoming: v.number(),
+    audioCalls: v.number(),
+    videoCalls: v.number(),
+    audioMs: v.number(),
+    videoMs: v.number(),
+    longestMs: v.number(),
+    byHour: v.array(v.number()),
+    byWeekday: v.array(v.number()),
+    activeDays: v.number(),
+    bestStreak: v.number(),
+    currentStreak: v.number(),
   }),
-  handler: async (ctx, { userId, since }) => {
+  handler: async (ctx, { userId, since, tzOffsetMin }) => {
     const rows = await ctx.db
       .query("callLog")
       .withIndex("by_user_started", (q) =>
@@ -63,10 +84,41 @@ export const summary = query({
       )
       .order("desc")
       .take(SUMMARY_ROWS);
+    const off = Math.max(-14 * 60, Math.min(14 * 60, Math.round(tzOffsetMin ?? 0))) * 60000;
+    const DAY = 86400000;
     let totalMs = 0;
+    let answered = 0;
+    let missed = 0;
+    let outgoing = 0;
+    let incoming = 0;
+    let audioCalls = 0;
+    let videoCalls = 0;
+    let audioMs = 0;
+    let videoMs = 0;
+    let longestMs = 0;
+    const byHour = new Array<number>(24).fill(0);
+    const byWeekday = new Array<number>(7).fill(0); // 0 = Sunday
+    const days = new Set<number>();
     const peers = new Map<string, { peerId: any; ms: number; calls: number }>();
     for (const r of rows) {
       totalMs += r.durationMs;
+      if (r.outcome === "answered") answered += 1;
+      else if (r.outcome === "missed") missed += 1;
+      if (r.direction === "out") outgoing += 1;
+      else incoming += 1;
+      if (r.type === "video") {
+        videoCalls += 1;
+        videoMs += r.durationMs;
+      } else {
+        audioCalls += 1;
+        audioMs += r.durationMs;
+      }
+      if (r.durationMs > longestMs) longestMs = r.durationMs;
+      const local = r.startedAt + off;
+      byHour[Math.floor((((local % DAY) + DAY) % DAY) / 3600000)] += 1;
+      const day = Math.floor(local / DAY);
+      byWeekday[(((day + 4) % 7) + 7) % 7] += 1; // day 0 (1970-01-01) was a Thursday
+      if (r.outcome === "answered") days.add(day);
       if (r.kind !== "direct" || !r.peerId) continue;
       const key = r.peerId.toString();
       const p = peers.get(key) ?? { peerId: r.peerId, ms: 0, calls: 0 };
@@ -77,7 +129,39 @@ export const summary = query({
     const top = [...peers.values()]
       .sort((a, b) => b.ms - a.ms || b.calls - a.calls)
       .slice(0, SUMMARY_TOP);
-    return { totalMs, calls: rows.length, top };
+    const sorted = [...days].sort((a, b) => a - b);
+    let best = 0;
+    let run = 0;
+    for (let i = 0; i < sorted.length; i++) {
+      run = i > 0 && sorted[i] === sorted[i - 1] + 1 ? run + 1 : 1;
+      if (run > best) best = run;
+    }
+    const today = Math.floor((Date.now() + off) / DAY);
+    let current = 0;
+    let d = days.has(today) ? today : today - 1;
+    while (days.has(d)) {
+      current += 1;
+      d -= 1;
+    }
+    return {
+      totalMs,
+      calls: rows.length,
+      top,
+      answered,
+      missed,
+      outgoing,
+      incoming,
+      audioCalls,
+      videoCalls,
+      audioMs,
+      videoMs,
+      longestMs,
+      byHour,
+      byWeekday,
+      activeDays: days.size,
+      bestStreak: best,
+      currentStreak: current,
+    };
   },
 });
 

@@ -20,7 +20,7 @@ abstract class CallLogSource {
     required String cursor,
   });
 
-  Future<CallLogSummary> summary({required int since});
+  Future<CallLogSummary> summary({required int since, int tzOffsetMin = 0});
 
   Future<void> remove(String id);
 
@@ -81,8 +81,11 @@ class CallLogApi implements CallLogSource {
   }
 
   @override
-  Future<CallLogSummary> summary({required int since}) async {
-    final res = await _cv.query('callLog:summary', {'since': since});
+  Future<CallLogSummary> summary({required int since, int tzOffsetMin = 0}) async {
+    final res = await _cv.query(
+      'callLog:summary',
+      {'since': since, 'tzOffsetMin': tzOffsetMin},
+    );
     return CallLogSummary.fromJson((res as Map).cast<String, dynamic>());
   }
 

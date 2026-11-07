@@ -81,6 +81,7 @@ class CallLogStore extends ChangeNotifier {
     _removedVersion++;
     _week = null;
     _month = null;
+    _all = null;
     notifyListeners();
   }
 
@@ -269,8 +270,8 @@ class CallLogStore extends ChangeNotifier {
   Future<void> loadSummaries({required int weekSince, required int monthSince}) async {
     try {
       final r = await Future.wait([
-        _source.summary(since: weekSince),
-        _source.summary(since: monthSince),
+        _source.summary(since: weekSince, tzOffsetMin: _tz()),
+        _source.summary(since: monthSince, tzOffsetMin: _tz()),
       ]);
       _week = r[0];
       _month = r[1];
@@ -278,11 +279,34 @@ class CallLogStore extends ChangeNotifier {
     } catch (_) {}
   }
 
+  /// The viewer's UTC offset in minutes, so the server buckets by their clock.
+  static int _tz() => DateTime.now().timeZoneOffset.inMinutes;
+
+  CallLogSummary? _all;
+  bool _allLoading = false;
+
+  /// The newest-1000-calls summary for "All time"; fetched the first time the
+  /// stats sheet asks (never on opening the tab), then kept for the session.
+  CallLogSummary? get allTime => _all;
+
+  Future<void> loadAllTime() async {
+    if (_all != null || _allLoading) return;
+    _allLoading = true;
+    try {
+      _all = await _source.summary(since: 0, tzOffsetMin: _tz());
+      notifyListeners();
+    } catch (_) {
+    } finally {
+      _allLoading = false;
+    }
+  }
+
   /// Removes [ids] from my history: gone from the list at once, then on the
   /// server. A failed delete brings them back.
   Future<void> remove(Iterable<String> ids) async {
     final list = ids.toList();
     _removed.addAll(list);
+    _all = null;
     _removedVersion++;
     notifyListeners();
     for (final id in list) {
