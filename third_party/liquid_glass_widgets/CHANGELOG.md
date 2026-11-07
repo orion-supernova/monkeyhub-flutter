@@ -1,3 +1,34 @@
+# 1.17.0
+
+## Breaking & Behavior Changes (Upgrading from ≤ 1.16.x)
+
+- **Default style is now `GlassStyle.ios27` (with or without a `GlassTheme`):** All surfaces, tab bars, overlays, and interactive lenses now default to **`GlassStyle.ios27`** (`LiquidGlassSettings.ios27Light` / `ios27Dark` and `LiquidGlassSettings.ios27Indicator`). To keep the classic `v1.x` look globally, wrap your app in `GlassTheme(data: const GlassThemeData.classic(), child: ...)` (or `const GlassThemeData.ios26()` for iOS 26.0).
+- **`AnimatedGlassIndicator` (`GlassTabBar` & `GlassSegmentedControl` pill) defaults to `ios27Indicator` when `indicatorSettings` is omitted:** Pass `indicatorSettings: LiquidGlassSettings.classicIndicator` to use the classic spherical pill on an individual widget without a global `GlassThemeData.classic()`.
+- **`GlassDialog` and `showGlassActionSheet` use the native 320 pt centered floating platter in `ios27` / `ios26`:** Renders a 320 pt platter with 34 pt continuous corners, leading-aligned header, and 48 pt capsule action buttons (`GlassStyle.classic` preserves the 280 pt dialog and bottom-docked action sheet).
+- **`GlassQuality.premium` defaults on `ios27` / `ios26` and `GlassPage` quality inheritance:** Transient overlays (`GlassDialog`, `showGlassActionSheet`, `GlassMenu`, `GlassPopover`, `GlassToast`), `GlassScaffold.bodyOverlays`, and hero controls (`GlassSwitch`, `GlassSlider`, `GlassSegmentedControl`) now default to `GlassQuality.premium` in `ios27`/`ios26` (`classic` keeps `standard`). An ambient `AdaptiveLiquidGlassLayer` or `GlassPage` that omits `quality:` no longer forces `GlassQuality.standard` onto premium-default descendants.
+- **`GlassTabBar` sizing and `GlassModalSheet` / `GlassSheet` defaults follow active `GlassStyle`:** `GlassTabBar.iconSize` and `magnification` are now `double?` (`27.5` pt / `1.25` in `ios27`/`ios26` vs `24.0` pt / `1.15` in `classic`). `GlassModalSheet` and `GlassSheet` default to `38.0` pt top corners (was `32.0`), `8.0` pt floating margins, `#24000000` barrier dimming, and `#F2F2F7` light-mode full-detent fill in `ios27`/`ios26`.
+
+## Features
+
+- **Unified 3-tier `GlassStyle` theming (`GlassStyle.ios27`, `GlassStyle.ios26`, `GlassStyle.classic`):**
+  - Added `enum GlassStyle { classic, ios26, ios27 }`, `const GlassThemeData.ios27()`, `const GlassThemeData.ios26()`, `const GlassThemeData.classic()`, `GlassThemeVariant.indicatorSettings` (`GlassThemeData.indicatorSettingsFor`), and `LiquidGlassSettings` presets (`classicLight`, `classicDark`, `classicTabBar`, `classicIndicator`, `ios26Light`, `ios26Dark`, `ios26Indicator`, `ios27Light`, `ios27Dark`, `ios27Indicator`, plus `classic(context)` / `ios26(context)` / `ios27(context)`).
+  - Calibrated `GlassTabBar`, `GlassSegmentedControl`, `AnimatedGlassIndicator`, `GlassSwitch` (adding `thumbShadow`), and `GlassSlider` to match native UIKit platters, resting wells, lifted lens refraction/dispersion, and specular rim shading; `GlassSwitch` and `GlassSlider` lazy-mount their shader layer only while pressed or dragged.
+  - Calibrated `GlassMenu`, `GlassMenuItem`, `GlassMenuDivider`, `GlassMenuLabel`, `GlassPullDownButton` (adding `settings` and capsule trigger default for non-square sizes), `GlassContextMenu`, `GlassModalSheet` / `GlassModalSheetScaffold` (adding `quality`), `GlassSheet`, `GlassDialog`, and `showGlassActionSheet` across `ios27`, `ios26`, and `classic`.
+  - Added a live `iOS 27` / `iOS 26` style switcher to the `example/` showcase app.
+- **`GlassButton` pressed base light color (`GlassButton.pressLightColor`, `GlassGlowColors.pressLight`) (PR #457):** Tints the ambient press lift and native sheen over colored surfaces (including `GlassTabBar.searchable`). Thanks to [@Nixxx19](https://github.com/Nixxx19) for the contribution (#457).
+- **`GlassMenu`, `GlassPullDownButton`, and `GlassMenuItem` accessibility & surface overrides (PRs #455, #458, #460, #461):**
+  - Added `GlassMenuItem.semanticsSelected` (`bool?`) for picker selection state (#455) and `GlassMenuItem.semanticLabel` (`String?`) to override spoken row labels (#461).
+  - Added `GlassMenu.menuSemanticLabel` and `GlassPullDownButton.menuSemanticLabel` (`String?`) and kept open menu panels in the semantics tree as a named route scope (#458).
+  - Added `GlassMenu.opaqueColor` (`Color?`) and `GlassMenu.border` (`BorderSide?`) for Reduce Transparency fills and Increase Contrast borders (#460).
+  - Thanks to [@imariman](https://github.com/imariman) for the contributions (#455, #458, #460, #461).
+- **`GlassSwitch` iOS On/Off Labels and RTL mirroring (PR #459):** Draws the native `I` and `O` track glyphs when `MediaQuery.onOffSwitchLabelsOf(context)` is enabled (`onLabelColor`, `offLabelColor`) and mirrors thumb travel, drag direction, and track labels in `TextDirection.rtl`. Thanks to [@imariman](https://github.com/imariman) for the contribution (#459).
+
+## Bug Fixes
+
+- **Theme & modal inheritance:** `GlassThemeData()` and `GlassThemeData.simple()` no longer overwrite the active `GlassStyle` tab bar platter when unmodified; ambient `AdaptiveLiquidGlassLayer` scopes without explicit `settings` no longer mask `GlassThemeData` for nested overlays; and all modal/overlay presenters (`GlassModalSheet.show`, `GlassSheet.show`, `GlassDialog.show`, `showGlassActionSheet`, `GlassToast.show`, `showGlassFullScreenCover`, `GlassPicker.showSheet`, `GlassDatePicker`) preserve the caller's ambient `GlassTheme` and `CupertinoTheme`.
+- **Consistent 3-tier `GlassStyle` & `GlassQuality` resolution:** `GlassDialog` (`quality` now `GlassQuality?`, forwarding `barrierColor`), `GlassActionSheet`, `GlassPopover`, `GlassToast`, `GlassToolbar`, `GlassBadge`, `GlassPicker`, `GlassProgressIndicator`, `GlassStepper`, `GlassChip`, `GlassPasswordField` (`quality` now `GlassQuality?`), `GlassListTile.standalone` (honouring `settings`), and tinted `GlassBarItem` capsules now resolve settings and quality from the active `GlassTheme` and translate `ios26`/`ios27` frost parameters onto `GlassQuality.standard` shaders.
+- **Visual & transition fixes:** Fixed `GlassSwitch` and `GlassSlider` resting thumb shadow clipping and perimeter rim hairline, `GlassSegmentedControl(useOwnLayer: true)` theme resolution, `GlassModalSheet` half-to-full frost/rim interpolation, and `CupertinoDynamicColor` resolution in `GlassMenuItem`, `GlassMenuDivider`, and `GlassMenuLabel`.
+
 # 1.16.1
 
 ## Features

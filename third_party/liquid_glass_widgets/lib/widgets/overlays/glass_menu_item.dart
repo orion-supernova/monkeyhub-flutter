@@ -1,4 +1,6 @@
 import 'package:flutter/cupertino.dart';
+import '../../theme/glass_theme.dart';
+import '../../types/glass_style.dart';
 import '../shared/glass_focus_region.dart';
 import '../shared/glass_interaction_state_mixin.dart';
 
@@ -20,6 +22,7 @@ class GlassMenuItem extends StatefulWidget {
     this.subtitle,
     this.isPressed,
     this.isSelected = false,
+    this.semanticsSelected,
     this.enabled = true,
     this.titleStyle,
     this.subtitleStyle,
@@ -29,10 +32,20 @@ class GlassMenuItem extends StatefulWidget {
     this.enablePressScale = true,
     this.closeDelay,
     this.submenu,
+    this.semanticLabel,
   });
 
   /// The primary text of the item.
   final String title;
+
+  /// What screen readers announce for the row, in place of [title].
+  ///
+  /// The row is a single semantics node named by [title], and its children,
+  /// [trailing] included, are not read. Set this when the row shows more than
+  /// its title, for example a keyboard shortcut in [trailing]:
+  /// `semanticLabel: 'Save, Command S'`. [subtitle] is still announced as the
+  /// value. Null (the default) uses [title].
+  final String? semanticLabel;
 
   /// The icon widget displayed before the title.
   final Widget? icon;
@@ -61,6 +74,14 @@ class GlassMenuItem extends StatefulWidget {
 
   /// Whether the item is currently selected (e.g. by a sliding pill).
   final bool isSelected;
+
+  /// Whether this row is the menu's current choice, for assistive
+  /// technologies only; it does not change how the row is drawn.
+  ///
+  /// `true` or `false` report a selectable row in that state (give every row
+  /// of a single-selection menu a value); `null` (the default) reports no
+  /// selected state, as before.
+  final bool? semanticsSelected;
 
   /// Whether the item should handle its own interactions.
   final bool enabled;
@@ -138,10 +159,21 @@ class GlassMenuDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = CupertinoTheme.of(context);
-    // Resolve from theme's label color, falling back to text color at 15%
-    final defaultLineColor =
-        (theme.textTheme.tabLabelTextStyle.color ?? CupertinoColors.label)
-            .withValues(alpha: 0.45);
+    final isDark = GlassTheme.brightnessOf(context) == Brightness.dark;
+    final style = GlassTheme.maybeOf(context)?.data.style ?? GlassStyle.ios27;
+    final Color defaultLineColor;
+    if (style == GlassStyle.classic) {
+      final resolvedBase = CupertinoDynamicColor.resolve(
+        theme.textTheme.tabLabelTextStyle.color ??
+            (isDark ? CupertinoColors.white : CupertinoColors.black),
+        context,
+      );
+      defaultLineColor = resolvedBase.withValues(alpha: 0.45);
+    } else {
+      defaultLineColor =
+          (isDark ? CupertinoColors.white : CupertinoColors.black)
+              .withValues(alpha: isDark ? 0.18 : 0.14);
+    }
     return SizedBox(
       height: height,
       child: Center(
@@ -196,10 +228,23 @@ class GlassMenuLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = CupertinoTheme.of(context);
-    // Use the theme's secondary label color for muted captions
-    final defaultLabelColor = (theme.textTheme.tabLabelTextStyle.color ??
-            CupertinoColors.secondaryLabel)
-        .withValues(alpha: 0.45);
+    final isDark = GlassTheme.brightnessOf(context) == Brightness.dark;
+    final glassStyle =
+        GlassTheme.maybeOf(context)?.data.style ?? GlassStyle.ios27;
+    final Color defaultLabelColor;
+    if (glassStyle == GlassStyle.classic) {
+      final resolvedBase = CupertinoDynamicColor.resolve(
+        theme.textTheme.tabLabelTextStyle.color ??
+            (isDark ? CupertinoColors.white : CupertinoColors.black),
+        context,
+      );
+      defaultLabelColor = resolvedBase.withValues(alpha: 0.45);
+    } else {
+      defaultLabelColor = CupertinoDynamicColor.resolve(
+        CupertinoColors.secondaryLabel,
+        context,
+      );
+    }
     return Container(
       height: height,
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
@@ -238,32 +283,45 @@ class _GlassMenuItemState extends State<GlassMenuItem>
     // Resolve foreground color from the current CupertinoTheme.
     // This automatically supports Light Mode, Dark Mode, and custom themes.
     final theme = CupertinoTheme.of(context);
-    final defaultForeground =
-        theme.textTheme.textStyle.color ?? CupertinoColors.label;
+    final isDark = GlassTheme.brightnessOf(context) == Brightness.dark;
+    final style = GlassTheme.maybeOf(context)?.data.style ?? GlassStyle.ios27;
+    final defaultForeground = CupertinoDynamicColor.resolve(
+      theme.textTheme.textStyle.color ??
+          (isDark ? CupertinoColors.white : CupertinoColors.black),
+      context,
+    );
+    final destructiveColor = CupertinoDynamicColor.resolve(
+      CupertinoColors.destructiveRed,
+      context,
+    );
 
     // Determine the base color of the item (inheritance logic)
     // Priority: iconColor > titleStyle.color > destructiveRed > theme foreground
     final Color baseColor = widget.iconColor ??
         widget.titleStyle?.color ??
-        (widget.isDestructive
-            ? CupertinoColors.destructiveRed
-            : defaultForeground);
+        (widget.isDestructive ? destructiveColor : defaultForeground);
 
     // Apply specific opacities based on original design specs:
     // Icon: 100% (enabled), 50% (disabled)
     // Text: 90% (static for enabled/disabled)
     final Color iconColor = widget.iconColor ??
         (widget.isDestructive
-            ? CupertinoColors.destructiveRed
+            ? destructiveColor
             : baseColor.withValues(alpha: widget.enabled ? 1.0 : 0.5));
 
     final Color textColor = widget.titleStyle?.color ??
         (widget.isDestructive
-            ? CupertinoColors.destructiveRed
+            ? destructiveColor
             : baseColor.withValues(alpha: 0.9));
 
+    final Color pressWash = (style == GlassStyle.classic || isDark)
+        ? const Color(0x26FFFFFF)
+        : const Color(0x14000000);
+    final Color hoverWash = (style == GlassStyle.classic || isDark)
+        ? const Color(0x1AFFFFFF)
+        : const Color(0x0D000000);
+
     // Dynamic background for hover/press states
-    // We use a subtle white overlay to "brighten" the glass
     final content = ListenableBuilder(
       listenable: allInteraction,
       builder: (context, _) {
@@ -277,9 +335,9 @@ class _GlassMenuItemState extends State<GlassMenuItem>
         final Color backgroundColor = effectiveSelected
             ? const Color(0x00000000) // Parent renders the sliding pill
             : effectivePressed
-                ? const Color(0x26FFFFFF) // Standalone press
+                ? pressWash // Standalone press
                 : (isHov || isFoc)
-                    ? const Color(0x1AFFFFFF)
+                    ? hoverWash
                     : const Color(0x00000000);
 
         // Scale effect on press (subtle squash like iOS buttons)
@@ -399,10 +457,14 @@ class _GlassMenuItemState extends State<GlassMenuItem>
     return GlassFocusRegion(
       enabled: widget.enabled,
       isButton: true,
-      semanticLabel: widget.title,
+      semanticLabel: widget.semanticLabel ?? widget.title,
       // The title label replaces the row's own text, so carry the subtitle
       // as the value: announced after the title, on the same node.
       semanticValue: widget.subtitle,
+      // Only the semantic choice is reported. The visual [isSelected] follows
+      // the glide pill, and announcing it would mark whichever row is hovered.
+      tracksSelection: widget.semanticsSelected != null,
+      isSelected: widget.semanticsSelected ?? false,
       isFocusedNotifier: isFocused,
       isHoveredNotifier: isHovered,
       onKeyboardActivate: _handleKeyboardActivate,

@@ -4,7 +4,9 @@ import '../../types/glass_quality.dart';
 import '../overlays/glass_menu.dart';
 import '../overlays/glass_menu_item.dart';
 import 'glass_button.dart';
+import '../../theme/glass_theme.dart';
 import '../../theme/glass_theme_helpers.dart';
+import '../../src/engine/liquid_glass_settings.dart';
 import '../../src/engine/liquid_shape.dart';
 
 /// A toolbar button that opens a liquid glass pull-down menu.
@@ -18,12 +20,14 @@ class GlassPullDownButton extends StatelessWidget {
     Widget? icon,
     this.label,
     this.semanticLabel,
+    this.menuSemanticLabel,
     super.key,
     this.buttonWidth = 44,
     this.buttonHeight = 44,
     this.buttonShape,
     this.menuWidth = 200,
     this.menuAlignment,
+    this.settings,
     this.quality,
     this.onSelected,
     this.enableContinuousSwipe = true,
@@ -57,6 +61,11 @@ class GlassPullDownButton extends StatelessWidget {
   /// ```
   final String? semanticLabel;
 
+  /// What screen readers call the open menu panel.
+  ///
+  /// Forwarded to [GlassMenu.menuSemanticLabel]. Defaults to `"Menu"`.
+  final String? menuSemanticLabel;
+
   /// The list of items to display in the menu.
   ///
   /// Accepts [GlassMenuItem] and [GlassMenuDivider] widgets, matching the
@@ -78,6 +87,9 @@ class GlassPullDownButton extends StatelessWidget {
   /// Defaults to [GlassMenuAlignment.none], which auto-detects the best
   /// alignment based on the trigger's position on screen.
   final GlassMenuAlignment? menuAlignment;
+
+  /// Glass material settings for the trigger button and menu platter.
+  final LiquidGlassSettings? settings;
 
   /// Quality of the glass effect.
   final GlassQuality? quality;
@@ -113,24 +125,38 @@ class GlassPullDownButton extends StatelessWidget {
       widgetQuality: quality,
     );
 
-    final effectiveTextColor =
-        CupertinoTheme.of(context).textTheme.textStyle.color ??
-            CupertinoColors.label;
+    final isDark = GlassTheme.brightnessOf(context) == Brightness.dark;
+    final effectiveTextColor = CupertinoDynamicColor.resolve(
+      CupertinoTheme.of(context).textTheme.textStyle.color ??
+          (isDark ? CupertinoColors.white : CupertinoColors.black),
+      context,
+    );
 
     return GlassMenu(
       menuWidth: menuWidth,
       menuAlignment: menuAlignment,
+      menuSemanticLabel: menuSemanticLabel,
       autoAdjustToScreen: true,
+      settings: settings,
       quality: effectiveQuality,
       enableContinuousSwipe: enableContinuousSwipe,
       continuousSwipeSlop: continuousSwipeSlop,
       triggerBuilder: (context, toggleMenu) {
         if (label != null && label!.isNotEmpty) {
+          final defaultShape = buttonWidth == buttonHeight
+              ? const LiquidOval()
+              : LiquidRoundedSuperellipse(
+                  borderRadius: (buttonWidth < buttonHeight
+                          ? buttonWidth
+                          : buttonHeight) /
+                      2,
+                );
           return GlassButton.custom(
             onTap: toggleMenu,
             width: buttonWidth,
             height: buttonHeight,
-            shape: buttonShape ?? const LiquidOval(),
+            shape: buttonShape ?? defaultShape,
+            settings: settings,
             quality: effectiveQuality,
             useOwnLayer: effectiveQuality == GlassQuality.premium,
             child: Row(
@@ -162,6 +188,7 @@ class GlassPullDownButton extends StatelessWidget {
           width: buttonWidth,
           height: buttonHeight,
           shape: buttonShape ?? const LiquidOval(),
+          settings: settings,
           quality: effectiveQuality,
           useOwnLayer: effectiveQuality == GlassQuality.premium,
         );
@@ -172,6 +199,7 @@ class GlassPullDownButton extends StatelessWidget {
         if (onSelected != null && item is GlassMenuItem) {
           return GlassMenuItem(
             title: item.title,
+            semanticLabel: item.semanticLabel,
             icon: item.icon,
             isDestructive: item.isDestructive,
             subtitle: item.subtitle,
@@ -179,6 +207,7 @@ class GlassPullDownButton extends StatelessWidget {
             height: item.height,
             isPressed: item.isPressed,
             isSelected: item.isSelected,
+            semanticsSelected: item.semanticsSelected,
             titleStyle: item.titleStyle,
             subtitleStyle: item.subtitleStyle,
             iconColor: item.iconColor,

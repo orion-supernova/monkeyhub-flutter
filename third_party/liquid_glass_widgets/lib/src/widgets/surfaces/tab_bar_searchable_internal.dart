@@ -13,10 +13,13 @@ import 'package:flutter/cupertino.dart';
 import '../../../constants/glass_defaults.dart';
 import '../../renderer/liquid_glass_renderer.dart';
 import '../../../types/glass_quality.dart';
+import '../../../types/glass_style.dart';
 import '../../../utils/draggable_indicator_physics.dart';
 import '../../utils/glass_localizations.dart';
 import '../../../utils/glass_spring.dart';
 import '../../../theme/glass_theme.dart';
+import '../../../theme/glass_theme_data.dart';
+import '../../../theme/glass_theme_helpers.dart';
 import '../../../widgets/interactive/glass_button.dart';
 import '../../../widgets/shared/adaptive_glass.dart';
 import '../../../widgets/shared/animated_glass_indicator.dart';
@@ -85,7 +88,8 @@ class DismissPill extends StatelessWidget {
       settings:
           settings?.copyWith(glassColor: safeColor ?? settings?.glassColor) ??
               (safeColor != null
-                  ? LiquidGlassSettings(glassColor: safeColor)
+                  ? GlassThemeHelpers.resolveSettings(context)
+                      .copyWith(glassColor: safeColor)
                   : null),
       shape: LiquidRoundedRectangle(borderRadius: barBorderRadius),
       icon: cancelIcon ??
@@ -347,7 +351,12 @@ class SearchableTabIndicatorState extends State<SearchableTabIndicator>
           offset: Offset(swayValue, 0),
           child: LiquidStretch(
             interactionScale: widget.enableBackgroundAnimation
-                ? (widget.backgroundPressScale ?? 1.04)
+                ? (widget.backgroundPressScale ??
+                    ((GlassTheme.maybeOf(context)?.data.style ??
+                                GlassStyle.ios27) ==
+                            GlassStyle.classic
+                        ? 1.04
+                        : 1.0))
                 : 1.0,
             stretch:
                 0.0, // stretch disabled on platformViewBackdrop to prevent BackdropFilter pixel-snap jitter
@@ -1459,6 +1468,11 @@ class _PressAmbientLiftState extends State<PressAmbientLift>
     final target = GlassTheme.brightnessOf(context) == Brightness.dark
         ? GlassDefaults.ambientBaseLightDark
         : GlassDefaults.ambientBaseLight;
+    // ...in the same colour GlassButton would light, so the search pill and
+    // the buttons beside it press alike on a tinted page.
+    final color =
+        GlassThemeData.of(context).glowColorsFor(context).pressLight ??
+            const Color(0xFFFFFFFF);
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (_) => _controller.forward(),
@@ -1469,8 +1483,8 @@ class _PressAmbientLiftState extends State<PressAmbientLift>
         children: [
           FadeTransition(
             opacity: _controller.drive(Tween(begin: 0.0, end: target)),
-            child: const IgnorePointer(
-              child: ColoredBox(color: Color(0xFFFFFFFF)),
+            child: IgnorePointer(
+              child: ColoredBox(color: color),
             ),
           ),
           widget.child,

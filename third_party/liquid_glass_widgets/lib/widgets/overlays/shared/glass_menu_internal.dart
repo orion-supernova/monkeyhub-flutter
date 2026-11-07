@@ -383,53 +383,52 @@ class _GlassMenuState extends State<GlassMenu> with TickerProviderStateMixin {
         // this wrapper and never saw its fade.
         final outer = GlassMaterializeScope.maybeOf(context);
 
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // Trigger — physically bounces and absorbs impact when slammed by the closing menu!
-            Transform.translate(
-              offset: Offset(pushDx, pushDy),
-              child: Transform.scale(
-                scale: impactScale,
-                child: Listener(
-                  behavior: HitTestBehavior.translucent,
-                  onPointerDown: _handleTriggerPointerDown,
-                  onPointerMove: _handleTriggerPointerMove,
-                  onPointerUp: _handleTriggerPointerUp,
-                  onPointerCancel: _handleTriggerPointerCancel,
-                  child: Opacity(
-                    opacity: triggerOpacity,
-                    child: GlassMaterializeScope(
-                      glassProgress:
-                          triggerOpacity * (outer?.glassProgress ?? 1.0),
-                      contentOpacity:
-                          triggerOpacity * (outer?.contentOpacity ?? 1.0),
-                      contentSigma: outer?.contentSigma ?? 0.0,
-                      child: IgnorePointer(
-                        ignoring: isMenuBlocking,
-                        child: triggerChild,
-                      ),
+        // Overlay portal for morphing animation.
+        // The overlay contents fade out during the handoff so the real button shows instead.
+        //
+        // Target the NEAREST overlay so the menu stays confined to the page/route
+        // where it was opened (#274). When a new route is pushed onto this or an
+        // ancestor Navigator, the destination route renders above this overlay,
+        // so the closing animation naturally remains on the outgoing page behind
+        // the transition. The trigger position is mapped into the nearest overlay's
+        // coordinate space in _openMenu to avoid drift in nested embeddings.
+        //
+        // The trigger is the portal's child. OverlayPortal wraps its child in
+        // the semantics node the open menu's nodes are traversed from; with
+        // no child that node is 0x0, and the menu drops out of the semantics
+        // tree.
+        return OverlayPortal(
+          controller: _overlayController,
+          overlayChildBuilder: _buildMorphingOverlay,
+          overlayLocation: OverlayChildLocation.nearestOverlay,
+          // Trigger — physically bounces and absorbs impact when slammed by the closing menu!
+          child: Transform.translate(
+            offset: Offset(pushDx, pushDy),
+            child: Transform.scale(
+              scale: impactScale,
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: _handleTriggerPointerDown,
+                onPointerMove: _handleTriggerPointerMove,
+                onPointerUp: _handleTriggerPointerUp,
+                onPointerCancel: _handleTriggerPointerCancel,
+                child: Opacity(
+                  opacity: triggerOpacity,
+                  child: GlassMaterializeScope(
+                    glassProgress:
+                        triggerOpacity * (outer?.glassProgress ?? 1.0),
+                    contentOpacity:
+                        triggerOpacity * (outer?.contentOpacity ?? 1.0),
+                    contentSigma: outer?.contentSigma ?? 0.0,
+                    child: IgnorePointer(
+                      ignoring: isMenuBlocking,
+                      child: triggerChild,
                     ),
                   ),
                 ),
               ),
             ),
-
-            // Overlay portal for morphing animation.
-            // The overlay contents fade out during the handoff so the real button shows instead.
-            //
-            // Target the NEAREST overlay so the menu stays confined to the page/route
-            // where it was opened (#274). When a new route is pushed onto this or an
-            // ancestor Navigator, the destination route renders above this overlay,
-            // so the closing animation naturally remains on the outgoing page behind
-            // the transition. The trigger position is mapped into the nearest overlay's
-            // coordinate space in _openMenu to avoid drift in nested embeddings.
-            OverlayPortal(
-              controller: _overlayController,
-              overlayChildBuilder: _buildMorphingOverlay,
-              overlayLocation: OverlayChildLocation.nearestOverlay,
-            ),
-          ],
+          ),
         );
       },
     );
@@ -1079,20 +1078,28 @@ class _GlassMenuState extends State<GlassMenu> with TickerProviderStateMixin {
       child: Transform.scale(
         scale: lerpDouble(1.0, _kRecedeScale, _coverProgress(levelIndex + 1))!,
         alignment: Alignment(0, _growsDown ? -1 : 1),
-        child: GlassContainer(
-          // A card samples the backdrop on its own (it sits OVER the menu body,
-          // outside the body's blend group) — never a shared layer.
-          useOwnLayer: true,
-          settings: settings,
-          quality: quality,
-          platformViewBackdrop: widget.platformViewBackdrop,
+        child: _panelSurface(
+          shape: shape,
           width: widget.menuWidth.toDouble(),
           height: _cardFlightRect(levelIndex).height,
-          shape: shape,
-          clipBehavior: Clip.antiAlias,
-          glowIntensity: widget.glowIntensity,
-          // Same material as the root. Any apparent brightening comes from
-          // compositing over the parent, not a separate white/black tint veil.
+          // An opaque card fades in and out with the glass it replaces.
+          surfaceOpacity: fade.glass,
+          glass: (child) => GlassContainer(
+            // A card samples the backdrop on its own (it sits OVER the menu body,
+            // outside the body's blend group) — never a shared layer.
+            useOwnLayer: true,
+            settings: settings,
+            quality: quality,
+            platformViewBackdrop: widget.platformViewBackdrop,
+            width: widget.menuWidth.toDouble(),
+            height: _cardFlightRect(levelIndex).height,
+            shape: shape,
+            clipBehavior: Clip.antiAlias,
+            glowIntensity: widget.glowIntensity,
+            // Same material as the root. Any apparent brightening comes from
+            // compositing over the parent, not a separate white/black tint veil.
+            child: child,
+          ),
           child: GlassGlow(
             enabled: widget.enableInteractionGlow && isTop,
             glowOnTapOnly: widget.glowOnTapOnly,
@@ -1109,6 +1116,70 @@ class _GlassMenuState extends State<GlassMenu> with TickerProviderStateMixin {
           ),
         ),
       ),
+    );
+  }
+
+  /// The surface of the menu body or a submenu card: [glass] around [child],
+  /// or, when [GlassMenu.opaqueColor] is set, a flat fill of that color in
+  /// the same [shape] instead. [GlassMenu.border] is drawn over either.
+  ///
+  /// [surfaceOpacity] fades the opaque fill and the border the way the glass
+  /// material fades (a submenu card arriving or leaving); the glass handles
+  /// its own fade.
+  Widget _panelSurface({
+    required LiquidShape shape,
+    required double width,
+    required double height,
+    required Widget Function(Widget child) glass,
+    required Widget child,
+    double surfaceOpacity = 1.0,
+  }) {
+    final opaqueColor = widget.opaqueColor;
+    final border = widget.border;
+    final hasBorder = border != null && border.style != BorderStyle.none;
+    if (opaqueColor == null && !hasBorder) return glass(child);
+    final outline = shape.toOutlinedBorder();
+    final Widget surface = opaqueColor == null
+        ? glass(child)
+        : SizedBox(
+            width: width,
+            height: height,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Opacity(
+                  opacity: surfaceOpacity,
+                  child: DecoratedBox(
+                    decoration: ShapeDecoration(
+                      color: opaqueColor,
+                      shape: outline,
+                    ),
+                  ),
+                ),
+                ClipRRect(
+                  borderRadius: shape.toBorderRadius() ?? BorderRadius.zero,
+                  child: child,
+                ),
+              ],
+            ),
+          );
+    if (!hasBorder) return surface;
+    return Stack(
+      children: [
+        surface,
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: surfaceOpacity,
+              child: DecoratedBox(
+                decoration: ShapeDecoration(
+                  shape: outline.copyWith(side: border),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1411,24 +1482,17 @@ class _GlassMenuState extends State<GlassMenu> with TickerProviderStateMixin {
         : lerpDouble(sizeStartW, widget.menuWidth, state.sizeT)!
             .clamp(0.0, double.infinity);
 
-    final inheritedSettings = InheritedLiquidGlass.of(context);
-    final effectiveSettings = widget.settings ??
-        inheritedSettings ??
-        const LiquidGlassSettings(
-          blur: 10,
-          thickness: 10,
-          glassColor: Color.fromRGBO(255, 255, 255, 0.12),
-          lightAngle: GlassDefaults.lightAngle,
-          lightIntensity: 0.7,
-          ambientStrength: 0.4,
-          saturation: 1.2,
-          refractiveIndex: 0.7,
-          chromaticAberration: 0.0,
-        );
+    final effectiveSettings = GlassThemeHelpers.resolveSettings(
+      context,
+      explicit: widget.settings,
+      fallback: _kDefaultMenuSettings,
+      isOverlayPlatter: true,
+    );
 
     final effectiveQuality = GlassThemeHelpers.resolveQuality(
       context,
       widgetQuality: widget.quality,
+      fallback: GlassThemeHelpers.nativeStyleQuality(context),
     );
 
     final bool useBlendGroup = effectiveQuality != GlassQuality.minimal &&
@@ -1732,6 +1796,7 @@ class _GlassMenuState extends State<GlassMenu> with TickerProviderStateMixin {
     final effectiveQuality = GlassThemeHelpers.resolveQuality(
       context,
       widgetQuality: widget.quality,
+      fallback: GlassThemeHelpers.nativeStyleQuality(context),
     );
 
     // ─── True Metaball Morphing ──────────────────────────────────────────────
@@ -1758,22 +1823,14 @@ class _GlassMenuState extends State<GlassMenu> with TickerProviderStateMixin {
 
     // Inherit settings from context (like GlassContainer.card/GlassContainer)
     // If user provides custom settings, use those. Otherwise, check for inherited
-    // settings from parent layer. If none, use subtle overlay defaults.
-    // This matches the pattern used by all other glass widgets.
-    final inheritedSettings = InheritedLiquidGlass.of(context);
-    final effectiveSettings = widget.settings ??
-        inheritedSettings ??
-        const LiquidGlassSettings(
-          blur: 10,
-          thickness: 10,
-          glassColor: Color.fromRGBO(255, 255, 255, 0.12),
-          lightAngle: GlassDefaults.lightAngle, // Apple iOS 26 standard
-          lightIntensity: 0.7,
-          ambientStrength: 0.4,
-          saturation: 1.2,
-          refractiveIndex: 0.7, // Thin rim - iOS 26 delicate aesthetic
-          chromaticAberration: 0.0,
-        );
+    // settings from parent layer or active GlassTheme preset, falling back to
+    // classic menu defaults.
+    final effectiveSettings = GlassThemeHelpers.resolveSettings(
+      context,
+      explicit: widget.settings,
+      fallback: _kDefaultMenuSettings,
+      isOverlayPlatter: true,
+    );
 
     final glassContent = LiquidStretch(
       stretch: widget.stretch,
@@ -1788,19 +1845,25 @@ class _GlassMenuState extends State<GlassMenu> with TickerProviderStateMixin {
       allowNegativeX: widget.allowNegativeX ?? (_morphAlignment.x > 0),
       allowPositiveY: widget.allowPositiveY ?? (_morphAlignment.y < 0),
       allowNegativeY: widget.allowNegativeY ?? (_morphAlignment.y > 0),
-      child: GlassContainer(
-        useOwnLayer: false, // blends with the trigger ghost
-        settings: effectiveSettings,
-        quality: effectiveQuality,
-        platformViewBackdrop: widget.platformViewBackdrop,
-        allowElevation:
-            false, // Menu is overlay - don't darken when outside parent
-        width: currentWidth,
-        height: currentHeight, // Constrained during morph, natural when open
+      child: _panelSurface(
         shape: teardropShape,
-        clipBehavior:
-            Clip.antiAlias, // Clip items at the edges for edge-to-edge feel
-        glowIntensity: widget.glowIntensity,
+        width: currentWidth,
+        height: currentHeight,
+        glass: (child) => GlassContainer(
+          useOwnLayer: false, // blends with the trigger ghost
+          settings: effectiveSettings,
+          quality: effectiveQuality,
+          platformViewBackdrop: widget.platformViewBackdrop,
+          allowElevation:
+              false, // Menu is overlay - don't darken when outside parent
+          width: currentWidth,
+          height: currentHeight, // Constrained during morph, natural when open
+          shape: teardropShape,
+          clipBehavior:
+              Clip.antiAlias, // Clip items at the edges for edge-to-edge feel
+          glowIntensity: widget.glowIntensity,
+          child: child,
+        ), // GlassContainer
         child: _buildBodyContent(
           effectiveSettings,
           effectiveQuality,
@@ -1808,14 +1871,24 @@ class _GlassMenuState extends State<GlassMenu> with TickerProviderStateMixin {
           teardropShape,
           containerScale,
         ),
-      ), // GlassContainer
+      ),
     ); // LiquidStretch (glassContent)
 
     // The blob is always fully opaque — shape morph is the only animation.
-    return Transform.scale(
-      scale: lerpDouble(1.0, _kRecedeScale, _bodyRecede)!,
-      alignment: Alignment(0, _growsDown ? -1 : 1),
-      child: glassContent,
+    //
+    // The panel is a named route scope for screen readers, like a Cupertino
+    // dialog: VoiceOver and TalkBack announce its name when it opens and keep
+    // its rows together. explicitChildNodes keeps each row its own node.
+    return Semantics(
+      scopesRoute: true,
+      namesRoute: true,
+      explicitChildNodes: true,
+      label: widget.menuSemanticLabel ?? 'Menu',
+      child: Transform.scale(
+        scale: lerpDouble(1.0, _kRecedeScale, _bodyRecede)!,
+        alignment: Alignment(0, _growsDown ? -1 : 1),
+        child: glassContent,
+      ),
     );
   }
 
@@ -1980,6 +2053,16 @@ class _GlassMenuState extends State<GlassMenu> with TickerProviderStateMixin {
                 if (hoveredIndex == null) {
                   return const SizedBox.shrink();
                 }
+                final isDark =
+                    GlassTheme.brightnessOf(context) == Brightness.dark;
+                final style =
+                    GlassTheme.maybeOf(context)?.data.style ?? GlassStyle.ios27;
+                final effectiveSelectionColor =
+                    widget.selectionColor != const Color(0x3DFFFFFF)
+                        ? widget.selectionColor
+                        : (style == GlassStyle.classic || isDark)
+                            ? widget.selectionColor
+                            : const Color(0x14000000);
                 return AnimatedPositioned(
                   duration: const Duration(milliseconds: 150),
                   curve: Curves.easeOutCubic,
@@ -1992,14 +2075,13 @@ class _GlassMenuState extends State<GlassMenu> with TickerProviderStateMixin {
                   height: _getScaledItemHeight(items[hoveredIndex], context),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: widget.selectionColor,
+                      color: effectiveSelectionColor,
                       borderRadius:
                           BorderRadius.circular(widget.itemBorderRadius),
                       border: Border.all(
-                        color:
-                            GlassTheme.brightnessOf(context) == Brightness.dark
-                                ? const Color(0x0DFFFFFF)
-                                : const Color(0x0D000000),
+                        color: isDark
+                            ? const Color(0x0DFFFFFF)
+                            : const Color(0x0D000000),
                         width: 0.5,
                       ),
                     ),
@@ -2107,6 +2189,7 @@ class _GlassMenuState extends State<GlassMenu> with TickerProviderStateMixin {
             return GlassMenuItem(
               key: item.key ?? ValueKey(item.title),
               title: item.title,
+              semanticLabel: item.semanticLabel,
               subtitle: item.subtitle,
               icon: item.icon,
               isDestructive: item.isDestructive,
@@ -2123,6 +2206,7 @@ class _GlassMenuState extends State<GlassMenu> with TickerProviderStateMixin {
               submenu: item.submenu,
               isSelected: isSelected,
               isPressed: isPressed,
+              semanticsSelected: item.semanticsSelected,
               onTap: () {
                 if (!item.enabled) return;
                 // For scrollable menus, we delegate taps to the native GestureDetector
@@ -2309,6 +2393,18 @@ const Duration _kSubmenuMorphDuration = Duration(milliseconds: 320);
 const Curve _kSubmenuMorphCurve = Curves.easeOutCubic;
 const double _kBodyVerticalPadding = 12.0;
 const double _kRowGap = 2.0;
+
+const LiquidGlassSettings _kDefaultMenuSettings = LiquidGlassSettings(
+  blur: 10,
+  thickness: 10,
+  glassColor: Color.fromRGBO(255, 255, 255, 0.12),
+  lightAngle: GlassDefaults.lightAngle,
+  lightIntensity: 0.7,
+  ambientStrength: 0.4,
+  saturation: 1.2,
+  refractiveIndex: 0.7,
+  chromaticAberration: 0.0,
+);
 
 /// Geometry is captured before switching the active scroll viewport. Titles
 /// are not identifiers: two rows may have the same label.
