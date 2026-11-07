@@ -138,6 +138,11 @@ class HapticTick {
   static bool get _android => !kIsWeb && _platform == TargetPlatform.android;
   static bool get _ios => !kIsWeb && _platform == TargetPlatform.iOS;
 
+  /// Whether a rapid train of [play] ticks reads as one continuous buzz: the
+  /// phone motors (iOS Taptic Engine, Android vibrator) do; a desktop
+  /// trackpad would just click, so a continuous haptic is mobile-only.
+  static bool get continuousCapable => _android || _ios;
+
   /// The cached capabilities, or null while still unknown (Android only; every
   /// other platform is known without asking).
   static HapticCapabilities? get capabilities =>

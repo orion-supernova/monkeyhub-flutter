@@ -236,7 +236,8 @@ class SwipeForkOverlay extends StatelessWidget {
     final theme = ThemeScope.of(context);
     controller
       ..calm = MotionScope.of(context).calm
-      ..rtl = Directionality.of(context) == TextDirection.rtl;
+      ..rtl = Directionality.of(context) == TextDirection.rtl
+      ..screenCenterX = MediaQuery.sizeOf(context).width / 2;
     final labels = ForkLabels(AppLocalizations.of(context));
     final palette = ForkPalette(theme);
     final fallback = MediaQuery.viewPaddingOf(context).bottom + 72;
@@ -339,8 +340,12 @@ class ForkScenePainter extends CustomPainter {
       final a = ((lift - 18) / 22).clamp(0.0, 1.0) * out;
       if (a > 0) {
         if (!c.viewSingle) {
-          for (final side in ForkSide.values) {
-            _chip(canvas, side, out, lift);
+          if (c.viewHalves) {
+            _halves(canvas, out);
+          } else {
+            for (final side in ForkSide.values) {
+              _chip(canvas, side, out, lift);
+            }
           }
         }
         _circle(canvas, geo.circleCenter(lift), a, c.viewP);
@@ -428,6 +433,70 @@ class ForkScenePainter extends CustomPainter {
     canvas.restore();
   }
 
+  /// The full-screen style: the screen is two halves, a wash of each option's
+  /// colour with its glyph and name, the half under the finger lit. One
+  /// translucent rect per half and two small layers; nothing blurs.
+  void _halves(Canvas canvas, double out) {
+    final c = controller;
+    final b = c.bloom.value.clamp(0.0, 1.0) * out;
+    if (b <= 0.001) return;
+    final size = geo.size;
+    final midY = (geo.topInset + geo.dockTop) / 2 - 24;
+    for (final side in ForkSide.values) {
+      final o = side == ForkSide.left ? c.viewLeft : c.viewRight;
+      if (o == null) continue;
+      final arm =
+          (side == ForkSide.left ? c.armLeft : c.armRight).value.clamp(0.0, 1.0);
+      final col = palette.of(o);
+      final rect = side == ForkSide.left
+          ? Rect.fromLTRB(0, 0, geo.cx, size.height)
+          : Rect.fromLTRB(geo.cx, 0, size.width, size.height);
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = Color.lerp(theme.surfaceRaised, col, 0.10 + 0.30 * arm)!
+              .withValues(alpha: 0.80 * b),
+      );
+      final at = Offset(rect.center.dx, midY);
+      canvas.saveLayer(
+        Rect.fromCenter(center: at, width: rect.width, height: 190),
+        Paint()..color = const Color(0xFFFFFFFF).withValues(alpha: b),
+      );
+      final pop = 1 + 0.14 * arm;
+      canvas.save();
+      canvas.translate(at.dx, at.dy - 34);
+      canvas.scale(pop);
+      canvas.drawCircle(
+        Offset.zero,
+        34,
+        Paint()..color = Color.lerp(theme.surfaceSunken, col, arm)!,
+      );
+      canvas.scale(1.5);
+      _icon(canvas, o, Offset.zero,
+          Color.lerp(theme.ink, ForkPalette.onColor(col), arm)!);
+      canvas.restore();
+      final title = _tp(
+        labels.title(o),
+        theme.bodyEmph.copyWith(fontSize: 18, color: theme.ink, height: 1.15),
+        rect.width - 24,
+        1,
+      );
+      final sub = _tp(
+        labels.sub(o),
+        theme.caption.copyWith(fontSize: 13, color: theme.inkMuted, height: 1.2),
+        rect.width - 24,
+      );
+      final ty = at.dy + 34 * pop + 14;
+      title.paint(canvas, Offset(at.dx - title.width / 2, ty));
+      sub.paint(canvas, Offset(at.dx - sub.width / 2, ty + title.height + 3));
+      canvas.restore();
+    }
+    canvas.drawRect(
+      Rect.fromLTWH(geo.cx - 0.5, 0, 1, size.height),
+      Paint()..color = theme.divider.withValues(alpha: b),
+    );
+  }
+
   void _caption(Canvas canvas, Offset circle, double alpha) {
     final c = controller;
     var (top, sub) = labels.hint(c);
@@ -486,16 +555,18 @@ class ForkScenePainter extends CustomPainter {
     final c = controller;
     final o = side == ForkSide.left ? c.viewLeft : c.viewRight;
     if (o == null) return;
-    // The end-side chip lags a beat behind, as in the prototype.
-    var b = c.bloom.value;
-    if (side == ForkSide.right) b = (b - 0.1) / 0.9;
+    final b = c.bloom.value;
     if (b <= 0.001) return;
     final arm = (side == ForkSide.left ? c.armLeft : c.armRight).value.clamp(0.0, 1.0);
     final other = (side == ForkSide.left ? c.armRight : c.armLeft).value.clamp(0.0, 1.0);
     final col = palette.of(o);
     final from = geo.circleCenter(lift);
-    final fingerY = c.fingerY.value - (originOf?.call().dy ?? 0);
-    final to = geo.chipCenter(side, lift, fingerY);
+    final origin = originOf?.call() ?? Offset.zero;
+    // The chips ride just above the thumb, straight off its position (no
+    // spring in between), and lean along with its sideways travel.
+    final fingerY = c.fingerY.value - origin.dy - 56;
+    final slot = geo.chipCenter(side, lift, fingerY);
+    final to = Offset(slot.dx + c.viewSlide * 40, slot.dy);
     // The spring may overshoot the scale, never the place: a chip stays
     // between the header and the dock all the way there.
     final center = Offset.lerp(from, to, b.clamp(0.0, 1.0))!;

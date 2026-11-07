@@ -60,63 +60,63 @@ void main() {
   group('machine thresholds', () {
     test('pull: progress follows dy, the list lift is 1:1 then rubber-banded', () {
       final m = twoOptions();
-      m.update(48, 200);
+      m.update(64, 200);
       expect(m.phase, ForkPhase.pull);
       expect(m.progress, closeTo(0.5, 1e-9));
-      expect(m.travel, 48);
+      expect(m.travel, 64);
       m.update(96, 200);
-      m.update(196, 200);
-      expect(m.travel, closeTo(96 + 100 * 0.35, 1e-9));
+      m.update(228, 200);
+      expect(m.travel, closeTo(128 + 100 * 0.35, 1e-9));
     });
 
-    test('forks at 96, not at 95', () {
+    test('forks at 128, not before', () {
       final m = twoOptions();
-      expect(m.update(95.9, 200), isEmpty);
-      expect(m.update(96, 200), [ForkEvent.forked]);
+      expect(m.update(127.9, 200), isEmpty);
+      expect(m.update(128, 200), [ForkEvent.forked]);
       expect(m.phase, ForkPhase.fork);
     });
 
-    test('un-fork hysteresis: stays forked down to 72, collapses under it', () {
+    test('un-fork hysteresis: stays forked down to 100, collapses under it', () {
       final m = twoOptions();
-      m.update(120, 200);
-      expect(m.update(80, 200), isEmpty);
+      m.update(150, 200);
+      expect(m.update(110, 200), isEmpty);
       expect(m.phase, ForkPhase.fork);
-      expect(m.update(73, 200), isEmpty);
-      expect(m.update(71.9, 200), [ForkEvent.unforked]);
+      expect(m.update(100.5, 200), isEmpty);
+      expect(m.update(99.9, 200), [ForkEvent.unforked]);
       expect(m.phase, ForkPhase.pull);
-      // And it needs the full 96 again to re-fork.
-      expect(m.update(90, 200), isEmpty);
-      expect(m.update(96, 200), [ForkEvent.forked]);
+      // And it needs the full 128 again to re-fork.
+      expect(m.update(120, 200), isEmpty);
+      expect(m.update(128, 200), [ForkEvent.forked]);
     });
 
-    test('arm at 40 from the thumb x at bloom, disarm under 22', () {
+    test('arm at 48 from the thumb x at bloom, disarm under 26', () {
       final m = twoOptions();
-      m.update(100, 300); // bloom at x=300 (right edge case works: relative)
-      expect(m.update(100, 261), isEmpty);
-      expect(m.update(100, 260), [ForkEvent.armed]);
+      m.update(140, 300); // bloom at x=300 (right edge case works: relative)
+      expect(m.update(140, 253), isEmpty);
+      expect(m.update(140, 252), [ForkEvent.armed]);
       expect(m.armed, ForkSide.left);
       // hysteresis: 30 away is still armed
-      expect(m.update(100, 270), isEmpty);
+      expect(m.update(140, 270), isEmpty);
       expect(m.armed, ForkSide.left);
-      expect(m.update(100, 279), [ForkEvent.disarmed]); // 21 away: under 22
+      expect(m.update(140, 275), [ForkEvent.disarmed]); // 25 away: under 26
       expect(m.armed, isNull);
     });
 
     test('disarm emits disarmed; swapping sides emits swapped', () {
       final m = twoOptions();
-      m.update(100, 200);
-      m.update(100, 240);
+      m.update(140, 200);
+      m.update(140, 250);
       expect(m.armed, ForkSide.right);
-      expect(m.update(100, 150), [ForkEvent.swapped]);
+      expect(m.update(140, 150), [ForkEvent.swapped]);
       expect(m.armed, ForkSide.left);
-      expect(m.update(100, 195), [ForkEvent.disarmed]);
+      expect(m.update(140, 195), [ForkEvent.disarmed]);
       expect(m.armed, isNull);
     });
 
     test('un-forking drops the arm silently', () {
       final m = twoOptions();
-      m.update(100, 200);
-      m.update(100, 250);
+      m.update(140, 200);
+      m.update(140, 250);
       expect(m.armed, ForkSide.right);
       final e = m.update(60, 250);
       expect(e, [ForkEvent.unforked]);
@@ -125,10 +125,11 @@ void main() {
 
     test('slide progress is 0..1 over the arm distance', () {
       final m = twoOptions();
-      m.update(100, 200);
-      m.update(100, 220);
+      m.update(140, 200);
+      m.update(140, 224);
       expect(m.slide, closeTo(0.5, 1e-9));
-      m.update(100, 300);
+      expect(m.slideSigned, closeTo(0.5, 1e-9));
+      m.update(140, 300);
       expect(m.slide, 1);
     });
   });
@@ -136,8 +137,8 @@ void main() {
   group('machine release', () {
     test('armed release commits that side', () {
       final m = twoOptions();
-      m.update(100, 200);
-      m.update(100, 150);
+      m.update(140, 200);
+      m.update(140, 150);
       final out = m.end(0);
       expect(out.committed, isTrue);
       expect(out.option, vanishOn);
@@ -147,7 +148,7 @@ void main() {
 
     test('unarmed release in the middle cancels', () {
       final m = twoOptions();
-      m.update(100, 200);
+      m.update(140, 200);
       expect(m.end(0).committed, isFalse);
     });
 
@@ -159,15 +160,15 @@ void main() {
     });
 
     test('flick > 600pt/s past the line arms that side on release', () {
-      var m = twoOptions()..update(100, 200);
+      var m = twoOptions()..update(140, 200);
       var out = m.end(-601);
       expect(out.option, vanishOn);
-      m = twoOptions()..update(100, 200);
+      m = twoOptions()..update(140, 200);
       out = m.end(601);
       expect(out.option, talk);
-      m = twoOptions()..update(100, 200);
+      m = twoOptions()..update(140, 200);
       expect(m.end(600).committed, isFalse);
-      m = twoOptions()..update(100, 200);
+      m = twoOptions()..update(140, 200);
       expect(m.end(-300).committed, isFalse);
     });
 
@@ -178,8 +179,8 @@ void main() {
 
     test('reset (second finger / background) leaves nothing armed', () {
       final m = twoOptions();
-      m.update(100, 200);
-      m.update(100, 250);
+      m.update(140, 200);
+      m.update(140, 250);
       m.reset();
       expect(m.active, isFalse);
       expect(m.armed, isNull);
@@ -193,13 +194,13 @@ void main() {
     test('there is no sliding or arming', () {
       final m = single();
       expect(m.single, isTrue);
-      m.update(100, 200);
-      expect(m.update(100, 400), isEmpty);
+      m.update(140, 200);
+      expect(m.update(140, 400), isEmpty);
       expect(m.armed, isNull);
     });
 
     test('release past the line commits the only option', () {
-      final m = single()..update(100, 200);
+      final m = single()..update(140, 200);
       final out = m.end(0);
       expect(out.committed, isTrue);
       expect(out.option, talk);
@@ -211,15 +212,199 @@ void main() {
     });
 
     test('dropping under 72 after forking cancels', () {
-      final m = single()..update(100, 200);
+      final m = single()..update(140, 200);
       m.update(60, 200);
       expect(m.end(0).committed, isFalse);
     });
 
     test('a left-only option commits too', () {
       final m = ForkMachine()..begin(left: vanishOn);
-      m.update(100, 200);
+      m.update(140, 200);
       expect(m.end(0).option, vanishOn);
+    });
+  });
+
+  group('machine robustness', () {
+    test('up/down oscillation never sticks: every cycle forks and unforks', () {
+      final m = twoOptions();
+      for (var i = 0; i < 20; i++) {
+        expect(m.update(140, 200), [ForkEvent.forked], reason: 'cycle $i');
+        expect(m.phase, ForkPhase.fork);
+        expect(m.update(60, 200), [ForkEvent.unforked], reason: 'cycle $i');
+        expect(m.phase, ForkPhase.pull);
+        expect(m.armed, isNull);
+        expect(m.dx, 0);
+      }
+      expect(m.end(0).committed, isFalse);
+      expect(m.active, isFalse);
+    });
+
+    test('arming survives oscillation: each fork re-anchors at the new x', () {
+      final m = twoOptions();
+      m.update(140, 200);
+      m.update(140, 260);
+      expect(m.armed, ForkSide.right);
+      m.update(60, 260); // drop under the un-fork line
+      expect(m.armed, isNull);
+      // Back up at a different x: the anchor is the thumb there, not 200.
+      expect(m.update(140, 300), [ForkEvent.forked]);
+      expect(m.dx, 0);
+      expect(m.armed, isNull);
+      expect(m.update(140, 360), [ForkEvent.armed]);
+      expect(m.end(0).option, talk);
+    });
+
+    test('a release right after an un-fork cancels', () {
+      final m = twoOptions();
+      m.update(140, 200);
+      m.update(140, 260);
+      m.update(60, 260);
+      expect(m.end(0).committed, isFalse);
+    });
+
+    test('ending twice (double lift, lift after reset) is a harmless cancel', () {
+      final m = twoOptions()..update(140, 200);
+      m.end(0);
+      expect(m.end(0).committed, isFalse);
+      m.reset();
+      expect(m.end(900).committed, isFalse);
+      expect(m.update(140, 200), isEmpty);
+    });
+
+    test('begin() after a half-finished gesture starts clean', () {
+      final m = twoOptions();
+      m.update(140, 200);
+      m.update(140, 260);
+      m.begin(left: vanishOn, right: talk);
+      expect(m.phase, ForkPhase.pull);
+      expect(m.armed, isNull);
+      expect(m.dy, 0);
+      expect(m.dx, 0);
+    });
+
+    test('anchored halves: the side is the screen half, armed by a move toward it',
+        () {
+      final m = ForkMachine()
+        ..armAt = 28
+        ..disarmAt = 14
+        ..begin(left: vanishOn, right: talk, anchorX: 200);
+      // Forks with the finger already on the right half: NOT armed, or a
+      // plain pull-and-release would commit huddle (the accidental open).
+      expect(m.update(140, 300), [ForkEvent.forked]);
+      expect(m.armed, isNull);
+      expect(m.update(140, 310), isEmpty, reason: 'under the travel gate');
+      expect(m.update(140, 324), [ForkEvent.armed]);
+      expect(m.armed, ForkSide.right);
+      expect(m.update(140, 205), [ForkEvent.disarmed]);
+      expect(m.update(140, 120), [ForkEvent.armed]);
+      expect(m.armed, ForkSide.left);
+      expect(m.end(0).option, vanishOn);
+    });
+  });
+
+  group('machine accidental-open guards', () {
+    ForkMachine timed() => ForkMachine()..begin(left: vanishOn, right: talk);
+
+    test('a quick flick past the line does not open the fork', () {
+      final m = timed();
+      m.update(40, 200, ms: 0);
+      m.update(90, 200, ms: 40);
+      expect(m.update(160, 200, ms: 80), isEmpty, reason: 'too soon, too fast');
+      expect(m.phase, ForkPhase.pull);
+      expect(m.end(0).committed, isFalse);
+    });
+
+    test('a steady deliberate pull opens it', () {
+      final m = timed();
+      var opened = false;
+      for (var t = 0; t <= 400; t += 16) {
+        final events = m.update(t * 0.4, 200, ms: t); // 400pt/s
+        if (events.contains(ForkEvent.forked)) opened = true;
+      }
+      expect(opened, isTrue);
+      expect(m.phase, ForkPhase.fork);
+    });
+
+    test('fast then resting at the line: it opens once the finger has settled',
+        () {
+      final m = timed();
+      m.update(60, 200, ms: 0);
+      expect(m.update(150, 200, ms: 60), isEmpty);
+      // Held still: re-asked on a timer with unchanged values.
+      var opened = false;
+      for (var t = 76; t <= 600; t += 16) {
+        if (m.update(150, 200, ms: t).contains(ForkEvent.forked)) opened = true;
+      }
+      expect(opened, isTrue);
+    });
+
+    test('without timestamps the distance alone decides (legacy callers)', () {
+      final m = timed();
+      expect(m.update(130, 200), [ForkEvent.forked]);
+    });
+  });
+
+  group('ForkBuzz', () {
+    testWidgets('pulses continuously, even with the finger held still, then stops',
+        (t) async {
+      final plays = <double>[];
+      var level = 0.5;
+      final b = ForkBuzz(
+        intensity: () => level,
+        tier: HapticTier.full,
+        capable: true,
+        play: plays.add,
+      )..start();
+      await t.pump(const Duration(milliseconds: 280));
+      expect(plays.length, inInclusiveRange(8, 11));
+      level = 0.8;
+      await t.pump(const Duration(milliseconds: 56));
+      expect(plays.last, 0.8);
+      b.stop();
+      final n = plays.length;
+      await t.pump(const Duration(milliseconds: 300));
+      expect(plays.length, n, reason: 'silent the instant it is stopped');
+      expect(b.running, isFalse);
+    });
+
+    testWidgets('a thinned motor gets a wider gap; landmarks/desktop never buzz',
+        (t) async {
+      final thin = <double>[];
+      final a = ForkBuzz(
+          intensity: () => 0.5,
+          tier: HapticTier.thinned,
+          capable: true,
+          play: thin.add)
+        ..start();
+      await t.pump(const Duration(milliseconds: 440));
+      expect(thin.length, inInclusiveRange(9, 10));
+      a.stop();
+      final none = <double>[];
+      for (final (tier, capable) in [
+        (HapticTier.landmarks, true),
+        (HapticTier.silent, true),
+        (HapticTier.full, false),
+      ]) {
+        final b = ForkBuzz(
+            intensity: () => 1, tier: tier, capable: capable, play: none.add)
+          ..start();
+        await t.pump(const Duration(milliseconds: 200));
+        b.stop();
+      }
+      expect(none, isEmpty);
+    });
+
+    testWidgets('silence below the floor', (t) async {
+      final plays = <double>[];
+      final b = ForkBuzz(
+          intensity: () => 0.01,
+          tier: HapticTier.full,
+          capable: true,
+          play: plays.add)
+        ..start();
+      await t.pump(const Duration(milliseconds: 200));
+      b.stop();
+      expect(plays, isEmpty);
     });
   });
 
@@ -227,6 +412,7 @@ void main() {
     late List<String> log;
     late SwipeForkController fork;
     bool allowed = true;
+    bool halves = false;
     ForkRoomState room = const ForkRoomState();
     Object? failWith;
     int builds = 0;
@@ -238,6 +424,7 @@ void main() {
     }) async {
       log = [];
       allowed = true;
+      halves = false;
       room = const ForkRoomState();
       failWith = null;
       builds = 0;
@@ -253,6 +440,8 @@ void main() {
             build: (vsync) => fork = SwipeForkController(
               vsync: vsync,
               hapticTier: HapticTier.silent,
+              fullScreen: () => halves,
+              clockMs: () => tester.binding.clock.now().millisecondsSinceEpoch,
               canArm: () => allowed,
               roomState: () => room,
               failureText: (e) => 'nope',
@@ -266,6 +455,13 @@ void main() {
           ),
         ),
       ));
+    }
+
+    /// Lets springs, fades and the commit's awaited futures all finish.
+    Future<void> settle(WidgetTester t) async {
+      for (var i = 0; i < 30; i++) {
+        await t.pump(const Duration(milliseconds: 100));
+      }
     }
 
     Future<TestGesture> pull(WidgetTester t, double up, {double x = 200}) async {
@@ -287,7 +483,7 @@ void main() {
 
     testWidgets('pull, fork, arm right, release: talk commits', (t) async {
       await pumpScene(t);
-      final g = await pull(t, 110);
+      final g = await pull(t, 150);
       expect(fork.machine.phase, ForkPhase.fork);
       expect(fork.visible.value, isTrue);
       await slide(t, g, 50);
@@ -303,7 +499,7 @@ void main() {
 
     testWidgets('arm left commits vanish on', (t) async {
       await pumpScene(t);
-      final g = await pull(t, 110);
+      final g = await pull(t, 150);
       await slide(t, g, -50);
       await g.up();
       await t.pump();
@@ -314,7 +510,7 @@ void main() {
     testWidgets('vanish already on commits vanish off', (t) async {
       await pumpScene(t);
       room = const ForkRoomState(vanishOn: true);
-      final g = await pull(t, 110);
+      final g = await pull(t, 150);
       await slide(t, g, -50);
       await g.up();
       await t.pump();
@@ -324,7 +520,7 @@ void main() {
 
     testWidgets('release in the middle cancels', (t) async {
       await pumpScene(t);
-      final g = await pull(t, 110);
+      final g = await pull(t, 150);
       await slide(t, g, 20);
       await g.up();
       await t.pump();
@@ -336,7 +532,7 @@ void main() {
     testWidgets('single option: release past the line commits it', (t) async {
       await pumpScene(t);
       room = const ForkRoomState(isSecret: true);
-      final g = await pull(t, 110);
+      final g = await pull(t, 150);
       await g.up();
       await t.pump();
       await t.pump(const Duration(seconds: 2));
@@ -346,7 +542,7 @@ void main() {
     testWidgets('closed gate: nothing arms, the list scrolls', (t) async {
       await pumpScene(t);
       allowed = false;
-      final g = await pull(t, 110);
+      final g = await pull(t, 150);
       expect(fork.visible.value, isFalse);
       await g.up();
       await t.pump();
@@ -356,7 +552,7 @@ void main() {
     testWidgets('no options: nothing arms', (t) async {
       await pumpScene(t);
       room = const ForkRoomState(isSecret: true, inCall: true);
-      final g = await pull(t, 110);
+      final g = await pull(t, 150);
       expect(fork.visible.value, isFalse);
       await g.up();
     });
@@ -388,7 +584,7 @@ void main() {
 
     testWidgets('a second finger cancels without committing', (t) async {
       await pumpScene(t);
-      final g = await pull(t, 110);
+      final g = await pull(t, 150);
       await slide(t, g, 50);
       expect(fork.machine.armed, ForkSide.right);
       final second = await t.startGesture(const Offset(100, 300), pointer: 7);
@@ -417,7 +613,7 @@ void main() {
       await pumpScene(t);
       room = const ForkRoomState(isSecret: true); // one option: no bloom lift
       final g = await pull(t, 190);
-      expect(fork.lift, closeTo(96 + 94 * 0.35, 0.5));
+      expect(fork.lift, closeTo(128 + 62 * 0.35, 0.5));
       await g.up();
       await t.pump(const Duration(seconds: 2));
     });
@@ -425,10 +621,10 @@ void main() {
     testWidgets('the arc fills with the pull', (t) async {
       await pumpScene(t);
       final g = await pull(t, 40);
-      expect(fork.pullValue.value, closeTo(40 / 96, 1e-6));
+      expect(fork.pullValue.value, closeTo(40 / 128, 1e-6));
       expect(fork.bloom.value, 0, reason: 'no chips before the line');
       expect(fork.viewForked, isFalse);
-      await g.moveBy(const Offset(0, -80));
+      await g.moveBy(const Offset(0, -100));
       await t.pump(const Duration(milliseconds: 16));
       expect(fork.pullValue.value, 1);
       await g.up();
@@ -438,7 +634,7 @@ void main() {
     testWidgets('chips bloom past the line and lift the list a little more',
         (t) async {
       await pumpScene(t);
-      final g = await pull(t, 110);
+      final g = await pull(t, 150);
       await t.pump(const Duration(milliseconds: 400));
       expect(fork.viewForked, isTrue);
       expect(fork.bloom.value, closeTo(1, 0.02));
@@ -451,7 +647,7 @@ void main() {
         (t) async {
       await pumpScene(t);
       room = const ForkRoomState(isSecret: true);
-      final g = await pull(t, 110);
+      final g = await pull(t, 150);
       await t.pump(const Duration(milliseconds: 400));
       expect(fork.bloom.value, 0);
       expect(fork.glyph.value, closeTo(1, 0.02));
@@ -463,7 +659,7 @@ void main() {
     testWidgets('cancel springs the list back down', (t) async {
       await pumpScene(t);
       final rest = t.getTopLeft(find.text('m0')).dy;
-      final g = await pull(t, 110);
+      final g = await pull(t, 150);
       await slide(t, g, 10);
       final lifted = fork.lift;
       expect(lifted, greaterThan(90));
@@ -481,7 +677,7 @@ void main() {
     testWidgets('commit springs the list back and runs the action', (t) async {
       await pumpScene(t);
       final rest = t.getTopLeft(find.text('m0')).dy;
-      final g = await pull(t, 110);
+      final g = await pull(t, 150);
       await slide(t, g, 50);
       await g.up();
       await t.pump(); // the springs start on this frame
@@ -495,18 +691,184 @@ void main() {
     testWidgets('rows are not rebuilt while the list is pulled', (t) async {
       await pumpScene(t);
       final before = builds;
-      final g = await pull(t, 110);
+      final g = await pull(t, 150);
       await slide(t, g, 50);
       await g.up();
       await t.pump(const Duration(seconds: 2));
       expect(builds, before);
     });
 
+    testWidgets('full-screen halves: the half under the finger is the option',
+        (t) async {
+      await pumpScene(t);
+      halves = true;
+      var g = await pull(t, 150, x: 100);
+      expect(fork.viewHalves, isTrue);
+      expect(fork.machine.armed, isNull,
+          reason: 'resting off-centre is not a choice');
+      await t.pump(const Duration(milliseconds: 300));
+      await g.up();
+      await settle(t);
+      expect(log, isEmpty, reason: 'pull and release cancels');
+
+      g = await pull(t, 150, x: 100);
+      await slide(t, g, -30); // a deliberate move into the left half
+      expect(fork.machine.armed, ForkSide.left);
+      await g.up();
+      await settle(t);
+      expect(log, ['vanish:true']);
+      log.clear();
+
+      g = await pull(t, 150, x: 100);
+      await slide(t, g, 600); // across to the right half
+      expect(fork.machine.armed, ForkSide.right);
+      await g.up();
+      await settle(t);
+      expect(log, ['huddle']);
+    });
+
+    testWidgets('full-screen halves paint a wash over the whole screen',
+        (t) async {
+      t.view.physicalSize = const Size(400, 800);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      await pumpScene(t);
+      halves = true;
+      final g = await pull(t, 150, x: 100);
+      await t.pump(const Duration(milliseconds: 600));
+      final b = _boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final img = (await t.runAsync(() => b.toImage()))!;
+      final bytes = (await t.runAsync(() => img.toByteData()))!;
+      int alphaAt(int x, int y) => bytes.getUint8((y * img.width + x) * 4 + 3);
+      // Both halves are tinted, top and bottom, left and right.
+      for (final (x, y) in [(20, 20), (380, 20), (20, 700), (380, 700)]) {
+        expect(alphaAt(x, y), greaterThan(100), reason: 'at $x,$y');
+      }
+      await g.up();
+      await settle(t);
+    });
+
+    testWidgets('a quick flick past the line does not open; resting there does',
+        (t) async {
+      await pumpScene(t);
+      final g = await t.startGesture(const Offset(200, 560));
+      for (var i = 0; i < 3; i++) {
+        await g.moveBy(const Offset(0, -50));
+        await t.pump(const Duration(milliseconds: 16));
+      }
+      expect(fork.machine.dy, greaterThan(128));
+      expect(fork.machine.phase, ForkPhase.pull);
+      expect(fork.viewForked, isFalse);
+      // The finger stops: the beat re-asks and the fork opens.
+      await t.pump(const Duration(milliseconds: 400));
+      expect(fork.machine.phase, ForkPhase.fork);
+      await g.up();
+      await settle(t);
+    });
+
+    testWidgets('a flick that ends before settling cancels', (t) async {
+      await pumpScene(t);
+      final g = await t.startGesture(const Offset(200, 560));
+      for (var i = 0; i < 3; i++) {
+        await g.moveBy(const Offset(0, -50));
+        await t.pump(const Duration(milliseconds: 16));
+      }
+      await g.up();
+      await settle(t);
+      expect(log, isEmpty);
+      expect(fork.visible.value, isFalse);
+    });
+
+    testWidgets('up, down, up again within one drag: the second pull works',
+        (t) async {
+      await pumpScene(t);
+      final g = await pull(t, 150);
+      expect(fork.machine.phase, ForkPhase.fork);
+      // All the way down: the fork cancels and its spring-back starts.
+      for (var i = 0; i < 16; i++) {
+        await g.moveBy(const Offset(0, 10));
+        await t.pump(const Duration(milliseconds: 16));
+      }
+      expect(fork.machine.active, isFalse);
+      // Straight back up, while that collapse may still be running.
+      for (var i = 0; i < 18; i++) {
+        await g.moveBy(const Offset(0, -10));
+        await t.pump(const Duration(milliseconds: 16));
+      }
+      expect(fork.machine.active, isTrue, reason: 'a new pull began');
+      expect(fork.exit, ForkExit.none);
+      expect(fork.machine.phase, ForkPhase.fork);
+      // And a full second round-trip keeps working.
+      for (var i = 0; i < 16; i++) {
+        await g.moveBy(const Offset(0, 10));
+        await t.pump(const Duration(milliseconds: 16));
+      }
+      for (var i = 0; i < 18; i++) {
+        await g.moveBy(const Offset(0, -10));
+        await t.pump(const Duration(milliseconds: 16));
+      }
+      expect(fork.machine.phase, ForkPhase.fork);
+      await slide(t, g, 50);
+      expect(fork.machine.armed, ForkSide.right);
+      await g.up();
+      await settle(t);
+      expect(log, ['huddle']);
+      expect(fork.visible.value, isFalse);
+    });
+
+    testWidgets('a stale cancel never finishes a newer gesture', (t) async {
+      await pumpScene(t);
+      var g = await pull(t, 150);
+      await g.up(); // cancel in the middle
+      await t.pump(const Duration(milliseconds: 30));
+      expect(fork.exit, ForkExit.cancel);
+      // A new gesture inside the collapse (the list is still lifted away from
+      // the old touch point, so it lands higher up).
+      g = await t.startGesture(const Offset(200, 300));
+      for (var i = 0; i < 15; i++) {
+        await g.moveBy(const Offset(0, -10));
+        await t.pump(const Duration(milliseconds: 16));
+      }
+      await t.pump(const Duration(seconds: 1));
+      expect(fork.visible.value, isTrue, reason: 'the old collapse did not end it');
+      expect(fork.machine.active, isTrue);
+      await g.up();
+      await settle(t);
+      expect(fork.visible.value, isFalse);
+    });
+
+    testWidgets('two fingers that lift in either order leave the fork usable',
+        (t) async {
+      await pumpScene(t);
+      final a = await t.startGesture(const Offset(200, 560), pointer: 1);
+      final b = await t.startGesture(const Offset(300, 500), pointer: 2);
+      await a.up(); // the first finger goes first
+      await b.up();
+      await t.pump();
+      final g = await pull(t, 150);
+      expect(fork.machine.phase, ForkPhase.fork, reason: 'no stale second-finger');
+      await g.up();
+      await settle(t);
+    });
+
+    testWidgets('a pointer cancel mid-fork collapses without committing',
+        (t) async {
+      await pumpScene(t);
+      final g = await pull(t, 150);
+      await slide(t, g, 50);
+      expect(fork.machine.armed, ForkSide.right);
+      await g.cancel();
+      await settle(t);
+      expect(log, isEmpty);
+      expect(fork.visible.value, isFalse);
+      expect(fork.machine.active, isFalse);
+    });
+
     testWidgets('a failing commit shakes, shows the reason, then collapses',
         (t) async {
       await pumpScene(t);
       failWith = StateError('boom');
-      final g = await pull(t, 110);
+      final g = await pull(t, 150);
       await slide(t, g, 50);
       await g.up();
       await t.pump();
@@ -541,6 +903,8 @@ void main() {
             build: (vsync) => fork = SwipeForkController(
               vsync: vsync,
               hapticTier: HapticTier.silent,
+              fullScreen: () => false,
+              clockMs: () => t.binding.clock.now().millisecondsSinceEpoch,
               canArm: () => true,
               roomState: () => const ForkRoomState(),
               onStartHuddle: () async => log.add('huddle'),
@@ -706,7 +1070,7 @@ void main() {
     }
 
     Future<SwipeForkController> forked(WidgetTester t,
-        {double dock = 60, double startY = 400, double pullTo = 130}) async {
+        {double dock = 60, double startY = 400, double pullTo = 150}) async {
       late SwipeForkController c;
       t.view.physicalSize = const Size(400, 800);
       t.view.devicePixelRatio = 1;
@@ -722,6 +1086,8 @@ void main() {
             build: (vsync) => c = SwipeForkController(
               vsync: vsync,
               hapticTier: HapticTier.silent,
+              fullScreen: () => false,
+              clockMs: () => t.binding.clock.now().millisecondsSinceEpoch,
               canArm: () => true,
               roomState: () => const ForkRoomState(),
               onStartHuddle: () async {},
@@ -747,7 +1113,7 @@ void main() {
       final img = await shot(t);
       final fingerY = c.thumbY;
       // A row of the left chip's body at the finger's height has ink...
-      final (atFinger, _) = await inkIn(t, img, Rect.fromLTWH(30, fingerY - 2, 100, 4));
+      final (atFinger, _) = await inkIn(t, img, Rect.fromLTWH(30, fingerY - 58, 100, 4));
       expect(atFinger, greaterThan(100));
       // ...and the strip just above the dock, where they used to bloom, has none
       // in the chips' columns.

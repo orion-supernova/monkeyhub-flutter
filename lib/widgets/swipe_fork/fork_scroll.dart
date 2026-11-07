@@ -85,14 +85,18 @@ class ForkPull {
   }
 
   void _lift(int pointer, {required bool cancel}) {
+    final wasPrimary = pointer == _primary;
     _down.remove(pointer);
-    if (pointer != _primary) return;
+    // Every finger up clears the slot, whichever lifted last. (Clearing it
+    // only when the primary lifted last left a stale primary behind after a
+    // two-finger touch, and every later pull then counted as a second finger.)
+    if (_down.isEmpty) _primary = null;
+    if (!wasPrimary) return;
     final vx = _velocity?.getVelocity().pixelsPerSecond.dx ?? 0;
     final was = _pulling;
     _pulling = false;
     _pull = 0;
     _velocity = null;
-    if (_down.isEmpty) _primary = null;
     if (!was) return;
     if (cancel || _dead) {
       _c.cancelGesture();

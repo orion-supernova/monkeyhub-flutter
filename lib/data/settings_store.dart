@@ -84,6 +84,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kTipsSeen = 'mh.tipsSeen';
   static const _kForkPeekCount = 'mh.forkPeekCount';
   static const _kForkGestureDone = 'mh.forkGestureDone';
+  static const _kForkFullScreen = 'mh.forkFullScreen';
   static const _kVideoQualityTier = 'mh.videoQualityTier';
   static const _kAutoLowerVideoQuality = 'mh.autoLowerVideoQuality';
   // NOTE: 'mh.fullScreenIntentPrompted', 'mh.batteryOptPrompted' and
@@ -133,7 +134,7 @@ class SettingsStore extends ChangeNotifier {
     _kLayout, _kNav, _kSection, _kShowCallsTab, _kCallsSeenAt, _kCallsFavSnoozed, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
-    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
+    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kForkFullScreen, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
     _kVideoQualityTier, _kAutoLowerVideoQuality, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kUiKit, _kNativeScope, _kShaderGlass, _kLocale, _kMotionLevel, _kPowerSaving, _kHaptics,
@@ -208,6 +209,7 @@ class SettingsStore extends ChangeNotifier {
   Set<String> _tipsSeen = {};
   int _forkPeekCount = 0;
   bool _forkGestureDone = false;
+  bool _forkFullScreen = true;
   Set<String>? _diagHiddenCategories;
   FilterStyle _filterStyle = FilterStyle.chips;
   UiKit? _uiKit;
@@ -478,6 +480,18 @@ class SettingsStore extends ChangeNotifier {
   Future<void> markForkPeekShown() async {
     _forkPeekCount++;
     await _storage.write(key: _kForkPeekCount, value: '$_forkPeekCount');
+  }
+
+  /// How the swipe-up fork shows its two options. True (the default): the
+  /// whole screen splits into two halves, one per option. False: two chips
+  /// that follow the finger.
+  bool get forkFullScreen => _forkFullScreen;
+
+  Future<void> setForkFullScreen(bool v) async {
+    if (_forkFullScreen == v) return;
+    _forkFullScreen = v;
+    notifyListeners();
+    await _storage.write(key: _kForkFullScreen, value: v ? 'true' : 'false');
   }
 
   /// The reader committed the fork once: the peek has taught what it can.
@@ -815,6 +829,7 @@ class SettingsStore extends ChangeNotifier {
     _tipsSeen = _decodeStringSet(s[_kTipsSeen]);
     _forkPeekCount = int.tryParse(s[_kForkPeekCount] ?? '') ?? 0;
     _forkGestureDone = s[_kForkGestureDone] == 'true';
+    _forkFullScreen = s[_kForkFullScreen] != 'false'; // default true
     _composerModeHintSeenRoomIds = _decodeStringSet(
       s[_kComposerModeHintSeenRoomIds],
     );

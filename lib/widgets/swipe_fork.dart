@@ -5,13 +5,15 @@ import 'package:flutter/animation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/physics.dart';
 
-import 'haptic_ramp.dart';
+import '../data/settings_store.dart';
 import 'haptic_tick.dart';
+import 'swipe_fork/fork_buzz.dart';
 import 'swipe_fork/fork_machine.dart';
 import 'swipe_fork/fork_options.dart';
 import 'swipe_fork/fork_peek.dart';
 import 'swipe_fork/fork_scroll.dart';
 
+export 'swipe_fork/fork_buzz.dart';
 export 'swipe_fork/fork_gesture.dart';
 export 'swipe_fork/fork_machine.dart';
 export 'swipe_fork/fork_options.dart';
@@ -54,8 +56,6 @@ enum ForkExit { none, cancel, commitTalk, commitVanish }
 const double kForkBloomLift = 24;
 
 const _bloomSpring = SpringDescription(mass: 1, stiffness: 420, damping: 26);
-/// Critically damped and quick: the chips trail the finger without jitter.
-const _followSpring = SpringDescription(mass: 1, stiffness: 520, damping: 45.6);
 const _commitSpring = SpringDescription(mass: 1, stiffness: 300, damping: 30);
 const _cancelSpring = SpringDescription(mass: 1, stiffness: 520, damping: 40);
 
@@ -79,6 +79,8 @@ class SwipeForkController {
     this.onCommitted,
     this.rtl = false,
     this.hapticTier,
+    this.fullScreen,
+    this.clockMs,
     ForkMachine? machine,
   }) : machine = machine ?? ForkMachine() {
     AnimationController unb() => AnimationController.unbounded(vsync: vsync);
@@ -123,6 +125,18 @@ class SwipeForkController {
   /// Pins the haptic tier (tests); null decides per gesture.
   final HapticTier? hapticTier;
 
+  /// Whether the two options take the whole screen (a half each) instead of
+  /// two chips that follow the finger. Read once per gesture, at the start.
+  /// Null reads [SettingsStore.forkFullScreen].
+  final bool Function()? fullScreen;
+
+  /// A monotonic clock in ms for the fork's dwell (tests drive it).
+  final int Function()? clockMs;
+
+  /// The screen's horizontal middle in global coordinates, set by the overlay
+  /// each build: where the full-screen halves meet.
+  double screenCenterX = 0;
+
   final ForkMachine machine;
 
   late final AnimationController bloom, armLeft, armRight, glyph, pulse;
@@ -158,6 +172,13 @@ class SwipeForkController {
   double thumbY = 0;
   bool viewForked = false;
   bool viewSingle = false;
+
+  /// This gesture shows full-screen halves (decided at the start).
+  bool viewHalves = false;
+
+  /// Sideways travel over the arm distance, -1..1 (negative = left), straight
+  /// from the finger: the chips and halves read it, with no spring between.
+  double viewSlide = 0;
   ForkSide? viewArmed;
   ForkOption? viewLeft;
   ForkOption? viewRight;
@@ -169,9 +190,8 @@ class SwipeForkController {
 
   Offset _at = Offset.zero;
   List<ForkOption> _opts = const [];
-  HapticRamp? _pullRamp;
-  HapticRamp? _slideRamp;
-  int _slideSign = 0;
+  ForkBuzz? _buzz;
+  final Stopwatch _clock = Stopwatch()..start();
   double _liftAtRelease = 0;
   bool _disposed = false;
   int _gen = 0;
@@ -219,7 +239,9 @@ class SwipeForkController {
   /// The options captured at touch-down.
   List<ForkOption> get options => _opts;
 
-  bool get busy => visible.value;
+  /// A gesture or a commit is on screen. A cancel's spring-back is not: the
+  /// reader may pull again straight away, mid-collapse (up, down, up ...).
+  bool get busy => visible.value && exit != ForkExit.cancel;
 
   /// The state a tick of the gesture is in.
   bool get active => machine.active;
@@ -254,7 +276,23 @@ class SwipeForkController {
         right = o;
       }
     }
-    machine.begin(left: left, right: right);
+    viewHalves = (fullScreen ?? () => SettingsStore.instance.forkFullScreen)();
+    if (left == null || right == null) viewHalves = false;
+    // The halves meet at the screen's middle, so a finger already on one side
+    // is on that option; they get a tight dead zone. Chips measure from where
+    // the finger bloomed and need a real slide.
+    machine
+      ..armAt = viewHalves ? 28 : 48
+      ..disarmAt = viewHalves ? 14 : 26
+      ..begin(
+        left: left,
+        right: right,
+        anchorX: viewHalves ? screenCenterX : null,
+      );
+    // A new gesture over a cancel's spring-back: that collapse must not finish
+    // under it.
+    _gen++;
+    viewSlide = 0;
     viewLeft = left;
     viewRight = right;
     viewSingle = machine.single;
@@ -267,7 +305,6 @@ class SwipeForkController {
     exit = ForkExit.none;
     committed = null;
     failReason = null;
-    _slideSign = 0;
     for (final c in [bloom, armLeft, armRight, glyph, pulse, flight, chrome, orbFade, shake, fingerY, kick]) {
       c.stop();
       c.value = 0;
@@ -276,17 +313,11 @@ class SwipeForkController {
     peekValue.value = 0;
     pullValue.value = 0;
     slideValue.value = 0;
-    _pullRamp?.dispose();
-    _slideRamp?.dispose();
-    _pullRamp = HapticRamp.twoWay(pullValue, taps: 12, tier: hapticTier)
-      ..beginGesture(tier: hapticTier);
-    _slideRamp = HapticRamp.twoWay(
-      slideValue,
-      taps: 6,
-      minIntensity: 0.2,
-      maxIntensity: 0.7,
-      tier: hapticTier,
-    )..beginGesture(tier: hapticTier);
+    _buzz?.stop();
+    _buzz = ForkBuzz(
+      tier: hapticTier ?? HapticTick.current(),
+      intensity: _buzzIntensity,
+    )..start(onPulse: _retest);
     visible.value = true;
     _frame.poke();
   }
@@ -296,7 +327,7 @@ class SwipeForkController {
   /// The finger is [pos]; the list has been pulled [dy] points past its end.
   void move(double dy, Offset pos) {
     if (!machine.active) return;
-    final events = machine.update(dy, pos.dx);
+    final events = machine.update(dy, pos.dx, ms: _now());
     thumbX = pos.dx;
     thumbY = pos.dy;
     for (final e in events) {
@@ -308,9 +339,7 @@ class SwipeForkController {
           if (!viewSingle) {
             _bloomChips(1);
             // The chips open where the finger is, and nudge outward once.
-            fingerY.stop();
-            fingerY.value = pos.dy;
-            if (!calm) {
+            if (!calm && !viewHalves) {
               kick.value = 0;
               kick.animateTo(1, duration: const Duration(milliseconds: 400));
             }
@@ -320,44 +349,56 @@ class SwipeForkController {
           viewForked = false;
           viewArmed = null;
           _spring(glyph, 0, _bloomSpring);
-          if (!viewSingle) {
-            _bloomChips(0);
-            _spring(armLeft, 0, _bloomSpring);
-            _spring(armRight, 0, _bloomSpring);
-          }
+          if (!viewSingle) _bloomChips(0);
         case ForkEvent.armed:
         case ForkEvent.swapped:
           _tick(0.85, HapticKind.arm);
-          _armTo(machine.armed);
           _pulse();
         case ForkEvent.disarmed:
           _tick(0.3, HapticKind.soft);
-          _armTo(null);
       }
-    }
-    if (viewForked && !viewSingle && fingerY.value != pos.dy) {
-      _spring(fingerY, pos.dy, _followSpring);
     }
     viewTravel = machine.travel;
     viewP = machine.progress;
     viewArmed = machine.armed;
-    final pulling = viewForked && !viewSingle;
+    final sliding = viewForked && !viewSingle;
+    // Everything that follows the finger is set straight from it: no spring
+    // between the pointer and the picture, so nothing can trail behind.
+    fingerY.value = pos.dy;
+    viewSlide = sliding ? machine.slideSigned : 0;
+    final l = math.max(0.0, -viewSlide);
+    final r = math.max(0.0, viewSlide);
+    armLeft.value = machine.armed == ForkSide.left ? math.max(l, 0.7) : l;
+    armRight.value = machine.armed == ForkSide.right ? math.max(r, 0.7) : r;
     pullValue.value = viewP;
-    if (pulling) {
-      final sign = machine.dx < 0 ? -1 : 1;
-      if (sign != _slideSign) {
-        slideValue.value = 0;
-        _slideSign = sign;
-      }
-      // The arm tick owns the last detent, so the ramp stops short of it.
-      slideValue.value = machine.slide.clamp(0.0, 0.9).toDouble();
-    } else {
-      slideValue.value = 0;
-      _slideSign = 0;
-    }
+    slideValue.value = sliding ? machine.slide : 0;
     _frame.poke();
   }
 
+  int _now() => clockMs?.call() ?? _clock.elapsedMilliseconds;
+
+  /// The beat of the haptic timer: a finger held still at the line has no
+  /// pointer move to open the fork once its dwell is over, so re-ask.
+  void _retest() {
+    if (_disposed || !machine.active || exit != ForkExit.none) return;
+    if (machine.phase == ForkPhase.pull && machine.dy >= machine.forkAt) {
+      move(machine.dy, Offset(thumbX, thumbY));
+    }
+  }
+
+  /// How hard the continuous buzz is right now, 0..1: a whisper that swells
+  /// with the pull, firmer once the fork is open, firmer again as a side is
+  /// approached, and strongest while one is armed.
+  double _buzzIntensity() {
+    if (!machine.active) return 0;
+    if (!viewForked) return 0.1 + 0.35 * viewP * viewP;
+    if (viewSingle) return 0.55;
+    if (machine.armed != null) return 0.8;
+    return 0.45 + 0.3 * machine.slide;
+  }
+
+  /// Settles the two arm amounts (they follow the finger directly while it is
+  /// down; on release they spring to the picked side, or to nothing).
   void _armTo(ForkSide? side) {
     _spring(armLeft, side == ForkSide.left ? 1 : 0, _bloomSpring);
     _spring(armRight, side == ForkSide.right ? 1 : 0, _bloomSpring);
@@ -394,9 +435,9 @@ class SwipeForkController {
   void release(double vx) {
     if (!machine.active) return;
     final out = machine.end(vx);
-    _endRamps();
+    _endBuzz();
     if (out.committed) {
-      _commit(out.option!);
+      _commit(out.option!, out.side);
     } else {
       _cancel();
     }
@@ -407,17 +448,15 @@ class SwipeForkController {
   void cancelGesture() {
     if (!machine.active) return;
     machine.reset();
-    _endRamps();
+    _endBuzz();
     _cancel();
   }
 
-  void _endRamps() {
+  void _endBuzz() {
     pullValue.value = 0;
     slideValue.value = 0;
-    _pullRamp?.dispose();
-    _slideRamp?.dispose();
-    _pullRamp = null;
-    _slideRamp = null;
+    _buzz?.stop();
+    _buzz = null;
   }
 
   void _cancel() {
@@ -441,13 +480,14 @@ class SwipeForkController {
       ? flight.animateTo(1, duration: const Duration(milliseconds: 150))
       : flight.animateWith(SpringSimulation(d, 0, 1, 0));
 
-  Future<void> _commit(ForkOption option) async {
+  Future<void> _commit(ForkOption option, ForkSide? side) async {
     final gen = ++_gen;
     committed = option;
     onCommitted?.call();
     exit = option.isVanish ? ForkExit.commitVanish : ForkExit.commitTalk;
     _liftAtRelease = _gestureLift;
     _tick(1, HapticKind.commit);
+    _armTo(side);
     _bloomChips(0);
     final flightDone = _springBack(_commitSpring);
     final faded = chrome.animateTo(1, duration: const Duration(milliseconds: 250));
@@ -508,8 +548,7 @@ class SwipeForkController {
 
   void dispose() {
     _disposed = true;
-    _pullRamp?.dispose();
-    _slideRamp?.dispose();
+    _buzz?.stop();
     for (final c in [bloom, armLeft, armRight, glyph, pulse, flight, chrome, orbFade, shake, fingerY, kick]) {
       c.dispose();
     }

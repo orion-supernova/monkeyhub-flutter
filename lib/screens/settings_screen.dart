@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator, CupertinoIcons;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -455,6 +455,16 @@ class _SettingsScreenState extends State<SettingsScreen>
           value: () => store.showPresenceDots,
           onChanged: store.setShowPresenceDots,
         ));
+    Widget forkFullScreenToggle() => _IconLed(_StoreToggle(
+          icon: CupertinoIcons.arrow_up_square_fill,
+          tone: TileTone.blue,
+          title: l10n.settingsForkFullScreenLabel,
+          subtitle: store.forkFullScreen
+              ? l10n.settingsForkFullScreenOnBody
+              : l10n.settingsForkFullScreenOffBody,
+          value: () => store.forkFullScreen,
+          onChanged: store.setForkFullScreen,
+        ));
     Widget autoplayToggle() => _IconLed(_StoreToggle(
           icon: CupertinoIcons.play_rectangle_fill,
           tone: TileTone.pink,
@@ -800,6 +810,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                 // Hiding your OWN status is a different thing, a privacy
                 // setting on the server, and lives in Profile visibility.
                 presenceDotsToggle(),
+                // Mobile only: the swipe-up fork is not armed on desktop/web.
+                if (!kIsWeb &&
+                    (defaultTargetPlatform == TargetPlatform.iOS ||
+                        defaultTargetPlatform == TargetPlatform.android))
+                  forkFullScreenToggle(),
                 _HubRow(
                   icon: CupertinoIcons.chat_bubble_2_fill,
                   tone: TileTone.green,
