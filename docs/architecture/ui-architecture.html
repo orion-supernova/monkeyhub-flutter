@@ -305,9 +305,33 @@ structure (Material's filled tonal button, a native UISwitch).</p>
 </ol>
 
 <h3>The liquid kit's native controls</h3>
-<p>Real SwiftUI controls, one Flutter platform view each (view type <code>monkeyhub/native_control</code>), driven by a
-<code>NativeSpec</code> from Dart and reporting <code>tap / changed / changeEnd / submitted / select / focus / size</code> back over
-<code>monkeyhub/native_control/&lt;id&gt;</code>. Components opt in with <code>liquid: NativeControl.ready ? _liquid : null</code> in their
+<p>Real SwiftUI controls in ONE overlay view above the Flutter view (<code>NativeOverlay</code> in
+<code>ios/Runner/NativeControls.swift</code>, channel <code>monkeyhub/native_overlay</code>), never platform views. <strong>Why:</strong> Flutter clips
+a platform view with a mask view whenever any ancestor clips (every scroll view does), and a masked Liquid Glass view renders offscreen as a
+flat grey rectangle: the "cut-outs" of 1.3.143/144 (lab rows, chat header, call pair). Swirl's <code>NativeGlassOverlay</code> settled the same
+question the same way. Dart (<code>NativeControl</code> + the <code>NativeOverlay</code> bridge in <code>lib/ui/native/native_control.dart</code>) sends
+each control's <code>NativeSpec</code> (<code>set</code>), and after every frame one batched <code>sync</code> with every control's rect, its visible
+clip and whether it may show; events come back as <code>event {id, name, value}</code> (<code>tap / changed / changeEnd / submitted / select / focus /
+size / revealed</code>).
+<ul>
+  <li><strong>Visible clip</strong>: the control's rect cut by every clipping render ancestor (viewports, ClipRect/RRect/Path/Oval, so collapsing
+  AnimatedSizes too) and at the page bar line published by <code>NativeCut</code> (which no longer clips Flutter content: the soft edge is back
+  in every kit). A plain <code>clipsToBounds</code> ancestor cuts pixels and leaves the glass live.</li>
+  <li><strong>Hidden</strong> (clip to nothing, never alpha: alpha does not fade Liquid Glass) when its route is not current or is animating, its
+  ticker is off (offstage tab), an ancestor has opacity under 0.05 or is offstage, or <code>NativeOverlay.suppress()</code> is held by a Flutter
+  overlay drawn above. While hidden, <code>standIn</code> shows: the component's own <code>build</code> under <code>FlutterSkinsOnly</code>
+  (<code>FlutterSkinsOnly(child: Builder(builder: build))</code>, never the widget itself, which would duplicate a GlobalKey).</li>
+  <li><strong>Chat chrome</strong>: <code>titlePill</code> (avatar from the image disk cache via <code>nativeImageFile</code>, name, status line) and
+  <code>pinBar</code> kinds draw the compact room header's capsule and pinned bar natively; filter chips are native capsules.</li>
+  <li><strong>Native sheets</strong>: <code>showNativeActionSheet</code> presents the system action sheet / alert (glass on iOS 26).
+  <code>showConfirmSheet(Choice)</code> uses it under native controls. Sheets with Flutter content (forms like the mute sheet) cannot be native
+  without a second engine and stay Flutter.</li>
+  <li><strong>Interactive glass</strong> (<code>SettingsStore.glassInteractive</code>) goes over as <code>interactive</code> and drives
+  <code>.glassEffect(.regular.interactive(…))</code>.</li>
+  <li>Headless simulator checks: <code>--dart-define=OPEN_LAB=true LAB_SECTION=0-3</code>, <code>OPEN_ROOM=&lt;n or name&gt;</code>,
+  <code>CHAT_STYLE=compact|classic</code>, <code>NATIVE_CONTROLS=true</code>, <code>UI_KIT=&lt;kit&gt;</code>.</li>
+</ul>
+<p> Components opt in with <code>liquid: NativeControl.ready ? _liquid : null</code> in their
 <code>KitSwitch</code>, so everything falls back to glass when the scope is "just the tab bar", the device is not iOS 26, or a control has
 no exact native form (an icon without an SF Symbol in <code>sfSymbolFor</code>, a segment with a badge, a busy button).</p>
 <ul>
@@ -326,14 +350,15 @@ no exact native form (an icon without an SF Symbol in <code>sfSymbolFor</code>, 
     (<code>datePicker</code>, wheel), <code>ViewerToolbar</code> (native discs plus a capsule), <code>CallGlyphButton</code> and
     <code>CallButtonPair</code> (the chat header's video and voice buttons: two separate discs in one <code>GlassEffectContainer</code>, so they
     merge like the iOS 26 toolbar; <code>toolbar</code> takes <code>spacing</code> and <code>blend</code>).</li>
-  <li><strong>What stays Flutter, and why:</strong> sheets (their content is Flutter, so a native sheet would need the content in a platform view);
+  <li><strong>What stays Flutter, and why:</strong> sheets with Flutter content (a native sheet would need a second engine; choice and
+  confirm sheets are native, above);
   the hold / long-press menus (<code>showMessageActionMenu</code>, <code>showChatRowActionMenu</code>, and the row-anchored <code>showPullDownMenu</code> callers
   in Calls and Data &amp; Storage: they lift a Flutter preview or anchor to a row, not to a button); multi-line fields and fields with a character
   limit, a trailing widget or a custom fill; a lit or text or drawn-glyph slot in a button group; a busy or badged button; a search field with a
   scope tag, hero flight or custom clear; <code>ScheduleTimePicker</code> (5-minute steps and a moving floor and ceiling that
   <code>DatePicker</code> cannot express); the busy call buttons (they dim and still answer a tap). Media-tone glass over photos stays Flutter.</li>
-  <li><strong>Cost:</strong> any platform view on screen drops Flutter lists to bursts of 60 Hz (flutter/flutter#190815) and doubles a nearby
-  BackdropFilter. Fixed chrome (page bar buttons, viewer toolbars) should move to sibling views like <code>NativeChrome</code>'s tab bar.</li>
+  <li><strong>Cost:</strong> no platform views, so lists keep 120 Hz. The overlay follows scrolling from Dart's post-frame sync, which can trail
+  Flutter by a frame on a fast fling; check on device.</li>
   <li><strong>Carried lessons</strong> from the React Native port (<code>monkeyhub-reactnative/docs/native-ui.md</code>): hosts ignore the safe area;
   a slider never gets a zero step; a menu label takes <code>buttonStyle(.glass)</code>; chrome buttons are 44 pt with a 17 pt symbol.</li>
   <li>The Flutter-drawn "native-matched" glass (<code>kNativeMatchGlass</code>) still paints app glass under the liquid kit. A separate glass
@@ -519,6 +544,10 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
 <h2 id="bugs">9. Bugs found along the way</h2>
 <div class="tbl"><table>
 <tr><th>Where</th><th>Bug</th><th>Status</th></tr>
+<tr><td>Native controls (liquid kit)</td><td>Platform views masked by Flutter's clips rendered Liquid Glass as flat grey rectangles (lab rows, chat header back and call buttons, "Clear" pill cut on the left)</td><td><span class="pill ok">fixed: overlay above Flutter</span></td></tr>
+<tr><td>Native controls</td><td>A faded-out Flutter control (opacity 0) still showed its native view over the chat filter chips</td><td><span class="pill ok">fixed: ancestor opacity/offstage walk</span></td></tr>
+<tr><td>Native controls</td><td>A keyed control (the composer's attach button, GlobalKey) used itself as its stand-in: duplicate GlobalKey error box</td><td><span class="pill ok">fixed: stand-in is its build</span></td></tr>
+<tr><td>Compact room</td><td>Transcript ran under the status bar clock with no scroll edge</td><td><span class="pill ok">fixed: top fade</span></td></tr>
 <tr><td>login_screen, PasswordField</td><td>No <code>autofillHints</code>: password managers can't fill or save</td><td><span class="pill ok">fixed</span></td></tr>
 <tr><td>thread_overlay.dart</td><td>Animates a blur sigma per frame (breaks R6, jank)</td><td><span class="pill ok">fixed</span></td></tr>
 <tr><td>chat_row_action_menu.dart</td><td>Live <code>BackdropFilter</code> inside a <code>FadeTransition</code> (flicker case)</td><td><span class="pill ok">fixed</span></td></tr>
