@@ -89,22 +89,21 @@ void main() {
       });
 
       test('video sits left of voice, for both DMs and groups', () {
+        // Both headers draw the pair through the shared CallButtonPair (one
+        // merged glass group under the liquid kit's native controls), so the
+        // order is pinned there, once.
         final body = entry.value();
-        final dmVideo = body.indexOf('kind: CallMediaKind.video,');
-        final dmAudio = body.indexOf('kind: CallMediaKind.audio,');
-        expect(dmVideo, isNonNegative, reason: 'DM video button missing');
-        expect(dmAudio, isNonNegative, reason: 'DM voice button missing');
-        expect(dmVideo, lessThan(dmAudio),
-            reason: 'the DM video button must come before the voice button');
-
-        final groupVideo = RegExp(r'GroupCallButton\([^)]*kind: CallMediaKind\.video')
-            .firstMatch(body);
-        final groupAudio = RegExp(r'GroupCallButton\([^)]*kind: CallMediaKind\.audio')
-            .firstMatch(body);
-        expect(groupVideo, isNotNull, reason: 'group video button missing');
-        expect(groupAudio, isNotNull, reason: 'group voice button missing');
-        expect(groupVideo!.start, lessThan(groupAudio!.start),
-            reason: 'the group video button must come before the voice button');
+        expect(body.contains('CallButtonPair.direct('), isTrue,
+            reason: 'DM call buttons missing');
+        expect(body.contains('CallButtonPair.group('), isTrue,
+            reason: 'group call buttons missing');
+        final pair = File('lib/calls/call_button_pair.dart').readAsStringSync();
+        final video = pair.indexOf('_button(CallMediaKind.video)');
+        final audio = pair.indexOf('_button(CallMediaKind.audio)');
+        expect(video, isNonNegative, reason: 'video button missing');
+        expect(audio, isNonNegative, reason: 'voice button missing');
+        expect(video, lessThan(audio),
+            reason: 'the video button must come before the voice button');
       });
     });
   }
@@ -144,8 +143,11 @@ void main() {
     final gap = double.parse(match!.group(1)!);
     expect(gap, lessThan(12),
         reason: '12 is the gap around the capsule; the pair should be tighter');
-    expect(body.contains('const SizedBox(width: _controlGap),'), isTrue,
+    expect(body.contains('gap: _controlGap'), isTrue,
         reason: 'the gap between video and voice must use _controlGap');
+    final pair = File('lib/calls/call_button_pair.dart').readAsStringSync();
+    expect(pair.contains('SizedBox(width: gap)'), isTrue,
+        reason: 'the pair lays the gap it is handed between the two');
   });
 
   test('the classic pair are glass circles sized by Density, like the back beside them',
