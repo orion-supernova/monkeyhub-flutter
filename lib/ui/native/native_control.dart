@@ -128,6 +128,26 @@ class NativeOverlay {
   /// Runs [body] with native controls hidden, for an overlay that is not a
   /// route (routes hide them on their own).
   static void suppress() => suppressed.value++;
+
+  /// Flutter chrome that floats over the pages (the call pills): a native
+  /// control is always above Flutter, so one under these would draw on top
+  /// of them. Each frame's placement hides any control they overlap, and its
+  /// Flutter stand-in, which Flutter layers correctly, draws instead.
+  static final Set<BuildContext> _occluders = {};
+
+  static bool _occluded(Rect rect) {
+    for (final c in _occluders) {
+      final box = c.findRenderObject();
+      if (box is! RenderBox || !box.attached || !box.hasSize) continue;
+      if (box.size.isEmpty) continue;
+      final r = MatrixUtils.transformRect(
+        box.getTransformTo(null),
+        Offset.zero & box.size,
+      );
+      if (r.overlaps(rect)) return true;
+    }
+    return false;
+  }
   static void release() =>
       suppressed.value = suppressed.value > 0 ? suppressed.value - 1 : 0;
 
@@ -249,7 +269,19 @@ class _NativeControlState extends State<NativeControl> {
         Offset.zero & b.size,
       );
       clip = _clip(rect);
-      if (clip.isEmpty) why = 'clipped';
+      if (clip.isEmpty) {
+        why = 'clipped';
+      } else if (!_whole(clip, rect)) {
+        // Liquid Glass under a clipping ancestor that cuts into it renders
+        // offscreen as a flat grey box with only its uncut corners round
+        // (seen on device at the page bar, a sheet's top and the chat
+        // list's floating header). A partly visible control shows its
+        // Flutter stand-in, which Flutter clips properly, and goes native
+        // again once whole.
+        why = 'partial';
+      } else if (NativeOverlay._occluded(rect)) {
+        why = 'occluded';
+      }
     }
     final visible = why == null;
     final placement = <String, Object?>{
@@ -272,6 +304,13 @@ class _NativeControlState extends State<NativeControl> {
   }
 
   static double _r(double v) => (v * 2).roundToDouble() / 2;
+
+  /// [clip] still holds all of [rect], give or take a rounding half-point.
+  static bool _whole(Rect clip, Rect rect) =>
+      clip.left <= rect.left + 0.5 &&
+      clip.top <= rect.top + 0.5 &&
+      clip.right >= rect.right - 0.5 &&
+      clip.bottom >= rect.bottom - 0.5;
 
   bool _routeSettled() {
     final route = _route;
@@ -937,4 +976,33 @@ Future<String?> showNativeActionSheet({
   } catch (_) {
     return null;
   }
+}
+
+/// Marks Flutter chrome that floats above the pages (the call pills) so no
+/// native control draws over it: see [NativeOverlay._occluders]. Costs a
+/// rect test per native control per frame while mounted, nothing otherwise.
+class NativeOccluder extends StatefulWidget {
+  const NativeOccluder({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<NativeOccluder> createState() => _NativeOccluderState();
+}
+
+class _NativeOccluderState extends State<NativeOccluder> {
+  @override
+  void initState() {
+    super.initState();
+    NativeOverlay._occluders.add(context);
+  }
+
+  @override
+  void dispose() {
+    NativeOverlay._occluders.remove(context);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

@@ -131,6 +131,7 @@ import 'web/web_tab_title.dart';
 import 'web/web_url_sync.dart';
 import 'widgets/route_depth.dart';
 import 'ui/foundation/caps.dart';
+import 'ui/native/native_control.dart' show NativeOccluder;
 
 /// The presence status a lifecycle state implies, or null for "says nothing —
 /// don't write".
@@ -2357,7 +2358,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                                               top: 0,
                                               left: 0,
                                               right: 0,
-                                              child: Column(
+                                              // Floats over every page: native controls under
+                                              // it hide and their Flutter stand-ins draw.
+                                              child: NativeOccluder(
+                                                child: Column(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
                                                   ConnectionBanner(health: _health),
@@ -2383,6 +2387,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                                                         _openRoomFromPush(id),
                                                   ),
                                                 ],
+                                              ),
                                               ),
                                             ),
                                           // Strokes over the app while THIS device
