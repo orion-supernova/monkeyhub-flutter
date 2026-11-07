@@ -31,8 +31,11 @@ import UIKit
 ///
 /// Dart measures where each control landed after every frame and sends the
 /// rectangle, the visible clip (its scroll viewport, minus the page bars) and
-/// whether it may show at all (`sync`). A clip is a plain `clipsToBounds`
-/// ancestor, which cuts pixels and leaves the glass sampling normally.
+/// whether it may show at all (`sync`). Device testing (2026-11-07) showed a
+/// `clipsToBounds` ancestor that cuts into the glass, or into the swell of
+/// interactive glass under a finger, paints it as a flat grey box. So Dart
+/// reveals only a WHOLE control (a partly visible one shows its Flutter
+/// stand-in) and a visible control's clip view does not clip at all.
 /// Hiding is a clip to nothing, never alpha or `isHidden`: alpha does not
 /// fade Liquid Glass, and a hidden view drops out of the backdrop group and
 /// comes back with a frame of flat dark.
@@ -247,7 +250,18 @@ final class NativeOverlaySlot {
 
   private func applyReveal() {
     let next = wantsVisible && settled
+    // Swirl's rule (NativeGlassOverlay): a visible control is NEVER clipped.
+    // Interactive glass swells past its bounds when pressed; a clipsToBounds
+    // ancestor cut that swell, the render server drew the glass offscreen,
+    // and every press showed a flat grey square. Dart only reveals a control
+    // that is whole (a partly visible one shows its Flutter stand-in), so
+    // there is nothing to cut while visible; the clip only hides, to nothing.
+    // No implicit actions: animating a glass ancestor also paints it flat.
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    clip.clipsToBounds = !next
     clip.frame = next ? clipRect : CGRect(origin: clipRect.origin, size: .zero)
+    CATransaction.commit()
     // The host stays where the clip origin puts it while cut, so a reveal
     // never jumps.
     if next != revealed {
