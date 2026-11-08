@@ -120,7 +120,7 @@ class CallDetailsSheet extends StatelessWidget {
     // when the content is taller than the screen allows.
     return SheetFrame(
       showClose: true,
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
       child: Material(
         type: MaterialType.transparency,
         child: SingleChildScrollView(

@@ -327,7 +327,10 @@ class SheetBar extends StatelessWidget {
     return SizedBox(
       height: density.sheetBarHeight + (subtitle == null ? 0 : 8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        // 18 to the side matches the ~19 the bar leaves above the disc, so a
+        // 40-44pt button sits concentric with the sheet's 38pt corner instead
+        // of crowding its curve.
+        padding: const EdgeInsets.symmetric(horizontal: 18),
         child: Stack(
           alignment: Alignment.center,
           children: [
