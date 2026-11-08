@@ -1331,6 +1331,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       if (_pendingInvite != pending) return;
       _openInvite(pending);
     });
+    // Ask for that frame: a push tap or a link on an idle screen would
+    // otherwise wait for whatever redraws next (see docs/lessons.md, L1).
+    WidgetsBinding.instance.ensureVisualUpdate();
   }
 
   void _consumePendingPushRoom() {
@@ -1346,6 +1349,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       _pendingPushMatchId = null;
       _openRoomFromPush(pending, focus: match == null ? null : 'game:$match');
     });
+    // Ask for that frame: a push tap or a link on an idle screen would
+    // otherwise wait for whatever redraws next (see docs/lessons.md, L1).
+    WidgetsBinding.instance.ensureVisualUpdate();
   }
 
   /// Re-seeds what launch copied out of [SettingsStore] once the stored
