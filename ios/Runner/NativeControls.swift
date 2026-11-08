@@ -1079,9 +1079,9 @@ struct NativeComposerField: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     let shape = RoundedRectangle(cornerRadius: spec.cornerRadius, style: .continuous)
     if #available(iOS 26.0, *) {
-      // Not interactive: a text field that bounces under the caret is not
-      // one the system draws.
-      row.glassEffect(.regular, in: shape)
+      // Interactive like every other native control (Settings › Glass ›
+      // Interactive glass): it presses and shines under the finger.
+      row.glassEffect(.regular.interactive(spec.interactive), in: shape)
     } else {
       row.background(shape.fill(.thinMaterial))
     }
