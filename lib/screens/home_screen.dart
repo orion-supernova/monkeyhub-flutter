@@ -61,6 +61,7 @@ import 'discover_screen.dart';
 import '../l10n/text_case.dart';
 import 'join_by_invite_screen.dart';
 import 'profile_screen.dart';
+import '../ui/native/native_control.dart' show NativeControl;
 
 /// The page margin every element on this screen lines up with.
 ///
@@ -128,7 +129,23 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with TabReselectScroll<HomeScreen> {
-  ChatUser? _me;
+  /// Seeded from the last fetch of this session ([_lastMe]), so a fresh
+  /// mount (a tab visit) draws the real avatar on its first frame instead of
+  /// the session's initials (the green "M" flash) until the fetch lands.
+  late ChatUser? _me = _cachedMe();
+
+  /// The last own profile fetched this session, shared by every mount. Only
+  /// a starting point: each mount still refreshes it.
+  static ChatUser? _lastMe;
+
+  ChatUser? _cachedMe() {
+    final last = _lastMe;
+    final session = widget.auth.session;
+    if (last == null || session == null || last.id != session.userId) {
+      return null;
+    }
+    return last;
+  }
 
   /// Whether the drawer-style filter panel is open. Purely presentational, so
   /// unlike the filter itself it isn't persisted.
@@ -483,6 +500,7 @@ class _HomeScreenState extends State<HomeScreen>
         widget.auth.onSelfProfileMissing();
         return;
       }
+      _lastMe = fresh;
       setState(() => _me = fresh);
     } catch (_) {}
   }
@@ -1467,6 +1485,12 @@ class _RoomsPanelState extends State<_RoomsPanel> {
               ),
       ),
     );
+    // Under native controls rows are simply there, as in a UITableView: the
+    // fade-and-rise replayed on every mount (each tab visit, and rows
+    // scrolling into view), a grey frame or ten each time.
+    if (NativeControl.readyIn(context)) {
+      return KeyedSubtree(key: ValueKey(room.id), child: content);
+    }
     return TweenAnimationBuilder<double>(
       // See the grid layout above: keyed by room id so a recency reorder
       // or a filter change moves the element rather than repurposing it,
@@ -1553,6 +1577,9 @@ class _RoomsPanelState extends State<_RoomsPanel> {
         ),
       ),
     );
+    if (NativeControl.readyIn(context)) {
+      return KeyedSubtree(key: ValueKey(room.id), child: content);
+    }
     return TweenAnimationBuilder<double>(
       // Identity key, not position. Rooms are ordered by recency, so any
       // incoming message reorders this list — and toggling a filter

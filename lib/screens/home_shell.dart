@@ -41,6 +41,7 @@ import 'room_screen.dart';
 import 'settings_screen.dart';
 import '../widgets/route_depth.dart';
 import '../ui/lab/controls_lab_screen.dart';
+import '../ui/native/native_control.dart' show NativeControl;
 
 const bool _kOpenLab = bool.fromEnvironment('OPEN_LAB');
 
@@ -265,6 +266,7 @@ class _HomeShellState extends State<HomeShell> {
       SectionSwitcher(
         section: settings.section,
         variant: theme.id,
+        keepAlive: NativeControl.readyIn(context),
         child: _section(),
       );
 
@@ -429,6 +431,7 @@ class _HomeShellState extends State<HomeShell> {
     return SectionSwitcher(
       section: settings.section,
       variant: 'desktop_${theme.id}',
+      keepAlive: NativeControl.readyIn(context),
       child: content,
     );
   }

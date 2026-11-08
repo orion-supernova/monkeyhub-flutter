@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../data/settings_store.dart';
 import '../../theme/motion.dart';
-import '../../ui/native/native_control.dart' show NativeControl;
 import 'destinations.dart';
 
 /// How long a section transition runs. Longer than the `motionMed` it replaced
@@ -65,7 +64,17 @@ class SectionSwitcher extends StatefulWidget {
     required this.section,
     required this.variant,
     required this.child,
+    this.keepAlive = false,
   });
+
+  /// Tabs as a UITabBarController keeps them: every visited section stays
+  /// mounted (offstage, tickers off) and a switch only flips which one is
+  /// on screen. The arriving section is already built and laid out, so
+  /// there is no blank first frame, no entrance fade replaying, no image
+  /// decoding again (the account avatar's placeholder), and its native
+  /// controls keep their views. On under native controls, where any of
+  /// those frames shows; off, the cross-fade below.
+  final bool keepAlive;
 
   /// The section [child] renders. Changing it runs a transition, in the
   /// direction implied by [navOrder].
@@ -141,7 +150,7 @@ class _SectionSwitcherState extends State<SectionSwitcher>
     // native glass view cannot fade (alpha does not fade Liquid Glass), so
     // in a cross-fade the arriving tab's native buttons sat crisp over a
     // half-faded page.
-    if (MotionScope.of(context).calm || NativeControl.readyIn(context)) {
+    if (MotionScope.of(context).calm || widget.keepAlive) {
       // Nothing to cover, so nothing to keep underneath.
       _retired.clear();
       _arrival.value = 1;
@@ -215,8 +224,36 @@ class _SectionSwitcherState extends State<SectionSwitcher>
     );
   }
 
+  /// [SectionSwitcher.keepAlive]: the last widget of every visited section,
+  /// in the order first visited (a stable order, so nothing is reparented).
+  final Map<Key, Widget> _alive = {};
+
+  Widget _buildKeptAlive() {
+    // A new variant (theme, shell) re-keys everything: the old sections
+    // would never be shown again.
+    _alive.removeWhere(
+      (k, _) => !(k as ValueKey<String>).value.endsWith('_${widget.variant}'),
+    );
+    _alive[_key] = widget.child;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        for (final e in _alive.entries)
+          KeyedSubtree(
+            key: e.key,
+            child: Offstage(
+              offstage: e.key != _key,
+              child: TickerMode(enabled: e.key == _key, child: e.value),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.keepAlive) return _buildKeptAlive();
+    _alive.clear();
     return Stack(
       fit: StackFit.expand,
       children: [

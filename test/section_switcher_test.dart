@@ -20,7 +20,11 @@ void main() {
 
   setUp(mounts.clear);
 
-  Widget wrap(HomeSection section, {String variant = 'midnight'}) =>
+  Widget wrap(
+    HomeSection section, {
+    String variant = 'midnight',
+    bool keepAlive = false,
+  }) =>
       Directionality(
         textDirection: TextDirection.ltr,
         child: MediaQuery(
@@ -28,6 +32,7 @@ void main() {
           child: SectionSwitcher(
             section: section,
             variant: variant,
+            keepAlive: keepAlive,
             child: _Section(section.name, mounts),
           ),
         ),
@@ -156,6 +161,35 @@ void main() {
       expect(dx, 0);
     }
     await tester.pumpAndSettle();
+  });
+
+  group('keep alive (native controls)', () {
+    testWidgets('a revisited section is the same one, on screen at once, '
+        'and the one left is offstage, not torn down', (tester) async {
+      await tester.pumpWidget(wrap(HomeSection.chat, keepAlive: true));
+      await tester.pumpWidget(wrap(HomeSection.feed, keepAlive: true));
+      // The very next frame: no transition to wait for.
+      expect(find.text('feed'), findsOneWidget);
+      expect(find.text('chat'), findsNothing, reason: 'offstage');
+      expect(find.text('chat', skipOffstage: false), findsOneWidget,
+          reason: 'still mounted');
+      await tester.pumpWidget(wrap(HomeSection.chat, keepAlive: true));
+      expect(find.text('chat'), findsOneWidget);
+      expect(mounts, {'chat': 1, 'feed': 1},
+          reason: 'nothing rebuilt from scratch');
+      expect(tester.hasRunningAnimations, isFalse);
+    });
+
+    testWidgets('a new variant (theme) drops the old sections', (
+      tester,
+    ) async {
+      await tester.pumpWidget(wrap(HomeSection.chat, keepAlive: true));
+      await tester.pumpWidget(wrap(HomeSection.feed, keepAlive: true));
+      await tester.pumpWidget(
+        wrap(HomeSection.feed, keepAlive: true, variant: 'daylight'),
+      );
+      expect(find.text('chat', skipOffstage: false), findsNothing);
+    });
   });
 }
 

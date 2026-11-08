@@ -40,6 +40,7 @@ import 'games/leaderboard_screen.dart';
 import 'navigation/destinations.dart';
 import 'navigation/tab_reselect.dart';
 import '../ui/native/native_cut.dart';
+import '../ui/native/native_control.dart' show NativeControl;
 
 /// TODAY — the friends-activity board.
 ///
@@ -530,7 +531,7 @@ class _FeedScreenState extends State<FeedScreen>
         child: _Masthead(
           edition: store.edition,
           dayKey: store.dayKey,
-          settled: _launchShow,
+          settled: _launchShow || NativeControl.readyIn(context),
         ),
       ),
       // A board that never loaded is NOT a quiet day, and every section below
@@ -647,7 +648,11 @@ class _FeedScreenState extends State<FeedScreen>
               padding: const EdgeInsets.symmetric(horizontal: _kGutter),
               child: section,
             );
-      if (_launchShow) return KeyedSubtree(key: ValueKey(id), child: child);
+      // In place under native controls too: a native tab shows its content,
+      // it does not fade it in.
+      if (_launchShow || NativeControl.readyIn(context)) {
+        return KeyedSubtree(key: ValueKey(id), child: child);
+      }
       return TweenAnimationBuilder<double>(
         // Stable section id, never the index. The board's sections will start
         // appearing and disappearing conditionally in later phases, and an
