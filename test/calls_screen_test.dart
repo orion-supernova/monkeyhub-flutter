@@ -291,11 +291,14 @@ void main() {
       await open(tester);
       await tester.tap(find.textContaining('×3'));
       await tester.pumpAndSettle();
-      // Three sub-lines, each with a small chevron (the talk-time header has
-      // its own, larger one).
+      // Three time capsules, each its own button, opening that call.
       expect(
         find.byWidgetPredicate(
-          (w) => w is Icon && w.icon == CupertinoIcons.chevron_right && w.size == 12,
+          (w) =>
+              w is Container &&
+              w.decoration is ShapeDecoration &&
+              (w.decoration! as ShapeDecoration).shape is StadiumBorder &&
+              w.constraints?.maxHeight == 30,
         ),
         findsNWidgets(3),
       );

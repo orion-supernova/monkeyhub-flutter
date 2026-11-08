@@ -775,6 +775,23 @@ class NativeSpec {
     'symbolSize': symbolSize,
   });
 
+  /// An action tile: [symbol] over a one- or two-line [label] on a rounded
+  /// glass plate of [cornerRadius] (`QuickActionTile`'s native skin).
+  factory NativeSpec.tile({
+    required String symbol,
+    required String label,
+    double cornerRadius = 14,
+    bool destructive = false,
+    bool enabled = true,
+  }) => NativeSpec._({
+    'kind': 'tile',
+    'symbol': symbol,
+    'label': label,
+    'cornerRadius': cornerRadius,
+    'destructive': destructive,
+    'enabled': enabled,
+  });
+
   /// A labelled glass button; [prominent] is the tinted primary action.
   /// [passthrough] draws it only (see [NativeSpec.symbolButton]): for a
   /// button inside a scrolling row, where a drag that starts on it must
@@ -1215,6 +1232,9 @@ final Map<IconData, String> _symbols = {
   CupertinoIcons.bubble_left: 'bubble.left',
   CupertinoIcons.star: 'star',
   CupertinoIcons.star_slash: 'star.slash',
+  CupertinoIcons.bubble_left_fill: 'bubble.left.fill',
+  CupertinoIcons.star_fill: 'star.fill',
+  CupertinoIcons.star_slash_fill: 'star.slash.fill',
   CupertinoIcons.arrow_down_left: 'arrow.down.left',
   CupertinoIcons.arrow_up_right: 'arrow.up.right',
   CupertinoIcons.sparkles: 'sparkles',

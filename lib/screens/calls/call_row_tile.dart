@@ -6,11 +6,14 @@ import '../../calls/call_models.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/chat_room.dart';
 import '../../models/chat_user.dart';
+import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/chat_list_row.dart' show ChatRoomAvatar, MonogramAvatar;
 import '../../widgets/chat_row_action_menu.dart' show ChatRowLongPress;
 import '../../widgets/chat_row_swipe.dart';
+import '../../widgets/count_badge.dart';
 import '../../widgets/glass_buttons.dart';
+import '../../widgets/ios_kit.dart' show quietFill;
 import '../../widgets/pull_down_menu.dart';
 import '../../widgets/spring_press.dart';
 import '../../widgets/user_avatar.dart';
@@ -157,6 +160,10 @@ class _CallRowTileState extends State<CallRowTile> {
         ? '${callDetail(l10n, e)} · ${clockDuration(e.durationMs)}'
         : callDetail(l10n, e);
     final time = clockTime(context, e.startedAt);
+    // A stack spans its first call to its last ("19:52 – 19:56"), so the row
+    // never repeats a time the list under it already shows.
+    final earliest = merged ? clockTime(context, row.entries.last.startedAt) : time;
+    final span = earliest == time ? time : '$earliest – $time';
     final nameColor = missed ? theme.danger : theme.ink;
     // Swipe left: Delete (a full swipe commits it). Calling back lives in the
     // two buttons on the row, so there is no swipe-right.
@@ -201,26 +208,31 @@ class _CallRowTileState extends State<CallRowTile> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text.rich(
-                                    TextSpan(
-                                      children: [
-                                        TextSpan(text: subject.name),
-                                        if (merged)
-                                          TextSpan(
-                                            text: '  ×${row.count}',
-                                            style: TextStyle(
-                                              color: theme.inkMuted,
-                                              fontWeight: FontWeight.w500,
-                                            ),
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          subject.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.bodyEmph.copyWith(
+                                            fontSize: 16,
+                                            color: nameColor,
                                           ),
+                                        ),
+                                      ),
+                                      if (merged) ...[
+                                        const SizedBox(width: 8),
+                                        // The call bubble's run pill, so a
+                                        // stack reads the same in a chat and
+                                        // here; the chevron says it opens.
+                                        _StackPill(
+                                          count: row.count,
+                                          missed: missed,
+                                          open: widget.expanded,
+                                        ),
                                       ],
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.bodyEmph.copyWith(
-                                      fontSize: 16,
-                                      color: nameColor,
-                                    ),
+                                    ],
                                   ),
                                   const SizedBox(height: 2),
                                   Row(
@@ -252,7 +264,7 @@ class _CallRowTileState extends State<CallRowTile> {
                                   ),
                                   const SizedBox(height: 1),
                                   Text(
-                                    time,
+                                    span,
                                     maxLines: 1,
                                     style: theme.bodySoft.copyWith(
                                       fontSize: 13,
@@ -302,14 +314,9 @@ class _CallRowTileState extends State<CallRowTile> {
             curve: const ElasticOutCurve(0.9),
             alignment: Alignment.topCenter,
             child: merged && widget.expanded
-                ? Column(
-                    children: [
-                      for (final c in row.entries)
-                        _SubCall(
-                          entry: c,
-                          onTap: () => widget.onOpenDetails(c),
-                        ),
-                    ],
+                ? _StackCard(
+                    entries: row.entries,
+                    onOpen: widget.onOpenDetails,
                   )
                 : const SizedBox(width: double.infinity),
           ),
@@ -319,39 +326,149 @@ class _CallRowTileState extends State<CallRowTile> {
   }
 }
 
+/// The "×3" pill beside a stacked row's name: [CountBadge.label] as the call
+/// bubble draws its run, red for missed calls, with a chevron that turns as
+/// the stack opens.
+class _StackPill extends StatelessWidget {
+  const _StackPill({
+    required this.count,
+    required this.missed,
+    required this.open,
+  });
+  final int count;
+  final bool missed;
+  final bool open;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final ink = missed ? Colors.white : theme.inkSoft;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CountBadge.label(
+          text: AppLocalizations.of(context).callBubbleRunBadge(count),
+          fill: missed ? theme.danger : quietFill(theme),
+          ink: ink,
+        ),
+        const SizedBox(width: 4),
+        AnimatedRotation(
+          turns: open ? 0.5 : 0,
+          duration: MotionScope.of(context).d(theme.motionFast),
+          curve: Curves.easeOutCubic,
+          child: Icon(
+            CupertinoIcons.chevron_down,
+            size: 12,
+            color: theme.inkMuted,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A stack's calls, opened: a line of time capsules under the row's text,
+/// newest first, each opening that call's details. No card and no dividers:
+/// the row already says who and what, so each call is only its time (and,
+/// when they talked, how long).
+class _StackCard extends StatelessWidget {
+  const _StackCard({required this.entries, required this.onOpen});
+  final List<CallLogEntry> entries;
+  final void Function(CallLogEntry entry) onOpen;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        // Under the name: 20 page inset + 48 avatar + 12 gap.
+        padding: const EdgeInsetsDirectional.fromSTEB(80, 0, 20, 12),
+        child: Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (var i = 0; i < entries.length; i++)
+                _SubCall(
+                  entry: entries[i],
+                  index: i,
+                  onTap: () => onOpen(entries[i]),
+                ),
+            ],
+          ),
+        ),
+      );
+}
+
+/// One call of an opened stack: a quiet capsule with its time, rising into
+/// place a beat after the one before it.
 class _SubCall extends StatelessWidget {
-  const _SubCall({required this.entry, required this.onTap});
+  const _SubCall({
+    required this.entry,
+    required this.index,
+    required this.onTap,
+  });
   final CallLogEntry entry;
+  final int index;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final style = theme.bodySoft.copyWith(
-      fontSize: 14,
-      color: theme.inkSoft,
-      fontFeatures: const [FontFeature.tabularFigures()],
-    );
-    return SpringPress(
-      onTap: onTap,
-      scale: 0.985,
-      haptic: false,
-      focusRadius: 10,
-      hoverRadius: 10,
-      child: Padding(
-        padding: const EdgeInsetsDirectional.fromSTEB(78, 6, 20, 6),
-        child: Row(
-          children: [
-            Expanded(child: Text(clockTime(context, entry.startedAt), style: style)),
-            if (entry.wasAnswered && entry.durationMs > 0)
-              Text(clockDuration(entry.durationMs), style: style),
-            const SizedBox(width: 6),
-            Icon(
-              CupertinoIcons.chevron_right,
-              size: 12,
-              color: theme.inkMuted,
-            ),
-          ],
+    final missed = entry.isMissed;
+    final talked = entry.wasAnswered && entry.durationMs > 0;
+    final ink = missed ? theme.danger : theme.ink;
+    final figures = const [FontFeature.tabularFigures()];
+    final motion = MotionScope.of(context);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: motion.d(Duration(milliseconds: 260 + 50 * index.clamp(0, 6))),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(
+          offset: Offset(0, (1 - t) * 6),
+          child: child,
+        ),
+      ),
+      child: SpringPress(
+        onTap: onTap,
+        scale: PressSpec.scaleSmall,
+        haptic: false,
+        focusRadius: 15,
+        hoverRadius: 15,
+        semanticLabel: clockTime(context, entry.startedAt),
+        child: Container(
+          height: 30,
+          padding: const EdgeInsets.symmetric(horizontal: 11),
+          decoration: ShapeDecoration(
+            color: missed
+                ? theme.danger.withValues(alpha: 0.14)
+                : quietFill(theme),
+            shape: const StadiumBorder(),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                clockTime(context, entry.startedAt),
+                style: theme.bodyEmph.copyWith(
+                  fontSize: 13.5,
+                  color: ink,
+                  fontFeatures: figures,
+                ),
+              ),
+              if (talked) ...[
+                const SizedBox(width: 6),
+                Text(
+                  clockDuration(entry.durationMs),
+                  style: theme.bodySoft.copyWith(
+                    fontSize: 13,
+                    color: theme.inkMuted,
+                    fontFeatures: figures,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

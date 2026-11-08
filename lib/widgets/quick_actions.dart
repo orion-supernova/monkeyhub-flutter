@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import '../l10n/text_case.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart' show FlutterSkinsOnly;
+import '../ui/native/native_control.dart';
 import 'fit_label.dart';
 import 'glass_buttons.dart' show ChromeDisc;
 import 'ios_kit.dart' show groupedMetaStyle, groupedRadius;
@@ -260,6 +263,44 @@ class QuickActionTile extends StatelessWidget {
     final tone = destructive ? theme.danger : (tint ?? theme.accent);
     final ink = onTap != null ? tone : theme.inkMuted.withValues(alpha: 0.6);
     final text = sentenceCaseOf(context, label);
+    final radius = (groupedRadius(theme) * 0.7).clamp(6.0, 16.0);
+    // The liquid kit's real iOS 26 glass: an interactive plate drawn natively
+    // over the tile's own Flutter layout, which still decides its size (so a
+    // row stays one equal-height band). Not while busy: a spinner is Flutter.
+    final symbol = busy || tint != null ? null : sfSymbolFor(icon);
+    if (symbol != null && NativeControl.readyIn(context)) {
+      return Stack(
+        children: [
+          ExcludeSemantics(
+            child: Visibility(
+              visible: false,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: _content(theme, text, ink, tone),
+            ),
+          ),
+          Positioned.fill(
+            child: LayoutBuilder(
+              builder: (context, box) => NativeControl(
+                size: box.biggest,
+                standIn: FlutterSkinsOnly(child: Builder(builder: build)),
+                spec: NativeSpec.tile(
+                  symbol: symbol,
+                  label: text,
+                  cornerRadius: radius,
+                  destructive: destructive,
+                  enabled: enabled,
+                ),
+                onEvent: (event, _) {
+                  if (event == 'tap' && enabled) onTap?.call();
+                },
+              ),
+            ),
+          ),
+        ],
+      );
+    }
     // The × disc's glass as a plate, so the tiles and the sheet's × read as
     // one material. Still on a sheet (it slides; a blur there re-rasterises
     // every frame of the rise), live glass on a page.
@@ -269,10 +310,18 @@ class QuickActionTile extends StatelessWidget {
       label: semanticLabel ?? text,
       excludeSemantics: true,
       child: ChromeDisc.plate(
-        radius: (groupedRadius(theme) * 0.7).clamp(6.0, 16.0),
+        radius: radius,
         still: onSheet,
         onTap: enabled ? onTap : null,
-        child: Container(
+        child: _content(theme, text, ink, tone),
+      ),
+    );
+  }
+
+  /// The symbol over its label: the Flutter tile's face, and the size the
+  /// native plate takes.
+  Widget _content(AppTheme theme, String text, Color ink, Color tone) =>
+      Container(
         constraints: const BoxConstraints(minHeight: 64),
         padding: const EdgeInsets.fromLTRB(4, 10, 4, 9),
         child: Column(
@@ -300,8 +349,5 @@ class QuickActionTile extends StatelessWidget {
             ),
           ],
         ),
-        ),
-      ),
-    );
-  }
+      );
 }

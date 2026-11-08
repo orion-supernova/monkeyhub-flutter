@@ -255,7 +255,7 @@ final class NativeOverlaySlot {
   private func dimRadius(_ size: CGSize) -> CGFloat {
     let spec = model.spec
     switch spec.kind {
-    case "pinBar", "textField": return min(spec.cornerRadius, min(size.width, size.height) / 2)
+    case "pinBar", "textField", "tile": return min(spec.cornerRadius, min(size.width, size.height) / 2)
     default: return min(size.width, size.height) / 2
     }
   }
@@ -543,6 +543,7 @@ struct NativeControlRoot: View {
     case "datePicker": NativeDatePicker(spec: spec, emit: emit)
     case "composerField": NativeComposerField(model: model, spec: spec, emit: emit)
     case "glassLabel": NativeGlassLabel(spec: spec)
+    case "tile": NativeTile(spec: spec, emit: emit)
     case "titlePill", "pinBar":
       if #available(iOS 26.0, *) {
         if spec.kind == "titlePill" {
@@ -611,6 +612,43 @@ struct NativeSymbolButton: View {
       }
     }
     .animation(.spring(response: 0.3, dampingFraction: 0.6), value: spec.badge)
+  }
+}
+
+/// An action tile: a symbol over a one- or two-line label on a rounded glass
+/// plate (call, video, message on a profile or the call details sheet). The
+/// accent inks both, red when destructive; the plate is interactive glass.
+struct NativeTile: View {
+  let spec: NativeControlSpec
+  let emit: (String, Any?) -> Void
+
+  var body: some View {
+    let ink: Color = !spec.enabled
+      ? .secondary
+      : (spec.destructive ? .red : (spec.tint ?? .accentColor))
+    let shape = RoundedRectangle(cornerRadius: spec.cornerRadius, style: .continuous)
+    let label = VStack(spacing: 5) {
+      Image(systemName: spec.symbol ?? "circle")
+        .font(.system(size: 20, weight: .medium))
+        .frame(height: 22)
+      Text(spec.label)
+        .font(.system(size: 12.5, weight: .medium))
+        .multilineTextAlignment(.center)
+        .lineLimit(2)
+        .minimumScaleFactor(0.8)
+    }
+    .foregroundStyle(ink)
+    .padding(.horizontal, 4)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .contentShape(shape)
+    let button = Button { emit("tap", nil) } label: { label }
+      .buttonStyle(.plain)
+      .accessibilityLabel(Text(spec.label))
+    if #available(iOS 26.0, *) {
+      button.glassEffect(.regular.interactive(spec.interactive), in: shape)
+    } else {
+      button.background(shape.fill(.thinMaterial))
+    }
   }
 }
 
