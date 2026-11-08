@@ -349,7 +349,19 @@ no exact native form (an icon without an SF Symbol in <code>sfSymbolFor</code>, 
     <code>RowSwitch</code>, <code>IosSegmentedControl</code>, <code>ValueSlider</code>, <code>SheetActionButton</code>, the compose sheet's date-and-time wheel
     (<code>datePicker</code>, wheel), <code>ViewerToolbar</code> (native discs plus a capsule), <code>CallGlyphButton</code> and
     <code>CallButtonPair</code> (the chat header's video and voice buttons: two separate discs in one <code>GlassEffectContainer</code>, so they
-    merge like the iOS 26 toolbar; <code>toolbar</code> takes <code>spacing</code> and <code>blend</code>).</li>
+    merge like the iOS 26 toolbar; <code>toolbar</code> takes <code>spacing</code> and <code>blend</code>),
+    <code>QuickActionTile</code> / <code>SheetQuickActions</code> (<code>tile</code>, added 2026-11-08: a symbol over a two-line label on an
+    interactive rounded glass plate; the Flutter face is laid out invisibly to decide the size, so a row stays one equal-height band, and the
+    <code>NativeControl</code> fills it; Flutter twin is <code>ChromeDisc.plate</code>).</li>
+  <li><strong>Events must ask for a frame.</strong> A native control changes nothing in Flutter's tree, so no frame follows its event. A handler
+  that defers to the next frame (<code>addPostFrameCallback</code>, as <code>IosSegmentedControl</code> commits) then waited for an unrelated
+  redraw: the Calls filter lagged 1 s+ (2026-11-08). <code>NativeControl._event</code> now calls <code>ensureVisualUpdate()</code> after every
+  event. Any other platform channel that defers work must do the same. See <code>docs/lessons.md</code> L1.</li>
+  <li><strong>Adding a kind:</strong> <code>NativeSpec.&lt;kind&gt;</code> (Dart) + a case in <code>NativeControlRoot</code> and a view in
+  <code>NativeControls.swift</code>; give rounded kinds a <code>dimRadius</code> case; map every icon in <code>_symbols</code>; add the component to
+  the Controls lab; typecheck Swift at deployment target 15.0
+  (<code>xcrun --sdk iphonesimulator swiftc -typecheck -target arm64-apple-ios15.0-simulator -F &lt;Flutter.xcframework sim slice&gt;
+  ios/Runner/NativeControls.swift</code>). A Swift change needs a full <code>flutter run</code>.</li>
   <li><strong>What stays Flutter, and why:</strong> sheets with Flutter content (a native sheet would need a second engine; choice and
   confirm sheets are native, above);
   the hold / long-press menus (<code>showMessageActionMenu</code>, <code>showChatRowActionMenu</code>, and the row-anchored <code>showPullDownMenu</code> callers

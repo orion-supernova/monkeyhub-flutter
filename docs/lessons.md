@@ -1,5 +1,9 @@
 # Lessons
 
+The native glass architecture itself (overlay, specs, hiding rules, covered
+components, Controls lab) is documented in `docs/architecture/ui-architecture.html`
+› "The liquid kit's native controls". This file is the mistakes log.
+
 Mistakes we made once and do not want to make again. Each entry: what broke,
 why, the rule, and where the guard lives. Newest at the bottom; add to it
 whenever a bug teaches something general.
@@ -68,6 +72,9 @@ invisibly and put the `NativeControl` in `Positioned.fill` over it
 - Tell the user a Swift change needs a full `flutter run`; hot reload does not
   pick it up.
 - If the control emits events, L1 already covers frame scheduling.
+- Add the component to the Controls lab (`lib/ui/lab/controls_lab_screen.dart`,
+  Settings › Glass › Controls lab, or `--dart-define=OPEN_LAB=true`) and list it
+  under "Covered components" in `ui-architecture.html`.
 
 ---
 

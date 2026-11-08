@@ -210,6 +210,34 @@ class _ControlsLabScreenState extends State<ControlsLabScreen> {
               'Text link',
               TextLinkButton(label: 'Learn more', onTap: () => _tap('link')),
             ),
+            // The action tiles of a profile and the call details sheet: native
+            // `tile` plates under native controls, ChromeDisc.plate otherwise.
+            _block(
+              SheetQuickActions(
+                actions: [
+                  QuickAction(
+                    icon: CupertinoIcons.phone_fill,
+                    label: 'Voice call',
+                    onTap: () => _tap('tile-voice'),
+                  ),
+                  QuickAction(
+                    icon: CupertinoIcons.videocam_fill,
+                    label: 'Video call',
+                    onTap: () => _tap('tile-video'),
+                  ),
+                  QuickAction(
+                    icon: CupertinoIcons.bubble_left_fill,
+                    label: 'Message',
+                    onTap: () => _tap('tile-message'),
+                  ),
+                  QuickAction(
+                    icon: CupertinoIcons.star_slash_fill,
+                    label: 'Remove from favourites',
+                    onTap: () => _tap('tile-fav'),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
         GroupedSection(
