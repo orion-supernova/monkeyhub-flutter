@@ -362,6 +362,9 @@ no exact native form (an icon without an SF Symbol in <code>sfSymbolFor</code>, 
   the Controls lab; typecheck Swift at deployment target 15.0
   (<code>xcrun --sdk iphonesimulator swiftc -typecheck -target arm64-apple-ios15.0-simulator -F &lt;Flutter.xcframework sim slice&gt;
   ios/Runner/NativeControls.swift</code>). A Swift change needs a full <code>flutter run</code>.</li>
+  <li><strong>Siblings match.</strong> A control's own fallback (no SF Symbol, busy, custom glyph) must not split a row: components drawn as a
+  set decide once for the set (<code>SheetQuickActions</code> / <code>QuickTileRow</code> via <code>_NativeTiles</code>, like
+  <code>GlassButtonGroup</code>'s all-slots rule), and states like busy get a native form (the tile's spinner) rather than a fallback.</li>
   <li><strong>What stays Flutter, and why:</strong> sheets with Flutter content (a native sheet would need a second engine; choice and
   confirm sheets are native, above);
   the hold / long-press menus (<code>showMessageActionMenu</code>, <code>showChatRowActionMenu</code>, and the row-anchored <code>showPullDownMenu</code> callers
@@ -565,6 +568,7 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
 <tr><td>Native controls</td><td>A keyed control (the composer's attach button, GlobalKey) used itself as its stand-in: duplicate GlobalKey error box</td><td><span class="pill ok">fixed: stand-in is its build</span></td></tr>
 <tr><td>Native controls (events)</td><td>The Calls filter (native segmented control) moved its thumb at once but the list changed 1 s+ later: the commit waits for the next frame (<code>addPostFrameCallback</code>), and a native event schedules none, so it waited for an unrelated redraw. The Flutter skin hid this because its thumb's <code>setState</code> scheduled the frame</td><td><span class="pill ok">fixed 2026-11-08: <code>NativeControl._event</code> calls <code>ensureVisualUpdate()</code>; push and invite consumers in <code>app.dart</code> too. Test: <code>native_controls_test</code> &rsaquo; "a native segmented change commits without waiting for an unrelated frame"</span></td></tr>
 <tr><td>Action tiles (liquid kit)</td><td>Flutter-drawn "glass" plates next to real iOS 26 glass read as fake and had no interactive press</td><td><span class="pill ok">fixed 2026-11-08: native <code>tile</code> kind; <code>ChromeDisc.plate</code> is the Flutter twin</span></td></tr>
+<tr><td>Native controls (fallback)</td><td>A profile's action row showed "Sessize al" as a Flutter tile between native ones: its icon (<code>bell_slash_fill</code>) had no SF Symbol, and each control fell back on its own. Ten tile icons were unmapped; a busy tile fell back the same way</td><td><span class="pill ok">fixed 2026-11-08: icons mapped; a set of tiles decides native once for all (<code>_NativeTiles</code> in <code>quick_actions.dart</code>); busy is a native spinner. Guard: <code>native_symbol_coverage_test</code> fails on any unmapped icon given to a native-capable component</span></td></tr>
 <tr><td><code>SheetBar</code></td><td>The sheet × sat 14pt from the side but ~19pt from the top, crowding the 38pt corner's curve</td><td><span class="pill ok">fixed 2026-11-08: 18pt side inset, concentric with the corner, in the shared bar</span></td></tr>
 <tr><td>Compact room</td><td>Transcript ran under the status bar clock with no scroll edge</td><td><span class="pill ok">fixed: top fade</span></td></tr>
 <tr><td>login_screen, PasswordField</td><td>No <code>autofillHints</code>: password managers can't fill or save</td><td><span class="pill ok">fixed</span></td></tr>
@@ -604,6 +608,8 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
   <li>Code that defers to the next frame (<code>addPostFrameCallback</code>, <code>endOfFrame</code>) after a platform event
   (method channel, native control, push, link) also calls <code>ensureVisualUpdate()</code>: a post-frame callback does not
   schedule a frame (§9).</li>
+  <li>Using a new icon on a native-capable component? Map it in <code>_symbols</code> (<code>native_symbol_coverage_test</code>
+  fails otherwise). Controls that sit side by side decide native or Flutter together, never one by one.</li>
   <li>Something should look like iOS glass in the Liquid kit? Add a native kind (<a href="#native">native controls</a>), not a
   Flutter imitation.</li>
   <li>A sheet is the last stop: it shows one thing. Choose between items before it opens, never inside it.</li>
