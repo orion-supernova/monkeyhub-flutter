@@ -136,8 +136,9 @@ class NativeOverlay {
   /// Flutter stand-in, which Flutter layers correctly, draws instead.
   static final Set<BuildContext> _occluders = {};
 
-  static bool _occluded(Rect rect) {
+  static bool _occluded(Rect rect, [Object? layer]) {
     for (final c in _occluders) {
+      if (layer != null && identical(NativeLayer._of(c), layer)) continue;
       final box = c.findRenderObject();
       if (box is! RenderBox || !box.attached || !box.hasSize) continue;
       if (box.size.isEmpty) continue;
@@ -263,6 +264,10 @@ class _NativeControlState extends State<NativeControl> {
   bool _tickerOn = true;
   double? Function()? _cutLine;
 
+  /// The [NativeLayer] this control sits in, if any: scrims and occluders
+  /// of its own layer are below it, not over it.
+  Object? _layer;
+
   void _push(Map<String, Object?> spec) {
     if (_specEquals(spec, _sent)) return;
     _sent = spec;
@@ -364,7 +369,7 @@ class _NativeControlState extends State<NativeControl> {
         // Liquid Glass ignores alpha, so the native view would sit crisp
         // over a half-faded page. Its stand-in fades properly until done.
         why = 'faded';
-      } else if (NativeOverlay._occluded(rect)) {
+      } else if (NativeOverlay._occluded(rect, _layer)) {
         why = 'occluded';
       } else if (rideAlong) {
         final (:covered, :dim) = _cover(rect);
@@ -375,6 +380,12 @@ class _NativeControlState extends State<NativeControl> {
         }
       }
     }
+    if (why == null) {
+      // A Flutter scrim over this spot (the video note's dim): the same
+      // native dim a sheet's barrier gets, and no touches through it.
+      final scrim = NativeScrim._dimAt(rect, _layer);
+      if (scrim > 0) dimBy = 1 - (1 - dimBy) * (1 - scrim);
+    }
     final want = why == null;
     var send = want;
     if (want) {
@@ -383,9 +394,12 @@ class _NativeControlState extends State<NativeControl> {
         _holdLeft = 0;
         setState(() => _standInWanted = false);
       }
-    } else if (_nativeUp && laid && _tickerOn) {
-      // Stand-in first, native out a little later. Not for an offstage page
-      // (ticker off): nothing of it paints, so there is nothing to bridge.
+    } else if (_nativeUp && laid && _tickerOn && why != 'clipped') {
+      // Stand-in first, native out a little later. Only where the stand-in
+      // will actually show: not for an offstage page (ticker off) or one
+      // clipped away or faded to nothing ('clipped', e.g. the composer's
+      // mode button hidden under the record bloom), where holding the
+      // native view up drew it, for three frames, over what replaced it.
       if (!_standInWanted) {
         _standInWanted = true;
         _holdLeft = _holdFrames;
@@ -638,6 +652,7 @@ class _NativeControlState extends State<NativeControl> {
     }
     _tickerOn = TickerMode.valuesOf(context).enabled;
     _cutLine = NativeCut.lineOf(context);
+    _layer = NativeLayer._of(context);
   }
 
   @override
@@ -1311,6 +1326,109 @@ class _NativeCoverState extends State<NativeCover> {
   @override
   void dispose() {
     _leave();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// A Flutter layer drawn above the pages (an overlay's content, e.g. the
+/// video-note capture): the [NativeOccluder]s and [NativeScrim]s inside it
+/// cover native controls BELOW it, never the ones that sit in it with them
+/// (the capture's flip and flash buttons, over its own dim).
+class NativeLayer extends StatefulWidget {
+  const NativeLayer({super.key, required this.child});
+
+  final Widget child;
+
+  static Object? _of(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<_NativeLayerScope>()?.id;
+
+  @override
+  State<NativeLayer> createState() => _NativeLayerState();
+}
+
+class _NativeLayerState extends State<NativeLayer> {
+  final Object _id = Object();
+
+  @override
+  Widget build(BuildContext context) =>
+      _NativeLayerScope(id: _id, child: widget.child);
+}
+
+class _NativeLayerScope extends InheritedWidget {
+  const _NativeLayerScope({required this.id, required super.child});
+
+  final Object id;
+
+  @override
+  bool updateShouldNotify(_NativeLayerScope old) => !identical(old.id, id);
+}
+
+/// A Flutter dim drawn over the pages outside any route (a route's barrier
+/// is handled already): native controls under it take the same native dim
+/// and no touches, instead of staying bright on a darkened screen.
+/// [alpha] is the darkening at the top; below [fadeFrom] (a fraction of the
+/// scrim's height) it fades linearly to nothing at the bottom, as the
+/// gradient it describes does.
+class NativeScrim extends StatefulWidget {
+  const NativeScrim({
+    super.key,
+    required this.alpha,
+    this.fadeFrom = 1,
+    required this.child,
+  });
+
+  final double alpha;
+  final double fadeFrom;
+  final Widget child;
+
+  static final Set<_NativeScrimState> _live = {};
+
+  static double _dimAt(Rect rect, Object? layer) {
+    var dim = 0.0;
+    for (final s in _live) {
+      final a = s.widget.alpha;
+      if (a <= 0) continue;
+      if (layer != null && identical(NativeLayer._of(s.context), layer)) {
+        continue;
+      }
+      final box = s.context.findRenderObject();
+      if (box is! RenderBox || !box.attached || !box.hasSize) continue;
+      final r = MatrixUtils.transformRect(
+        box.getTransformTo(null),
+        Offset.zero & box.size,
+      );
+      if (!r.overlaps(rect) || r.height <= 0) continue;
+      final y = ((rect.center.dy - r.top) / r.height).clamp(0.0, 1.0);
+      final from = s.widget.fadeFrom;
+      final k = y <= from || from >= 1 ? 1.0 : (1 - (y - from) / (1 - from));
+      dim = 1 - (1 - dim) * (1 - (a * k).clamp(0.0, 1.0));
+    }
+    return dim;
+  }
+
+  @override
+  State<NativeScrim> createState() => _NativeScrimState();
+}
+
+class _NativeScrimState extends State<NativeScrim> {
+  @override
+  void initState() {
+    super.initState();
+    NativeScrim._live.add(this);
+  }
+
+  @override
+  void didUpdateWidget(NativeScrim old) {
+    super.didUpdateWidget(old);
+    if (old.alpha != widget.alpha) SchedulerBinding.instance.ensureVisualUpdate();
+  }
+
+  @override
+  void dispose() {
+    NativeScrim._live.remove(this);
     super.dispose();
   }
 

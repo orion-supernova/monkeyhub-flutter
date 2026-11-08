@@ -1285,13 +1285,18 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         });
         return OverlayPortal(
           controller: _bigPreview,
+          // One layer for native controls: its dim, circle and bloom hide
+          // or dim the native glass below them (the header, the chips),
+          // never the flip and flash buttons drawn in it, over its own dim.
           overlayChildBuilder: (context) => Positioned.fill(
-            child: Stack(
-              children: [
-                _bigPreviewLayer(context),
-                _bloomLayer(context),
-                _voiceFlightLayer(context),
-              ],
+            child: NativeLayer(
+              child: Stack(
+                children: [
+                  _bigPreviewLayer(context),
+                  _bloomLayer(context),
+                  _voiceFlightLayer(context),
+                ],
+              ),
             ),
           ),
           child: KeyedSubtree(key: _composerKey, child: _body(context)),
@@ -2083,7 +2088,8 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       height: CaptureBloom.boxSize.height,
       child: Material(
         type: MaterialType.transparency,
-        child: CaptureBloom(
+        // The disc under the finger: nothing native may draw over it.
+        child: NativeOccluder(child: CaptureBloom(
           theme: ThemeScope.of(context),
           active: active,
           locked: _machine.stage == CaptureStage.locked,
@@ -2107,7 +2113,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           paused: _paused,
           onPause: _machine.stage == CaptureStage.locked && captureComposeSupported ? () => unawaited(_togglePause()) : null,
           probe: _bloomProbe,
-        ),
+        )),
       ),
     );
   }
@@ -2205,7 +2211,13 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
                 right: 0,
                 top: 0,
                 height: composerTop,
-                child: Opacity(
+                // Native glass draws above Flutter: without this the
+                // header's native buttons stayed bright (and tappable) on
+                // the darkened chat. 0xB8 black, fading out below 72%.
+                child: NativeScrim(
+                  alpha: dim * 0xB8 / 0xFF,
+                  fadeFrom: 0.72,
+                  child: Opacity(
                   opacity: dim,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
@@ -2224,6 +2236,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
                     ),
                   ),
                 ),
+                ),
               ),
               // The front camera's flash: the screen itself, white and solid,
               // over the dim and everything above the strip, lighting the face
@@ -2235,8 +2248,10 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
                   right: 0,
                   top: 0,
                   height: composerTop,
-                  child: IgnorePointer(
-                    child: Opacity(opacity: t.clamp(0.0, 1.0), child: const ColoredBox(color: Color(0xFFFFFFFF))),
+                  child: NativeOccluder(
+                    child: IgnorePointer(
+                      child: Opacity(opacity: t.clamp(0.0, 1.0), child: const ColoredBox(color: Color(0xFFFFFFFF))),
+                    ),
                   ),
                 ),
                 Positioned.fromRect(
@@ -2253,11 +2268,13 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
               ],
               Positioned.fromRect(
                 rect: shown,
-                child: Opacity(
-                  opacity: flying ? 1 - (flight.reveal.value) : (source == null ? t : 1),
-                  // In flight it is neither a preview nor recording: no
-                  // badge, no ring, only the picture.
-                  child: _bigCircle(theme, l10n, recording: recording || flying, lift: t),
+                child: NativeOccluder(
+                  child: Opacity(
+                    opacity: flying ? 1 - (flight.reveal.value) : (source == null ? t : 1),
+                    // In flight it is neither a preview nor recording: no
+                    // badge, no ring, only the picture.
+                    child: _bigCircle(theme, l10n, recording: recording || flying, lift: t),
+                  ),
                 ),
               ),
               // Flip and flash, above the strip's leading end, as Telegram's.

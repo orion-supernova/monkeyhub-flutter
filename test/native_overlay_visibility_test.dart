@@ -134,6 +134,75 @@ void main() {
     expect(last()['visible'], isTrue);
   });
 
+  testWidgets('a Flutter scrim dims the native control under it, not one '
+      'in its own layer (the capture\'s buttons over its own dim)', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      const Stack(
+        children: [
+          Positioned(left: 20, top: 20, child: _Ctl()),
+          Positioned.fill(
+            child: NativeScrim(alpha: 0.6, child: SizedBox.expand()),
+          ),
+        ],
+      ),
+    );
+    expect(last()['visible'], isTrue, reason: 'stays native, dimmed');
+    expect((last()['dim'] as num).toDouble(), closeTo(0.6, 0.03));
+
+    await pump(
+      tester,
+      const NativeLayer(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: NativeScrim(alpha: 0.6, child: SizedBox.expand()),
+            ),
+            Positioned.fill(child: NativeOccluder(child: SizedBox.expand())),
+            Positioned(left: 20, top: 20, child: _Ctl()),
+          ],
+        ),
+      ),
+    );
+    expect(last()['visible'], isTrue);
+    expect(last()['dim'], isNull, reason: 'its own layer is below it');
+  });
+
+  testWidgets('faded to nothing (the mode button under the record bloom), a '
+      'revealed control hides at once: no hold over what replaced it', (
+    tester,
+  ) async {
+    final opacity = ValueNotifier<double>(1);
+    await pump(
+      tester,
+      Align(
+        child: ValueListenableBuilder<double>(
+          valueListenable: opacity,
+          builder: (_, o, child) => Opacity(opacity: o, child: child),
+          child: const _Ctl(),
+        ),
+      ),
+    );
+    final id = (syncs.last['id'] as String?);
+    // Reveal it, as the native side does.
+    const codec = StandardMethodCodec();
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      'monkeyhub/native_overlay',
+      codec.encodeMethodCall(
+        MethodCall('event', {'id': id, 'name': 'revealed', 'value': true}),
+      ),
+      (_) {},
+    );
+    await tester.pump();
+    syncs.clear();
+    opacity.value = 0;
+    await tester.pump();
+    expect(syncs.first['visible'], isFalse, reason: 'first sync, no hold');
+    expect(syncs.first['why'], 'clipped');
+  });
+
   testWidgets('a collapsed occluder (pill hidden) hides nothing', (
     tester,
   ) async {
