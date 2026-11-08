@@ -390,6 +390,79 @@ void main() {
       expect(shown('B'), isTrue);
     });
   });
+
+  testWidgets('a control that goes away leaves its native view hidden for '
+      'the next one of its kind (a tab revisited shows native at once); '
+      'a text field is never pooled', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    final calls = <(String, Map<String, Object?>)>[];
+    const overlay = MethodChannel('monkeyhub/native_overlay');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(overlay, (
+      call,
+    ) async {
+      calls.add((call.method, (call.arguments as Map).cast<String, Object?>()));
+      return null;
+    });
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        overlay,
+        null,
+      ),
+    );
+    Future<void> show(Widget? w) async {
+      await tester.pumpWidget(ThemeScope(
+        controller: ThemeController(BasicTheme.midnight()),
+        child: MaterialApp(home: Material(child: Center(child: w))),
+      ));
+      await tester.pump();
+    }
+
+    String idOfSet(String label) => calls
+        .lastWhere((c) =>
+            c.$1 == 'set' && (c.$2['spec'] as Map)['label'] == label)
+        .$2['id'] as String;
+
+    final button = NativeControl(
+      size: const Size(80, 40),
+      spec: NativeSpec.button(label: 'Pooled', height: 40),
+    );
+    await show(button);
+    final first = idOfSet('Pooled');
+    calls.clear();
+    await show(null);
+    expect(calls.where((c) => c.$1 == 'remove'), isEmpty,
+        reason: 'kept, not destroyed');
+    expect(
+      calls.any((c) =>
+          c.$1 == 'sync' &&
+          (c.$2['items'] as List).any((i) =>
+              (i as Map)['id'] == first && i['visible'] == false)),
+      isTrue,
+      reason: 'hidden',
+    );
+    await show(NativeControl(
+      size: const Size(80, 40),
+      spec: NativeSpec.button(label: 'Pooled', height: 40),
+    ));
+    expect(idOfSet('Pooled'), first, reason: 'adopted its own view');
+
+    final field = NativeControl(
+      size: const Size(200, 40),
+      spec: NativeSpec.textField(text: '', placeholder: 'Field'),
+    );
+    await show(field);
+    final fieldId = calls.lastWhere((c) =>
+        c.$1 == 'set' && (c.$2['spec'] as Map)['kind'] == 'textField').$2['id'];
+    calls.clear();
+    await show(null);
+    expect(
+      calls.any((c) => c.$1 == 'remove' && c.$2['id'] == fieldId),
+      isTrue,
+      reason: 'stateful kinds are destroyed',
+    );
+  });
 }
 
 class _Ctl extends StatelessWidget {

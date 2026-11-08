@@ -90,7 +90,11 @@ class FilterCapsule extends StatelessWidget {
         onTap: onTap == null ? null : _tap,
         onLongPress: onLongPress,
         child: NativeControl(
-          standIn: FlutterSkinsOnly(child: Builder(builder: build)),
+          // Wears the native chip's colours, so the hand-over between them
+          // (a covered or fading moment) is not a restyle.
+          standIn: _NativeLook(
+            child: FlutterSkinsOnly(child: Builder(builder: build)),
+          ),
           size: nativeButtonSize(context, text, height: 32),
           spec: NativeSpec.button(
             label: text,
@@ -236,7 +240,10 @@ class FilterCapsule extends StatelessWidget {
                   // A filter matching nothing is dimmed rather than
                   // hidden — a row that reshuffled itself every time a
                   // count hit zero would be impossible to aim at.
-                  : (empty ? theme.inkMuted : theme.inkSoft),
+                  : _NativeLook.of(context)
+                      // A native glass chip's label is the tint.
+                      ? theme.accent
+                      : (empty ? theme.inkMuted : theme.inkSoft),
             ),
             child: Text(label,
                 maxLines: 1, softWrap: false, overflow: TextOverflow.clip),
@@ -302,4 +309,16 @@ class FilterCapsule extends StatelessWidget {
     HapticFeedback.selectionClick();
     onTap?.call();
   }
+}
+
+/// Marks a [FilterCapsule] drawn as a native chip's stand-in: it takes the
+/// native chip's label colour.
+class _NativeLook extends InheritedWidget {
+  const _NativeLook({required super.child});
+
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_NativeLook>() != null;
+
+  @override
+  bool updateShouldNotify(_NativeLook old) => false;
 }

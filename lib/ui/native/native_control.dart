@@ -176,16 +176,68 @@ class NativeOverlay {
 
   static String _register(_NativeControlState state) {
     _start();
-    final id = 'nc${_nextId++}';
+    final kind = state.widget.spec._map['kind'] as String?;
+    final sig = state.widget.spec._map.toString();
+    final pooled = _pool[kind];
+    String id;
+    if (pooled != null && pooled.isNotEmpty) {
+      // The same control coming back (a tab revisited) gets its own view:
+      // nothing in it changes, so not even one frame of other content.
+      final same = pooled.lastIndexWhere((p) => _sigs[p] == sig);
+      id = pooled.removeAt(same >= 0 ? same : pooled.length - 1);
+    } else {
+      id = 'nc${_nextId++}';
+    }
     _controls[id] = state;
+    _kinds[id] = kind;
+    _sigs[id] = sig;
     // A control that registers between frames is placed after the next one.
     SchedulerBinding.instance.ensureVisualUpdate();
     return id;
   }
 
-  static void _unregister(String id) {
+  /// Hidden native views of controls that went away, by kind, for the next
+  /// control of that kind to adopt. A fresh glass view needs ~0.12s to take
+  /// its first backdrop sample (until then its stand-in shows, then it swaps
+  /// in with a bright first frame): every tab visit flickered its buttons
+  /// and chips that way. An adopted view has sampled already and shows on
+  /// its first frame; `set` only changes what it draws.
+  ///
+  /// Stateless glass kinds only: a text field, toggle, slider, picker or
+  /// segmented control keeps state in its native view that would show
+  /// through for a frame.
+  static final Map<String?, List<String>> _pool = {};
+  static final Map<String, String?> _kinds = {};
+  static final Map<String, String> _sigs = {};
+  static const Set<String> _poolable = {
+    'symbolButton', 'button', 'buttonGroup', 'toolbar', 'titlePill', 'pinBar',
+  };
+  static const int _poolPerKind = 12;
+
+  static void _unregister(String id, [Map<String, Object?>? last]) {
     _controls.remove(id);
-    _call('remove', {'id': id});
+    final kind = _kinds.remove(id);
+    final pool = _pool[kind] ??= [];
+    if (_poolable.contains(kind) && pool.length < _poolPerKind) {
+      // Hidden now (a clip to nothing), kept for the next control of its
+      // kind. At its last size: a glass view resized from nothing would
+      // resample, and flash, when adopted.
+      _call('sync', {
+        'items': [
+          {
+            'id': id,
+            'x': last?['x'] ?? 0.0, 'y': last?['y'] ?? 0.0,
+            'w': last?['w'] ?? 0.0, 'h': last?['h'] ?? 0.0,
+            'cx': 0.0, 'cy': 0.0, 'cw': 0.0, 'ch': 0.0,
+            'visible': false, 'why': 'pooled',
+          },
+        ],
+      });
+      pool.add(id);
+    } else {
+      _sigs.remove(id);
+      _call('remove', {'id': id});
+    }
   }
 
   static void _sync() {
@@ -214,6 +266,10 @@ class _NativeControlState extends State<NativeControl> {
   void _push(Map<String, Object?> spec) {
     if (_specEquals(spec, _sent)) return;
     _sent = spec;
+    NativeOverlay._sigs[_id] = widget.spec._map.toString();
+    // A rebuilt control can change kind (same state, new spec): pool it, or
+    // not, as what it is now.
+    NativeOverlay._kinds[_id] = widget.spec._map['kind'] as String?;
     NativeOverlay._call('set', {'id': _id, 'spec': spec});
   }
 
@@ -600,7 +656,7 @@ class _NativeControlState extends State<NativeControl> {
     _route?.secondaryAnimation?.removeListener(_poke);
     NativeOverlay.suppressed.removeListener(_poke);
     SettingsStore.instance.removeListener(_settingsChanged);
-    NativeOverlay._unregister(_id);
+    NativeOverlay._unregister(_id, _lastPlacement);
     super.dispose();
   }
 
