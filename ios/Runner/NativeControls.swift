@@ -201,6 +201,20 @@ final class NativeOverlaySlot {
   private var settled = false
   private var clipRect: CGRect = .zero
 
+  /// The scrim of a sheet or dialog above, drawn natively over the control
+  /// (in its own shape) so it can stay native under the barrier instead of
+  /// swapping to its Flutter stand-in. A sibling above the host, never an
+  /// ancestor: an effect on a glass ancestor paints the glass flat.
+  private let dimView: UIView = {
+    let v = UIView()
+    v.backgroundColor = .black
+    v.alpha = 0
+    v.isUserInteractionEnabled = false
+    v.layer.cornerCurve = .continuous
+    return v
+  }()
+  private var dim: CGFloat = 0
+
   private var kindName: String { model.spec.kind }
 
   init(id: String, spec: [String: Any], emit: @escaping (String, Any?) -> Void) {
@@ -214,6 +228,7 @@ final class NativeOverlaySlot {
     clip.clipsToBounds = true
     clip.frame = .zero
     clip.addSubview(host.view)
+    clip.addSubview(dimView)
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
       self?.settled = true
       self?.applyReveal()
@@ -224,8 +239,25 @@ final class NativeOverlaySlot {
   func update(_ spec: [String: Any]) {
     model.spec = NativeControlSpec(spec)
     passthrough = spec["passthrough"] as? Bool ?? false
-    clip.isUserInteractionEnabled = revealed && !passthrough
+    applyInteraction()
     reportSize()
+  }
+
+  /// Touches go to the control only when it is shown, not a draw-only one,
+  /// and not under a scrim: a tap there belongs to the barrier (it closes
+  /// the sheet), exactly as on the Flutter side.
+  private func applyInteraction() {
+    clip.isUserInteractionEnabled = revealed && !passthrough && dim <= 0
+  }
+
+  /// The control's outline for the scrim: capsules and discs are round on
+  /// their short side; the pinned bar and plain fields use their radius.
+  private func dimRadius(_ size: CGSize) -> CGFloat {
+    let spec = model.spec
+    switch spec.kind {
+    case "pinBar", "textField": return min(spec.cornerRadius, min(size.width, size.height) / 2)
+    default: return min(size.width, size.height) / 2
+    }
   }
 
   /// Draws only: touches go to Flutter under it.
@@ -236,6 +268,11 @@ final class NativeOverlaySlot {
     clipRect = CGRect(x: num("cx"), y: num("cy"), width: num("cw"), height: num("ch"))
     let rect = CGRect(x: num("x"), y: num("y"), width: num("w"), height: num("h"))
     host.view.frame = rect.offsetBy(dx: -clipRect.minX, dy: -clipRect.minY)
+    dim = CGFloat((item["dim"] as? NSNumber)?.doubleValue ?? 0)
+    dimView.frame = host.view.frame
+    dimView.layer.cornerRadius = dimRadius(rect.size)
+    dimView.alpha = dim
+    applyInteraction()
     let wants = item["visible"] as? Bool ?? false
     #if DEBUG
     // Why a control hid (`route`, `clipped`, `ticker`...): read with
@@ -266,7 +303,7 @@ final class NativeOverlaySlot {
     // never jumps.
     if next != revealed {
       revealed = next
-      clip.isUserInteractionEnabled = next && !passthrough
+      applyInteraction()
       if !next { model.blurTick += 1 }
       emit("revealed", next)
     }

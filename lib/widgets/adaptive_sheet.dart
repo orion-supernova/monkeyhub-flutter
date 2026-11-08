@@ -8,6 +8,7 @@ import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
 import '../ui/foundation/ui_kit.dart';
 import '../ui/kits/shader/shader_skin.dart';
+import '../ui/native/native_control.dart' show NativeCover;
 import 'glass_reveal.dart';
 import 'glass_surface.dart';
 import 'sheet_drag.dart';
@@ -105,12 +106,14 @@ Future<T?> showAdaptiveSheet<T>(
         // Content widgets are authored for a full-width bottom sheet; give
         // them bounded height and let them scroll internally if the
         // viewport is short, so nothing overflows in the popover form.
-        child: GlassSurface(
-          radius: theme.radiusXl,
-          padding: EdgeInsets.zero,
-          child: Material(
-            type: MaterialType.transparency,
-            child: SingleChildScrollView(child: builder(dialogContext)),
+        child: NativeCover(
+          child: GlassSurface(
+            radius: theme.radiusXl,
+            padding: EdgeInsets.zero,
+            child: Material(
+              type: MaterialType.transparency,
+              child: SingleChildScrollView(child: builder(dialogContext)),
+            ),
           ),
         ),
       ),
@@ -294,7 +297,11 @@ class _FloatingSheetRoute<T> extends PopupRoute<T> {
                     enabled: enableDrag && isDismissible,
                     animateIn: true,
                     offscreenExtra: lift + 32,
-                    child: shader ? glassPanel() : solidPanel(),
+                    // The card's own bounds: native controls under it
+                    // step aside; elsewhere they only dim with the scrim.
+                    child: NativeCover(
+                      child: shader ? glassPanel() : solidPanel(),
+                    ),
                   ),
                 ),
               ),

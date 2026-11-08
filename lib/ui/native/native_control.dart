@@ -279,6 +279,11 @@ class _NativeControlState extends State<NativeControl> {
     }
     Rect rect = Rect.zero;
     Rect clip = Rect.zero;
+    // How much a barrier above (a sheet's or dialog's scrim) darkens this
+    // control right now. The native view takes the same dim instead of
+    // swapping to its stand-in, the way a native app's bar sits under a
+    // sheet.
+    var dimBy = 0.0;
     if (laid) {
       final b = box;
       rect = MatrixUtils.transformRect(
@@ -300,8 +305,13 @@ class _NativeControlState extends State<NativeControl> {
         why = 'partial';
       } else if (NativeOverlay._occluded(rect)) {
         why = 'occluded';
-      } else if (rideAlong && _covered(rect)) {
-        why = 'covered';
+      } else if (rideAlong) {
+        final (:covered, :dim) = _cover(rect);
+        if (covered) {
+          why = 'covered';
+        } else {
+          dimBy = dim;
+        }
       }
     }
     final want = why == null;
@@ -338,6 +348,7 @@ class _NativeControlState extends State<NativeControl> {
       'ch': _r(clip.height),
       'visible': send,
       'why': ?why,
+      if (send && dimBy > 0) 'dim': (dimBy * 50).roundToDouble() / 50,
     };
     if (_specEquals(placement, _lastPlacement)) return null;
     _lastPlacement = placement;
@@ -362,44 +373,60 @@ class _NativeControlState extends State<NativeControl> {
   /// The last sync told the native side to show.
   bool _nativeUp = false;
 
-  /// Whether something Flutter draws above this control's route covers
-  /// [rect]: a page above it (by its current, mid-slide bounds) or any
-  /// barrier (a sheet's, a dialog's dim) on a route above it.
-  bool _covered(Rect rect) {
+  /// What draws above this control's route at [rect]: whether something
+  /// covers it (a page above it, by its current mid-slide bounds, or a
+  /// [NativeCover] card of a route above) and how much a barrier above dims
+  /// it (scrim alpha times how far in it has faded).
+  ({bool covered, double dim}) _cover(Rect rect) {
     final mine = _route;
-    if (mine == null) return false;
+    if (mine == null) return (covered: false, dim: 0.0);
     // A few points of lead, so the swap happens just before an incoming
     // page's edge reaches the control, under its shadow, not after.
     final probe = rect.inflate(6);
+    var dim = 0.0;
     for (final u in RouteDepthObserver.live) {
       if (identical(u, mine) || !_isAbove(u, mine)) continue;
+      var t = 1.0;
       if (u is TransitionRoute) {
         final a = u.animation;
-        if (a != null && a.value <= 0) continue;
+        if (a != null) t = a.value;
+        if (t <= 0) continue;
       }
       if (u is ModalRoute) {
         final barrier = u.barrierColor;
-        if (barrier != null && barrier.a > 0) return true;
+        if (barrier != null && barrier.a > 0) {
+          // A sheet or dialog: its route fills the screen, but only its card
+          // covers anything; the rest is scrim.
+          dim = 1 - (1 - dim) * (1 - barrier.a * t.clamp(0.0, 1.0));
+          if (NativeCover._overlaps(u, probe)) {
+            return (covered: true, dim: 0.0);
+          }
+          continue;
+        }
         final pageBox = u.subtreeContext?.findRenderObject();
         if (pageBox is RenderBox && pageBox.attached && pageBox.hasSize) {
           final page = MatrixUtils.transformRect(
             pageBox.getTransformTo(null),
             Offset.zero & pageBox.size,
           );
-          if (page.overlaps(probe)) return true;
+          if (page.overlaps(probe)) return (covered: true, dim: 0.0);
           continue;
         }
       }
       // A route whose bounds can't be read: assume it covers.
-      return true;
+      return (covered: true, dim: 0.0);
     }
-    return false;
+    return (covered: false, dim: dim);
   }
 
   /// Whether [u] draws above [mine]. On one navigator, the deeper route.
-  /// Across navigators (the shell's panes are nested navigators inside the
-  /// root's base route) only pushed routes (depth 1+) count, so a pane's
-  /// base page never hides the shell around it.
+  /// Across navigators, by the route that HOSTS the nested navigator: the
+  /// shell's panes live in the root's base page, but a room's side pane
+  /// (where a profile opens on a phone) lives inside the room's page. A
+  /// route pushed on a nested navigator is above every route at or below
+  /// its host; a route pushed on an outer navigator is above everything
+  /// whose host sits below it. Base routes of nested navigators never count,
+  /// so a pane's base page never hides the page around it.
   static bool _isAbove(Route<dynamic> u, Route<dynamic> mine) {
     final un = u.navigator;
     final mn = mine.navigator;
@@ -408,12 +435,36 @@ class _NativeControlState extends State<NativeControl> {
     if (un == null || mn == null || du == null || dm == null) return false;
     if (identical(un, mn)) return du > dm;
     if (du < 1) return false;
-    // A page pushed on an outer navigator is above everything nested in it.
-    if (_encloses(un, mn)) return true;
-    // A page pushed in a nested pane is only above the base page hosting
-    // that pane, never above pages pushed over the shell.
-    if (_encloses(mn, un)) return dm == 0;
+    if (_encloses(mn, un)) {
+      final host = RouteDepthObserver.of(_hostIn(un, mn));
+      return host != null && dm <= host;
+    }
+    if (_encloses(un, mn)) {
+      final host = RouteDepthObserver.of(_hostIn(mn, un));
+      return host != null && du > host;
+    }
     return false;
+  }
+
+  static final Expando<Route<dynamic>> _hosts = Expando('nativeNavHost');
+
+  /// The route of [outer] whose page holds the navigator [inner], cached:
+  /// a navigator never moves to another page.
+  static Route<dynamic>? _hostIn(NavigatorState inner, NavigatorState outer) {
+    final cached = _hosts[inner];
+    if (cached != null) return cached;
+    for (final r in RouteDepthObserver.live) {
+      if (!identical(r.navigator, outer) || r is! ModalRoute) continue;
+      final page = r.subtreeContext;
+      if (page == null) continue;
+      var inside = false;
+      inner.context.visitAncestorElements((e) {
+        if (identical(e, page)) inside = true;
+        return !inside;
+      });
+      if (inside) return _hosts[inner] = r;
+    }
+    return null;
   }
 
   /// [outer] is an ancestor navigator of [inner].
@@ -1123,6 +1174,67 @@ class _NativeOccluderState extends State<NativeOccluder> {
   @override
   void dispose() {
     NativeOverlay._occluders.remove(context);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// The visible card of a route that otherwise only dims (a sheet, a
+/// dialog): a native control under the card steps aside to its stand-in;
+/// one elsewhere stays native and dims with the scrim. See
+/// [_NativeControlState._cover].
+class NativeCover extends StatefulWidget {
+  const NativeCover({super.key, required this.child});
+
+  final Widget child;
+
+  static final Map<Route<dynamic>, Set<BuildContext>> _byRoute = {};
+
+  static bool _overlaps(Route<dynamic> route, Rect probe) {
+    for (final c in _byRoute[route] ?? const <BuildContext>{}) {
+      final box = c.findRenderObject();
+      if (box is! RenderBox || !box.attached || !box.hasSize) continue;
+      final r = MatrixUtils.transformRect(
+        box.getTransformTo(null),
+        Offset.zero & box.size,
+      );
+      if (r.overlaps(probe)) return true;
+    }
+    return false;
+  }
+
+  @override
+  State<NativeCover> createState() => _NativeCoverState();
+}
+
+class _NativeCoverState extends State<NativeCover> {
+  Route<dynamic>? _route;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route == _route) return;
+    _leave();
+    _route = route;
+    if (route != null) {
+      (NativeCover._byRoute[route] ??= <BuildContext>{}).add(context);
+    }
+  }
+
+  void _leave() {
+    final r = _route;
+    if (r == null) return;
+    final set = NativeCover._byRoute[r];
+    set?.remove(context);
+    if (set != null && set.isEmpty) NativeCover._byRoute.remove(r);
+  }
+
+  @override
+  void dispose() {
+    _leave();
     super.dispose();
   }
 

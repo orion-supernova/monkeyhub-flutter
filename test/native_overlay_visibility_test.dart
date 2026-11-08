@@ -256,12 +256,68 @@ void main() {
       expect(byLabel['B']!.last['x'], 20, reason: 'B at rest');
     });
 
-    testWidgets('a dialog barrier covers the page under it', (tester) async {
+    testWidgets('a page pushed in a pane INSIDE the page (a room side pane '
+        'opening a profile) covers that page\'s header controls', (
+      tester,
+    ) async {
+      final pane = GlobalKey<NavigatorState>();
+      await app(tester, const SizedBox.shrink());
+      // The room: a pushed root page whose body holds its own navigator.
+      nav.currentState!.push(MaterialPageRoute<void>(
+        builder: (_) => Stack(
+          children: [
+            Positioned.fill(
+              child: Navigator(
+                key: pane,
+                observers: [RouteDepthObserver()],
+                onGenerateRoute: (_) => PageRouteBuilder<void>(
+                  pageBuilder: (_, _, _) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
+            page('A', right: true),
+          ],
+        ),
+      ));
+      await tester.pumpAndSettle();
+      await reveal(tester, 'A');
+      expect(shown('A'), isTrue);
+      pane.currentState!.push(MaterialPageRoute<void>(
+        builder: (_) => const Material(child: SizedBox.expand()),
+      ));
+      await tester.pumpAndSettle();
+      expect(byLabel['A']!.any((m) => m['why'] == 'covered'), isTrue);
+      expect(shown('A'), isFalse);
+    });
+
+    testWidgets('under a dialog\'s scrim a control stays native and dims '
+        'with it (no swap), unless the card itself is over it', (
+      tester,
+    ) async {
       await app(tester, page('A'));
       await reveal(tester, 'A');
       showDialog<void>(
         context: nav.currentContext!,
-        builder: (_) => const SizedBox.shrink(),
+        builder: (_) => const Center(
+          child: NativeCover(child: SizedBox(width: 100, height: 100)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(shown('A'), isTrue, reason: 'stays native under the scrim');
+      final dim = (byLabel['A']!.last['dim'] as num).toDouble();
+      expect(dim, closeTo(0.54, 0.03), reason: "the dialog scrim's alpha");
+      nav.currentState!.pop();
+      await tester.pumpAndSettle();
+      expect(shown('A'), isTrue);
+      expect(byLabel['A']!.last['dim'], isNull, reason: 'scrim gone');
+
+      // A card that does overlap the control covers it.
+      showDialog<void>(
+        context: nav.currentContext!,
+        builder: (_) => const Align(
+          alignment: Alignment.topLeft,
+          child: NativeCover(child: SizedBox(width: 200, height: 200)),
+        ),
       );
       await tester.pumpAndSettle();
       expect(shown('A'), isFalse);
@@ -272,17 +328,17 @@ void main() {
         'two frames after its stand-in is built, never a frame with neither', (
       tester,
     ) async {
-      await app(tester, page('A'));
+      await app(tester, page('A', right: true));
       await reveal(tester, 'A');
       Finder standIn() => find.byKey(const ValueKey('standInA'));
       expect(standIn(), findsNothing, reason: 'native up, no stand-in');
-      showDialog<void>(
-        context: nav.currentContext!,
-        builder: (_) => const SizedBox.shrink(),
+      // A page sliding over it.
+      nav.currentState!.push(
+        MaterialPageRoute<void>(builder: (_) => const Material(child: SizedBox.expand())),
       );
       int? standInFrame;
       int? hiddenFrame;
-      for (var f = 0; f < 8; f++) {
+      for (var f = 0; f < 40; f++) {
         await tester.pump(const Duration(milliseconds: 16));
         if (standInFrame == null && standIn().evaluate().isNotEmpty) {
           standInFrame = f;
