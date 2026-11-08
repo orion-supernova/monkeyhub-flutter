@@ -307,6 +307,11 @@ class _NativeControlState extends State<NativeControl> {
         if (on != _revealed) setState(() => _revealed = on);
       default:
         widget.onEvent?.call(name, value);
+        // A native control changes nothing in Flutter's tree by itself, so no
+        // frame is coming: a handler that defers to the next frame (the
+        // segmented control commits post-frame) then waited for some
+        // unrelated redraw, a second or more on an idle screen. Ask for one.
+        SchedulerBinding.instance.ensureVisualUpdate();
     }
   }
 

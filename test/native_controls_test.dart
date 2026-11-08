@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/calls/call_button.dart';
@@ -21,6 +22,7 @@ import 'package:monkeyhub/widgets/pull_down_menu.dart';
 import 'package:monkeyhub/widgets/scroll_to_latest.dart';
 import 'package:monkeyhub/widgets/jump_back.dart';
 import 'package:monkeyhub/widgets/search_field.dart';
+import 'package:monkeyhub/widgets/segmented_control.dart';
 import 'package:monkeyhub/widgets/viewer_chrome.dart';
 
 void main() {
@@ -284,6 +286,39 @@ void main() {
     await tester.pump();
     expect(updates().last['text'], '');
     expect(updates().last['textRev'], 1);
+  });
+
+  iosTest('a native segmented change commits without waiting for an unrelated frame', (tester) async {
+    UiKits.debugNativeControls = true;
+    String? picked;
+    await pump(
+      tester,
+      IosSegmentedControl<String>(
+        segments: const [
+          IosSegment(value: 'all', label: 'All'),
+          IosSegment(value: 'missed', label: 'Missed'),
+        ],
+        value: 'missed',
+        onChanged: (v) => picked = v,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+    final id = sets.last.$1;
+    await tester.pumpAndSettle();
+    expect(SchedulerBinding.instance.hasScheduledFrame, isFalse);
+    const codec = StandardMethodCodec();
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      'monkeyhub/native_overlay',
+      codec.encodeMethodCall(
+        MethodCall('event', {'id': id, 'name': 'changed', 'value': '0'}),
+      ),
+      (_) {},
+    );
+    // The commit rides the next frame; the event must ask for that frame,
+    // or on an idle screen it waits for whatever redraws next (1 s+ seen).
+    expect(SchedulerBinding.instance.hasScheduledFrame, isTrue);
+    await tester.pump();
+    expect(picked, 'all');
   });
 
   iosTest('a keyed control keeps one copy of its key (the stand-in is its build)', (tester) async {
