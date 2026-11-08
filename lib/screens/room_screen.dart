@@ -12,7 +12,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart' show SchedulerBinding, SchedulerPhase;
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
-import 'package:flutter/rendering.dart' show ScrollDirection;
+import 'package:flutter/rendering.dart' show OverflowBoxFit, ScrollDirection;
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -9572,23 +9572,33 @@ class _LiquidHeader extends StatelessWidget {
         _buildAvatar(context),
         const SizedBox(width: 9),
         Flexible(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: theme.body.copyWith(
-                  fontSize: 17,
-                  height: 1.2,
-                  fontWeight: FontWeight.w600,
-                  color: theme.ink,
+          // As the native capsule's stand-in it gets the native box (34pt
+          // inside its padding), 2pt short of name + status at 17pt. Let the
+          // pair keep its height and spill that 1pt each side into the
+          // capsule's padding instead of throwing an overflow. Width stays
+          // bounded, so a long name still ellipsizes.
+          child: OverflowBox(
+            maxHeight: double.infinity,
+            fit: OverflowBoxFit.deferToChild,
+            alignment: AlignmentDirectional.centerStart,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.body.copyWith(
+                    fontSize: 17,
+                    height: 1.2,
+                    fontWeight: FontWeight.w600,
+                    color: theme.ink,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              ?_status(context),
-            ],
+                ?_status(context),
+              ],
+            ),
           ),
         ),
       ],
