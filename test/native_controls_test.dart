@@ -341,6 +341,26 @@ void main() {
     expect(find.byType(NativeControl), findsNothing);
   });
 
+  iosTest('a viewer top bar is native like its toolbar, as a whole or not at all', (tester) async {
+    UiKits.debugNativeControls = true;
+    Widget bar(IconData action) => ViewerTopBar(
+          onClose: () {},
+          title: 'You',
+          actions: [
+            ViewerChromeButton(icon: action, semanticLabel: 'Show in chat', onTap: () {}),
+          ],
+        );
+    await pump(tester, bar(CupertinoIcons.chat_bubble));
+    await tester.pump(const Duration(milliseconds: 50));
+    // The × and the action: the same native disc as the toolbar's ends.
+    expect(find.byType(NativeControl), findsNWidgets(2));
+    expect(specs(tester).every((s) => s['kind'] == 'toolbar'), isTrue);
+    // An action with no SF Symbol keeps the whole bar Flutter.
+    await pump(tester, bar(CupertinoIcons.tortoise));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.byType(NativeControl), findsNothing);
+  });
+
   iosTest('a busy tile stays native (spinner), so its row does not mix', (tester) async {
     UiKits.debugNativeControls = true;
     await pump(

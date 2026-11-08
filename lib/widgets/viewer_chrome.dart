@@ -166,6 +166,11 @@ class _ViewerTopBarState extends State<ViewerTopBar> {
 
     return _ViewerStill(
       still: still,
+      // The × always maps; an action that is not a [ViewerChromeButton] with
+      // an SF Symbol keeps the whole bar Flutter.
+      native: actions.every(
+        (a) => a is ViewerChromeButton && sfSymbolFor(a.icon) != null,
+      ),
       child: Stack(
         clipBehavior: widget.band ? Clip.hardEdge : Clip.none,
         children: [
@@ -258,15 +263,26 @@ class _ViewerTopBarState extends State<ViewerTopBar> {
 /// Carries [ViewerTopBar]'s "moving right now" down to trailing actions the
 /// caller built, so one flag decides every disc in the bar.
 class _ViewerStill extends InheritedWidget {
-  const _ViewerStill({required this.still, required super.child});
+  const _ViewerStill({
+    required this.still,
+    required this.native,
+    required super.child,
+  });
 
   final bool still;
 
-  static bool? maybeOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<_ViewerStill>()?.still;
+  /// Whether the bar's discs are native, decided once for the × and every
+  /// action: all native or all Flutter, never a mix.
+  final bool native;
+
+  static _ViewerStill? _of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_ViewerStill>();
+
+  static bool? maybeOf(BuildContext context) => _of(context)?.still;
 
   @override
-  bool updateShouldNotify(_ViewerStill old) => old.still != still;
+  bool updateShouldNotify(_ViewerStill old) =>
+      old.still != still || old.native != native;
 }
 
 /// A 40pt disc in a viewer's top bar.
@@ -306,6 +322,21 @@ class ViewerChromeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Liquid kit: the same native disc as the toolbar below, so the top and
+    // bottom chrome are one material (they were Flutter and native).
+    final symbol = sfSymbolFor(icon);
+    if (symbol != null &&
+        (_ViewerStill._of(context)?.native ?? true) &&
+        NativeControl.readyIn(context)) {
+      final disc = _nativeViewerDisc(
+        symbol: symbol,
+        label: semanticLabel ?? '',
+        onTap: onTap,
+        standIn: FlutterSkinsOnly(child: Builder(builder: build)),
+      );
+      final tip = tooltip;
+      return tip == null ? disc : _hint(tip, disc);
+    }
     // The media glass every control over a photo wears — the camera's, the
     // composer's — blur-free, because this chrome fades.
     final button = GlassIconButton(
@@ -448,6 +479,34 @@ class ViewerToolbarAction {
 /// rest of the chrome on every tap and dismiss, and a fading blur is the one
 /// thing the app never draws — swapping materials mid-fade is what made the
 /// buttons flicker.
+/// THE native viewer disc (Liquid kit): one system-glass circle with an SF
+/// Symbol, worn by the top bar's buttons and the toolbar's end discs alike,
+/// so every control over a photo is the same native glass.
+Widget _nativeViewerDisc({
+  required String symbol,
+  required String label,
+  required VoidCallback? onTap,
+  bool danger = false,
+  Widget? standIn,
+}) =>
+    NativeControl(
+      size: const Size.square(ViewerToolbar.height),
+      standIn: standIn,
+      spec: NativeSpec.toolbar(
+        options: [
+          NativeOptionSpec(
+            value: 'a',
+            label: label,
+            symbol: symbol,
+            destructive: danger,
+          ),
+        ],
+      ),
+      onEvent: (event, _) {
+        if (event == 'select') onTap?.call();
+      },
+    );
+
 class ViewerToolbar extends StatelessWidget {
   const ViewerToolbar({super.key, required this.actions});
 
@@ -470,21 +529,11 @@ class ViewerToolbar extends StatelessWidget {
   /// The same Photos layout in system glass: the first and last action each a
   /// native disc, anything between one native capsule.
   Widget _liquid(BuildContext context) {
-    Widget disc(ViewerToolbarAction a) => NativeControl(
-      size: const Size.square(height),
-      spec: NativeSpec.toolbar(
-        options: [
-          NativeOptionSpec(
-            value: 'a',
-            label: a.semanticLabel,
-            symbol: sfSymbolFor(a.icon),
-            destructive: a.danger,
-          ),
-        ],
-      ),
-      onEvent: (event, _) {
-        if (event == 'select') a.onTap();
-      },
+    Widget disc(ViewerToolbarAction a) => _nativeViewerDisc(
+      symbol: sfSymbolFor(a.icon)!,
+      label: a.semanticLabel,
+      onTap: a.onTap,
+      danger: a.danger,
     );
     final middle = actions.length > 2
         ? actions.sublist(1, actions.length - 1)

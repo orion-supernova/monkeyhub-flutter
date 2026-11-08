@@ -15,11 +15,15 @@ void main() {
         .map((m) => m[1]!)
         .toSet();
     // Same IconData under another name (a const map cannot hold both).
-    const aliases = {'videocam_fill': 'video_camera_solid'};
+    const aliases = {
+      'videocam_fill': 'video_camera_solid',
+      'square_arrow_up': 'share',
+    };
     const components = [
       'QuickAction', 'QuickActionTile', 'ProfileActionTile',
       'GlassIconButton', 'GlassCloseButton', 'GlassBackButton',
       'GlassPillButton', 'RowPillButton', 'CallGlyphButton',
+      'ViewerChromeButton', 'ViewerToolbarAction',
     ];
     final call = RegExp(r'\b(' + components.join('|') + r')(?:\.\w+)?\(');
     final icon = RegExp(

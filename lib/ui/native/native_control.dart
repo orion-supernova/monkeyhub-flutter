@@ -1253,6 +1253,8 @@ final Map<IconData, String> _symbols = {
   CupertinoIcons.star: 'star',
   CupertinoIcons.star_slash: 'star.slash',
   CupertinoIcons.bubble_left_fill: 'bubble.left.fill',
+  CupertinoIcons.chat_bubble: 'bubble',
+  CupertinoIcons.doc_on_doc: 'doc.on.doc',
   CupertinoIcons.star_fill: 'star.fill',
   CupertinoIcons.star_slash_fill: 'star.slash.fill',
   CupertinoIcons.arrow_down_left: 'arrow.down.left',
