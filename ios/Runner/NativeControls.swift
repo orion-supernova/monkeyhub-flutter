@@ -542,6 +542,7 @@ struct NativeControlRoot: View {
     case "buttonGroup": NativeButtonGroup(spec: spec, emit: emit)
     case "datePicker": NativeDatePicker(spec: spec, emit: emit)
     case "composerField": NativeComposerField(model: model, spec: spec, emit: emit)
+    case "glassLabel": NativeGlassLabel(spec: spec)
     case "titlePill", "pinBar":
       if #available(iOS 26.0, *) {
         if spec.kind == "titlePill" {
@@ -1040,6 +1041,28 @@ struct NativeToolbar: View {
           .accessibilityLabel(Text(option.label))
         }
       }
+    }
+  }
+}
+
+/// A line of text on a glass capsule that is not a control: a hint, a
+/// tooltip (the composer's "hold to record"). Draws only; touches pass to
+/// Flutter.
+struct NativeGlassLabel: View {
+  let spec: NativeControlSpec
+
+  var body: some View {
+    let text = Text(spec.label)
+      .font(.system(size: spec.symbolSize, weight: .semibold))
+      .multilineTextAlignment(.center)
+      .foregroundStyle(.primary)
+      .padding(.horizontal, 11)
+      .padding(.vertical, 6)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+    if #available(iOS 26.0, *) {
+      text.glassEffect(.regular, in: Capsule())
+    } else {
+      text.background(Capsule().fill(.thinMaterial))
     }
   }
 }

@@ -3447,7 +3447,43 @@ class _ModeHintTooltipBubble extends StatelessWidget {
           curve: visible ? Curves.easeOutBack : Curves.easeIn,
           scale: visible ? 1.0 : 0.8,
           alignment: isRtl ? Alignment.bottomLeft : Alignment.bottomRight,
-          child: ConstrainedBox(
+          child: NativeControl.readyIn(context)
+              ? _native(context)
+              : _flutter(),
+        ),
+      ),
+    );
+  }
+
+  /// Native glass under native controls: the same capsule as a native
+  /// [NativeSpec.glassLabel], sized from the text the way the native view
+  /// lays it out (11pt semibold, 11 x 6 padding, at most 220 wide). The
+  /// fade and scale in and out play on the Flutter bubble (glass ignores
+  /// alpha); at rest it is the system's glass.
+  Widget _native(BuildContext context) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: message,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+      ),
+      textAlign: TextAlign.center,
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: 220 - 22);
+    final size = Size(
+      (painter.width + 22 + 2).ceilToDouble(),
+      (painter.height + 12 + 2).ceilToDouble(),
+    );
+    painter.dispose();
+    return NativeControl(
+      size: size,
+      standIn: _flutter(),
+      spec: NativeSpec.glassLabel(text: message),
+    );
+  }
+
+  Widget _flutter() {
+    return ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 220),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
@@ -3472,9 +3508,6 @@ class _ModeHintTooltipBubble extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-        ),
-      ),
-    );
+          );
   }
 }

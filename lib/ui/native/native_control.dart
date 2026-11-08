@@ -837,6 +837,18 @@ class NativeSpec {
     'enabled': enabled,
   });
 
+  /// A line of text on a glass capsule that is not a control (a hint, a
+  /// tooltip). Always draws only: touches fall through to Flutter.
+  factory NativeSpec.glassLabel({
+    required String text,
+    double fontSize = 11,
+  }) => NativeSpec._({
+    'kind': 'glassLabel',
+    'label': text,
+    'symbolSize': fontSize,
+    'passthrough': true,
+  });
+
   /// The chat composer's growing text view in a glass capsule (see
   /// `NativeComposerField`). [text] and the selection apply only when
   /// [textRev] changes; [trailingSymbol] draws a button at the end
