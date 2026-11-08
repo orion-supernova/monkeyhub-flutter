@@ -371,7 +371,7 @@ class RiseIn extends StatelessWidget {
 /// Now drawn by [QuickActionTile]: one tint rule (accent, red for [danger]),
 /// labels that wrap to two lines and shrink rather than ellipsize. New code
 /// uses [SheetQuickActions] directly.
-class ProfileActionTile extends StatelessWidget {
+class ProfileActionTile extends StatelessWidget implements QuickTileGlyph {
   const ProfileActionTile({
     super.key,
     required this.icon,
@@ -382,6 +382,7 @@ class ProfileActionTile extends StatelessWidget {
     this.emphasis = false,
   });
 
+  @override
   final IconData icon;
   final String label;
 

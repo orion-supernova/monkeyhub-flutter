@@ -11,6 +11,31 @@ import 'fit_label.dart';
 import 'glass_buttons.dart' show ChromeDisc;
 import 'ios_kit.dart' show groupedMetaStyle, groupedRadius;
 
+/// A tile that names its glyph, so the row it sits in can decide once
+/// whether the whole row goes native ([QuickActionTile], `ProfileActionTile`).
+abstract interface class QuickTileGlyph {
+  IconData get icon;
+}
+
+/// Whether tiles below draw natively, decided once for a whole set of tiles:
+/// all native or all Flutter, never a mix. One icon without an SF Symbol used
+/// to drop just its own tile to the Flutter twin, and a row of four read as
+/// two kinds of button (2026-11-08, "Sessize al" on a profile).
+class _NativeTiles extends InheritedWidget {
+  const _NativeTiles({required this.allowed, required super.child});
+  final bool allowed;
+
+  static bool? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_NativeTiles>()?.allowed;
+
+  /// True when every icon has an exact SF Symbol.
+  static bool allMap(Iterable<IconData> icons) =>
+      icons.every((i) => sfSymbolFor(i) != null);
+
+  @override
+  bool updateShouldNotify(_NativeTiles old) => old.allowed != allowed;
+}
+
 /// One tile of a [SheetQuickActions] row.
 class QuickAction {
   const QuickAction({
@@ -76,7 +101,9 @@ class SheetQuickActions extends StatelessWidget {
           for (var i = 0; i < n; i += perRow)
             actions.sublist(i, (i + perRow).clamp(0, n)),
         ];
-        return Column(
+        return _NativeTiles(
+          allowed: _NativeTiles.allMap(actions.map((a) => a.icon)),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (var r = 0; r < rows.length; r++) ...[
@@ -99,6 +126,7 @@ class SheetQuickActions extends StatelessWidget {
               ),
             ],
           ],
+          ),
         );
       },
     );
@@ -118,11 +146,23 @@ class QuickTileRow extends StatelessWidget {
   final int? slots;
 
   @override
-  Widget build(BuildContext context) => _EqualHeightRow(
-        gap: SheetQuickActions._gap,
-        slots: slots ?? tiles.length,
-        children: tiles,
-      );
+  Widget build(BuildContext context) {
+    final row = _EqualHeightRow(
+      gap: SheetQuickActions._gap,
+      slots: slots ?? tiles.length,
+      children: tiles,
+    );
+    // Inside a [SheetQuickActions] the whole set already decided. A bare row
+    // ([ProfileActionBar]) decides here; a tile that does not name its glyph
+    // keeps the row Flutter, since it cannot be checked.
+    if (_NativeTiles.of(context) != null) return row;
+    return _NativeTiles(
+      allowed: tiles.every(
+        (t) => t is QuickTileGlyph && sfSymbolFor((t as QuickTileGlyph).icon) != null,
+      ),
+      child: row,
+    );
+  }
 }
 
 class _EqualHeightRow extends MultiChildRenderObjectWidget {
@@ -232,7 +272,7 @@ class _RenderEqualHeightRow extends RenderBox
 
 /// One icon-over-label tile, for a caller laying tiles out itself (a grid).
 /// Most callers want [SheetQuickActions].
-class QuickActionTile extends StatelessWidget {
+class QuickActionTile extends StatelessWidget implements QuickTileGlyph {
   const QuickActionTile({
     super.key,
     required this.icon,
@@ -245,6 +285,7 @@ class QuickActionTile extends StatelessWidget {
     this.semanticLabel,
   });
 
+  @override
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
@@ -266,9 +307,13 @@ class QuickActionTile extends StatelessWidget {
     final radius = (groupedRadius(theme) * 0.7).clamp(6.0, 16.0);
     // The liquid kit's real iOS 26 glass: an interactive plate drawn natively
     // over the tile's own Flutter layout, which still decides its size (so a
-    // row stays one equal-height band). Not while busy: a spinner is Flutter.
-    final symbol = busy || tint != null ? null : sfSymbolFor(icon);
-    if (symbol != null && NativeControl.readyIn(context)) {
+    // row stays one equal-height band). Its row decides for every tile at once
+    // ([_NativeTiles]); a lone tile decides for itself. Busy shows the native
+    // spinner, so a busy tile never drops out of a native row.
+    final symbol = tint != null ? null : sfSymbolFor(icon);
+    if (symbol != null &&
+        (_NativeTiles.of(context) ?? true) &&
+        NativeControl.readyIn(context)) {
       return Stack(
         children: [
           ExcludeSemantics(
@@ -290,7 +335,10 @@ class QuickActionTile extends StatelessWidget {
                   label: text,
                   cornerRadius: radius,
                   destructive: destructive,
-                  enabled: enabled,
+                  // Busy draws as enabled with a spinner, not a greyed tile;
+                  // taps are dropped below while it spins.
+                  enabled: onTap != null,
+                  busy: busy,
                 ),
                 onEvent: (event, _) {
                   if (event == 'tap' && enabled) onTap?.call();

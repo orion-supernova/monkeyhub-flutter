@@ -19,6 +19,7 @@ import 'package:monkeyhub/widgets/liquid_glass.dart' show GlassTone;
 import 'package:monkeyhub/widgets/password_field.dart';
 import 'package:monkeyhub/widgets/pull_down_button.dart';
 import 'package:monkeyhub/widgets/pull_down_menu.dart';
+import 'package:monkeyhub/widgets/quick_actions.dart';
 import 'package:monkeyhub/widgets/scroll_to_latest.dart';
 import 'package:monkeyhub/widgets/jump_back.dart';
 import 'package:monkeyhub/widgets/search_field.dart';
@@ -319,6 +320,42 @@ void main() {
     expect(SchedulerBinding.instance.hasScheduledFrame, isTrue);
     await tester.pump();
     expect(picked, 'all');
+  });
+
+  iosTest('a row of tiles goes native as a whole or not at all', (tester) async {
+    UiKits.debugNativeControls = true;
+    Widget row(IconData last) => QuickTileRow(
+          tiles: [
+            QuickActionTile(icon: CupertinoIcons.phone_fill, label: 'Call', onTap: () {}),
+            QuickActionTile(icon: CupertinoIcons.bell_slash_fill, label: 'Mute', onTap: () {}),
+            QuickActionTile(icon: last, label: 'More', onTap: () {}),
+          ],
+        );
+    await pump(tester, row(CupertinoIcons.photo_on_rectangle));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.byType(NativeControl), findsNWidgets(3));
+    // One glyph with no SF Symbol: the whole row is the Flutter twin, never
+    // two native tiles beside a Flutter one.
+    await pump(tester, row(CupertinoIcons.tortoise));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.byType(NativeControl), findsNothing);
+  });
+
+  iosTest('a busy tile stays native (spinner), so its row does not mix', (tester) async {
+    UiKits.debugNativeControls = true;
+    await pump(
+      tester,
+      QuickActionTile(
+        icon: CupertinoIcons.bell_slash_fill,
+        label: 'Mute',
+        busy: true,
+        onTap: () {},
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+    final spec = specs(tester).single;
+    expect(spec['kind'], 'tile');
+    expect(spec['value'], true);
   });
 
   iosTest('a keyed control keeps one copy of its key (the stand-in is its build)', (tester) async {

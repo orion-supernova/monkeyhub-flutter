@@ -618,6 +618,7 @@ struct NativeSymbolButton: View {
 /// An action tile: a symbol over a one- or two-line label on a rounded glass
 /// plate (call, video, message on a profile or the call details sheet). The
 /// accent inks both, red when destructive; the plate is interactive glass.
+/// `value` true (busy) shows a spinner in place of the symbol.
 struct NativeTile: View {
   let spec: NativeControlSpec
   let emit: (String, Any?) -> Void
@@ -628,9 +629,16 @@ struct NativeTile: View {
       : (spec.destructive ? .red : (spec.tint ?? .accentColor))
     let shape = RoundedRectangle(cornerRadius: spec.cornerRadius, style: .continuous)
     let label = VStack(spacing: 5) {
-      Image(systemName: spec.symbol ?? "circle")
-        .font(.system(size: 20, weight: .medium))
-        .frame(height: 22)
+      Group {
+        if spec.boolValue {
+          // Busy: the system spinner in the tile's ink, same 22pt slot.
+          ProgressView().tint(ink)
+        } else {
+          Image(systemName: spec.symbol ?? "circle")
+            .font(.system(size: 20, weight: .medium))
+        }
+      }
+      .frame(height: 22)
       Text(spec.label)
         .font(.system(size: 12.5, weight: .medium))
         .multilineTextAlignment(.center)

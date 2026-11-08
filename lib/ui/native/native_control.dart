@@ -781,13 +781,15 @@ class NativeSpec {
   });
 
   /// An action tile: [symbol] over a one- or two-line [label] on a rounded
-  /// glass plate of [cornerRadius] (`QuickActionTile`'s native skin).
+  /// glass plate of [cornerRadius] (`QuickActionTile`'s native skin). [busy]
+  /// swaps the symbol for a spinner.
   factory NativeSpec.tile({
     required String symbol,
     required String label,
     double cornerRadius = 14,
     bool destructive = false,
     bool enabled = true,
+    bool busy = false,
   }) => NativeSpec._({
     'kind': 'tile',
     'symbol': symbol,
@@ -795,6 +797,7 @@ class NativeSpec {
     'cornerRadius': cornerRadius,
     'destructive': destructive,
     'enabled': enabled,
+    'value': busy,
   });
 
   /// A labelled glass button; [prominent] is the tinted primary action.
@@ -1183,6 +1186,8 @@ final Map<IconData, String> _symbols = {
   CupertinoIcons.share: 'square.and.arrow.up',
   CupertinoIcons.trash: 'trash',
   CupertinoIcons.pencil: 'pencil',
+  CupertinoIcons.pencil_outline: 'pencil',
+  CupertinoIcons.pencil_slash: 'pencil.slash',
   CupertinoIcons.square_pencil: 'square.and.pencil',
   CupertinoIcons.camera: 'camera',
   CupertinoIcons.camera_fill: 'camera.fill',
@@ -1199,6 +1204,16 @@ final Map<IconData, String> _symbols = {
   CupertinoIcons.person_crop_circle: 'person.crop.circle',
   CupertinoIcons.bell: 'bell',
   CupertinoIcons.bell_slash: 'bell.slash',
+  CupertinoIcons.bell_fill: 'bell.fill',
+  CupertinoIcons.bell_slash_fill: 'bell.slash.fill',
+  CupertinoIcons.person_badge_plus_fill: 'person.fill.badge.plus',
+  CupertinoIcons.person_badge_minus_fill: 'person.fill.badge.minus',
+  CupertinoIcons.person_crop_circle_fill: 'person.crop.circle.fill',
+  CupertinoIcons.chat_bubble_fill: 'bubble.fill',
+  CupertinoIcons.link: 'link',
+  CupertinoIcons.number: 'number',
+  CupertinoIcons.square_arrow_right: 'rectangle.portrait.and.arrow.right',
+  CupertinoIcons.square_arrow_up_fill: 'square.and.arrow.up.fill',
   CupertinoIcons.heart: 'heart',
   CupertinoIcons.heart_fill: 'heart.fill',
   CupertinoIcons.arrow_down_to_line: 'arrow.down.to.line',
