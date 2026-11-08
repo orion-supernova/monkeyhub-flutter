@@ -107,12 +107,11 @@ class CallButtonPair extends StatelessWidget {
               ),
             ],
             spacing: gap,
-            // Two discs apart at rest (the user found them "touching"), yet
-            // one glass under a finger: the container blends shapes closer
-            // than its spacing, so a hair under the gap keeps them apart
-            // still and lets a pressed disc, which swells a few points, flow
-            // into its neighbour and back. 0 (as before) never blended, so
-            // the press had no morph at all.
+            // Two discs apart at rest (the user found them "touching"), one
+            // glass under a finger: a blend > 0 turns the press into layout
+            // (the gap closes, the pressed disc grows) so the container
+            // morphs them together and apart (NativeToolbar). Just under the
+            // gap, so at rest they never touch.
             blend: (gap - 1.5).clamp(0.0, gap),
           ),
           onEvent: (event, value) {

@@ -962,26 +962,46 @@ struct NativeToolbar: View {
   let spec: NativeControlSpec
   let emit: (String, Any?) -> Void
 
+  /// The disc under a finger, when the discs blend ([spec.blend] > 0).
+  @State private var pressed: String?
+
+  /// Discs that only blend under a finger (the chat header's call pair).
+  /// Interactive glass presses by LIFTING the disc onto its own layer, which
+  /// the container never fuses with its neighbour (on device the pressed
+  /// disc just slid over the other one). A morph is layout changing inside
+  /// an animation, so the press here is layout: the gap closes and the
+  /// pressed disc grows a little, on a spring, and the container draws the
+  /// liquid bridge; on release they stretch apart again.
+  private var morphs: Bool { (spec.blend ?? 0) > 0 }
+
   var body: some View {
     if #available(iOS 26.0, *) {
       GlassEffectContainer(spacing: spec.blend ?? spec.spacing) {
-        HStack(spacing: spec.spacing) {
+        HStack(spacing: morphs && pressed != nil ? -2 : spec.spacing) {
           ForEach(spec.options) { option in
+            let down = morphs && pressed == option.id
             Button { emit("select", option.id) } label: {
               Image(systemName: option.symbol ?? "circle")
                 .font(.system(size: spec.symbolSize, weight: .semibold))
                 .frame(width: spec.size, height: spec.size)
                 .contentShape(Circle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(NativePressReport(id: option.id, pressed: $pressed))
             .foregroundStyle(option.destructive ? Color.red : Color.primary)
             .disabled(option.disabled)
             .opacity(option.disabled ? 0.4 : 1)
             .accessibilityLabel(Text(option.label))
-            .glassEffect(.regular.interactive(spec.interactive), in: Circle())
+            .padding(down ? -3 : 0)
+            .frame(width: spec.size + (down ? 6 : 0), height: spec.size + (down ? 6 : 0))
+            .glassEffect(
+              .regular.interactive(spec.interactive && !morphs),
+              in: Circle()
+            )
           }
         }
+        .animation(.spring(response: 0.34, dampingFraction: 0.62), value: pressed)
       }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
     } else {
       HStack(spacing: spec.spacing) {
         ForEach(spec.options) { option in
@@ -995,6 +1015,26 @@ struct NativeToolbar: View {
         }
       }
     }
+  }
+}
+
+/// A plain button style that reports which button is held down, so the
+/// toolbar can turn a press into a layout change (see [NativeToolbar]).
+@available(iOS 26.0, *)
+struct NativePressReport: ButtonStyle {
+  let id: String
+  @Binding var pressed: String?
+
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .opacity(configuration.isPressed ? 0.85 : 1)
+      .onChange(of: configuration.isPressed) { _, down in
+        if down {
+          pressed = id
+        } else if pressed == id {
+          pressed = nil
+        }
+      }
   }
 }
 
