@@ -170,7 +170,12 @@ class _PeekCardState extends State<_PeekCard> with SingleTickerProviderStateMixi
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      IgnorePointer(child: GlassReveal(t: t, from: 0.94, child: card!)),
+                      // Flexible: on a phone-sized screen the full sheet of
+                      // shortcuts is taller than the screen; it takes what
+                      // is left and its list clips instead of overflowing.
+                      Flexible(
+                        child: IgnorePointer(child: GlassReveal(t: t, from: 0.94, child: card!)),
+                      ),
                       const SizedBox(height: 12),
                       // Trails the card in by a beat, so it reads as an
                       // aside to the list rather than part of it.
@@ -191,14 +196,23 @@ class _PeekCardState extends State<_PeekCard> with SingleTickerProviderStateMixi
               constraints: BoxConstraints(
                 maxWidth: columns * colWidth + (columns - 1) * gap,
               ),
-              child: Column(
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(l10n.kbdPanelTitle, style: theme.bodyEmph),
+                      Flexible(
+                        child: Text(
+                          l10n.kbdPanelTitle,
+                          style: theme.bodyEmph,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       const SizedBox(width: 16),
                       Keycaps.forDef(AppShortcuts.showShortcuts, size: KeycapSize.small),
                     ],
@@ -221,6 +235,7 @@ class _PeekCardState extends State<_PeekCard> with SingleTickerProviderStateMixi
                     ],
                   ),
                 ],
+              ),
               ),
             ),
           ),

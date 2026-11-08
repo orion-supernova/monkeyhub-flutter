@@ -203,6 +203,22 @@ void main() {
     expect(syncs.first['why'], 'clipped');
   });
 
+  testWidgets('a disabled occluder (the idle record bloom over the composer) '
+      'covers nothing', (tester) async {
+    await pump(
+      tester,
+      const Stack(
+        children: [
+          Positioned(left: 20, top: 20, child: _Ctl()),
+          Positioned.fill(
+            child: NativeOccluder(enabled: false, child: SizedBox.expand()),
+          ),
+        ],
+      ),
+    );
+    expect(last()['visible'], isTrue);
+  });
+
   testWidgets('a collapsed occluder (pill hidden) hides nothing', (
     tester,
   ) async {

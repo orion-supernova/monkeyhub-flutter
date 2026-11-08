@@ -2088,8 +2088,11 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       height: CaptureBloom.boxSize.height,
       child: Material(
         type: MaterialType.transparency,
-        // The disc under the finger: nothing native may draw over it.
-        child: NativeOccluder(child: CaptureBloom(
+        // The disc under the finger: nothing native may draw over it. Only
+        // while it is drawn: idle it is an empty 360x420 box over the
+        // composer, and covering then made the native field a stand-in
+        // that cannot be typed in.
+        child: NativeOccluder(enabled: active, child: CaptureBloom(
           theme: ThemeScope.of(context),
           active: active,
           locked: _machine.stage == CaptureStage.locked,

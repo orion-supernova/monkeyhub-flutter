@@ -139,6 +139,8 @@ class NativeOverlay {
   static bool _occluded(Rect rect, [Object? layer]) {
     for (final c in _occluders) {
       if (layer != null && identical(NativeLayer._of(c), layer)) continue;
+      final w = c.widget;
+      if (w is NativeOccluder && !w.enabled) continue;
       final box = c.findRenderObject();
       if (box is! RenderBox || !box.attached || !box.hasSize) continue;
       if (box.size.isEmpty) continue;
@@ -745,9 +747,17 @@ class NativeSpec {
     double size = 44,
     double symbolSize = 17,
     bool passthrough = false,
+    String? badge,
+    bool badgeQuiet = false,
+    int kickTick = 0,
+    bool accentSymbol = false,
   }) => NativeSpec._({
     'kind': 'symbolButton',
     'passthrough': passthrough,
+    'badge': ?badge,
+    'badgeQuiet': badgeQuiet,
+    'kickTick': kickTick,
+    'accentLabel': accentSymbol,
     'symbol': symbol,
     'label': label,
     'prominent': prominent,
@@ -1280,8 +1290,12 @@ Future<String?> showNativeActionSheet({
 /// native control draws over it: see [NativeOverlay._occluders]. Costs a
 /// rect test per native control per frame while mounted, nothing otherwise.
 class NativeOccluder extends StatefulWidget {
-  const NativeOccluder({super.key, required this.child});
+  const NativeOccluder({super.key, this.enabled = true, required this.child});
 
+  /// Off: covers nothing, but stays in the tree (switching it never
+  /// remounts [child]). For chrome that is always mounted and only
+  /// sometimes drawn, such as the record bloom, idle over the composer.
+  final bool enabled;
   final Widget child;
 
   @override
