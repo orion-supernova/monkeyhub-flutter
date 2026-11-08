@@ -304,7 +304,7 @@ structure (Material's filled tonal button, a native UISwitch).</p>
   import it directly. If the library's widgets cannot take our tap/semantics wrapper, wrap them, not the reverse.</li>
 </ol>
 
-<h3>The liquid kit's native controls</h3>
+<h3 id="native">The liquid kit's native controls</h3>
 <p>Real SwiftUI controls in ONE overlay view above the Flutter view (<code>NativeOverlay</code> in
 <code>ios/Runner/NativeControls.swift</code>, channel <code>monkeyhub/native_overlay</code>), never platform views. <strong>Why:</strong> Flutter clips
 a platform view with a mask view whenever any ancestor clips (every scroll view does), and a masked Liquid Glass view renders offscreen as a
@@ -356,7 +356,7 @@ no exact native form (an icon without an SF Symbol in <code>sfSymbolFor</code>, 
   <li><strong>Events must ask for a frame.</strong> A native control changes nothing in Flutter's tree, so no frame follows its event. A handler
   that defers to the next frame (<code>addPostFrameCallback</code>, as <code>IosSegmentedControl</code> commits) then waited for an unrelated
   redraw: the Calls filter lagged 1 s+ (2026-11-08). <code>NativeControl._event</code> now calls <code>ensureVisualUpdate()</code> after every
-  event. Any other platform channel that defers work must do the same. See <code>docs/lessons.md</code> L1.</li>
+  event. Any other platform channel that defers work must do the same (§9, §10).</li>
   <li><strong>Adding a kind:</strong> <code>NativeSpec.&lt;kind&gt;</code> (Dart) + a case in <code>NativeControlRoot</code> and a view in
   <code>NativeControls.swift</code>; give rounded kinds a <code>dimRadius</code> case; map every icon in <code>_symbols</code>; add the component to
   the Controls lab; typecheck Swift at deployment target 15.0
@@ -563,6 +563,9 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
 <tr><td>Native controls (overlay)</td><td>Every push, pop and sheet flickered: all native controls hid, their Flutter stand-ins slid, and native swapped back at the end (one frame with no header at the start, a visible restyle at the end)</td><td><span class="pill ok">fixed 2026-11-08: <strong>ride along</strong>. Controls stay native and follow their page each frame; one steps aside to its stand-in only where a page above it (its mid-slide bounds) or a barrier covers it (<code>RouteDepthObserver.live</code> + depth). Hiding is stand-in first, native out three frames later. Setting: Glass &rsaquo; Glass moves with pages (off = the old hide-and-swap)</span></td></tr>
 <tr><td>Native controls</td><td>A faded-out Flutter control (opacity 0) still showed its native view over the chat filter chips</td><td><span class="pill ok">fixed: ancestor opacity/offstage walk</span></td></tr>
 <tr><td>Native controls</td><td>A keyed control (the composer's attach button, GlobalKey) used itself as its stand-in: duplicate GlobalKey error box</td><td><span class="pill ok">fixed: stand-in is its build</span></td></tr>
+<tr><td>Native controls (events)</td><td>The Calls filter (native segmented control) moved its thumb at once but the list changed 1 s+ later: the commit waits for the next frame (<code>addPostFrameCallback</code>), and a native event schedules none, so it waited for an unrelated redraw. The Flutter skin hid this because its thumb's <code>setState</code> scheduled the frame</td><td><span class="pill ok">fixed 2026-11-08: <code>NativeControl._event</code> calls <code>ensureVisualUpdate()</code>; push and invite consumers in <code>app.dart</code> too. Test: <code>native_controls_test</code> &rsaquo; "a native segmented change commits without waiting for an unrelated frame"</span></td></tr>
+<tr><td>Action tiles (liquid kit)</td><td>Flutter-drawn "glass" plates next to real iOS 26 glass read as fake and had no interactive press</td><td><span class="pill ok">fixed 2026-11-08: native <code>tile</code> kind; <code>ChromeDisc.plate</code> is the Flutter twin</span></td></tr>
+<tr><td><code>SheetBar</code></td><td>The sheet × sat 14pt from the side but ~19pt from the top, crowding the 38pt corner's curve</td><td><span class="pill ok">fixed 2026-11-08: 18pt side inset, concentric with the corner, in the shared bar</span></td></tr>
 <tr><td>Compact room</td><td>Transcript ran under the status bar clock with no scroll edge</td><td><span class="pill ok">fixed: top fade</span></td></tr>
 <tr><td>login_screen, PasswordField</td><td>No <code>autofillHints</code>: password managers can't fill or save</td><td><span class="pill ok">fixed</span></td></tr>
 <tr><td>thread_overlay.dart</td><td>Animates a blur sigma per frame (breaks R6, jank)</td><td><span class="pill ok">fixed</span></td></tr>
@@ -598,6 +601,12 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
   <li>Strings through <code>python3 tool/arb_add.py</code> (all 12 locales, no em dashes in UI text).</li>
   <li>Layout via <code>context.usesSplitShell</code>/<code>windowClass</code>; body written once.</li>
   <li>Formatting via §7 helpers.</li>
+  <li>Code that defers to the next frame (<code>addPostFrameCallback</code>, <code>endOfFrame</code>) after a platform event
+  (method channel, native control, push, link) also calls <code>ensureVisualUpdate()</code>: a post-frame callback does not
+  schedule a frame (§9).</li>
+  <li>Something should look like iOS glass in the Liquid kit? Add a native kind (<a href="#native">native controls</a>), not a
+  Flutter imitation.</li>
+  <li>A sheet is the last stop: it shows one thing. Choose between items before it opens, never inside it.</li>
   <li>Render a PNG (design preview) in each kit you touched before calling it done.</li>
   <li>Never <code>dart format</code> (hand-formatted repo). Run only the tests you touched.</li>
 </ol>
@@ -637,6 +646,10 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
   switch, slider and segmented control take the premium lens (not behind the Full lens switch) because there is one per
   screen or they mount their shader only while held; everything else stays lightweight. Material is also offered on iOS.
   The only patch beyond Swirl's pill widths is a MonkeyHub one on <code>GlassTextField</code> (text input knobs).</li>
+  <li><strong>2026-11-08</strong> In the Liquid kit, controls that should look like system glass are native kinds; Flutter
+  imitations of iOS controls are not added (the action tiles were tried that way and read as fake).</li>
+  <li><strong>2026-11-08</strong> A sheet never hosts a picker that swaps its own content. Tried for stacked calls ("Call
+  history" inside the details sheet) and reverted: hard to navigate. Details for <code>docs/design/calls.md</code> §4.</li>
   <li><strong>2026-10-02</strong> Native glass is a sibling <code>UITabBar</code>, never a platform view in Flutter
   content (performance).</li>
 </ul>

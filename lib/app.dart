@@ -1332,7 +1332,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       _openInvite(pending);
     });
     // Ask for that frame: a push tap or a link on an idle screen would
-    // otherwise wait for whatever redraws next (see docs/lessons.md, L1).
+    // otherwise wait for whatever redraws next (ui-architecture.html §9).
     WidgetsBinding.instance.ensureVisualUpdate();
   }
 
@@ -1350,7 +1350,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       _openRoomFromPush(pending, focus: match == null ? null : 'game:$match');
     });
     // Ask for that frame: a push tap or a link on an idle screen would
-    // otherwise wait for whatever redraws next (see docs/lessons.md, L1).
+    // otherwise wait for whatever redraws next (ui-architecture.html §9).
     WidgetsBinding.instance.ensureVisualUpdate();
   }
 

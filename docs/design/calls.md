@@ -193,6 +193,16 @@ icon buttons (voice, video) on the trailing side (`GlassIconButton`, `still`).
 Tap on the left part opens details (or expands a merged row); hold opens the
 menu. There is no swipe-right: the buttons replaced it.
 
+**Merged rows** (2026-11-08): same person, type and outcome back to back. The
+name wears the call bubble's run pill (`CountBadge.label` with
+`callBubbleRunBadge`, red when missed) and a chevron that turns as it opens;
+the time line spans first to last ("19:52 – 19:56"). Tap expands the row in
+the list into tappable time capsules (time, plus talk time when answered),
+each opening its own details sheet. Rejected: a grouped card with dividers
+under the row (boxy), and an iPhone-Recents "(3)" row whose details sheet
+lists the calls under "Call history" (picking inside a sheet is hard to
+navigate; a sheet is the last stop).
+
 **Swipe left = Delete** via the app-wide `ChatRowSwipe` (the same primitive as
 the chat list and archive): the button grows out of the edge, a full swipe
 (62% of the width) stretches it across, lands a haptic at the threshold and
@@ -204,8 +214,11 @@ per entry id (a merged row removes all its entries). Nothing new on the
 backend for delete.
 
 **Details sheet** hugs its content (no `maxHeightFraction`: any fraction makes
-`SheetFrame` fill that share of the screen): one header row, a compact
-timeline, a 2x2 grid of actions.
+`SheetFrame` fill that share of the screen): a centred header (avatar 64, name,
+outcome), the timeline with each step's duration written on the line between
+its dots (no "+0:03" columns), the talk or ring time, connection quality, then
+one row of action tiles (`SheetQuickActions`; native interactive glass in the
+Liquid kit).
 
 **Stats sheet** (tap the talk-time header): This week / 30 days / All time.
 Hero total, answered / missed / longest / average, voice vs video (time and

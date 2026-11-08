@@ -12,6 +12,6 @@ Rules:
 
 Before any change in `backend/convex`, read `docs/backend/backend-handbook.html`: the rules (R1-R19), per-action budgets, and the improvement plan. Every backend design needs a cost table (reads, writes, re-runs per recipient, idle cost) checked against those budgets.
 
-## Lessons
+## Docs
 
-Read `docs/lessons.md` before UI, native-control or platform-channel work: past mistakes and the rule each one taught (frame scheduling for native events, real native glass, sheets as endpoints). Add an entry whenever a bug teaches something general.
+`docs/README.md` says which doc owns each topic (UI and native glass: `docs/architecture/ui-architecture.html`; backend: the handbook above; features: `docs/design/`). Read the owner before working in an area; record bugs, decisions and checklist rules there in the same commit, never in a second doc.
