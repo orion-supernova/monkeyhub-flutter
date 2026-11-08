@@ -80,6 +80,13 @@ target.build_configurations.each do |config|
     ],
     'CLANG_ENABLE_MODULES' => 'YES',
     'GENERATE_INFOPLIST_FILE' => 'NO',
+    # The extension links nothing from CocoaPods. On macOS the PROJECT-level
+    # configs include Pods-Runner.*.xcconfig (via Flutter-Release.xcconfig), so
+    # without this the extension inherits `-ObjC -framework google_sign_in_ios
+    # ...`; that plugin is a static framework needing FlutterMacOS, and the
+    # archive fails with undefined Flutter* symbols (1.3.145, 2026-11-08).
+    # An explicit empty value overrides $(inherited).
+    'OTHER_LDFLAGS' => '',
   }
   wanted.each do |key, value|
     next if config.build_settings[key] == value
