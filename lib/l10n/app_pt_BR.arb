@@ -4380,6 +4380,7 @@
   "callsTabDetailsEnded": "Encerrada",
   "callsTabDetailsTalked": "Duração {duration}",
   "callsTabDetailsMessage": "Mensagem",
+  "callsTabDetailsHistory": "Histórico de chamadas",
   "callsTabPlatformIos": "iPhone",
   "callsTabPlatformMacos": "Mac",
   "callsTabPlatformAndroid": "Android",

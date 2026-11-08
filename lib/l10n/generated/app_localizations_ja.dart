@@ -15240,6 +15240,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get callsTabDetailsMessage => 'メッセージ';
 
   @override
+  String get callsTabDetailsHistory => '通話履歴';
+
+  @override
   String get callsTabPlatformIos => 'iPhone';
 
   @override

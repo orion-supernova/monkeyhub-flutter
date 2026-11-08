@@ -18890,6 +18890,10 @@
   "@callsTabDetailsMessage": {
     "description": "Call details button: open the chat to message."
   },
+  "callsTabDetailsHistory": "Call history",
+  "@callsTabDetailsHistory": {
+    "description": "Call details sheet: heading over the list of the calls stacked into one Calls-tab row (same person, type and outcome, back to back). Tapping one shows it."
+  },
   "callsTabPlatformIos": "iPhone",
   "@callsTabPlatformIos": {
     "description": "Device name used in call details."

@@ -15971,6 +15971,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String get callsTabDetailsMessage => 'Meddelande';
 
   @override
+  String get callsTabDetailsHistory => 'Samtalshistorik';
+
+  @override
   String get callsTabPlatformIos => 'iPhone';
 
   @override

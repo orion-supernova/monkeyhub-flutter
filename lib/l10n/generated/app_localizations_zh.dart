@@ -15103,6 +15103,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get callsTabDetailsMessage => '消息';
 
   @override
+  String get callsTabDetailsHistory => '通话记录';
+
+  @override
   String get callsTabPlatformIos => 'iPhone';
 
   @override

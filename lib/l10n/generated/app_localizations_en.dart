@@ -15935,6 +15935,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get callsTabDetailsMessage => 'Message';
 
   @override
+  String get callsTabDetailsHistory => 'Call history';
+
+  @override
   String get callsTabPlatformIos => 'iPhone';
 
   @override

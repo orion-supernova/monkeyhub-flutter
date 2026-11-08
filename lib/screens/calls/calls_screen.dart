@@ -75,7 +75,6 @@ class _CallsScreenState extends State<CallsScreen>
   CallLogStore get _store => widget.store ?? CallLogStore.instance;
 
   String _filter = CallLogStore.all;
-  final Set<String> _expanded = {};
 
   Timer? _directoryDebounce;
   bool _summariesRequested = false;
@@ -244,11 +243,12 @@ class _CallsScreenState extends State<CallsScreen>
     );
   }
 
-  void _openDetails(CallLogEntry e) {
+  void _openDetails(CallLogEntry e, {List<CallLogEntry> stack = const []}) {
     unawaited(
       showCallDetails(
         context,
         entry: e,
+        stack: stack,
         directory: widget.directory,
         api: widget.api,
         onCall: (kind) {
@@ -430,12 +430,8 @@ class _CallsScreenState extends State<CallsScreen>
                   favourite: _favouriteOf(item.first),
                   directory: widget.directory,
                   api: widget.api,
-                  expanded: _expanded.contains(item.first.id),
-                  onToggleExpanded: () => setState(() {
-                    final id = item.first.id;
-                    if (!_expanded.remove(id)) _expanded.add(id);
-                  }),
-                  onOpenDetails: _openDetails,
+                  onOpenDetails: (row) =>
+                      _openDetails(row.first, stack: row.entries),
                   onAction: _onRowAction,
                 ),
             };

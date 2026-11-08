@@ -15905,6 +15905,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get callsTabDetailsMessage => 'संदेश';
 
   @override
+  String get callsTabDetailsHistory => 'कॉल इतिहास';
+
+  @override
   String get callsTabPlatformIos => 'iPhone';
 
   @override

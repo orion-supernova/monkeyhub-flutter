@@ -16086,6 +16086,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get callsTabDetailsMessage => 'Mensagem';
 
   @override
+  String get callsTabDetailsHistory => 'Histórico de chamadas';
+
+  @override
   String get callsTabPlatformIos => 'iPhone';
 
   @override
@@ -32572,6 +32575,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get callsTabDetailsMessage => 'Mensagem';
+
+  @override
+  String get callsTabDetailsHistory => 'Histórico de chamadas';
 
   @override
   String get callsTabPlatformIos => 'iPhone';

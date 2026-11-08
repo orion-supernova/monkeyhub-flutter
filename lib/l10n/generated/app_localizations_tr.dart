@@ -15863,6 +15863,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get callsTabDetailsMessage => 'Mesaj';
 
   @override
+  String get callsTabDetailsHistory => 'Arama geçmişi';
+
+  @override
   String get callsTabPlatformIos => 'iPhone';
 
   @override

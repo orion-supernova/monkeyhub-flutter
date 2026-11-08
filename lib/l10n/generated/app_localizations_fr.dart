@@ -16151,6 +16151,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get callsTabDetailsMessage => 'Message';
 
   @override
+  String get callsTabDetailsHistory => 'Historique des appels';
+
+  @override
   String get callsTabPlatformIos => 'iPhone';
 
   @override

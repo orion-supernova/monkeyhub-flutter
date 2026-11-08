@@ -4380,6 +4380,7 @@
   "callsTabDetailsEnded": "Avslutades",
   "callsTabDetailsTalked": "Pratade i {duration}",
   "callsTabDetailsMessage": "Meddelande",
+  "callsTabDetailsHistory": "Samtalshistorik",
   "callsTabPlatformIos": "iPhone",
   "callsTabPlatformMacos": "Mac",
   "callsTabPlatformAndroid": "Android",
