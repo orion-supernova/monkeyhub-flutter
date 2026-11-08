@@ -120,7 +120,7 @@ class CallDetailsSheet extends StatelessWidget {
     // when the content is taller than the screen allows.
     return SheetFrame(
       showClose: true,
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
       child: Material(
         type: MaterialType.transparency,
         child: SingleChildScrollView(
@@ -128,38 +128,29 @@ class CallDetailsSheet extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Who and what, side by side: one tight header, not a poster.
-              Row(
-                children: [
-                  subject.avatar(56),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          subject.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.bodyEmph.copyWith(
-                            fontSize: 20,
-                            color: theme.ink,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          detail,
-                          style: theme.bodySoft.copyWith(
-                            fontSize: 14.5,
-                            color: e.isMissed ? theme.danger : theme.inkMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              // Who and what, centred under the bar like iOS's call info.
+              Center(child: subject.avatar(64)),
+              const SizedBox(height: 10),
+              Text(
+                subject.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: theme.bodyEmph.copyWith(
+                  fontSize: 20,
+                  color: theme.ink,
+                ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 2),
+              Text(
+                detail,
+                textAlign: TextAlign.center,
+                style: theme.bodySoft.copyWith(
+                  fontSize: 14.5,
+                  color: e.isMissed ? theme.danger : theme.inkMuted,
+                ),
+              ),
+              const SizedBox(height: 18),
               _Timeline(events: events, startedAt: e.startedAt),
               // The one number people open this for, labelled with what it
               // counts: an answered call's talk, or how long one that never
@@ -282,9 +273,36 @@ class _Timeline extends StatelessWidget {
       color: theme.inkMuted,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
+    final rail = theme.ink.withValues(alpha: 0.18);
+    final gap = theme.bodySoft.copyWith(
+      fontSize: 12.5,
+      color: theme.inkMuted,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
     return Column(
       children: [
-        for (var i = 0; i < events.length; i++)
+        for (var i = 0; i < events.length; i++) ...[
+          if (i > 0)
+            // The stretch between two steps, written on the line that draws
+            // it: how long it rang, how long they talked.
+            SizedBox(
+              height: 22,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    width: 22,
+                    child: CustomPaint(painter: _LinePainter(rail)),
+                  ),
+                  Center(
+                    child: Text(
+                      _stretch(events[i].at - events[i - 1].at),
+                      style: gap,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -295,7 +313,7 @@ class _Timeline extends StatelessWidget {
                     painter: _RailPainter(
                       first: i == 0,
                       last: i == events.length - 1,
-                      color: theme.ink.withValues(alpha: 0.18),
+                      color: rail,
                       dot: i == events.length - 1 ? theme.inkMuted : theme.accent,
                     ),
                   ),
@@ -313,9 +331,31 @@ class _Timeline extends StatelessWidget {
               ],
             ),
           ),
+        ],
       ],
     );
   }
+
+  /// A sub-second stretch reads as nothing rather than a misleading 0:00.
+  static String _stretch(int ms) => ms >= 1000 ? clockDuration(ms) : '';
+}
+
+/// The rail between two steps: the same 2pt line as [_RailPainter], whole.
+class _LinePainter extends CustomPainter {
+  const _LinePainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) => canvas.drawLine(
+        const Offset(8, 0),
+        Offset(8, size.height),
+        Paint()
+          ..color = color
+          ..strokeWidth = 2,
+      );
+
+  @override
+  bool shouldRepaint(_LinePainter old) => old.color != color;
 }
 
 class _RailPainter extends CustomPainter {

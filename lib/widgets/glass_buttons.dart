@@ -272,10 +272,34 @@ class ChromeDisc extends StatelessWidget {
     this.still = false,
     this.tint,
     this.onTap,
-  });
+  })  : radius = null,
+        pressScale = PressSpec.bloom,
+        semanticLabel = null;
+
+  /// The same chrome in a rounded rectangle that sizes to [child]: an action
+  /// tile on a sheet or a profile reads as the × above it, one material.
+  const ChromeDisc.plate({
+    super.key,
+    required this.child,
+    required double this.radius,
+    this.still = false,
+    this.tint,
+    this.onTap,
+    this.semanticLabel,
+    this.pressScale = PressSpec.scaleSmall,
+  }) : size = 0;
 
   final Widget child;
+
+  /// The disc's diameter. Unused by [ChromeDisc.plate], which hugs [child].
   final double size;
+
+  /// Null draws a disc; set, a plate with this corner radius.
+  final double? radius;
+
+  /// Scale while held: discs bloom, plates (a large target) settle.
+  final double pressScale;
+  final String? semanticLabel;
   final bool still;
 
   /// A solid fill instead of the theme disc — a control that is ON.
@@ -289,15 +313,29 @@ class ChromeDisc extends StatelessWidget {
     if (UiKit.of(context) == UiKit.material) return _tonalDisc(context);
     Widget surface(bool pressed) => _surface(context, pressed);
     if (onTap == null) return surface(false);
+    final r = radius;
     return SpringPress(
       onTap: onTap,
       haptic: false,
-      scale: PressSpec.bloom,
-      focusShape: FocusRingShape.circle,
-      focusRadius: size / 2,
+      scale: pressScale,
+      semanticLabel: semanticLabel,
+      focusShape: r == null ? FocusRingShape.circle : FocusRingShape.rounded,
+      focusRadius: r ?? size / 2,
       builder: (context, pressed) => surface(pressed),
     );
   }
+
+  OutlinedBorder get _shape {
+    final r = radius;
+    return r == null
+        ? const CircleBorder()
+        : RoundedRectangleBorder(borderRadius: BorderRadius.circular(r));
+  }
+
+  /// A disc has a fixed size; a plate takes its child's.
+  Widget _sized(Widget child) => radius != null
+      ? child
+      : SizedBox(width: size, height: size, child: child);
 
   /// The [UiKit.material] disc: a tonal circle (filled when [tint]ed) with a
   /// ripple. No blur, no rim, a flat Material surface.
@@ -305,17 +343,15 @@ class ChromeDisc extends StatelessWidget {
     final scheme = MaterialKitTheme.of(ThemeScope.of(context)).colorScheme;
     final tap = onTap;
     return MaterialKitScope(
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: Material(
+      child: _sized(
+        Material(
           color: tint ?? scheme.secondaryContainer,
-          shape: const CircleBorder(),
+          shape: _shape,
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: tap,
-            customBorder: const CircleBorder(),
-            child: Center(child: child),
+            customBorder: _shape,
+            child: radius == null ? Center(child: child) : child,
           ),
         ),
       ),
@@ -328,13 +364,12 @@ class ChromeDisc extends StatelessWidget {
     final t = tint;
     final live = !still && t == null && UiKit.of(context).blurs;
     final fill = t ?? chromeDiscFill(theme);
-    return SizedBox(
-      width: size,
-      height: size,
+    final shape = _shape;
+    return _sized(
       // Shadow painted after the disc, outside it: under it, the disc's own
       // backdrop blur smeared it into a grey ring (see GlassShadow).
-      child: GlassShadow(
-        shape: const CircleBorder(),
+      GlassShadow(
+        shape: shape,
         shadows: [
             BoxShadow(
               color: (light ? theme.ink : Colors.black)
@@ -352,24 +387,31 @@ class ChromeDisc extends StatelessWidget {
           ],
         child: CustomPaint(
           foregroundPainter: SpecularRim(
-            shape: const CircleBorder(),
+            shape: shape,
             light: light,
             edge: light ? sunlitHairline(theme) : null,
           ),
-          child: ClipOval(
+          child: ClipPath(
+            clipper: ShapeBorderClipper(shape: shape),
             child: Stack(
-              fit: StackFit.expand,
+              // A disc fills its fixed square; a plate sizes to its content,
+              // which is the one non-positioned layer.
+              fit: radius == null ? StackFit.expand : StackFit.passthrough,
               children: [
                 if (live)
-                  BackdropFilter.grouped(
-                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                    child: const SizedBox.expand(),
+                  Positioned.fill(
+                    child: BackdropFilter.grouped(
+                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                      child: const SizedBox.expand(),
+                    ),
                   ),
-                ColoredBox(
-                  color: live ? fill.withValues(alpha: 0.86) : fill,
+                Positioned.fill(
+                  child: ColoredBox(
+                    color: live ? fill.withValues(alpha: 0.86) : fill,
+                  ),
                 ),
                 if (t == null)
-                  DecoratedBox(
+                  Positioned.fill(child: DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
@@ -383,12 +425,15 @@ class ChromeDisc extends StatelessWidget {
                         stops: const [0.0, 0.55],
                       ),
                     ),
-                  ),
+                  )),
                 if (pressed)
-                  ColoredBox(
-                    color: Colors.white.withValues(alpha: light ? 0.18 : 0.06),
+                  Positioned.fill(
+                    child: ColoredBox(
+                      color:
+                          Colors.white.withValues(alpha: light ? 0.18 : 0.06),
+                    ),
                   ),
-                Center(child: child),
+                if (radius == null) Center(child: child) else child,
               ],
             ),
           ),

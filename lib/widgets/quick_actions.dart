@@ -5,9 +5,8 @@ import 'package:flutter/rendering.dart';
 import '../l10n/text_case.dart';
 import '../theme/theme_scope.dart';
 import 'fit_label.dart';
-import 'ios_kit.dart' show groupedFill, groupedMetaStyle, groupedRadius;
-import 'sheet_kit.dart' show sheetGroupFill;
-import 'spring_press.dart';
+import 'glass_buttons.dart' show ChromeDisc;
+import 'ios_kit.dart' show groupedMetaStyle, groupedRadius;
 
 /// One tile of a [SheetQuickActions] row.
 class QuickAction {
@@ -261,18 +260,20 @@ class QuickActionTile extends StatelessWidget {
     final tone = destructive ? theme.danger : (tint ?? theme.accent);
     final ink = onTap != null ? tone : theme.inkMuted.withValues(alpha: 0.6);
     final text = sentenceCaseOf(context, label);
-    return SpringPress(
-      onTap: enabled ? onTap : null,
-      semanticLabel: semanticLabel ?? text,
-      scale: PressSpec.scaleSmall,
-      child: Container(
+    // The × disc's glass as a plate, so the tiles and the sheet's × read as
+    // one material. Still on a sheet (it slides; a blur there re-rasterises
+    // every frame of the rise), live glass on a page.
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: semanticLabel ?? text,
+      excludeSemantics: true,
+      child: ChromeDisc.plate(
+        radius: (groupedRadius(theme) * 0.7).clamp(6.0, 16.0),
+        still: onSheet,
+        onTap: enabled ? onTap : null,
+        child: Container(
         constraints: const BoxConstraints(minHeight: 64),
-        decoration: BoxDecoration(
-          color: onSheet ? sheetGroupFill(theme) : groupedFill(theme),
-          borderRadius: BorderRadius.circular(
-            (groupedRadius(theme) * 0.7).clamp(6.0, 16.0),
-          ),
-        ),
         padding: const EdgeInsets.fromLTRB(4, 10, 4, 9),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -298,6 +299,7 @@ class QuickActionTile extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
