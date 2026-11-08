@@ -13,8 +13,8 @@ import 'group_call_service.dart';
 /// The header's video + voice call buttons as one unit.
 ///
 /// In the liquid kit on iOS 26 the two are separate glass discs in one native
-/// `GlassEffectContainer`, 6 pt apart and blending into a single shape like
-/// the discs of a system toolbar. Everywhere else (and while a call is up,
+/// `GlassEffectContainer`, apart at rest and morphing into each other while
+/// one is pressed, like the discs of a system toolbar. Everywhere else (and while a call is up,
 /// when each button dims and explains itself on tap) it is the two ordinary
 /// [CallButton] / [GroupCallButton] buttons in a row, exactly as before.
 class CallButtonPair extends StatelessWidget {
@@ -107,9 +107,13 @@ class CallButtonPair extends StatelessWidget {
               ),
             ],
             spacing: gap,
-            // Two discs apart at rest (the user found them "touching"); the
-            // glass still flows between them while one is pressed.
-            blend: 0,
+            // Two discs apart at rest (the user found them "touching"), yet
+            // one glass under a finger: the container blends shapes closer
+            // than its spacing, so a hair under the gap keeps them apart
+            // still and lets a pressed disc, which swells a few points, flow
+            // into its neighbour and back. 0 (as before) never blended, so
+            // the press had no morph at all.
+            blend: (gap - 1.5).clamp(0.0, gap),
           ),
           onEvent: (event, value) {
             if (event != 'select') return;

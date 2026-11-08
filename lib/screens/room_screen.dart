@@ -9614,7 +9614,16 @@ class _LiquidHeader extends StatelessWidget {
     final title = room.isSavedMessages
         ? AppLocalizations.of(context).savedMessagesTitle
         : (dmUser?.displayName ?? room.name);
-    return Padding(
+    // The header floats over the transcript. Its controls are native glass
+    // most of the time, but their Flutter stand-ins (under the page bar's
+    // cut, mid-transition, covered) only take taps, so a drag that started
+    // on the title scrolled the chat. The row claims both drag axes, like
+    // the pinned strip below it; taps still reach every control.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onVerticalDragStart: (_) {},
+      onHorizontalDragStart: (_) {},
+      child: Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -9653,6 +9662,7 @@ class _LiquidHeader extends StatelessWidget {
           ..._buildCallControls(),
         ],
       ),
+    ),
     );
   }
 }

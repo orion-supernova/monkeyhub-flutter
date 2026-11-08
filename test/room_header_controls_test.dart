@@ -135,6 +135,20 @@ void main() {
         reason: 'bottom padding');
   });
 
+  test('a drag that starts on the liquid header never scrolls the chat', () {
+    final body = headers['liquid']!();
+    expect(body.contains('onVerticalDragStart: (_) {}'), isTrue,
+        reason: 'the header row claims vertical drags (stand-ins only tap)');
+    expect(body.contains('HitTestBehavior.opaque'), isTrue);
+  });
+
+  test('the native call pair blends only under a finger', () {
+    final pair = File('lib/calls/call_button_pair.dart').readAsStringSync();
+    expect(pair.contains('blend: (gap - 1.5).clamp(0.0, gap)'), isTrue,
+        reason: 'container spacing just under the gap: apart at rest, '
+            'morphing while one disc is pressed');
+  });
+
   test('the liquid pair sits closer than the header\'s other gaps', () {
     final body = headers['liquid']!();
     final match =
