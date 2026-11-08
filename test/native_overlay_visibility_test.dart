@@ -429,21 +429,41 @@ void main() {
       expect(byLabel['A']!.last['why'], 'covered');
     });
 
-    testWidgets('stand-in first: a native control that must hide stays up '
-        'two frames after its stand-in is built, never a frame with neither', (
-      tester,
-    ) async {
-      await app(tester, page('A', right: true));
+    testWidgets('stand-in first: a native control that must hide where its '
+        'stand-in shows (mid-fade) stays up two frames after the stand-in is '
+        'built, never a frame with neither', (tester) async {
+      final fade = AnimationController(vsync: const TestVSync(), value: 1);
+      addTearDown(fade.dispose);
+      await app(
+        tester,
+        Material(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 20, top: 60),
+              child: FadeTransition(
+                opacity: fade,
+                child: NativeControl(
+                  size: const Size(80, 40),
+                  spec: NativeSpec.button(label: 'A', height: 40),
+                  standIn: const SizedBox(
+                    key: ValueKey('standInA'),
+                    width: 80,
+                    height: 40,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
       await reveal(tester, 'A');
       Finder standIn() => find.byKey(const ValueKey('standInA'));
       expect(standIn(), findsNothing, reason: 'native up, no stand-in');
-      // A page sliding over it.
-      nav.currentState!.push(
-        MaterialPageRoute<void>(builder: (_) => const Material(child: SizedBox.expand())),
-      );
+      fade.value = 0.5;
       int? standInFrame;
       int? hiddenFrame;
-      for (var f = 0; f < 40; f++) {
+      for (var f = 0; f < 8; f++) {
         await tester.pump(const Duration(milliseconds: 16));
         if (standInFrame == null && standIn().evaluate().isNotEmpty) {
           standInFrame = f;
@@ -456,6 +476,21 @@ void main() {
       expect(hiddenFrame, isNotNull);
       expect(hiddenFrame! - standInFrame!, greaterThanOrEqualTo(2),
           reason: 'native leaves only after the stand-in had frames to paint');
+    });
+
+    testWidgets('covered by an incoming page, a native control leaves at '
+        'once: the page is what replaces it, no hold over it', (tester) async {
+      await app(tester, page('A', right: true));
+      await reveal(tester, 'A');
+      nav.currentState!.push(
+        MaterialPageRoute<void>(builder: (_) => const Material(child: SizedBox.expand())),
+      );
+      for (var f = 0; f < 40; f++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      final covered = byLabel['A']!.where((m) => m['why'] == 'covered');
+      expect(covered, isNotEmpty);
+      expect(covered.first['visible'], isFalse, reason: 'first covered sync');
     });
 
     testWidgets('hide-during-transitions mode keeps the old behaviour', (

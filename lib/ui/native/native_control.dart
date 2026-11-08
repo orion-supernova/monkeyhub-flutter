@@ -396,12 +396,15 @@ class _NativeControlState extends State<NativeControl> {
         _holdLeft = 0;
         setState(() => _standInWanted = false);
       }
-    } else if (_nativeUp && laid && _tickerOn && why != 'clipped') {
+    } else if (_nativeUp && laid && _tickerOn && !_noStandInShows(why)) {
       // Stand-in first, native out a little later. Only where the stand-in
-      // will actually show: not for an offstage page (ticker off) or one
+      // will actually show: not for an offstage page (ticker off), one
       // clipped away or faded to nothing ('clipped', e.g. the composer's
-      // mode button hidden under the record bloom), where holding the
-      // native view up drew it, for three frames, over what replaced it.
+      // mode button under the record bloom), or one something covers
+      // ('covered', 'occluded': the page sliding over it IS what replaces
+      // it). There, holding the native view up drew it over the thing that
+      // replaced it: the room's title pill rode over an incoming profile
+      // for three frames, ~165ms in a debug build.
       if (!_standInWanted) {
         _standInWanted = true;
         _holdLeft = _holdFrames;
@@ -437,6 +440,10 @@ class _NativeControlState extends State<NativeControl> {
     return placement;
   }
 
+  /// Hiding for these leaves nothing to bridge: the spot is covered or empty.
+  static bool _noStandInShows(String? why) =>
+      why == 'clipped' || why == 'covered' || why == 'occluded';
+
   /// Syncs a native view stays up once its stand-in is asked for: the
   /// asking frame, the frame that builds the stand-in, and one more for that
   /// frame's raster to reach the screen before the native view leaves.
@@ -457,9 +464,10 @@ class _NativeControlState extends State<NativeControl> {
   ({bool covered, double dim}) _cover(Rect rect) {
     final mine = _route;
     if (mine == null) return (covered: false, dim: 0.0);
-    // A few points of lead, so the swap happens just before an incoming
-    // page's edge reaches the control, under its shadow, not after.
-    final probe = rect.inflate(6);
+    // Lead, so the native view is gone just before an incoming page's edge
+    // reaches it (the hide lands a frame after this measure, and an iOS
+    // push moves ~10pt a frame at its fastest), under its shadow, not after.
+    final probe = rect.inflate(16);
     var dim = 0.0;
     for (final u in RouteDepthObserver.live) {
       if (identical(u, mine) || !_isAbove(u, mine)) continue;
