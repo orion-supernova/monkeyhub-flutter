@@ -17,6 +17,8 @@ import 'composer_keys.dart';
 import 'send_button.dart';
 import 'glass_buttons.dart';
 import 'liquid_glass.dart';
+import '../ui/native/native_composer_input.dart';
+import '../ui/native/native_control.dart' show NativeControl;
 
 /// Where each composer centres its trailing button (send / record / camera),
 /// measured in from the right edge: the side padding plus half the button.
@@ -859,7 +861,32 @@ class ChatComposerLiquid extends StatelessWidget {
             const SizedBox(width: 10),
           ],
           Expanded(
-            child: LiquidGlass(
+            child: NativeControl.readyIn(context)
+                // Native controls on Everything: the field is a real
+                // UITextView in system glass (selection loupe, dictation,
+                // Writing Tools, Genmoji), same controller and focus node.
+                // The FORMAT menu and keyboard GIF insertion stay with the
+                // Flutter field below.
+                ? NativeComposerInput(
+                    controller: controller,
+                    focusNode: focusNode,
+                    placeholder: hint ??
+                        (ephemeral
+                            ? AppLocalizations.of(context)
+                                .deepOceanThemeEphemeralHint
+                            : AppLocalizations.of(context)
+                                .deepOceanThemeMessageHint),
+                    maxLines: 5,
+                    onChanged: onChanged,
+                    onFieldTap: onFieldTap,
+                    trailingSymbol: onExpressions == null ? null : 'face.smiling',
+                    trailingOn: expressionsOpen,
+                    trailingLabel: expressionsOpen
+                        ? AppLocalizations.of(context).expressionShowKeyboard
+                        : AppLocalizations.of(context).expressionOpenPanel,
+                    onTrailing: onExpressions,
+                  )
+                : LiquidGlass(
               shape: LiquidGlassShape.rounded,
               radius: 22,
               padding: const EdgeInsets.fromLTRB(16, 11, 10, 11),

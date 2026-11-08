@@ -380,6 +380,11 @@ struct NativeControlSpec {
   let count: Int
   let activeIndex: Int
   let accentLabel: Bool
+  /// composerField: the selection Dart wants applied with [textRev] (UTF-16
+  /// offsets, Dart's own), and how many lines the field grows to.
+  let selStart: Int?
+  let selEnd: Int?
+  let maxLines: Int
 
   init(_ map: [String: Any]) {
     kind = map["kind"] as? String ?? "symbolButton"
@@ -430,6 +435,9 @@ struct NativeControlSpec {
     avatarColor = (map["avatarColor"] as? Int).map(Color.init(argb:))
     avatarSize = CGFloat(map["avatarSize"] as? Double ?? 34)
     count = map["count"] as? Int ?? 0
+    selStart = map["selStart"] as? Int
+    selEnd = map["selEnd"] as? Int
+    maxLines = map["maxLines"] as? Int ?? 5
     activeIndex = map["activeIndex"] as? Int ?? 0
     accentLabel = map["accentLabel"] as? Bool ?? false
   }
@@ -525,6 +533,7 @@ struct NativeControlRoot: View {
     case "toolbar": NativeToolbar(spec: spec, emit: emit)
     case "buttonGroup": NativeButtonGroup(spec: spec, emit: emit)
     case "datePicker": NativeDatePicker(spec: spec, emit: emit)
+    case "composerField": NativeComposerField(model: model, spec: spec, emit: emit)
     case "titlePill", "pinBar":
       if #available(iOS 26.0, *) {
         if spec.kind == "titlePill" {
@@ -995,6 +1004,211 @@ struct NativeToolbar: View {
         }
       }
     }
+  }
+}
+
+// MARK: - Composer
+
+/// The chat composer's text: a real UITextView (system selection and loupe,
+/// dictation, Writing Tools, autocorrect, Genmoji) in a native glass
+/// capsule that grows from one line to [NativeControlSpec.maxLines], then
+/// scrolls. Dart owns the text through the same rules as the one-line field
+/// (typing flows out as `changed` {text, start, end}; Dart's own edits come
+/// back only with a new `textRev`), and sizes the control to the `height`
+/// this reports. The trailing symbol (the expressions smiley) reports
+/// `trailing`.
+struct NativeComposerField: View {
+  @ObservedObject var model: NativeControlModel
+  let spec: NativeControlSpec
+  let emit: (String, Any?) -> Void
+
+  var body: some View {
+    let row = HStack(alignment: .bottom, spacing: 0) {
+      NativeComposerTextView(model: model, spec: spec, emit: emit)
+      if let symbol = spec.symbol {
+        Button { emit("trailing", nil) } label: {
+          Image(systemName: spec.boolValue ? "keyboard" : symbol)
+            .font(.system(size: 20))
+            .foregroundStyle(.secondary)
+            .frame(width: 40, height: spec.size)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(spec.label))
+      }
+    }
+    .padding(.leading, 16)
+    .padding(.trailing, spec.symbol == nil ? 16 : 4)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    let shape = RoundedRectangle(cornerRadius: spec.cornerRadius, style: .continuous)
+    if #available(iOS 26.0, *) {
+      // Not interactive: a text field that bounces under the caret is not
+      // one the system draws.
+      row.glassEffect(.regular, in: shape)
+    } else {
+      row.background(shape.fill(.thinMaterial))
+    }
+  }
+}
+
+final class NativeComposerUITextView: UITextView {
+  var onLayout: (() -> Void)?
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    onLayout?()
+  }
+}
+
+struct NativeComposerTextView: UIViewRepresentable {
+  @ObservedObject var model: NativeControlModel
+  let spec: NativeControlSpec
+  let emit: (String, Any?) -> Void
+
+  static let font = UIFont.systemFont(ofSize: 17)
+
+  func makeCoordinator() -> Coordinator { Coordinator(emit: emit) }
+
+  func makeUIView(context: Context) -> NativeComposerUITextView {
+    let tv = NativeComposerUITextView()
+    tv.backgroundColor = .clear
+    tv.font = Self.font
+    tv.textColor = .label
+    tv.textContainer.lineFragmentPadding = 0
+    tv.autocapitalizationType = .sentences
+    tv.autocorrectionType = .default
+    tv.returnKeyType = .default
+    tv.delegate = context.coordinator
+    tv.text = spec.text
+    let placeholder = UILabel()
+    placeholder.font = Self.font
+    placeholder.textColor = .placeholderText
+    placeholder.numberOfLines = 1
+    placeholder.lineBreakMode = .byTruncatingTail
+    tv.addSubview(placeholder)
+    let c = context.coordinator
+    c.textView = tv
+    c.placeholder = placeholder
+    c.lastRev = spec.textRev
+    c.focusTick = model.focusTick
+    c.blurTick = model.blurTick
+    tv.onLayout = { [weak c] in c?.layoutChanged() }
+    return tv
+  }
+
+  func updateUIView(_ tv: NativeComposerUITextView, context: Context) {
+    let c = context.coordinator
+    c.emit = emit
+    c.maxLines = max(1, spec.maxLines)
+    c.minHeight = spec.size
+    tv.keyboardAppearance = spec.dark ? .dark : .light
+    if let tint = spec.tint { tv.tintColor = UIColor(tint) }
+    tv.isEditable = spec.enabled
+    c.placeholder?.text = spec.placeholder
+    if spec.textRev != c.lastRev {
+      c.lastRev = spec.textRev
+      if tv.text != spec.text { tv.text = spec.text }
+      let length = (tv.text as NSString).length
+      if let start = spec.selStart, let end = spec.selEnd {
+        let a = min(max(0, start), length)
+        let b = min(max(a, end), length)
+        tv.selectedRange = NSRange(location: a, length: b - a)
+      }
+      c.textChangedLocally()
+    }
+    if model.focusTick != c.focusTick {
+      c.focusTick = model.focusTick
+      if !tv.isFirstResponder { tv.becomeFirstResponder() }
+    }
+    if model.blurTick != c.blurTick {
+      c.blurTick = model.blurTick
+      if tv.isFirstResponder { tv.resignFirstResponder() }
+    }
+    c.layoutChanged()
+  }
+
+  final class Coordinator: NSObject, UITextViewDelegate {
+    var emit: (String, Any?) -> Void
+    weak var textView: NativeComposerUITextView?
+    weak var placeholder: UILabel?
+    var lastRev = 0
+    var focusTick = 0
+    var blurTick = 0
+    var maxLines = 5
+    var minHeight: CGFloat = 44
+    private var lastHeight: CGFloat = 0
+    private var lastWidth: CGFloat = 0
+
+    init(emit: @escaping (String, Any?) -> Void) { self.emit = emit }
+
+    /// One line sits centred in the resting capsule; more lines grow it.
+    private var verticalInset: CGFloat {
+      max(0, (minHeight - NativeComposerTextView.font.lineHeight) / 2)
+    }
+
+    func layoutChanged() {
+      guard let tv = textView else { return }
+      let inset = verticalInset
+      if tv.textContainerInset.top != inset {
+        tv.textContainerInset = UIEdgeInsets(top: inset, left: 0, bottom: inset, right: 0)
+      }
+      placeholder?.frame = CGRect(
+        x: 0,
+        y: inset,
+        width: tv.bounds.width,
+        height: NativeComposerTextView.font.lineHeight
+      )
+      placeholder?.isHidden = !tv.text.isEmpty
+      let width = tv.bounds.width
+      guard width > 0 else { return }
+      if width != lastWidth {
+        lastWidth = width
+        reportHeight()
+      }
+    }
+
+    func textChangedLocally() {
+      placeholder?.isHidden = !(textView?.text.isEmpty ?? true)
+      reportHeight()
+    }
+
+    /// The content's height for this width, capped at [maxLines] lines;
+    /// past the cap the view scrolls instead of growing.
+    private func reportHeight() {
+      guard let tv = textView, tv.bounds.width > 0 else { return }
+      let fit = tv.sizeThatFits(
+        CGSize(width: tv.bounds.width, height: .greatestFiniteMagnitude)
+      ).height
+      let cap = NativeComposerTextView.font.lineHeight * CGFloat(maxLines)
+        + verticalInset * 2
+      let h = max(minHeight, min(fit, cap)).rounded(.up)
+      tv.isScrollEnabled = fit > cap
+      if abs(h - lastHeight) >= 0.5 {
+        lastHeight = h
+        emit("height", Double(h))
+      }
+    }
+
+    private func report(_ tv: UITextView) {
+      let r = tv.selectedRange
+      emit("changed", [
+        "text": tv.text ?? "",
+        "start": r.location,
+        "end": r.location + r.length,
+      ])
+    }
+
+    func textViewDidChange(_ tv: UITextView) {
+      textChangedLocally()
+      report(tv)
+    }
+
+    func textViewDidChangeSelection(_ tv: UITextView) {
+      let r = tv.selectedRange
+      emit("selection", ["start": r.location, "end": r.location + r.length])
+    }
+
+    func textViewDidBeginEditing(_ tv: UITextView) { emit("focus", true) }
+    func textViewDidEndEditing(_ tv: UITextView) { emit("focus", false) }
   }
 }
 

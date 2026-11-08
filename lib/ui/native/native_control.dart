@@ -827,6 +827,39 @@ class NativeSpec {
     'enabled': enabled,
   });
 
+  /// The chat composer's growing text view in a glass capsule (see
+  /// `NativeComposerField`). [text] and the selection apply only when
+  /// [textRev] changes; [trailingSymbol] draws a button at the end
+  /// (`trailing` event), shown as a keyboard while [trailingOn].
+  factory NativeSpec.composerField({
+    required String text,
+    required int textRev,
+    int? selStart,
+    int? selEnd,
+    String placeholder = '',
+    int maxLines = 5,
+    double minHeight = 44,
+    double cornerRadius = 22,
+    String? trailingSymbol,
+    bool trailingOn = false,
+    String trailingLabel = '',
+    bool enabled = true,
+  }) => NativeSpec._({
+    'kind': 'composerField',
+    'text': text,
+    'textRev': textRev,
+    'selStart': ?selStart,
+    'selEnd': ?selEnd,
+    'placeholder': placeholder,
+    'maxLines': maxLines,
+    'size': minHeight,
+    'cornerRadius': cornerRadius,
+    'symbol': ?trailingSymbol,
+    'value': trailingOn,
+    'label': trailingLabel,
+    'enabled': enabled,
+  });
+
   /// A one-line field. [text] is only applied natively when [textRev]
   /// changes (an external edit): typing never echoes back.
   factory NativeSpec.textField({
