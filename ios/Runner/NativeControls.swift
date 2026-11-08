@@ -385,6 +385,11 @@ struct NativeControlSpec {
   let selStart: Int?
   let selEnd: Int?
   let maxLines: Int
+  /// symbolButton: a count capsule straddling the top edge (quiet = neutral
+  /// instead of the tint), and a tick that bounces the symbol.
+  let badge: String?
+  let badgeQuiet: Bool
+  let kickTick: Int
 
   init(_ map: [String: Any]) {
     kind = map["kind"] as? String ?? "symbolButton"
@@ -438,6 +443,9 @@ struct NativeControlSpec {
     selStart = map["selStart"] as? Int
     selEnd = map["selEnd"] as? Int
     maxLines = map["maxLines"] as? Int ?? 5
+    badge = map["badge"] as? String
+    badgeQuiet = map["badgeQuiet"] as? Bool ?? false
+    kickTick = map["kickTick"] as? Int ?? 0
     activeIndex = map["activeIndex"] as? Int ?? 0
     accentLabel = map["accentLabel"] as? Bool ?? false
   }
@@ -554,25 +562,54 @@ struct NativeSymbolButton: View {
   let emit: (String, Any?) -> Void
 
   var body: some View {
-    let glyph = Image(systemName: spec.symbol ?? "circle")
+    let ink: Color = spec.destructive ? .red : (spec.accentLabel ? (spec.tint ?? .accentColor) : .primary)
+    let image = Image(systemName: spec.symbol ?? "circle")
       .font(.system(size: spec.symbolSize, weight: .semibold))
-      .frame(width: spec.size, height: spec.size)
-      .contentShape(Circle())
+    let glyph = Group {
+      if #available(iOS 17.0, *) {
+        image.symbolEffect(.bounce, value: spec.kickTick)
+      } else {
+        image
+      }
+    }
+    .frame(width: spec.size, height: spec.size)
+    .contentShape(Circle())
     let button = Button { emit("tap", nil) } label: { glyph }
       .accessibilityLabel(Text(spec.label))
-    if #available(iOS 26.0, *) {
-      if spec.prominent {
-        button.buttonStyle(.glassProminent).buttonBorderShape(.circle)
+    Group {
+      if #available(iOS 26.0, *) {
+        if spec.prominent {
+          button.buttonStyle(.glassProminent).buttonBorderShape(.circle)
+        } else {
+          button.buttonStyle(.plain)
+            .foregroundStyle(ink)
+            .glassEffect(.regular.interactive(spec.interactive), in: Circle())
+        }
       } else {
-        button.buttonStyle(.plain)
-          .foregroundStyle(spec.destructive ? Color.red : Color.primary)
-          .glassEffect(.regular.interactive(spec.interactive), in: Circle())
+        // Below iOS 26 this kit is never resolved; the capsule is only a
+        // safe fallback (.circle needs iOS 17).
+        button.buttonStyle(.bordered).buttonBorderShape(.capsule)
       }
-    } else {
-      // Below iOS 26 this kit is never resolved; the capsule is only a
-      // safe fallback (.circle needs iOS 17).
-      button.buttonStyle(.bordered).buttonBorderShape(.capsule)
     }
+    .overlay(alignment: .top) {
+      if let badge = spec.badge {
+        // The count, straddling the disc's top edge like the Flutter one.
+        Text(badge)
+          .font(.system(size: 11, weight: .bold))
+          .monospacedDigit()
+          .foregroundStyle(spec.badgeQuiet ? Color.primary : Color.white)
+          .padding(.horizontal, 4.5)
+          .frame(minWidth: 17, minHeight: 17)
+          .background(
+            Capsule().fill(spec.badgeQuiet ? Color(uiColor: .secondarySystemBackground) : (spec.tint ?? .accentColor))
+          )
+          .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
+          .offset(y: -9)
+          .allowsHitTesting(false)
+          .transition(.scale.combined(with: .opacity))
+      }
+    }
+    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: spec.badge)
   }
 }
 

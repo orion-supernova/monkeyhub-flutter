@@ -135,6 +135,7 @@ class JumpBackPill extends StatelessWidget {
       count: depth > 1 ? depth : 0,
       quietCount: true,
       kick: GlyphKick.back,
+      symbol: 'arrow.uturn.down',
       // Says where it goes, not why you left — a pin banner and "show in
       // chat" push onto this same trail, and neither involves a reply.
       semanticLabel: depth > 1

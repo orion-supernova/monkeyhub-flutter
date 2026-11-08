@@ -11,6 +11,7 @@ import 'glass_pill.dart';
 import 'hover_hint.dart';
 import 'ios_kit.dart' show groupedMetaStyle;
 import 'liquid_glass.dart';
+import '../ui/native/native_control.dart';
 
 /// Tracks whether a `reverse: true` transcript is scrolled away from its bottom.
 ///
@@ -140,6 +141,7 @@ class ScrollToLatestPill extends StatelessWidget {
       count: count,
       kick: GlyphKick.dip,
       kickOnIncrease: GlyphKick.dip,
+      symbol: 'chevron.down',
       semanticLabel: l10n.reactionBubbleJumpToLatestSemanticLabel,
       glyph: Padding(
         // The chevron's ink sits high in its box; this centres it optically.
@@ -185,6 +187,8 @@ class MentionJumpButton extends StatelessWidget {
       kick: GlyphKick.pop,
       // A new mention rocks the @ once: something addressed to you arrived.
       kickOnIncrease: GlyphKick.rock,
+      symbol: 'at',
+      accentSymbol: true,
       semanticLabel: l10n.roomScreenJumpToMentionSemanticLabel(count),
       glyph: Text(
         '@',
@@ -224,7 +228,17 @@ class ChatScrollFab extends StatefulWidget {
     this.quietCount = false,
     this.kick = GlyphKick.pop,
     this.kickOnIncrease,
+    this.symbol,
+    this.accentSymbol = false,
   });
+
+  /// The SF Symbol of [glyph], for native controls: with it the disc is a
+  /// native glass button (its count drawn natively too, its kicks the
+  /// symbol's own bounce); without it, the Flutter disc everywhere.
+  final String? symbol;
+
+  /// The symbol in the accent (the `@`), not the label colour.
+  final bool accentSymbol;
 
   /// Edge of the disc. Well under the composer's 44pt buttons: this floats
   /// over content rather than sitting in a bar, and should yield to it. The
@@ -294,6 +308,10 @@ class _ChatScrollFabState extends State<ChatScrollFab> {
       semanticLabel: widget.semanticLabel,
       child: Center(child: glyph),
     );
+    final symbol = widget.symbol;
+    if (symbol != null && NativeControl.readyIn(context)) {
+      return _native(context, symbol, disc);
+    }
     final longPress = widget.onLongPress;
     if (longPress != null) {
       disc = GestureDetector(onLongPress: longPress, child: disc);
@@ -329,6 +347,76 @@ class _ChatScrollFabState extends State<ChatScrollFab> {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+extension on _ChatScrollFabState {
+  /// The disc as native glass. Its count straddles the top edge natively
+  /// (a Flutter badge would sit under the native view), and taps go to the
+  /// native button, with its own press, unless there is a long-press (the
+  /// `@` button's clear-all): then the disc only draws and Flutter keeps
+  /// both gestures.
+  Widget _native(BuildContext context, String symbol, Widget flutterDisc) {
+    const size = ChatScrollFab.size;
+    final theme = ThemeScope.of(context);
+    final count = widget.count;
+    final digits = count <= 0
+        ? null
+        : (count > 99 ? '99+' : (widget.countCapped ? '$count+' : '$count'));
+    final longPress = widget.onLongPress;
+    Widget control = NativeControl(
+      size: const Size(size, size),
+      // The Flutter disc and its count, for a moment the native one cannot
+      // show (covered, mid-fade).
+      standIn: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
+        children: [
+          flutterDisc,
+          if (digits != null)
+            Positioned(
+              top: -9,
+              child: _FabCount(
+                count: count,
+                capped: widget.countCapped,
+                quiet: widget.quietCount,
+                theme: theme,
+              ),
+            ),
+        ],
+      ),
+      spec: NativeSpec.symbolButton(
+        symbol: symbol,
+        label: widget.semanticLabel,
+        size: size,
+        symbolSize: 15,
+        badge: digits,
+        badgeQuiet: widget.quietCount,
+        kickTick: _taps + _rises,
+        accentSymbol: widget.accentSymbol,
+        passthrough: longPress != null,
+      ),
+      onEvent: (event, _) {
+        if (event == 'tap') _tap();
+      },
+    );
+    if (longPress != null) {
+      control = GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _tap,
+        onLongPress: longPress,
+        child: control,
+      );
+    }
+    return HoverHint(
+      label: widget.semanticLabel,
+      // Same footprint as the Flutter disc: room above for the count.
+      child: SizedBox(
+        width: size,
+        height: size + 9,
+        child: Align(alignment: Alignment.bottomCenter, child: control),
       ),
     );
   }

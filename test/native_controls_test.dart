@@ -18,6 +18,8 @@ import 'package:monkeyhub/widgets/liquid_glass.dart' show GlassTone;
 import 'package:monkeyhub/widgets/password_field.dart';
 import 'package:monkeyhub/widgets/pull_down_button.dart';
 import 'package:monkeyhub/widgets/pull_down_menu.dart';
+import 'package:monkeyhub/widgets/scroll_to_latest.dart';
+import 'package:monkeyhub/widgets/jump_back.dart';
 import 'package:monkeyhub/widgets/search_field.dart';
 import 'package:monkeyhub/widgets/viewer_chrome.dart';
 
@@ -107,6 +109,15 @@ void main() {
     ),
     'GlassPillButton': (() => GlassPillButton(label: 'Pill', onTap: () {}), 'button'),
     'RowPillButton': (() => RowPillButton(label: 'Remove', onTap: () {}), 'button'),
+    'ScrollToLatestPill': (
+      () => ScrollToLatestPill(onTap: () {}, count: 3),
+      'symbolButton',
+    ),
+    'MentionJumpButton': (
+      () => MentionJumpButton(count: 2, onTap: () {}, onClearAll: () {}),
+      'symbolButton',
+    ),
+    'JumpBackPill': (() => JumpBackPill(depth: 2, onTap: () {}), 'symbolButton'),
     'ThemedInput': (
       () => ThemedInput(controller: TextEditingController(), hint: 'Name'),
       'textField',
@@ -158,6 +169,21 @@ void main() {
       'symbolButton',
     ),
   };
+
+  iosTest('the chat fabs draw their count and accent natively', (tester) async {
+    UiKits.debugNativeControls = true;
+    await pump(tester, MentionJumpButton(count: 120, onTap: () {}, onClearAll: () {}));
+    final spec = specs(tester).single;
+    expect(spec['symbol'], 'at');
+    expect(spec['badge'], '99+');
+    expect(spec['accentLabel'], isTrue);
+    expect(spec['passthrough'], isTrue, reason: 'long-press stays Flutter');
+    await pump(tester, ScrollToLatestPill(onTap: () {}));
+    final down = specs(tester).single;
+    expect(down['symbol'], 'chevron.down');
+    expect(down.containsKey('badge'), isFalse, reason: 'no count, no capsule');
+    expect(down['passthrough'], isFalse);
+  });
 
   for (final entry in cases.entries) {
     iosTest('${entry.key}: native ${entry.value.$2} in the liquid kit', (tester) async {
