@@ -15272,9 +15272,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get callsTabDetailsMessage => '메시지';
 
   @override
-  String get callsTabDetailsHistory => '통화 기록';
-
-  @override
   String get callsTabPlatformIos => 'iPhone';
 
   @override

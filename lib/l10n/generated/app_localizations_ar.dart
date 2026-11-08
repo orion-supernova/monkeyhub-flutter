@@ -16146,9 +16146,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get callsTabDetailsMessage => 'رسالة';
 
   @override
-  String get callsTabDetailsHistory => 'سجل المكالمات';
-
-  @override
   String get callsTabPlatformIos => 'iPhone';
 
   @override

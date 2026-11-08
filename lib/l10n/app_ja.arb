@@ -4380,7 +4380,6 @@
   "callsTabDetailsEnded": "終了",
   "callsTabDetailsTalked": "通話時間 {duration}",
   "callsTabDetailsMessage": "メッセージ",
-  "callsTabDetailsHistory": "通話履歴",
   "callsTabPlatformIos": "iPhone",
   "callsTabPlatformMacos": "Mac",
   "callsTabPlatformAndroid": "Android",

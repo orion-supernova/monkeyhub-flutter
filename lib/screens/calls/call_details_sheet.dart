@@ -12,7 +12,6 @@ import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_sheet.dart';
 import '../../widgets/quick_actions.dart';
 import '../../widgets/sheet_kit.dart';
-import '../../widgets/spring_press.dart';
 import 'call_log_models.dart';
 import 'call_row_tile.dart' show resolveSubject;
 import 'calls_directory.dart';
@@ -59,7 +58,6 @@ List<TimelineEvent> buildTimeline(AppLocalizations l10n, CallLogEntry e) {
 Future<void> showCallDetails(
   BuildContext context, {
   required CallLogEntry entry,
-  List<CallLogEntry> stack = const [],
   required CallsDirectory directory,
   ChatApi? api,
   required void Function(CallMediaKind kind) onCall,
@@ -72,7 +70,6 @@ Future<void> showCallDetails(
     context,
     builder: (_) => CallDetailsSheet(
       entry: entry,
-      stack: stack,
       directory: directory,
       api: api,
       onCall: onCall,
@@ -84,11 +81,10 @@ Future<void> showCallDetails(
   );
 }
 
-class CallDetailsSheet extends StatefulWidget {
+class CallDetailsSheet extends StatelessWidget {
   const CallDetailsSheet({
     super.key,
     required this.entry,
-    this.stack = const [],
     required this.directory,
     required this.onCall,
     required this.onMessage,
@@ -105,35 +101,16 @@ class CallDetailsSheet extends StatefulWidget {
   final Listenable? refresh;
 
   final CallLogEntry entry;
-
-  /// The calls stacked into the row this sheet opened from, newest first.
-  /// Two or more list under "Call history"; tapping one shows it above.
-  final List<CallLogEntry> stack;
   final CallsDirectory directory;
   final ChatApi? api;
   final void Function(CallMediaKind kind) onCall;
   final VoidCallback onMessage;
 
   @override
-  State<CallDetailsSheet> createState() => _CallDetailsSheetState();
-}
-
-class _CallDetailsSheetState extends State<CallDetailsSheet> {
-  late CallLogEntry _shown = widget.entry;
-
-  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = ThemeScope.of(context);
-    final w = widget;
-    final directory = w.directory;
-    final api = w.api;
-    final refresh = w.refresh;
-    final isFavourite = w.isFavourite;
-    final onToggleFavourite = w.onToggleFavourite;
-    final onCall = w.onCall;
-    final onMessage = w.onMessage;
-    final e = _shown;
+    final e = entry;
     final subject = resolveSubject(l10n, directory, api, e);
     final events = buildTimeline(l10n, e);
     final quality = qualityLine(l10n, e.qualitySamples);
@@ -232,14 +209,6 @@ class _CallDetailsSheetState extends State<CallDetailsSheet> {
                   ),
                 ),
               ],
-              if (w.stack.length > 1) ...[
-                const SizedBox(height: 18),
-                _History(
-                  calls: w.stack,
-                  shown: e,
-                  onPick: (c) => setState(() => _shown = c),
-                ),
-              ],
               const SizedBox(height: 16),
               // One row of icon-over-label tiles, iOS Contacts style: four
               // wide pill buttons in a 2x2 grid let long labels (Turkish,
@@ -249,7 +218,7 @@ class _CallDetailsSheetState extends State<CallDetailsSheet> {
                 builder: (context, _) {
                   final fav = isFavourite == null || onToggleFavourite == null
                       ? null
-                      : isFavourite();
+                      : isFavourite!();
                   return SheetQuickActions(
                     onSheet: true,
                     actions: [
@@ -286,109 +255,6 @@ class _CallDetailsSheetState extends State<CallDetailsSheet> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// "Call history": each call of a stacked row on its own line, the
-/// iPhone's way: what it was over how it went on the left, the time on the
-/// right. The one shown above is marked; tapping another shows it.
-class _History extends StatelessWidget {
-  const _History({
-    required this.calls,
-    required this.shown,
-    required this.onPick,
-  });
-  final List<CallLogEntry> calls;
-  final CallLogEntry shown;
-  final ValueChanged<CallLogEntry> onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = ThemeScope.of(context);
-    final figures = const [FontFeature.tabularFigures()];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          l10n.callsTabDetailsHistory,
-          style: theme.bodyEmph.copyWith(
-            fontSize: 14.5,
-            color: theme.inkSoft,
-          ),
-        ),
-        const SizedBox(height: 4),
-        for (var i = 0; i < calls.length; i++) ...[
-          if (i > 0) Divider(height: 0.5, thickness: 0.5, color: theme.divider),
-          Builder(builder: (context) {
-            final c = calls[i];
-            final on = c.id == shown.id;
-            final talked = c.wasAnswered && c.durationMs > 0;
-            return SpringPress(
-              onTap: on ? null : () => onPick(c),
-              scale: 0.985,
-              haptic: false,
-              focusRadius: 10,
-              hoverRadius: 10,
-              semanticLabel: '${callDetail(l10n, c)}, ${clockTime(context, c.startedAt)}',
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 9),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            callDetail(l10n, c),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.body.copyWith(
-                              fontSize: 15.5,
-                              color: c.isMissed ? theme.danger : theme.ink,
-                            ),
-                          ),
-                          if (talked)
-                            Text(
-                              clockDuration(c.durationMs),
-                              style: theme.bodySoft.copyWith(
-                                fontSize: 13.5,
-                                color: theme.inkMuted,
-                                fontFeatures: figures,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      clockTime(context, c.startedAt),
-                      style: theme.bodySoft.copyWith(
-                        fontSize: 14.5,
-                        color: on ? theme.accent : theme.inkMuted,
-                        fontWeight: on ? FontWeight.w600 : null,
-                        fontFeatures: figures,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // The one shown above wears a check; the rest are plain.
-                    SizedBox(
-                      width: 16,
-                      child: on
-                          ? Icon(
-                              CupertinoIcons.checkmark_alt,
-                              size: 16,
-                              color: theme.accent,
-                            )
-                          : null,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
-        ],
-      ],
     );
   }
 }

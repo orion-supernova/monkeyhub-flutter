@@ -4380,7 +4380,6 @@
   "callsTabDetailsEnded": "समाप्त",
   "callsTabDetailsTalked": "बात का समय {duration}",
   "callsTabDetailsMessage": "संदेश",
-  "callsTabDetailsHistory": "कॉल इतिहास",
   "callsTabPlatformIos": "iPhone",
   "callsTabPlatformMacos": "Mac",
   "callsTabPlatformAndroid": "Android",

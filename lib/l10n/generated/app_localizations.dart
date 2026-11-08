@@ -26431,12 +26431,6 @@ abstract class AppLocalizations {
   /// **'Message'**
   String get callsTabDetailsMessage;
 
-  /// Call details sheet: heading over the list of the calls stacked into one Calls-tab row (same person, type and outcome, back to back). Tapping one shows it.
-  ///
-  /// In en, this message translates to:
-  /// **'Call history'**
-  String get callsTabDetailsHistory;
-
   /// Device name used in call details.
   ///
   /// In en, this message translates to:

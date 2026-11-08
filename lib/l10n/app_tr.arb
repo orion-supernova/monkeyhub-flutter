@@ -4380,7 +4380,6 @@
   "callsTabDetailsEnded": "Bitti",
   "callsTabDetailsTalked": "{duration} konuşuldu",
   "callsTabDetailsMessage": "Mesaj",
-  "callsTabDetailsHistory": "Arama geçmişi",
   "callsTabPlatformIos": "iPhone",
   "callsTabPlatformMacos": "Mac",
   "callsTabPlatformAndroid": "Android",

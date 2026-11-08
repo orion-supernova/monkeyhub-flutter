@@ -254,7 +254,7 @@ void main() {
       expect(find.text('Yesterday'), findsOneWidget);
       expect(find.textContaining('Ayla Demir'), findsWidgets);
       // The three missed calls from Ayla are one row.
-      expect(find.textContaining('(3)'), findsOneWidget);
+      expect(find.textContaining('×3'), findsOneWidget);
       // The duration rides in the sentence, never as a bare number.
       expect(find.text('Outgoing video call · 12:34'), findsOneWidget);
       expect(find.text('Climbing crew'), findsOneWidget);
@@ -272,7 +272,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Outgoing video call · 12:34'), findsNothing);
       expect(find.text('Climbing crew'), findsNothing);
-      expect(find.textContaining('(3)'), findsOneWidget);
+      expect(find.textContaining('×3'), findsOneWidget);
     });
 
     testWidgets('empty history and empty Missed each say so', (tester) async {
@@ -286,17 +286,22 @@ void main() {
       expect(find.text('No calls yet'), findsNothing);
     });
 
-    testWidgets('a merged row opens details with its calls; a single row opens details',
+    testWidgets('a merged row opens into its calls; a single row opens details',
         (tester) async {
       await open(tester);
-      await tester.tap(find.textContaining('(3)'));
+      await tester.tap(find.textContaining('×3'));
       await tester.pumpAndSettle();
-      // Every call of the stack under "Call history", the newest shown.
-      expect(find.text('Call history'), findsOneWidget);
-      expect(find.byIcon(CupertinoIcons.checkmark_alt), findsOneWidget);
-      await tester.tapAt(const Offset(4, 4));
-      await tester.pumpAndSettle();
-      expect(find.text('Call history'), findsNothing);
+      // Three time capsules, each its own button, opening that call.
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.decoration is ShapeDecoration &&
+              (w.decoration! as ShapeDecoration).shape is StadiumBorder &&
+              w.constraints?.maxHeight == 30,
+        ),
+        findsNWidgets(3),
+      );
       await tester.tap(find.text('Climbing crew'));
       await tester.pumpAndSettle();
       expect(find.text('Started'), findsOneWidget);
