@@ -16471,6 +16471,17 @@ class AppLocalizationsPt extends AppLocalizations {
   String get controlsLabTitle => 'Laboratório de controlos';
 
   @override
+  String get nativeRideAlongTitle => 'O vidro acompanha as páginas';
+
+  @override
+  String get nativeRideAlongOnBody =>
+      'Os botões continuam a ser vidro real enquanto uma página ou folha desliza.';
+
+  @override
+  String get nativeRideAlongOffBody =>
+      'Os botões passam a uma cópia enquanto uma página ou folha desliza e depois voltam.';
+
+  @override
   String get glassInteractiveTitle => 'Vidro interativo';
 
   @override
@@ -32945,6 +32956,17 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get controlsLabTitle => 'Laboratório de controles';
+
+  @override
+  String get nativeRideAlongTitle => 'O vidro acompanha as páginas';
+
+  @override
+  String get nativeRideAlongOnBody =>
+      'Os botões continuam sendo vidro real enquanto uma página ou folha desliza.';
+
+  @override
+  String get nativeRideAlongOffBody =>
+      'Os botões viram uma cópia enquanto uma página ou folha desliza e depois voltam.';
 
   @override
   String get glassInteractiveTitle => 'Vidro interativo';

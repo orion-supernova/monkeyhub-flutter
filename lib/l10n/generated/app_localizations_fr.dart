@@ -16536,6 +16536,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get controlsLabTitle => 'Labo des commandes';
 
   @override
+  String get nativeRideAlongTitle => 'Le verre suit les pages';
+
+  @override
+  String get nativeRideAlongOnBody =>
+      'Les boutons restent en vrai verre pendant qu\'une page ou une feuille glisse.';
+
+  @override
+  String get nativeRideAlongOffBody =>
+      'Les boutons passent à une copie pendant qu\'une page ou une feuille glisse, puis reviennent.';
+
+  @override
   String get glassInteractiveTitle => 'Verre interactif';
 
   @override

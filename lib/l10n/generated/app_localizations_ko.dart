@@ -15633,6 +15633,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get controlsLabTitle => '컨트롤 랩';
 
   @override
+  String get nativeRideAlongTitle => '유리가 페이지와 함께 이동';
+
+  @override
+  String get nativeRideAlongOnBody => '페이지나 시트가 밀려 움직이는 동안에도 버튼이 실제 유리로 유지됩니다.';
+
+  @override
+  String get nativeRideAlongOffBody =>
+      '페이지나 시트가 밀려 움직이는 동안 버튼이 대체 화면으로 바뀌었다가 다시 돌아옵니다.';
+
+  @override
   String get glassInteractiveTitle => '인터랙티브 글라스';
 
   @override

@@ -19324,6 +19324,18 @@
   "@controlsLabTitle": {
     "description": "Row at the bottom of Settings > Glass that opens a page listing every shared control in the active style (a developer and design review tool)."
   },
+  "nativeRideAlongTitle": "Glass moves with pages",
+  "@nativeRideAlongTitle": {
+    "description": "Settings > Glass, native controls: toggle title. On: native glass buttons move with a sliding page or sheet."
+  },
+  "nativeRideAlongOnBody": "Buttons stay real glass while a page or sheet slides.",
+  "@nativeRideAlongOnBody": {
+    "description": "Subtitle while the toggle is on."
+  },
+  "nativeRideAlongOffBody": "Buttons switch to a stand-in while a page or sheet slides, then back.",
+  "@nativeRideAlongOffBody": {
+    "description": "Subtitle while the toggle is off."
+  },
   "glassInteractiveTitle": "Interactive glass",
   "@glassInteractiveTitle": {
     "description": "Settings > Glass switch title (shown under Liquid Glass and Shader glass): whether glass reacts to a press."

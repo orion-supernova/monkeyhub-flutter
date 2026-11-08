@@ -16319,6 +16319,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controlsLabTitle => 'Controls lab';
 
   @override
+  String get nativeRideAlongTitle => 'Glass moves with pages';
+
+  @override
+  String get nativeRideAlongOnBody =>
+      'Buttons stay real glass while a page or sheet slides.';
+
+  @override
+  String get nativeRideAlongOffBody =>
+      'Buttons switch to a stand-in while a page or sheet slides, then back.';
+
+  @override
   String get glassInteractiveTitle => 'Interactive glass';
 
   @override

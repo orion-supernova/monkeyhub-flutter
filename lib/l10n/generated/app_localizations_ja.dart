@@ -15601,6 +15601,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get controlsLabTitle => 'コントロールラボ';
 
   @override
+  String get nativeRideAlongTitle => 'ガラスをページと一緒に動かす';
+
+  @override
+  String get nativeRideAlongOnBody => 'ページやシートがスライドする間も、ボタンは本物のガラスのままです。';
+
+  @override
+  String get nativeRideAlongOffBody =>
+      'ページやシートがスライドする間はボタンが代わりの表示に切り替わり、その後元に戻ります。';
+
+  @override
   String get glassInteractiveTitle => 'インタラクティブガラス';
 
   @override

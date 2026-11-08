@@ -113,6 +113,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kPowerSaving = 'mh.powerSaving';
   static const _kHaptics = 'mh.haptics';
   static const _kGlassInteractive = 'mh.glass.interactive';
+  static const _kNativeRideAlong = 'mh.ui.nativeRideAlong';
   static const _kScheduledIndicator = 'mh.schedule.indicator';
   static const _kDiagHidden = 'mh.diag.hidden';
 
@@ -138,7 +139,7 @@ class SettingsStore extends ChangeNotifier {
     _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kForkFullScreen, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
     _kVideoQualityTier, _kAutoLowerVideoQuality, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
-    _kGlassProfile, _kGlassSlots, _kGlassPreset, _kUiKit, _kNativeScope, _kShaderGlass, _kLocale, _kMotionLevel, _kPowerSaving, _kHaptics,
+    _kGlassProfile, _kGlassSlots, _kGlassPreset, _kUiKit, _kNativeScope, _kNativeRideAlong, _kShaderGlass, _kLocale, _kMotionLevel, _kPowerSaving, _kHaptics,
     _kScheduledIndicator, _kSebastianEnabled, _kTranslationTarget,
     _kTranslatedRoomIds, _kMarloweBrainId, _kCompanionForceCpu,
   };
@@ -233,6 +234,7 @@ class SettingsStore extends ChangeNotifier {
   PowerSaving _powerSaving = PowerSaving.auto;
   bool _hapticsEnabled = true;
   bool _glassInteractive = true;
+  bool _nativeRideAlong = true;
   ScheduledIndicator _scheduledIndicator = ScheduledIndicator.pill;
 
   // Off until asked for. Sebastian costs a 328 MB download, and a default-on
@@ -545,6 +547,14 @@ class SettingsStore extends ChangeNotifier {
   /// to a press (the native stretch and shine, the shader kit's jelly and
   /// glow). Read by the liquid kit's native controls and the shader skins.
   bool get glassInteractive => _glassInteractive;
+
+  /// Settings › Glass › Native controls in transitions (default: ride
+  /// along). On: a native control stays native through a push, pop or sheet
+  /// and follows its page every frame, stepping aside (to its Flutter
+  /// stand-in) only where another page or a barrier covers it. Off: every
+  /// native control hides for the transition and its stand-in slides, the
+  /// behaviour before 2026-11-08.
+  bool get nativeRideAlong => _nativeRideAlong;
 
   /// How a room announces that it is holding messages you have not sent yet.
   ///
@@ -889,6 +899,7 @@ class SettingsStore extends ChangeNotifier {
     _powerSaving = PowerSaving.parse(s[_kPowerSaving]);
     _hapticsEnabled = s[_kHaptics] != 'false';
     _glassInteractive = s[_kGlassInteractive] != 'false';
+    _nativeRideAlong = s[_kNativeRideAlong] != 'false';
     Haptics.enabled = _hapticsEnabled;
     _scheduledIndicator = ScheduledIndicator.parse(s[_kScheduledIndicator]);
     _sebastianEnabled = s[_kSebastianEnabled] == 'true';
@@ -1011,6 +1022,13 @@ class SettingsStore extends ChangeNotifier {
     Haptics.enabled = v;
     notifyListeners();
     await _storage.write(key: _kHaptics, value: v.toString());
+  }
+
+  Future<void> setNativeRideAlong(bool v) async {
+    if (_nativeRideAlong == v) return;
+    _nativeRideAlong = v;
+    notifyListeners();
+    await _storage.write(key: _kNativeRideAlong, value: v.toString());
   }
 
   Future<void> setGlassInteractive(bool v) async {

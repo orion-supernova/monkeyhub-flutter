@@ -26923,6 +26923,24 @@ abstract class AppLocalizations {
   /// **'Controls lab'**
   String get controlsLabTitle;
 
+  /// Settings > Glass, native controls: toggle title. On: native glass buttons move with a sliding page or sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Glass moves with pages'**
+  String get nativeRideAlongTitle;
+
+  /// Subtitle while the toggle is on.
+  ///
+  /// In en, this message translates to:
+  /// **'Buttons stay real glass while a page or sheet slides.'**
+  String get nativeRideAlongOnBody;
+
+  /// Subtitle while the toggle is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Buttons switch to a stand-in while a page or sheet slides, then back.'**
+  String get nativeRideAlongOffBody;
+
   /// Settings > Glass switch title (shown under Liquid Glass and Shader glass): whether glass reacts to a press.
   ///
   /// In en, this message translates to:

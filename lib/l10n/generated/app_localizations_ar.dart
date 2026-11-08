@@ -16555,6 +16555,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get controlsLabTitle => 'مختبر عناصر التحكم';
 
   @override
+  String get nativeRideAlongTitle => 'الزجاج يتحرك مع الصفحات';
+
+  @override
+  String get nativeRideAlongOnBody =>
+      'تبقى الأزرار زجاجًا حقيقيًا أثناء انزلاق صفحة أو لوحة.';
+
+  @override
+  String get nativeRideAlongOffBody =>
+      'تتحول الأزرار إلى نسخة بديلة أثناء انزلاق صفحة أو لوحة، ثم تعود.';
+
+  @override
   String get glassInteractiveTitle => 'زجاج تفاعلي';
 
   @override

@@ -1801,6 +1801,29 @@ class _NativeScopeChooser extends StatelessWidget {
               ),
             ],
           ),
+          // How native controls behave while a page or sheet moves: two
+          // treatments, the user picks (default: ride along).
+          if (everything) ...[
+            const SizedBox(height: 22),
+            GroupedSection(
+              margin: EdgeInsets.zero,
+              children: [
+                GroupedRow(
+                  icon: CupertinoIcons.arrow_right_arrow_left,
+                  tone: TileTone.teal,
+                  title: l10n.nativeRideAlongTitle,
+                  subtitle: store.nativeRideAlong
+                      ? l10n.nativeRideAlongOnBody
+                      : l10n.nativeRideAlongOffBody,
+                  chevron: false,
+                  trailing: RowSwitch(
+                    value: store.nativeRideAlong,
+                    onChanged: store.setNativeRideAlong,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
         // Press jelly, glow and stretch: the native controls' own under Liquid
         // Glass, the package's under Shader glass.

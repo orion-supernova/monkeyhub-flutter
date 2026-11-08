@@ -16247,6 +16247,17 @@ class AppLocalizationsTr extends AppLocalizations {
   String get controlsLabTitle => 'Denetim laboratuvarı';
 
   @override
+  String get nativeRideAlongTitle => 'Cam sayfalarla hareket etsin';
+
+  @override
+  String get nativeRideAlongOnBody =>
+      'Sayfa veya panel kayarken düğmeler gerçek cam olarak kalır.';
+
+  @override
+  String get nativeRideAlongOffBody =>
+      'Sayfa veya panel kayarken düğmeler geçici bir kopyaya geçer, sonra geri döner.';
+
+  @override
   String get glassInteractiveTitle => 'Etkileşimli cam';
 
   @override

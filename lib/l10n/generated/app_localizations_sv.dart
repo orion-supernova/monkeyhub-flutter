@@ -16355,6 +16355,17 @@ class AppLocalizationsSv extends AppLocalizations {
   String get controlsLabTitle => 'Kontrollabb';
 
   @override
+  String get nativeRideAlongTitle => 'Glaset följer sidorna';
+
+  @override
+  String get nativeRideAlongOnBody =>
+      'Knapparna förblir riktigt glas medan en sida eller ett blad glider.';
+
+  @override
+  String get nativeRideAlongOffBody =>
+      'Knapparna byts mot en kopia medan en sida eller ett blad glider, och sedan tillbaka.';
+
+  @override
   String get glassInteractiveTitle => 'Interaktivt glas';
 
   @override

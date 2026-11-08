@@ -16467,6 +16467,17 @@ class AppLocalizationsEs extends AppLocalizations {
   String get controlsLabTitle => 'Laboratorio de controles';
 
   @override
+  String get nativeRideAlongTitle => 'El cristal se mueve con las páginas';
+
+  @override
+  String get nativeRideAlongOnBody =>
+      'Los botones siguen siendo cristal real mientras se desliza una página o una hoja.';
+
+  @override
+  String get nativeRideAlongOffBody =>
+      'Los botones pasan a una copia mientras se desliza una página o una hoja, y luego vuelven.';
+
+  @override
   String get glassInteractiveTitle => 'Cristal interactivo';
 
   @override

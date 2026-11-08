@@ -16288,6 +16288,17 @@ class AppLocalizationsHi extends AppLocalizations {
   String get controlsLabTitle => 'कंट्रोल लैब';
 
   @override
+  String get nativeRideAlongTitle => 'ग्लास पेजों के साथ चले';
+
+  @override
+  String get nativeRideAlongOnBody =>
+      'पेज या शीट के खिसकते समय बटन असली ग्लास बने रहते हैं।';
+
+  @override
+  String get nativeRideAlongOffBody =>
+      'पेज या शीट के खिसकते समय बटन एक कॉपी में बदल जाते हैं, फिर वापस आ जाते हैं।';
+
+  @override
   String get glassInteractiveTitle => 'इंटरैक्टिव ग्लास';
 
   @override

@@ -1,9 +1,14 @@
+import 'dart:async';
+
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/ui/native/native_control.dart';
+import 'package:monkeyhub/widgets/route_depth.dart';
 
 /// A native control may only show when it is whole and nothing Flutter
 /// floats over it. Liquid Glass cut by a clipping ancestor renders as a flat
@@ -128,6 +133,186 @@ void main() {
       ),
     );
     expect(last()['visible'], isTrue);
+  });
+
+  group('transitions', () {
+    // id -> label, from the overlay's `set` traffic.
+    late Map<String, String> labels;
+    // label -> every placement synced for it, in order.
+    late Map<String, List<Map<String, Object?>>> byLabel;
+    final nav = GlobalKey<NavigatorState>();
+
+    Future<void> app(WidgetTester tester, Widget home) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      labels = {};
+      byLabel = {};
+      const overlay = MethodChannel('monkeyhub/native_overlay');
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(overlay, (
+        call,
+      ) async {
+        final a = (call.arguments as Map?)?.cast<String, Object?>() ?? {};
+        if (call.method == 'set') {
+          final spec = (a['spec'] as Map).cast<String, Object?>();
+          labels[a['id'] as String] = spec['label'] as String;
+        } else if (call.method == 'sync') {
+          for (final i in a['items'] as List) {
+            final m = (i as Map).cast<String, Object?>();
+            final label = labels[m['id']] ?? '?';
+            (byLabel[label] ??= []).add(m);
+          }
+        }
+        return null;
+      });
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          overlay,
+          null,
+        ),
+      );
+      await tester.pumpWidget(
+        ThemeScope(
+          controller: ThemeController(BasicTheme.midnight()),
+          child: MaterialApp(
+            navigatorKey: nav,
+            navigatorObservers: [RouteDepthObserver()],
+            theme: ThemeData(
+              pageTransitionsTheme: const PageTransitionsTheme(
+                builders: {
+                  TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+                },
+              ),
+            ),
+            home: home,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+    }
+
+    Widget page(String label, {bool right = false}) => Material(
+      child: Align(
+        alignment: right ? Alignment.topRight : Alignment.topLeft,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 20, right: 20, top: 60),
+          child: NativeControl(
+            size: const Size(80, 40),
+            spec: NativeSpec.button(label: label, height: 40),
+            standIn: SizedBox(key: ValueKey('standIn$label'), width: 80, height: 40),
+          ),
+        ),
+      ),
+    );
+
+    /// Tells Dart the native side revealed [label] (as the real overlay
+    /// does once its glass has sampled).
+    Future<void> reveal(WidgetTester tester, String label) async {
+      final id = labels.entries.firstWhere((e) => e.value == label).key;
+      const codec = StandardMethodCodec();
+      await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+        'monkeyhub/native_overlay',
+        codec.encodeMethodCall(
+          MethodCall('event', {'id': id, 'name': 'revealed', 'value': true}),
+        ),
+        (_) {},
+      );
+      await tester.pump();
+    }
+
+    bool shown(String label) => byLabel[label]!.last['visible'] == true;
+
+    testWidgets('ride along: the incoming page stays native and moves with '
+        'the slide; the page under it steps aside only once covered', (
+      tester,
+    ) async {
+      // A on the right of the outgoing page: the incoming page slides over
+      // it. (A control on the left leaves the screen before it is reached,
+      // and rightly stays native until then.)
+      await app(tester, page('A', right: true));
+      expect(shown('A'), isTrue);
+      await reveal(tester, 'A');
+
+      nav.currentState!.push(MaterialPageRoute<void>(builder: (_) => page('B')));
+      await tester.pump(); // route built
+      await tester.pump(const Duration(milliseconds: 16));
+      final xs = <double>[];
+      for (var f = 0; f < 30; f++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        final b = byLabel['B'];
+        if (b != null && b.last['visible'] == true) {
+          xs.add((b.last['x'] as num).toDouble());
+        }
+      }
+      expect(xs.length, greaterThan(5), reason: 'B shown during the slide');
+      expect(xs.first, greaterThan(xs.last), reason: 'B moved left with it');
+      // A: native through the start, then covered (stand-in) by B's page.
+      final a = byLabel['A']!;
+      expect(a.first['visible'], isTrue);
+      expect(a.any((m) => m['why'] == 'covered'), isTrue);
+      await tester.pumpAndSettle();
+      expect(shown('B'), isTrue);
+      expect(byLabel['B']!.last['x'], 20, reason: 'B at rest');
+    });
+
+    testWidgets('a dialog barrier covers the page under it', (tester) async {
+      await app(tester, page('A'));
+      await reveal(tester, 'A');
+      showDialog<void>(
+        context: nav.currentContext!,
+        builder: (_) => const SizedBox.shrink(),
+      );
+      await tester.pumpAndSettle();
+      expect(shown('A'), isFalse);
+      expect(byLabel['A']!.last['why'], 'covered');
+    });
+
+    testWidgets('stand-in first: a native control that must hide stays up '
+        'two frames after its stand-in is built, never a frame with neither', (
+      tester,
+    ) async {
+      await app(tester, page('A'));
+      await reveal(tester, 'A');
+      Finder standIn() => find.byKey(const ValueKey('standInA'));
+      expect(standIn(), findsNothing, reason: 'native up, no stand-in');
+      showDialog<void>(
+        context: nav.currentContext!,
+        builder: (_) => const SizedBox.shrink(),
+      );
+      int? standInFrame;
+      int? hiddenFrame;
+      for (var f = 0; f < 8; f++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        if (standInFrame == null && standIn().evaluate().isNotEmpty) {
+          standInFrame = f;
+        }
+        if (hiddenFrame == null && byLabel['A']!.last['visible'] == false) {
+          hiddenFrame = f;
+        }
+      }
+      expect(standInFrame, isNotNull);
+      expect(hiddenFrame, isNotNull);
+      expect(hiddenFrame! - standInFrame!, greaterThanOrEqualTo(2),
+          reason: 'native leaves only after the stand-in had frames to paint');
+    });
+
+    testWidgets('hide-during-transitions mode keeps the old behaviour', (
+      tester,
+    ) async {
+      // Not awaited: the keychain write never completes under test; the
+      // value itself is set synchronously.
+      unawaited(SettingsStore.instance.setNativeRideAlong(false));
+      addTearDown(() => unawaited(SettingsStore.instance.setNativeRideAlong(true)));
+      await app(tester, page('A'));
+      nav.currentState!.push(MaterialPageRoute<void>(builder: (_) => page('B')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(byLabel['B']!.last['why'], 'route');
+      await tester.pumpAndSettle();
+      expect(shown('B'), isTrue);
+    });
   });
 }
 

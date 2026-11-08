@@ -15461,6 +15461,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get controlsLabTitle => '控件实验室';
 
   @override
+  String get nativeRideAlongTitle => '玻璃随页面移动';
+
+  @override
+  String get nativeRideAlongOnBody => '页面或面板滑动时，按钮始终保持真实玻璃效果。';
+
+  @override
+  String get nativeRideAlongOffBody => '页面或面板滑动时，按钮会先换成替身，结束后再换回。';
+
+  @override
   String get glassInteractiveTitle => '交互式玻璃';
 
   @override

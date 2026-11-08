@@ -14,6 +14,7 @@ import '../../theme/theme_preference.dart';
 import '../../theme/theme_scope.dart';
 import '../foundation/caps.dart';
 import '../foundation/ui_kit.dart';
+import '../../widgets/route_depth.dart';
 import 'native_cut.dart';
 
 /// A real iOS control (SwiftUI, Liquid Glass on iOS 26) inside the Flutter
@@ -248,26 +249,44 @@ class _NativeControlState extends State<NativeControl> {
 
   /// Where the control is and whether it may show, or null when nothing
   /// changed since the last sync.
+  ///
+  /// Two rules keep a transition free of flicker:
+  ///
+  /// - **Ride along** ([SettingsStore.nativeRideAlong], the default): a push,
+  ///   pop or sheet does not hide native controls. Each follows its page
+  ///   every frame (this rect includes the route's slide), so the incoming
+  ///   page's buttons arrive as native glass and nothing swaps at the end.
+  ///   A control only steps aside where something Flutter draws above it
+  ///   covers it ([_covered]: a page sliding over it, a sheet's or dialog's
+  ///   barrier), because a native view always draws above Flutter.
+  /// - **Stand-in first**: when a native control must hide, its Flutter
+  ///   stand-in is built first and the native view goes [_holdFrames] syncs
+  ///   later, so there is never a frame with neither (the header that
+  ///   vanished for a frame as a push began).
   Map<String, Object?>? _placement() {
     final box = context.findRenderObject();
+    final laid = mounted && box is RenderBox && box.attached && box.hasSize;
+    final rideAlong = SettingsStore.instance.nativeRideAlong;
     String? why;
-    if (!mounted || box is! RenderBox || !box.attached || !box.hasSize) {
+    if (!laid) {
       why = 'unlaid';
     } else if (!_tickerOn) {
       why = 'ticker';
     } else if (NativeOverlay.suppressed.value != 0) {
       why = 'suppressed';
-    } else if (!_routeSettled()) {
+    } else if (!rideAlong && !_routeSettled()) {
       why = 'route';
     }
     Rect rect = Rect.zero;
     Rect clip = Rect.zero;
-    if (why == null) {
-      final b = box as RenderBox;
+    if (laid) {
+      final b = box;
       rect = MatrixUtils.transformRect(
         b.getTransformTo(null),
         Offset.zero & b.size,
       );
+    }
+    if (why == null) {
       clip = _clip(rect);
       if (clip.isEmpty) {
         why = 'clipped';
@@ -281,9 +300,33 @@ class _NativeControlState extends State<NativeControl> {
         why = 'partial';
       } else if (NativeOverlay._occluded(rect)) {
         why = 'occluded';
+      } else if (rideAlong && _covered(rect)) {
+        why = 'covered';
       }
     }
-    final visible = why == null;
+    final want = why == null;
+    var send = want;
+    if (want) {
+      if (_standInWanted) {
+        // Came back before the native view left: drop the extra stand-in.
+        _holdLeft = 0;
+        setState(() => _standInWanted = false);
+      }
+    } else if (_nativeUp && laid && _tickerOn) {
+      // Stand-in first, native out a little later. Not for an offstage page
+      // (ticker off): nothing of it paints, so there is nothing to bridge.
+      if (!_standInWanted) {
+        _standInWanted = true;
+        _holdLeft = _holdFrames;
+        setState(() {});
+      }
+      if (_holdLeft > 0) {
+        _holdLeft--;
+        send = true;
+        clip = rect;
+        SchedulerBinding.instance.ensureVisualUpdate();
+      }
+    }
     final placement = <String, Object?>{
       'x': _r(rect.left),
       'y': _r(rect.top),
@@ -293,14 +336,94 @@ class _NativeControlState extends State<NativeControl> {
       'cy': _r(clip.top),
       'cw': _r(clip.width),
       'ch': _r(clip.height),
-      'visible': visible,
+      'visible': send,
       'why': ?why,
     };
     if (_specEquals(placement, _lastPlacement)) return null;
     _lastPlacement = placement;
-    // Hiding is immediate on this side: the stand-in shows the same frame.
-    if (!visible && _revealed) setState(() => _revealed = false);
+    _nativeUp = send;
+    if (!send) {
+      _standInWanted = false;
+      if (_revealed) setState(() => _revealed = false);
+    }
     return placement;
+  }
+
+  /// Syncs a native view stays up once its stand-in is asked for: the
+  /// asking frame, the frame that builds the stand-in, and one more for that
+  /// frame's raster to reach the screen before the native view leaves.
+  static const int _holdFrames = 3;
+  int _holdLeft = 0;
+
+  /// The stand-in is drawn although the native view may still be up: it is
+  /// about to hide.
+  bool _standInWanted = false;
+
+  /// The last sync told the native side to show.
+  bool _nativeUp = false;
+
+  /// Whether something Flutter draws above this control's route covers
+  /// [rect]: a page above it (by its current, mid-slide bounds) or any
+  /// barrier (a sheet's, a dialog's dim) on a route above it.
+  bool _covered(Rect rect) {
+    final mine = _route;
+    if (mine == null) return false;
+    // A few points of lead, so the swap happens just before an incoming
+    // page's edge reaches the control, under its shadow, not after.
+    final probe = rect.inflate(6);
+    for (final u in RouteDepthObserver.live) {
+      if (identical(u, mine) || !_isAbove(u, mine)) continue;
+      if (u is TransitionRoute) {
+        final a = u.animation;
+        if (a != null && a.value <= 0) continue;
+      }
+      if (u is ModalRoute) {
+        final barrier = u.barrierColor;
+        if (barrier != null && barrier.a > 0) return true;
+        final pageBox = u.subtreeContext?.findRenderObject();
+        if (pageBox is RenderBox && pageBox.attached && pageBox.hasSize) {
+          final page = MatrixUtils.transformRect(
+            pageBox.getTransformTo(null),
+            Offset.zero & pageBox.size,
+          );
+          if (page.overlaps(probe)) return true;
+          continue;
+        }
+      }
+      // A route whose bounds can't be read: assume it covers.
+      return true;
+    }
+    return false;
+  }
+
+  /// Whether [u] draws above [mine]. On one navigator, the deeper route.
+  /// Across navigators (the shell's panes are nested navigators inside the
+  /// root's base route) only pushed routes (depth 1+) count, so a pane's
+  /// base page never hides the shell around it.
+  static bool _isAbove(Route<dynamic> u, Route<dynamic> mine) {
+    final un = u.navigator;
+    final mn = mine.navigator;
+    final du = RouteDepthObserver.of(u);
+    final dm = RouteDepthObserver.of(mine);
+    if (un == null || mn == null || du == null || dm == null) return false;
+    if (identical(un, mn)) return du > dm;
+    if (du < 1) return false;
+    // A page pushed on an outer navigator is above everything nested in it.
+    if (_encloses(un, mn)) return true;
+    // A page pushed in a nested pane is only above the base page hosting
+    // that pane, never above pages pushed over the shell.
+    if (_encloses(mn, un)) return dm == 0;
+    return false;
+  }
+
+  /// [outer] is an ancestor navigator of [inner].
+  static bool _encloses(NavigatorState outer, NavigatorState inner) {
+    var n = inner.context.findAncestorStateOfType<NavigatorState>();
+    while (n != null) {
+      if (identical(n, outer)) return true;
+      n = n.context.findAncestorStateOfType<NavigatorState>();
+    }
+    return false;
   }
 
   static double _r(double v) => (v * 2).roundToDouble() / 2;
@@ -421,7 +544,7 @@ class _NativeControlState extends State<NativeControl> {
       // clipped, hide, bring the stand-in back, widen, show, and blink.
       width: size.width,
       height: size.height,
-      child: _revealed || standIn == null
+      child: standIn == null || (_revealed && !_standInWanted)
           ? null
           : Center(child: standIn),
     );
