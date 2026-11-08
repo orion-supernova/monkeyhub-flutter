@@ -114,6 +114,26 @@ void main() {
     expect(last()['why'], 'occluded');
   });
 
+  testWidgets('under a fade in progress a control shows its stand-in; '
+      'under a resting dim (static Opacity) it stays native', (tester) async {
+    await pump(
+      tester,
+      const Align(
+        child: FadeTransition(
+          opacity: AlwaysStoppedAnimation<double>(0.5),
+          child: _Ctl(),
+        ),
+      ),
+    );
+    expect(last()['visible'], isFalse);
+    expect(last()['why'], 'faded');
+    await pump(
+      tester,
+      const Align(child: Opacity(opacity: 0.5, child: _Ctl())),
+    );
+    expect(last()['visible'], isTrue);
+  });
+
   testWidgets('a collapsed occluder (pill hidden) hides nothing', (
     tester,
   ) async {

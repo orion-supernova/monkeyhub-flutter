@@ -303,6 +303,11 @@ class _NativeControlState extends State<NativeControl> {
         // Flutter stand-in, which Flutter clips properly, and goes native
         // again once whole.
         why = 'partial';
+      } else if (_fading()) {
+        // A fade in progress above it (FadeTransition, AnimatedOpacity):
+        // Liquid Glass ignores alpha, so the native view would sit crisp
+        // over a half-faded page. Its stand-in fades properly until done.
+        why = 'faded';
       } else if (NativeOverlay._occluded(rect)) {
         why = 'occluded';
       } else if (rideAlong) {
@@ -473,6 +478,21 @@ class _NativeControlState extends State<NativeControl> {
     while (n != null) {
       if (identical(n, outer)) return true;
       n = n.context.findAncestorStateOfType<NavigatorState>();
+    }
+    return false;
+  }
+
+  /// An animating ancestor fade sits between hidden and fully shown. A
+  /// static [Opacity] (a dimmed, disabled look) does not count: that is a
+  /// resting state, and the control keeps its native glass.
+  bool _fading() {
+    RenderObject? node = context.findRenderObject()?.parent;
+    while (node != null) {
+      if (node is RenderAnimatedOpacity) {
+        final v = node.opacity.value;
+        if (v >= 0.05 && v < 0.99) return true;
+      }
+      node = node.parent;
     }
     return false;
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/settings_store.dart';
 import '../../theme/motion.dart';
+import '../../ui/native/native_control.dart' show NativeControl;
 import 'destinations.dart';
 
 /// How long a section transition runs. Longer than the `motionMed` it replaced
@@ -136,7 +137,11 @@ class _SectionSwitcherState extends State<SectionSwitcher>
     final i = navIndexOf(widget.section);
     _travel = widget.section == old.section ? 0 : (i > _index ? 1 : -1);
     _index = i;
-    if (MotionScope.of(context).calm) {
+    // Instant under native controls, as a UITabBarController switches: a
+    // native glass view cannot fade (alpha does not fade Liquid Glass), so
+    // in a cross-fade the arriving tab's native buttons sat crisp over a
+    // half-faded page.
+    if (MotionScope.of(context).calm || NativeControl.readyIn(context)) {
       // Nothing to cover, so nothing to keep underneath.
       _retired.clear();
       _arrival.value = 1;
