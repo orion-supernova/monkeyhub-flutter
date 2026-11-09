@@ -417,6 +417,24 @@ describe("hangup `taken` push keeps PushKit only for a ringing callee", () => {
     expect((await takenJobs(t)).length).toBe(before);
     await drain(t);
   });
+
+  test("stuck-active reap: an active call's cards never outlive their process: no PushKit either side", async () => {
+    const t = convexTest(schema);
+    const { caller, callee, callId } = await activeCall(t);
+    // Past the heartbeat watchdog's three minutes of silence.
+    await t.run(async (ctx) => {
+      await ctx.db.patch(callId, {
+        lastHeartbeatAt: Date.now() - 4 * 60 * 1000,
+      });
+    });
+    await t.mutation(internal.calls.gcStuckActive, {});
+    const stuck = (await takenJobs(t)).filter((j) => j.reason === "stuck");
+    expect(stuck.map((j) => j.targetUserId).sort()).toEqual(
+      [caller.userId, callee.userId].sort(),
+    );
+    for (const j of stuck) expect(j.iosVoip).toBe(false);
+    await drain(t);
+  });
 });
 
 /**
@@ -705,7 +723,9 @@ describe("ring report tells the phone the call's status", () => {
       const t = convexTest(schema);
       const { caller, callee, callId } = await ringingCall(t);
       const { ringFields } = await import("./receiptToken");
-      const fields = (await ringFields(callId, callee.userId))!;
+      // Built per device, as `sendVoip` does: the device half rides along.
+      const fields = (await ringFields(callId, callee.userId, "iphone-1"))!;
+      expect(fields.ringDevice).toBe("iphone-1");
       const post = (body: Record<string, unknown>) =>
         t.fetch("/calls/ringing", {
           method: "POST",
@@ -718,17 +738,26 @@ describe("ring report tells the phone the call's status", () => {
             (s) => s.callId === callId && s.kind === "ringing",
           ),
         );
+      const dismissed = async () =>
+        await t.run(async (ctx) => {
+          const call = (await ctx.db.get(callId)) as Doc<"calls"> | null;
+          return call?.dismissedDeviceIds ?? [];
+        });
 
-      // A probe while ringing: the status, and no ring reported.
+      // A probe while ringing: the status, and no ring reported. With the
+      // device half: still nothing recorded — the card is up.
       const probe = await post({
         callId,
         userId: callee.userId,
         sig: fields.ringSig,
         probe: true,
+        deviceId: fields.ringDevice,
+        deviceSig: fields.ringDeviceSig,
       });
       expect(probe.status).toBe(200);
       expect(await probe.json()).toEqual({ status: "ringing" });
       expect(await ringingRows()).toHaveLength(0);
+      expect(await dismissed()).toEqual([]);
 
       // The real report: rings the caller AND says the call still rings.
       const report = await post({
@@ -751,6 +780,36 @@ describe("ring report tells the phone the call's status", () => {
         sig: fields.ringSig,
       });
       expect(await late.json()).toEqual({ status: "cancelled" });
+      // Without the device half, nothing says which phone: no dismissal.
+      expect(await dismissed()).toEqual([]);
+
+      // A ring proof is not a device proof: the claim is dropped, the
+      // status still answered.
+      const forgedDevice = await post({
+        callId,
+        userId: callee.userId,
+        sig: fields.ringSig,
+        probe: true,
+        deviceId: "iphone-1",
+        deviceSig: fields.ringSig,
+      });
+      expect(await forgedDevice.json()).toEqual({ status: "cancelled" });
+      expect(await dismissed()).toEqual([]);
+
+      // The answer that ends the card is the device's dismissal: the
+      // graced PushKit `taken` will skip this phone. Idempotent.
+      for (let i = 0; i < 2; i++) {
+        const ended = await post({
+          callId,
+          userId: callee.userId,
+          sig: fields.ringSig,
+          probe: true,
+          deviceId: fields.ringDevice,
+          deviceSig: fields.ringDeviceSig,
+        });
+        expect(await ended.json()).toEqual({ status: "cancelled" });
+        expect(await dismissed()).toEqual(["iphone-1"]);
+      }
 
       // A forged proof still learns nothing.
       const forged = await post({

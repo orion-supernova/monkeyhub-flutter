@@ -144,6 +144,14 @@ void main() {
     'ringUrl': [receipt, ios, androidRoute],
     'ringUser': [receipt, ios, androidRoute],
     'ringSig': [receipt, ios, androidRoute],
+    // The device half of the ring proof: which of the callee's phones this
+    // push went to. Posted back with the proof, so the answer that ends the
+    // card counts as that device's dismissal and the grace-delayed PushKit
+    // `taken` is not sent to a phone with no card left — on iOS such a push
+    // has to report a placeholder call, a one-second phantom ring. iOS only:
+    // Android's `taken` is FCM and ends nothing when nothing is showing.
+    'ringDevice': [receipt, ios],
+    'ringDeviceSig': [receipt, ios],
     // Whether the message is simple enough to seed at all: no formatting, no
     // mentions, no reply tether, none of which fit in a push and all of which
     // would make the bubble RE-LAY-OUT when the real row landed. Decided

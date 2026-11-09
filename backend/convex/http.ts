@@ -18,7 +18,7 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { verifyReceipt, verifyRing } from "./receiptToken";
+import { verifyReceipt, verifyRing, verifyRingDevice } from "./receiptToken";
 
 const http = httpRouter();
 
@@ -206,6 +206,12 @@ http.route({
  * to end a card raised for a call that is already over. `probe: true` reads
  * the status without reporting a ring (the iPhone's native ring watch).
  * The poster never retries.
+ *
+ * `deviceId` + `deviceSig` (the payload's `ringDevice`/`ringDeviceSig`) name
+ * the posting phone. When the answer is one that ends the card on it, that
+ * device is recorded as dismissed on the call (`calls.dismissedDeviceIds`), so
+ * the grace-delayed PushKit `taken` is not sent to a phone with nothing left
+ * to end. Older builds post without them and are answered as before.
  */
 http.route({
   path: "/calls/ringing",
@@ -225,7 +231,7 @@ http.route({
     } catch {
       return deny();
     }
-    const { callId, userId, sig, probe } = body ?? {};
+    const { callId, userId, sig, probe, deviceId, deviceSig } = body ?? {};
     if (
       typeof callId !== "string" ||
       typeof userId !== "string" ||
@@ -234,6 +240,15 @@ http.route({
       return deny();
     }
     if (!(await verifyRing(callId, userId, sig))) return deny();
+    // Which of the callee's phones is asking. Checked on its own: the ring
+    // proof is the same string on every one of their devices, so it cannot
+    // vouch for a device, and an unverifiable device claim records nothing.
+    const device: string | null =
+      typeof deviceId === "string" &&
+      typeof deviceSig === "string" &&
+      (await verifyRingDevice(callId, userId, deviceId, deviceSig))
+        ? deviceId
+        : null;
     // The call's status rides back to the phone — see
     // `calls.markRingingInternal`. "unknown" when we could not read it: the
     // phone treats only a definite terminal answer as a reason to end a card.
@@ -252,6 +267,34 @@ http.route({
       status = read ?? "gone";
     } catch (e) {
       console.warn(`calls/ringing: ${(e as Error).message}`);
+    }
+    // Anything but "ringing" ends the card on the phone (AppDelegate's
+    // onRingStatus): cancelled, missed, rejected, ended, or answered on another
+    // device. That answer IS this device's dismissal, recorded here so
+    // `voipPush.sendVoipTaken` skips its PushKit leg. The app's own ack
+    // (`calls.ackNativeDismissed`) needs a running, signed-in Flutter engine
+    // and, from a process the push launched, reached the row after the 3 s
+    // grace — so the push went out, found no card, and PushKit's
+    // report-every-push rule rang a one-second phantom "Call": the second,
+    // "stale" ring a callee saw after every cancel on a backgrounded iPhone
+    // (2026-11-08). "gone" has no row to mark and no push left to skip;
+    // "unknown" decided nothing, so the phone keeps its card.
+    if (
+      device &&
+      status !== "ringing" &&
+      status !== "unknown" &&
+      status !== "gone"
+    ) {
+      try {
+        await ctx.runMutation(internal.calls.nativeCardEndedInternal, {
+          callId: callId as any,
+          deviceId: device,
+        });
+      } catch (e) {
+        console.warn(
+          `calls/ringing: dismissal for ${device}: ${(e as Error).message}`,
+        );
+      }
     }
     return new Response(JSON.stringify({ status }), {
       status: 200,

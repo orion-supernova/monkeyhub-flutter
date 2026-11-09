@@ -236,6 +236,14 @@ async function reapActiveCall(ctx: any, call: any) {
       targetUserId: toUserId,
       excludeDeviceId: null,
       reason: "stuck",
+      // Same reasoning as `endCallImpl`: the call was ACTIVE, so no card for
+      // it can sit in a killed process — the caller never had an invite card,
+      // and the callee's answered card lives in the process that answered,
+      // which CallKit takes the card down with. A PushKit `taken` here could
+      // only reach a phone whose card is already gone (the one that hung up
+      // on a dead network and never got its `end` through) and ring the
+      // phantom at it three minutes later. FCM stays, as everywhere.
+      iosVoip: false,
     });
   }
 }
@@ -1646,6 +1654,18 @@ export const ringStatusInternal = internalQuery({
   },
 });
 
+// One device's card for [call] is gone (or is about to go, on an answer it
+// cannot not act on). Idempotent; the list is bounded by the user's devices.
+async function markNativeDismissed(
+  ctx: any,
+  call: Doc<"calls">,
+  deviceId: string,
+) {
+  const acked = call.dismissedDeviceIds ?? [];
+  if (acked.includes(deviceId)) return;
+  await ctx.db.patch(call._id, { dismissedDeviceIds: [...acked, deviceId] });
+}
+
 export const ackNativeDismissed = mutation({
   args: {
     callId: v.id("calls"),
@@ -1660,9 +1680,26 @@ export const ackNativeDismissed = mutation({
     if (call.callerId.toString() !== u && call.calleeId.toString() !== u) {
       throw new Error("NOT_A_PARTICIPANT");
     }
-    const acked = call.dismissedDeviceIds ?? [];
-    if (acked.includes(deviceId)) return null;
-    await ctx.db.patch(callId, { dismissedDeviceIds: [...acked, deviceId] });
+    await markNativeDismissed(ctx, call, deviceId);
+    return null;
+  },
+});
+
+// The native twin of `ackNativeDismissed`, from `/calls/ringing` (http.ts):
+// the phone posted its signed ring proof WITH the device half, and the answer
+// it is getting back is one that ends its card (cancelled, missed, rejected,
+// ended, answered elsewhere). Recording the device here is what keeps the
+// grace-delayed PushKit `taken` from reaching a phone with nothing left to
+// end — the app's ack needs Dart signed in, which a process the push launched
+// does not have within the grace. No participant check: the device proof
+// already names the callee and the device, and only the endpoint calls this.
+export const nativeCardEndedInternal = internalMutation({
+  args: { callId: v.id("calls"), deviceId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { callId, deviceId }) => {
+    const call = await ctx.db.get(callId);
+    if (!call) return null;
+    await markNativeDismissed(ctx, call, deviceId);
     return null;
   },
 });

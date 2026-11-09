@@ -115,7 +115,8 @@ import WebRTC
   }
   private var ringWatches: [String: RingWatch] = [:]
   private static let ringWatchInterval: TimeInterval = 2
-  // The backend gives up at 30s; the plugin's own card timeout is 30s too.
+  // The backend gives up at 30 s; a 1:1 card's own timeout is 40 s (set where
+  // the invite push reports it), so this is the last stop after both.
   private static let ringWatchCeiling: TimeInterval = 45
   private lazy var callObserver = CXCallObserver()
 
@@ -677,6 +678,15 @@ import WebRTC
     // the default route toward the loudspeaker.
     callData.supportsVideo = callType == 1
     callData.audioSessionMode = callType == 1 ? "videoChat" : "voiceChat"
+    // A 1:1 card rings 40 s on its own clock, not the plugin's 30 s. The
+    // backend marks the call missed at 30 s and the ring watch ends the card
+    // on that answer within its next probe (2 s) — which is also the moment
+    // the backend records this device's dismissal and withholds the graced
+    // `taken` push. The plugin's own 30 s timer raced that by a hair and
+    // ended the card UNRECORDED, so the push still came, found no card, and
+    // rang the one-second phantom. Only an offline phone rings the full 40 s
+    // (the Android card is 40 s too). A group card keeps the plugin's own.
+    if !isGroup { callData.duration = 40_000 }
 
     // Until the card is reported, `cardLive` must not call it gone: Dart
     // asking in this window would ack a card about to ring.
@@ -729,6 +739,15 @@ import WebRTC
     let callId: String
     let userId: String
     let sig: String
+    // The device half (`ringDevice`/`ringDeviceSig`): which of the callee's
+    // phones this push went to. Posted back with the proof, so the answer
+    // that ends this card counts server-side as this device's dismissal and
+    // no PushKit `taken` follows for a card that is already gone — on this
+    // platform such a push has to report a placeholder call, a one-second
+    // phantom "Call". Absent from an older backend's payload; the proof
+    // works without it, the dismissal then waits on Dart's ack.
+    let deviceId: String?
+    let deviceSig: String?
 
     init?(_ dict: [AnyHashable: Any]) {
       guard
@@ -743,6 +762,8 @@ import WebRTC
       self.callId = callId
       self.userId = userId
       self.sig = sig
+      self.deviceId = dict["ringDevice"] as? String
+      self.deviceSig = dict["ringDeviceSig"] as? String
     }
   }
 
@@ -761,6 +782,10 @@ import WebRTC
       "sig": proof.sig,
     ]
     if probe { fields["probe"] = true }
+    if let deviceId = proof.deviceId, let deviceSig = proof.deviceSig {
+      fields["deviceId"] = deviceId
+      fields["deviceSig"] = deviceSig
+    }
     guard let body = try? JSONSerialization.data(withJSONObject: fields) else {
       completion(nil)
       return

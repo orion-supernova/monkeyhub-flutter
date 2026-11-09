@@ -608,6 +608,16 @@ EOF</code></pre>
   <li><b>Receipt history (B2):</b> keep per-message "delivered at" and "read at" times at the same 200-move depth; only the storage changes (rows, not a rewritten array).</li>
   <li><b>Home server (A4):</b> retired. <code>deploy.sh</code> is VPS-only by default.</li>
 </ol>
+<h3>Decided 2026-11-09</h3>
+<ol>
+  <li><b>Ring dismissal is acked by the phone's native side, not only by the app.</b> Bug (2026-11-08, zeynepoz's iPhone): after a cancel, and after a 30 s timeout, a backgrounded iPhone rang twice. The first ring was the real card; the native ring watch ended it on the backend's "cancelled"/"missed" answer within 2 s, but nothing told the backend, so the grace-delayed PushKit <code>taken</code> (<code>calls.scheduleTakenPush</code>, 3 s) still went out, found no card, and PushKit's report-every-push rule made it a one-second phantom "Call". The app's own ack (<code>calls:ackNativeDismissed</code>) needs a running, signed-in Flutter engine; from a process the push launched it reached the row after the grace. Fix: the invite push carries a signed device half of the ring proof (<code>ringDevice</code>/<code>ringDeviceSig</code>, one more HMAC per device); <code>/calls/ringing</code> records the device in <code>dismissedDeviceIds</code> whenever its answer is one that ends the card (<code>calls.nativeCardEndedInternal</code>). The 1:1 CallKit card rings 40 s on its own clock so the backend's 30 s answer, not the plugin's timer, is what ends it. <code>gcStuckActive</code> no longer sends the PushKit leg (an active call's card never outlives its process). Rejected: a longer grace (hides the race, keeps the push), and marking every device of the callee on one answer (wrong for a person with two iPhones). Residual: a <code>taken</code> already in flight when the answer lands still flashes once; the window is one push transit.</li>
+</ol>
+<div class="tbl"><table>
+<tr><th>Action</th><th>Reads</th><th>Writes</th><th>Re-runs</th><th>Idle</th></tr>
+<tr><td>Invite VoIP push, per callee device</td><td>0 extra</td><td>0 (one more HMAC per device, inside the action)</td><td>0</td><td>0</td></tr>
+<tr><td><code>/calls/ringing</code> answer that ends a card</td><td>+1 point read of the call row</td><td>+1 patch of the call row, once per device per call (idempotent)</td><td>None for a terminal row. For an "answered elsewhere" answer, the two parties' <code>activeCallForUser</code>, exactly what the app's ack already caused</td><td>0</td></tr>
+<tr><td><code>voipPush.sendVoipTaken</code></td><td>unchanged</td><td>unchanged; one APNs request fewer per dismissed device</td><td>0</td><td>0</td></tr>
+</table></div>
 <h3>Recommended order</h3>
 <ol>
   <li>Phase A: A1 (mirror off), A2 (file reaper), A3 (cache + purge; needs the Cloudflare token).</li>

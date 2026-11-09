@@ -155,6 +155,19 @@ function ringMessage(callId: string, userId: string): string {
   return `ring|${callId}|${userId}`;
 }
 
+// The device half of the proof. The ring proof says "one of this callee's
+// phones"; this one says WHICH, so the answer that ends a card there can
+// stand in for that device's dismissal ack (http.ts `/calls/ringing`,
+// calls.ts `nativeCardEndedInternal`). Its own domain prefix: it must never
+// verify as a ring proof, nor the reverse.
+function ringDeviceMessage(
+  callId: string,
+  userId: string,
+  deviceId: string,
+): string {
+  return `ringdev|${callId}|${userId}|${deviceId}`;
+}
+
 /** Where the phone posts a ring proof: the receipts endpoint's sibling. */
 export function ringEndpoint(): string | null {
   const receipts = receiptEndpoint();
@@ -167,24 +180,63 @@ export function ringEndpoint(): string | null {
  * is off (no `RECEIPT_SECRET`). Keys are a cross-language contract with
  * AppDelegate.swift and CallFcmService.kt — see
  * test/push_payload_contract_test.dart.
+ *
+ * With [deviceId] — the device this push goes to — the fields also carry the
+ * signed device half (`ringDevice`, `ringDeviceSig`), which the phone posts
+ * back with the proof. Only the iPhone reads it: a PushKit `taken` with no
+ * card left to end is a one-second phantom ring there, and the answer that
+ * ends a card is the earliest honest moment to say the card is gone.
  */
 export async function ringFields(
   callId: string,
   userId: string,
+  deviceId?: string,
 ): Promise<Record<string, string> | null> {
   const s = secret();
   const url = ringEndpoint();
   if (!s || !url) return null;
+  const k = await key(s, "sign");
   const sig = await crypto.subtle.sign(
     "HMAC",
-    await key(s, "sign"),
+    k,
     enc.encode(ringMessage(callId, userId)),
   );
-  return {
+  const out: Record<string, string> = {
     ringUrl: url,
     ringUser: userId,
     ringSig: toBase64Url(new Uint8Array(sig)),
   };
+  if (deviceId) {
+    const deviceSig = await crypto.subtle.sign(
+      "HMAC",
+      k,
+      enc.encode(ringDeviceMessage(callId, userId, deviceId)),
+    );
+    out.ringDevice = deviceId;
+    out.ringDeviceSig = toBase64Url(new Uint8Array(deviceSig));
+  }
+  return out;
+}
+
+/**
+ * Whether [sig] is this deployment's device proof: that the invite push for
+ * [callId] went to [deviceId] of the callee [userId].
+ */
+export async function verifyRingDevice(
+  callId: string,
+  userId: string,
+  deviceId: string,
+  sig: string,
+): Promise<boolean> {
+  const s = secret();
+  const bytes = fromBase64Url(sig);
+  if (!s || !bytes) return false;
+  return await crypto.subtle.verify(
+    "HMAC",
+    await key(s, "verify"),
+    bytes,
+    enc.encode(ringDeviceMessage(callId, userId, deviceId)),
+  );
 }
 
 /** Whether [sig] is this deployment's ring proof for the callee of [callId]. */

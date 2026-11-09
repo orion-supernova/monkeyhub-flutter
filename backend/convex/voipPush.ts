@@ -131,16 +131,26 @@ export const sendVoip = internalAction({
       callerAvatarUrl: args.callerAvatarUrl ?? "",
       callType: args.type,
       roomId: args.roomId.toString(),
-      // The ring proof the callee's phone posts back once its ringer is up
-      // (receiptToken.ts). Absent while RECEIPT_SECRET is unset, and then
-      // only the in-app report can move the caller to "ringing".
-      ...((await ringFields(args.callId.toString(), args.calleeId.toString())) ?? {}),
     };
     // Fan out in parallel — one slow APNs round-trip shouldn't block the
     // sibling devices. allSettled because we never want one failure to
     // suppress logging for the others.
+    //
+    // The ring proof the callee's phone posts back once its ringer is up
+    // (receiptToken.ts) is built PER DEVICE: its device half is what lets the
+    // answer that ends a card count as that device's dismissal ack, so the
+    // graced PushKit `taken` is not sent to a phone with nothing left to end.
+    // Absent while RECEIPT_SECRET is unset, and then only the in-app report
+    // can move the caller to "ringing".
+    const callId = args.callId.toString();
+    const calleeId = args.calleeId.toString();
     const results = await Promise.allSettled(
-      devices.map((d) => pushToDevice(ctx, args.calleeId, d, payload)),
+      devices.map(async (d) =>
+        pushToDevice(ctx, args.calleeId, d, {
+          ...payload,
+          ...((await ringFields(callId, calleeId, d.deviceId)) ?? {}),
+        }),
+      ),
     );
     // Alert-banner rescue: if the VoIP push failed for EVERY device the
     // callee would otherwise get complete silence. The usual cause is a
