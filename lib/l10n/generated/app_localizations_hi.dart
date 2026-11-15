@@ -11337,6 +11337,20 @@ class AppLocalizationsHi extends AppLocalizations {
       'कोई समर्थित मैप ऐप नहीं मिला। आप ब्राउज़र इस्तेमाल कर सकते हैं।';
 
   @override
+  String get locationMapRecenter => 'स्थान दिखाएँ';
+
+  @override
+  String get mapSourceSection => 'शेयर की गई लोकेशन';
+
+  @override
+  String get mapSourceFooter =>
+      'चैट और फ़ुल स्क्रीन में शेयर की गई लोकेशन कैसी दिखेंगी। OpenFreeMap मुफ़्त और ओपन है, OpenStreetMap से बना है।';
+
+  @override
+  String get mapSourceGoogleUnavailable =>
+      'इस डिवाइस पर Google Maps उपलब्ध नहीं है, इसलिए OpenFreeMap इस्तेमाल हो रहा है।';
+
+  @override
   String get interactionAnswersSearch => 'लोग या जवाब खोजें';
 
   @override

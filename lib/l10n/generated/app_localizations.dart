@@ -19111,6 +19111,30 @@ abstract class AppLocalizations {
   /// **'No supported maps apps found. You can use your browser.'**
   String get mapAppsNoInstalled;
 
+  /// Locate button on the full-screen location map: moves the map back to the shared position and follows it again.
+  ///
+  /// In en, this message translates to:
+  /// **'Show location'**
+  String get locationMapRecenter;
+
+  /// Section header on the Maps settings page for choosing which maps draw shared locations.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared locations'**
+  String get mapSourceSection;
+
+  /// Footer under the map source choice (Apple/Google Maps vs OpenFreeMap). OpenFreeMap and OpenStreetMap are names, keep them.
+  ///
+  /// In en, this message translates to:
+  /// **'How shared locations look in chats and full screen. OpenFreeMap is free and open, made from OpenStreetMap.'**
+  String get mapSourceFooter;
+
+  /// Shown on Android when Google Maps cannot be used (no Play Services or no key) and OpenFreeMap is used instead.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Maps isn\'t available on this device, so OpenFreeMap is used.'**
+  String get mapSourceGoogleUnavailable;
+
   /// Placeholder in the search field of a poll/RSVP answers sheet: search by person or by answer.
   ///
   /// In en, this message translates to:

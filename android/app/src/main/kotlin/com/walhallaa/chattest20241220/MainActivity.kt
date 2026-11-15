@@ -172,6 +172,12 @@ class MainActivity : FlutterActivity(), GamepadsCompatibleActivity {
         // daily game's clock stops on it.
         PhoneCallBridge.register(this, flutterEngine)
         MapsBridge.register(this, flutterEngine)
+        // monkeyhub/map_snapshot — Google Maps still pictures for location
+        // bubbles (lite-mode MapView, queued one at a time).
+        MapSnapshotBridge.register(this, flutterEngine)
+        // monkeyhub/map_view — the interactive Google map platform view for
+        // the fullscreen location screen.
+        MapViewFactory.register(flutterEngine)
         VideoShrink.register(this, flutterEngine)
         // monkeyhub/media_compose — joins and trims the segments of a paused
         // voice or video note.

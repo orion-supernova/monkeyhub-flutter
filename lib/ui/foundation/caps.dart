@@ -48,11 +48,12 @@ abstract final class Caps {
   /// Apple sign-in, Darwin WebRTC.
   static bool get nativeApple => iOS || macOS;
 
-  /// Street-map pictures for location bubbles from the OS (Apple's
-  /// `MKMapSnapshotter`: no key, no quota, no server of ours). In: iOS and
-  /// macOS apps. Out: Android, Windows, Linux and web, which draw OpenFreeMap
-  /// tiles themselves instead (see `location_map_snapshot.dart`).
-  static bool get mapSnapshots => nativeApple;
+  /// The OS has its own maps for shared locations (bubble pictures and the
+  /// full-screen map): Apple's MapKit on iOS and macOS, Google's Maps SDK on
+  /// Android (which still needs Play Services and a key, checked at runtime
+  /// in `map_engine.dart`). Out: Windows, Linux and web, which always use
+  /// OpenFreeMap tiles drawn in Dart.
+  static bool get systemMaps => nativeApple || android;
 
   // ------------------------------------------------------- input & presence
   //

@@ -11301,6 +11301,20 @@ class AppLocalizationsTr extends AppLocalizations {
       'Desteklenen bir harita uygulaması bulunamadı. Tarayıcını kullanabilirsin.';
 
   @override
+  String get locationMapRecenter => 'Konumu göster';
+
+  @override
+  String get mapSourceSection => 'Paylaşılan konumlar';
+
+  @override
+  String get mapSourceFooter =>
+      'Paylaşılan konumların sohbetlerde ve tam ekranda nasıl görüneceği. OpenFreeMap ücretsiz ve açık kaynaklıdır, OpenStreetMap verileriyle yapılır.';
+
+  @override
+  String get mapSourceGoogleUnavailable =>
+      'Bu cihazda Google Haritalar kullanılamıyor, bu yüzden OpenFreeMap kullanılıyor.';
+
+  @override
   String get interactionAnswersSearch => 'Kişi veya yanıt ara';
 
   @override

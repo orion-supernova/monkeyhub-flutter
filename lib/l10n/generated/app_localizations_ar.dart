@@ -11522,6 +11522,20 @@ class AppLocalizationsAr extends AppLocalizations {
       'لم يتم العثور على تطبيق خرائط مدعوم. يمكنك استخدام المتصفح.';
 
   @override
+  String get locationMapRecenter => 'إظهار الموقع';
+
+  @override
+  String get mapSourceSection => 'المواقع المشتركة';
+
+  @override
+  String get mapSourceFooter =>
+      'طريقة ظهور المواقع المشتركة في المحادثات وفي وضع ملء الشاشة. OpenFreeMap مجاني ومفتوح، مبني على OpenStreetMap.';
+
+  @override
+  String get mapSourceGoogleUnavailable =>
+      'خرائط Google غير متاحة على هذا الجهاز، لذلك يُستخدم OpenFreeMap.';
+
+  @override
   String get interactionAnswersSearch => 'البحث عن أشخاص أو إجابات';
 
   @override

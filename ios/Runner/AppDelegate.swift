@@ -2121,6 +2121,11 @@ import WebRTC
       MapSnapshot.register(with: mapRegistrar.messenger())
     }
 
+    // monkeyhub/map_view — interactive Apple Maps platform view.
+    if let mapViewRegistrar = engine.registrar(forPlugin: "MonkeyHubMapViewPlugin") {
+      MapViewFactory.register(with: mapViewRegistrar)
+    }
+
     // monkeyhub/video_shrink — re-encodes a video over the upload cap.
     if let shrinkRegistrar = engine.registrar(forPlugin: "MonkeyHubVideoShrinkPlugin") {
       VideoShrink.register(with: shrinkRegistrar.messenger())

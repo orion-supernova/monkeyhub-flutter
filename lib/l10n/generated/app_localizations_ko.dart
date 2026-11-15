@@ -10896,6 +10896,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mapAppsNoInstalled => '지원되는 지도 앱이 없습니다. 브라우저를 사용할 수 있습니다.';
 
   @override
+  String get locationMapRecenter => '위치 보기';
+
+  @override
+  String get mapSourceSection => '공유된 위치';
+
+  @override
+  String get mapSourceFooter =>
+      '공유된 위치가 채팅과 전체 화면에서 어떻게 보일지 정합니다. OpenFreeMap은 OpenStreetMap으로 만든 무료 오픈 지도입니다.';
+
+  @override
+  String get mapSourceGoogleUnavailable =>
+      '이 기기에서는 Google 지도를 사용할 수 없어 OpenFreeMap을 사용합니다.';
+
+  @override
   String get interactionAnswersSearch => '사람 또는 답변 검색';
 
   @override

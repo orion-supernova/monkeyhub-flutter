@@ -10872,6 +10872,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mapAppsNoInstalled => '対応するマップアプリが見つかりません。ブラウザを利用できます。';
 
   @override
+  String get locationMapRecenter => '位置を表示';
+
+  @override
+  String get mapSourceSection => '共有された位置情報';
+
+  @override
+  String get mapSourceFooter =>
+      '共有された位置情報をチャットと全画面でどう表示するか。OpenFreeMapはOpenStreetMapから作られた無料のオープンな地図です。';
+
+  @override
+  String get mapSourceGoogleUnavailable =>
+      'このデバイスではGoogleマップを利用できないため、OpenFreeMapを使用します。';
+
+  @override
   String get interactionAnswersSearch => '名前や回答を検索';
 
   @override

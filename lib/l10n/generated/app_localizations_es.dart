@@ -11455,6 +11455,20 @@ class AppLocalizationsEs extends AppLocalizations {
       'No hay apps de mapas compatibles. Puedes usar el navegador.';
 
   @override
+  String get locationMapRecenter => 'Mostrar ubicación';
+
+  @override
+  String get mapSourceSection => 'Ubicaciones compartidas';
+
+  @override
+  String get mapSourceFooter =>
+      'Cómo se ven las ubicaciones compartidas en los chats y a pantalla completa. OpenFreeMap es libre y gratuito, hecho con OpenStreetMap.';
+
+  @override
+  String get mapSourceGoogleUnavailable =>
+      'Google Maps no está disponible en este dispositivo, así que se usa OpenFreeMap.';
+
+  @override
   String get interactionAnswersSearch => 'Buscar personas o respuestas';
 
   @override

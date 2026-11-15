@@ -13334,6 +13334,22 @@
   "@mapAppsNoInstalled": {
     "description": "Shown in the maps picker when no supported maps app is installed."
   },
+  "locationMapRecenter": "Show location",
+  "@locationMapRecenter": {
+    "description": "Locate button on the full-screen location map: moves the map back to the shared position and follows it again."
+  },
+  "mapSourceSection": "Shared locations",
+  "@mapSourceSection": {
+    "description": "Section header on the Maps settings page for choosing which maps draw shared locations."
+  },
+  "mapSourceFooter": "How shared locations look in chats and full screen. OpenFreeMap is free and open, made from OpenStreetMap.",
+  "@mapSourceFooter": {
+    "description": "Footer under the map source choice (Apple/Google Maps vs OpenFreeMap). OpenFreeMap and OpenStreetMap are names, keep them."
+  },
+  "mapSourceGoogleUnavailable": "Google Maps isn't available on this device, so OpenFreeMap is used.",
+  "@mapSourceGoogleUnavailable": {
+    "description": "Shown on Android when Google Maps cannot be used (no Play Services or no key) and OpenFreeMap is used instead."
+  },
   "interactionAnswersSearch": "Search people or answers",
   "@interactionAnswersSearch": {
     "description": "Placeholder in the search field of a poll/RSVP answers sheet: search by person or by answer."

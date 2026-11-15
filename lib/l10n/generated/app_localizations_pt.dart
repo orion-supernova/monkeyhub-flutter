@@ -11460,6 +11460,20 @@ class AppLocalizationsPt extends AppLocalizations {
       'Nenhuma app de mapas compatível encontrada. Pode usar o navegador.';
 
   @override
+  String get locationMapRecenter => 'Mostrar localização';
+
+  @override
+  String get mapSourceSection => 'Localizações partilhadas';
+
+  @override
+  String get mapSourceFooter =>
+      'Como as localizações partilhadas aparecem nas conversas e em ecrã inteiro. O OpenFreeMap é gratuito e aberto, feito a partir do OpenStreetMap.';
+
+  @override
+  String get mapSourceGoogleUnavailable =>
+      'O Google Maps não está disponível neste dispositivo, por isso é usado o OpenFreeMap.';
+
+  @override
   String get interactionAnswersSearch => 'Pesquisar pessoas ou respostas';
 
   @override
@@ -27955,6 +27969,20 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get mapAppsNoInstalled =>
       'Nenhum app de mapas compatível encontrado. Você pode usar o navegador.';
+
+  @override
+  String get locationMapRecenter => 'Mostrar localização';
+
+  @override
+  String get mapSourceSection => 'Localizações compartilhadas';
+
+  @override
+  String get mapSourceFooter =>
+      'Como as localizações compartilhadas aparecem nas conversas e em tela cheia. O OpenFreeMap é gratuito e aberto, feito a partir do OpenStreetMap.';
+
+  @override
+  String get mapSourceGoogleUnavailable =>
+      'O Google Maps não está disponível neste dispositivo, então o OpenFreeMap é usado.';
 
   @override
   String get interactionAnswersSearch => 'Buscar pessoas ou respostas';

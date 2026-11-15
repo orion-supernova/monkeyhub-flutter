@@ -6,6 +6,7 @@ import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/maps_handoff.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/map_engine.dart';
 import '../widgets/settings_pickers.dart';
 
 class MapAppsScreen extends StatefulWidget {
@@ -22,6 +23,12 @@ class _MapAppsScreenState extends State<MapAppsScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _load();
+    // Android: learn whether Google Maps can be used, for the footnote.
+    if (MapEngines.googleReady == null) {
+      MapEngines.resolve().then((_) {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   @override
@@ -87,8 +94,48 @@ class _MapAppsScreenState extends State<MapAppsScreen>
           if (missing) GroupedFooter(l.mapAppsUnavailable),
           if (apps != null && apps.every((app) => app.id == 'browser'))
             GroupedFooter(l.mapAppsNoInstalled),
+          ..._mapSource(store, l),
         ],
       );
     },
   );
+
+  /// Which maps draw shared locations. Only where the OS has maps of its own;
+  /// elsewhere OpenFreeMap is the only source and there is nothing to choose.
+  List<Widget> _mapSource(SettingsStore store, AppLocalizations l) {
+    final system = MapEngines.systemName;
+    if (system == null) return const [];
+    return [
+      GroupedSection(
+        header: l.mapSourceSection,
+        children: [
+          GroupedRow.choice(
+            icon: CupertinoIcons.map_fill,
+            tone: TileTone.blue,
+            title: system,
+            selected: store.mapSource == MapSource.system,
+            onTap: () {
+              pickFeedback();
+              store.setMapSource(MapSource.system);
+            },
+          ),
+          GroupedRow.choice(
+            icon: CupertinoIcons.globe,
+            tone: TileTone.green,
+            title: 'OpenFreeMap',
+            selected: store.mapSource == MapSource.openFreeMap,
+            onTap: () {
+              pickFeedback();
+              store.setMapSource(MapSource.openFreeMap);
+            },
+          ),
+        ],
+      ),
+      GroupedFooter(
+        store.mapSource == MapSource.system && MapEngines.googleReady == false
+            ? '${l.mapSourceFooter}\n${l.mapSourceGoogleUnavailable}'
+            : l.mapSourceFooter,
+      ),
+    ];
+  }
 }

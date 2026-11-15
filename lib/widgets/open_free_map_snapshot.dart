@@ -66,6 +66,80 @@ abstract final class OpenFreeMapSnapshot {
     required Size size,
     required double scale,
     required bool dark,
+  }) {
+    // Display zoom: the zoom at which the span fills the card's width.
+    final zoom = zoomFor(
+      latitude: latitude,
+      spanMeters: spanMeters,
+      widthPoints: size.width,
+    );
+    final tilePx = _tilePx(zoom, scale);
+    // The card's top-left in world pixels at the display zoom.
+    final worldPx = tilePx * (1 << _dataZoom(zoom));
+    final cx = (longitude + 180) / 360 * worldPx;
+    final latRad = latitude.clamp(-85.05, 85.05) * math.pi / 180;
+    final cy =
+        (1 - math.log(math.tan(latRad) + 1 / math.cos(latRad)) / math.pi) /
+        2 *
+        worldPx;
+    return _renderRegion(
+      zoom: zoom,
+      left: ((cx - size.width / 2) * scale).roundToDouble() / scale,
+      top: ((cy - size.height / 2) * scale).roundToDouble() / scale,
+      size: size,
+      scale: scale,
+      dark: dark,
+    );
+  }
+
+  /// One 256-point web-Mercator tile ([z]/[x]/[y]) for the full-screen map's
+  /// tile layer. Past z14 it is a magnified part of a z14 data tile.
+  static Future<ui.Image?> renderTile({
+    required int z,
+    required int x,
+    required int y,
+    required double scale,
+    required bool dark,
+  }) => _renderRegion(
+    zoom: z.toDouble(),
+    left: x * 256.0,
+    top: y * 256.0,
+    size: const Size(256, 256),
+    scale: scale,
+    dark: dark,
+  );
+
+  /// The web-Mercator zoom at which [spanMeters] spans [widthPoints].
+  static double zoomFor({
+    required double latitude,
+    required double spanMeters,
+    required double widthPoints,
+  }) {
+    final cosLat = math.cos(latitude * math.pi / 180).abs().clamp(0.01, 1.0);
+    return (math.log(_metersPerPixelZ0 * cosLat * widthPoints / spanMeters) /
+            math.ln2)
+        .clamp(1.0, 20.0);
+  }
+
+  static int _dataZoom(double zoom) => math.min(zoom.floor(), _maxDataZoom);
+
+  /// One data tile's edge, in logical pixels, at the display zoom. Snapped to
+  /// whole device pixels (as is a card's origin) so neighbouring tiles meet
+  /// exactly: an antialiased edge on a fractional pixel leaves a visible
+  /// hairline seam between them.
+  static double _tilePx(double zoom, double scale) =>
+      (256 * math.pow(2, zoom - _dataZoom(zoom)) * scale).roundToDouble() /
+      scale;
+
+  /// Draws the [size] region whose top-left is ([left], [top]) in world
+  /// pixels at [zoom].
+  static Future<ui.Image?> _renderRegion({
+    required double zoom,
+    required double left,
+    required double top,
+    required Size size,
+    required double scale,
+    required bool dark,
   }) async {
     try {
       final style = await _style(dark);
@@ -74,30 +148,9 @@ abstract final class OpenFreeMapSnapshot {
         _tileUrl = null; // Retry the TileJSON next time.
         return null;
       }
-
-      final cosLat = math.cos(latitude * math.pi / 180).abs().clamp(0.01, 1.0);
-      // Display zoom: the zoom at which the span fills the card's width.
-      final zoom = (math.log(_metersPerPixelZ0 * cosLat * size.width / spanMeters) /
-              math.ln2)
-          .clamp(1.0, 20.0);
-      final dataZoom = math.min(zoom.floor(), _maxDataZoom);
+      final dataZoom = _dataZoom(zoom);
       final tilesPerSide = 1 << dataZoom;
-      // One data tile's edge, in logical pixels, at the display zoom. Snapped
-      // to whole device pixels (as is the card's origin below) so neighbouring
-      // tiles meet exactly: an antialiased edge on a fractional pixel leaves a
-      // visible hairline seam between them.
-      final tilePx =
-          (256 * math.pow(2, zoom - dataZoom) * scale).roundToDouble() / scale;
-
-      // The card's top-left in world pixels at the display zoom.
-      final worldPx = tilePx * tilesPerSide;
-      final cx = (longitude + 180) / 360 * worldPx;
-      final latRad = latitude.clamp(-85.05, 85.05) * math.pi / 180;
-      final cy = (1 - math.log(math.tan(latRad) + 1 / math.cos(latRad)) / math.pi) /
-          2 *
-          worldPx;
-      final left = ((cx - size.width / 2) * scale).roundToDouble() / scale;
-      final top = ((cy - size.height / 2) * scale).roundToDouble() / scale;
+      final tilePx = _tilePx(zoom, scale);
 
       final x0 = (left / tilePx).floor();
       final x1 = ((left + size.width) / tilePx).floor();

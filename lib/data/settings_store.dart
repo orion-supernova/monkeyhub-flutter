@@ -63,6 +63,7 @@ class SettingsStore extends ChangeNotifier {
   /// [closeKeepsRunning].
   static const _kCloseKeepsRunning = 'mh.closeKeepsRunning';
   static const _kMapAppId = 'mh.maps.app';
+  static const _kMapSource = 'mh.maps.source';
   static const _kMapAppName = 'mh.maps.name';
   static const _kAutoplayExpressions = 'mh.autoplayExpressions';
   static const _kStickerSuggestions = 'mh.stickerSuggestions';
@@ -136,7 +137,7 @@ class SettingsStore extends ChangeNotifier {
     _kLayout, _kNav, _kSection, _kShowCallsTab, _kCallsSeenAt, _kCallsFavSnoozed, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
-    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kForkFullScreen, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
+    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kMapSource, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kForkFullScreen, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
     _kVideoQualityTier, _kAutoLowerVideoQuality, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kUiKit, _kNativeScope, _kNativeRideAlong, _kShaderGlass, _kLocale, _kMotionLevel, _kPowerSaving, _kHaptics,
@@ -195,6 +196,7 @@ class SettingsStore extends ChangeNotifier {
   bool _compactDesktop = true;
   bool? _closeKeepsRunning;
   String? _mapAppId;
+  MapSource _mapSource = MapSource.system;
   String? _mapAppName;
   bool _autoplayExpressions = true;
   bool _stickerSuggestions = true;
@@ -392,6 +394,11 @@ class SettingsStore extends ChangeNotifier {
   bool? get closeKeepsRunning => _closeKeepsRunning;
   /// Null means ask every time, including the first time a location is opened.
   String? get mapAppId => _mapAppId;
+
+  /// Which maps draw shared locations (bubble pictures and the full-screen
+  /// map): the OS's own (Apple Maps, Google Maps on Android) or OpenFreeMap.
+  /// Platforms with no OS maps always use OpenFreeMap; see `map_engine.dart`.
+  MapSource get mapSource => _mapSource;
   String? get mapAppName => _mapAppName;
 
   /// Whether GIFs and animated stickers play by themselves in the transcript
@@ -831,6 +838,7 @@ class SettingsStore extends ChangeNotifier {
     final ckr = s[_kCloseKeepsRunning];
     _closeKeepsRunning = ckr == null ? null : ckr == 'true';
     _mapAppId = s[_kMapAppId];
+    _mapSource = MapSource.values.asNameMap()[s[_kMapSource]] ?? MapSource.system;
     _mapAppName = s[_kMapAppName];
     _autoplayExpressions = s[_kAutoplayExpressions] != 'false'; // default true
     _stickerSuggestions = s[_kStickerSuggestions] != 'false'; // default true
@@ -1238,6 +1246,13 @@ class SettingsStore extends ChangeNotifier {
   }
 
   Future<void>? _mapAppWrite;
+
+  Future<void> setMapSource(MapSource v) async {
+    if (_mapSource == v) return;
+    _mapSource = v;
+    notifyListeners();
+    await _storage.write(key: _kMapSource, value: v.name);
+  }
 
   Future<void> setMapApp(String? id, String? name) async {
     final savedName = id == null ? null : name ?? id;
@@ -1736,6 +1751,11 @@ class SettingsStore extends ChangeNotifier {
 /// How much of the Liquid Glass kit iOS draws itself. See
 /// [SettingsStore.nativeScope].
 enum NativeScope { tabBar, everything }
+
+/// Where shared-location maps come from. [system] is Apple Maps on iOS and
+/// macOS and Google Maps on Android (when Play Services and a key exist);
+/// [openFreeMap] is OpenStreetMap data from openfreemap.org.
+enum MapSource { system, openFreeMap }
 
 enum RoomLayout { list, cards, grid }
 

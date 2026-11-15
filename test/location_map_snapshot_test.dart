@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/widgets/location_map_preview.dart';
+import 'package:monkeyhub/widgets/map_engine.dart';
 import 'package:monkeyhub/widgets/open_free_map_snapshot.dart';
 
 /// On iOS and macOS the location card gets an Apple Maps picture
@@ -37,6 +38,8 @@ void main() {
       ),
     ),
   );
+
+  setUp(MapEngines.debugReset);
 
   tearDown(() {
     debugDefaultTargetPlatformOverride = null;
@@ -81,13 +84,14 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
-  testWidgets('Android draws OpenFreeMap, credits it, and never asks MapKit', (
+  testWidgets('Android without Google Maps draws OpenFreeMap and credits it', (
     tester,
   ) async {
-    var mapKit = false;
+    var snapshots = 0;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-          mapKit = true;
+          if (call.method == 'available') return false; // No Play Services.
+          snapshots++;
           return png;
         });
     final requested = <String>[];
@@ -133,14 +137,40 @@ void main() {
     });
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(mapKit, isFalse);
+    expect(snapshots, 0);
     expect(requested.any((u) => u.contains('/styles/dark')), isTrue);
     expect(requested.any((u) => u.endsWith('.pbf')), isTrue);
     expect(find.byType(Image), findsOneWidget);
     expect(find.text(OpenFreeMapSnapshot.attribution), findsOneWidget);
   });
 
+  testWidgets('Android with Google Maps asks the OS for the picture', (
+    tester,
+  ) async {
+    final calls = <String>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call.method);
+          return call.method == 'available' ? true : png;
+        });
+    await tester.runAsync(() async {
+      await tester.pumpWidget(card(lat: 25, lng: 25));
+      for (var i = 0; i < 50 && find.byType(Image).evaluate().isEmpty; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await tester.pump();
+      }
+    });
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(calls, ['available', 'snapshot']);
+    expect(find.byType(Image), findsOneWidget);
+    // Google's picture carries no OpenFreeMap credit.
+    expect(find.text(OpenFreeMapSnapshot.attribution), findsNothing);
+  });
+
   testWidgets('Android offline keeps the drawn card', (tester) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async => false);
     OpenFreeMapSnapshot.client = MockClient(
       (_) async => http.Response('', 503),
     );

@@ -3,12 +3,14 @@ import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../ui/foundation/caps.dart';
+import 'map_engine.dart';
 import 'open_free_map_snapshot.dart';
 
-/// The street-map picture behind a location bubble. Apple's `MKMapSnapshotter`
-/// on iOS and macOS (`ios/Runner/MapSnapshot.swift` and its macOS twin);
-/// OpenFreeMap tiles drawn in Dart everywhere else ([OpenFreeMapSnapshot]).
+/// The street-map picture behind a location bubble, from the [MapEngine] in
+/// use: Apple's `MKMapSnapshotter` (`ios/Runner/MapSnapshot.swift` and its
+/// macOS twin), Google's lite-mode map on Android (`MapSnapshotBridge.kt`, same
+/// channel), or OpenFreeMap tiles drawn in Dart ([OpenFreeMapSnapshot]). When
+/// the OS maps fail, OpenFreeMap is tried before giving up.
 ///
 /// Returns an [ImageProvider] rather than bytes, and hands back the SAME
 /// provider for the same request, so Flutter's image cache decodes each map
@@ -24,13 +26,8 @@ abstract final class LocationMapSnapshot {
   /// About a long transcript's worth of distinct places, each a few hundred KB.
   static const _capacity = 48;
 
-  static final Map<String, Future<ImageProvider?>> _cache = {}; // insertion-ordered
-  static final _done = <String, ImageProvider?>{};
-
-  /// The credit the map's source requires on the picture, or null when it
-  /// needs none drawn by us.
-  static String? get attribution =>
-      Caps.mapSnapshots ? null : OpenFreeMapSnapshot.attribution;
+  static final Map<String, Future<MapPicture?>> _cache = {}; // insertion-ordered
+  static final _done = <String, MapPicture>{};
 
   static String keyFor({
     required double latitude,
@@ -39,17 +36,19 @@ abstract final class LocationMapSnapshot {
     required Size size,
     required double scale,
     required bool dark,
+    required MapEngine engine,
   }) =>
-      '${latitude.toStringAsFixed(6)},${longitude.toStringAsFixed(6)},'
+      '${engine.name},${latitude.toStringAsFixed(6)},${longitude.toStringAsFixed(6)},'
       '${spanMeters.round()},${size.width.round()}x${size.height.round()},'
       '${scale.toStringAsFixed(1)},${dark ? 'd' : 'l'}';
 
   /// A finished result for [key], if there is one: lets a rebuilt bubble show
   /// its map on the first frame instead of flashing the fallback.
-  static ImageProvider? ready(String key) => _done[key];
+  static MapPicture? ready(String key) => _done[key];
 
-  static Future<ImageProvider?> load({
+  static Future<MapPicture?> load({
     required String key,
+    required MapEngine engine,
     required double latitude,
     required double longitude,
     required double spanMeters,
@@ -62,8 +61,9 @@ abstract final class LocationMapSnapshot {
       _cache[key] = hit; // Most recently used goes last.
       return hit;
     }
-    final future = _fetch(latitude, longitude, spanMeters, size, scale, dark)
-        .then((provider) {
+    final future =
+        _fetch(engine, latitude, longitude, spanMeters, size, scale, dark)
+            .then((provider) {
           if (provider == null) {
             // Don't remember a failure: offline now may be online next scroll.
             _cache.remove(key);
@@ -81,7 +81,8 @@ abstract final class LocationMapSnapshot {
     return future;
   }
 
-  static Future<ImageProvider?> _fetch(
+  static Future<MapPicture?> _fetch(
+    MapEngine engine,
     double latitude,
     double longitude,
     double spanMeters,
@@ -89,22 +90,44 @@ abstract final class LocationMapSnapshot {
     double scale,
     bool dark,
   ) async {
-    if (!Caps.mapSnapshots) {
-      final image = await OpenFreeMapSnapshot.render(
-        latitude: latitude,
-        longitude: longitude,
-        spanMeters: spanMeters,
-        size: size,
-        scale: scale,
-        dark: dark,
+    if (engine != MapEngine.openFreeMap) {
+      final native = await _native(
+        latitude,
+        longitude,
+        spanMeters,
+        size,
+        scale,
+        dark,
       );
-      if (image == null) return null;
-      // Encoded once so it rides the same ImageProvider cache as MapKit's PNG.
-      final png = await image.toByteData(format: ui.ImageByteFormat.png);
-      image.dispose();
-      if (png == null) return null;
-      return MemoryImage(png.buffer.asUint8List(), scale: scale);
+      if (native != null) return MapPicture(native, null);
     }
+    final image = await OpenFreeMapSnapshot.render(
+      latitude: latitude,
+      longitude: longitude,
+      spanMeters: spanMeters,
+      size: size,
+      scale: scale,
+      dark: dark,
+    );
+    if (image == null) return null;
+    // Encoded once so it rides the same ImageProvider cache as the OS PNGs.
+    final png = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    if (png == null) return null;
+    return MapPicture(
+      MemoryImage(png.buffer.asUint8List(), scale: scale),
+      OpenFreeMapSnapshot.attribution,
+    );
+  }
+
+  static Future<ImageProvider?> _native(
+    double latitude,
+    double longitude,
+    double spanMeters,
+    Size size,
+    double scale,
+    bool dark,
+  ) async {
     try {
       final bytes = await _channel.invokeMethod<Uint8List>('snapshot', {
         'latitude': latitude,
@@ -121,4 +144,12 @@ abstract final class LocationMapSnapshot {
       return null;
     }
   }
+}
+
+/// A rendered map and the credit its source requires drawn on it (null when
+/// the OS map carries its own or needs none).
+class MapPicture {
+  const MapPicture(this.image, this.credit);
+  final ImageProvider image;
+  final String? credit;
 }

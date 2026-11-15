@@ -66,6 +66,12 @@
         android:label="MonkeyHub"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- Maps SDK for Android key (location bubbles + the fullscreen map).
+             Injected from build.gradle.kts, never committed: Gradle property
+             MAPS_API_KEY, else android/local.properties, else the env var. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${mapsApiKey}" />
         <!-- launchMode/taskAffinity are load-bearing for calls. Accepting a
              call relaunches us through flutter_callkit_incoming's
              TransparentActivity, which starts our launch intent with

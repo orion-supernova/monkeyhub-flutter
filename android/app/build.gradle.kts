@@ -48,6 +48,21 @@ val keystoreProperties = Properties().apply {
 }
 val hasUploadKey = keystoreProperties.containsKey("storeFile")
 
+// Google Maps key (Maps SDK for Android), NEVER committed. Looked up in order:
+// Gradle property MAPS_API_KEY (-P or ~/.gradle/gradle.properties), then
+// android/local.properties, then the MAPS_API_KEY env var. Empty is legal: the
+// build still works, and the `available` check of monkeyhub/map_snapshot
+// reports false so Dart keeps its drawn fallback.
+val mapsApiKey: String = (
+    providers.gradleProperty("MAPS_API_KEY").orNull
+        ?: Properties().apply {
+            val f = rootProject.file("local.properties")
+            if (f.exists()) f.inputStream().use { load(it) }
+        }.getProperty("MAPS_API_KEY")
+        ?: System.getenv("MAPS_API_KEY")
+        ?: ""
+    ).trim()
+
 android {
     // Note: Android applicationId disallows '-' in package segments,
     // so we drop the hyphen from v02's iOS bundle id (com.walhallaa.chatTest-20241220)
@@ -79,6 +94,7 @@ android {
         // IS the user-facing build number), but Play/side-load upgrades need
         // a strictly increasing versionCode — derive it from the version name
         // instead: 1.3.22 → 10322.
+        manifestPlaceholders["mapsApiKey"] = mapsApiKey
         versionName = flutter.versionName
         versionCode = flutter.versionName.split(".").let { p ->
             p[0].toInt() * 10000 + p[1].toInt() * 100 + p[2].substringBefore("+").toInt()
@@ -204,4 +220,9 @@ dependencies {
     // effect brings Presentation, the resize it does on the way.
     implementation("androidx.media3:media3-transformer:${media3Version}")
     implementation("androidx.media3:media3-effect:${media3Version}")
+
+    // Google Maps for chat location bubbles (MapSnapshotBridge, a lite-mode
+    // snapshot) and the fullscreen map (MapViewFactory). play-services-base
+    // arrives with it.
+    implementation("com.google.android.gms:play-services-maps:19.2.0")
 }

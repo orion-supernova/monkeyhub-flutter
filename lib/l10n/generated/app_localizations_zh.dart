@@ -10763,6 +10763,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mapAppsNoInstalled => '未找到支持的地图应用，可以使用浏览器。';
 
   @override
+  String get locationMapRecenter => '显示位置';
+
+  @override
+  String get mapSourceSection => '共享的位置';
+
+  @override
+  String get mapSourceFooter =>
+      '共享位置在聊天和全屏中的显示方式。OpenFreeMap 是基于 OpenStreetMap 的免费开放地图。';
+
+  @override
+  String get mapSourceGoogleUnavailable =>
+      '此设备无法使用 Google 地图，因此使用 OpenFreeMap。';
+
+  @override
   String get interactionAnswersSearch => '搜索用户或回答';
 
   @override

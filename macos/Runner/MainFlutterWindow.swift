@@ -232,6 +232,11 @@ class MainFlutterWindow: NSWindow, NSDraggingDestination {
       with: flutterViewController.engine.binaryMessenger
     )
 
+    // monkeyhub/map_view — interactive Apple Maps platform view.
+    MapViewFactory.register(
+      with: flutterViewController.registrar(forPlugin: "MonkeyHubMapViewPlugin")
+    )
+
     // monkeyhub/video_shrink — re-encodes a video over the upload cap.
     VideoShrink.register(
       with: flutterViewController.engine.binaryMessenger

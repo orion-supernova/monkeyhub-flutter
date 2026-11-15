@@ -8,6 +8,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../models/chat_message.dart';
 import '../models/location_share.dart';
+import '../screens/location_map_screen.dart';
 import 'map_app_picker.dart';
 import '../theme/app_theme.dart';
 import 'app_toast.dart';
@@ -111,9 +112,15 @@ class _LocationBubbleState extends State<LocationBubble>
     _syncClock();
   }
 
+  /// What an open full-screen map shows. Fed on every rebuild with the
+  /// message's newest copy, so a live share keeps moving there by itself.
+  ValueNotifier<LocationShare>? _live;
+
   @override
   void didUpdateWidget(LocationBubble old) {
     super.didUpdateWidget(old);
+    final share = widget.message.locationShare;
+    if (share != null) _live?.value = share;
     // A share can arrive live and later be replaced by an ended copy from the
     // subscription; re-evaluate rather than assuming the state at mount holds.
     _syncClock();
@@ -121,6 +128,7 @@ class _LocationBubbleState extends State<LocationBubble>
 
   @override
   void dispose() {
+    _live?.dispose();
     _tick?.cancel();
     _pulse?.dispose();
     super.dispose();
@@ -235,12 +243,12 @@ class _LocationBubbleState extends State<LocationBubble>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           FocusableTap(
-            onTap: _openInMaps,
+            onTap: _openMap,
             radius: theme.radiusLg,
-            semanticLabel: l10n.locationBubbleOpenInMaps,
+            semanticLabel: l10n.locationMapRecenter,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: _openInMaps,
+              onTap: _openMap,
               // No `onLongPress` here, unlike this widget's own history. One
               // set here would sit in the SAME gesture arena as
               // `_BubbleGestureDetector`'s in `message_bubble.dart` — racing
@@ -473,7 +481,7 @@ class _LocationBubbleState extends State<LocationBubble>
   Widget _openButton(AppTheme theme, AppLocalizations l10n) => _action(
     theme,
     l10n.locationBubbleOpenInMaps,
-    onTap: _openInMaps,
+    onTap: () => _openInMaps(),
     color: attachmentReadableInk(theme, locationMapAccent(theme)),
     icon: CupertinoIcons.arrow_up_right,
   );
@@ -531,20 +539,43 @@ class _LocationBubbleState extends State<LocationBubble>
     await widget.onStopSharing?.call();
   }
 
-  Future<void> _openInMaps() async {
+  Future<void> _openMap() async {
+    final share = widget.message.locationShare;
+    if (share == null) return;
+    HapticFeedback.selectionClick();
+    final live = _live ??= ValueNotifier(share);
+    live.value = share;
+    await LocationMapScreen.open(
+      context,
+      share: live,
+      clock: widget.clock,
+      title: widget.message.senderName.isEmpty
+          ? null
+          : widget.message.resolvedSenderName(context),
+      onOpenInMaps: (from) => _openInMaps(from),
+    );
+  }
+
+  /// [from] is where the app picker and the failure toast appear: the
+  /// full-screen map passes its own context so they show above it.
+  Future<void> _openInMaps([BuildContext? from]) async {
     final share = widget.message.locationShare;
     if (share == null || _openingMaps) return;
     _openingMaps = true;
-    final toast = AppToast.of(context);
-    final failed = AppLocalizations.of(context).locationBubbleNoMapsApp;
+    final at = from ?? context;
+    final toast = AppToast.of(at);
+    final failed = AppLocalizations.of(at).locationBubbleNoMapsApp;
+    // The newest fix: the full-screen map may have watched it move since
+    // this bubble last built.
+    final latest = _live?.value ?? share;
     try {
       final result = await openMapLocation(
-        context,
-        latitude: share.latitude,
-        longitude: share.longitude,
+        at,
+        latitude: latest.latitude,
+        longitude: latest.longitude,
         label: widget.message.senderName.isEmpty
             ? null
-            : widget.message.resolvedSenderName(context),
+            : widget.message.resolvedSenderName(at),
       );
       if (result == MapOpenResult.failed) {
         toast.show(failed, tone: ToastTone.danger);

@@ -11509,6 +11509,20 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucune app de cartes compatible trouvée. Vous pouvez utiliser le navigateur.';
 
   @override
+  String get locationMapRecenter => 'Afficher la position';
+
+  @override
+  String get mapSourceSection => 'Positions partagées';
+
+  @override
+  String get mapSourceFooter =>
+      'L\'apparence des positions partagées dans les discussions et en plein écran. OpenFreeMap est libre et gratuit, conçu à partir d\'OpenStreetMap.';
+
+  @override
+  String get mapSourceGoogleUnavailable =>
+      'Google Maps n\'est pas disponible sur cet appareil, OpenFreeMap est donc utilisé.';
+
+  @override
   String get interactionAnswersSearch =>
       'Rechercher des personnes ou des réponses';
 

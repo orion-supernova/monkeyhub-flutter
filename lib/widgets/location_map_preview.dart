@@ -4,7 +4,9 @@ import 'package:flutter/widgets.dart';
 
 import '../theme/app_theme.dart';
 import 'attachment_bubble_frame.dart';
+import '../data/settings_store.dart';
 import 'location_map_snapshot.dart';
+import 'map_engine.dart';
 
 /// A restrained map tint: a little of the active theme keeps it related to
 /// the transcript, while teal distinguishes places from polls and events.
@@ -73,7 +75,7 @@ Color locationMapAccent(AppTheme theme) => Color.lerp(
 /// viewer's device asks Apple for the map around the shared point, exactly as
 /// opening it in Apple Maps would. Our server sees nothing, so this stays
 /// compatible with end-to-end encryption. Bridge: `location_map_snapshot.dart`,
-/// `ios/Runner/MapSnapshot.swift` and its macOS twin; gate: `Caps.mapSnapshots`.
+/// `ios/Runner/MapSnapshot.swift` and its macOS twin; engine choice: `map_engine.dart`.
 ///
 /// **Update 2026-11-15, later: Android, Windows, Linux and web use
 /// OpenFreeMap.** None of them has a keyless, unlimited OS map renderer, and we
@@ -89,6 +91,17 @@ Color locationMapAccent(AppTheme theme) => Color.lerp(
 /// as the more mature public service (VersaTiles' public server is a demo).
 /// Styles: Liberty for light themes, Dark for dark ones. The required credit is
 /// drawn top-left on the picture.
+///
+/// **Update 2026-11-15, last: one engine per device, chosen in Settings ›
+/// Maps.** `map_engine.dart` picks Apple Maps (iOS, macOS), Google Maps
+/// (Android with Play Services and a `MAPS_API_KEY`; the Maps SDK for Android
+/// is unlimited at $0) or OpenFreeMap (everywhere, and the fallback). Apple
+/// and Android users can choose OpenFreeMap instead; the OS maps are the
+/// default. The bubble's picture and the full-screen map
+/// (`screens/location_map_screen.dart`, opened by tapping the card) always
+/// come from the same engine. The full-screen map is where live shares
+/// update by themselves: a maps app only ever receives one coordinate, which
+/// is why opening one used to need a tap per update.
 ///
 /// **So this draws, and it draws only true things.** The graticule lines are
 /// real parallels and meridians at the stated spacing, latitude-corrected, and
@@ -205,13 +218,14 @@ class _MapPicture extends StatefulWidget {
   final bool dark;
   final bool dimmed;
 
-  String get cacheKey => LocationMapSnapshot.keyFor(
+  String cacheKey(MapEngine engine) => LocationMapSnapshot.keyFor(
     latitude: latitude,
     longitude: longitude,
     spanMeters: spanMeters,
     size: size,
     scale: scale,
     dark: dark,
+    engine: engine,
   );
 
   @override
@@ -219,48 +233,78 @@ class _MapPicture extends StatefulWidget {
 }
 
 class _MapPictureState extends State<_MapPicture> {
-  ImageProvider? _image;
+  MapPicture? _picture;
   String? _key;
+  MapEngine? _engine;
 
   @override
   void initState() {
     super.initState();
-    _request();
+    // The Maps setting can change while the bubble is on screen.
+    SettingsStore.instance.addListener(_settingsChanged);
+    _resolve();
+  }
+
+  @override
+  void dispose() {
+    SettingsStore.instance.removeListener(_settingsChanged);
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(_MapPicture old) {
     super.didUpdateWidget(old);
-    if (widget.cacheKey != _key) _request();
+    final engine = _engine;
+    if (engine != null && widget.cacheKey(engine) != _key) _request(engine);
   }
 
-  void _request() {
-    final key = _key = widget.cacheKey;
+  void _settingsChanged() {
+    if (MapEngines.current != _engine) _resolve();
+  }
+
+  void _resolve() {
+    final now = MapEngines.current;
+    if (now != null) {
+      _engine = now;
+      _request(now);
+      return;
+    }
+    // Android's first look at Play Services: one platform call, then cached.
+    MapEngines.resolve().then((engine) {
+      if (!mounted) return;
+      _engine = engine;
+      _request(engine);
+    });
+  }
+
+  void _request(MapEngine engine) {
+    final key = _key = widget.cacheKey(engine);
     final ready = LocationMapSnapshot.ready(key);
     if (ready != null) {
-      _image = ready;
+      if (mounted) setState(() => _picture = ready);
       return;
     }
     LocationMapSnapshot.load(
       key: key,
+      engine: engine,
       latitude: widget.latitude,
       longitude: widget.longitude,
       spanMeters: widget.spanMeters,
       size: widget.size,
       scale: widget.scale,
       dark: widget.dark,
-    ).then((image) {
-      if (!mounted || key != _key || image == null) return;
-      setState(() => _image = image);
+    ).then((picture) {
+      if (!mounted || key != _key || picture == null) return;
+      setState(() => _picture = picture);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final image = _image;
-    if (image == null) return const SizedBox.expand();
+    final mapPicture = _picture;
+    if (mapPicture == null) return const SizedBox.expand();
     Widget picture = Image(
-      image: image,
+      image: mapPicture.image,
       fit: BoxFit.cover,
       gaplessPlayback: true,
       excludeFromSemantics: true,
@@ -290,7 +334,7 @@ class _MapPictureState extends State<_MapPicture> {
         ),
       );
     }
-    final credit = LocationMapSnapshot.attribution;
+    final credit = mapPicture.credit;
     if (credit == null) return picture;
     // The map source's required credit, small and in a corner the bubble's
     // time stamp (bottom right) never uses.
@@ -344,7 +388,6 @@ enum _Layers {
 /// catastrophically vague fix (a desktop Wi-Fi lookup can be tens of
 /// kilometres) from zooming out to a view where the grid is meaningless; past
 /// it the ring is simply clipped, and the readout says the accuracy in numbers.
-@visibleForTesting
 double spanMetersFor(double? accuracyM) {
   const floor = 250.0;
   const ceiling = 6000.0;

@@ -11372,6 +11372,20 @@ class AppLocalizationsSv extends AppLocalizations {
       'Ingen kartapp som stöds hittades. Du kan använda webbläsaren.';
 
   @override
+  String get locationMapRecenter => 'Visa plats';
+
+  @override
+  String get mapSourceSection => 'Delade platser';
+
+  @override
+  String get mapSourceFooter =>
+      'Hur delade platser ser ut i chattar och i helskärm. OpenFreeMap är gratis och öppet, byggt på OpenStreetMap.';
+
+  @override
+  String get mapSourceGoogleUnavailable =>
+      'Google Maps är inte tillgängligt på den här enheten, så OpenFreeMap används.';
+
+  @override
   String get interactionAnswersSearch => 'Sök personer eller svar';
 
   @override
