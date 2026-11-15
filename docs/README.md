@@ -18,6 +18,7 @@ copy a rule into a second doc; link to its owner instead.
 | `design/calls.md` | Call bubbles, Calls tab (rows, merged rows, details sheet), call stats, favourites. |
 | `design/chat-chrome-language.md` | Chat chrome motion and look. |
 | `design/swipe-up-fork.html` | Swipe-up fork (huddle, vanish, room sheet, dock). |
+| `design/e2ee.html` | End-to-end encryption: protocol (MLS), data model, push decrypt, media, history, phases, cost table. |
 | `fighting-game/` | Jungle Fist plan and its style and roster labs. |
 | `GLASS_SPEC.md` | The Signal iOS 26 visual and motion target for sheets and glass (reference frames in `glass_reference/`). |
 

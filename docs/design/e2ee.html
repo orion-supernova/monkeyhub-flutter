@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>End-to-End Encryption</title>
+<style>
+:root{
+  --bg:#0b0c0f; --panel:#13151a; --panel2:#1a1d24; --line:#262a33; --ink:#eceef2; --ink2:#a4aab6; --ink3:#6b7280;
+  --ok:#34d27b; --acc:#8b7cff; --warn:#ffb547; --bad:#ff6b6b;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--acc)}
+.wrap{max-width:1120px;margin:0 auto;padding:48px 24px 120px}
+h1{font-size:40px;line-height:1.1;letter-spacing:-.02em;margin:0 0 12px}
+h2{font-size:26px;letter-spacing:-.01em;margin:72px 0 14px;padding-top:8px}
+h3{font-size:17px;margin:28px 0 8px}
+p,li{color:var(--ink2)} strong,b{color:var(--ink)}
+.lede{font-size:18px;max-width:820px}
+.kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0 0}
+.toc a{font-size:13px;color:var(--ink2);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+.toc a:hover{color:var(--ink);border-color:#3a404c}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px 22px}
+.card h3:first-child{margin-top:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}}
+.verdict{border-left:3px solid var(--ok);background:linear-gradient(90deg,rgba(52,210,123,.08),transparent 60%);padding:16px 22px;border-radius:0 14px 14px 0;margin:18px 0}
+.verdict p{margin:.3em 0;color:var(--ink)}
+.risk{border-left:3px solid var(--warn);background:linear-gradient(90deg,rgba(255,181,71,.07),transparent 60%);padding:14px 22px;border-radius:0 14px 14px 0;margin:14px 0}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--ink3);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+td{color:var(--ink2)}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--panel2);padding:1px 6px;border-radius:6px;color:#cfd5df}
+pre{font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;overflow-x:auto;color:#cfd5df}
+.tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;padding:2px 8px;border-radius:999px;margin-right:6px;white-space:nowrap}
+.tag.ok{background:rgba(52,210,123,.15);color:var(--ok)} .tag.a{background:rgba(139,124,255,.16);color:var(--acc)}
+.tag.w{background:rgba(255,181,71,.14);color:var(--warn)} .tag.x{background:rgba(255,107,107,.13);color:var(--bad)} .tag.n{background:#232730;color:var(--ink2)}
+.q{border:1px dashed #3a404c;border-radius:14px;padding:14px 18px;margin:10px 0}
+ol li,ul li{margin:4px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="kicker">Design · living doc · started 2026-11-15</div>
+<h1>End-to-end encryption</h1>
+<p class="lede">The plan to make message content and media unreadable to our own server, without making the app any
+slower. The server keeps routing, ordering, membership and timing; it stops holding text, captions, files and media
+in the clear. This doc owns the E2EE design; backend costs are checked against
+<a href="../backend/backend-handbook.html">the backend handbook</a> budgets (R17), and client rules live in
+<a href="../architecture/ui-architecture.html">ui-architecture</a>.</p>
+
+<div class="toc">
+  <a href="#today">1. Today</a><a href="#goals">2. Goals</a><a href="#protocol">3. Protocol</a>
+  <a href="#arch">4. Architecture</a><a href="#data">5. Data model</a><a href="#flows">6. Flows</a>
+  <a href="#features">7. Feature impact</a><a href="#push">8. Push</a><a href="#media">9. Media</a>
+  <a href="#history">10. Multi-device and history</a><a href="#speed">11. Speed</a><a href="#cost">12. Backend cost</a>
+  <a href="#safety">13. Safety and moderation</a><a href="#phases">14. Phases</a><a href="#risks">15. Risks</a>
+  <a href="#testing">16. Testing</a><a href="#questions">17. Open questions</a><a href="#decisions">18. Decisions</a>
+</div>
+
+<div class="verdict">
+  <p><strong>Recommendation:</strong> MLS (RFC 9420) via <strong>OpenMLS</strong> (Rust, MIT), one MLS group per room,
+  one leaf per <em>device</em>. Convex is the MLS delivery service: it already serializes writes per room, which is
+  exactly the commit ordering MLS needs.</p>
+  <p>All crypto runs in a Rust crate behind <code>flutter_rust_bridge</code>, off the UI isolate, sharing the toolchain
+  the vendored <code>convex_flutter</code> already uses. Plaintext is decrypted once and cached locally, so boot and
+  scroll never touch crypto.</p>
+  <p>The order is 1:1 DMs first, then groups, then the long tail. Games, staff/system rooms and public profile data stay
+  server-readable by design.</p>
+</div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="today">1. What the server reads today</h2>
+<p>Inventory taken 2026-11-15. There is <strong>no E2EE today</strong>. The only crypto dependency is <code>crypto</code>
+(SHA-256), and every message and blob is plaintext in Convex. The recovery phrase derives nothing: it only authorizes
+<code>auth.resetPasswordWithRecoveryKey</code> (<code>lib/auth/recovery_phrase.dart</code>).</p>
+<div class="tbl"><table>
+<tr><th>Server reads plaintext for</th><th>Where</th><th>Under E2EE</th></tr>
+<tr><td>Word filter + child strict block</td><td><code>contentFilter.ts</code>, <code>messages.ts</code> <code>screenOutgoingText</code></td><td>Moves to the client, receiver-side on child devices (§13)</td></tr>
+<tr><td>Mention validation (handle must be in text)</td><td><code>messages.ts</code> <code>resolveMentions</code></td><td>Client declares <code>mentions[]</code> (user ids only); the server trusts room membership</td></tr>
+<tr><td>Link flag, LINKS tab counts</td><td><code>LINK_PATTERN</code>, <code>roomContentCounts</code></td><td>Client-declared <code>hasLink</code> bit (a documented metadata leak)</td></tr>
+<tr><td>Chat list preview (100 chars)</td><td><code>rooms.lastMessage</code>, <code>roomPreviewFor</code></td><td>Dropped. The client decrypts the latest message (§6.4)</td></tr>
+<tr><td>Reply preview snapshot</td><td><code>replyToPreview.contentPreview</code></td><td>Inside the ciphertext</td></tr>
+<tr><td>Push alert body + <code>data.content</code></td><td><code>notifications.ts</code> <code>sendMessagePush</code>, <code>push.ts</code></td><td>Ciphertext in the push, decrypted on device (§8)</td></tr>
+<tr><td>Reaction push quote (60 chars)</td><td><code>_reactionPushPlan</code></td><td>The device quotes from its local cache</td></tr>
+<tr><td>Poll/checklist/event tallies</td><td><code>interactions.ts</code></td><td>Phase 3: votes become encrypted messages, tallied on the client</td></tr>
+<tr><td>Game move validation, hidden state</td><td><code>matches.ts</code>, <code>matchHidden</code></td><td><strong>Stays server-run</strong> (non-goal)</td></tr>
+<tr><td>Moderation evidence snapshot</td><td><code>moderationCore.ts</code> <code>collectEvidence</code></td><td>The reporter's device submits plaintext, verified by message franking (§13)</td></tr>
+<tr><td>View-once proxy</td><td><code>http.ts</code> <code>/viewOnce</code></td><td>Still serves the encrypted blob once; the key lives only in the message</td></tr>
+<tr><td>Scheduled messages</td><td><code>scheduledMessages.ts</code></td><td>Encrypted at schedule time (§7)</td></tr>
+<tr><td>Call SDP (DTLS fingerprints)</td><td><code>callSignals.payload</code></td><td>Fingerprints are bound to device identity inside MLS, which closes the server-MITM hole (§7)</td></tr>
+</table></div>
+<p>Already client-side and unaffected: link previews (<code>link_preview_service.dart</code>), translation, transcripts,
+companions, video posters and shrink, and Windows/Linux banners, which come from the live socket. There is no
+server-side message search. Calls are P2P WebRTC (DTLS-SRTP), and group calls are a mesh of up to 6.</p>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="goals">2. Goals and non-goals</h2>
+<div class="grid2">
+<div class="card"><h3>Goals</h3><ul>
+<li>The server, Cloudflare and anyone with a database dump cannot read message text, captions, files, photos, video,
+voice, locations, reply snippets or file names.</li>
+<li><strong>Forward secrecy and post-compromise security</strong> per room.</li>
+<li>Every device is a full participant, with nothing like a "primary phone". Mac, iPhone, Android, Windows, Linux and
+web each hold their own keys.</li>
+<li>A new device can read past history (opt-out), using a key only the user holds (§10).</li>
+<li><strong>No slower</strong> than today on any measured path, and faster where E2EE lets us ship inline thumbnails (§11).</li>
+<li>Backend cost at or below today's budgets, with zero idle cost.</li>
+</ul></div>
+<div class="card"><h3>Non-goals (stated in the UI)</h3><ul>
+<li><strong>Metadata:</strong> who talks to whom and when, room membership, sizes and timing. The server needs them
+to route.</li>
+<li><strong>Games:</strong> the server validates moves and keeps hidden state. Move bubbles say so.</li>
+<li><strong>System and staff rooms:</strong> MH Logs, moderation and problem reports.</li>
+<li><strong>Public profile:</strong> name, handle and avatar. Friends-only, but server-readable.</li>
+<li>Stories/moments and room names/avatars are not covered in v1 (phase 4).</li>
+<li>Old plaintext history is not re-encrypted. It stays as it is, and a purge is a separate question (§17).</li>
+</ul></div>
+</div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="protocol">3. Protocol choice</h2>
+<div class="tbl"><table>
+<tr><th></th><th>MLS (OpenMLS)</th><th>Signal (libsignal)</th><th>Per-message key wrapped per device</th></tr>
+<tr><td>Licence</td><td><span class="tag ok">MIT</span></td><td><span class="tag x">AGPL-3.0</span>: incompatible with a closed-source store app</td><td>n/a</td></tr>
+<tr><td>Multi-device</td><td>Native: devices are leaves</td><td>Per-device sessions, n×m fan-out</td><td>Wrap per device per message</td></tr>
+<tr><td>Group cost of a send</td><td>O(1): one ciphertext</td><td>O(1) with Sender Keys, but key distribution is O(n)</td><td>O(devices) wraps every message</td></tr>
+<tr><td>Membership change</td><td>O(log n) commit</td><td>O(n) sender-key redistribution</td><td>Nothing (no FS)</td></tr>
+<tr><td>FS / PCS</td><td>Yes / yes</td><td>Yes / yes (1:1), weaker in groups</td><td>No / no</td></tr>
+<tr><td>Ordering needed</td><td>Commits must be linear per group</td><td>None</td><td>None</td></tr>
+<tr><td>Web</td><td>Compiles to wasm</td><td>Has wasm</td><td>WebCrypto</td></tr>
+<tr><td>PQ path</td><td>X-Wing ciphersuite</td><td>PQXDH</td><td>Manual</td></tr>
+</table></div>
+<p><strong>Ciphersuite:</strong> <code>MLS_128_DHKEMX25519_AES128GCM_SHA256_Ed25519</code>, which uses hardware AES
+on every target. Hybrid PQ (X-Wing) comes in phase 4 once OpenMLS ships it as stable; suites are per group, so a room
+upgrades with one commit.</p>
+<p><strong>Ordering is free here.</strong> MLS's hard part is a delivery service that never accepts two commits for
+the same epoch. A Convex mutation is a serializable transaction, so <code>mls.commit</code> accepts a commit only if
+<code>commit.epoch == group.epoch</code>. Exactly one writer wins, and the loser re-fetches, rebases and retries.</p>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="arch">4. Architecture</h2>
+<pre>
+ ┌──────────── device ─────────────────────────────────────────┐
+ │ Flutter UI ── ChatRepository ── E2ee (Dart facade)          │
+ │                                   │ flutter_rust_bridge      │
+ │                                   ▼  (worker threads)        │
+ │                    mh_crypto (Rust) = OpenMLS + media AEAD  │
+ │                                   │                          │
+ │                    keystore.sqlite (App Group / app data)    │
+ │                     ▲ shared with iOS/macOS NSE, Android     │
+ │                     │ FCM service (JNI), web worker (wasm)   │
+ │ CacheStore: decrypted plaintext, OS file protection          │
+ └──────────────────────────┬──────────────────────────────────┘
+                            │ websocket (unchanged)
+ ┌──────────── Convex ──────▼──────────────────────────────────┐
+ │ messages.ct (bytes)   mlsGroups (epoch, GroupInfo)          │
+ │ mlsCommits (room, epoch)  mlsWelcomes (device)               │
+ │ deviceKeys / keyPackages  epochBackups (per user, wrapped)  │
+ │ storage: encrypted blobs only                                │
+ └──────────────────────────────────────────────────────────────┘
+</pre>
+<ul>
+<li><strong>One Rust crate, <code>mh_crypto</code></strong>, built for iOS, macOS, Android, Windows, Linux and wasm. It
+reuses the <code>convex_flutter</code> Rust build setup (vendored, patched; see memory: never pub-upgrade blindly).</li>
+<li><strong>The keystore is SQLite</strong> (WAL mode) holding MLS group state, the device identity key and the
+key-package private keys.
+  <ul>
+  <li>iOS/macOS: in the App Group container, so the notification extension can read it.</li>
+  <li>Android: app-private storage.</li>
+  <li>Windows: DPAPI-wrapped key.</li>
+  <li>Linux: the existing 0600 file approach, used for the wrapping key.</li>
+  <li>Web: IndexedDB, wrapped by a non-extractable WebCrypto key.</li>
+  </ul></li>
+<li><strong>The Dart facade</strong> (<code>lib/e2ee/</code>) is the only thing <code>ChatRepository</code> calls:
+<code>encrypt(roomId, payload)</code>, <code>decrypt(roomId, ct)</code>, <code>ensureGroup(roomId)</code> and
+<code>processCommits(roomId)</code>. Every call is async and never runs on the UI isolate.</li>
+<li><strong>The server never does crypto.</strong> It stores bytes, enforces epoch order and membership, and fans out.
+It does less work than today: no filter, no link regex, no preview building.</li>
+</ul>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="data">5. Data model</h2>
+<h3>New tables (each needs a reference rule and a retention line, R14)</h3>
+<div class="tbl"><table>
+<tr><th>Table</th><th>Row</th><th>Index</th><th>Growth / retention</th></tr>
+<tr><td><code>deviceKeys</code></td><td>userId, deviceId, identity public key (Ed25519), credential, createdAt, revokedAt</td><td>by_user, by_device</td><td>1 per device, cascades with <code>userDevices</code>/session revoke</td></tr>
+<tr><td><code>keyPackages</code></td><td>deviceId, kp bytes (~300 B), lastResort</td><td>by_device</td><td>Up to 100 per device; deleted when claimed; the device refills below 20</td></tr>
+<tr><td><code>mlsGroups</code></td><td>roomId, epoch, groupInfo bytes, suite, pendingRemovals[]</td><td>by_room</td><td>1 per room, cascades with room. A side table, never on <code>rooms</code> (R1/R11)</td></tr>
+<tr><td><code>mlsCommits</code></td><td>roomId, epoch, commit bytes, senderDeviceId</td><td>by_room_epoch</td><td>Swept after 60 days; an older device rejoins by external commit</td></tr>
+<tr><td><code>mlsWelcomes</code></td><td>targetDeviceId, roomId, welcome bytes</td><td>by_target</td><td>Deleted when consumed; swept after 30 days</td></tr>
+<tr><td><code>epochBackups</code></td><td>userId, roomId, epoch, wrapped epoch secret (~80 B)</td><td>by_user_room_epoch</td><td>Cascades with room/user; optional per user (§10)</td></tr>
+<tr><td><code>reportFranks</code></td><td>messageId, frank commitment (32 B)</td><td>by_message</td><td>Stored on the message row itself (no extra table) if the column budget allows</td></tr>
+</table></div>
+<h3>Changes to <code>messages</code></h3>
+<ul>
+<li><strong>Add:</strong> <code>e2ee: 1</code> (version), <code>ct: v.bytes()</code> (an MLS PrivateMessage, not base64),
+<code>epoch</code>, <code>frank</code> (32 B commitment), and <code>hasLink</code> (client-declared).</li>
+<li><strong>Empty when <code>e2ee</code> is set:</strong> <code>content</code>, <code>formatting</code>,
+<code>replyToPreview</code>, <code>fileName</code>, <code>mimeType</code>, <code>mediaWidth/Height</code>,
+<code>mediaDurationMs</code>, <code>latitude/longitude</code>, <code>mediaUrl</code> (GIF). They all move inside the
+ciphertext.</li>
+<li><strong>Stay plaintext, because the server needs them:</strong> <code>type</code>, <code>galleryBucket</code>,
+<code>mediaStorageId</code>/<code>posterStorageId</code> (blob refs for <code>fileRefs</code>, quotas and the reaper),
+<code>expiresAt</code>/<code>vanishUntil</code>, view-once flags, <code>mentions[].userId</code>,
+<code>replyToId</code>/<code>rootId</code>, <code>clientId</code>, <code>seq</code> and <code>albumId</code>.</li>
+<li><strong>Plaintext payload</strong> (inside <code>ct</code>, protobuf): text, formatting, reply snippet, media
+{key, digest, mime, dims, duration, name, thumbhash}, location, GIF url, sticker ref, and the
+<code>frankKey</code>.</li>
+</ul>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="flows">6. Flows</h2>
+<h3>6.1 Device registration (once per install)</h3>
+<ol>
+<li><code>DeviceIdentity.ensure()</code> (exists) gives the deviceId. <code>mh_crypto</code> generates an Ed25519
+identity key in the keystore.</li>
+<li><code>e2ee.registerDevice</code> writes 1 <code>deviceKeys</code> row and inserts 100 key packages in one mutation
+(1 read, 101 writes, once).</li>
+<li>It piggybacks on the existing <code>registerDevice</code> / <code>deviceLogin</code> flow. Nothing is added to the
+boot path: it runs post-frame, like <code>RecoveryGate</code>.</li>
+</ol>
+<h3>6.2 Creating a room or starting a DM</h3>
+<ol>
+<li>The creator claims one key package per member device (<code>e2ee.claimKeyPackages</code>, 1 read + 1 delete each,
+using the last-resort package if a device has run out).</li>
+<li>It builds the group locally and posts the commit, the GroupInfo and one welcome per device in one mutation.</li>
+<li>Recipient devices pick up welcomes on their next attach (one bounded query <code>mlsWelcomes by_target</code>,
+not a standing subscription) or when a push for that room arrives.</li>
+</ol>
+<h3>6.3 Send and receive</h3>
+<ol>
+<li><strong>Send:</strong> serialize the payload, then call <code>mh_crypto.encrypt</code> (µs). The
+<code>messages.send</code> mutation is unchanged apart from <code>ct</code> replacing <code>content</code>. The outbox
+stores the <em>plaintext</em> locally and encrypts at send time, so a retry after an epoch change re-encrypts instead
+of failing.</li>
+<li><strong>Before encrypting:</strong> if <code>mlsGroups.pendingRemovals</code> is non-empty, the sender's device
+first commits those removals (§6.5). The server rejects a send whose <code>epoch</code> is behind a pending removal, so
+a removed member never receives a new key.</li>
+<li><strong>Receive:</strong> <code>messages:list</code> delivers rows as today. For each new row: decrypt, write the
+plaintext into <code>CacheStore</code> and notify once per batch. If decrypt needs a newer epoch, fetch
+<code>mlsCommits</code> from the local epoch to the row's epoch first (one ranged read), then decrypt.</li>
+</ol>
+<h3>6.4 Chat list previews</h3>
+<p><code>listUserRooms</code> drops the server's <code>lastMessage</code> text and ships the latest message's
+<code>{id, ct, epoch}</code> instead. The client decrypts each changed preview in a batch on a worker thread and caches
+it by message id, so an unchanged room is never decrypted twice. The cost is about 0.05 ms per preview, so 200 rooms
+take about 10 ms, off the UI isolate.</p>
+<h3>6.5 Membership changes</h3>
+<ul>
+<li><strong>Add (invite accepted, join approved by a guardian, etc.):</strong> the server stays the authority on
+<em>who may</em> be in the room (<code>roomMembers</code>, guardian grants). The joiner's devices then enter with an
+<strong>external commit</strong> against the stored GroupInfo. The server accepts it only if the user is on the
+roster. This needs no online existing member.</li>
+<li><strong>Remove, leave, ban, session revoke:</strong> the server cannot commit (it holds no keys), so it is
+registered as an MLS <strong>external sender</strong> and appends a signed Remove <em>proposal</em> to
+<code>pendingRemovals</code>. The next device of any remaining member that sends or opens the room commits it.
+Until then, nobody can send to a new epoch that includes the removed member.</li>
+<li><strong>Periodic key update (PCS):</strong> a device self-updates a room only when it sends there and its leaf is
+more than 7 days old. Idle rooms cost nothing.</li>
+</ul>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="features">7. Feature-by-feature impact</h2>
+<div class="tbl"><table>
+<tr><th>Feature</th><th>Plan</th><th>Phase</th></tr>
+<tr><td>Text, formatting, replies, edits</td><td>Inside ct. An edit is a new ct referencing the target id. Delete is unchanged (row/blob removal)</td><td>1</td></tr>
+<tr><td>Photos, video, voice, files, video notes, albums</td><td>Encrypted blobs (§9); key, digest and thumbhash inside ct</td><td>1</td></tr>
+<tr><td>Forward</td><td>Decrypt, then re-encrypt for the target room. The blob is shared as today (<code>attachShared</code>), and its key travels inside the new ct</td><td>1</td></tr>
+<tr><td>Secret rooms, vanish, expiry, view-once</td><td>Timing stays server-enforced (metadata). View-once: the server still serves the blob once, and the client deletes the key after viewing. Web/Linux app-only gating unchanged</td><td>2</td></tr>
+<tr><td>Mentions</td><td>Client sends <code>mentions[].userId</code>; the server checks room membership only</td><td>1</td></tr>
+<tr><td>Link flag / LINKS tab</td><td>Client-declared <code>hasLink</code></td><td>1</td></tr>
+<tr><td>Reactions</td><td>v1: emoji stays plaintext metadata (a documented leak). Phase 3: encrypted reaction messages, counted on the client</td><td>1 → 3</td></tr>
+<tr><td>Polls, checklists, events</td><td>Phase 3: question and choices inside ct; votes as encrypted messages; client tallies. Until then these rooms show them as "not encrypted"</td><td>3</td></tr>
+<tr><td>Scheduled messages</td><td>Encrypted at schedule time. Recipients keep past-epoch secrets for 64 epochs; if the room has moved further, the sender's device re-encrypts on its next launch before release</td><td>3</td></tr>
+<tr><td>Live location</td><td>Each patch is a fresh ct on the same row</td><td>3</td></tr>
+<tr><td>Calls</td><td>The SDP's DTLS fingerprint is signed by the device identity key and carried MLS-encrypted, so the server can no longer MITM calls. Media stays DTLS-SRTP P2P</td><td>3</td></tr>
+<tr><td>Stickers, GIFs</td><td>Pack stickers are public (a ref inside ct). KLIPY url inside ct; the host allowlist check moves to the client</td><td>1</td></tr>
+<tr><td>Games / move bubbles</td><td><strong>Not E2EE</strong> (server-validated); labelled</td><td>never</td></tr>
+<tr><td>Stories, comments, room names and avatars</td><td>Sender-key-style audience groups</td><td>4</td></tr>
+<tr><td>Local search</td><td>Now possible privately: SQLite FTS on decrypted plaintext</td><td>after 2</td></tr>
+<tr><td>Friend request note</td><td>Stays plaintext (no group exists yet)</td><td>never</td></tr>
+</table></div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="push">8. Push</h2>
+<p>Pushes carry <strong>ciphertext, not text</strong>. A push contains <code>{roomId, messageId, epoch, ct}</code>
+when <code>ct</code> is 3 KB or less (APNs caps at 4 KB; nearly every text fits). Otherwise it contains
+<code>{roomId, messageId, fetch:1}</code>, and the extension fetches the row through an authenticated HTTP endpoint that
+uses the existing <code>rcptSig</code> token pattern.</p>
+<div class="tbl"><table>
+<tr><th>Platform</th><th>Decrypts in</th><th>Notes</th></tr>
+<tr><td>iOS, macOS</td><td>The NSE links <code>mh_crypto</code> and opens the App Group keystore</td><td>Already stages the payload for <code>takePushedMessages</code>, which now stages plaintext after decrypt. Memory cap 24 MB: OpenMLS + SQLite is about 4 MB. On failure, show "New message"</td></tr>
+<tr><td>Android</td><td><code>CallFcmService.onMessageReceived</code> → JNI → <code>mh_crypto</code></td><td><code>ChatNotifications</code> builds the MessagingStyle from the decrypted body</td></tr>
+<tr><td>Web</td><td><code>mh-push-sw.js</code> + wasm</td><td>The service worker reads the IndexedDB keystore. Secret rooms stay app-only</td></tr>
+<tr><td>Windows, Linux</td><td>Live socket (no push today)</td><td>Nothing new</td></tr>
+</table></div>
+<ul>
+<li><strong>Single writer per state:</strong> the extension and the app share one SQLite keystore with WAL and a
+per-group row lock. The extension may advance epochs (process commits) but never creates commits; only the app does.
+The app re-reads group state on resume.</li>
+<li><strong>The server alert body</strong> becomes a localized fallback ("New message"), sent with
+<code>mutable-content</code> so the extension replaces it. Mentions keep the "mentioned you" prefix, derived from the
+plaintext <code>mentions[]</code>.</li>
+<li><strong>Burst rule</strong> (<code>alertBurst.ts</code>) is unchanged: it is timing only. Open item: the inventory
+found the macOS project embedding the NSE while <code>alertBurst.ts</code> says the Mac has none. Resolve that before
+phase 1.</li>
+</ul>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="media">9. Media</h2>
+<ul>
+<li><strong>Per-file random 256-bit key</strong>, using chunked AEAD (AES-256-GCM in 64 KB segments, each with its own
+nonce and index, STREAM construction). This allows progressive video playback and HTTP range requests from the
+existing Cloudflare/Convex URLs.</li>
+<li><strong>Encrypt while uploading</strong> (streaming, no second copy in memory). Encrypt <em>after</em> the existing
+client shrink/compress. Compressing encrypted bytes is useless, so compress first and encrypt second.</li>
+<li><strong>Integrity:</strong> the SHA-256 of the ciphertext goes inside ct and is checked before display.</li>
+<li><strong>Thumbhash inline</strong> (about 30 bytes) inside ct, plus, for images, a micro-preview of at most 2 KB. The
+bubble paints an exact-aspect blurred preview before the blob arrives, which is faster than today (there is no
+thumbnail at all now).</li>
+<li><strong>Dedup and forwarding:</strong> one blob, one key; forwarding reuses both.</li>
+<li><strong>Server-side quotas, reaper and refs are unchanged:</strong> they work on <code>storageId</code> and size,
+never on bytes.</li>
+<li><strong>Avatars:</strong> stay public (profile non-goal). Their 326 KB size is a separate fix (handbook budget:
+20 KB thumbnails).</li>
+</ul>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="history">10. Multi-device and history</h2>
+<p>MLS on its own gives a new device no history. That is unacceptable for an app people use on a Mac and a phone at
+the same time, so:</p>
+<ul>
+<li><strong>The account archive key (AK)</strong> is a random 256-bit key per account. Each time a device enters an
+epoch, it uploads that epoch's <code>encryption_secret</code> wrapped under AK into <code>epochBackups</code>. The cost
+is one small write per epoch per user. Epochs change only on membership or key updates, not per message.</li>
+<li><strong>A new device gets AK in one of two ways:</strong>
+  <ul>
+  <li><strong>Device link (default):</strong> the existing <code>deviceLoginRequests</code> approval. The approving
+  device sends AK to the new device's identity key, sealed with HPKE.</li>
+  <li><strong>Recovery phrase:</strong> AK is also stored wrapped under HKDF(phrase, "mh-archive-v1"). The phrase is
+  about 132 bits of entropy, so no password stretching is needed. This is a different derivation from the
+  password-reset hash, so the server's stored hash reveals nothing. A phrase rotation re-wraps AK.</li>
+  </ul></li>
+<li><strong>History download:</strong> the new device downloads <code>epochBackups</code>, decrypts the server history
+it needs (lazily, per room on open), then joins the current epoch by external commit.</li>
+<li><strong>Trade-off, stated plainly:</strong> AK plus a server dump gives full history. That is the same model as
+WhatsApp and Matrix backups. There is a per-user setting, "Keep history on new devices", default <em>on</em>. Turning
+it off deletes that user's <code>epochBackups</code>.</li>
+<li><strong>Child accounts</strong> have no recovery phrase, so AK comes only through device link from an already-paired
+device. Guardian pairing is unchanged.</li>
+</ul>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="speed">11. Speed: the rules that keep it fast</h2>
+<div class="grid2">
+<div class="card"><h3>Rules</h3><ol>
+<li><strong>Boot never decrypts.</strong> <code>CacheStore</code> holds decrypted plaintext, so the local-first open
+(2026-11-15) is unchanged.</li>
+<li>All crypto runs in Rust on worker threads. The UI isolate only awaits.</li>
+<li>Decrypt once per message id; results go to the cache. Scrolling never decrypts.</li>
+<li>Batch decrypts per delivery, with one <code>notifyListeners</code> per batch.</li>
+<li>Commits are fetched lazily (on open, push or epoch gap), never from a standing subscription.</li>
+<li>Key-package refill, epoch backup and self-update run post-frame and coalesced.</li>
+<li>Store ciphertext as <code>v.bytes</code>, never base64 (saves a third of the wire size).</li>
+</ol></div>
+<div class="card"><h3>Expected numbers (Apple A15 / mid Android)</h3>
+<div class="tbl"><table>
+<tr><th>Op</th><th>Cost</th></tr>
+<tr><td>Encrypt/decrypt a text</td><td>~10–30 µs</td></tr>
+<tr><td>200 chat list previews</td><td>~10 ms, off the UI thread</td></tr>
+<tr><td>Commit, 50-device group</td><td>~2 ms</td></tr>
+<tr><td>AES-GCM media</td><td>&gt; 1 GB/s (hardware)</td></tr>
+<tr><td>NSE decrypt incl. keystore open</td><td>&lt; 30 ms target</td></tr>
+<tr><td>Wire overhead per message</td><td>~120 B (framing, tag, signature)</td></tr>
+</table></div>
+<p>Measured in phase 0 with a bench harness; the targets above go in §18 once measured.</p></div>
+</div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="cost">12. Backend cost table (R17)</h2>
+<p>N = room member devices, R = the user's rooms. Budgets are from handbook §5.</p>
+<div class="tbl"><table>
+<tr><th>Action</th><th>Today</th><th>With E2EE</th><th>Budget</th><th>Verdict</th></tr>
+<tr><td>Send a text</td><td>~14 reads, ~4.3 writes</td><td>~12 reads (no filter roster scan, no mention lookup), ~4.3 writes; +1 read of <code>mlsGroups</code> for the epoch check</td><td>≤ 12 r, ≤ 4 w</td><td><span class="tag ok">at budget</span></td></tr>
+<tr><td>Open the app</td><td>chat list ~60 docs</td><td>Same docs; +~200 B per room (preview ct replaces 100-char text); +1 bounded <code>mlsWelcomes</code> read</td><td>≤ 150 docs</td><td><span class="tag ok">ok</span></td></tr>
+<tr><td>Chat list re-runs per incoming message</td><td>2–3</td><td>Unchanged; no new subscription</td><td>1</td><td><span class="tag n">neutral</span></td></tr>
+<tr><td>Push fan-out per recipient</td><td>~85 docs</td><td>Same reads. Payload carries ct; no body building (less CPU)</td><td>≤ 15</td><td><span class="tag n">neutral</span></td></tr>
+<tr><td>Register a device</td><td>n/a</td><td>1 r, 101 w, once; refill 50 w when below 20</td><td></td><td><span class="tag ok">rare</span></td></tr>
+<tr><td>Create a DM</td><td>~6 w</td><td>+2 claims, +1 commit, +1 GroupInfo, +2 welcomes</td><td></td><td><span class="tag ok">rare</span></td></tr>
+<tr><td>Add a member (D devices)</td><td>roster writes</td><td>+1 commit, +D claims, +D welcomes; each member device reads 1 commit lazily</td><td></td><td><span class="tag ok">O(D)</span></td></tr>
+<tr><td>Remove a member</td><td>roster writes</td><td>+1 proposal append; the next sender adds 1 commit</td><td></td><td><span class="tag ok">O(1)</span></td></tr>
+<tr><td>New device for a user with R rooms</td><td>n/a</td><td>R external commits (1 r + 2 w each), run as a self-rescheduling batch of 25 (R12/R16)</td><td></td><td><span class="tag w">burst, bounded</span></td></tr>
+<tr><td>Epoch backup</td><td>n/a</td><td>1 small write per user per epoch change</td><td></td><td><span class="tag ok">rare</span></td></tr>
+<tr><td>Idle cost</td><td>—</td><td>0. Sweeps for commits, welcomes and key packages are index-ranged, 1 probe each</td><td>1 probe/job</td><td><span class="tag ok">ok</span></td></tr>
+<tr><td>Server CPU per send</td><td>filter + regex + preview</td><td>None of those; a byte copy</td><td></td><td><span class="tag ok">lower</span></td></tr>
+<tr><td>Storage</td><td>text</td><td>+~120 B per message; GroupInfo grows with the tree (~100 B per leaf) on a side table patched only on commit (R10/R11 ok)</td><td>hot docs ≤ 2 KB</td><td><span class="tag ok">not hot</span></td></tr>
+</table></div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="safety">13. Safety, moderation, children</h2>
+<ul>
+<li><strong>Reports use message franking.</strong> The sender puts a random <code>frankKey</code> inside ct and the
+server stores <code>frank = HMAC(frankKey, plaintext ‖ roomId ‖ senderId)</code> on the row. A report sends the
+plaintext and frankKey, and the server recomputes and verifies. Staff therefore get authentic evidence only for what
+a participant chose to report. <code>collectEvidence</code> context messages are franked the same way, and media
+evidence is the reporter uploading the decrypted file.</li>
+<li><strong>Children: the filter moves to the receiver.</strong> The word list ships in the app. A child's own device
+masks or blocks incoming text and its outgoing text before encrypting. The receiver-side check is the guarantee,
+because a modified sender cannot bypass it. Policy toggles (<code>mediaEnabled</code>, location and so on) are
+metadata checks and stay server-side (<code>guardOutgoing</code> checks <code>type</code>). Filter hits on a child
+device can still auto-file a franked report.</li>
+<li><strong>Verification:</strong> per-contact safety numbers and a QR in the profile. A change of device keys posts
+a local system bubble ("Ayşe added a new device"). Key transparency is phase 4.</li>
+<li><strong>Staff and system rooms</strong> (MH Logs, moderation, problem reports) stay plaintext. The client redactor
+already runs before logs leave the device.</li>
+<li><strong>Export compliance:</strong> standard algorithms, so the mass-market exemption applies. Set
+<code>ITSAppUsesNonExemptEncryption</code> plus the exemption on iOS <em>and</em> macOS (see the memory note: a missing
+key silently hid a macOS build). The France declaration is needed if the app is distributed there.</li>
+</ul>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="phases">14. Phases</h2>
+<div class="tbl"><table>
+<tr><th>Phase</th><th>Scope</th><th>Ships when</th><th>Rough size</th></tr>
+<tr><td><strong>0 Foundations</strong></td><td>
+  <ul>
+  <li><code>mh_crypto</code> crate for all targets plus wasm</li>
+  <li>The keystore, including the App Group</li>
+  <li>The new tables plus reference rules</li>
+  <li>Device registration and key packages</li>
+  <li>Safety numbers (hidden)</li>
+  <li>Bench harness and an NSE decrypt spike on a real iPhone</li>
+  </ul>
+  No user-visible change.</td><td>Bench numbers meet §11; the NSE spike stays under 30 ms / 10 MB</td><td>1–1.5 wk</td></tr>
+<tr><td><strong>1 Encrypted DMs</strong></td><td>
+  <ul>
+  <li>New and upgraded 1:1 rooms: text, media, voice, files, replies, edits, forwards, stickers and GIFs</li>
+  <li>Push decrypt on iOS, macOS, Android and web</li>
+  <li>Client previews and franked reports</li>
+  <li>Client-declared mentions and link flag</li>
+  <li>A lock in the room header</li>
+  </ul></td><td>Every device of both users has keys. A forced minimum version, since old builds cannot decrypt (R19)</td><td>2–3 wk</td></tr>
+<tr><td><strong>2 Groups</strong></td><td>
+  <ul>
+  <li>Groups, secret rooms and vanish</li>
+  <li>External-sender removals</li>
+  <li>External-commit joins and new-device catch-up</li>
+  <li>AK history backup and device-link transfer</li>
+  <li>Receiver-side child filter</li>
+  </ul></td><td>Phase 1 decrypt-failure rate under 0.1% for 2 weeks</td><td>2–3 wk</td></tr>
+<tr><td><strong>3 Long tail</strong></td><td>Encrypted reactions, polls/checklists/events, scheduled messages, live location, call fingerprint binding, local search</td><td></td><td>2 wk</td></tr>
+<tr><td><strong>4 Hardening</strong></td><td>Stories and comments, room names and avatars, PQ suite, key transparency, optional plaintext-history purge</td><td></td><td>open</td></tr>
+</table></div>
+<p><strong>Upgrading an existing room:</strong> the first sender on a phase-1 build creates the group, and from then on
+the room only accepts <code>e2ee</code> messages. Old plaintext rows stay readable and are shown without the lock.
+Device keys for every member device are a hard precondition. A room with an unkeyed device waits and shows "Waiting
+for Mert to update".</p>
+<p>Backend first, then the app, per the handbook. The app release that turns phase 1 on is a forced minimum. While
+there are testers only, breaking old builds is fine (R19).</p>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="risks">15. Risks</h2>
+<div class="risk"><p><strong>NSE and app racing on the keystore.</strong> Two processes advance the same group. Mitigation: SQLite WAL, a
+per-group lock, and the extension may process commits but never author them. Verify with a stress test in phase 0.</p></div>
+<div class="risk"><p><strong>Epoch desync / forks.</strong> Prevented by the server's <code>epoch ==</code> check in one transaction. A
+device that is stuck (state lost or corrupted) self-heals by external commit, and its local
+<code>mlsGroups</code> state is rebuilt from GroupInfo.</p></div>
+<div class="risk"><p><strong>Lost devices and lost keys.</strong> A reinstall is a new device: it joins by external commit and gets history from
+AK. The stale leaf is removed by the server's proposal when its session is revoked or expires.</p></div>
+<div class="risk"><p><strong>Rust on every target.</strong> The <code>convex_flutter</code> build is already fragile (vendored patches, macOS
+Rust build). <code>mh_crypto</code> must live in the same workspace, with the same pins, and in CI for all six
+targets. Native code is uncompiled until the user builds; do not run builds from chat.</p></div>
+<div class="risk"><p><strong>Web key durability.</strong> Cleared site data means a new device. That is acceptable with AK history; the
+UI says so.</p></div>
+<div class="risk"><p><strong>Moderation reach shrinks</strong> to what participants report. That is the intended trade-off, and the
+filter on children's devices covers the policy goal.</p></div>
+<div class="risk"><p><strong>Large groups and new-device bursts.</strong> A user in 500 rooms adds a device, which means 500 external
+commits. These are batched (25 per mutation, self-rescheduling) and the rooms show content as each one lands, most
+recently active first.</p></div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="testing">16. Testing and measurement</h2>
+<ul>
+<li><strong>Rust:</strong> protocol unit tests, fuzzing of decrypt and commit parsing, and cross-target vectors (the
+same ct decrypts on every platform).</li>
+<li><strong>Dart:</strong> a fake Convex with multi-device scenarios. Cover:
+  <ul>
+  <li>the outbox across an epoch change</li>
+  <li>a push decrypt before the app has processed the commit</li>
+  <li>a removal racing a send</li>
+  <li>a new device restoring history</li>
+  </ul>
+  Run only the touched files, per the test-scope rule.</li>
+<li><strong>Backend:</strong> convex-test for epoch serialization (two concurrent commits, exactly one wins), roster
+gating of external commits, sweeps, and reference rules.</li>
+<li><strong>Diagnostics (no content):</strong> per-device counters for decrypt failures, epoch gaps, NSE fallbacks and
+time to first decrypted preview, sent through the existing diagnostics path. The phase 2 gate reads them.</li>
+<li><strong>Devices:</strong> the VoIP/NSE test protocol (deploy backend, install, restart both phones, open once) applies.
+Render a PNG of the lock/verification UI before calling it done.</li>
+</ul>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="questions">17. Open questions</h2>
+<div class="q"><strong>History on new devices</strong>: default <em>on</em> via AK (recommended for Mac + phone), or Signal-style no history?</div>
+<div class="q"><strong>Web in phase 1</strong>: include it (wasm, weaker key storage, history via AK), or keep encrypted rooms app-only on web like secret rooms?</div>
+<div class="q"><strong>Reactions in phase 1</strong>: accept plaintext emoji until phase 3 (recommended, small leak), or block phase 1 on encrypted reactions?</div>
+<div class="q"><strong>Old plaintext history</strong>: keep it as is (recommended), or offer a per-room "remove unencrypted history from the server"?</div>
+<div class="q"><strong>Games</strong>: confirm that they stay server-validated and labelled "not end-to-end encrypted".</div>
+
+<!-- ───────────────────────────────────────────── -->
+<h2 id="decisions">18. Decisions</h2>
+<ul>
+<li><strong>2026-11-15</strong> MLS via OpenMLS over libsignal: AGPL is incompatible with a closed store app; MLS
+handles multi-device and groups in O(log n); Convex transactions give the linear commit order MLS needs.</li>
+<li><strong>2026-11-15</strong> Compression before encryption only, and only where it helps (media is already
+compressed; text is too small). There is no general "zip packages" layer.</li>
+<li><strong>2026-11-15</strong> The server never does crypto and gains no standing subscription for E2EE. Commits,
+welcomes and backups are all fetched lazily.</li>
+</ul>
+
+</div>
+</body>
+</html>
