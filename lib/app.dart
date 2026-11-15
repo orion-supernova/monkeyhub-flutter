@@ -1632,16 +1632,18 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       return;
     }
 
-    // Ask where clients should be BEFORE opening a socket, so a device that
-    // has to move never connects to the deployment it is leaving. Bounded by
-    // [ServerDirectory.launchTimeout] — this sits in front of the first frame
-    // of real content, and silence means "carry on", never "wait longer".
+    // No launch-time "where should I be" check here any more. It used to be an
+    // awaited HTTP round trip (bounded at [ServerDirectory.launchTimeout], 3s)
+    // in front of the first frame of cached content, and on a weak signal it
+    // spent the whole 3s every launch: slow DNS and TLS rarely fail fast. The
+    // home server it existed to steer between was retired on 2026-11-06, so it
+    // was a launch-time cost that never moved anyone.
     //
-    // Cheap to get wrong in only one direction, which is why it is safe here:
-    // every failure path returns null and the app proceeds on the deployment
-    // it already had. That includes a backend with no `serverDirectory`
-    // function, which is what every deployment looks like until it is deployed.
-    await _followServerDirective();
+    // Nothing is lost by dropping it. The `serverDirectory:current`
+    // subscription started by [ServerDirectory.watch] below delivers the same
+    // directive over the socket as soon as it connects, and a move then goes
+    // through the live path ([_onLiveRedirect]), which keeps the session and
+    // every subscription. Resume still re-checks over HTTP in the background.
 
     final initErr = await _cv.initialize();
     if (initErr == null) {

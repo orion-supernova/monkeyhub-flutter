@@ -662,6 +662,13 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
   history" inside the details sheet) and reverted: hard to navigate. Details for <code>docs/design/calls.md</code> §4.</li>
   <li><strong>2026-10-02</strong> Native glass is a sibling <code>UITabBar</code>, never a platform view in Flutter
   content (performance).</li>
+  <li><strong>2026-11-15</strong> Cold boot is local-first with no network round trip in front of cached content.
+  Removed the awaited launch-time server-directory HTTP check (up to 3 s on a weak signal, every launch; the home server it
+  steered to is retired, and the <code>serverDirectory:current</code> subscription plus the resume re-check still cover a
+  move). Removed the one-shot seed of <code>listUserRooms</code>, <code>listFriends</code> and both request lists in
+  <code>ChatRepository._attach</code>: the subscriptions run the same queries, the seed doubled their boot reads, and on a
+  weak signal every subscription waited up to 15 s behind it. Offline with no cache now keeps the (8 s bounded) skeleton
+  instead of claiming "no chats". Same reasoning as <code>openRoom</code> subscribing directly to <code>messages:list</code>.</li>
 </ul>
 
 <footer>Maintained alongside the code. Update §5, §8 and §9 in the same commit as the change they describe.</footer>

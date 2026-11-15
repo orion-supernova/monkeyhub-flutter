@@ -130,11 +130,11 @@ void main() {
 
     tearDown(() async => repo.detach());
 
-    test('a seed that failed is not the server having answered', () {
-      // `listUserRooms` goes through `catchError((_) => <ChatRoom>[])`, so the
-      // weak flag cannot tell a dead network from an account with no rooms.
-      // That is the whole reason the strong one exists.
-      expect(repo.roomsLoaded, isTrue);
+    test('a dead network with no cache answers nothing at all', () {
+      // There is no one-shot seed in front of the subscriptions any more, so
+      // an offline cold start with an empty cache has heard from no one: the
+      // list keeps its (bounded) skeleton rather than claiming "no chats".
+      expect(repo.roomsLoaded, isFalse);
       expect(repo.hasLiveRoomList, isFalse);
     });
 

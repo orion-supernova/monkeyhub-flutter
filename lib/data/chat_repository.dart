@@ -202,7 +202,7 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
   Iterable<String> get roomIds => _rooms.map((r) => r.id);
 
   /// Whether anything has ever answered the question "what rooms does this
-  /// user have?" — cache, seed fetch or subscription, whichever got there
+  /// user have?" — the disk cache or the subscription, whichever got there
   /// first.
   ///
   /// The chat list cannot tell "you have no rooms" from "I have not been told
@@ -223,16 +223,11 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
   /// [roomsLoaded], and the same distinction [hasLiveMessages] draws against
   /// [hasLoadedInitial].
   ///
-  /// [roomsLoaded] is satisfied by three things that are not the same: the disk
-  /// snapshot, the seed call, and this subscription. The first two are why it
-  /// cannot answer "is this room really gone?".
-  ///
-  ///   * The disk snapshot predates the launch, so a room this device has never
-  ///     seen — a group somebody added you to an hour ago, the first DM from a
-  ///     new person — is missing from it while very much existing.
-  ///   * The seed goes through `catchError((_) => <ChatRoom>[])`, so a call that
-  ///     failed outright is indistinguishable from an account with no rooms, and
-  ///     [_markRoomsLoaded] runs either way.
+  /// [roomsLoaded] is satisfied by two things that are not the same: the disk
+  /// snapshot and this subscription. The snapshot is why it cannot answer "is
+  /// this room really gone?": it predates the launch, so a room this device has
+  /// never seen — a group somebody added you to an hour ago, the first DM from
+  /// a new person — is missing from it while very much existing.
   ///
   /// A room opened from a notification tap is precisely the case both of those
   /// get wrong: the push is proof the room exists, and it arrives before the
@@ -243,14 +238,6 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
   /// it are bounded by [PendingPlaceholder] rather than open-ended.
   bool get hasLiveRoomList => _hasLiveRoomList;
   bool _hasLiveRoomList = false;
-
-  /// Records that the rooms question has been answered, and tells anyone
-  /// listening if that is news.
-  void _markRoomsLoaded() {
-    if (_roomsLoaded) return;
-    _roomsLoaded = true;
-    notifyListeners();
-  }
 
   /// The chat list's main feed: everything in [rooms] except what's archived.
   /// [rooms] itself stays unfiltered — push alerts and the forward-target
@@ -1377,38 +1364,32 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
       debugPrint('outbox restore failed: $e');
     }
 
-    // 2) Seed from parallel API hits before subscriptions take over.
-    try {
-      final results = await Future.wait<dynamic>([
-        api.listUserRooms(userId).catchError((_) => <ChatRoom>[]),
-        api.listFriends(userId).catchError((_) => <ChatUser>[]),
-        api.listIncomingDirectRequests(userId).catchError((_) => <FriendRequest>[]),
-        api.listOutgoingDirectRequests(userId).catchError((_) => <FriendRequest>[]),
-        // Idempotent — self-heals the Saved Messages room on every launch for
-        // new and pre-existing accounts alike. Result unused: the room itself
-        // arrives through the rooms:listUserRooms subscription below.
-        api.ensureSavedMessagesRoom(userId: userId).catchError((_) => ''),
-      ]);
-      final roomsResult = results[0] as List<ChatRoom>;
-      if (roomsResult.isNotEmpty) {
-        _rooms = roomsResult;
-        CacheStore.instance.scheduleSaveRooms(userId, _rooms);
-      }
-      // Outside the `isNotEmpty` guard on purpose. The guard is there because
-      // a failed call comes back as `[]` and must not wipe a good cache — but
-      // `listUserRooms` returning nothing on a call that DID complete is a
-      // real answer, and a new account with no rooms has to be allowed to
-      // reach its empty state.
-      _markRoomsLoaded();
-      final friendsResult = results[1] as List<ChatUser>;
-      if (friendsResult.isNotEmpty) {
-        _friends = friendsResult;
-        CacheStore.instance.scheduleSaveFriends(userId, _friends);
-      }
-      _incomingRequests = results[2] as List<FriendRequest>;
-      _outgoingRequests = results[3] as List<FriendRequest>;
-    } catch (_) {/* network down; cached rooms/friends remain visible */}
-    notifyListeners();
+    // 2) Straight to the subscriptions. There used to be a one-shot seed here
+    //    (listUserRooms, listFriends and both request lists, awaited together)
+    //    and it bought nothing: the subscriptions below run the exact same four
+    //    queries with the exact same args, so the seed was a SECOND round trip
+    //    to each of them, and every subscription waited behind it. On a weak
+    //    signal that wait ran to the 15s operation timeout before a single live
+    //    query was even registered, while the cached list sat there going
+    //    stale. It also doubled the boot read cost of the four heaviest
+    //    queries. [openRoom] dropped the same fetch-then-subscribe pattern for
+    //    `messages:list` for the same reason.
+    //
+    //    The empty state still arrives: `rooms:listUserRooms`' first delivery
+    //    sets `_roomsLoaded` even when the list is empty. What no longer
+    //    happens is a FAILED seed (offline, no cache) painting "no chats yet"
+    //    for an account that has chats; that case now keeps the skeleton until
+    //    the server can actually answer.
+    //
+    //    Idempotent and fire-and-forget: self-heals the Saved Messages room on
+    //    every launch. Its result is unused, since the room arrives through
+    //    the rooms subscription.
+    //    `Future.sync` so a synchronous throw is caught too, not just a failed
+    //    future: this used to sit inside the seed's `try`.
+    unawaited(
+      Future.sync(() => api.ensureSavedMessagesRoom(userId: userId))
+          .catchError((_) => ''),
+    );
 
     // All five, and nulled immediately — [attach] is re-entrant (resubscribe()
     // calls it), and the global typing handle used to be missing from this
@@ -1451,7 +1432,7 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
         _roomsPayloadSig = sig;
         _roomsLoaded = true;
         // The server has spoken — see [hasLiveRoomList]. Only here, and not
-        // beside the two weaker sources that also set `_roomsLoaded`: this is
+        // beside the disk cache, which also sets `_roomsLoaded`: this is
         // the one delivery that can be trusted to say a room is absent because
         // it does not exist, rather than because nobody has looked yet.
         _hasLiveRoomList = true;

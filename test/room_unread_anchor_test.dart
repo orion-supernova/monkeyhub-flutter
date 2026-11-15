@@ -7,7 +7,6 @@ import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/data/chat_repository.dart';
 import 'package:monkeyhub/models/chat_message.dart';
-import 'package:monkeyhub/models/chat_room.dart';
 import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/models/friend_request.dart';
 
@@ -70,20 +69,10 @@ class _FakeApi extends Fake implements ChatApi {
   /// Every read cursor this repo actually committed, in order.
   final List<({String roomId, DateTime? upTo})> reads = [];
 
-  /// What `listUserRooms` answers during `attach`. Empty is the cold start
-  /// that has to fall through to the subscription.
-  List<ChatRoom> seedRooms = const [];
-
-  @override
-  Future<List<ChatRoom>> listUserRooms(String userId) async => seedRooms;
-
   @override
   Future<List<ChatUser>> listFriends(String userId) async => const [];
 
-  /// Not a `Fake` miss: attach runs this alongside the seed above, inside one
-  /// `Future.wait`, and an unimplemented member throws before `catchError` can
-  /// be attached — which takes the whole seed with it and leaves the repo with
-  /// no room list at all.
+  /// Attach fires this on every launch; a `Fake` miss would only be noise.
   @override
   Future<String> ensureSavedMessagesRoom({required String userId}) async => '';
 
@@ -204,10 +193,8 @@ void main() {
       final read = agoMs(const Duration(hours: 1));
       // The room list as it stood when the app went to the background: the
       // cursor is still true, the count is the pre-push zero.
-      api.seedRooms = [
-        ChatRoom.fromJson(roomRow('a', lastReadAt: read, unreadCount: 0)),
-      ];
       await repo.attach('me');
+      fireRooms([roomRow('a', lastReadAt: read, unreadCount: 0)]);
 
       repo.beginUnreadAnchor('a');
 
@@ -266,8 +253,8 @@ void main() {
 
   test('re-entering the room takes a fresh cursor', () async {
     final first = agoMs(const Duration(hours: 2));
-    api.seedRooms = [ChatRoom.fromJson(roomRow('a', lastReadAt: first))];
     await repo.attach('me');
+    fireRooms([roomRow('a', lastReadAt: first)]);
 
     repo.beginUnreadAnchor('a');
     expect(repo.unreadAnchorFor('a'), first);
@@ -286,8 +273,8 @@ void main() {
 
   test('the anchor belongs to one room at a time', () async {
     final read = agoMs(const Duration(hours: 1));
-    api.seedRooms = [ChatRoom.fromJson(roomRow('a', lastReadAt: read))];
     await repo.attach('me');
+    fireRooms([roomRow('a', lastReadAt: read)]);
 
     repo.beginUnreadAnchor('a');
     expect(repo.unreadAnchorFor('b'), isNull);
@@ -325,10 +312,8 @@ void main() {
     expect(blind, 1);
 
     repo.beginUnreadAnchor('a');
-    api.seedRooms = [
-      ChatRoom.fromJson(roomRow('a', lastReadAt: agoMs(const Duration(hours: 1)))),
-    ];
     await repo.attach('me');
+    fireRooms([roomRow('a', lastReadAt: agoMs(const Duration(hours: 1)))]);
     // The repair is unawaited inside attach, and openRoom itself awaits a disk
     // read, the push inbox and a subscribe before it registers anything.
     await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -354,8 +339,8 @@ void main() {
 
   test('leaving the room keeps the anchor for the screen replacing it', () async {
     final read = agoMs(const Duration(hours: 1));
-    api.seedRooms = [ChatRoom.fromJson(roomRow('a', lastReadAt: read))];
     await repo.attach('me');
+    fireRooms([roomRow('a', lastReadAt: read)]);
 
     // The route transition: the incoming screen pins the room and opens it,
     // and only then is the outgoing screen disposed.
@@ -373,10 +358,8 @@ void main() {
   });
 
   test('signing out drops the anchor with everything else', () async {
-    api.seedRooms = [
-      ChatRoom.fromJson(roomRow('a', lastReadAt: agoMs(const Duration(hours: 1)))),
-    ];
     await repo.attach('me');
+    fireRooms([roomRow('a', lastReadAt: agoMs(const Duration(hours: 1)))]);
     repo.beginUnreadAnchor('a');
     expect(repo.unreadAnchorSettled('a'), isTrue);
 
