@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import '../theme/app_theme.dart';
 import 'attachment_bubble_frame.dart';
+import 'location_map_snapshot.dart';
 
 /// A restrained map tint: a little of the active theme keeps it related to
 /// the transcript, while teal distinguishes places from polls and events.
@@ -62,6 +63,20 @@ Color locationMapAccent(AppTheme theme) => Color.lerp(
 /// serving them as images — an option available to anyone willing to run a tile
 /// server, and to nobody who wants zero infrastructure.
 ///
+/// **Update 2026-11-15: iOS and macOS get a real street map.** The option this
+/// analysis missed is the OS's own renderer: `MKMapSnapshotter` draws Apple
+/// Maps to a still image with no key, no quota and no server of ours (unlike
+/// MapKit JS / web snapshots, which are capped per developer account). On those
+/// platforms the card below becomes the ground under that picture, and the
+/// accuracy ring and marker are still drawn here on top; the scale bar and
+/// north arrow stay with the drawn card only. Privacy trade, accepted: the
+/// viewer's device asks Apple for the map around the shared point, exactly as
+/// opening it in Apple Maps would. Our server sees nothing, so this stays
+/// compatible with end-to-end encryption. Android, Windows, Linux and web have
+/// no keyless, unlimited OS equivalent and keep the drawn card. Bridge:
+/// `location_map_snapshot.dart`, `ios/Runner/MapSnapshot.swift` and its macOS
+/// twin; gate: `Caps.mapSnapshots`.
+///
 /// **So this draws, and it draws only true things.** The graticule lines are
 /// real parallels and meridians at the stated spacing, latitude-corrected, and
 /// the position sits at its real offset within its cell. The scale bar is
@@ -113,20 +128,177 @@ class LocationMapPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _GraticulePainter(
-        theme: theme,
-        latitude: latitude,
-        longitude: longitude,
-        accuracyM: accuracyM,
-        pulse: pulse,
-        dimmed: dimmed,
-        textDirection: Directionality.of(context),
-      ),
-      // Sized by the parent; the painter fills whatever it is given.
-      child: const SizedBox.expand(),
+    _GraticulePainter painter(_Layers layers) => _GraticulePainter(
+      theme: theme,
+      latitude: latitude,
+      longitude: longitude,
+      accuracyM: accuracyM,
+      pulse: pulse,
+      dimmed: dimmed,
+      layers: layers,
+      textDirection: Directionality.of(context),
+    );
+
+    if (!LocationMapSnapshot.supported) {
+      return CustomPaint(
+        painter: painter(_Layers.all),
+        // Sized by the parent; the painter fills whatever it is given.
+        child: const SizedBox.expand(),
+      );
+    }
+
+    // Apple platforms: the graticule is the ground while the map renders (and
+    // stays, if it never does), the Apple Maps picture covers it, and the
+    // accuracy ring and marker sit on top in the app's own style. The scale
+    // bar and north arrow belong to the graticule card and go with it.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = constraints.biggest;
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            CustomPaint(painter: painter(_Layers.ground)),
+            if (size.isFinite && !size.isEmpty)
+              _MapPicture(
+                latitude: latitude,
+                longitude: longitude,
+                spanMeters: spanMetersFor(accuracyM),
+                size: size,
+                scale: MediaQuery.devicePixelRatioOf(context),
+                dark: theme.background.computeLuminance() < 0.4,
+                dimmed: dimmed,
+              ),
+            CustomPaint(painter: painter(_Layers.marks)),
+          ],
+        );
+      },
     );
   }
+}
+
+/// The Apple Maps picture, faded in over the graticule once it exists.
+///
+/// Keeps showing the previous picture while a new one renders, so a live share
+/// that moves swaps maps instead of blinking back to the grid.
+class _MapPicture extends StatefulWidget {
+  const _MapPicture({
+    required this.latitude,
+    required this.longitude,
+    required this.spanMeters,
+    required this.size,
+    required this.scale,
+    required this.dark,
+    required this.dimmed,
+  });
+
+  final double latitude;
+  final double longitude;
+  final double spanMeters;
+  final Size size;
+  final double scale;
+  final bool dark;
+  final bool dimmed;
+
+  String get cacheKey => LocationMapSnapshot.keyFor(
+    latitude: latitude,
+    longitude: longitude,
+    spanMeters: spanMeters,
+    size: size,
+    scale: scale,
+    dark: dark,
+  );
+
+  @override
+  State<_MapPicture> createState() => _MapPictureState();
+}
+
+class _MapPictureState extends State<_MapPicture> {
+  ImageProvider? _image;
+  String? _key;
+
+  @override
+  void initState() {
+    super.initState();
+    _request();
+  }
+
+  @override
+  void didUpdateWidget(_MapPicture old) {
+    super.didUpdateWidget(old);
+    if (widget.cacheKey != _key) _request();
+  }
+
+  void _request() {
+    final key = _key = widget.cacheKey;
+    final ready = LocationMapSnapshot.ready(key);
+    if (ready != null) {
+      _image = ready;
+      return;
+    }
+    LocationMapSnapshot.load(
+      key: key,
+      latitude: widget.latitude,
+      longitude: widget.longitude,
+      spanMeters: widget.spanMeters,
+      size: widget.size,
+      scale: widget.scale,
+      dark: widget.dark,
+    ).then((image) {
+      if (!mounted || key != _key || image == null) return;
+      setState(() => _image = image);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final image = _image;
+    if (image == null) return const SizedBox.expand();
+    Widget picture = Image(
+      image: image,
+      fit: BoxFit.cover,
+      gaplessPlayback: true,
+      excludeFromSemantics: true,
+      frameBuilder: (context, child, frame, synchronous) {
+        if (synchronous) return child;
+        return AnimatedOpacity(
+          opacity: frame == null ? 0 : 1,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          child: child,
+        );
+      },
+    );
+    if (widget.dimmed) {
+      // An ended live share: the map goes grey and recedes, matching the
+      // hollow marker drawn over it.
+      picture = Opacity(
+        opacity: 0.55,
+        child: ColorFiltered(
+          colorFilter: const ColorFilter.matrix(<double>[
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0, 0, 0, 1, 0,
+          ]),
+          child: picture,
+        ),
+      );
+    }
+    return picture;
+  }
+}
+
+/// Which parts of the card a painter draws.
+enum _Layers {
+  /// Everything: the whole card where there is no OS map.
+  all,
+
+  /// The card without its marks, under the map picture: what shows while the
+  /// map renders, or for good if it never does.
+  ground,
+
+  /// Only what sits on top of a map picture: accuracy ring and marker.
+  marks,
 }
 
 /// How wide the card is, in metres, for a given reported accuracy.
@@ -190,6 +362,7 @@ class _GraticulePainter extends CustomPainter {
     required this.accuracyM,
     required this.pulse,
     required this.dimmed,
+    required this.layers,
     required this.textDirection,
   });
 
@@ -199,6 +372,7 @@ class _GraticulePainter extends CustomPainter {
   final double? accuracyM;
   final double pulse;
   final bool dimmed;
+  final _Layers layers;
   final TextDirection textDirection;
 
   @override
@@ -215,6 +389,13 @@ class _GraticulePainter extends CustomPainter {
     canvas.save();
     canvas.clipRect(rect);
 
+    if (layers == _Layers.marks) {
+      _paintAccuracyRing(canvas, centre, pxPerMeter);
+      _paintMarker(canvas, centre);
+      canvas.restore();
+      return;
+    }
+
     // Ground.
     canvas.drawRect(
       rect,
@@ -226,8 +407,10 @@ class _GraticulePainter extends CustomPainter {
     );
 
     _paintGraticule(canvas, size, centre, stepM, stepPx);
-    _paintAccuracyRing(canvas, centre, pxPerMeter);
-    _paintMarker(canvas, centre);
+    if (layers == _Layers.all) {
+      _paintAccuracyRing(canvas, centre, pxPerMeter);
+      _paintMarker(canvas, centre);
+    }
     _paintScaleBar(canvas, size, stepM, stepPx);
     _paintNorth(canvas, size);
 
@@ -435,7 +618,9 @@ class _GraticulePainter extends CustomPainter {
       old.latitude != latitude ||
       old.longitude != longitude ||
       old.accuracyM != accuracyM ||
-      old.pulse != pulse ||
+      // The ground layer has no pulse; it must not repaint every halo frame.
+      (layers != _Layers.ground && old.pulse != pulse) ||
       old.dimmed != dimmed ||
+      old.layers != layers ||
       old.theme != theme;
 }

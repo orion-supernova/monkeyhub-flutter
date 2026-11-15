@@ -2116,6 +2116,11 @@ import WebRTC
       SubjectCutout.register(with: cutoutRegistrar.messenger())
     }
 
+    // monkeyhub/map_snapshot — Apple Maps picture for a location bubble.
+    if let mapRegistrar = engine.registrar(forPlugin: "MonkeyHubMapSnapshotPlugin") {
+      MapSnapshot.register(with: mapRegistrar.messenger())
+    }
+
     // monkeyhub/video_shrink — re-encodes a video over the upload cap.
     if let shrinkRegistrar = engine.registrar(forPlugin: "MonkeyHubVideoShrinkPlugin") {
       VideoShrink.register(with: shrinkRegistrar.messenger())

@@ -48,6 +48,12 @@ abstract final class Caps {
   /// Apple sign-in, Darwin WebRTC.
   static bool get nativeApple => iOS || macOS;
 
+  /// Street-map pictures for location bubbles from the OS (Apple's
+  /// `MKMapSnapshotter`: no key, no quota, no server of ours). In: iOS and
+  /// macOS apps. Out: Android, Windows, Linux and web, which draw the
+  /// graticule card instead (see `location_map_preview.dart`).
+  static bool get mapSnapshots => nativeApple;
+
   // ------------------------------------------------------- input & presence
   //
   // These FOLLOW THE USER AGENT on web, deliberately: a desktop browser is a

@@ -227,6 +227,11 @@ class MainFlutterWindow: NSWindow, NSDraggingDestination {
       with: flutterViewController.engine.binaryMessenger
     )
 
+    // monkeyhub/map_snapshot — Apple Maps picture for a location bubble.
+    MapSnapshot.register(
+      with: flutterViewController.engine.binaryMessenger
+    )
+
     // monkeyhub/video_shrink — re-encodes a video over the upload cap.
     VideoShrink.register(
       with: flutterViewController.engine.binaryMessenger
