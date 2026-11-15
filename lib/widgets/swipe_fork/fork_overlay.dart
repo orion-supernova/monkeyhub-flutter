@@ -97,6 +97,22 @@ class ForkGeometry {
   /// Circle plus its two caption lines.
   static const block = 64.0;
 
+  /// The circle fades in as the list lifts from [showFrom] to
+  /// [showFrom] + [showOver] points (it sits in the gap the lift opens).
+  static const showFrom = 18.0;
+  static const showOver = 22.0;
+
+  /// How full the circle's ring is for a pull of [dy] points toward a line at
+  /// [forkAt]. Empty until the circle is fully shown, full at the line. A
+  /// straight dy / forkAt meant the ring first appeared about a third full
+  /// (the hidden first 40 points, plus the touch slop the pull counts), so a
+  /// small pull read as halfway there.
+  static double ringProgress(double dy, double forkAt) {
+    const from = showFrom + showOver;
+    if (forkAt <= from) return (dy / forkAt).clamp(0.0, 1.0);
+    return ((dy - from) / (forkAt - from)).clamp(0.0, 1.0);
+  }
+
   final Size size;
 
   /// The measured dock (shelf, reply card, field), from the bottom edge.
@@ -337,7 +353,9 @@ class ForkScenePainter extends CustomPainter {
     final lift = c.lift;
 
     if (gesture) {
-      final a = ((lift - 18) / 22).clamp(0.0, 1.0) * out;
+      final a = ((lift - ForkGeometry.showFrom) / ForkGeometry.showOver)
+              .clamp(0.0, 1.0) *
+          out;
       if (a > 0) {
         if (!c.viewSingle) {
           if (c.viewHalves) {
@@ -348,7 +366,14 @@ class ForkScenePainter extends CustomPainter {
             }
           }
         }
-        _circle(canvas, geo.circleCenter(lift), a, c.viewP);
+        _circle(
+          canvas,
+          geo.circleCenter(lift),
+          a,
+          c.viewForked
+              ? 1
+              : ForkGeometry.ringProgress(c.viewP * c.machine.forkAt, c.machine.forkAt),
+        );
         _caption(canvas, geo.circleCenter(lift), a * geo.captionRoom(lift));
       }
       _failure(canvas);

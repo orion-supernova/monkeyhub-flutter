@@ -394,6 +394,16 @@ void main() {
       expect(none, isEmpty);
     });
 
+    test('the ring is empty when the circle is first fully shown, full at the line', () {
+      const at = 128.0;
+      const shown = ForkGeometry.showFrom + ForkGeometry.showOver;
+      expect(ForkGeometry.ringProgress(shown, at), 0);
+      // A small pull past that reads as a small amount, not halfway.
+      expect(ForkGeometry.ringProgress(shown + 10, at), lessThan(0.15));
+      expect(ForkGeometry.ringProgress(at, at), 1);
+      expect(ForkGeometry.ringProgress(at + 50, at), 1);
+    });
+
     test('felt from the first point of the pull, rising, never dropping after the line', () {
       // Light impacts under ~0.3 are imperceptible: the pull must start there.
       expect(ForkBuzz.pullLevel(0), greaterThanOrEqualTo(0.3));
