@@ -1,10 +1,14 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../ui/foundation/caps.dart';
+import 'open_free_map_snapshot.dart';
 
-/// The OS map picture behind a location bubble — Apple's `MKMapSnapshotter`
-/// on iOS and macOS (`ios/Runner/MapSnapshot.swift` and its macOS twin).
+/// The street-map picture behind a location bubble. Apple's `MKMapSnapshotter`
+/// on iOS and macOS (`ios/Runner/MapSnapshot.swift` and its macOS twin);
+/// OpenFreeMap tiles drawn in Dart everywhere else ([OpenFreeMapSnapshot]).
 ///
 /// Returns an [ImageProvider] rather than bytes, and hands back the SAME
 /// provider for the same request, so Flutter's image cache decodes each map
@@ -23,7 +27,10 @@ abstract final class LocationMapSnapshot {
   static final Map<String, Future<ImageProvider?>> _cache = {}; // insertion-ordered
   static final _done = <String, ImageProvider?>{};
 
-  static bool get supported => Caps.mapSnapshots;
+  /// The credit the map's source requires on the picture, or null when it
+  /// needs none drawn by us.
+  static String? get attribution =>
+      Caps.mapSnapshots ? null : OpenFreeMapSnapshot.attribution;
 
   static String keyFor({
     required double latitude,
@@ -82,7 +89,22 @@ abstract final class LocationMapSnapshot {
     double scale,
     bool dark,
   ) async {
-    if (!supported) return null;
+    if (!Caps.mapSnapshots) {
+      final image = await OpenFreeMapSnapshot.render(
+        latitude: latitude,
+        longitude: longitude,
+        spanMeters: spanMeters,
+        size: size,
+        scale: scale,
+        dark: dark,
+      );
+      if (image == null) return null;
+      // Encoded once so it rides the same ImageProvider cache as MapKit's PNG.
+      final png = await image.toByteData(format: ui.ImageByteFormat.png);
+      image.dispose();
+      if (png == null) return null;
+      return MemoryImage(png.buffer.asUint8List(), scale: scale);
+    }
     try {
       final bytes = await _channel.invokeMethod<Uint8List>('snapshot', {
         'latitude': latitude,

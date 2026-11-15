@@ -72,10 +72,23 @@ Color locationMapAccent(AppTheme theme) => Color.lerp(
 /// north arrow stay with the drawn card only. Privacy trade, accepted: the
 /// viewer's device asks Apple for the map around the shared point, exactly as
 /// opening it in Apple Maps would. Our server sees nothing, so this stays
-/// compatible with end-to-end encryption. Android, Windows, Linux and web have
-/// no keyless, unlimited OS equivalent and keep the drawn card. Bridge:
-/// `location_map_snapshot.dart`, `ios/Runner/MapSnapshot.swift` and its macOS
-/// twin; gate: `Caps.mapSnapshots`.
+/// compatible with end-to-end encryption. Bridge: `location_map_snapshot.dart`,
+/// `ios/Runner/MapSnapshot.swift` and its macOS twin; gate: `Caps.mapSnapshots`.
+///
+/// **Update 2026-11-15, later: Android, Windows, Linux and web use
+/// OpenFreeMap.** None of them has a keyless, unlimited OS map renderer, and we
+/// cannot host tiles (the VPS has no disk for a planet file). The objections
+/// above were weighed again and accepted as trade-offs: the renderer is the
+/// pure-Dart `vector_tile_renderer`, run ONCE per place into a still image
+/// (`open_free_map_snapshot.dart`), so no live map widget scrolls in the
+/// transcript; the single-operator risk is covered by this card, which stays
+/// underneath and shows whenever OpenFreeMap is down or the device is offline;
+/// and the privacy cost is the same one accepted for Apple, paid to a different
+/// host (the viewer's device fetches the few tiles around the point, our
+/// server sees nothing). VersaTiles was the alternative; OpenFreeMap was chosen
+/// as the more mature public service (VersaTiles' public server is a demo).
+/// Styles: Liberty for light themes, Dark for dark ones. The required credit is
+/// drawn top-left on the picture.
 ///
 /// **So this draws, and it draws only true things.** The graticule lines are
 /// real parallels and meridians at the stated spacing, latitude-corrected, and
@@ -139,18 +152,11 @@ class LocationMapPreview extends StatelessWidget {
       textDirection: Directionality.of(context),
     );
 
-    if (!LocationMapSnapshot.supported) {
-      return CustomPaint(
-        painter: painter(_Layers.all),
-        // Sized by the parent; the painter fills whatever it is given.
-        child: const SizedBox.expand(),
-      );
-    }
-
-    // Apple platforms: the graticule is the ground while the map renders (and
-    // stays, if it never does), the Apple Maps picture covers it, and the
-    // accuracy ring and marker sit on top in the app's own style. The scale
-    // bar and north arrow belong to the graticule card and go with it.
+    // The graticule is the ground while the map renders (and stays, if it
+    // never does: offline, or the map source is down), the street-map picture
+    // covers it, and the accuracy ring and marker sit on top in the app's own
+    // style. The scale bar and north arrow belong to the graticule card and go
+    // under the map with it.
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = constraints.biggest;
@@ -284,15 +290,40 @@ class _MapPictureState extends State<_MapPicture> {
         ),
       );
     }
-    return picture;
+    final credit = LocationMapSnapshot.attribution;
+    if (credit == null) return picture;
+    // The map source's required credit, small and in a corner the bubble's
+    // time stamp (bottom right) never uses.
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        picture,
+        Positioned(
+          left: 5,
+          top: 4,
+          right: 5,
+          child: Text(
+            credit,
+            maxLines: 1,
+            overflow: TextOverflow.fade,
+            softWrap: false,
+            style: TextStyle(
+              inherit: false,
+              fontSize: 7.5,
+              height: 1.1,
+              color: widget.dark
+                  ? const Color(0x99FFFFFF)
+                  : const Color(0x8C000000),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
 /// Which parts of the card a painter draws.
 enum _Layers {
-  /// Everything: the whole card where there is no OS map.
-  all,
-
   /// The card without its marks, under the map picture: what shows while the
   /// map renders, or for good if it never does.
   ground,
@@ -407,10 +438,6 @@ class _GraticulePainter extends CustomPainter {
     );
 
     _paintGraticule(canvas, size, centre, stepM, stepPx);
-    if (layers == _Layers.all) {
-      _paintAccuracyRing(canvas, centre, pxPerMeter);
-      _paintMarker(canvas, centre);
-    }
     _paintScaleBar(canvas, size, stepM, stepPx);
     _paintNorth(canvas, size);
 

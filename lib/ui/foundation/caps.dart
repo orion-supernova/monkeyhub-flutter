@@ -50,8 +50,8 @@ abstract final class Caps {
 
   /// Street-map pictures for location bubbles from the OS (Apple's
   /// `MKMapSnapshotter`: no key, no quota, no server of ours). In: iOS and
-  /// macOS apps. Out: Android, Windows, Linux and web, which draw the
-  /// graticule card instead (see `location_map_preview.dart`).
+  /// macOS apps. Out: Android, Windows, Linux and web, which draw OpenFreeMap
+  /// tiles themselves instead (see `location_map_snapshot.dart`).
   static bool get mapSnapshots => nativeApple;
 
   // ------------------------------------------------------- input & presence
