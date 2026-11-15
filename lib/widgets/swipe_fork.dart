@@ -386,15 +386,15 @@ class SwipeForkController {
     }
   }
 
-  /// How hard the continuous buzz is right now, 0..1: a whisper that swells
-  /// with the pull, firmer once the fork is open, firmer again as a side is
-  /// approached, and strongest while one is armed.
+  /// How hard the continuous buzz is right now, 0..1. See [ForkBuzz.pullLevel]
+  /// and [ForkBuzz.slideLevel]: it is felt from the first point of the pull,
+  /// swells steadily up to the line, and only ever gets firmer after it.
   double _buzzIntensity() {
     if (!machine.active) return 0;
-    if (!viewForked) return 0.1 + 0.35 * viewP * viewP;
-    if (viewSingle) return 0.55;
-    if (machine.armed != null) return 0.8;
-    return 0.45 + 0.3 * machine.slide;
+    if (!viewForked) return ForkBuzz.pullLevel(viewP);
+    if (viewSingle) return ForkBuzz.singleLevel;
+    if (machine.armed != null) return ForkBuzz.armedLevel;
+    return ForkBuzz.slideLevel(machine.slide);
   }
 
   /// Settles the two arm amounts (they follow the finger directly while it is

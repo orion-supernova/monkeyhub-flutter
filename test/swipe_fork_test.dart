@@ -394,6 +394,22 @@ void main() {
       expect(none, isEmpty);
     });
 
+    test('felt from the first point of the pull, rising, never dropping after the line', () {
+      // Light impacts under ~0.3 are imperceptible: the pull must start there.
+      expect(ForkBuzz.pullLevel(0), greaterThanOrEqualTo(0.3));
+      var last = 0.0;
+      for (var i = 0; i <= 10; i++) {
+        final v = ForkBuzz.pullLevel(i / 10);
+        expect(v, greaterThan(last));
+        last = v;
+      }
+      final end = ForkBuzz.pullLevel(1);
+      expect(ForkBuzz.slideLevel(0), greaterThanOrEqualTo(end));
+      expect(ForkBuzz.slideLevel(1), lessThan(ForkBuzz.armedLevel));
+      expect(ForkBuzz.singleLevel, greaterThan(end));
+      expect(ForkBuzz.armedLevel, lessThanOrEqualTo(1));
+    });
+
     testWidgets('silence below the floor', (t) async {
       final plays = <double>[];
       final b = ForkBuzz(

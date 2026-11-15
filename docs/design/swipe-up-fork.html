@@ -694,7 +694,7 @@ button[data-v="secret"] .lg-c{transform-origin:center}
 
 <!-- ============================================================ -->
 <h2 id="haptics">Haptics: a continuous, two-way ramp</h2>
-<p>As in Instagram, the vibration is part of the gesture itself, not a few separate clicks. It's a stream of ticks laid along the pull: sparse and soft at the start, closer and firmer toward the line. <b>Pull back and it fades the same way</b>: each detent you cross on the way down plays at its own (lower) strength, so retreating feels like the tension letting go. The sideways slide gets its own ramp toward each option. In the prototype, the meter under the readout shows every tick (and Android Chrome actually vibrates).</p>
+<p>As in Instagram, the vibration is part of the gesture itself, not a few separate clicks. It's a stream of ticks laid along the pull: sparse and soft at the start, closer and firmer toward the line. <b>Felt from the first point of the pull</b> (2026-11-15): the buzz starts at intensity 0.3 and rises linearly to 0.7 at the line, then only gets firmer (slide 0.7&ndash;0.85, armed 0.95). A light Taptic impact or Android <code>LOW_TICK</code> under ~0.3 cannot be felt, so the earlier curve (0.1 + 0.35&middot;p&sup2;) only arrived near a full pull. Constants live in <code>ForkBuzz</code>. <b>Pull back and it fades the same way</b>: each detent you cross on the way down plays at its own (lower) strength, so retreating feels like the tension letting go. The sideways slide gets its own ramp toward each option. In the prototype, the meter under the readout shows every tick (and Android Chrome actually vibrates).</p>
 <div class="grid2">
   <div class="card"><h3>The ramp</h3>
     <table>

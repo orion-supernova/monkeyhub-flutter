@@ -32,6 +32,36 @@ class ForkBuzz {
   /// Quieter than this is not worth a pulse.
   static const double floor = 0.04;
 
+  // ───────── the gesture's curve ─────────
+  //
+  // A light Taptic impact (and Android's LOW_TICK primitive) below ~0.3 is
+  // below what a thumb can feel. The old pull curve, 0.1 + 0.35·p², sat under
+  // that line until ~80% of the pull, so the buzz seemed to arrive only when
+  // the pull was almost full. The pull now STARTS at the perceptible floor and
+  // rises linearly (intensity is perceived roughly logarithmically, so linear
+  // already reads as a steady swell), and every level after the fork line is
+  // above the pull's end, so crossing it never feels like a drop.
+
+  /// Where the pull starts: the first point of travel is already felt.
+  static const double pullStart = 0.3;
+
+  /// Where the pull ends, at the fork line.
+  static const double pullEnd = 0.7;
+
+  /// The fork is open with one option: steady, above the pull's end.
+  static const double singleLevel = 0.8;
+
+  /// A side is armed: the strongest the buzz gets.
+  static const double armedLevel = 0.95;
+
+  /// The pull, [p] 0..1 up to the fork line.
+  static double pullLevel(double p) =>
+      pullStart + (pullEnd - pullStart) * p.clamp(0.0, 1.0);
+
+  /// The fork is open and the finger slides toward a side, [slide] 0..1.
+  static double slideLevel(double slide) =>
+      pullEnd + (armedLevel - 0.1 - pullEnd) * slide.clamp(0.0, 1.0);
+
   /// Gap between pulses. A thinned motor needs 40ms+ between one-shots.
   static const int periodMs = 28;
   static const int thinnedPeriodMs = 44;
