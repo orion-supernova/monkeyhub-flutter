@@ -259,13 +259,13 @@ class _BananaArt {
   static final _body = _Part(
     const [
       Offset(0.300, 0.372),
-      Offset(0.345, 0.61),
-      Offset(0.58, 0.67),
-      Offset(0.800, 0.578),
+      Offset(0.33, 0.56),
+      Offset(0.50, 0.625),
+      Offset(0.705, 0.585),
     ],
     // Rounded at the top too: that end is the peel's cup around the fruit.
     (t) =>
-        _lerp(0.19, 0.045, math.pow(t, 1.3).toDouble()) *
+        _lerp(0.19, 0.06, math.pow(t, 1.5).toDouble()) *
         _cap(t, 0.09) *
         _cap(1 - t, 0.05),
   );
@@ -286,7 +286,7 @@ class _BananaArt {
   static ui.Picture record(double s) {
     final rec = ui.PictureRecorder();
     final canvas = Canvas(rec);
-    // Fit: the art spans x 0.07..0.81, y 0.01..0.79.
+    // Fit: the art spans x 0.12..0.76, y 0.01..0.79.
     const k = 1.2;
     canvas.translate(s * 0.5, s * 0.5);
     canvas.scale(k);
@@ -301,9 +301,10 @@ class _BananaArt {
 
   /// Fills [part] as a rounded form: dark at the silhouette, lighter toward
   /// the lit side, a soft shine, and a gentle occlusion line at the edge.
-  static void _shade(Canvas canvas, double s, _Part part, _Tone tone) {
+  static void _shade(Canvas canvas, double s, _Part part, _Tone tone,
+      {double t0 = 0, double t1 = 1}) {
     final lit = part.lit;
-    final base = part.outline(s);
+    final base = part.outline(s, t0: t0, t1: t1);
     canvas.drawPath(base, Paint()..color = tone.dark);
     canvas.save();
     canvas.clipPath(base);
@@ -311,7 +312,12 @@ class _BananaArt {
         _soft(tone.mid, 0.014, s));
     canvas.drawPath(part.outline(s, scale: 0.58, shift: 0.11 * lit),
         _soft(tone.light, 0.016, s));
-    canvas.drawPath(part.outline(s, scale: 0.20, shift: 0.22 * lit, t0: 0.08, t1: 0.86),
+    canvas.drawPath(
+        part.outline(s,
+            scale: 0.20,
+            shift: 0.22 * lit,
+            t0: t0 + (t1 - t0) * 0.08,
+            t1: t0 + (t1 - t0) * 0.86),
         _soft(tone.shine.withValues(alpha: 0.85), 0.010, s));
     canvas.drawPath(
       base,
@@ -360,6 +366,52 @@ class _BananaArt {
     canvas.restore();
   }
 
+  /// The tip of a flap curls toward us and shows its yellow skin: the last
+  /// stretch is shaded as skin, with a soft crease where it turns.
+  static void _curl(Canvas canvas, double s, _Part part, double from) {
+    // A sliver, not a cap: the skin shows along the shaded edge only, and
+    // widens toward the very tip, as a curled edge does.
+    final lit = part.lit;
+    final sliver = Path();
+    const n = 24;
+    final inner = <Offset>[];
+    final outer = <Offset>[];
+    for (var i = 0; i <= n; i++) {
+      final t = from + (1 - from) * i / n;
+      final k = i / n;
+      final w = part.width(t);
+      final nn = part.normal(t);
+      final edge = part.at(t) - nn * (lit * w / 2);
+      outer.add(edge * s);
+      inner.add((edge + nn * (lit * w * (0.08 + 0.42 * k * k))) * s);
+    }
+    sliver.moveTo(outer.first.dx, outer.first.dy);
+    for (final q in outer.skip(1)) {
+      sliver.lineTo(q.dx, q.dy);
+    }
+    for (final q in inner.reversed) {
+      sliver.lineTo(q.dx, q.dy);
+    }
+    sliver.close();
+    final base = part.outline(s);
+    canvas.save();
+    canvas.clipPath(base);
+    // Its shadow on the cream first, then the skin itself.
+    canvas.drawPath(
+      sliver,
+      _soft(const Color(0xFF8E6A22).withValues(alpha: 0.4), 0.01, s),
+    );
+    canvas.drawPath(
+      sliver,
+      Paint()
+        ..shader = LinearGradient(
+          colors: [_skin.light, _skin.mid, _skin.dark],
+          stops: const [0, 0.55, 1],
+        ).createShader(sliver.getBounds()),
+    );
+    canvas.restore();
+  }
+
   /// A cast shadow of [shape] (shifted by [d]) falling only on [onto].
   static void _cast(Canvas canvas, double s, Path shape, Path onto, Offset d,
       Color c, double blur) {
@@ -384,6 +436,7 @@ class _BananaArt {
     );
     _shade(canvas, s, _backFlap, _cream);
     _grain(canvas, s, _backFlap, _cream.dark, seed: 3, lines: 6, specks: 40);
+    _curl(canvas, s, _backFlap, 0.86);
     // Where it leaves the fruit, it sits in the fruit's shade.
     canvas.save();
     canvas.clipPath(back);
@@ -399,6 +452,13 @@ class _BananaArt {
     canvas.clipPath(fruit);
     canvas.drawCircle(Offset(s * 0.30, s * 0.05), s * 0.05,
         _soft(Colors.white.withValues(alpha: 0.45), 0.03, s));
+    // Light passing through the fruit: a warm glow just inside its edge.
+    canvas.drawPath(
+      fruit,
+      _soft(const Color(0xFFFFF6DC).withValues(alpha: 0.75), 0.008, s)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s * 0.012,
+    );
     canvas.restore();
 
     // 3. The body, still in its skin.
@@ -406,12 +466,24 @@ class _BananaArt {
         const Color(0xFF8E7444).withValues(alpha: 0.55), 0.02);
     _shade(canvas, s, _body, _skin);
     _grain(canvas, s, _body, _skin.dark, seed: 11, alpha: 0.18, lines: 5, specks: 30);
+    // A banana is faceted: faint ridges where its faces meet.
+    for (final (f, c) in [
+      (0.22 * _body.lit, const Color(0xFFFFF0A0)),
+      (-0.18 * _body.lit, const Color(0xFFC98A0C)),
+    ]) {
+      canvas.drawPath(
+        _body.along(s, f, t0: 0.08, t1: 0.92),
+        _soft(c.withValues(alpha: 0.45), 0.004, s)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = s * 0.006,
+      );
+    }
     // Sugar spots: clustered toward the underside and the tip, uneven.
     canvas.save();
     canvas.clipPath(body);
     final rnd = math.Random(21);
-    for (var i = 0; i < 22; i++) {
-      final t = 0.22 + rnd.nextDouble() * 0.7;
+    for (var i = 0; i < 18; i++) {
+      final t = 0.2 + rnd.nextDouble() * 0.7;
       final f = -0.05 * _body.lit + (rnd.nextDouble() - 0.35) * 0.75;
       final q = (_body.at(t) + _body.normal(t) * (f * _body.width(t))) * s;
       final r = s * (0.002 + math.pow(rnd.nextDouble(), 2.6) * 0.0065);
@@ -445,6 +517,47 @@ class _BananaArt {
         ).createShader(tip.getBounds()),
     );
 
+    // Loose strings: two of the fruit's fibres come away and drape over
+    // the cup's rim onto the skin.
+    // Only where it can be seen: at pill size a strand is a stray line.
+    for (final st in s < 48
+        ? const <List<double>>[]
+        : const [
+            [0.356, 0.325, 0.405, 0.375, 0.392, 0.455],
+          ]) {
+      final path = Path()
+        ..moveTo(st[0] * s, st[1] * s)
+        ..quadraticBezierTo(st[2] * s, st[3] * s, st[4] * s, st[5] * s);
+      // Shadow first, where it lies on the skin.
+      canvas.save();
+      canvas.clipPath(body);
+      canvas.translate(s * 0.006, s * 0.006);
+      canvas.drawPath(
+        path,
+        _soft(const Color(0xFF9A6A0E).withValues(alpha: 0.5), 0.004, s)
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = s * 0.008,
+      );
+      canvas.restore();
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = s * 0.0072
+          ..color = _flesh.dark.withValues(alpha: 0.85),
+      );
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = s * 0.0038
+          ..color = _flesh.light.withValues(alpha: 0.9),
+      );
+    }
+
     // 4. Front flap: skin along its outer edge, a shadow onto the body.
     _cast(canvas, s, front, body, const Offset(0.022, 0.006),
         const Color(0xFF9A6A0E).withValues(alpha: 0.6), 0.018);
@@ -463,5 +576,6 @@ class _BananaArt {
       _soft(const Color(0xFF9C7F4A).withValues(alpha: 0.5), 0.022, s),
     );
     canvas.restore();
+    _curl(canvas, s, _frontFlap, 0.88);
   }
 }
