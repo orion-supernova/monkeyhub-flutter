@@ -254,12 +254,25 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
   OnlineFightDriver? _driver;
   bool _busy = false, _connectFailed = false;
 
-  /// This player's fighter (from settings, changeable on their card in the
-  /// lobby) and the opponent's, learned over the link when it opens. Picks
-  /// are swapped phone to phone, never through the server, and both are
-  /// revealed together on the VS screen.
+  /// This player's fighter (from settings, changeable in the lobby) and the
+  /// opponent's. The picks the FIGHT uses are swapped phone to phone when the
+  /// link opens ([_peerPick]); in the lobby each seat also publishes its
+  /// choice on the match ([_publishPicks]) so the other watches it change.
   int _myPick = fightCharOf(SettingsStore.instance.fightChar);
   int? _peerPick;
+
+  /// The opponent's last published lobby choice, kept after the game starts
+  /// (starting drops it from the match) so their card does not blink back to
+  /// a question mark while the phones connect.
+  int? _peerPreview;
+
+  /// Lobby publishing: one write per settled choice, not per tap.
+  Timer? _publishTimer;
+  static const Duration _publishDebounce = Duration(milliseconds: 350);
+
+  /// Set when the server refuses the call (a backend from before live picks):
+  /// the lobby then simply works as it did, with hidden picks.
+  bool _publishOff = false;
 
   /// The place to fight in is the host's (seat 0) choice. The host picks in the
   /// lobby ([_stagePick], possibly Random) and sends the resolved id with its
@@ -296,7 +309,52 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
     if (live && _mySeat >= 0 && _link == null && !_connectFailed && m.seats.length == 2) {
       unawaited(_connect(m));
     }
+    final mine = _mySeat;
+    if (mine >= 0 && m.seats.length == 2) {
+      _peerPreview = m.seats[1 - mine].pick ?? _peerPreview;
+    }
+    _publishPicks();
     setState(() {});
+  }
+
+  /// Sends this seat's fighter (and, for the host, stage) to the match when
+  /// it differs from what the match already shows: on sitting down, and after
+  /// each change. Debounced, so flicking through the grid is one write.
+  ///
+  /// [changed] is a tap on this phone, which restarts the wait. A match update
+  /// (the opponent browsing their own grid) must not: it would keep pushing
+  /// this seat's send back for as long as they kept tapping.
+  void _publishPicks({bool changed = false}) {
+    final m = _m;
+    final seat = _mySeat;
+    if (m == null || seat < 0 || m.status != MatchStatus.lobby || _publishOff) return;
+    final shown = m.seats[seat];
+    final host = seat == 0;
+    if (shown.pick == _myPick && (!host || shown.stage == _stagePick)) {
+      _publishTimer?.cancel();
+      _publishTimer = null;
+      return;
+    }
+    if (_publishTimer != null && !changed) return;
+    _publishTimer?.cancel();
+    _publishTimer = Timer(_publishDebounce, () async {
+      _publishTimer = null;
+      final now = _m;
+      if (!mounted || now == null || now.status != MatchStatus.lobby || _mySeat < 0) return;
+      try {
+        await MatchesStore.instance.api.setPick(
+          widget.userId,
+          widget.matchId,
+          pick: _myPick,
+          stage: _mySeat == 0 ? _stagePick : null,
+        );
+      } catch (e) {
+        // The game starting under the call is not a reason to stop; anything
+        // else is a server without this, so stop asking.
+        if (!'$e'.contains('NOT_IN_LOBBY')) _publishOff = true;
+        debugPrint('FightOnlineScreen: setPick failed: $e');
+      }
+    });
   }
 
   Future<void> _connect(ChatMatch m) async {
@@ -372,6 +430,7 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
   void _pickStage(int id) {
     setState(() => _stagePick = id);
     unawaited(SettingsStore.instance.setFightStage(id));
+    _publishPicks(changed: true);
   }
 
   Future<void> _retry() async {
@@ -440,6 +499,7 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
     SettingsStore.instance.removeListener(_onSettings);
     _link?.state.removeListener(_onLink);
     _peerPickTimeout?.cancel();
+    _publishTimer?.cancel();
     unawaited(_link?.close());
     _mc.dispose();
     super.dispose();
@@ -526,6 +586,7 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
     if (id == _myPick) return;
     setState(() => _myPick = id);
     unawaited(SettingsStore.instance.setFightChar(id));
+    _publishPicks(changed: true);
   }
 
   Widget _body(AppLocalizations l10n, ChatMatch m, double bottomInset) {
@@ -613,6 +674,17 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
     final picking = _phase == _Phase.lobby && mine >= 0;
     final look = fightLookOf(SettingsStore.instance.fightLook);
 
+    final int? rightChar = _phase == _Phase.fighting
+        ? _peerPick
+        : (mine >= 0 ? (right?.pick ?? (_phase == _Phase.lobby ? null : _peerPreview)) : right?.pick);
+
+    // The host's stage as the guest (or a watcher) sees it in the lobby:
+    // the card itself, following the host's taps. Null until it is published.
+    final int? hostStage = seats.isNotEmpty ? seats[0].stage : null;
+    Widget hostStageView(double textSize, {TextAlign? align}) => hostStage == null
+        ? Text(l10n.fightStageHostPicks, textAlign: align, style: TextStyle(fontSize: textSize, color: const Color(0xb3ffffff)))
+        : FightStagePicker(selected: hostStage, onPick: (_) {}, readOnly: true);
+
     Widget cards(double h) => Row(
       children: [
         Expanded(
@@ -621,7 +693,8 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
             ready: left?.ready ?? false,
             tone: 0,
             height: h,
-            charId: mine >= 0 ? _myPick : null,
+            // A watcher sees what the seat has published.
+            charId: mine >= 0 ? _myPick : left?.pick,
           ),
         ),
         const Padding(
@@ -634,10 +707,12 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
             ready: _phase == _Phase.fighting || (right?.ready ?? false),
             tone: 1,
             height: h,
-            // Hidden until the reveal; a spectator never sees picks.
-            charId: _phase == _Phase.fighting ? _peerPick : null,
-            alt: _peerPick != null && _peerPick == _myPick,
-            hint: right != null && _phase != _Phase.fighting ? l10n.fightOpponentHidden : null,
+            // The fight's own pick once the phones have swapped them; until
+            // then the choice the seat is publishing from its lobby, live.
+            // A question mark only for a build that publishes nothing.
+            charId: rightChar,
+            alt: mine >= 0 && rightChar != null && rightChar == _myPick,
+            hint: right != null && rightChar == null ? l10n.fightOpponentHidden : null,
           ),
         ),
       ],
@@ -659,7 +734,7 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
               l10n.fightStageTitle,
               mine == 0
                   ? FightStagePicker(selected: _stagePick, onPick: _pickStage)
-                  : Text(l10n.fightStageHostPicks, style: const TextStyle(fontSize: 14, color: Color(0xb3ffffff))),
+                  : hostStageView(14),
             ),
             const SizedBox(height: 12),
           ],
@@ -726,8 +801,8 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
       // Everyone else, and every other phase: the matchup centred.
       final cardH = (box.maxHeight * .42).clamp(96.0, 240.0);
       Widget? stageRow;
-      if (mine == 1 && _phase == _Phase.lobby) {
-        stageRow = Text(l10n.fightStageHostPicks, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: Color(0xb3ffffff)));
+      if (mine != 0 && _phase == _Phase.lobby && seats.isNotEmpty) {
+        stageRow = hostStageView(13, align: TextAlign.center);
       } else if (_phase == _Phase.fighting) {
         // The VS reveal: where the fight is.
         stageRow = FightStagePicker(selected: _stage, onPick: (_) {}, readOnly: true);

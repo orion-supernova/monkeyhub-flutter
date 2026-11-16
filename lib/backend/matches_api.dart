@@ -98,6 +98,10 @@ class MatchesApi {
       _call('leave', userId, matchId);
   Future<void> setReady(String userId, String matchId, bool ready) =>
       _call('setReady', userId, matchId, {'ready': ready});
+  /// A seated player's lobby choice, shown live to the other seat. One small
+  /// write per call, so callers debounce; see `matches.setPick`.
+  Future<void> setPick(String userId, String matchId, {int? pick, int? stage}) =>
+      _call('setPick', userId, matchId, {'pick': ?pick, 'stage': ?stage});
   Future<void> resign(String userId, String matchId) =>
       _call('resign', userId, matchId);
   Future<void> offerDraw(String userId, String matchId) =>

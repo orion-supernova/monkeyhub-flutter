@@ -116,7 +116,17 @@ class FightStagePicker extends StatelessWidget {
         child: SizedBox(
           width: _cardW * 1.5,
           height: _cardH * 1.5 + _labelH,
-          child: _StageCard(id: fightStageOf(selected), look: look, selected: true, w: _cardW * 1.5, h: _cardH * 1.5, label: fightStageName(l10n, selected), onTap: null),
+          // Random stays Random here: a guest watching the host's choice
+          // must not be shown a stage that was never picked.
+          child: _StageCard(
+            id: selected == kFightStageRandom ? kFightStageRandom : fightStageOf(selected),
+            look: look,
+            selected: true,
+            w: _cardW * 1.5,
+            h: _cardH * 1.5,
+            label: selected == kFightStageRandom ? l10n.fightStageRandom : fightStageName(l10n, selected),
+            onTap: null,
+          ),
         ),
       );
     }

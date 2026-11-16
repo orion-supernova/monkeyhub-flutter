@@ -187,6 +187,9 @@ class FakeMatchesApi implements MatchesApi {
   Future<void> setReady(String userId, String matchId, bool ready) async =>
       calls.add('ready:$ready');
   @override
+  Future<void> setPick(String userId, String matchId, {int? pick, int? stage}) async =>
+      calls.add('pick:$pick:$stage');
+  @override
   Future<void> resign(String userId, String matchId) async =>
       calls.add('resign');
   @override

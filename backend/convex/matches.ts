@@ -798,6 +798,50 @@ export const leave = mutation({
 });
 
 /**
+ * What a seated player has chosen in the lobby, so the other seat sees it as
+ * it changes (Jungle Fist: the fighter, and the host's stage).
+ *
+ * Cost, per settled choice (the app debounces, so browsing sends one): 2 reads
+ * (the match, the membership), 1 write (the match). It re-runs `matches:get`
+ * for the lobby screens and `listForRoom` for members with that chat open,
+ * the same as a Ready tap. An unchanged choice writes nothing, and there is no
+ * presence beat here: the lobby already beats on its own.
+ *
+ * A preview only. The game still swaps picks phone to phone when it starts,
+ * so a build without this simply shows the hidden card.
+ */
+export const setPick = mutation({
+  args: {
+    matchId: v.id("matches"),
+    userId: v.id("users"),
+    pick: v.optional(v.number()),
+    stage: v.optional(v.number()),
+  },
+  handler: async (ctx, { matchId, userId, pick, stage }) => {
+    const match = await loadMatch(ctx, matchId);
+    await assertMember(ctx, match.roomId, userId);
+    if (match.status !== "lobby") throw new Error("NOT_IN_LOBBY");
+    const seat = seatOf(match, userId);
+    if (seat < 0) throw new Error("NOT_SEATED");
+    const small = (n: number | undefined) =>
+      n === undefined || (Number.isInteger(n) && n >= -1 && n <= 255);
+    if (!small(pick) || !small(stage)) throw new Error("BAD_PICK");
+    const mine = match.seats[seat];
+    const next = {
+      ...mine,
+      ...(pick !== undefined ? { pick } : {}),
+      // The place is the host's call.
+      ...(stage !== undefined && seat === 0 ? { stage } : {}),
+    };
+    if (next.pick === mine.pick && next.stage === mine.stage) return null;
+    await ctx.db.patch(matchId, {
+      seats: match.seats.map((s: any, i: number) => (i === seat ? next : s)),
+    });
+    return null;
+  },
+});
+
+/**
  * "I'm ready", or not. When every seat is ready and there are enough of them,
  * the game starts — in the same transaction, so two players tapping ready at
  * once start it exactly once.

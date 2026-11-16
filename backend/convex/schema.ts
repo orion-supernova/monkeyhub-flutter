@@ -3360,6 +3360,13 @@ export default defineSchema({
         name: v.string(),
         // Lobby only: tapped "I'm ready".
         ready: v.optional(v.boolean()),
+        // Lobby only: what this seat has chosen so far, shown live to the
+        // other seat (`matches.setPick`). Jungle Fist: `pick` is the fighter
+        // id and `stage` (host seat only) the stage id. A preview, never the
+        // authority: the game still swaps picks phone to phone when it starts,
+        // and starting a game drops both fields.
+        pick: v.optional(v.number()),
+        stage: v.optional(v.number()),
         // Live only: left the screen or the app. Pauses the game.
         away: v.optional(v.boolean()),
         // Forfeited mid-game in a game of more than two. Their turns are

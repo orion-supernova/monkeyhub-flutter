@@ -58,6 +58,8 @@ class MatchSeat {
     this.away = false,
     this.out = false,
     this.done = false,
+    this.pick,
+    this.stage,
   });
 
   final String userId;
@@ -78,6 +80,11 @@ class MatchSeat {
   /// seat is never marked away, so the screen should not nag them either.
   final bool done;
 
+  /// Lobby only: what this seat has chosen so far, shown live to the other
+  /// seat (`matches:setPick`). Jungle Fist: the fighter id, and on the host's
+  /// seat the stage id. Null from a build that does not send them.
+  final int? pick, stage;
+
   static MatchSeat fromJson(Map<String, dynamic> j) => MatchSeat(
     userId: j['userId']?.toString() ?? '',
     name: j['name']?.toString() ?? '',
@@ -85,6 +92,8 @@ class MatchSeat {
     away: j['away'] == true,
     out: j['out'] == true,
     done: j['done'] == true,
+    pick: (j['pick'] as num?)?.toInt(),
+    stage: (j['stage'] as num?)?.toInt(),
   );
 }
 
