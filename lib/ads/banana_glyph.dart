@@ -154,16 +154,26 @@ class _Part {
   /// The outline at [scale] of the width, its centre moved [shift] widths
   /// along the normal, between [t0] and [t1], in pixels for side [s].
   Path outline(double s,
-      {double scale = 1, double shift = 0, double t0 = 0, double t1 = 1}) {
-    const n = 72;
+      {double scale = 1,
+      double shift = 0,
+      double t0 = 0,
+      double t1 = 1,
+      bool fade = false}) {
+    const n = 96;
     final left = <Offset>[];
     final right = <Offset>[];
     for (var i = 0; i <= n; i++) {
-      final t = t0 + (t1 - t0) * i / n;
+      // Sampled densely toward both ends, where the rounded caps turn fast.
+      final u = 0.5 - 0.5 * math.cos(math.pi * i / n);
+      final t = t0 + (t1 - t0) * u;
       final p = at(t);
       final nn = normal(t);
       final w = width(t);
-      final mid = p + nn * (shift * w);
+      // [fade]: the offset eases back to nothing over the last stretch, so
+      // an offset copy (a rim) melts into the shape instead of ending in a
+      // step.
+      final ease = fade ? math.min(1.0, (1 - u) / 0.3) : 1.0;
+      final mid = p + nn * (shift * w * ease);
       left.add((mid + nn * (w * scale / 2)) * s);
       right.add((mid - nn * (w * scale / 2)) * s);
     }
@@ -238,12 +248,15 @@ class _BananaArt {
   static final _backFlap = _Part(
     const [
       Offset(0.37, 0.445),
-      Offset(0.455, 0.235),
-      Offset(0.66, 0.235),
-      Offset(0.752, 0.495),
+      Offset(0.44, 0.25),
+      Offset(0.62, 0.215),
+      Offset(0.685, 0.43),
     ],
     // A strip of peel: wide where it leaves the fruit, tapering to a point.
-    (t) => _lerp(0.105, 0.034, math.pow(t, 1.2).toDouble()) * _cap(1 - t, 0.11),
+    (t) =>
+        _lerp(0.098, 0.07, t) *
+        _cap(1 - t, 0.2) *
+        (0.86 + 0.26 * math.sin(math.pi * t)),
   );
   static final _fruit = _Part(
     const [
@@ -252,6 +265,8 @@ class _BananaArt {
       Offset(0.288, 0.13),
       Offset(0.309, 0.012),
     ],
+    // Rounded at the base too: that end sits inside the skin, and a square
+    // corner there pokes out past the skin's edge.
     (t) => _lerp(0.158, 0.132, t) * _cap(1 - t, 0.26),
   );
   static final _body = _Part(
@@ -266,17 +281,15 @@ class _BananaArt {
   );
   static final _frontFlap = _Part(
     const [
-      Offset(0.252, 0.392),
-      Offset(0.170, 0.42),
-      Offset(0.148, 0.60),
-      Offset(0.205, 0.785),
+      Offset(0.272, 0.405),
+      Offset(0.165, 0.40),
+      Offset(0.105, 0.585),
+      Offset(0.225, 0.675),
     ],
-    // Widest just after it leaves the fruit, then tapering to a point.
-    (t) =>
-        _lerp(0.175, 0.04, math.pow(t, 1.3).toDouble()) *
-        _cap(t, 0.16) *
-        _cap(1 - t, 0.11) *
-        (0.92 + 0.16 * math.sin(math.pi * math.min(1, t * 1.6))),
+    // A broad tongue with a blunt end. The bend is spread along the whole
+    // spine and the width kept under its radius: a tighter turn folds the
+    // inner edge over itself and leaves stray lobes at the joint.
+    (t) => _lerp(0.165, 0.11, t) * _cap(t, 0.16) * _cap(1 - t, 0.2),
   );
 
   /// Where the skin splits: everything below this V is still skin; above it
@@ -292,8 +305,8 @@ class _BananaArt {
 
   /// The torn edge itself, the V's lip.
   static Path _lip(double s) => Path()
-    ..moveTo(0.19 * s, 0.405 * s)
-    ..cubicTo(0.25 * s, 0.43 * s, 0.29 * s, 0.462 * s, 0.33 * s, 0.458 * s)
+    ..moveTo(0.27 * s, 0.44 * s)
+    ..cubicTo(0.29 * s, 0.452 * s, 0.31 * s, 0.46 * s, 0.33 * s, 0.458 * s)
     ..cubicTo(0.37 * s, 0.456 * s, 0.40 * s, 0.445 * s, 0.46 * s, 0.445 * s);
 
   /// A flap's root is the same skin as the body: yellow where it leaves the
@@ -322,10 +335,10 @@ class _BananaArt {
     final rec = ui.PictureRecorder();
     final canvas = Canvas(rec);
     // Fit: the art spans x 0.12..0.76, y 0.01..0.79.
-    const k = 1.2;
+    const k = 1.3;
     canvas.translate(s * 0.5, s * 0.5);
     canvas.scale(k);
-    canvas.translate(-s * 0.44, -s * 0.40);
+    canvas.translate(-s * 0.435, -s * 0.36);
     _paint(canvas, s);
     return rec.endRecording();
   }
@@ -452,7 +465,7 @@ class _BananaArt {
     // 1. Back flap: the yellow skin peeks under its lower edge (the peel's
     // thickness), the cream inside faces us.
     canvas.drawPath(
-      _backFlap.outline(s, shift: -0.14 * _backFlap.lit, scale: 1.0),
+      _backFlap.outline(s, shift: -0.14 * _backFlap.lit, fade: true),
       Paint()..color = _skinEdge,
     );
     _flat(canvas, s, _backFlap, _cream);
@@ -526,21 +539,22 @@ class _BananaArt {
     _shade(canvas, s, _body, _skin);
     _grain(canvas, s, _body, _skin.dark, seed: 11, alpha: 0.12, lines: 4, specks: 0);
     canvas.restore();
-    // A banana is faceted: faint ridges where its faces meet.
+    // A banana is faceted: faint ridges where its faces meet. Clipped: the
+    // strokes' soft ends otherwise show as stray blobs past the skin's edge.
+    canvas.save();
+    canvas.clipPath(body);
     for (final (f, c) in [
       (0.22 * _body.lit, const Color(0xFFFFF0A0)),
       (-0.18 * _body.lit, const Color(0xFFC98A0C)),
     ]) {
       canvas.drawPath(
-        _body.along(s, f, t0: 0.08, t1: 0.92),
+        _body.along(s, f, t0: 0.2, t1: 0.9),
         _soft(c.withValues(alpha: 0.45), 0.004, s)
           ..style = PaintingStyle.stroke
           ..strokeWidth = s * 0.006,
       );
     }
     // Sugar spots: clustered toward the underside and the tip, uneven.
-    canvas.save();
-    canvas.clipPath(body);
     final rnd = math.Random(21);
     for (var i = 0; i < 16; i++) {
       final t = 0.2 + rnd.nextDouble() * 0.7;
@@ -605,7 +619,7 @@ class _BananaArt {
     // flap's inner border, root to tip: it parts the flap from the fruit and
     // runs on into the skin below.
     canvas.drawPath(
-      _frontFlap.outline(s, shift: -0.09 * _frontFlap.lit, t0: 0.03),
+      _frontFlap.outline(s, shift: -0.11 * _frontFlap.lit, t0: 0.03, fade: true),
       Paint()
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
