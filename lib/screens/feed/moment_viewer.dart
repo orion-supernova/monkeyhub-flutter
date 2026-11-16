@@ -21,6 +21,7 @@ import '../../models/chat_user.dart';
 import '../../models/expression_item.dart';
 import '../../models/family.dart';
 import '../../models/moment.dart';
+import '../../push/push_manager.dart';
 import '../../theme/interaction.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
@@ -112,6 +113,14 @@ Future<void> showMomentViewer(
   Rect? origin,
   bool openComments = false,
 
+  /// Opened from a notification rather than by a tap on the rail. The viewer
+  /// then does not close while anyone in [siblings] still has something
+  /// unseen: forward at the end wraps round to the people BEFORE the one it
+  /// opened on, where a rail tap only ever looks ahead. Several banners can be
+  /// waiting, and tapping one of them should clear the lot in one sitting
+  /// rather than leave the others for a second and third trip.
+  bool catchUp = false,
+
   /// Opens someone's profile from the reactions or the comments. The viewer
   /// has no repository of its own to build one with, so the host lends this.
   void Function(ChatUser user)? onOpenProfile,
@@ -145,6 +154,7 @@ Future<void> showMomentViewer(
       feedApi: feedApi,
       userId: userId,
       openComments: openComments,
+      catchUp: catchUp,
       onOpenProfile: onOpenProfile,
       faces: faces,
     );
@@ -209,6 +219,7 @@ Future<void> _openStage(
   required FeedApi feedApi,
   required String userId,
   bool openComments = false,
+  bool catchUp = false,
   void Function(ChatUser user)? onOpenProfile,
   _Faces faces = _Faces.none,
 }) {
@@ -228,6 +239,7 @@ Future<void> _openStage(
         feedApi: feedApi,
         userId: userId,
         openComments: openComments,
+        catchUp: catchUp,
         onOpenProfile: onOpenProfile,
         faces: faces,
       ),
@@ -715,12 +727,17 @@ class _MomentStage extends StatefulWidget {
     required this.feedApi,
     required this.userId,
     this.openComments = false,
+    this.catchUp = false,
     this.onOpenProfile,
     this.faces = _Faces.none,
   });
 
   /// See [_Faces].
   final _Faces faces;
+
+  /// See [showMomentViewer]: a notification's tap, which plays everything
+  /// unseen before it closes.
+  final bool catchUp;
 
   /// Opens the first moment's comments once the stage is up — a comment
   /// notification's tap.
@@ -1248,6 +1265,28 @@ class _MomentStageState extends State<_MomentStage>
     _seenPending.add(m.id);
     _seenTimer?.cancel();
     _seenTimer = Timer(_kStorySeenFlush, _flushSeen);
+    _clearBannerIfWatched(m);
+  }
+
+  /// Takes "X posted a highlight" out of the notification list once the last
+  /// of that person's highlights for the day has been watched here, so a
+  /// banner never outlives the thing it announced. The server sends one such
+  /// row per author per day, under this id (`socialPush`'s `collapseId`).
+  void _clearBannerIfWatched(Moment m) {
+    if (m.tag != null) return;
+    final run = _runs.firstWhere(
+      (r) => r.userId == m.userId,
+      orElse: () => _runs[_run],
+    );
+    final left = run.items.any(
+      (o) => o.tag == null && o.dayKey == m.dayKey && _unseen(o),
+    );
+    if (left) return;
+    unawaited(
+      PushManager.instance.dismissNotifications([
+        'friend_moment:${m.userId}:${m.dayKey}',
+      ]),
+    );
   }
 
   void _flushSeen() {
@@ -1270,8 +1309,17 @@ class _MomentStageState extends State<_MomentStage>
 
   /// The next person after the one on screen who has something unseen, or
   /// null when everyone after them has been watched through.
+  ///
+  /// With [_MomentStage.catchUp] the search then wraps: the people before
+  /// this one, and last this person again (something of theirs skipped over
+  /// by opening part-way in). Every arrival marks an item seen, so the wrap
+  /// runs out by itself.
   int? _nextUnseenRun() {
     for (var r = _run + 1; r < _runs.length; r++) {
+      if (_runs[r].items.any(_unseen)) return r;
+    }
+    if (!widget.catchUp) return null;
+    for (var r = 0; r <= _run; r++) {
       if (_runs[r].items.any(_unseen)) return r;
     }
     return null;
@@ -1285,8 +1333,18 @@ class _MomentStageState extends State<_MomentStage>
     if (_closing) return;
     final items = _runs[_run].items;
     if (_item < items.length - 1) {
-      _setItem(_item + 1);
-      return;
+      if (!widget.catchUp) {
+        _setItem(_item + 1);
+        return;
+      }
+      // Catching up plays what is unseen and nothing else: a person reached
+      // by wrapping round may have only an early item left, and replaying
+      // the ones after it would be watching them twice.
+      final later = items.indexWhere(_unseen, _item + 1);
+      if (later >= 0) {
+        _setItem(later);
+        return;
+      }
     }
     final run = _nextUnseenRun();
     if (run == null) {
@@ -1294,6 +1352,11 @@ class _MomentStageState extends State<_MomentStage>
       return;
     }
     final first = _runs[run].items.indexWhere(_unseen);
+    if (run == _run) {
+      // Catching up within the same person: no page to turn.
+      _setItem(first < 0 ? 0 : first);
+      return;
+    }
     setState(() => _itemOf[run] = first < 0 ? 0 : first);
     _toRun(run);
   }

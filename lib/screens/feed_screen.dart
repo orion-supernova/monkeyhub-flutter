@@ -279,9 +279,31 @@ class _FeedScreenState extends State<FeedScreen>
     if (known != null) {
       // Opened with the run it belongs to: a point among the day's points, a
       // highlight among the highlights.
-      known.tag == null
-          ? _openFromActivity(known, null, openComments: comments)
-          : _openFromPoint(known, null, openComments: comments);
+      if (known.tag != null) {
+        _openFromPoint(known, null, openComments: comments);
+        return;
+      }
+      // "X posted a highlight" is one banner per person per day, however many
+      // they posted, so it opens on the first of theirs not yet watched and
+      // plays forward from there; opening on the newest would close with the
+      // earlier ones still unseen. A comment's banner is about one highlight
+      // and opens exactly that.
+      var start = known;
+      if (!comments && known.opensFullScreen && !known.mine && !known.seen) {
+        for (final m in FeedStore.instance.highlightStories) {
+          if (m.userId == known.userId && !m.seen && m.opensFullScreen) {
+            start = m;
+            break;
+          }
+        }
+      }
+      _openFromActivity(
+        start,
+        null,
+        openComments: comments,
+        // And it does not close while other people's are waiting too.
+        catchUp: !comments,
+      );
       return;
     }
     _momentOpening = true;
@@ -426,6 +448,7 @@ class _FeedScreenState extends State<FeedScreen>
     Moment moment,
     Rect? origin, {
     bool openComments = false,
+    bool catchUp = false,
   }) =>
       _open(
         moment,
@@ -434,6 +457,7 @@ class _FeedScreenState extends State<FeedScreen>
         // rest of that person's day, oldest first, like the rail does.
         siblings: FeedStore.instance.highlightStories,
         openComments: openComments,
+        catchUp: catchUp,
       );
 
   void _open(
@@ -441,6 +465,7 @@ class _FeedScreenState extends State<FeedScreen>
     Rect? origin,
     List<Moment> siblings = const [],
     bool openComments = false,
+    bool catchUp = false,
   }) {
     final userId = widget.repo.userId;
     if (userId == null) return;
@@ -453,6 +478,7 @@ class _FeedScreenState extends State<FeedScreen>
       siblings: siblings,
       origin: origin,
       openComments: openComments,
+      catchUp: catchUp,
       onOpenProfile: _openProfile,
       viewerAvatarStorageId: _myAvatar,
       resolveUser: widget.repo.userById,
