@@ -216,24 +216,24 @@ class _Tone {
 
 class _BananaArt {
   static const _cream = _Tone(
-    Color(0xFFD5BE90),
-    Color(0xFFE9D8B2),
-    Color(0xFFF6ECD4),
-    Color(0xFFFFFCF2),
+    Color(0xFFDCCBA6),
+    Color(0xFFEBDFC2),
+    Color(0xFFF6EFDD),
+    Color(0xFFFFFCF4),
   );
   static const _flesh = _Tone(
-    Color(0xFFDCC99C),
-    Color(0xFFEFE3C2),
-    Color(0xFFFAF3E1),
+    Color(0xFFE2D4B2),
+    Color(0xFFF0E7D0),
+    Color(0xFFFAF5E8),
     Color(0xFFFFFFFF),
   );
   static const _skin = _Tone(
-    Color(0xFFD4930F),
-    Color(0xFFF0BB22),
-    Color(0xFFF9D746),
-    Color(0xFFFFF2A8),
+    Color(0xFFE3B42C),
+    Color(0xFFF3CE4A),
+    Color(0xFFFAE07E),
+    Color(0xFFFFF5C9),
   );
-  static const _skinEdge = Color(0xFFE6AC1A);
+  static const _skinEdge = Color(0xFFEDC03C);
 
   static final _backFlap = _Part(
     const [
@@ -424,7 +424,11 @@ class _BananaArt {
 
   /// Grain along [part]: fine, broken, uneven lines, and a speckle of noise.
   static void _grain(Canvas canvas, double s, _Part part, Color c,
-      {required int seed, double alpha = 0.22, int lines = 9, int specks = 70}) {
+      {required int seed,
+      double alpha = 0.22,
+      int lines = 9,
+      int specks = 70,
+      double speck = 1}) {
     final base = part.outline(s);
     final rnd = math.Random(seed);
     canvas.save();
@@ -453,8 +457,8 @@ class _BananaArt {
       final q = (part.at(t) + part.normal(t) * (f * part.width(t))) * s;
       canvas.drawCircle(
         q,
-        s * (0.0012 + rnd.nextDouble() * 0.0022),
-        Paint()..color = c.withValues(alpha: 0.10 + rnd.nextDouble() * 0.14),
+        s * (0.0012 + rnd.nextDouble() * 0.0022) * speck,
+        Paint()..color = c.withValues(alpha: (0.10 + rnd.nextDouble() * 0.14) * (0.4 + 0.6 * speck)),
       );
     }
     canvas.restore();
@@ -530,7 +534,7 @@ class _BananaArt {
       Paint()..color = _skinEdge,
     );
     _flat(canvas, s, _backFlap, _cream);
-    _grain(canvas, s, _backFlap, _cream.dark, seed: 3, lines: 6, specks: 40);
+    _grain(canvas, s, _backFlap, const Color(0xFFA88A55), seed: 3, alpha: 0.18, lines: 5, specks: 520, speck: 0.55);
     _curl(canvas, s, _backFlap, 0.86);
     _root(canvas, s, _backFlap, 0.2);
     // Where it leaves the fruit, it sits in the fruit's shade.
@@ -563,7 +567,7 @@ class _BananaArt {
     canvas.save();
     canvas.clipPath(split);
     _shade(canvas, s, _body, _skin);
-    _grain(canvas, s, _body, _skin.dark, seed: 11, alpha: 0.18, lines: 5, specks: 30);
+    _grain(canvas, s, _body, _skin.dark, seed: 11, alpha: 0.12, lines: 4, specks: 0);
     canvas.restore();
     // A banana is faceted: faint ridges where its faces meet.
     for (final (f, c) in [
@@ -581,12 +585,12 @@ class _BananaArt {
     canvas.save();
     canvas.clipPath(body);
     final rnd = math.Random(21);
-    for (var i = 0; i < 18; i++) {
+    for (var i = 0; i < 7; i++) {
       final t = 0.2 + rnd.nextDouble() * 0.7;
       final f = -0.05 * _body.lit + (rnd.nextDouble() - 0.35) * 0.75;
       final q = (_body.at(t) + _body.normal(t) * (f * _body.width(t))) * s;
-      final r = s * (0.002 + math.pow(rnd.nextDouble(), 2.6) * 0.0065);
-      final a = 0.35 + rnd.nextDouble() * 0.45;
+      final r = s * (0.0015 + math.pow(rnd.nextDouble(), 2.6) * 0.003);
+      final a = 0.18 + rnd.nextDouble() * 0.2;
       canvas.drawOval(
         Rect.fromCenter(center: q, width: r * 3.2, height: r * 2.2),
         _soft(const Color(0xFFA06A12).withValues(alpha: a * 0.35), 0.005, s),
@@ -599,24 +603,21 @@ class _BananaArt {
     canvas.restore();
     _drawLip(canvas, s, _body.outline(s));
     // The stalk end: a graded brown cap.
-    final tip = _body.outline(s, t0: 0.955, t1: 1.0, scale: 1.04);
+    final tip = _body.outline(s, t0: 0.975, t1: 1.0, scale: 0.9);
     canvas.drawPath(
       tip,
-      Paint()
-        ..shader = const LinearGradient(
-          colors: [Color(0xFF8C6232), Color(0xFF4A3016), Color(0xFF2E1D0C)],
-        ).createShader(tip.getBounds()),
+      _soft(const Color(0xFF6B4E2A).withValues(alpha: 0.85), 0.003, s),
     );
 
     // 4. Front flap: skin along its outer edge, a shadow onto the body.
     _cast(canvas, s, front, body, const Offset(0.022, 0.006),
-        const Color(0xFF9A6A0E).withValues(alpha: 0.6), 0.018);
+        const Color(0xFFB0862A).withValues(alpha: 0.45), 0.02);
     // Only on the fruit that shows: its base is under the body.
     final fruitShown = Path.combine(PathOperation.difference, fruit, body);
     _cast(canvas, s, front, fruitShown, const Offset(0.02, -0.004),
         const Color(0xFF8E7444).withValues(alpha: 0.45), 0.016);
     _flat(canvas, s, _frontFlap, _cream);
-    _grain(canvas, s, _frontFlap, _cream.dark, seed: 5, lines: 8, specks: 50);
+    _grain(canvas, s, _frontFlap, const Color(0xFFA88A55), seed: 5, alpha: 0.18, lines: 6, specks: 760, speck: 0.55);
     _curl(canvas, s, _frontFlap, 0.88);
     // The fold at the top, where the flap rolls over from the tear: a
     // highlight along the roll, shade just under it.
