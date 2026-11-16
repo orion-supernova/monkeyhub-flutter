@@ -40,8 +40,8 @@ phone; where the watch button would be they get "Bananas come from short
 videos in the phone app" and Get the app. Child accounts never see a video and
 the server refuses to credit one; they do get the free daily banana.
 
-The count lives in the Games tab's top bar (`BananaPill`): a drawn banana
-(`BananaGlyph`, no emoji font needed) that pops when bananas land and waves
+The count lives in the Games tab's top bar (`BananaPill`): the platform's own 🍌
+(`BananaGlyph`; a drawn banana was tried on 2026-11-16 and dropped, the system emoji looks better and a currency glyph may differ a little per platform) that pops when bananas land and waves
 while today's free one is waiting. Tapping it opens the wallet sheet
 (`showBananaWallet`): balance, what bananas get you, watch, free daily.
 

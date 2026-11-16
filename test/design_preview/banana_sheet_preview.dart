@@ -168,20 +168,4 @@ void main() {
       );
     });
   }
-
-  testWidgets('glyph large', (tester) async {
-    await snap(
-      tester,
-      previewApp(
-        BasicTheme.daylight(),
-        const Center(child: BananaGlyph(size: 340)),
-      ),
-      'banana_large.png',
-      size: const Size(400, 400),
-      dpr: 2.5,
-      topInset: 0,
-      bottomInset: 0,
-      act: () async {},
-    );
-  });
 }
