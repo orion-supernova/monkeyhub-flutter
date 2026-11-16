@@ -19,6 +19,7 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { verifyReceipt, verifyRing, verifyRingDevice } from "./receiptToken";
+import { allowedAdUnits, parseSsv, verifySsv } from "./adSsv";
 
 const http = httpRouter();
 
@@ -300,6 +301,41 @@ http.route({
       status: 200,
       headers: { ...receiptCors, "Content-Type": "application/json" },
     });
+  }),
+});
+
+/**
+ * AdMob rewarded-ad server-side verification: one banana per verified ad
+ * (`adSsv.ts`, `lifelines.creditAd`). Answers 200 to anything Google signed,
+ * credited or not (a duplicate, an over-cap ad, a foreign ad unit, AdMob's
+ * own "verify URL" test), so Google never retries a call we chose to ignore;
+ * 403 to anything unsigned.
+ */
+http.route({
+  path: "/admob/ssv",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const p = parseSsv(new URL(request.url).search);
+    if (!p) return new Response("bad request", { status: 400 });
+    let ok = false;
+    try {
+      ok = await verifySsv(p);
+    } catch (e) {
+      console.warn(`admob/ssv: verify failed: ${(e as Error).message}`);
+      return new Response("unavailable", { status: 503 });
+    }
+    if (!ok) return new Response("forbidden", { status: 403 });
+    if (!allowedAdUnits().has(p.adUnit)) return new Response("ok");
+    try {
+      await ctx.runMutation(internal.lifelines.creditAd, {
+        userId: p.userId as any,
+        txId: p.transactionId,
+      });
+    } catch (e) {
+      // A user id that is not ours (AdMob's test call) lands here.
+      console.warn(`admob/ssv: credit refused: ${(e as Error).message}`);
+    }
+    return new Response("ok");
   }),
 });
 

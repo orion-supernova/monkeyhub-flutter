@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as adSsv from "../adSsv.js";
 import type * as alertBurst from "../alertBurst.js";
 import type * as appleTokens from "../appleTokens.js";
 import type * as auth from "../auth.js";
@@ -71,6 +72,7 @@ import type * as idToken from "../idToken.js";
 import type * as integrity from "../integrity.js";
 import type * as interactionCore from "../interactionCore.js";
 import type * as interactions from "../interactions.js";
+import type * as lifelines from "../lifelines.js";
 import type * as matchCopy from "../matchCopy.js";
 import type * as matchCore from "../matchCore.js";
 import type * as matches from "../matches.js";
@@ -172,6 +174,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  adSsv: typeof adSsv;
   alertBurst: typeof alertBurst;
   appleTokens: typeof appleTokens;
   auth: typeof auth;
@@ -235,6 +238,7 @@ declare const fullApi: ApiFromModules<{
   integrity: typeof integrity;
   interactionCore: typeof interactionCore;
   interactions: typeof interactions;
+  lifelines: typeof lifelines;
   matchCopy: typeof matchCopy;
   matchCore: typeof matchCore;
   matches: typeof matches;

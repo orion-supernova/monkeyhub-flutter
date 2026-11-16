@@ -52,6 +52,27 @@ export const SLOTS = 4;
 export const MAX_GUESSES = 6;
 
 /**
+ * Guesses a player can buy past [MAX_GUESSES] with a lifeline (`lifelines.ts`).
+ * Out of guesses with some still buyable, the row stays open and the answer
+ * hidden: the player buys one more or concedes ([concede]).
+ */
+export const MAX_EXTRA_GUESSES = 3;
+
+/** How many guesses [row] may make. */
+export const limitOf = (row: any) => MAX_GUESSES + (row?.extraGuesses ?? 0);
+
+/**
+ * Whether [row] is over: solved, conceded, or out of guesses with no extra
+ * guess left to buy.
+ */
+export function overOf(row: any, solved: boolean): boolean {
+  if (solved || row?.conceded) return true;
+  const n = row?.guesses?.length ?? 0;
+  return n >= MAX_GUESSES + MAX_EXTRA_GUESSES ||
+    (n >= limitOf(row) && (row?.extraGuesses ?? 0) >= MAX_EXTRA_GUESSES);
+}
+
+/**
  * Deterministic PRNG (mulberry32).
  *
  * Chosen over `Math.random` for the obvious reason — the answer has to be the
@@ -218,17 +239,16 @@ export const guess = mutation({
     // last guess answers with the finished board rather than an error the
     // client would have to tell apart from a real one.
     if (attempt !== undefined && prior.length > attempt) {
-      return boardOf(prior, answer, existing?.sharedAt !== undefined, {
-        replay: true,
-      });
+      return boardOf(prior, answer, existing, { replay: true });
     }
 
     if (existing?.solved) throw new Error("ALREADY_SOLVED");
-    if (prior.length >= MAX_GUESSES) throw new Error("OUT_OF_GUESSES");
+    if (existing?.finishedAt !== undefined) throw new Error("OUT_OF_GUESSES");
+    if (prior.length >= limitOf(existing)) throw new Error("OUT_OF_GUESSES");
 
     const guesses = [...prior, g];
     const solved = score(g, answer).exact === SLOTS;
-    const done = solved || guesses.length >= MAX_GUESSES;
+    const done = overOf({ ...existing, guesses }, solved);
     const now = Date.now();
 
     if (existing) {
@@ -259,10 +279,12 @@ export const guess = mutation({
         score: guesses.length,
         dayKey,
         achievedAt: now,
+        // A solve that bought guesses counts toward the streak, never a best.
+        clean: (existing?.extraGuesses ?? 0) === 0,
       });
     }
 
-    return boardOf(guesses, answer, existing?.sharedAt !== undefined, {
+    return boardOf(guesses, answer, { ...existing, guesses }, {
       replay: false,
     });
   },
@@ -275,11 +297,12 @@ export const guess = mutation({
 function boardOf(
   guesses: number[][],
   answer: number[],
-  shared: boolean,
+  row: any,
   { replay }: { replay: boolean }
 ) {
-  const solved = guesses.some((row) => score(row, answer).exact === SLOTS);
-  const done = solved || guesses.length >= MAX_GUESSES;
+  const shared = row?.sharedAt !== undefined;
+  const solved = guesses.some((g) => score(g, answer).exact === SLOTS);
+  const done = overOf({ ...row, guesses }, solved);
   return {
     // Feedback for every guess so far, not just this one — a client that
     // dropped a response can rebuild the whole grid from this. Ordered
@@ -299,8 +322,43 @@ function boardOf(
     shared,
     // True when this call wrote nothing because its try had already landed.
     replay,
+    // Guesses this player may make today, and how many more they could buy.
+    limit: limitOf(row),
+    extraLeft: MAX_EXTRA_GUESSES - (row?.extraGuesses ?? 0),
   };
 }
+
+/**
+ * Out of guesses, the player asks for the answer instead of buying another
+ * guess: the attempt ends as a loss. Idempotent; refused while guesses remain
+ * (`NOT_OUT`).
+ */
+export const concede = mutation({
+  args: { userId: v.id("users"), dayKey: v.string() },
+  handler: async (ctx, { userId, dayKey }) => {
+    const row = await ctx.db
+      .query("puzzleResults")
+      .withIndex("by_user_day", (q: any) =>
+        q.eq("userId", userId).eq("dayKey", dayKey)
+      )
+      .first();
+    if (!row) throw new Error("NOT_STARTED");
+    const answer = answerFor(dayKey);
+    if (row.solved || row.finishedAt !== undefined) {
+      return boardOf(row.guesses, answer, row, { replay: true });
+    }
+    if (row.guesses.length < limitOf(row)) throw new Error("NOT_OUT");
+    const now = Date.now();
+    await ctx.db.patch(row._id, {
+      conceded: true,
+      finishedAt: now,
+      updatedAt: now,
+    });
+    return boardOf(row.guesses, answer, { ...row, conceded: true }, {
+      replay: false,
+    });
+  },
+});
 
 /**
  * Tells the player's friends how today's code went, because they asked.
@@ -323,7 +381,7 @@ export const shareResult = mutation({
       )
       .first();
     if (!row) throw new Error("NOT_STARTED");
-    if (!row.solved && row.guesses.length < MAX_GUESSES) {
+    if (!row.solved && row.finishedAt === undefined) {
       throw new Error("NOT_FINISHED");
     }
     if (row.sharedAt !== undefined) throw new Error("ALREADY_SHARED");

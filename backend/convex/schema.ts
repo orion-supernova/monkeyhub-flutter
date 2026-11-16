@@ -2444,6 +2444,25 @@ export default defineSchema({
   // There is no companion `puzzleDays` table: the answer is derived from the
   // day key by a pure function (`puzzle.answerFor`), so there is nothing to
   // create, nothing to seed, and no race between the day's first two players.
+  // One row per user: rewarded-ad lifelines ("bananas"). Bounded by users
+  // (purged with the account). Written only by the owner's own spends and by
+  // AdMob's server-side verification callback, read only by the owner's
+  // wallet subscription. Design: docs/design/rewarded-ads.md.
+  lifelines: defineTable({
+    userId: v.id("users"),
+    balance: v.number(),
+    // UTC day of the last rewarded ad, and how many on that day (cap + bonus).
+    adDay: v.optional(v.string()),
+    adsToday: v.optional(v.number()),
+    // UTC day the free daily banana was last claimed.
+    freeDay: v.optional(v.string()),
+    // Last few AdMob transaction ids, newest last (<= 20), so a retried
+    // callback never credits twice.
+    recentTx: v.optional(v.array(v.string())),
+    totalAds: v.optional(v.number()),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
   puzzleResults: defineTable({
     userId: v.id("users"),
     dayKey: v.string(),
@@ -2454,8 +2473,15 @@ export default defineSchema({
     solved: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-    // Set once the player can no longer act: solved, or out of guesses.
+    // Set once the player can no longer act: solved, out of guesses with no
+    // extra guess left to buy, or `conceded`.
     finishedAt: v.optional(v.number()),
+    // Guesses bought past MAX_GUESSES with a lifeline (0..MAX_EXTRA_GUESSES).
+    // Out of guesses with some still buyable, the row stays open and the
+    // answer hidden until the player buys one or concedes.
+    extraGuesses: v.optional(v.number()),
+    // The player asked for the answer instead of buying another guess.
+    conceded: v.optional(v.boolean()),
     // When the player told their friends about this result — the same gate,
     // for the same reason, as `gameResults.sharedAt` below: a fan-out to every
     // friend must be refused by the server the second time, not by a client a
@@ -2509,6 +2535,8 @@ export default defineSchema({
     // a number the client reports and the server cannot check would make the
     // leaderboard a claim rather than a race.
     hintsUsed: v.number(),
+    // Hints bought past FREE_HINTS with a lifeline (0..MAX_BOUGHT_HINTS).
+    hintsBought: v.optional(v.number()),
     mistakes: v.number(),
     // The board as they left it, so closing the app mid-game does not throw
     // the work away. Written on leaving the screen, not per move.

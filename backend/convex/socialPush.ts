@@ -1255,7 +1255,7 @@ export const _puzzleAudience = internalQuery({
       )
       .first();
     if (!row) return null;
-    if (!row.solved && row.guesses.length < MAX_GUESSES) return null;
+    if (!row.solved && row.finishedAt === undefined) return null;
 
     const player = await ctx.db.get(userId);
     if (!player) return null;

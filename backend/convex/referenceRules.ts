@@ -237,6 +237,7 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
 
   // ── puzzles, records ──────────────────────────────────────────────────────
   "puzzleResults.userId": { rule: "cascade", index: "by_user_day", why: "Daily results are the user's own; retention policy is a separate decision (plan section 7)." },
+  "lifelines.userId": { rule: "cascade", index: "by_user", why: "The rewarded-ad wallet is the user's own (one row); generic step." },
   "reactions.messageId": { rule: "cascade", index: "by_message", why: "removeMessageImmediate (capped) and the `message` job." },
   "reactions.userId": { rule: "cascade", index: "by_user", why: "Reactions left on other people's messages go with the account." },
   "recordReactions.recordId": { rule: "cascade", index: "by_record_user", why: "Reactions die with the record (user plan, `records` step)." },

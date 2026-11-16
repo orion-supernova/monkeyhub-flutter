@@ -1,4 +1,5 @@
 import { mutation, query } from "./functions";
+import { FREE_HINTS } from "./lifelines";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
@@ -489,7 +490,7 @@ export const standings = query({
     // only ever compared within it because the sort puts solvers first.
     //
     // Three groups, not two: a solve that used a hint ranks below every
-    // unaided solve, however fast. Hints are free and unlimited, so without
+    // unaided solve, however fast. Hints cost nothing up to FREE_HINTS, so without
     // this the fastest way to the top of today's board was to ask for every
     // square. The lightbulb on the row says which group a time is in.
     const shown = (r: any) => (r.solved ? shownSeconds(r.durationMs) : -1);
@@ -683,6 +684,10 @@ export const hint = mutation({
     // tunnel was charged once per resend. The hint is a pure function of the
     // board, so it is the same answer, charged nothing.
     const replay = seq !== undefined && row.hintsUsed > seq;
+    // FREE_HINTS a board, then one more per banana spent (`lifelines.spend`).
+    if (!replay && row.hintsUsed >= FREE_HINTS + (row.hintsBought ?? 0)) {
+      throw new Error("OUT_OF_HINTS");
+    }
 
     const found = explainHint(dayKey, game, board);
     // Nothing left to say (a finished board, or for Minesweeper nothing

@@ -7,7 +7,15 @@ import { ACCOUNT_CHILD, assertChildPolicy } from "./childGuard";
 import { hasHit } from "./contentFilter";
 import { screenAndReport } from "./moderationCore";
 import { attachFile, claimUpload } from "./files";
-import { MAX_GUESSES, SLOTS, answerFor, pegsForSlots, score } from "./puzzle";
+import {
+  MAX_EXTRA_GUESSES,
+  MAX_GUESSES,
+  SLOTS,
+  answerFor,
+  limitOf,
+  pegsForSlots,
+  score,
+} from "./puzzle";
 import { getLiveUser } from "./deletionCore";
 import { deleteMomentCore } from "./momentCleanup";
 import { lensFor } from "./visibility";
@@ -598,7 +606,7 @@ export const board = query({
             .first();
       if (!row) continue;
 
-      const finished = row.solved || row.guesses.length >= MAX_GUESSES;
+      const finished = row.solved || row.finishedAt !== undefined;
       if (isMe) {
         mine = {
           guesses: row.guesses,
@@ -618,6 +626,10 @@ export const board = query({
           // `games.standings` carries it on `mine` only: whether somebody
           // pressed that is about their notification habits, not the board.
           shared: row.sharedAt !== undefined,
+          // Guesses allowed today (6 + any bought) and how many more could be
+          // bought; out of guesses with extraLeft > 0, the app offers one.
+          limit: limitOf(row),
+          extraLeft: MAX_EXTRA_GUESSES - (row.extraGuesses ?? 0),
         };
       }
       // A friend's IN-PROGRESS attempt is deliberately not exposed — not the
