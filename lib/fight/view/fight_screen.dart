@@ -365,11 +365,13 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
                 if (!_touchFirst) return _desktopLayout(context, box, view, l10n, look, pad);
                 Widget body;
                 if (portrait) {
-                  // The deck gets what thumbs need; the stage takes the rest
-                  // (taller than 16:10 just shows more sky, the camera keeps
-                  // the fighters framed on the ground line).
-                  final deckMin = (box.maxHeight * 0.36).clamp(240.0, 330.0) + pad.bottom;
-                  final stageH = (box.maxHeight - pad.top - 52 - deckMin).clamp(box.maxWidth * 0.62, box.maxWidth * 1.05);
+                  // The deck gets what thumbs need and no more; the stage
+                  // takes the rest. In portrait the camera's zoom is capped
+                  // by the stage's HEIGHT (jump headroom), so every point
+                  // given to the stage is bigger fighters. The deck's buttons
+                  // fit at full size from ~3.1 units (~190 pt on a phone).
+                  final deckMin = (box.maxHeight * 0.27).clamp(196.0, 260.0) + pad.bottom;
+                  final stageH = (box.maxHeight - pad.top - 52 - deckMin).clamp(box.maxWidth * 0.62, box.maxWidth * 1.3);
                   body = Column(
                     children: [
                       SizedBox(height: pad.top + 52),

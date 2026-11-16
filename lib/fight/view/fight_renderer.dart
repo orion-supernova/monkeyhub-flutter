@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 
 import '../core/core.dart';
 import 'art/fight_art.dart';
+import 'art/quality.dart';
 
 /// Draws a [FightState] in any [FightLook], including the pixel look's
 /// low-res + shader pipeline. One per on-screen fight view; it keeps the
@@ -14,10 +15,13 @@ import 'art/fight_art.dart';
 /// Cartoon and painted draw straight to the canvas. Pixel renders the stage,
 /// the actors and the HUD at ~320 px wide, runs the actor and stage layers
 /// through `shaders/fight_pixel.frag` (palette snap, dithering for the stage,
-/// a 1-px ink outline for sprites), and upscales with nearest-neighbour. The
-/// pixel layers refresh every [_pixelStride] sim frames, which is the 12 fps
-/// "animated on fives" cadence of real sprite art, and is also what keeps the
-/// pipeline cheap.
+/// a 1-px ink outline for sprites), and upscales with nearest-neighbour.
+///
+/// The actors and the HUD refresh on every sim frame, so the pixel look moves
+/// exactly as smoothly as the other two (it once ran "on fives", 12 fps, and
+/// read as lag). Only the stage, the costly dithered full-screen layer, may
+/// lag: every frame at full quality, every 2nd or 4th once the governor has
+/// stepped down, and always at once when the camera moves.
 class FightRenderer {
   FightRenderer();
 
@@ -41,12 +45,18 @@ class FightRenderer {
   }
 
   // ---- pixel caches
-  static const int _pixelStride = 5;
   static const double _lowWidth = 320;
+
+  /// Sim frames between ambient stage redraws (rain, neon, fireflies).
+  static int get _stageStride => switch (fightQuality.value) {
+    FightQuality.full => 1,
+    FightQuality.reduced => 2,
+    FightQuality.minimal => 4,
+  };
   int _pixFrame = -1;
   Size _pixSize = Size.zero;
   ui.Image? _pixStage, _pixActors, _pixHud;
-  _Palette? _actorPal, _stagePal;
+  PixelPalette? _actorPal, _stagePal;
   double _stageCamX = double.nan, _stageCamScale = 0;
   int _stageFrame = -1;
   bool _stagePalDirty = false;
@@ -95,17 +105,18 @@ class FightRenderer {
       _pixStage?.dispose();
       _pixStage = null;
     }
-    final stale = _pixStage == null || _pixSize != size || s.frame < _pixFrame || s.frame - _pixFrame >= _pixelStride;
+    final stale = _pixStage == null || _pixActors == null || _pixSize != size || s.frame != _pixFrame;
     if (stale) {
+      final resized = _pixSize != size;
       _pixSize = size;
       _pixFrame = s.frame;
       final w = low.width.toInt(), h = low.height.toInt();
 
       // The stage is the costliest layer (dithered, full screen): redraw it
-      // only when the camera moved by a low-res pixel, or every quarter second
-      // for the ambient motion (neon, rain, fireflies, snow).
+      // when the camera moved by a low-res pixel, and otherwise on the
+      // quality's stride for the ambient motion (neon, rain, fireflies, snow).
       final camMoved = (lowCam.originX - _stageCamX).abs() >= .5 || (lowCam.scale - _stageCamScale).abs() > .002;
-      final stageDue = _pixStage == null || camMoved || s.frame - _stageFrame >= 15 || s.frame < _stageFrame || _stagePalDirty;
+      final stageDue = _pixStage == null || resized || camMoved || s.frame - _stageFrame >= _stageStride || s.frame < _stageFrame || _stagePalDirty;
       final stageRaw = stageDue || _actorPal == null ? _record(low, (c) => art.paintStage(c, low, lowCam, FightLook.pixel, s.frame, stage)) : null;
       final actorsRaw = _record(low, (c) => art.paintActors(c, low, lowCam, s, FightLook.pixel));
       if (stageDue && stageRaw != null) {
@@ -113,9 +124,9 @@ class FightRenderer {
         _stageCamScale = lowCam.scale;
         _stageFrame = s.frame;
         _stagePalDirty = false;
-        _replace(() => _pixStage, (v) => _pixStage = v, _process(stageRaw, w, h, _stagePal, dither: 0.09, outline: false));
+        _replace(() => _pixStage, (v) => _pixStage = v, pixelPass(stageRaw, w, h, _stagePal, dither: 0.09, outline: false));
       }
-      _replace(() => _pixActors, (v) => _pixActors = v, _process(actorsRaw, w, h, _actorPal, dither: 0, outline: true));
+      _replace(() => _pixActors, (v) => _pixActors = v, pixelPass(actorsRaw, w, h, _actorPal, dither: 0, outline: true));
       _replace(() => _pixHud, (v) => _pixHud = v, _record(low, (c) => art.paintHud(c, low, s, FightLook.pixel, names, text: text)).toImageSync(w, h));
       if (_actorPal == null && !_buildingPalette && stageRaw != null) _buildPalettes(stageRaw, actorsRaw, w, h, stage);
     }
@@ -140,9 +151,11 @@ class FightRenderer {
     return rec.endRecording();
   }
 
-  /// Runs [raw] through the pixel shader into a w x h image. Without the
-  /// shader or a palette yet, returns the raw low-res render.
-  ui.Image _process(ui.Picture raw, int w, int h, _Palette? pal, {required double dither, required bool outline}) {
+  /// Runs [raw] through the pixel shader into a w x h image: palette snap,
+  /// optional Bayer [dither], optional 1-px ink [outline]. Without the shader
+  /// or a palette yet, returns the raw low-res render. Shared with the
+  /// fighter portraits, so a card's sprite is the fight's sprite.
+  static ui.Image pixelPass(ui.Picture raw, int w, int h, PixelPalette? pal, {double dither = 0, bool outline = true}) {
     final src = raw.toImageSync(w, h);
     final program = _program;
     if (program == null || pal == null) return src;
@@ -158,7 +171,11 @@ class FightRenderer {
       ..setFloat(7, outline ? 1 : 0)
       ..setImageSampler(0, src)
       ..setImageSampler(1, pal.image);
-    final out = _record(Size(w.toDouble(), h.toDouble()), (c) => c.drawRect(Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()), Paint()..shader = shader)).toImageSync(w, h);
+    final rec = ui.PictureRecorder();
+    Canvas(rec, Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble())).drawRect(Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()), Paint()..shader = shader);
+    final pic = rec.endRecording();
+    final out = pic.toImageSync(w, h);
+    pic.dispose();
     shader.dispose();
     src.dispose();
     return out;
@@ -176,9 +193,9 @@ class FightRenderer {
       si.dispose();
       ai.dispose();
       if (sb == null || ab == null || stageId != _pixStageId) return;
-      final stageColors = medianCut(_opaque(sb), 40);
-      final actorColors = medianCut(_opaque(ab), 40)..addAll(_effectColors);
-      final sp = await _Palette.build(stageColors), ap = await _Palette.build(actorColors);
+      final stageColors = medianCut(opaqueColors(sb), 40);
+      final actorColors = medianCut(opaqueColors(ab), 40)..addAll(_effectColors);
+      final sp = await PixelPalette.build(stageColors), ap = await PixelPalette.build(actorColors);
       if (stageId != _pixStageId) {
         sp.image.dispose();
         ap.image.dispose();
@@ -186,7 +203,9 @@ class FightRenderer {
       }
       _stagePal = sp;
       _actorPal = ap;
-      _pixFrame = -_pixelStride; // re-render with the palettes now
+      _pixFrame = -1; // re-render with the palettes now
+      _pixActors?.dispose();
+      _pixActors = null;
       _stagePalDirty = true;
     } finally {
       _buildingPalette = false;
@@ -198,7 +217,8 @@ class FightRenderer {
     0xffd9cfe3, 0xffff4f6e, 0xffffd23a, 0xff53d6f0, 0xfffff6ee, 0xffff9d5c,
   ];
 
-  static List<int> _opaque(ByteData b) {
+  /// The opaque pixels of an RGBA readback, as ARGB ints.
+  static List<int> opaqueColors(ByteData b) {
     final out = <int>[];
     final n = b.lengthInBytes ~/ 4;
     for (var i = 0; i < n; i++) {
@@ -210,14 +230,14 @@ class FightRenderer {
   }
 }
 
-/// A palette as the shader reads it: a 64x1 RGBA image and how many entries
-/// are real.
-class _Palette {
-  _Palette(this.image, this.count);
+/// A palette as the pixel shader reads it: a 64x1 RGBA image and how many
+/// entries are real.
+class PixelPalette {
+  PixelPalette(this.image, this.count);
   final ui.Image image;
   final int count;
 
-  static Future<_Palette> build(List<int> argb) async {
+  static Future<PixelPalette> build(List<int> argb) async {
     final colors = argb.length > 64 ? argb.sublist(0, 64) : argb;
     final px = Uint8List(64 * 4);
     for (var i = 0; i < colors.length; i++) {
@@ -237,13 +257,12 @@ class _Palette {
       ui.PixelFormat.rgba8888,
       done.complete,
     );
-    return _Palette(await done.future, colors.length);
+    return PixelPalette(await done.future, colors.length);
   }
 }
 
 /// Median-cut colour quantisation: splits the colour set along its widest
 /// channel until there are [n] boxes, and returns each box's average (ARGB).
-@visibleForTesting
 List<int> medianCut(List<int> argb, int n) {
   if (argb.isEmpty) return [];
   final boxes = <List<int>>[List.of(argb)];

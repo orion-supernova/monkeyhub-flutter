@@ -276,11 +276,16 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
     super.initState();
     _mc = MatchController(matchId: widget.matchId, userId: widget.userId, initial: widget.initial);
     _mc.addListener(_onMatch);
+    SettingsStore.instance.addListener(_onSettings);
     unawaited(_mc.start());
     WidgetsBinding.instance.addPostFrameCallback((_) => _onMatch());
   }
 
   ChatMatch? get _m => _mc.match;
+
+  void _onSettings() {
+    if (mounted) setState(() {});
+  }
 
   int get _mySeat => _m?.seatOf(widget.userId) ?? -1;
 
@@ -364,14 +369,6 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
     setState(() {});
   }
 
-  Future<void> _pickFighter() async {
-    final look = fightLookOf(SettingsStore.instance.fightLook);
-    final id = await showFightCharacterPicker(context, current: _myPick, look: look);
-    if (id == null || !mounted) return;
-    setState(() => _myPick = id);
-    unawaited(SettingsStore.instance.setFightChar(id));
-  }
-
   void _pickStage(int id) {
     setState(() => _stagePick = id);
     unawaited(SettingsStore.instance.setFightStage(id));
@@ -440,6 +437,7 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
   @override
   void dispose() {
     _mc.removeListener(_onMatch);
+    SettingsStore.instance.removeListener(_onSettings);
     _link?.state.removeListener(_onLink);
     _peerPickTimeout?.cancel();
     unawaited(_link?.close());
@@ -473,36 +471,64 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xff140c2b), Color(0xff3b1f5e), Color(0xff8a2f6a), Color(0xffe2575a)],
-              stops: [0, 0.45, 0.8, 1],
+              colors: [Color(0xff221338), Color(0xff110b1f), Color(0xff07060c)],
+              stops: [0, 0.4, 1],
             ),
           ),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(20, pad.top + 64, 20, pad.bottom + 24),
-                  child: m == null ? const Center(child: CupertinoActivityIndicator(color: Colors.white)) : _body(l10n, m),
+          child: Padding(
+            padding: EdgeInsets.only(top: pad.top, left: pad.left, right: pad.right),
+            child: Column(
+              children: [
+                // Close top-left, the title centred on the same line.
+                SizedBox(
+                  height: 56,
+                  child: Stack(
+                    children: [
+                      Center(
+                        child: Text(
+                          l10n.fightTitle.toUpperCase(),
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xffffcf6e), letterSpacing: 1.5),
+                        ),
+                      ),
+                      Positioned(
+                        top: 6,
+                        left: 12,
+                        child: GlassCloseButton(tone: GlassTone.media, still: true, onTap: _leave, semanticLabel: l10n.fightQuit),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Positioned(
-                top: pad.top + 8,
-                left: pad.left + 12,
-                child: GlassCloseButton(
-                  tone: GlassTone.media,
-                  still: true,
-                  onTap: _leave,
-                  semanticLabel: l10n.fightQuit,
+                Expanded(
+                  child: m == null ? const Center(child: CupertinoActivityIndicator(color: Colors.white)) : _body(l10n, m, pad.bottom),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _body(AppLocalizations l10n, ChatMatch m) {
+  static const TextStyle _sectionStyle = TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: Color(0xb3ffffff));
+
+  Widget _section(String title, Widget child) => Padding(
+    padding: const EdgeInsets.only(top: 18),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(padding: const EdgeInsets.only(left: 2, bottom: 6), child: Text(title.toUpperCase(), style: _sectionStyle)),
+        child,
+      ],
+    ),
+  );
+
+  void _setPick(int id) {
+    if (id == _myPick) return;
+    setState(() => _myPick = id);
+    unawaited(SettingsStore.instance.setFightChar(id));
+  }
+
+  Widget _body(AppLocalizations l10n, ChatMatch m, double bottomInset) {
     final seats = m.seats;
     final mine = _mySeat;
     final MatchSeat? opp = mine >= 0
@@ -580,77 +606,143 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
       case _Phase.fighting:
         status = const SizedBox.shrink();
     }
+    status = DefaultTextStyle.merge(style: const TextStyle(fontSize: 15, height: 1.35, color: Color(0xe6ffffff)), child: status);
 
-    return LayoutBuilder(builder: (context, box) {
-    // Cards take what the height allows: a landscape phone is under 400 pt.
-    // The host also fits a stage row under the cards.
-    final hostPicks = mine == 0 && _phase == _Phase.lobby;
-    final cardH = (box.maxHeight * (hostPicks ? 0.3 : 0.42)).clamp(96.0, 240.0);
-    Widget? stageRow;
-    if (hostPicks) {
-      stageRow = Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.fightStageTitle.toUpperCase(),
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: Color(0xb3ffffff)),
-          ),
-          const SizedBox(height: 4),
-          FightStagePicker(selected: _stagePick, onPick: _pickStage),
-        ],
-      );
-    } else if (mine == 1 && _phase == _Phase.lobby) {
-      stageRow = Text(l10n.fightStageHostPicks, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: Color(0xb3ffffff)));
-    } else if (_phase == _Phase.fighting) {
-      // The VS reveal: where the fight is.
-      stageRow = FightStagePicker(selected: _stage, onPick: (_) {}, readOnly: true);
-    }
-    return Column(
+    // A seated player in the lobby picks right here: fighter, look and (the
+    // host) the stage, all on the page, with Ready pinned at the bottom.
+    final picking = _phase == _Phase.lobby && mine >= 0;
+    final look = fightLookOf(SettingsStore.instance.fightLook);
+
+    Widget cards(double h) => Row(
       children: [
-        Text(
-          l10n.fightTitle.toUpperCase(),
-          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xffffcf6e), letterSpacing: 1.5),
+        Expanded(
+          child: FightSeatCard(
+            name: left?.name,
+            ready: left?.ready ?? false,
+            tone: 0,
+            height: h,
+            charId: mine >= 0 ? _myPick : null,
+          ),
         ),
-        const Spacer(),
-        Row(
-          children: [
-            Expanded(
-              child: FightSeatCard(
-                name: left?.name,
-                ready: left?.ready ?? false,
-                tone: 0,
-                height: cardH,
-                charId: mine >= 0 ? _myPick : null,
-                hint: mine >= 0 && _phase == _Phase.lobby ? l10n.fightTapToChange : null,
-                onTap: mine >= 0 && _phase == _Phase.lobby ? _pickFighter : null,
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              child: Text('VS', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, color: Colors.white)),
-            ),
-            Expanded(
-              child: FightSeatCard(
-                name: right?.name,
-                ready: _phase == _Phase.fighting || (right?.ready ?? false),
-                tone: 1,
-                height: cardH,
-                // Hidden until the reveal; a spectator never sees picks.
-                charId: _phase == _Phase.fighting ? _peerPick : null,
-                alt: _peerPick != null && _peerPick == _myPick,
-                hint: right != null && _phase != _Phase.fighting ? l10n.fightOpponentHidden : null,
-              ),
-            ),
-          ],
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10),
+          child: Text('VS', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, color: Colors.white)),
         ),
-        SizedBox(height: box.maxHeight < 360 ? 12 : 28),
-        DefaultTextStyle.merge(style: const TextStyle(fontSize: 16, height: 1.35, color: Color(0xe6ffffff)), child: status),
-        if (stageRow != null) ...[SizedBox(height: box.maxHeight < 360 ? 8 : 16), stageRow],
-        const Spacer(),
-        ?action,
+        Expanded(
+          child: FightSeatCard(
+            name: right?.name,
+            ready: _phase == _Phase.fighting || (right?.ready ?? false),
+            tone: 1,
+            height: h,
+            // Hidden until the reveal; a spectator never sees picks.
+            charId: _phase == _Phase.fighting ? _peerPick : null,
+            alt: _peerPick != null && _peerPick == _myPick,
+            hint: right != null && _phase != _Phase.fighting ? l10n.fightOpponentHidden : null,
+          ),
+        ),
       ],
     );
+
+    Widget bottom(Widget? a) => Padding(
+      padding: EdgeInsets.fromLTRB(20, 10, 20, bottomInset + 16),
+      child: a ?? const SizedBox.shrink(),
+    );
+
+    return LayoutBuilder(builder: (context, box) {
+      if (picking) {
+        final options = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _section(l10n.fightFighterTitle, FightCharacterGrid(selected: _myPick, look: look, onPick: _setPick)),
+            _section(l10n.fightLookTitle, FightLookPicker(look: look)),
+            _section(
+              l10n.fightStageTitle,
+              mine == 0
+                  ? FightStagePicker(selected: _stagePick, onPick: _pickStage)
+                  : Text(l10n.fightStageHostPicks, style: const TextStyle(fontSize: 14, color: Color(0xb3ffffff))),
+            ),
+            const SizedBox(height: 12),
+          ],
+        );
+        final wide = box.maxWidth > box.maxHeight * 1.15 && box.maxWidth >= 600;
+        if (wide) {
+          // Landscape phone, tablet, desktop: the matchup and Ready on the
+          // left, the choices scrolling on the right.
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1100),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    width: (box.maxWidth * .4).clamp(280.0, 420.0),
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(20, 4, 4, bottomInset + 16),
+                      child: Column(
+                        children: [
+                          Expanded(child: LayoutBuilder(builder: (context, b) => Center(child: cards(b.maxHeight.clamp(96.0, 260.0))))),
+                          const SizedBox(height: 10),
+                          status,
+                          const SizedBox(height: 12),
+                          ?action,
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 16),
+                      child: options,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        final cardH = (box.maxHeight * .24).clamp(120.0, 210.0);
+        return Column(
+          children: [
+            Padding(padding: const EdgeInsets.fromLTRB(20, 4, 20, 0), child: cards(cardH)),
+            Padding(padding: const EdgeInsets.fromLTRB(28, 12, 28, 0), child: status),
+            Expanded(
+              child: ShaderMask(
+                // Soft edges where the choices scroll under the matchup and Ready.
+                shaderCallback: (r) => const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x00000000), Color(0xff000000), Color(0xff000000), Color(0x00000000)],
+                  stops: [0, .04, .94, 1],
+                ).createShader(r),
+                blendMode: BlendMode.dstIn,
+                child: SingleChildScrollView(padding: const EdgeInsets.fromLTRB(20, 2, 20, 12), child: options),
+              ),
+            ),
+            bottom(action),
+          ],
+        );
+      }
+
+      // Everyone else, and every other phase: the matchup centred.
+      final cardH = (box.maxHeight * .42).clamp(96.0, 240.0);
+      Widget? stageRow;
+      if (mine == 1 && _phase == _Phase.lobby) {
+        stageRow = Text(l10n.fightStageHostPicks, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: Color(0xb3ffffff)));
+      } else if (_phase == _Phase.fighting) {
+        // The VS reveal: where the fight is.
+        stageRow = FightStagePicker(selected: _stage, onPick: (_) {}, readOnly: true);
+      }
+      return Column(
+        children: [
+          const Spacer(),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: cards(cardH)),
+          SizedBox(height: box.maxHeight < 360 ? 12 : 28),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 28), child: status),
+          if (stageRow != null) ...[SizedBox(height: box.maxHeight < 360 ? 8 : 16), Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: stageRow)],
+          const Spacer(),
+          bottom(action),
+        ],
+      );
     });
   }
 }
