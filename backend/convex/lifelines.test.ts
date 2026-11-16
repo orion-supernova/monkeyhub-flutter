@@ -213,6 +213,8 @@ describe("SSV parsing", () => {
     );
     expect(p.keyId).toBe("3335741209");
     expect(parseSsv("?ad_unit=1")).toBeNull();
+    // AdMob's verify-URL test: signed, no user. Parsed, credits nothing.
+    expect(parseSsv("?ad_unit=1&signature=MEUC&key_id=1")?.userId).toBe("");
   });
 
   test("DER signatures become raw r||s", () => {

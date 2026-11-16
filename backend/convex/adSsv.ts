@@ -49,8 +49,17 @@ export function parseSsv(rawQuery: string): SsvParams | null {
   const adUnit = params.get("ad_unit");
   const userId = params.get("user_id");
   const transactionId = params.get("transaction_id");
-  if (!signature || !keyId || !adUnit || !userId || !transactionId) return null;
-  return { message, signature, keyId, adUnit, userId, transactionId };
+  // AdMob's own "Verify URL" test call carries no user id (and may carry no
+  // transaction id): still a signed call to answer 200, just nothing to credit.
+  if (!signature || !keyId || !adUnit) return null;
+  return {
+    message,
+    signature,
+    keyId,
+    adUnit,
+    userId: userId ?? "",
+    transactionId: transactionId ?? "",
+  };
 }
 
 function b64ToBytes(b64: string): Uint8Array {

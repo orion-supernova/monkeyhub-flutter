@@ -325,7 +325,9 @@ http.route({
       return new Response("unavailable", { status: 503 });
     }
     if (!ok) return new Response("forbidden", { status: 403 });
-    if (!allowedAdUnits().has(p.adUnit)) return new Response("ok");
+    if (!allowedAdUnits().has(p.adUnit) || !p.userId || !p.transactionId) {
+      return new Response("ok");
+    }
     try {
       await ctx.runMutation(internal.lifelines.creditAd, {
         userId: p.userId as any,

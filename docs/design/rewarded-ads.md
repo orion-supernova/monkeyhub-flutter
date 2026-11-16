@@ -64,7 +64,7 @@ Data" / "Product Interaction" used for third-party advertising).
 ## Server-side verification
 
 Bananas are credited only by AdMob's SSV callback, never by the app:
-`GET <site>/admob/ssv` (`backend/convex/http.ts`, `adSsv.ts`). The handler
+`GET https://termio-api.walhallaa.com/http/admob/ssv` (HTTP actions live under `/http` on this self-hosted origin; `backend/convex/http.ts`, `adSsv.ts`). The handler
 verifies Google's ECDSA signature (keys from
 `gstatic.com/admob/reward/verifier-keys.json`, cached 6 h, refetched on an
 unknown key id), accepts only our two ad units (`ADMOB_AD_UNITS` env
