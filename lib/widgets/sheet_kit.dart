@@ -1101,7 +1101,9 @@ class DialogGroup extends StatelessWidget {
 
 /// One choice on a dialog sheet. [destructive] draws it as its own tinted pill
 /// with a solid red disc for its glyph, so it reads as the weighty answer
-/// without being a bare red word; a plain one sits in a [DialogGroup].
+/// without being a bare red word; [prominent] is the same pill in the accent,
+/// for a confirm that is the sheet's whole point; a plain one sits in a
+/// [DialogGroup].
 class DialogActionRow extends StatelessWidget {
   const DialogActionRow({
     super.key,
@@ -1109,12 +1111,14 @@ class DialogActionRow extends StatelessWidget {
     required this.onTap,
     this.icon,
     this.destructive = false,
+    this.prominent = false,
   });
 
   final String label;
   final VoidCallback onTap;
   final IconData? icon;
   final bool destructive;
+  final bool prominent;
 
   @override
   Widget build(BuildContext context) {
@@ -1122,7 +1126,13 @@ class DialogActionRow extends StatelessWidget {
     final light = theme.isLight;
     final radius = dialogRowRadius(theme);
     final text = sentenceCaseOf(context, label);
-    final tone = destructive ? theme.danger : theme.ink;
+    // A pill of its own, red or accent; null is a plain row in a group.
+    final pill = destructive
+        ? theme.danger
+        : prominent
+            ? theme.accent
+            : null;
+    final tone = pill ?? theme.ink;
 
     // Rows with a glyph read as a list, glyph and label from the leading
     // edge; a bare label is centred.
@@ -1132,7 +1142,7 @@ class DialogActionRow extends StatelessWidget {
               icon == null ? MainAxisAlignment.center : MainAxisAlignment.start,
           children: [
             if (icon != null) ...[
-              _RowDisc(icon: icon!, destructive: destructive),
+              _RowDisc(icon: icon!, tone: pill),
               const SizedBox(width: 12),
             ],
             Flexible(
@@ -1141,7 +1151,7 @@ class DialogActionRow extends StatelessWidget {
                 textAlign: icon == null ? TextAlign.center : TextAlign.start,
                 style: theme.body.copyWith(
                   fontSize: 17,
-                  fontWeight: destructive ? FontWeight.w600 : FontWeight.w500,
+                  fontWeight: pill != null ? FontWeight.w600 : FontWeight.w500,
                   color: tone,
                   letterSpacing: -0.2,
                 ),
@@ -1153,7 +1163,7 @@ class DialogActionRow extends StatelessWidget {
     return SpringPress(
       onTap: onTap,
       haptic: false,
-      scale: destructive ? 0.98 : 1,
+      scale: pill != null ? 0.98 : 1,
       semanticLabel: text,
       focusRadius: radius,
       builder: (context, pressed) {
@@ -1163,7 +1173,7 @@ class DialogActionRow extends StatelessWidget {
           alignment: Alignment.center,
           child: content(),
         );
-        if (!destructive) {
+        if (pill == null) {
           return ColoredBox(
             color: pressed
                 ? theme.ink.withValues(alpha: light ? 0.07 : 0.10)
@@ -1175,13 +1185,13 @@ class DialogActionRow extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(radius),
             color: Color.alphaBlend(
-              theme.danger.withValues(
+              pill.withValues(
                 alpha: (light ? 0.10 : 0.17) + (pressed ? 0.07 : 0),
               ),
               sheetFill(theme),
             ),
             border: Border.all(
-              color: theme.danger.withValues(alpha: light ? 0.16 : 0.26),
+              color: pill.withValues(alpha: light ? 0.16 : 0.26),
               width: 0.75,
             ),
           ),
@@ -1192,12 +1202,12 @@ class DialogActionRow extends StatelessWidget {
   }
 }
 
-/// The glyph disc of a [DialogActionRow]: solid, lit red for a destructive
-/// one (white glyph), a soft ink wash for a plain one.
+/// The glyph disc of a [DialogActionRow]: solid and lit in the pill's [tone]
+/// (white glyph), a soft ink wash for a plain row (null).
 class _RowDisc extends StatelessWidget {
-  const _RowDisc({required this.icon, required this.destructive});
+  const _RowDisc({required this.icon, required this.tone});
   final IconData icon;
-  final bool destructive;
+  final Color? tone;
 
   @override
   Widget build(BuildContext context) {
@@ -1206,11 +1216,11 @@ class _RowDisc extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: destructive ? theme.danger : theme.ink.withValues(alpha: 0.08),
-        boxShadow: destructive
+        color: tone ?? theme.ink.withValues(alpha: 0.08),
+        boxShadow: tone != null
             ? [
                 BoxShadow(
-                  color: theme.danger.withValues(alpha: light ? 0.30 : 0.35),
+                  color: tone!.withValues(alpha: light ? 0.30 : 0.35),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -1218,7 +1228,7 @@ class _RowDisc extends StatelessWidget {
             : null,
       ),
       child: _Sheen(
-        alpha: destructive ? 0.28 : 0,
+        alpha: tone != null ? 0.28 : 0,
         reach: 0.7,
         circle: true,
         child: SizedBox(
@@ -1227,7 +1237,7 @@ class _RowDisc extends StatelessWidget {
           child: Icon(
             icon,
             size: 17,
-            color: destructive ? Colors.white : theme.ink,
+            color: tone != null ? Colors.white : theme.ink,
           ),
         ),
       ),
@@ -1317,19 +1327,24 @@ class IosSheetAction<T> {
     required this.label,
     required this.value,
     this.destructive = false,
+    this.prominent = false,
     this.icon,
   });
 
   final String label;
   final T value;
   final bool destructive;
+
+  /// The accent pill: the confirm a sheet exists to ask for. As a plain row
+  /// in the recessed group, under the raised Cancel, it read as disabled.
+  final bool prominent;
   final IconData? icon;
 }
 
 /// The action sheet: the floating card every sheet is, holding an optional
 /// title and message, then the choices, then Cancel on a capsule of its own.
-/// Plain choices share one recessed group; a [IosSheetAction.destructive] one
-/// is its own tinted pill. Returns the chosen action's value, or null for
+/// Plain choices share one recessed group; a [IosSheetAction.destructive] or
+/// [IosSheetAction.prominent] one is its own tinted pill. Returns the chosen action's value, or null for
 /// Cancel / dismissal.
 ///
 /// [icon] puts a sunlit emblem over the title (see [DialogEmblem]), tinted
@@ -1383,13 +1398,15 @@ class _IosActionSheet<T> extends StatelessWidget {
           label: a.label,
           icon: a.icon,
           destructive: a.destructive,
+          prominent: a.prominent,
           onTap: () {
             if (a.destructive) HapticFeedback.heavyImpact();
             Navigator.of(context).pop(a.value);
           },
         );
 
-    // Consecutive plain choices share a group; a destructive one stands alone.
+    // Consecutive plain choices share a group; a destructive or prominent one
+    // stands alone.
     final blocks = <Widget>[];
     var plain = <Widget>[];
     void flush() {
@@ -1399,7 +1416,7 @@ class _IosActionSheet<T> extends StatelessWidget {
     }
 
     for (final a in actions) {
-      if (a.destructive) {
+      if (a.destructive || a.prominent) {
         flush();
         blocks.add(row(a));
       } else {

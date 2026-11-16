@@ -4,7 +4,8 @@
 //   flutter test test/design_preview/dialog_sheets_preview.dart
 //   flutter test test/design_preview/dialog_sheets_preview.dart --plain-name tr
 //
-// PNGs: build/design_preview/dialog_<kind>_<theme>[_tr][_x13].png
+// PNGs (kinds: tell, frame, menu, menumulti, confirm, alert, alertred):
+//   build/design_preview/dialog_<kind>_<theme>[_tr][_x13].png
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -169,7 +170,27 @@ void _frame(BuildContext c, {required bool tr}) {
   );
 }
 
+/// The one-answer confirm (`confirmTellFriends`): Send is the accent pill,
+/// not a plain row that read as disabled under the raised Cancel.
+void _tell(BuildContext c, {required bool tr}) {
+  final l10n = AppLocalizations.of(c);
+  showIosActionSheet<bool>(
+    c,
+    title: l10n.gameTellFriendsTitle,
+    message: l10n.gameTellFriendsMessage,
+    actions: [
+      IosSheetAction(
+        label: l10n.gameTellFriendsConfirm,
+        value: true,
+        prominent: true,
+      ),
+    ],
+    cancelLabel: l10n.gameTellFriendsCancel,
+  );
+}
+
 const Map<String, _Open> _kinds = {
+  'tell': _tell,
   'frame': _frame,
   'menu': _menu,
   'menumulti': _menuMulti,

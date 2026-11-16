@@ -1147,6 +1147,7 @@ Future<bool> confirmTellFriends(BuildContext context) async {
       IosSheetAction(
         label: sentenceCaseOf(context, l10n.gameTellFriendsConfirm),
         value: true,
+        prominent: true,
       ),
     ],
     cancelLabel: sentenceCaseOf(context, l10n.gameTellFriendsCancel),
