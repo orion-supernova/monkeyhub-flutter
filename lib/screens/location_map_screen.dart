@@ -164,9 +164,6 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
   LocationPinImage? _pin;
   bool _pinTried = false;
 
-  /// The first pin attempt finished (with or without an image); the map
-  /// waits for it so it is born with the face rather than swapping one in.
-  bool _pinDone = false;
   bool _pinEnded = false;
 
   LocationShare? _geocodedAt;
@@ -316,13 +313,11 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
       scale: scale,
     );
     if (!mounted) return;
-    final first = !_pinDone;
     setState(() {
       _pin = pin ?? _pin;
-      _pinDone = true;
       _pinEnded = ended;
     });
-    if (!first && pin != null) {
+    if (pin != null) {
       _native?.invokeMethod<void>('update', {
         'latitude': _shown.latitude,
         'longitude': _shown.longitude,
@@ -510,79 +505,122 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
         ? const AlwaysStoppedAnimation(1.0)
         : CurvedAnimation(
             parent: route,
-            curve: Curves.easeOutCubic,
-            reverseCurve: Curves.easeInCubic,
+            curve: Curves.easeInOutCubicEmphasized,
+            reverseCurve: Curves.easeInOutCubic,
           );
-
-    return AnimatedBuilder(
-      animation: flight,
-      builder: (context, _) {
-        final t = flight.value.clamp(0.0, 1.0);
-        final settled =
-            route == null || route.status == AnimationStatus.completed;
-        final chrome = const Interval(0.55, 1).transform(t);
-        // A transparent Material gives the card's text a style to inherit;
-        // without one Flutter draws its debug underline.
-        return Material(
-          type: MaterialType.transparency,
-          child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Opacity(
-              opacity: t,
-              child: ColoredBox(color: theme.background),
-            ),
-            Opacity(
-              opacity: const Interval(0.25, 1).transform(t),
-              child: Listener(
-                onPointerDown: (_) {
-                  if (_follow && _engine == MapEngine.openFreeMap) {
-                    setState(() => _follow = false);
-                  }
-                },
-                child: _map(theme),
-              ),
-            ),
-            _flyingPicture(t, settled),
-            Opacity(
-              opacity: chrome,
-              child: IgnorePointer(
-                ignoring: !settled,
-                child: _chrome(theme, chrome),
-              ),
-            ),
-          ],
-          ),
-        );
+    final screen = MediaQuery.sizeOf(context);
+    // Built once per frame of the flight, not per animation tick of the
+    // contents: the map itself never rebuilds while it flies.
+    final map = Listener(
+      onPointerDown: (_) {
+        if (_follow && _engine == MapEngine.openFreeMap) {
+          setState(() => _follow = false);
+        }
       },
+      child: _map(theme),
+    );
+
+    return Material(
+      // Gives the card's text a style to inherit; without one Flutter draws
+      // its debug underline.
+      type: MaterialType.transparency,
+      child: AnimatedBuilder(
+        animation: flight,
+        builder: (context, _) {
+          final t = flight.value.clamp(0.0, 1.0);
+          final settled =
+              route == null || route.status == AnimationStatus.completed;
+          final chrome = const Interval(0.6, 1).transform(t);
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              _flight(theme, screen, t, settled, map),
+              Opacity(
+                opacity: chrome,
+                child: IgnorePointer(
+                  ignoring: !settled,
+                  child: _chrome(theme, chrome),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
-  /// The bubble's own map picture, flying from the card to full width at the
-  /// same scale, then fading once the live map has drawn under it. Shown
-  /// again for the trip home.
-  Widget _flyingPicture(double t, bool settled) {
+  /// A container transform out of the bubble's card.
+  ///
+  /// The whole full-screen map (live map, with the card's own picture over
+  /// its middle until the live one has drawn) starts life shrunk to the card:
+  /// same rectangle, same corners, same metres per point, so frame one IS the
+  /// card. It then grows to the screen while the clip opens with it. Nothing
+  /// swaps or pops mid-flight; the picture only steps aside once settled and
+  /// the live map has drawn, and comes back for the trip home.
+  Widget _flight(
+    AppTheme theme,
+    Size screen,
+    double t,
+    bool settled,
+    Widget map,
+  ) {
     final origin = widget.origin;
-    final picture = origin?.picture;
-    if (origin == null || picture == null) return const SizedBox.shrink();
-    final screen = MediaQuery.sizeOf(context);
-    final aspect = origin.rect.height / origin.rect.width;
-    final end = Rect.fromCenter(
-      center: screen.center(Offset.zero),
-      width: screen.width,
-      height: screen.width * aspect,
+    final full = Offset.zero & screen;
+    final content = SizedBox.fromSize(
+      size: screen,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(color: theme.background),
+          map,
+          _picture(screen, settled),
+        ],
+      ),
     );
-    final rect = Rect.lerp(origin.rect, end, t)!;
+    if (origin == null) {
+      // Nothing to grow from (opened without a card): a quiet fade and lift.
+      return Opacity(
+        opacity: t,
+        child: Transform.scale(scale: 0.96 + 0.04 * t, child: content),
+      );
+    }
+    final clip = Rect.lerp(origin.rect, full, t)!;
+    final scale = _lerp(origin.rect.width / screen.width, 1, t);
+    final radius = _lerp(origin.radius, _screenRadius, t);
+    final centre = screen.center(Offset.zero);
+    final matrix = Matrix4.identity()
+      ..translateByDouble(clip.center.dx, clip.center.dy, 0, 1)
+      ..scaleByDouble(scale, scale, 1, 1)
+      ..translateByDouble(-centre.dx, -centre.dy, 0, 1);
+    return ClipRRect(
+      clipper: _RectClip(clip, radius),
+      child: Transform(transform: matrix, child: content),
+    );
+  }
+
+  /// Square at the end: the map lands as the screen itself.
+  static const double _screenRadius = 0;
+
+  static double _lerp(double a, double b, double t) => a + (b - a) * t;
+
+  /// The card's picture, at full width and the card's aspect, centred where
+  /// the live map puts the point: identical to the card at frame one, and to
+  /// the live map underneath once it has drawn.
+  Widget _picture(Size screen, bool settled) {
+    final picture = widget.origin?.picture;
+    final origin = widget.origin;
+    if (origin == null || picture == null) return const SizedBox.shrink();
+    final aspect = origin.rect.height / origin.rect.width;
     final visible = !settled || !_mapReady;
-    return Positioned.fromRect(
-      rect: rect,
+    return Center(
       child: IgnorePointer(
         child: AnimatedOpacity(
           opacity: visible ? 1 : 0,
-          duration: Duration(milliseconds: visible ? 0 : 260),
+          duration: Duration(milliseconds: visible ? 0 : 280),
           curve: Curves.easeOut,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(origin.radius * (1 - t)),
+          child: SizedBox(
+            width: screen.width,
+            height: screen.width * aspect,
             child: Image(
               image: picture.image,
               fit: BoxFit.cover,
@@ -961,9 +999,9 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
 
   Widget _map(AppTheme theme) {
     final engine = _engine;
-    // Wait for the first face render too, so the native map is born with it
-    // rather than showing a stock pin that swaps a moment later.
-    if (engine == null || !_pinDone) return const SizedBox.expand();
+    // Created at once, under the flying picture; the face is handed over
+    // when it is drawn, and any swap happens hidden under the picture.
+    if (engine == null) return const SizedBox.expand();
     final dark = _dark(theme);
     final settings = SettingsStore.instance;
     final params = <String, Object?>{
@@ -1250,4 +1288,20 @@ class _Dot extends StatelessWidget {
             decoration: BoxDecoration(shape: BoxShape.circle, color: color),
           ),
   );
+}
+
+/// The flight's clip: a rounded rectangle that opens from the card to the
+/// screen.
+class _RectClip extends CustomClipper<RRect> {
+  const _RectClip(this.rect, this.radius);
+
+  final Rect rect;
+  final double radius;
+
+  @override
+  RRect getClip(Size size) =>
+      RRect.fromRectAndRadius(rect, Radius.circular(radius));
+
+  @override
+  bool shouldReclip(_RectClip old) => old.rect != rect || old.radius != radius;
 }
