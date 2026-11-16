@@ -123,7 +123,7 @@ class _BananaPainter extends CustomPainter {
     const k = 1.24;
     canvas.translate(s * 0.5, s * 0.5);
     canvas.scale(k);
-    canvas.translate(-s * 0.445, -s * 0.385);
+    canvas.translate(-s * 0.452, -s * 0.385);
 
     Path path(List<List<double>> pts) {
       final out = Path()..moveTo(pts[0][0] * s, pts[0][1] * s);
@@ -149,6 +149,37 @@ class _BananaPainter extends CustomPainter {
       ..color = c
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * blur);
 
+    // Fine fibres along a shape: thin, faint strokes clipped to it.
+    void fibres(Path shape, List<List<double>> lines, Color c, double alpha) {
+      canvas.save();
+      canvas.clipPath(shape);
+      for (var n = 0; n < lines.length; n++) {
+        final l = lines[n];
+        final line = Path()
+          ..moveTo(l[0] * s, l[1] * s)
+          ..quadraticBezierTo(l[2] * s, l[3] * s, l[4] * s, l[5] * s);
+        // Uneven dashes, a different rhythm per line, so it reads as grain
+        // rather than pinstripes.
+        final pen = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = s * (0.0028 + 0.0012 * (n % 3))
+          ..strokeCap = StrokeCap.round
+          ..color = c.withValues(alpha: alpha * (0.6 + 0.2 * (n % 3)))
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.0028);
+        for (final metric in line.computeMetrics()) {
+          var at = metric.length * (0.04 * (n % 4));
+          var k = n;
+          while (at < metric.length) {
+            final run = metric.length * (0.24 + 0.16 * ((k * 7) % 5) / 4);
+            canvas.drawPath(metric.extractPath(at, at + run), pen);
+            at += run + metric.length * (0.03 + 0.03 * ((k * 3) % 4) / 3);
+            k++;
+          }
+        }
+      }
+      canvas.restore();
+    }
+
     // 1. The flap at the back, arching over to the right.
     final backFlap = path([
       [0.385, 0.37],
@@ -160,7 +191,7 @@ class _BananaPainter extends CustomPainter {
     ]);
     // Its yellow lip shows along the underside.
     canvas.save();
-    canvas.translate(0, s * 0.012);
+    canvas.translate(s * 0.002, s * 0.008);
     canvas.drawPath(backFlap, Paint()..color = _yellowDeep);
     canvas.restore();
     canvas.drawPath(
@@ -168,6 +199,21 @@ class _BananaPainter extends CustomPainter {
       fill([_creamLight, _cream, _creamDeep], Alignment.topLeft,
           Alignment.bottomRight, [0, 0.55, 1]),
     );
+    fibres(backFlap, [
+      [0.44, 0.31, 0.55, 0.24, 0.70, 0.40],
+      [0.46, 0.33, 0.57, 0.27, 0.72, 0.45],
+      [0.43, 0.29, 0.53, 0.22, 0.66, 0.30],
+      [0.50, 0.32, 0.60, 0.30, 0.74, 0.47],
+    ], _creamDeep, 0.32);
+    // The fruit's shadow on the flap, where it leaves the stalk.
+    canvas.save();
+    canvas.clipPath(backFlap);
+    canvas.drawCircle(
+      Offset(s * 0.41, s * 0.36),
+      s * 0.06,
+      soft(const Color(0xFFB89A5E).withValues(alpha: 0.55), 0.03),
+    );
+    canvas.restore();
 
     // 2. The fruit, standing up out of the peel.
     final fruit = path([
@@ -189,17 +235,39 @@ class _BananaPainter extends CustomPainter {
         ..strokeWidth = s * 0.03
         ..strokeCap = StrokeCap.round,
     );
+    // The strings and grain of the fruit, lengthwise.
+    fibres(fruit, [
+      [0.245, 0.06, 0.232, 0.22, 0.240, 0.37],
+      [0.300, 0.02, 0.300, 0.20, 0.300, 0.37],
+      [0.330, 0.03, 0.338, 0.20, 0.336, 0.37],
+      [0.360, 0.07, 0.372, 0.22, 0.368, 0.37],
+      [0.318, 0.02, 0.322, 0.20, 0.318, 0.37],
+    ], _creamDeep, 0.22);
+    // Where the peel still grips the fruit: a soft contact shadow.
+    canvas.save();
+    canvas.clipPath(fruit);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(s * 0.31, s * 0.375),
+        width: s * 0.22,
+        height: s * 0.07,
+      ),
+      soft(const Color(0xFFA88A4E).withValues(alpha: 0.6), 0.025),
+    );
+    canvas.restore();
 
     // 3. The body: the unpeeled half, curving down to the right.
     final body = path([
       [0.288, 0.37],
       [0.33, 0.355, 0.36, 0.375, 0.372, 0.405],
-      [0.39, 0.35, 0.42, 0.31, 0.452, 0.298],
-      [0.428, 0.37, 0.445, 0.485, 0.525, 0.558],
-      [0.595, 0.612, 0.69, 0.615, 0.765, 0.598],
-      [0.787, 0.607, 0.787, 0.636, 0.767, 0.646],
-      [0.67, 0.705, 0.535, 0.712, 0.432, 0.658],
-      [0.338, 0.605, 0.29, 0.50, 0.288, 0.37],
+      [0.385, 0.365, 0.425, 0.33, 0.466, 0.348],
+      // Inner edge: a bent tube on a gentle diagonal, not a half-moon.
+      [0.50, 0.425, 0.56, 0.49, 0.63, 0.522],
+      [0.69, 0.548, 0.74, 0.556, 0.786, 0.552],
+      [0.806, 0.560, 0.806, 0.592, 0.786, 0.603],
+      // Belly: a long, shallow arc.
+      [0.70, 0.648, 0.585, 0.672, 0.485, 0.642],
+      [0.385, 0.61, 0.31, 0.525, 0.288, 0.37],
     ]);
     canvas.drawPath(
       body,
@@ -211,7 +279,7 @@ class _BananaPainter extends CustomPainter {
     canvas.clipPath(body);
     final gloss = Path()
       ..moveTo(s * 0.345, s * 0.43)
-      ..cubicTo(s * 0.37, s * 0.55, s * 0.50, s * 0.635, s * 0.72, s * 0.625);
+      ..cubicTo(s * 0.40, s * 0.53, s * 0.55, s * 0.60, s * 0.75, s * 0.585);
     canvas.drawPath(
       gloss,
       soft(Colors.white.withValues(alpha: 0.5), 0.014)
@@ -221,30 +289,74 @@ class _BananaPainter extends CustomPainter {
     );
     final belly = Path()
       ..moveTo(s * 0.30, s * 0.47)
-      ..cubicTo(s * 0.34, s * 0.64, s * 0.55, s * 0.725, s * 0.77, s * 0.645);
+      ..cubicTo(s * 0.36, s * 0.63, s * 0.58, s * 0.69, s * 0.795, s * 0.60);
     canvas.drawPath(
       belly,
       soft(_yellowDeep.withValues(alpha: 0.85), 0.02)
         ..style = PaintingStyle.stroke
         ..strokeWidth = s * 0.05,
     );
+    // A faint ridge down the length, the edge a banana's faces meet on.
+    final ridge = Path()
+      ..moveTo(s * 0.34, s * 0.47)
+      ..cubicTo(s * 0.40, s * 0.575, s * 0.56, s * 0.625, s * 0.775, s * 0.578);
+    canvas.drawPath(
+      ridge,
+      soft(_yellowDeep.withValues(alpha: 0.35), 0.006)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s * 0.012,
+    );
+    // Sugar spots: a ripe banana's freckles, small and uneven.
+    const freckles = [
+      [0.455, 0.585, 0.0055, 0.55],
+      [0.505, 0.615, 0.0042, 0.45],
+      [0.560, 0.640, 0.0062, 0.5],
+      [0.600, 0.612, 0.0034, 0.4],
+      [0.640, 0.650, 0.0048, 0.5],
+      [0.690, 0.628, 0.0058, 0.45],
+      [0.720, 0.603, 0.0030, 0.4],
+      [0.420, 0.545, 0.0036, 0.4],
+      [0.535, 0.588, 0.0028, 0.35],
+      [0.665, 0.598, 0.0030, 0.35],
+      [0.745, 0.625, 0.0040, 0.45],
+      [0.385, 0.505, 0.0032, 0.35],
+    ];
+    for (var n = 0; n < freckles.length; n++) {
+      final f = freckles[n];
+      final c = Offset(f[0] * s, f[1] * s);
+      final r = f[2] * s * (n.isEven ? 1.0 : 0.75);
+      // A faint halo, then a crisp darker core, slightly off-centre.
+      canvas.drawOval(
+        Rect.fromCenter(center: c, width: r * 3.4, height: r * 2.2),
+        soft(const Color(0xFF9A6A20).withValues(alpha: f[3] * 0.35), 0.004),
+      );
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: c.translate(r * 0.2, 0),
+          width: r * 1.9,
+          height: r * 1.3,
+        ),
+        Paint()..color = const Color(0xFF5A3B17).withValues(alpha: f[3] + 0.15),
+      );
+    }
     canvas.restore();
     // The dark tip.
     canvas.drawPath(
       path([
-        [0.765, 0.598],
-        [0.781, 0.600, 0.790, 0.617, 0.784, 0.632],
-        [0.780, 0.641, 0.774, 0.644, 0.768, 0.646],
-        [0.774, 0.630, 0.772, 0.611, 0.765, 0.598],
+        [0.786, 0.552],
+        [0.802, 0.554, 0.811, 0.572, 0.805, 0.588],
+        [0.801, 0.597, 0.795, 0.600, 0.789, 0.603],
+        [0.795, 0.586, 0.793, 0.566, 0.786, 0.552],
       ]),
-      Paint()..color = _tip,
+      fill([const Color(0xFF8A6235), _tip, const Color(0xFF3E2A14)],
+          Alignment.topLeft, Alignment.bottomRight),
     );
 
     // 4. The flap at the front, hanging down the left. Last, so it casts a
     // soft shadow onto the body.
     final frontFlap = path([
       [0.30, 0.355],
-      [0.22, 0.34, 0.125, 0.365, 0.112, 0.43],
+      [0.235, 0.318, 0.13, 0.322, 0.112, 0.43],
       [0.118, 0.58, 0.18, 0.72, 0.248, 0.762],
       [0.296, 0.768, 0.312, 0.71, 0.302, 0.625],
       [0.292, 0.525, 0.302, 0.425, 0.33, 0.372],
@@ -259,6 +371,25 @@ class _BananaPainter extends CustomPainter {
       fill([_creamLight, _cream, _creamDeep], Alignment.topCenter,
           Alignment.bottomCenter, [0, 0.5, 1]),
     );
+    fibres(frontFlap, [
+      [0.15, 0.40, 0.15, 0.58, 0.22, 0.74],
+      [0.19, 0.38, 0.19, 0.57, 0.25, 0.75],
+      [0.23, 0.37, 0.23, 0.56, 0.275, 0.74],
+      [0.26, 0.37, 0.265, 0.55, 0.29, 0.70],
+      [0.13, 0.45, 0.14, 0.60, 0.19, 0.70],
+    ], _creamDeep, 0.32);
+    // The flap folds back at the top: shade under the fold.
+    canvas.save();
+    canvas.clipPath(frontFlap);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(s * 0.22, s * 0.37),
+        width: s * 0.22,
+        height: s * 0.06,
+      ),
+      soft(const Color(0xFFB89A5E).withValues(alpha: 0.45), 0.02),
+    );
+    canvas.restore();
     // The flap's inside curls away on the right: a soft shade there.
     canvas.save();
     canvas.clipPath(frontFlap);
@@ -268,6 +399,16 @@ class _BananaPainter extends CustomPainter {
       soft(_creamDeep, 0.02)
         ..strokeWidth = s * 0.05
         ..strokeCap = StrokeCap.round,
+    );
+    canvas.restore();
+    // A soft darker edge where the flap turns away from the light.
+    canvas.save();
+    canvas.clipPath(frontFlap);
+    canvas.drawPath(
+      frontFlap,
+      soft(_creamDeep.withValues(alpha: 0.8), 0.01)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s * 0.02,
     );
     canvas.restore();
     canvas.restore();
