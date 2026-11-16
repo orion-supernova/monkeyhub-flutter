@@ -69,8 +69,8 @@ verifies Google's ECDSA signature (keys from
 `gstatic.com/admob/reward/verifier-keys.json`, cached 6 h, refetched on an
 unknown key id), accepts only our two ad units (`ADMOB_AD_UNITS` env
 overrides), then `lifelines.creditAd` dedupes on the transaction id (last 20
-kept on the wallet row). Each ad unit's SSV URL must be set in AdMob (ad unit
-> Advanced settings > Server-side verification). The app passes
+kept on the wallet row). Both ad units have this SSV URL set and verified in AdMob (2026-11-16;
+ad unit > Advanced settings > Server-side verification). The app passes
 `ServerSideVerificationOptions(userId)` and polls the wallet for up to ~17 s
 after a watched video.
 
@@ -105,5 +105,4 @@ Hints used to be free and unlimited. Now 3 free per puzzle (`FREE_HINTS` in
 ## Open
 
 - Link both AdMob apps to their store listings once public.
-- Set the SSV URL on both ad units after the backend deploy.
 - Jungle Fist stages and paints as in-app purchases: undecided (user, 2026-11-16).
