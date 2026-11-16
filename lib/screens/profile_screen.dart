@@ -28,6 +28,7 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/remote_image.dart';
 import '../widgets/account_kit.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
@@ -1148,6 +1149,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return HeroPage(
       title: _u.displayName,
       hero: _hero(theme),
+      // Pulling down opens the picture full width, as Telegram does; a
+      // lettered placeholder has no picture to open.
+      expandedPhoto: _canViewAvatar
+          ? (context, size) => RemoteImage(
+                storageId: _u.avatarStorageId!,
+                api: widget.api!,
+                width: size.width,
+                height: size.height,
+                placeholderDecodeWidth:
+                    (_avatarSize * MediaQuery.devicePixelRatioOf(context)).round(),
+              )
+          : null,
+      onPhotoTap: _openAvatarFullscreen,
       children: [
         if (!_isMe && _u.isRedacted) ...[
           SoftNote(
@@ -1221,6 +1235,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Gone before the name docks above it.
                 HeroDockFade(
                   distance: 64,
+                  overPhoto: true,
                   child: SpringPress(
                     onTap: _canRenameUsername
                         ? () => _confirmAndEdit(

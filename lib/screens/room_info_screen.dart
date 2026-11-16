@@ -1062,6 +1062,26 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     return HeroPage(
       title: title,
       hero: _hero(theme, r, peer, title, caps),
+      // A person's picture opens full width on a pull, as in Telegram. Rooms
+      // keep the plain rubber band.
+      expandedPhoto: r.isDm &&
+              peer?.avatarStorageId != null &&
+              peer!.avatarStorageId!.isNotEmpty
+          ? (context, size) => RemoteImage(
+                storageId: peer.avatarStorageId!,
+                api: widget.api,
+                width: size.width,
+                height: size.height,
+                placeholderDecodeWidth:
+                    (_avatarSize * MediaQuery.devicePixelRatioOf(context)).round(),
+              )
+          : null,
+      onPhotoTap: r.isDm && peer?.avatarStorageId != null
+          ? () => _openAvatarFullscreen(
+                storageId: peer!.avatarStorageId!,
+                heroTag: 'room-info-peer-avatar-${peer.id}',
+              )
+          : null,
       children: [
         // Name/visibility don't apply to a 1:1 DM — the room is just the two
         // people — nor to a room the app owns. Text, not a text field, until
@@ -1474,6 +1494,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             const SizedBox(height: 4),
             HeroDockFade(
               distance: 64,
+              overPhoto: true,
               child: RiseIn(
                 index: 2,
                 child: Text(subtitle, style: groupedSubtitleStyle(theme)),

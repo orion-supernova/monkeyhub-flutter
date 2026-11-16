@@ -52,7 +52,19 @@ class HeroPage extends StatefulWidget {
     required this.hero,
     required this.children,
     this.actions = const [],
+    this.expandedPhoto,
+    this.onPhotoTap,
   });
+
+  /// Opts the page into Telegram's pull-to-expand: pulling down past the top
+  /// grows the avatar into this picture, full width across the head, and it
+  /// stays open until the page scrolls up. Gets the square the picture is
+  /// laid out in (it is only scaled and clipped after that). Null keeps the
+  /// plain rubber band, and a null while open closes it.
+  final Widget Function(BuildContext context, Size size)? expandedPhoto;
+
+  /// A tap on the open photo.
+  final VoidCallback? onPhotoTap;
 
   /// What the bar shows once the hero has scrolled away.
   final String title;
@@ -64,10 +76,11 @@ class HeroPage extends StatefulWidget {
   State<HeroPage> createState() => _HeroPageState();
 }
 
-class _HeroPageState extends State<HeroPage> {
+class _HeroPageState extends State<HeroPage>
+    with SingleTickerProviderStateMixin {
   final _scroll = ScrollController();
   final _heroKey = GlobalKey();
-  late final _dock = HeroDockController(_scroll);
+  late final _dock = HeroDockController(_scroll, vsync: this);
 
   /// How far below the bar the docked veil fades out.
   static const double _veilFade = 30;
@@ -130,6 +143,12 @@ class _HeroPageState extends State<HeroPage> {
     final bg = theme.background;
     final clearance = top + IosPage.barHeight;
     _dock.barCentre = top + IosPage.barHeight / 2;
+    _dock.configurePhoto(
+      enabled: widget.expandedPhoto != null && context.isCompact,
+      builder: widget.expandedPhoto,
+      onTap: widget.onPhotoTap,
+      calm: MotionScope.of(context).calm,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _measureHero();
     });
@@ -158,6 +177,13 @@ class _HeroPageState extends State<HeroPage> {
               onNotification: _settle,
               child: CustomScrollView(
                 controller: _scroll,
+                // Android clamps at the top, and the photo is opened by
+                // pulling past it.
+                physics: _dock.expandable
+                    ? const BouncingScrollPhysics(
+                        parent: AlwaysScrollableScrollPhysics(),
+                      )
+                    : null,
                 slivers: [
                   // Pinned and empty: holds the bar's place so the hero starts
                   // below it, as IosPage does.
@@ -166,12 +192,36 @@ class _HeroPageState extends State<HeroPage> {
                     delegate: _HeroBarClearance(clearance),
                   ),
                   SliverToBoxAdapter(
-                    child: KeyedSubtree(key: _heroKey, child: widget.hero),
+                    child: _dock.expandable
+                        ? Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Pushes the hero down as the photo opens, so the
+                              // name lands at the photo's foot.
+                              ListenableBuilder(
+                                listenable: _dock.expandListenable,
+                                builder: (context, _) =>
+                                    SizedBox(height: _dock.spacer),
+                              ),
+                              KeyedSubtree(key: _heroKey, child: widget.hero),
+                            ],
+                          )
+                        : KeyedSubtree(key: _heroKey, child: widget.hero),
                   ),
                   ...readableSlivers(context, widget.children),
                 ],
               ),
             ),
+            ),
+            // The open photo: above the rows, under the bar.
+            ListenableBuilder(
+              listenable: Listenable.merge([
+                _scroll,
+                _dock.expandListenable,
+                _dock.geometry,
+              ]),
+              builder: (context, _) =>
+                  _dock.buildPhoto(context) ?? const SizedBox.shrink(),
             ),
             Positioned(
               top: 0,
@@ -181,10 +231,19 @@ class _HeroPageState extends State<HeroPage> {
                 clipBehavior: Clip.none,
                 children: [
                   // The soft edge, taller than the bar so rows dissolve as
-                  // they scroll under it.
+                  // they scroll under it. Gone while the photo is open: it
+                  // would fade the picture's top into the page.
                   Positioned.fill(
                     child: IgnorePointer(
-                      child: DecoratedBox(
+                      child: ListenableBuilder(
+                        listenable: _dock.expandListenable,
+                        builder: (context, child) => _dock.expand == 0
+                            ? child!
+                            : Opacity(
+                                opacity: (1 - _dock.expand).clamp(0.0, 1.0),
+                                child: child,
+                              ),
+                        child: DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
@@ -197,6 +256,7 @@ class _HeroPageState extends State<HeroPage> {
                             stops: const [0, 0.62, 1],
                           ),
                         ),
+                      ),
                       ),
                     ),
                   ),
