@@ -255,14 +255,17 @@ class _BananaPanelState extends State<_BananaPanel>
         else
           const _WhatTheyBuy(),
         const SizedBox(height: 20),
-        if (enough && widget.use != null)
+        // Always there when something is being bought, so the price is: it
+        // waits, disabled, until the wallet covers it.
+        if (widget.use != null)
           SheetActionButton(
             label: l10n.bananaUse(_cost),
-            busy: _busy,
-            onTap: _busy ? null : _spend,
+            tonal: !enough,
+            busy: _busy && enough,
+            onTap: _busy || !enough ? null : _spend,
           ),
         if (w.canWatch) ...[
-          if (enough && widget.use != null) const SizedBox(height: 10),
+          if (widget.use != null) const SizedBox(height: 10),
           if (w.adsLeft > 0) ...[
             SheetActionButton(
               label: l10n.bananaWatch(bonusNext ? 2 : 1),
@@ -288,7 +291,7 @@ class _BananaPanelState extends State<_BananaPanel>
               style: theme.caption.copyWith(color: theme.inkMuted),
             ),
         ] else if (!w.childAccount) ...[
-          if (enough && widget.use != null) const SizedBox(height: 14),
+          if (widget.use != null) const SizedBox(height: 14),
           Text(
             l10n.bananaPhoneOnly,
             textAlign: TextAlign.center,
@@ -327,25 +330,48 @@ class _BonusMeter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final filled = 3 - left;
+    // Two plain dots for the videos that pay one, then a "×2" chip for the
+    // one that pays double. Dots fill as videos are watched; the chip lights
+    // up when the next video is the double one. (Three bare dots, the last
+    // one tinted, read as a page indicator sitting on step 3.)
+    final watched = 3 - left;
+    final next = left == 1;
+    final d = MotionScope.of(context).d(const Duration(milliseconds: 250));
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        for (var i = 0; i < 3; i++)
+        for (var i = 0; i < 2; i++)
           AnimatedContainer(
-            duration: MotionScope.of(context).d(const Duration(milliseconds: 250)),
+            duration: d,
             margin: const EdgeInsets.symmetric(horizontal: 4),
-            width: i == 2 ? 22 : 14,
-            height: 8,
+            width: 10,
+            height: 10,
             decoration: BoxDecoration(
-              color: i < filled
+              color: i < watched
                   ? theme.accent
-                  : i == 2
-                  ? theme.accent.withValues(alpha: 0.25)
                   : theme.inkMuted.withValues(alpha: 0.25),
-              borderRadius: BorderRadius.circular(99),
+              shape: BoxShape.circle,
             ),
           ),
+        AnimatedContainer(
+          duration: d,
+          margin: const EdgeInsets.only(left: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: next ? theme.accent : Colors.transparent,
+            border: Border.all(
+              color: next ? theme.accent : theme.inkMuted.withValues(alpha: 0.4),
+            ),
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Text(
+            '×2',
+            style: theme.caption.copyWith(
+              color: next ? theme.accentInk : theme.inkMuted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
       ],
     );
   }
