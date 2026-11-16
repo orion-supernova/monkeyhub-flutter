@@ -15664,4 +15664,120 @@ class AppLocalizationsZh extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get bananaSheetTitle => '香蕉';
+
+  @override
+  String bananaBalance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 根香蕉',
+      zero: '还没有香蕉',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaForGuess => '再猜一次';
+
+  @override
+  String get bananaForHint => '再要一个提示';
+
+  @override
+  String get bananaForUndo => '悔一步棋';
+
+  @override
+  String get bananaForContinue => '满血复活';
+
+  @override
+  String bananaForStreak(int count) {
+    return '保住你的 $count 天连胜';
+  }
+
+  @override
+  String bananaUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '用 $count 根香蕉',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaWatch(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '看个视频，得 $count 根香蕉',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaBonusIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '再看 $count 个视频得双倍香蕉',
+      one: '这个视频双倍奖励',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaFree => '领取今天的免费香蕉';
+
+  @override
+  String get bananaAdsDone => '今天的视频看完了，明天还有。';
+
+  @override
+  String get bananaNoVideo => '现在没有视频，一分钟后再试试。';
+
+  @override
+  String get bananaLate => '香蕉正在路上，马上就到。';
+
+  @override
+  String bananaGot(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get bananaPhoneOnly => '香蕉要在手机 App 里看短视频获得。你已有的香蕉在这里也能用。';
+
+  @override
+  String get bananaLimit => '这道谜题最多只能给这么多。';
+
+  @override
+  String get puzzleOutOfGuessesTitle => '猜测次数用完了';
+
+  @override
+  String puzzleOutOfGuessesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '密码还没揭晓。每根香蕉换一次猜测，最多 $count 次。',
+      one: '密码还没揭晓。还能再解锁最后一次猜测。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleBuyGuess => '再猜一次';
+
+  @override
+  String get puzzleShowAnswer => '显示密码';
+
+  @override
+  String get gameHintsOutTitle => '免费提示用完了';
+
+  @override
+  String get streakSaveTitle => '挽救你的连胜';
+
+  @override
+  String streakSaveBody(int count) {
+    return '你昨天没玩。今天玩一局，用 2 根香蕉让你的 $count 天连胜继续。';
+  }
 }

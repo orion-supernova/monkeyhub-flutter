@@ -16770,4 +16770,130 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get bananaSheetTitle => 'الموز';
+
+  @override
+  String bananaBalance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count موزة',
+      many: '$count موزة',
+      few: '$count موزات',
+      two: 'موزتان',
+      one: 'موزة واحدة',
+      zero: 'لا موز لديك بعد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaForGuess => 'محاولة إضافية';
+
+  @override
+  String get bananaForHint => 'تلميح إضافي';
+
+  @override
+  String get bananaForUndo => 'تراجع عن حركتك';
+
+  @override
+  String get bananaForContinue => 'انهض بصحة كاملة';
+
+  @override
+  String bananaForStreak(int count) {
+    return 'حافظ على سلسلتك لمدة $count يومًا';
+  }
+
+  @override
+  String bananaUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'استخدم $count موزات',
+      two: 'استخدم موزتين',
+      one: 'استخدم موزة واحدة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaWatch(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'شاهد فيديو واربح $count موزات',
+      two: 'شاهد فيديو واربح موزتين',
+      one: 'شاهد فيديو واربح موزة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaBonusIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'بقي $count فيديوهات للموزة المضاعفة',
+      two: 'بقي فيديوهان للموزة المضاعفة',
+      one: 'هذا الفيديو يعطيك الضعف',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaFree => 'خذ موزتك المجانية لليوم';
+
+  @override
+  String get bananaAdsDone => 'انتهت فيديوهات اليوم. المزيد غدًا.';
+
+  @override
+  String get bananaNoVideo => 'لا يوجد فيديو الآن. حاول بعد دقيقة.';
+
+  @override
+  String get bananaLate => 'موزتك في الطريق، ستظهر بعد لحظة.';
+
+  @override
+  String bananaGot(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get bananaPhoneOnly =>
+      'تحصل على الموز من فيديوهات قصيرة في تطبيق الهاتف. والموز الذي لديك يعمل هنا أيضًا.';
+
+  @override
+  String get bananaLimit => 'هذا أقصى ما تعطيه هذه الأحجية.';
+
+  @override
+  String get puzzleOutOfGuessesTitle => 'انتهت محاولاتك';
+
+  @override
+  String puzzleOutOfGuessesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'الرمز ما زال مخفيًا. كل موزة تعطيك محاولة إضافية، حتى $count.',
+      one: 'الرمز ما زال مخفيًا. بقيت محاولة أخيرة يمكنك فتحها.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleBuyGuess => 'محاولة إضافية';
+
+  @override
+  String get puzzleShowAnswer => 'اعرض الرمز';
+
+  @override
+  String get gameHintsOutTitle => 'انتهت التلميحات المجانية';
+
+  @override
+  String get streakSaveTitle => 'أنقذ سلسلتك';
+
+  @override
+  String streakSaveBody(int count) {
+    return 'لم تلعب أمس. العب اليوم وموزتان تحافظان على سلسلتك لمدة $count يومًا.';
+  }
 }

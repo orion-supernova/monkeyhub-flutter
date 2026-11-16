@@ -15805,4 +15805,120 @@ class AppLocalizationsJa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get bananaSheetTitle => 'バナナ';
+
+  @override
+  String bananaBalance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'バナナ $count本',
+      zero: 'バナナはまだありません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaForGuess => '推理をもう1回';
+
+  @override
+  String get bananaForHint => 'ヒントをもう1つ';
+
+  @override
+  String get bananaForUndo => '手を戻す';
+
+  @override
+  String get bananaForContinue => '体力満タンで復活';
+
+  @override
+  String bananaForStreak(int count) {
+    return '$count日の連続記録をキープ';
+  }
+
+  @override
+  String bananaUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'バナナを$count本使う',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaWatch(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '動画を見てバナナ$count本ゲット',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaBonusIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'あと$count本の動画で2倍バナナ',
+      one: 'この動画は2倍もらえます',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaFree => '今日の無料バナナを受け取る';
+
+  @override
+  String get bananaAdsDone => '今日の動画はここまで。また明日。';
+
+  @override
+  String get bananaNoVideo => 'いまは動画がありません。1分後にもう一度どうぞ。';
+
+  @override
+  String get bananaLate => 'バナナを届けています。まもなく表示されます。';
+
+  @override
+  String bananaGot(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get bananaPhoneOnly => 'バナナはスマホアプリの短い動画でもらえます。持っているバナナはここでも使えます。';
+
+  @override
+  String get bananaLimit => 'このパズルではこれ以上もらえません。';
+
+  @override
+  String get puzzleOutOfGuessesTitle => '推理の回数切れ';
+
+  @override
+  String puzzleOutOfGuessesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'コードはまだ秘密のまま。バナナ1本で推理が1回増えます(最大$count回)。',
+      one: 'コードはまだ秘密のまま。あと1回だけ推理を追加できます。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleBuyGuess => '推理をもう1回';
+
+  @override
+  String get puzzleShowAnswer => 'コードを見る';
+
+  @override
+  String get gameHintsOutTitle => '無料ヒントを使い切りました';
+
+  @override
+  String get streakSaveTitle => '連続記録を守ろう';
+
+  @override
+  String streakSaveBody(int count) {
+    return '昨日はプレイしませんでした。今日プレイすれば、バナナ2本で$count日の連続記録が続きます。';
+  }
 }

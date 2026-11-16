@@ -15837,4 +15837,121 @@ class AppLocalizationsKo extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get bananaSheetTitle => '바나나';
+
+  @override
+  String bananaBalance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '바나나 $count개',
+      zero: '아직 바나나가 없어요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaForGuess => '추측 한 번 더';
+
+  @override
+  String get bananaForHint => '힌트 하나 더';
+
+  @override
+  String get bananaForUndo => '내 수 무르기';
+
+  @override
+  String get bananaForContinue => '체력 가득 채우고 다시 일어나기';
+
+  @override
+  String bananaForStreak(int count) {
+    return '$count일 연속 기록 지키기';
+  }
+
+  @override
+  String bananaUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '바나나 $count개 쓰기',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaWatch(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '영상 보고 바나나 $count개 받기',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaBonusIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '영상 $count개 더 보면 바나나 두 배',
+      one: '이번 영상은 두 배로 받아요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaFree => '오늘의 무료 바나나 받기';
+
+  @override
+  String get bananaAdsDone => '오늘 볼 수 있는 영상은 여기까지예요. 내일 또 만나요.';
+
+  @override
+  String get bananaNoVideo => '지금은 영상이 없어요. 1분 뒤에 다시 해 보세요.';
+
+  @override
+  String get bananaLate => '바나나가 가는 중이에요. 곧 들어와요.';
+
+  @override
+  String bananaGot(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get bananaPhoneOnly =>
+      '바나나는 휴대폰 앱에서 짧은 영상을 보면 받을 수 있어요. 갖고 있는 바나나는 여기서도 쓸 수 있어요.';
+
+  @override
+  String get bananaLimit => '이 퍼즐에서는 여기까지예요.';
+
+  @override
+  String get puzzleOutOfGuessesTitle => '추측 기회를 다 썼어요';
+
+  @override
+  String puzzleOutOfGuessesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '코드는 아직 숨겨져 있어요. 바나나 하나로 추측을 한 번 더 할 수 있어요(최대 $count번).',
+      one: '코드는 아직 숨겨져 있어요. 마지막 추측 한 번을 더 열 수 있어요.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleBuyGuess => '추측 한 번 더';
+
+  @override
+  String get puzzleShowAnswer => '코드 보기';
+
+  @override
+  String get gameHintsOutTitle => '무료 힌트를 다 썼어요';
+
+  @override
+  String get streakSaveTitle => '연속 기록 살리기';
+
+  @override
+  String streakSaveBody(int count) {
+    return '어제 플레이하지 않았어요. 오늘 플레이하면 바나나 2개로 $count일 연속 기록이 이어져요.';
+  }
 }

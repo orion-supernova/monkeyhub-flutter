@@ -16456,4 +16456,113 @@ class AppLocalizationsTr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get bananaSheetTitle => 'Muzlar';
+
+  @override
+  String bananaBalance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count muz',
+      zero: 'Henüz muzun yok',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaForGuess => 'Bir tahmin hakkı daha';
+
+  @override
+  String get bananaForHint => 'Bir ipucu daha';
+
+  @override
+  String get bananaForUndo => 'Hamleni geri al';
+
+  @override
+  String get bananaForContinue => 'Ayağa kalk, can full';
+
+  @override
+  String bananaForStreak(int count) {
+    return '$count günlük serini koru';
+  }
+
+  @override
+  String bananaUse(int count) {
+    return '$count muz kullan';
+  }
+
+  @override
+  String bananaWatch(int count) {
+    return 'Video izle, $count muz kazan';
+  }
+
+  @override
+  String bananaBonusIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Çift muza $count video kaldı',
+      one: 'Bu video çift muz veriyor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaFree => 'Bugünkü bedava muzunu al';
+
+  @override
+  String get bananaAdsDone =>
+      'Bugünlük videolar bu kadar. Yarın yenileri gelir.';
+
+  @override
+  String get bananaNoVideo => 'Şu an video yok. Bir dakika sonra tekrar dene.';
+
+  @override
+  String get bananaLate => 'Muzun yolda, birazdan gelir.';
+
+  @override
+  String bananaGot(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get bananaPhoneOnly =>
+      'Muzlar telefondaki uygulamada kısa videolarla kazanılır. Elindekileri burada da kullanabilirsin.';
+
+  @override
+  String get bananaLimit => 'Bu bulmacada alabileceğin bu kadar.';
+
+  @override
+  String get puzzleOutOfGuessesTitle => 'Tahmin hakkın bitti';
+
+  @override
+  String puzzleOutOfGuessesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Şifre hâlâ gizli. Her muz bir tahmin hakkı daha verir, en fazla $count.',
+      one: 'Şifre hâlâ gizli. Son bir tahmin hakkı daha alabilirsin.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleBuyGuess => 'Bir tahmin daha';
+
+  @override
+  String get puzzleShowAnswer => 'Şifreyi göster';
+
+  @override
+  String get gameHintsOutTitle => 'Bedava ipuçların bitti';
+
+  @override
+  String get streakSaveTitle => 'Serini kurtar';
+
+  @override
+  String streakSaveBody(int count) {
+    return 'Dün oynamadın. Bugün oyna, 2 muzla $count günlük serin devam etsin.';
+  }
 }

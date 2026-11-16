@@ -16523,4 +16523,126 @@ class AppLocalizationsEn extends AppLocalizations {
   String feedActivityNewPill(int count) {
     return '$count new';
   }
+
+  @override
+  String get bananaSheetTitle => 'Bananas';
+
+  @override
+  String bananaBalance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bananas',
+      one: '1 banana',
+      zero: 'No bananas yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaForGuess => 'One more guess';
+
+  @override
+  String get bananaForHint => 'One more hint';
+
+  @override
+  String get bananaForUndo => 'Take back your move';
+
+  @override
+  String get bananaForContinue => 'Get back up, full health';
+
+  @override
+  String bananaForStreak(int count) {
+    return 'Keep your $count-day streak';
+  }
+
+  @override
+  String bananaUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Use $count bananas',
+      one: 'Use 1 banana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaWatch(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Watch a video, get $count bananas',
+      one: 'Watch a video, get 1 banana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaBonusIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count more videos to a double banana',
+      one: 'This video pays double',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaFree => 'Take today’s free banana';
+
+  @override
+  String get bananaAdsDone => 'That’s all the videos for today. More tomorrow.';
+
+  @override
+  String get bananaNoVideo => 'No video right now. Try again in a minute.';
+
+  @override
+  String get bananaLate =>
+      'Your banana is on its way. It’ll show up in a moment.';
+
+  @override
+  String bananaGot(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get bananaPhoneOnly =>
+      'Bananas come from short videos in the phone app. The ones you have work here too.';
+
+  @override
+  String get bananaLimit => 'That’s the most this puzzle gives.';
+
+  @override
+  String get puzzleOutOfGuessesTitle => 'Out of guesses';
+
+  @override
+  String puzzleOutOfGuessesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'The code stays hidden. A banana buys one more guess, up to $count.',
+      one: 'The code stays hidden. One last guess is up for grabs.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleBuyGuess => 'One more guess';
+
+  @override
+  String get puzzleShowAnswer => 'Show the code';
+
+  @override
+  String get gameHintsOutTitle => 'Free hints used up';
+
+  @override
+  String get streakSaveTitle => 'Save your streak';
+
+  @override
+  String streakSaveBody(int count) {
+    return 'You missed yesterday. Play today and 2 bananas keep your $count-day streak going.';
+  }
 }

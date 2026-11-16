@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
+import '../../ads/banana_sheet.dart';
+import '../../ads/banana_wallet.dart';
 import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../widgets/glass_buttons.dart';
@@ -132,17 +134,20 @@ class BotFightDriver implements FightDriver {
     _bot = fb.FightBot(seed: _seed ^ 0x5bd1e995, level: level);
   }
 
+  /// Gets the player back up after a loss ([FightState.continueAfterLoss]).
+  bool continueAfterLoss() => _s.continueAfterLoss(localIndex);
+
   @override
   bool get finished => _s.phase == Phase.over;
 }
 
 class FightScreen extends StatefulWidget {
-  FightScreen({super.key, required CharacterDef player, required CharacterDef opponent, required fb.BotLevel level, this.onExit, this.stage})
+  FightScreen({super.key, required CharacterDef player, required CharacterDef opponent, required fb.BotLevel level, this.onExit, this.stage, this.userId})
     : driver = BotFightDriver(player: player, opponent: opponent, level: level),
       names = [player.name, opponent.name];
 
   /// An externally driven fight (online). [names] by fighter index.
-  const FightScreen.driven({super.key, required this.driver, required this.names, this.onExit, this.stage = 0});
+  const FightScreen.driven({super.key, required this.driver, required this.names, this.onExit, this.stage = 0}) : userId = null;
 
   final FightDriver driver;
   final List<String> names;
@@ -153,6 +158,9 @@ class FightScreen extends StatefulWidget {
   /// The place to fight in. Null (bot fights) = the player's setting, with
   /// Random re-rolled for every match; online the host's pick is passed in.
   final int? stage;
+
+  /// The signed-in player, for spending a banana on a continue. Null hides it.
+  final String? userId;
 
   @override
   State<FightScreen> createState() => _FightScreenState();
@@ -172,6 +180,10 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
   late final Ticker _ticker;
   Duration _last = Duration.zero, _acc = Duration.zero;
   bool _paused = false, _over = false;
+
+  /// Continues bought this fight (a banana each); reset on Rematch.
+  int _continues = 0;
+  static const int _maxContinues = 3;
   // A controller is in use: the touch deck fades out until a finger returns.
   bool _padActive = false;
   int _seenEventFrame = -1;
@@ -275,7 +287,34 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
     }
   }
 
+  bool get _canContinue {
+    final d = _d;
+    return d is BotFightDriver &&
+        widget.userId != null &&
+        _continues < _maxContinues &&
+        _s.matchWinner == 1 - d.localIndex;
+  }
+
+  Future<void> _continue() async {
+    final d = _d, userId = widget.userId;
+    if (d is! BotFightDriver || userId == null || !_canContinue) return;
+    final spent = await offerBananas(
+      context,
+      userId: userId,
+      use: BananaUse.fightContinue,
+      what: AppLocalizations.of(context).bananaForContinue,
+    );
+    if (!spent || !mounted || !d.continueAfterLoss()) return;
+    _continues++;
+    _over = false;
+    _acc = Duration.zero;
+    _input.clear();
+    setState(() => _paused = false);
+    _focus.requestFocus();
+  }
+
   void _restart() {
+    _continues = 0;
     _d.restart();
     _newMatch();
     setState(() => _paused = false);
@@ -541,12 +580,17 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
   Widget _resultCard(AppLocalizations l10n) {
     final w = _s.matchWinner, me = _d.localIndex;
     final won = w == me, lost = w == 1 - me;
+    if (_canContinue && widget.userId != null) BananaWallet.instance.watchWarm(widget.userId!);
     final title = won ? l10n.fightYouWin : (lost ? l10n.fightYouLose : l10n.fightDrawResult);
     return _Scrim(
       child: _Panel(
         title: title,
         accent: won ? const Color(0xffffd23a) : (lost ? const Color(0xffff4f6e) : Colors.white),
         children: [
+          if (_canContinue) ...[
+            _MenuButton(label: '\u{1F34C} ${l10n.bananaForContinue}', primary: true, onTap: _continue),
+            const SizedBox(height: 10),
+          ],
           if (_d.offline) ...[
             _MenuButton(label: l10n.fightRematch, primary: true, onTap: _restart),
             const SizedBox(height: 10),

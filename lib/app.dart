@@ -1,4 +1,5 @@
 import 'theme/low_power.dart';
+import 'ads/banana_wallet.dart';
 import 'theme/motion.dart' show MotionScope;
 import 'theme/glass_page_transitions.dart';
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
@@ -1831,6 +1832,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   Future<void>? _authTransition;
 
   void _onAuthChange() {
+    // Rewarded videos never play for a supervised account.
+    BananaWallet.instance.childAccount = _auth.isChild;
     _authTransition = _applyAuthChange();
   }
 

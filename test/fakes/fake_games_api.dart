@@ -75,6 +75,12 @@ class FakeGamesApi implements GamesApi {
   final saves = <({List<int> progress, int elapsedMs})>[];
 
   @override
+  Future<List<({String game, int streak})>> savableStreaks({
+    required String userId,
+    required String dayKey,
+  }) async => const [];
+
+  @override
   Future<GameHint> hint({
     required String userId,
     required String dayKey,

@@ -234,7 +234,12 @@ class FeedStore extends ChangeNotifier {
     final local = _localAttemptDay == _dayKey ? _localAttempt : null;
     if (local == null) return _puzzle;
     final server = _puzzle.mine;
-    if (server != null && server.guesses.length >= local.guesses.length) {
+    // The server's copy wins once it has caught up: as many guesses, as high a
+    // limit (a bought guess adds no row), and finished if the local one is.
+    if (server != null &&
+        server.guesses.length >= local.guesses.length &&
+        server.limit >= local.limit &&
+        (server.done || !local.done)) {
       return _puzzle;
     }
     return PuzzleState(mine: local, scores: _puzzle.scores);

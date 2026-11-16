@@ -9,6 +9,7 @@ import 'package:monkeyhub/models/puzzle.dart';
 /// importantly the shareable grid, which is the one artifact that leaves the
 /// app and lands in a group chat.
 void main() {
+  _bought();
   group('PuzzlePegs.shareRow', () {
     test('always spans exactly the number of slots', () {
       // A row that came out short or long would misalign the whole pasted grid
@@ -211,6 +212,72 @@ void main() {
       final s = PuzzleState.fromJson(null);
       expect(s.mine, isNull);
       expect(s.scores, isEmpty);
+    });
+  });
+}
+
+void _bought() {
+  group('PuzzleAttempt bought guesses', () {
+    Map<String, dynamic> json({
+      required int played,
+      bool done = false,
+      bool solved = false,
+      Object? limit,
+      Object? extraLeft,
+    }) => {
+      'guesses': [
+        for (var i = 0; i < played; i++) [0, 1, 2, 3],
+      ],
+      'feedback': [
+        for (var i = 0; i < played; i++) {'exact': 0, 'present': 1},
+      ],
+      'solved': solved,
+      'done': done,
+      'limit': ?limit,
+      'extraLeft': ?extraLeft,
+    };
+
+    test('parses limit and extraLeft, defaulting for older servers', () {
+      final a = PuzzleAttempt.fromJson(
+        json(played: 6, limit: 7, extraLeft: 2),
+      )!;
+      expect(a.limit, 7);
+      expect(a.extraLeft, 2);
+      expect(a.remaining, 1);
+      final old = PuzzleAttempt.fromJson(json(played: 2))!;
+      expect(old.limit, kPuzzleMaxGuesses);
+      expect(old.extraLeft, 0);
+    });
+
+    test('outOfGuesses only while open, unsolved and at the limit', () {
+      expect(
+        PuzzleAttempt.fromJson(json(played: 6, extraLeft: 3))!.outOfGuesses,
+        isTrue,
+      );
+      expect(
+        PuzzleAttempt.fromJson(
+          json(played: 6, limit: 7, extraLeft: 2),
+        )!.outOfGuesses,
+        isFalse,
+      );
+      expect(
+        PuzzleAttempt.fromJson(json(played: 6, done: true))!.outOfGuesses,
+        isFalse,
+      );
+      expect(
+        PuzzleAttempt.fromJson(
+          json(played: 3, done: true, solved: true),
+        )!.outOfGuesses,
+        isFalse,
+      );
+    });
+
+    test('markShared keeps the new fields', () {
+      final a = PuzzleAttempt.fromJson(
+        json(played: 6, limit: 8, extraLeft: 1),
+      )!.markShared();
+      expect(a.limit, 8);
+      expect(a.extraLeft, 1);
     });
   });
 }

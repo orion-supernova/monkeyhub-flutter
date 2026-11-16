@@ -16677,4 +16677,128 @@ class AppLocalizationsEs extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get bananaSheetTitle => 'Plátanos';
+
+  @override
+  String bananaBalance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count plátanos',
+      one: '1 plátano',
+      zero: 'Aún no tienes plátanos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaForGuess => 'Un intento más';
+
+  @override
+  String get bananaForHint => 'Una pista más';
+
+  @override
+  String get bananaForUndo => 'Deshacer tu jugada';
+
+  @override
+  String get bananaForContinue => 'Levántate con la vida al máximo';
+
+  @override
+  String bananaForStreak(int count) {
+    return 'Mantén tu racha de $count días';
+  }
+
+  @override
+  String bananaUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Usar $count plátanos',
+      one: 'Usar 1 plátano',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaWatch(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Mira un vídeo y gana $count plátanos',
+      one: 'Mira un vídeo y gana 1 plátano',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaBonusIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Faltan $count vídeos para el plátano doble',
+      one: 'Este vídeo da el doble',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaFree => 'Coge tu plátano gratis de hoy';
+
+  @override
+  String get bananaAdsDone => 'Ya no hay más vídeos hoy. Mañana, más.';
+
+  @override
+  String get bananaNoVideo =>
+      'Ahora no hay vídeos. Prueba dentro de un minuto.';
+
+  @override
+  String get bananaLate =>
+      'Tu plátano está en camino. Aparecerá en un momento.';
+
+  @override
+  String bananaGot(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get bananaPhoneOnly =>
+      'Los plátanos se ganan con vídeos cortos en la app del móvil. Los que ya tienes también sirven aquí.';
+
+  @override
+  String get bananaLimit => 'Este puzle no da para más.';
+
+  @override
+  String get puzzleOutOfGuessesTitle => 'Sin intentos';
+
+  @override
+  String puzzleOutOfGuessesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'El código sigue oculto. Cada plátano te da un intento más, hasta $count.',
+      one:
+          'El código sigue oculto. Te queda un último intento por desbloquear.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleBuyGuess => 'Un intento más';
+
+  @override
+  String get puzzleShowAnswer => 'Ver el código';
+
+  @override
+  String get gameHintsOutTitle => 'Se acabaron las pistas gratis';
+
+  @override
+  String get streakSaveTitle => 'Salva tu racha';
+
+  @override
+  String streakSaveBody(int count) {
+    return 'Ayer no jugaste. Juega hoy y con 2 plátanos tu racha de $count días sigue viva.';
+  }
 }

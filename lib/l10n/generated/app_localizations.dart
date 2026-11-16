@@ -27258,6 +27258,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} new'**
   String feedActivityNewPill(int count);
+
+  /// Title of the sheet where the player spends or earns bananas, the app's reward currency (one banana = one extra guess, hint, takeback...).
+  ///
+  /// In en, this message translates to:
+  /// **'Bananas'**
+  String get bananaSheetTitle;
+
+  /// Big line under the banana on the sheet: how many bananas the player has right now.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No bananas yet} =1{1 banana} other{{count} bananas}}'**
+  String bananaBalance(int count);
+
+  /// What spending a banana buys here: one more guess in the daily Code puzzle.
+  ///
+  /// In en, this message translates to:
+  /// **'One more guess'**
+  String get bananaForGuess;
+
+  /// What spending a banana buys here: one more hint in today's puzzle (the free ones are used up).
+  ///
+  /// In en, this message translates to:
+  /// **'One more hint'**
+  String get bananaForHint;
+
+  /// What spending a banana buys here: take back your last move against the bot.
+  ///
+  /// In en, this message translates to:
+  /// **'Take back your move'**
+  String get bananaForUndo;
+
+  /// What spending a banana buys here: in the fighting game, get back up with full health against the bot instead of losing.
+  ///
+  /// In en, this message translates to:
+  /// **'Get back up, full health'**
+  String get bananaForContinue;
+
+  /// What spending bananas buys here: keep a daily-puzzle streak of {count} days that missed exactly one day.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep your {count}-day streak'**
+  String bananaForStreak(int count);
+
+  /// Primary button: spend {count} bananas on the thing above.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Use 1 banana} other{Use {count} bananas}}'**
+  String bananaUse(int count);
+
+  /// Button: watch a short video ad to earn {count} bananas (2 when it is the bonus video).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Watch a video, get 1 banana} other{Watch a video, get {count} bananas}}'**
+  String bananaWatch(int count);
+
+  /// Small line under the watch button: how many more videos until one pays double. {count} = 1 means the very next video pays double.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{This video pays double} other{{count} more videos to a double banana}}'**
+  String bananaBonusIn(int count);
+
+  /// Tonal button: claim the one free banana everyone gets each day.
+  ///
+  /// In en, this message translates to:
+  /// **'Take today’s free banana'**
+  String get bananaFree;
+
+  /// Shown instead of the watch button when the daily video limit is reached.
+  ///
+  /// In en, this message translates to:
+  /// **'That’s all the videos for today. More tomorrow.'**
+  String get bananaAdsDone;
+
+  /// Toast: no video ad was available to play right now.
+  ///
+  /// In en, this message translates to:
+  /// **'No video right now. Try again in a minute.'**
+  String get bananaNoVideo;
+
+  /// Toast: the video was watched but the banana has not arrived from the server yet; it will appear soon.
+  ///
+  /// In en, this message translates to:
+  /// **'Your banana is on its way. It’ll show up in a moment.'**
+  String get bananaLate;
+
+  /// Celebration chip when bananas land in the wallet, e.g. '+2'.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count}'**
+  String bananaGot(int count);
+
+  /// On computers and the web, where videos cannot play: bananas are earned in the phone app, and the ones you already have work here too.
+  ///
+  /// In en, this message translates to:
+  /// **'Bananas come from short videos in the phone app. The ones you have work here too.'**
+  String get bananaPhoneOnly;
+
+  /// Toast: this puzzle already sold the most extras it allows (3).
+  ///
+  /// In en, this message translates to:
+  /// **'That’s the most this puzzle gives.'**
+  String get bananaLimit;
+
+  /// Card title in the daily Code puzzle when all guesses are used and it is not solved yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of guesses'**
+  String get puzzleOutOfGuessesTitle;
+
+  /// Card body: the answer stays hidden; a banana buys one more guess. {count} = extra guesses still available to buy (1 to 3).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{The code stays hidden. One last guess is up for grabs.} other{The code stays hidden. A banana buys one more guess, up to {count}.}}'**
+  String puzzleOutOfGuessesBody(int count);
+
+  /// Button on the out-of-guesses card: buy one more guess with a banana.
+  ///
+  /// In en, this message translates to:
+  /// **'One more guess'**
+  String get puzzleBuyGuess;
+
+  /// Button on the out-of-guesses card: give up and reveal the code.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the code'**
+  String get puzzleShowAnswer;
+
+  /// Sheet line when the free hints for today's puzzle are used up.
+  ///
+  /// In en, this message translates to:
+  /// **'Free hints used up'**
+  String get gameHintsOutTitle;
+
+  /// Sheet title: save a streak that missed one day.
+  ///
+  /// In en, this message translates to:
+  /// **'Save your streak'**
+  String get streakSaveTitle;
+
+  /// Sheet body: you missed yesterday; 2 bananas keep your {count}-day streak going if you play today.
+  ///
+  /// In en, this message translates to:
+  /// **'You missed yesterday. Play today and 2 bananas keep your {count}-day streak going.'**
+  String streakSaveBody(int count);
 }
 
 class _AppLocalizationsDelegate

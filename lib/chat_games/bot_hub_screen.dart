@@ -58,7 +58,10 @@ class BotHubScreen extends StatelessWidget {
 /// board-game grid and the "not ranked" footer. Shared by [BotHubScreen] and
 /// the Games tab, which shows it inline rather than one more push away.
 class BotHubPanel extends StatefulWidget {
-  const BotHubPanel({super.key});
+  const BotHubPanel({super.key, this.userId});
+
+  /// The signed-in player, for spending bananas against the bot. Null hides them.
+  final String? userId;
 
   @override
   State<BotHubPanel> createState() => _BotHubPanelState();
@@ -79,6 +82,7 @@ class _BotHubPanelState extends State<BotHubPanel> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => FightLobbyScreen(
+          userId: widget.userId,
           level: switch (_level) {
             BotLevel.easy => fb.BotLevel.easy,
             BotLevel.medium => fb.BotLevel.normal,
@@ -92,7 +96,7 @@ class _BotHubPanelState extends State<BotHubPanel> {
   void _play(String game) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => BotMatchScreen(game: game, level: _level),
+        builder: (_) => BotMatchScreen(game: game, level: _level, userId: widget.userId),
       ),
     );
   }

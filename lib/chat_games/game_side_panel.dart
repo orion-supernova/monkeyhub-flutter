@@ -428,6 +428,7 @@ class TurnActions extends StatelessWidget {
     super.key,
     this.onTakeback,
     this.showTakeback = true,
+    this.takebackBanana = false,
     this.onDraw,
     this.showDraw = true,
     this.onResign,
@@ -438,6 +439,9 @@ class TurnActions extends StatelessWidget {
 
   final VoidCallback? onTakeback;
   final bool showTakeback;
+
+  /// The takeback costs a banana (the free ones are used up).
+  final bool takebackBanana;
   final VoidCallback? onDraw;
   final bool showDraw;
   final VoidCallback? onResign;
@@ -455,7 +459,7 @@ class TurnActions extends StatelessWidget {
       if (showTakeback)
         GameTool(
           icon: CupertinoIcons.arrow_uturn_left,
-          label: l10n.chatGameTakeback,
+          label: takebackBanana ? '\u{1F34C} ${l10n.chatGameTakeback}' : l10n.chatGameTakeback,
           onTap: onTakeback,
         ),
       if (showDraw)

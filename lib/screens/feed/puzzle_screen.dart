@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 
 import '../../games/how_to/daily_guides.dart';
 import '../../games/how_to/how_to_play.dart';
+import '../../ads/banana_sheet.dart';
+import '../../ads/banana_wallet.dart';
 import '../../backend/feed_api.dart';
 import '../../data/feed_store.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -87,6 +89,13 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   /// A send to friends in flight, so a second tap cannot race the first.
   bool _telling = false;
+
+  /// A banana purchase or a concede in flight, so neither can be double-tapped.
+  bool _buying = false;
+  bool _conceding = false;
+
+  /// The preload for the out-of-guesses card's video has been requested.
+  bool _warmed = false;
 
   bool get _locked => _sendingAttempt != null;
 
@@ -212,6 +221,58 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     }
   }
 
+  /// Spends a banana on one more guess. On success the board is nudged
+  /// locally (one more allowed, one fewer buyable) so the keypad is back
+  /// before the live board catches up; the server's copy then takes over.
+  Future<void> _buyGuess(PuzzleAttempt attempt) async {
+    if (_buying || _conceding) return;
+    final l10n = AppLocalizations.of(context);
+    final dayKey = FeedStore.instance.dayKey;
+    setState(() => _buying = true);
+    try {
+      final ok = await offerBananas(
+        context,
+        userId: widget.userId,
+        use: BananaUse.guess,
+        what: l10n.bananaForGuess,
+        dayKey: dayKey,
+      );
+      if (!ok) return;
+      FeedStore.instance.applyPuzzleAttempt(
+        PuzzleAttempt(
+          guesses: attempt.guesses,
+          feedback: attempt.feedback,
+          solved: attempt.solved,
+          done: attempt.done,
+          answer: attempt.answer,
+          shared: attempt.shared,
+          limit: attempt.limit + 1,
+          extraLeft: math.max(0, attempt.extraLeft - 1),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _buying = false);
+    }
+  }
+
+  /// Gives up: ends today's code as a loss and shows the answer.
+  Future<void> _concede() async {
+    if (_buying || _conceding) return;
+    setState(() => _conceding = true);
+    try {
+      final result = await widget.feedApi.concedePuzzle(
+        userId: widget.userId,
+        dayKey: FeedStore.instance.dayKey,
+      );
+      FeedStore.instance.applyPuzzleAttempt(result);
+      HapticFeedback.mediumImpact();
+    } catch (_) {
+      if (mounted) setState(() => _errorCode = 'GENERIC');
+    } finally {
+      if (mounted) setState(() => _conceding = false);
+    }
+  }
+
   Future<void> _share(PuzzleAttempt attempt) async {
     final l10n = AppLocalizations.of(context);
     final store = FeedStore.instance;
@@ -272,6 +333,12 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     final state = FeedStore.instance.puzzle;
     final attempt = state.mine;
     final done = attempt?.done ?? false;
+    final out = attempt?.outOfGuesses ?? false;
+    final rows = math.max(kPuzzleMaxGuesses, attempt?.limit ?? 0);
+    if (out && !_warmed) {
+      _warmed = true;
+      BananaWallet.instance.watchWarm(widget.userId);
+    }
 
     final header = <Widget>[
       Row(
@@ -308,10 +375,15 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     // scroller: in the board column it sat under the home indicator on an
     // iPhone 16 Pro, and Guess — the one action that matters — needed a
     // scroll to reach. The grid and the scores scroll above it.
-    final pinnedKeypad = !done && !context.isExpanded;
+    final pinnedKeypad = !done && !out && !context.isExpanded;
 
     List<Widget> game(double? gridWidth) => [
-      _Grid(attempt: attempt, draft: _draft, maxWidth: gridWidth),
+      _Grid(
+        attempt: attempt,
+        draft: _draft,
+        rows: rows,
+        maxWidth: gridWidth,
+      ),
       if (_stalled) ...[
         const SizedBox(height: 12),
         FormErrorBanner(
@@ -329,6 +401,16 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
           _ => l10n.puzzleErrorGeneric,
         }),
       ],
+      if (out) ...[
+        const SizedBox(height: 20),
+        _OutOfGuesses(
+          extraLeft: attempt!.extraLeft,
+          buying: _buying,
+          conceding: _conceding,
+          onBuy: () => _buyGuess(attempt),
+          onConcede: _concede,
+        ),
+      ],
       if (done) ...[
         const SizedBox(height: 20),
         _Outcome(
@@ -343,7 +425,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       header: header,
       board: game(gridWidth),
       boardWidth: 440,
-      leading: done
+      leading: done || out
           ? null
           : _SideKeypad(
               draft: _draft,
@@ -371,7 +453,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                       ? LayoutBuilder(
                           builder: (context, box) => _FadeAbovePinned(
                             child: shell(
-                              _fitGridWidth(context, box.maxHeight, theme),
+                              _fitGridWidth(context, box.maxHeight, theme, rows),
                             ),
                           ),
                         )
@@ -412,7 +494,12 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 /// scrolls. Estimated from the header's own type sizes through the text
 /// scaler; [_FadeAbovePinned] covers whatever the estimate misses (a wrapped
 /// subtitle in Turkish at large text, an error banner).
-double _fitGridWidth(BuildContext context, double viewport, AppTheme theme) {
+double _fitGridWidth(
+  BuildContext context,
+  double viewport,
+  AppTheme theme,
+  int guessRows,
+) {
   final scaler = MediaQuery.textScalerOf(context);
   double line(TextStyle style) =>
       scaler.scale((style.fontSize ?? 17) * (style.height ?? 1.2));
@@ -428,7 +515,7 @@ double _fitGridWidth(BuildContext context, double viewport, AppTheme theme) {
   // Air for the fade to land in: with the last row's own 8pt gap this clears
   // the 20pt mask, so the fade sits under the board, not across its last row.
   final rows = viewport - header - 16;
-  final cell = (rows / kPuzzleMaxGuesses) - 8; // each row's bottom gap
+  final cell = (rows / guessRows) - 8; // each row's bottom gap
   return (cell * kPuzzleSlots + 6 * (kPuzzleSlots - 1)).clamp(200.0, 440.0);
 }
 
@@ -459,9 +546,17 @@ class _FadeAbovePinned extends StatelessWidget {
 /// Six rows of five slots: the guesses so far, the row being composed, then
 /// empty outlines for what remains.
 class _Grid extends StatelessWidget {
-  const _Grid({required this.attempt, required this.draft, this.maxWidth});
+  const _Grid({
+    required this.attempt,
+    required this.draft,
+    required this.rows,
+    this.maxWidth,
+  });
 
   final PuzzleAttempt? attempt;
+
+  /// Guess rows drawn: six, or more once guesses have been bought.
+  final int rows;
   final List<int> draft;
 
   /// Caps the grid so all six rows fit above a pinned keypad — see
@@ -477,7 +572,7 @@ class _Grid extends StatelessWidget {
 
     final grid = Column(
       children: [
-        for (var row = 0; row < kPuzzleMaxGuesses; row++)
+        for (var row = 0; row < rows; row++)
           Padding(
             key: ValueKey('row_$row'),
             padding: const EdgeInsets.only(bottom: 8),
@@ -784,6 +879,76 @@ class _Key extends StatelessWidget {
           child: child,
         ),
       ),
+    );
+  }
+}
+
+/// Shown when every guess is spent but the row is still open: buy one more
+/// with a banana, or give up and see the answer.
+class _OutOfGuesses extends StatelessWidget {
+  const _OutOfGuesses({
+    required this.extraLeft,
+    required this.buying,
+    required this.conceding,
+    required this.onBuy,
+    required this.onConcede,
+  });
+
+  final int extraLeft;
+  final bool buying;
+  final bool conceding;
+  final VoidCallback onBuy;
+  final VoidCallback onConcede;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final motion = MotionScope.of(context);
+    final card = Container(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      decoration: BoxDecoration(
+        color: groupedFill(theme),
+        borderRadius: BorderRadius.circular(groupedRadius(theme)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            sentenceCaseOf(context, l10n.puzzleOutOfGuessesTitle),
+            textAlign: TextAlign.center,
+            style: theme.displayMedium,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.puzzleOutOfGuessesBody(extraLeft),
+            textAlign: TextAlign.center,
+            style: theme.bodySoft.copyWith(color: theme.inkMuted),
+          ),
+          const SizedBox(height: 18),
+          SheetActionButton(
+            label: '🍌 ${l10n.puzzleBuyGuess}',
+            busy: buying,
+            onTap: buying || conceding ? null : onBuy,
+          ),
+          const SizedBox(height: 10),
+          SheetActionButton(
+            label: l10n.puzzleShowAnswer,
+            tonal: true,
+            busy: conceding,
+            onTap: buying || conceding ? null : onConcede,
+          ),
+        ],
+      ),
+    );
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: motion.d(theme.motionMed),
+      curve: motion.c(theme.motionEntrance),
+      builder: (context, v, child) => Opacity(
+        opacity: v.clamp(0.0, 1.0),
+        child: Transform.translate(offset: Offset(0, 12 * (1 - v)), child: child),
+      ),
+      child: card,
     );
   }
 }

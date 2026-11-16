@@ -39,6 +39,25 @@ class GamesApi {
   Future<dynamic> dailyRaw({required String dayKey}) =>
       _cv.query('games:daily', {'dayKey': dayKey});
 
+  /// Streaks that missed exactly one day and can still be saved with
+  /// bananas: `(game wire id, run length)`. One read, never a subscription.
+  Future<List<({String game, int streak})>> savableStreaks({
+    required String userId,
+    required String dayKey,
+  }) async {
+    final res = await _cv.query('lifelines:savableStreaks', {
+      'userId': userId,
+      'dayKey': dayKey,
+    });
+    return [
+      for (final r in (res as List?) ?? const [])
+        (
+          game: (r as Map)['game'].toString(),
+          streak: (r['streak'] as num?)?.toInt() ?? 0,
+        ),
+    ];
+  }
+
   /// The viewer's own rows, any half-finished board, and a leaderboard per game
   /// over accepted friends.
   Future<GameStandings> standings({
@@ -77,6 +96,7 @@ class GamesApi {
       ],
       elapsedMs: (j['elapsedMs'] as num?)?.toInt() ?? 0,
       hintsUsed: (j['hintsUsed'] as num?)?.toInt() ?? 0,
+      hintsBought: (j['hintsBought'] as num?)?.toInt() ?? 0,
       mistakes: (j['mistakes'] as num?)?.toInt() ?? 0,
       finished: j['finished'] == true,
     );
@@ -286,6 +306,7 @@ class GameSession {
     required this.progress,
     required this.elapsedMs,
     required this.hintsUsed,
+    this.hintsBought = 0,
     required this.mistakes,
     required this.finished,
   });
@@ -303,6 +324,9 @@ class GameSession {
   final int elapsedMs;
 
   final int hintsUsed;
+
+  /// Hints bought with bananas past the free ones.
+  final int hintsBought;
   final int mistakes;
 
   /// Whether they have already finished it today.

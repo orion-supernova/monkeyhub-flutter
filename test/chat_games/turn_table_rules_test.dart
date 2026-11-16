@@ -124,10 +124,10 @@ void main() {
       ),
     );
 
-    testWidgets('hard: no takeback tile, says so', (tester) async {
+    testWidgets('hard: the takeback tile is there (dimmed), no free ones', (tester) async {
       await tester.pumpWidget(host(const BotMatchScreen(game: 'chess', level: BotLevel.hard)));
       await tester.pump();
-      expect(find.text('Takeback'), findsNothing);
+      expect(find.text('Takeback'), findsOneWidget);
       expect(find.text('No takebacks against the hard bot'), findsOneWidget);
       expect(find.text('Resign'), findsOneWidget);
     });

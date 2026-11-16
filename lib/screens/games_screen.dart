@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
+import '../ads/banana_sheet.dart';
+import '../ads/banana_wallet.dart';
 import '../backend/feed_api.dart';
 import '../chat_games/bot_hub_screen.dart' show BotHubPanel;
 import '../data/chat_repository.dart';
@@ -13,6 +15,7 @@ import '../l10n/text_case.dart';
 import '../models/daily_game.dart';
 import '../theme/layout.dart';
 import '../theme/motion.dart';
+import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/games_strip.dart';
 import '../widgets/ios_kit.dart';
@@ -101,6 +104,80 @@ class _GamesScreenState extends State<GamesScreen>
     if (userId == null) return;
     _standingsAsked = true;
     GamesStore.instance.load(userId);
+    _loadSavable(userId);
+  }
+
+  /// A streak that missed exactly one day and can be kept with bananas.
+  /// One read per open of the hub, never a subscription.
+  ({String game, int streak})? _savable;
+  Future<void> _loadSavable(String userId) async {
+    try {
+      final list = await GamesStore.instance.api.savableStreaks(
+        userId: userId,
+        dayKey: FeedStore.instance.dayKey,
+      );
+      if (!mounted || list.isEmpty) return;
+      final best = list.reduce((a, b) => b.streak > a.streak ? b : a);
+      setState(() => _savable = best);
+      BananaWallet.instance.watchWarm(userId);
+    } catch (_) {
+      // Advisory card: no card is the right failure.
+    }
+  }
+
+  Future<void> _saveStreak(String userId) async {
+    final save = _savable;
+    if (save == null) return;
+    final l10n = AppLocalizations.of(context);
+    final ok = await offerBananas(
+      context,
+      userId: userId,
+      use: BananaUse.streak,
+      what: l10n.bananaForStreak(save.streak),
+      title: l10n.streakSaveTitle,
+      dayKey: FeedStore.instance.dayKey,
+      game: save.game,
+    );
+    if (!ok || !mounted) return;
+    setState(() => _savable = null);
+    GamesStore.instance.refreshStandings();
+  }
+
+  Widget _saveCard(BuildContext context, String userId) {
+    final save = _savable!;
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(groupedRadius(theme)),
+        child: ColoredBox(
+          color: groupedFill(theme),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '\u{1F525} ${sentenceCaseOf(context, l10n.streakSaveTitle)}',
+                  style: theme.body.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.streakSaveBody(save.streak),
+                  style: theme.body.copyWith(color: theme.inkSoft),
+                ),
+                const SizedBox(height: 12),
+                SheetActionButton(
+                  label: l10n.bananaForStreak(save.streak),
+                  onTap: () => _saveStreak(userId),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   /// A tapped games notification lands here: anything pushed over the tab is
@@ -160,6 +237,7 @@ class _GamesScreenState extends State<GamesScreen>
     final userId = widget.repo.userId ?? '';
 
     final children = <Widget>[
+      if (_savable != null) _saveCard(context, userId),
       if (games.standingsReady) ...[
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: _gutter),
@@ -206,9 +284,9 @@ class _GamesScreenState extends State<GamesScreen>
         padding: const EdgeInsets.symmetric(horizontal: _gutter),
         child: PageSectionHeader(sentenceCaseOf(context, l10n.botHubTitle)),
       ),
-      const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        child: BotHubPanel(key: ValueKey('games_tab_bots')),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: BotHubPanel(key: const ValueKey('games_tab_bots'), userId: widget.repo.userId),
       ),
     ];
 

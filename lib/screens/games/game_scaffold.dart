@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../ads/banana_sheet.dart';
+import '../../ads/banana_wallet.dart';
 import '../../data/challenges_store.dart';
 import '../../data/feed_store.dart';
 import '../../data/games_store.dart';
@@ -98,6 +100,8 @@ class _GameScaffoldState extends State<GameScaffold> {
   @override
   void initState() {
     super.initState();
+    // Out of free hints: the banana sheet, then the same hint again.
+    widget.controller.onOutOfHints = _offerHintBanana;
     // The first time anyone opens this game, the guide comes up by itself,
     // before the first touch has started the clock.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -132,8 +136,26 @@ class _GameScaffoldState extends State<GameScaffold> {
     if (hold && mounted && controller.paused) controller.resume();
   }
 
+  Future<bool> _offerHintBanana() async {
+    if (!mounted) return false;
+    final controller = widget.controller;
+    final l10n = AppLocalizations.of(context);
+    return offerBananas(
+      context,
+      userId: controller.userId,
+      use: BananaUse.hint,
+      what: l10n.bananaForHint,
+      title: l10n.gameHintsOutTitle,
+      dayKey: FeedStore.instance.dayKey,
+      game: controller.game.wire,
+    );
+  }
+
   @override
   void dispose() {
+    if (widget.controller.onOutOfHints == _offerHintBanana) {
+      widget.controller.onOutOfHints = null;
+    }
     _touch.dispose();
     super.dispose();
   }
@@ -985,10 +1007,15 @@ class GameTool extends StatelessWidget {
     required this.onTap,
     this.selected = false,
     this.danger = false,
+    this.hintOf,
   });
 
   final IconData icon;
   final String label;
+
+  /// Set on the Hint tool: once the free hints are spent it wears a banana,
+  /// so the player knows the next one costs one.
+  final GamePlayController? hintOf;
 
   /// Null disables the tool — an undo with nothing to undo, a hint mid-flight.
   final VoidCallback? onTap;
@@ -1001,6 +1028,19 @@ class GameTool extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final play = hintOf;
+    if (play == null) return _tile(context, false);
+    return ListenableBuilder(
+      listenable: play,
+      builder: (context, _) {
+        final badge = play.nextHintCostsBanana && !play.finished;
+        if (badge) BananaWallet.instance.watchWarm(play.userId);
+        return _tile(context, badge);
+      },
+    );
+  }
+
+  Widget _tile(BuildContext context, bool banana) {
     final theme = ThemeScope.of(context);
     final on = onTap != null;
     final ink = danger
@@ -1034,7 +1074,18 @@ class GameTool extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 20, color: ink),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(icon, size: 20, color: ink),
+                  if (banana)
+                    const Positioned(
+                      right: -10,
+                      top: -6,
+                      child: Text('\u{1F34C}', style: TextStyle(fontSize: 11)),
+                    ),
+                ],
+              ),
               const SizedBox(height: 4),
               // Meta size, on the scale; shrinks to fit rather than cutting
               // a tool's name off ("Auto-cro…").

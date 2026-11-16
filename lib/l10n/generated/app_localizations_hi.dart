@@ -16496,4 +16496,125 @@ class AppLocalizationsHi extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get bananaSheetTitle => 'केले';
+
+  @override
+  String bananaBalance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count केले',
+      one: '1 केला',
+      zero: 'अभी तक कोई केला नहीं',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaForGuess => 'एक और अनुमान';
+
+  @override
+  String get bananaForHint => 'एक और संकेत';
+
+  @override
+  String get bananaForUndo => 'अपनी चाल वापस लें';
+
+  @override
+  String get bananaForContinue => 'पूरी हेल्थ के साथ फिर उठें';
+
+  @override
+  String bananaForStreak(int count) {
+    return 'अपनी $count दिन की स्ट्रीक बचाएँ';
+  }
+
+  @override
+  String bananaUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count केले इस्तेमाल करें',
+      one: '1 केला इस्तेमाल करें',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaWatch(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'वीडियो देखें, $count केले पाएँ',
+      one: 'वीडियो देखें, 1 केला पाएँ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaBonusIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'डबल केले तक $count वीडियो और',
+      one: 'यह वीडियो डबल देता है',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaFree => 'आज का मुफ़्त केला लें';
+
+  @override
+  String get bananaAdsDone => 'आज के वीडियो खत्म। कल और मिलेंगे।';
+
+  @override
+  String get bananaNoVideo =>
+      'अभी कोई वीडियो नहीं है। एक मिनट बाद फिर कोशिश करें।';
+
+  @override
+  String get bananaLate => 'आपका केला आ रहा है, बस एक पल में दिखेगा।';
+
+  @override
+  String bananaGot(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get bananaPhoneOnly =>
+      'केले फ़ोन ऐप में छोटे वीडियो देखकर मिलते हैं। जो आपके पास हैं, वे यहाँ भी चलते हैं।';
+
+  @override
+  String get bananaLimit => 'इस पहेली में इससे ज़्यादा नहीं मिलता।';
+
+  @override
+  String get puzzleOutOfGuessesTitle => 'अनुमान खत्म';
+
+  @override
+  String puzzleOutOfGuessesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'कोड अभी भी छिपा है। हर केला एक और अनुमान देता है, $count तक।',
+      one: 'कोड अभी भी छिपा है। एक आखिरी अनुमान अभी भी खोला जा सकता है।',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleBuyGuess => 'एक और अनुमान';
+
+  @override
+  String get puzzleShowAnswer => 'कोड दिखाएँ';
+
+  @override
+  String get gameHintsOutTitle => 'मुफ़्त संकेत खत्म';
+
+  @override
+  String get streakSaveTitle => 'अपनी स्ट्रीक बचाएँ';
+
+  @override
+  String streakSaveBody(int count) {
+    return 'आपने कल नहीं खेला। आज खेलें, और 2 केले आपकी $count दिन की स्ट्रीक जारी रखेंगे।';
+  }
 }

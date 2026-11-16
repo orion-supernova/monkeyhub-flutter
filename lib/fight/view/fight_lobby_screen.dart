@@ -25,10 +25,13 @@ import '../../theme/layout.dart';
 /// One demo fight drives every preview, so the three look cards show the
 /// same moment drawn three ways, which is the whole point of the choice.
 class FightLobbyScreen extends StatefulWidget {
-  const FightLobbyScreen({super.key, required this.level});
+  const FightLobbyScreen({super.key, required this.level, this.userId});
 
   /// From the bot hub's level picker.
   final fb.BotLevel level;
+
+  /// For the banana continue in the fight; null hides it.
+  final String? userId;
 
   @override
   State<FightLobbyScreen> createState() => _FightLobbyScreenState();
@@ -130,7 +133,7 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         fullscreenDialog: true,
-        builder: (_) => FightScreen(player: roster[me], opponent: roster[foe], level: widget.level),
+        builder: (_) => FightScreen(player: roster[me], opponent: roster[foe], level: widget.level, userId: widget.userId),
       ),
     );
   }

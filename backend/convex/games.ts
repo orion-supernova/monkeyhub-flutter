@@ -555,6 +555,9 @@ export const start = mutation({
         progress: existing.progress ?? null,
         elapsedMs: existing.elapsedMs ?? 0,
         hintsUsed: existing.hintsUsed,
+        // Hints bought with bananas, so a reopened board knows when the next
+        // one costs a banana (`lifelines.ts`).
+        hintsBought: existing.hintsBought ?? 0,
         mistakes: existing.mistakes,
         finished: existing.finishedAt !== undefined,
       };

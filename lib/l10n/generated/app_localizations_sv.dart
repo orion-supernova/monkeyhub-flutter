@@ -16559,4 +16559,126 @@ class AppLocalizationsSv extends AppLocalizations {
   String feedActivityNewPill(int count) {
     return '$count nya';
   }
+
+  @override
+  String get bananaSheetTitle => 'Bananer';
+
+  @override
+  String bananaBalance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bananer',
+      one: '1 banan',
+      zero: 'Inga bananer än',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaForGuess => 'En gissning till';
+
+  @override
+  String get bananaForHint => 'En ledtråd till';
+
+  @override
+  String get bananaForUndo => 'Ångra ditt drag';
+
+  @override
+  String get bananaForContinue => 'Res dig med full hälsa';
+
+  @override
+  String bananaForStreak(int count) {
+    return 'Behåll din svit på $count dagar';
+  }
+
+  @override
+  String bananaUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Använd $count bananer',
+      one: 'Använd 1 banan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaWatch(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Titta på en video, få $count bananer',
+      one: 'Titta på en video, få 1 banan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaBonusIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count videor kvar till en dubbel banan',
+      one: 'Den här videon ger dubbelt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaFree => 'Ta dagens gratisbanan';
+
+  @override
+  String get bananaAdsDone => 'Det var alla videor för i dag. Fler i morgon.';
+
+  @override
+  String get bananaNoVideo => 'Ingen video just nu. Försök igen om en minut.';
+
+  @override
+  String get bananaLate => 'Din banan är på väg. Den dyker upp om en stund.';
+
+  @override
+  String bananaGot(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get bananaPhoneOnly =>
+      'Bananer får du genom korta videor i mobilappen. De du redan har funkar här också.';
+
+  @override
+  String get bananaLimit => 'Mer än så ger inte det här pusslet.';
+
+  @override
+  String get puzzleOutOfGuessesTitle => 'Slut på gissningar';
+
+  @override
+  String puzzleOutOfGuessesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Koden är fortfarande dold. Varje banan ger en gissning till, upp till $count.',
+      one:
+          'Koden är fortfarande dold. En sista gissning finns kvar att låsa upp.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleBuyGuess => 'En gissning till';
+
+  @override
+  String get puzzleShowAnswer => 'Visa koden';
+
+  @override
+  String get gameHintsOutTitle => 'Gratisledtrådarna är slut';
+
+  @override
+  String get streakSaveTitle => 'Rädda din svit';
+
+  @override
+  String streakSaveBody(int count) {
+    return 'Du spelade inte i går. Spela i dag så håller 2 bananer liv i din svit på $count dagar.';
+  }
 }

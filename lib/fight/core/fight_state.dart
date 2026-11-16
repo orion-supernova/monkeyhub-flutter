@@ -176,6 +176,37 @@ class FightState {
     p[1].face = -1;
   }
 
+  /// Gets [loser] back up after a lost match: the round that decided it is
+  /// taken back (the winner's win count drops by one), both fighters stand at
+  /// full health, and a fresh round opens with its intro. Meter and held
+  /// inputs carry over, like between rounds. Returns false (state untouched)
+  /// when the match is not over or [loser] did not lose it.
+  bool continueAfterLoss(int loser) {
+    if (phase != Phase.over || matchWinner != 1 - loser) return false;
+    final winner = p[1 - loser];
+    if (winner.wins > 0) winner.wins--;
+    for (var i = 0; i < 2; i++) {
+      final old = p[i];
+      final f = Fighter(chars[i].maxHealth);
+      f.wins = old.wins;
+      f.meter = old.meter;
+      f.prev = old.prev;
+      f.inp = old.inp;
+      p[i] = f;
+    }
+    placeFighters();
+    projectiles.clear();
+    traps.clear();
+    timer = roundFrames;
+    timeOver = false;
+    roundWinner = -1;
+    matchWinner = -1;
+    superFlash = 0;
+    phase = Phase.intro;
+    phaseTimer = introFrames;
+    return true;
+  }
+
   /// Seeded integer PRNG (LCG, products stay below 2^53). Returns 0..65535.
   int nextRand() {
     rng = (rng * 1664525 + 1013904223) % 4294967296;

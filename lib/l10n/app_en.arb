@@ -19467,5 +19467,141 @@
         "type": "int"
       }
     }
+  },
+  "bananaSheetTitle": "Bananas",
+  "@bananaSheetTitle": {
+    "description": "Title of the sheet where the player spends or earns bananas, the app's reward currency (one banana = one extra guess, hint, takeback...)."
+  },
+  "bananaBalance": "{count, plural, =0{No bananas yet} =1{1 banana} other{{count} bananas}}",
+  "@bananaBalance": {
+    "description": "Big line under the banana on the sheet: how many bananas the player has right now.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bananaForGuess": "One more guess",
+  "@bananaForGuess": {
+    "description": "What spending a banana buys here: one more guess in the daily Code puzzle."
+  },
+  "bananaForHint": "One more hint",
+  "@bananaForHint": {
+    "description": "What spending a banana buys here: one more hint in today's puzzle (the free ones are used up)."
+  },
+  "bananaForUndo": "Take back your move",
+  "@bananaForUndo": {
+    "description": "What spending a banana buys here: take back your last move against the bot."
+  },
+  "bananaForContinue": "Get back up, full health",
+  "@bananaForContinue": {
+    "description": "What spending a banana buys here: in the fighting game, get back up with full health against the bot instead of losing."
+  },
+  "bananaForStreak": "Keep your {count}-day streak",
+  "@bananaForStreak": {
+    "description": "What spending bananas buys here: keep a daily-puzzle streak of {count} days that missed exactly one day.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bananaUse": "{count, plural, =1{Use 1 banana} other{Use {count} bananas}}",
+  "@bananaUse": {
+    "description": "Primary button: spend {count} bananas on the thing above.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bananaWatch": "{count, plural, =1{Watch a video, get 1 banana} other{Watch a video, get {count} bananas}}",
+  "@bananaWatch": {
+    "description": "Button: watch a short video ad to earn {count} bananas (2 when it is the bonus video).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bananaBonusIn": "{count, plural, =1{This video pays double} other{{count} more videos to a double banana}}",
+  "@bananaBonusIn": {
+    "description": "Small line under the watch button: how many more videos until one pays double. {count} = 1 means the very next video pays double.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bananaFree": "Take today’s free banana",
+  "@bananaFree": {
+    "description": "Tonal button: claim the one free banana everyone gets each day."
+  },
+  "bananaAdsDone": "That’s all the videos for today. More tomorrow.",
+  "@bananaAdsDone": {
+    "description": "Shown instead of the watch button when the daily video limit is reached."
+  },
+  "bananaNoVideo": "No video right now. Try again in a minute.",
+  "@bananaNoVideo": {
+    "description": "Toast: no video ad was available to play right now."
+  },
+  "bananaLate": "Your banana is on its way. It’ll show up in a moment.",
+  "@bananaLate": {
+    "description": "Toast: the video was watched but the banana has not arrived from the server yet; it will appear soon."
+  },
+  "bananaGot": "+{count}",
+  "@bananaGot": {
+    "description": "Celebration chip when bananas land in the wallet, e.g. '+2'.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bananaPhoneOnly": "Bananas come from short videos in the phone app. The ones you have work here too.",
+  "@bananaPhoneOnly": {
+    "description": "On computers and the web, where videos cannot play: bananas are earned in the phone app, and the ones you already have work here too."
+  },
+  "bananaLimit": "That’s the most this puzzle gives.",
+  "@bananaLimit": {
+    "description": "Toast: this puzzle already sold the most extras it allows (3)."
+  },
+  "puzzleOutOfGuessesTitle": "Out of guesses",
+  "@puzzleOutOfGuessesTitle": {
+    "description": "Card title in the daily Code puzzle when all guesses are used and it is not solved yet."
+  },
+  "puzzleOutOfGuessesBody": "{count, plural, =1{The code stays hidden. One last guess is up for grabs.} other{The code stays hidden. A banana buys one more guess, up to {count}.}}",
+  "@puzzleOutOfGuessesBody": {
+    "description": "Card body: the answer stays hidden; a banana buys one more guess. {count} = extra guesses still available to buy (1 to 3).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "puzzleBuyGuess": "One more guess",
+  "@puzzleBuyGuess": {
+    "description": "Button on the out-of-guesses card: buy one more guess with a banana."
+  },
+  "puzzleShowAnswer": "Show the code",
+  "@puzzleShowAnswer": {
+    "description": "Button on the out-of-guesses card: give up and reveal the code."
+  },
+  "gameHintsOutTitle": "Free hints used up",
+  "@gameHintsOutTitle": {
+    "description": "Sheet line when the free hints for today's puzzle are used up."
+  },
+  "streakSaveTitle": "Save your streak",
+  "@streakSaveTitle": {
+    "description": "Sheet title: save a streak that missed one day."
+  },
+  "streakSaveBody": "You missed yesterday. Play today and 2 bananas keep your {count}-day streak going.",
+  "@streakSaveBody": {
+    "description": "Sheet body: you missed yesterday; 2 bananas keep your {count}-day streak going if you play today.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

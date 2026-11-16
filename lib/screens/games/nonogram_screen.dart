@@ -419,6 +419,7 @@ class _NonogramScreenState extends State<NonogramScreen>
         GameTool(
           icon: CupertinoIcons.lightbulb,
           label: l10n.gameHint,
+          hintOf: _play,
           onTap: _play.busy ? null : _hint,
         ),
         GameTool(

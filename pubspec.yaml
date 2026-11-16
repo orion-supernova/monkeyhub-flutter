@@ -360,6 +360,7 @@ dependencies:
   vector_tile_renderer: ^6.1.0
   flutter_map: ^8.3.2
   latlong2: ^0.10.1
+  google_mobile_ads: ^9.2.0
 
 dependency_overrides:
   # record 5.x ships with a stale record_linux that doesn't implement the

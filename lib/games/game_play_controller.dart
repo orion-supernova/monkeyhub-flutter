@@ -146,6 +146,21 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
 
   int get hintsUsed => _hints;
 
+  /// Hints included with every puzzle; mirrors `FREE_HINTS` in games.ts.
+  static const freeHints = 3;
+
+  /// Asked when the server says the free hints are gone: opens the banana
+  /// sheet and resolves true once a banana was spent. Set by the scaffold,
+  /// which owns a context; null leaves `OUT_OF_HINTS` a plain error.
+  Future<bool> Function()? onOutOfHints;
+
+  /// Hints bought with bananas this session. The start payload does not
+  /// carry it, so a reopened board may under-count and show the badge early.
+  int _hintsBought = 0;
+
+  /// The next hint costs a banana: the free ones are used up.
+  bool get nextHintCostsBanana => _hints >= freeHints + _hintsBought;
+
   /// The final time once [finished] and [solved].
   int? get durationMs => _durationMs;
 
@@ -208,6 +223,7 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
       _restored = session.progress;
       _accumulated = Duration(milliseconds: session.elapsedMs);
       _hints = session.hintsUsed;
+      _hintsBought = session.hintsBought;
       _mistakes = session.mistakes;
       _finished = session.finished;
       _ready = true;
@@ -306,7 +322,18 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
       return result.isEmpty ? null : result;
     } catch (e) {
       _busy = false;
-      _errorCode = _codeOf(e);
+      final code = _codeOf(e);
+      final ask = onOutOfHints;
+      if (code == 'OUT_OF_HINTS' && ask != null) {
+        notifyListeners();
+        // The banana sheet; a spent banana re-asks the same hint at once.
+        if (await ask() && !_disposed) {
+          _hintsBought++;
+          return hint(board);
+        }
+        return null;
+      }
+      _errorCode = code;
       notifyListeners();
       return null;
     }
@@ -680,6 +707,7 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
       'ALREADY_FINISHED',
       'UNKNOWN_GAME',
       'NO_HINT',
+      'OUT_OF_HINTS',
       'BAD_SOLUTION',
       'BAD_PROGRESS',
     ];

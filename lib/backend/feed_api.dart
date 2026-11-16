@@ -248,6 +248,19 @@ class FeedApi {
     return PuzzleAttempt.fromJson((res as Map).cast<String, dynamic>())!;
   }
 
+  /// Gives up an out-of-guesses attempt: ends it as a loss and reveals the
+  /// answer. Returns the finished board.
+  Future<PuzzleAttempt> concedePuzzle({
+    required String userId,
+    required String dayKey,
+  }) async {
+    final res = await _cv.mutation('puzzle:concede', {
+      'userId': userId,
+      'dayKey': dayKey,
+    });
+    return PuzzleAttempt.fromJson((res as Map).cast<String, dynamic>())!;
+  }
+
   /// Tells the player's friends how today's code went. The code puzzle's
   /// counterpart to `GamesApi.shareResult`, refused the same four ways:
   /// `NOT_STARTED`, `NOT_FINISHED`, `ALREADY_SHARED` and `RESULT_PRIVATE`.

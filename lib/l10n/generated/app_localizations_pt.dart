@@ -16682,6 +16682,128 @@ class AppLocalizationsPt extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get bananaSheetTitle => 'Bananas';
+
+  @override
+  String bananaBalance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bananas',
+      one: '1 banana',
+      zero: 'Ainda não tens bananas',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaForGuess => 'Mais uma tentativa';
+
+  @override
+  String get bananaForHint => 'Mais uma pista';
+
+  @override
+  String get bananaForUndo => 'Anular a tua jogada';
+
+  @override
+  String get bananaForContinue => 'Levanta-te com a vida cheia';
+
+  @override
+  String bananaForStreak(int count) {
+    return 'Mantém a tua série de $count dias';
+  }
+
+  @override
+  String bananaUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Usar $count bananas',
+      one: 'Usar 1 banana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaWatch(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Vê um vídeo e ganha $count bananas',
+      one: 'Vê um vídeo e ganha 1 banana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaBonusIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Faltam $count vídeos para a banana a dobrar',
+      one: 'Este vídeo dá a dobrar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaFree => 'Apanha a tua banana grátis de hoje';
+
+  @override
+  String get bananaAdsDone => 'Os vídeos de hoje acabaram. Amanhã há mais.';
+
+  @override
+  String get bananaNoVideo => 'Não há vídeos agora. Tenta daqui a um minuto.';
+
+  @override
+  String get bananaLate => 'A tua banana vem a caminho. Aparece já a seguir.';
+
+  @override
+  String bananaGot(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get bananaPhoneOnly =>
+      'As bananas ganham-se com vídeos curtos na app do telemóvel. As que já tens também servem aqui.';
+
+  @override
+  String get bananaLimit => 'Este puzzle não dá mais.';
+
+  @override
+  String get puzzleOutOfGuessesTitle => 'Sem tentativas';
+
+  @override
+  String puzzleOutOfGuessesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'O código continua escondido. Cada banana dá mais uma tentativa, até $count.',
+      one:
+          'O código continua escondido. Ainda há uma última tentativa para desbloquear.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleBuyGuess => 'Mais uma tentativa';
+
+  @override
+  String get puzzleShowAnswer => 'Ver o código';
+
+  @override
+  String get gameHintsOutTitle => 'Acabaram as pistas grátis';
+
+  @override
+  String get streakSaveTitle => 'Salva a tua série';
+
+  @override
+  String streakSaveBody(int count) {
+    return 'Ontem não jogaste. Joga hoje e 2 bananas mantêm a tua série de $count dias.';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -33339,5 +33461,127 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       one: '1 nova',
     );
     return '$_temp0';
+  }
+
+  @override
+  String get bananaSheetTitle => 'Bananas';
+
+  @override
+  String bananaBalance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bananas',
+      one: '1 banana',
+      zero: 'Você ainda não tem bananas',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaForGuess => 'Mais um palpite';
+
+  @override
+  String get bananaForHint => 'Mais uma dica';
+
+  @override
+  String get bananaForUndo => 'Voltar sua jogada';
+
+  @override
+  String get bananaForContinue => 'Levante com a vida cheia';
+
+  @override
+  String bananaForStreak(int count) {
+    return 'Mantenha sua sequência de $count dias';
+  }
+
+  @override
+  String bananaUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Usar $count bananas',
+      one: 'Usar 1 banana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaWatch(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Assista a um vídeo e ganhe $count bananas',
+      one: 'Assista a um vídeo e ganhe 1 banana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaBonusIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Faltam $count vídeos para a banana em dobro',
+      one: 'Este vídeo vale em dobro',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaFree => 'Pegue sua banana grátis de hoje';
+
+  @override
+  String get bananaAdsDone => 'Acabaram os vídeos de hoje. Amanhã tem mais.';
+
+  @override
+  String get bananaNoVideo => 'Nenhum vídeo agora. Tente de novo em um minuto.';
+
+  @override
+  String get bananaLate => 'Sua banana está a caminho. Já já ela aparece.';
+
+  @override
+  String bananaGot(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get bananaPhoneOnly =>
+      'As bananas vêm de vídeos curtos no app do celular. As que você já tem também valem aqui.';
+
+  @override
+  String get bananaLimit => 'Esse é o máximo que este desafio dá.';
+
+  @override
+  String get puzzleOutOfGuessesTitle => 'Sem palpites';
+
+  @override
+  String puzzleOutOfGuessesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'O código continua escondido. Cada banana libera mais um palpite, até $count.',
+      one:
+          'O código continua escondido. Ainda dá para liberar um último palpite.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleBuyGuess => 'Mais um palpite';
+
+  @override
+  String get puzzleShowAnswer => 'Ver o código';
+
+  @override
+  String get gameHintsOutTitle => 'Acabaram as dicas grátis';
+
+  @override
+  String get streakSaveTitle => 'Salve sua sequência';
+
+  @override
+  String streakSaveBody(int count) {
+    return 'Você não jogou ontem. Jogue hoje e 2 bananas mantêm sua sequência de $count dias.';
   }
 }

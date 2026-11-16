@@ -16747,4 +16747,127 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get bananaSheetTitle => 'Bananes';
+
+  @override
+  String bananaBalance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bananes',
+      one: '1 banane',
+      zero: 'Pas encore de bananes',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaForGuess => 'Un essai de plus';
+
+  @override
+  String get bananaForHint => 'Un indice de plus';
+
+  @override
+  String get bananaForUndo => 'Annuler ton coup';
+
+  @override
+  String get bananaForContinue => 'Se relever, santé au max';
+
+  @override
+  String bananaForStreak(int count) {
+    return 'Garde ta série de $count jours';
+  }
+
+  @override
+  String bananaUse(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Utiliser $count bananes',
+      one: 'Utiliser 1 banane',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaWatch(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Regarde une vidéo, gagne $count bananes',
+      one: 'Regarde une vidéo, gagne 1 banane',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bananaBonusIn(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Encore $count vidéos avant la banane double',
+      one: 'Cette vidéo rapporte double',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananaFree => 'Prends ta banane gratuite du jour';
+
+  @override
+  String get bananaAdsDone =>
+      'C’est fini pour les vidéos aujourd’hui. Il y en aura d’autres demain.';
+
+  @override
+  String get bananaNoVideo =>
+      'Aucune vidéo pour l’instant. Réessaie dans une minute.';
+
+  @override
+  String get bananaLate => 'Ta banane arrive. Elle apparaîtra dans un instant.';
+
+  @override
+  String bananaGot(int count) {
+    return '+$count';
+  }
+
+  @override
+  String get bananaPhoneOnly =>
+      'Les bananes se gagnent avec de courtes vidéos dans l’app sur téléphone. Celles que tu as marchent aussi ici.';
+
+  @override
+  String get bananaLimit => 'Ce puzzle ne donne pas plus.';
+
+  @override
+  String get puzzleOutOfGuessesTitle => 'Plus d’essais';
+
+  @override
+  String puzzleOutOfGuessesBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Le code reste caché. Chaque banane donne un essai de plus, jusqu’à $count.',
+      one: 'Le code reste caché. Un dernier essai peut encore se débloquer.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleBuyGuess => 'Un essai de plus';
+
+  @override
+  String get puzzleShowAnswer => 'Voir le code';
+
+  @override
+  String get gameHintsOutTitle => 'Plus d’indices gratuits';
+
+  @override
+  String get streakSaveTitle => 'Sauve ta série';
+
+  @override
+  String streakSaveBody(int count) {
+    return 'Tu n’as pas joué hier. Joue aujourd’hui et 2 bananes gardent ta série de $count jours.';
+  }
 }

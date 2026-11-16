@@ -96,6 +96,8 @@ class PuzzleAttempt {
     required this.done,
     this.answer,
     this.shared = false,
+    this.limit = kPuzzleMaxGuesses,
+    this.extraLeft = 0,
   });
 
   /// Each guess, oldest first, as symbol indices.
@@ -116,6 +118,12 @@ class PuzzleAttempt {
   /// allows one send per result, so this is what retires the action.
   final bool shared;
 
+  /// Guesses allowed right now: [kPuzzleMaxGuesses] plus any bought.
+  final int limit;
+
+  /// Extra guesses still buyable today.
+  final int extraLeft;
+
   /// The same attempt, marked as told — the moment the send is accepted,
   /// rather than a board round trip later.
   PuzzleAttempt markShared() => PuzzleAttempt(
@@ -125,10 +133,16 @@ class PuzzleAttempt {
         done: done,
         answer: answer,
         shared: true,
+        limit: limit,
+        extraLeft: extraLeft,
       );
 
   bool get started => guesses.isNotEmpty;
-  int get remaining => kPuzzleMaxGuesses - guesses.length;
+  int get remaining => limit - guesses.length;
+
+  /// Every guess spent, unsolved, and the row still open: the player may buy
+  /// one more or give up and see the answer.
+  bool get outOfGuesses => !done && !solved && guesses.length >= limit;
 
   /// The full shareable grid.
   String get shareGrid => feedback.map((p) => p.shareRow).join('\n');
@@ -150,6 +164,8 @@ class PuzzleAttempt {
           ? null
           : [for (final s in j['answer'] as List) (s as num).toInt()],
       shared: j['shared'] == true,
+      limit: (j['limit'] as num?)?.toInt() ?? kPuzzleMaxGuesses,
+      extraLeft: (j['extraLeft'] as num?)?.toInt() ?? 0,
     );
   }
 }

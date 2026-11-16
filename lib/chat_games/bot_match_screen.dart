@@ -5,6 +5,8 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../ads/banana_sheet.dart';
+import '../ads/banana_wallet.dart';
 import '../games/how_to/chat_guides.dart';
 import '../games/how_to/how_to_play.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -50,10 +52,13 @@ import 'move_history.dart';
 /// * Earlier positions can be looked at at any time (the move list, ← →); the
 ///   board is read-only until it is back on the current move.
 class BotMatchScreen extends StatefulWidget {
-  const BotMatchScreen({super.key, required this.game, required this.level});
+  const BotMatchScreen({super.key, required this.game, required this.level, this.userId});
 
   final String game;
   final BotLevel level;
+
+  /// The signed-in player, for buying a takeback with a banana. Null hides it.
+  final String? userId;
 
   @override
   State<BotMatchScreen> createState() => _BotMatchScreenState();
@@ -198,8 +203,43 @@ class _BotMatchScreenState extends State<BotMatchScreen> {
   bool get _canTakeBack =>
       _takebacksLeft > 0 && _myPlies.isNotEmpty && _ending == null;
 
-  void _takeBack() {
-    if (!_canTakeBack) return;
+  /// Out of free takebacks (or the level gives none) with a move to take back:
+  /// a banana buys one.
+  bool get _canBuyTakeBack =>
+      _takebacksLeft <= 0 &&
+      widget.userId != null &&
+      _myPlies.isNotEmpty &&
+      _ending == null;
+
+  bool _buying = false;
+
+  /// The tile and Cmd/Ctrl+Z: a free takeback first, a banana after.
+  VoidCallback? get _takeBackAction => _canTakeBack
+      ? _takeBack
+      : _canBuyTakeBack
+      ? _buyTakeBack
+      : null;
+
+  Future<void> _buyTakeBack() async {
+    final userId = widget.userId;
+    if (_buying || !_canBuyTakeBack || userId == null) return;
+    _buying = true;
+    try {
+      final spent = await offerBananas(
+        context,
+        userId: userId,
+        use: BananaUse.undo,
+        what: AppLocalizations.of(context).bananaForUndo,
+      );
+      if (spent && mounted) _takeBack(force: true);
+    } finally {
+      _buying = false;
+    }
+  }
+
+  void _takeBack({bool force = false}) {
+    if (!force && !_canTakeBack) return;
+    if (_myPlies.isEmpty || _ending != null) return;
     _epoch++;
     setState(() {
       final to = _myPlies.removeLast();
@@ -208,7 +248,7 @@ class _BotMatchScreenState extends State<BotMatchScreen> {
           ? _rules.initialEncoded(2)
           : _gameLine.stateAt(to);
       _line = null;
-      _takebacksLeft--;
+      if (_takebacksLeft > 0) _takebacksLeft--;
       _thinking = false;
       _viewPly = null;
       _drawDeclinedAt = null;
@@ -414,9 +454,10 @@ class _BotMatchScreenState extends State<BotMatchScreen> {
         : botTakebacks(widget.level) == 0
         ? l10n.chatGameNoTakebacksHard
         : l10n.chatGameTakebacksLeft(_takebacksLeft);
+    if (_canBuyTakeBack) BananaWallet.instance.watchWarm(widget.userId!);
     final actions = TurnActions(
-      onTakeback: _canTakeBack ? _takeBack : null,
-      showTakeback: botTakebacks(widget.level) > 0,
+      onTakeback: _takeBackAction,
+      takebackBanana: _canBuyTakeBack,
       onDraw: _canOfferDraw ? _offerDraw : null,
       onResign: _over ? null : _resign,
       extra: GameTool(
@@ -481,7 +522,7 @@ class _BotMatchScreenState extends State<BotMatchScreen> {
               game: widget.game,
               onStep: (by) => _view(stepPly(_viewPly, _moves.length, by)),
               onPlay: _play,
-              onTakeback: _canTakeBack ? _takeBack : null,
+              onTakeback: _takeBackAction,
               child: GameLayoutShell(
                 header: header,
                 board: board,

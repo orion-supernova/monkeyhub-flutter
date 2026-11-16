@@ -66,6 +66,10 @@
         android:label="MonkeyHub"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- AdMob app id: rewarded ads pay bananas (docs/design/rewarded-ads.md). -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-8148544480843214~6240157947"/>
         <!-- Maps SDK for Android key (location bubbles + the fullscreen map).
              Injected from build.gradle.kts, never committed: Gradle property
              MAPS_API_KEY, else android/local.properties, else the env var. -->
