@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -92,17 +93,8 @@ class _BananaPainter extends CustomPainter {
   final Animation<double> pop;
   final Animation<double> wave;
 
-  // A half-peeled banana in the soft, outline-free style of a system emoji:
-  // cream fruit standing out of the peel, three flaps (cream inside, yellow
-  // lip), a glossy yellow body and a dark tip. Coordinates are in a unit box
-  // that the drawing fills edge to edge (see [paint]'s fit transform).
-  static const _yellowLight = Color(0xFFFFE36A);
-  static const _yellow = Color(0xFFF9CF34);
-  static const _yellowDeep = Color(0xFFE6AE1B);
-  static const _creamLight = Color(0xFFFBF3DE);
-  static const _cream = Color(0xFFEFE1BE);
-  static const _creamDeep = Color(0xFFD9C597);
-  static const _tip = Color(0xFF5E4122);
+  /// The art, recorded once per pixel size: the motion only moves it.
+  static final _cache = <int, ui.Picture>{};
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -113,307 +105,363 @@ class _BananaPainter extends CustomPainter {
     final w = wave.value;
     final waveAngle = w < 0.32 ? math.sin(w / 0.32 * math.pi * 2) * 0.16 : 0.0;
 
+    final key = (s * 4).round();
+    final art = _cache[key] ??= _BananaArt.record(s);
+
     canvas.save();
-    // Motion, pivoting near the bottom of the fruit.
-    canvas.translate(s * 0.5, s * 0.78 - s * 0.10 * lift);
+    canvas.translate(s * 0.5, s * 0.8 - s * 0.10 * lift);
     canvas.rotate(wobble + waveAngle);
     canvas.scale(1 + 0.26 * lift);
-    canvas.translate(-s * 0.5, -s * 0.78);
-    // Fit: the art spans x 0.10..0.79, y 0.00..0.77; centre it and fill.
-    const k = 1.24;
-    canvas.translate(s * 0.5, s * 0.5);
-    canvas.scale(k);
-    canvas.translate(-s * 0.452, -s * 0.385);
-
-    Path path(List<List<double>> pts) {
-      final out = Path()..moveTo(pts[0][0] * s, pts[0][1] * s);
-      for (var i = 1; i < pts.length; i++) {
-        final c = pts[i];
-        out.cubicTo(c[0] * s, c[1] * s, c[2] * s, c[3] * s, c[4] * s, c[5] * s);
-      }
-      return out..close();
-    }
-
-    Paint fill(List<Color> colors, Alignment begin, Alignment end,
-            [List<double>? stops]) =>
-        Paint()
-          ..isAntiAlias = true
-          ..shader = LinearGradient(
-            begin: begin,
-            end: end,
-            colors: colors,
-            stops: stops,
-          ).createShader(Offset.zero & size);
-
-    Paint soft(Color c, double blur) => Paint()
-      ..color = c
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * blur);
-
-    // Fine fibres along a shape: thin, faint strokes clipped to it.
-    void fibres(Path shape, List<List<double>> lines, Color c, double alpha) {
-      canvas.save();
-      canvas.clipPath(shape);
-      for (var n = 0; n < lines.length; n++) {
-        final l = lines[n];
-        final line = Path()
-          ..moveTo(l[0] * s, l[1] * s)
-          ..quadraticBezierTo(l[2] * s, l[3] * s, l[4] * s, l[5] * s);
-        // Uneven dashes, a different rhythm per line, so it reads as grain
-        // rather than pinstripes.
-        final pen = Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = s * (0.0028 + 0.0012 * (n % 3))
-          ..strokeCap = StrokeCap.round
-          ..color = c.withValues(alpha: alpha * (0.6 + 0.2 * (n % 3)))
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.0028);
-        for (final metric in line.computeMetrics()) {
-          var at = metric.length * (0.04 * (n % 4));
-          var k = n;
-          while (at < metric.length) {
-            final run = metric.length * (0.24 + 0.16 * ((k * 7) % 5) / 4);
-            canvas.drawPath(metric.extractPath(at, at + run), pen);
-            at += run + metric.length * (0.03 + 0.03 * ((k * 3) % 4) / 3);
-            k++;
-          }
-        }
-      }
-      canvas.restore();
-    }
-
-    // 1. The flap at the back, arching over to the right.
-    final backFlap = path([
-      [0.385, 0.37],
-      [0.42, 0.27, 0.50, 0.225, 0.565, 0.245],
-      [0.665, 0.28, 0.735, 0.38, 0.755, 0.475],
-      [0.757, 0.497, 0.735, 0.503, 0.72, 0.485],
-      [0.665, 0.405, 0.585, 0.325, 0.505, 0.305],
-      [0.455, 0.295, 0.425, 0.33, 0.405, 0.375],
-    ]);
-    // Its yellow lip shows along the underside.
-    canvas.save();
-    canvas.translate(s * 0.002, s * 0.008);
-    canvas.drawPath(backFlap, Paint()..color = _yellowDeep);
-    canvas.restore();
-    canvas.drawPath(
-      backFlap,
-      fill([_creamLight, _cream, _creamDeep], Alignment.topLeft,
-          Alignment.bottomRight, [0, 0.55, 1]),
-    );
-    fibres(backFlap, [
-      [0.44, 0.31, 0.55, 0.24, 0.70, 0.40],
-      [0.46, 0.33, 0.57, 0.27, 0.72, 0.45],
-      [0.43, 0.29, 0.53, 0.22, 0.66, 0.30],
-      [0.50, 0.32, 0.60, 0.30, 0.74, 0.47],
-    ], _creamDeep, 0.32);
-    // The fruit's shadow on the flap, where it leaves the stalk.
-    canvas.save();
-    canvas.clipPath(backFlap);
-    canvas.drawCircle(
-      Offset(s * 0.41, s * 0.36),
-      s * 0.06,
-      soft(const Color(0xFFB89A5E).withValues(alpha: 0.55), 0.03),
-    );
-    canvas.restore();
-
-    // 2. The fruit, standing up out of the peel.
-    final fruit = path([
-      [0.228, 0.37],
-      [0.208, 0.21, 0.215, 0.05, 0.29, 0.008],
-      [0.35, -0.012, 0.378, 0.09, 0.392, 0.215],
-      [0.402, 0.30, 0.398, 0.345, 0.385, 0.375],
-    ]);
-    canvas.drawPath(
-      fruit,
-      fill([_creamDeep, _creamLight, _cream, _creamDeep],
-          Alignment.centerLeft, Alignment.centerRight, [0, 0.35, 0.7, 1]),
-    );
-    // A soft sheen down the fruit.
-    canvas.drawLine(
-      Offset(s * 0.275, s * 0.06),
-      Offset(s * 0.262, s * 0.30),
-      soft(Colors.white.withValues(alpha: 0.55), 0.012)
-        ..strokeWidth = s * 0.03
-        ..strokeCap = StrokeCap.round,
-    );
-    // The strings and grain of the fruit, lengthwise.
-    fibres(fruit, [
-      [0.245, 0.06, 0.232, 0.22, 0.240, 0.37],
-      [0.300, 0.02, 0.300, 0.20, 0.300, 0.37],
-      [0.330, 0.03, 0.338, 0.20, 0.336, 0.37],
-      [0.360, 0.07, 0.372, 0.22, 0.368, 0.37],
-      [0.318, 0.02, 0.322, 0.20, 0.318, 0.37],
-    ], _creamDeep, 0.22);
-    // Where the peel still grips the fruit: a soft contact shadow.
-    canvas.save();
-    canvas.clipPath(fruit);
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(s * 0.31, s * 0.375),
-        width: s * 0.22,
-        height: s * 0.07,
-      ),
-      soft(const Color(0xFFA88A4E).withValues(alpha: 0.6), 0.025),
-    );
-    canvas.restore();
-
-    // 3. The body: the unpeeled half, curving down to the right.
-    final body = path([
-      [0.288, 0.37],
-      [0.33, 0.355, 0.36, 0.375, 0.372, 0.405],
-      [0.385, 0.365, 0.425, 0.33, 0.466, 0.348],
-      // Inner edge: a bent tube on a gentle diagonal, not a half-moon.
-      [0.50, 0.425, 0.56, 0.49, 0.63, 0.522],
-      [0.69, 0.548, 0.74, 0.556, 0.786, 0.552],
-      [0.806, 0.560, 0.806, 0.592, 0.786, 0.603],
-      // Belly: a long, shallow arc.
-      [0.70, 0.648, 0.585, 0.672, 0.485, 0.642],
-      [0.385, 0.61, 0.31, 0.525, 0.288, 0.37],
-    ]);
-    canvas.drawPath(
-      body,
-      fill([_yellowLight, _yellow, _yellowDeep], const Alignment(-0.2, -1),
-          const Alignment(0.2, 1), [0, 0.5, 1]),
-    );
-    // Gloss along the top of the curve, and shade along the belly.
-    canvas.save();
-    canvas.clipPath(body);
-    final gloss = Path()
-      ..moveTo(s * 0.345, s * 0.43)
-      ..cubicTo(s * 0.40, s * 0.53, s * 0.55, s * 0.60, s * 0.75, s * 0.585);
-    canvas.drawPath(
-      gloss,
-      soft(Colors.white.withValues(alpha: 0.5), 0.014)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = s * 0.035
-        ..strokeCap = StrokeCap.round,
-    );
-    final belly = Path()
-      ..moveTo(s * 0.30, s * 0.47)
-      ..cubicTo(s * 0.36, s * 0.63, s * 0.58, s * 0.69, s * 0.795, s * 0.60);
-    canvas.drawPath(
-      belly,
-      soft(_yellowDeep.withValues(alpha: 0.85), 0.02)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = s * 0.05,
-    );
-    // A faint ridge down the length, the edge a banana's faces meet on.
-    final ridge = Path()
-      ..moveTo(s * 0.34, s * 0.47)
-      ..cubicTo(s * 0.40, s * 0.575, s * 0.56, s * 0.625, s * 0.775, s * 0.578);
-    canvas.drawPath(
-      ridge,
-      soft(_yellowDeep.withValues(alpha: 0.35), 0.006)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = s * 0.012,
-    );
-    // Sugar spots: a ripe banana's freckles, small and uneven.
-    const freckles = [
-      [0.455, 0.585, 0.0055, 0.55],
-      [0.505, 0.615, 0.0042, 0.45],
-      [0.560, 0.640, 0.0062, 0.5],
-      [0.600, 0.612, 0.0034, 0.4],
-      [0.640, 0.650, 0.0048, 0.5],
-      [0.690, 0.628, 0.0058, 0.45],
-      [0.720, 0.603, 0.0030, 0.4],
-      [0.420, 0.545, 0.0036, 0.4],
-      [0.535, 0.588, 0.0028, 0.35],
-      [0.665, 0.598, 0.0030, 0.35],
-      [0.745, 0.625, 0.0040, 0.45],
-      [0.385, 0.505, 0.0032, 0.35],
-    ];
-    for (var n = 0; n < freckles.length; n++) {
-      final f = freckles[n];
-      final c = Offset(f[0] * s, f[1] * s);
-      final r = f[2] * s * (n.isEven ? 1.0 : 0.75);
-      // A faint halo, then a crisp darker core, slightly off-centre.
-      canvas.drawOval(
-        Rect.fromCenter(center: c, width: r * 3.4, height: r * 2.2),
-        soft(const Color(0xFF9A6A20).withValues(alpha: f[3] * 0.35), 0.004),
-      );
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: c.translate(r * 0.2, 0),
-          width: r * 1.9,
-          height: r * 1.3,
-        ),
-        Paint()..color = const Color(0xFF5A3B17).withValues(alpha: f[3] + 0.15),
-      );
-    }
-    canvas.restore();
-    // The dark tip.
-    canvas.drawPath(
-      path([
-        [0.786, 0.552],
-        [0.802, 0.554, 0.811, 0.572, 0.805, 0.588],
-        [0.801, 0.597, 0.795, 0.600, 0.789, 0.603],
-        [0.795, 0.586, 0.793, 0.566, 0.786, 0.552],
-      ]),
-      fill([const Color(0xFF8A6235), _tip, const Color(0xFF3E2A14)],
-          Alignment.topLeft, Alignment.bottomRight),
-    );
-
-    // 4. The flap at the front, hanging down the left. Last, so it casts a
-    // soft shadow onto the body.
-    final frontFlap = path([
-      [0.30, 0.355],
-      [0.235, 0.318, 0.13, 0.322, 0.112, 0.43],
-      [0.118, 0.58, 0.18, 0.72, 0.248, 0.762],
-      [0.296, 0.768, 0.312, 0.71, 0.302, 0.625],
-      [0.292, 0.525, 0.302, 0.425, 0.33, 0.372],
-    ]);
-    canvas.save();
-    canvas.clipPath(body);
-    canvas.translate(s * 0.014, s * 0.004);
-    canvas.drawPath(frontFlap, soft(_yellowDeep.withValues(alpha: 0.7), 0.012));
-    canvas.restore();
-    canvas.drawPath(
-      frontFlap,
-      fill([_creamLight, _cream, _creamDeep], Alignment.topCenter,
-          Alignment.bottomCenter, [0, 0.5, 1]),
-    );
-    fibres(frontFlap, [
-      [0.15, 0.40, 0.15, 0.58, 0.22, 0.74],
-      [0.19, 0.38, 0.19, 0.57, 0.25, 0.75],
-      [0.23, 0.37, 0.23, 0.56, 0.275, 0.74],
-      [0.26, 0.37, 0.265, 0.55, 0.29, 0.70],
-      [0.13, 0.45, 0.14, 0.60, 0.19, 0.70],
-    ], _creamDeep, 0.32);
-    // The flap folds back at the top: shade under the fold.
-    canvas.save();
-    canvas.clipPath(frontFlap);
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(s * 0.22, s * 0.37),
-        width: s * 0.22,
-        height: s * 0.06,
-      ),
-      soft(const Color(0xFFB89A5E).withValues(alpha: 0.45), 0.02),
-    );
-    canvas.restore();
-    // The flap's inside curls away on the right: a soft shade there.
-    canvas.save();
-    canvas.clipPath(frontFlap);
-    canvas.drawLine(
-      Offset(s * 0.30, s * 0.38),
-      Offset(s * 0.29, s * 0.70),
-      soft(_creamDeep, 0.02)
-        ..strokeWidth = s * 0.05
-        ..strokeCap = StrokeCap.round,
-    );
-    canvas.restore();
-    // A soft darker edge where the flap turns away from the light.
-    canvas.save();
-    canvas.clipPath(frontFlap);
-    canvas.drawPath(
-      frontFlap,
-      soft(_creamDeep.withValues(alpha: 0.8), 0.01)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = s * 0.02,
-    );
-    canvas.restore();
+    canvas.translate(-s * 0.5, -s * 0.8);
+    canvas.drawPicture(art);
     canvas.restore();
   }
 
   @override
   bool shouldRepaint(_BananaPainter old) => false;
+}
+
+/// One part of the banana: a cubic spine and a width along it. Every shape,
+/// shade, grain line and spot is laid out from the spine, so the forms taper
+/// and bend together.
+class _Part {
+  _Part(this.c, this.width);
+
+  /// Cubic control points, unit box.
+  final List<Offset> c;
+
+  /// Width at t (unit box).
+  final double Function(double t) width;
+
+  Offset at(double t) {
+    final u = 1 - t;
+    return c[0] * (u * u * u) +
+        c[1] * (3 * u * u * t) +
+        c[2] * (3 * u * t * t) +
+        c[3] * (t * t * t);
+  }
+
+  /// Unit normal, to the left of the direction of travel.
+  Offset normal(double t) {
+    final u = 1 - t;
+    final d = (c[1] - c[0]) * (3 * u * u) +
+        (c[2] - c[1]) * (6 * u * t) +
+        (c[3] - c[2]) * (3 * t * t);
+    final l = d.distance == 0 ? 1.0 : d.distance;
+    return Offset(-d.dy / l, d.dx / l);
+  }
+
+  /// The outline at [scale] of the width, its centre moved [shift] widths
+  /// along the normal, between [t0] and [t1], in pixels for side [s].
+  Path outline(double s,
+      {double scale = 1, double shift = 0, double t0 = 0, double t1 = 1}) {
+    const n = 72;
+    final left = <Offset>[];
+    final right = <Offset>[];
+    for (var i = 0; i <= n; i++) {
+      final t = t0 + (t1 - t0) * i / n;
+      final p = at(t);
+      final nn = normal(t);
+      final w = width(t);
+      final mid = p + nn * (shift * w);
+      left.add((mid + nn * (w * scale / 2)) * s);
+      right.add((mid - nn * (w * scale / 2)) * s);
+    }
+    final path = Path()..moveTo(left.first.dx, left.first.dy);
+    for (final q in left.skip(1)) {
+      path.lineTo(q.dx, q.dy);
+    }
+    for (final q in right.reversed) {
+      path.lineTo(q.dx, q.dy);
+    }
+    return path..close();
+  }
+
+  /// A line along the part, [f] widths off the spine.
+  Path along(double s, double f, {double t0 = 0, double t1 = 1}) {
+    const n = 48;
+    final path = Path();
+    for (var i = 0; i <= n; i++) {
+      final t = t0 + (t1 - t0) * i / n;
+      final q = (at(t) + normal(t) * (f * width(t))) * s;
+      i == 0 ? path.moveTo(q.dx, q.dy) : path.lineTo(q.dx, q.dy);
+    }
+    return path;
+  }
+
+  /// +1 when the normal's side faces the light (upper left), else -1.
+  double get lit {
+    const light = Offset(-0.55, -0.83);
+    final n = normal(0.5);
+    return (n.dx * light.dx + n.dy * light.dy) >= 0 ? 1 : -1;
+  }
+}
+
+/// A rounded end over the first or last [cap] of the length.
+double _cap(double t, double cap) {
+  if (t >= cap) return 1;
+  final x = 1 - t / cap;
+  return math.sqrt(math.max(0, 1 - x * x));
+}
+
+double _lerp(double a, double b, double t) => a + (b - a) * t;
+
+class _Tone {
+  const _Tone(this.dark, this.mid, this.light, this.shine);
+  final Color dark;
+  final Color mid;
+  final Color light;
+  final Color shine;
+}
+
+class _BananaArt {
+  static const _cream = _Tone(
+    Color(0xFFD5BE90),
+    Color(0xFFE9D8B2),
+    Color(0xFFF6ECD4),
+    Color(0xFFFFFCF2),
+  );
+  static const _flesh = _Tone(
+    Color(0xFFDCC99C),
+    Color(0xFFEFE3C2),
+    Color(0xFFFAF3E1),
+    Color(0xFFFFFFFF),
+  );
+  static const _skin = _Tone(
+    Color(0xFFD4930F),
+    Color(0xFFF0BB22),
+    Color(0xFFF9D746),
+    Color(0xFFFFF2A8),
+  );
+  static const _skinEdge = Color(0xFFE6AC1A);
+
+  static final _backFlap = _Part(
+    const [
+      Offset(0.37, 0.445),
+      Offset(0.455, 0.235),
+      Offset(0.66, 0.235),
+      Offset(0.752, 0.495),
+    ],
+    (t) =>
+        _lerp(0.075, 0.062, t) *
+        _cap(1 - t, 0.2) *
+        (0.85 + 0.3 * math.sin(math.pi * t)),
+  );
+  static final _fruit = _Part(
+    const [
+      Offset(0.312, 0.47),
+      Offset(0.305, 0.30),
+      Offset(0.288, 0.13),
+      Offset(0.309, 0.012),
+    ],
+    (t) => _lerp(0.158, 0.132, t) * _cap(1 - t, 0.26),
+  );
+  static final _body = _Part(
+    const [
+      Offset(0.300, 0.372),
+      Offset(0.345, 0.61),
+      Offset(0.58, 0.67),
+      Offset(0.800, 0.578),
+    ],
+    // Rounded at the top too: that end is the peel's cup around the fruit.
+    (t) =>
+        _lerp(0.19, 0.045, math.pow(t, 1.3).toDouble()) *
+        _cap(t, 0.09) *
+        _cap(1 - t, 0.05),
+  );
+  static final _frontFlap = _Part(
+    const [
+      Offset(0.292, 0.372),
+      Offset(0.165, 0.40),
+      Offset(0.155, 0.655),
+      Offset(0.235, 0.775),
+    ],
+    (t) =>
+        _lerp(0.145, 0.095, t) *
+        _cap(t, 0.08) *
+        _cap(1 - t, 0.14) *
+        (0.9 + 0.2 * math.sin(math.pi * t)),
+  );
+
+  static ui.Picture record(double s) {
+    final rec = ui.PictureRecorder();
+    final canvas = Canvas(rec);
+    // Fit: the art spans x 0.07..0.81, y 0.01..0.79.
+    const k = 1.2;
+    canvas.translate(s * 0.5, s * 0.5);
+    canvas.scale(k);
+    canvas.translate(-s * 0.44, -s * 0.40);
+    _paint(canvas, s);
+    return rec.endRecording();
+  }
+
+  static Paint _soft(Color c, double blur, double s) => Paint()
+    ..color = c
+    ..maskFilter = blur <= 0 ? null : MaskFilter.blur(BlurStyle.normal, s * blur);
+
+  /// Fills [part] as a rounded form: dark at the silhouette, lighter toward
+  /// the lit side, a soft shine, and a gentle occlusion line at the edge.
+  static void _shade(Canvas canvas, double s, _Part part, _Tone tone) {
+    final lit = part.lit;
+    final base = part.outline(s);
+    canvas.drawPath(base, Paint()..color = tone.dark);
+    canvas.save();
+    canvas.clipPath(base);
+    canvas.drawPath(part.outline(s, scale: 0.86, shift: 0.03 * lit),
+        _soft(tone.mid, 0.014, s));
+    canvas.drawPath(part.outline(s, scale: 0.58, shift: 0.11 * lit),
+        _soft(tone.light, 0.016, s));
+    canvas.drawPath(part.outline(s, scale: 0.20, shift: 0.22 * lit, t0: 0.08, t1: 0.86),
+        _soft(tone.shine.withValues(alpha: 0.85), 0.010, s));
+    canvas.drawPath(
+      base,
+      _soft(tone.dark.withValues(alpha: 0.7), 0.008, s)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s * 0.014,
+    );
+    canvas.restore();
+  }
+
+  /// Grain along [part]: fine, broken, uneven lines, and a speckle of noise.
+  static void _grain(Canvas canvas, double s, _Part part, Color c,
+      {required int seed, double alpha = 0.22, int lines = 9, int specks = 70}) {
+    final base = part.outline(s);
+    final rnd = math.Random(seed);
+    canvas.save();
+    canvas.clipPath(base);
+    for (var i = 0; i < lines; i++) {
+      final f = -0.4 + 0.8 * (i + rnd.nextDouble() * 0.6) / lines;
+      final line = part.along(s, f, t0: 0.02, t1: 0.97);
+      final pen = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = s * (0.0022 + rnd.nextDouble() * 0.0025)
+        ..color = c.withValues(alpha: alpha * (0.5 + rnd.nextDouble() * 0.6))
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.0022);
+      for (final m in line.computeMetrics()) {
+        var at = m.length * rnd.nextDouble() * 0.1;
+        while (at < m.length) {
+          final run = m.length * (0.18 + rnd.nextDouble() * 0.35);
+          canvas.drawPath(m.extractPath(at, at + run), pen);
+          at += run + m.length * (0.02 + rnd.nextDouble() * 0.06);
+        }
+      }
+    }
+    for (var i = 0; i < specks; i++) {
+      final t = rnd.nextDouble();
+      final f = (rnd.nextDouble() - 0.5) * 0.9;
+      final q = (part.at(t) + part.normal(t) * (f * part.width(t))) * s;
+      canvas.drawCircle(
+        q,
+        s * (0.0012 + rnd.nextDouble() * 0.0022),
+        Paint()..color = c.withValues(alpha: 0.10 + rnd.nextDouble() * 0.14),
+      );
+    }
+    canvas.restore();
+  }
+
+  /// A cast shadow of [shape] (shifted by [d]) falling only on [onto].
+  static void _cast(Canvas canvas, double s, Path shape, Path onto, Offset d,
+      Color c, double blur) {
+    canvas.save();
+    canvas.clipPath(onto);
+    canvas.translate(d.dx * s, d.dy * s);
+    canvas.drawPath(shape, _soft(c, blur, s));
+    canvas.restore();
+  }
+
+  static void _paint(Canvas canvas, double s) {
+    final back = _backFlap.outline(s);
+    final fruit = _fruit.outline(s);
+    final body = _body.outline(s);
+    final front = _frontFlap.outline(s);
+
+    // 1. Back flap: the yellow skin peeks under its lower edge (the peel's
+    // thickness), the cream inside faces us.
+    canvas.drawPath(
+      _backFlap.outline(s, shift: -0.14 * _backFlap.lit, scale: 1.0),
+      Paint()..color = _skinEdge,
+    );
+    _shade(canvas, s, _backFlap, _cream);
+    _grain(canvas, s, _backFlap, _cream.dark, seed: 3, lines: 6, specks: 40);
+    // Where it leaves the fruit, it sits in the fruit's shade.
+    canvas.save();
+    canvas.clipPath(back);
+    canvas.drawCircle(Offset(s * 0.415, s * 0.36), s * 0.075,
+        _soft(const Color(0xFF9C7F4A).withValues(alpha: 0.55), 0.03, s));
+    canvas.restore();
+
+    // 2. The fruit.
+    _shade(canvas, s, _fruit, _flesh);
+    _grain(canvas, s, _fruit, _flesh.dark, seed: 7, alpha: 0.28, lines: 11, specks: 60);
+    // A little translucence at the top, and the peel's grip at the bottom.
+    canvas.save();
+    canvas.clipPath(fruit);
+    canvas.drawCircle(Offset(s * 0.30, s * 0.05), s * 0.05,
+        _soft(Colors.white.withValues(alpha: 0.45), 0.03, s));
+    canvas.restore();
+
+    // 3. The body, still in its skin.
+    _cast(canvas, s, body, fruit, const Offset(0, -0.012),
+        const Color(0xFF8E7444).withValues(alpha: 0.55), 0.02);
+    _shade(canvas, s, _body, _skin);
+    _grain(canvas, s, _body, _skin.dark, seed: 11, alpha: 0.18, lines: 5, specks: 30);
+    // Sugar spots: clustered toward the underside and the tip, uneven.
+    canvas.save();
+    canvas.clipPath(body);
+    final rnd = math.Random(21);
+    for (var i = 0; i < 22; i++) {
+      final t = 0.22 + rnd.nextDouble() * 0.7;
+      final f = -0.05 * _body.lit + (rnd.nextDouble() - 0.35) * 0.75;
+      final q = (_body.at(t) + _body.normal(t) * (f * _body.width(t))) * s;
+      final r = s * (0.002 + math.pow(rnd.nextDouble(), 2.6) * 0.0065);
+      final a = 0.35 + rnd.nextDouble() * 0.45;
+      canvas.drawOval(
+        Rect.fromCenter(center: q, width: r * 3.2, height: r * 2.2),
+        _soft(const Color(0xFFA06A12).withValues(alpha: a * 0.35), 0.005, s),
+      );
+      canvas.drawOval(
+        Rect.fromCenter(center: q, width: r * 1.8, height: r * 1.3),
+        Paint()..color = const Color(0xFF4E3212).withValues(alpha: a),
+      );
+    }
+    canvas.restore();
+    // The cup's rim: the cut edge of the peel shows its pale inside.
+    final rim = _body.outline(s, t0: 0, t1: 0.03);
+    canvas.drawPath(rim, Paint()..color = _cream.light);
+    canvas.drawPath(
+      rim,
+      _soft(_cream.dark.withValues(alpha: 0.6), 0.004, s)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s * 0.006,
+    );
+    // The stalk end: a graded brown cap.
+    final tip = _body.outline(s, t0: 0.955, t1: 1.0, scale: 1.04);
+    canvas.drawPath(
+      tip,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFF8C6232), Color(0xFF4A3016), Color(0xFF2E1D0C)],
+        ).createShader(tip.getBounds()),
+    );
+
+    // 4. Front flap: skin along its outer edge, a shadow onto the body.
+    _cast(canvas, s, front, body, const Offset(0.022, 0.006),
+        const Color(0xFF9A6A0E).withValues(alpha: 0.6), 0.018);
+    // Only on the fruit that shows: its base is under the body.
+    final fruitShown = Path.combine(PathOperation.difference, fruit, body);
+    _cast(canvas, s, front, fruitShown, const Offset(0.02, -0.004),
+        const Color(0xFF8E7444).withValues(alpha: 0.45), 0.016);
+    _shade(canvas, s, _frontFlap, _cream);
+    _grain(canvas, s, _frontFlap, _cream.dark, seed: 5, lines: 8, specks: 50);
+    // The fold at its top, where it bends away from the fruit.
+    canvas.save();
+    canvas.clipPath(front);
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset(s * 0.255, s * 0.37), width: s * 0.2, height: s * 0.06),
+      _soft(const Color(0xFF9C7F4A).withValues(alpha: 0.5), 0.022, s),
+    );
+    canvas.restore();
+  }
 }
