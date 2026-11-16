@@ -11469,6 +11469,14 @@ class AppLocalizationsSv extends AppLocalizations {
   String get locationPickerMoving => 'Hämtar adressen…';
 
   @override
+  String get locationPickerShareLive => 'Dela live-plats';
+
+  @override
+  String locationPickerAccurate(int meters) {
+    return 'Exakt inom $meters m';
+  }
+
+  @override
   String get interactionAnswersSearch => 'Sök personer eller svar';
 
   @override

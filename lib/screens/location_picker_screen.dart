@@ -22,16 +22,21 @@ import '../widgets/location_map_preview.dart';
 import '../widgets/map_engine.dart';
 import '../widgets/open_free_map_snapshot.dart';
 import '../widgets/open_free_map_tiles.dart';
+import '../widgets/location_share_sheet.dart' show LocationShareChoice;
 import '../widgets/place_search.dart';
 
-/// Where the picker landed.
-class PickedPlace {
-  const PickedPlace(this.latitude, this.longitude);
-  final double latitude;
-  final double longitude;
-}
-
-/// "Choose a place": a full-screen map with a pin fixed in the middle.
+/// Sending a location: one map, opened from the attachment menu.
+///
+/// The pin starts on you, and the first row says so: "Send current location,
+/// accurate to 5 m" (sent from a fresh fix). Move the map and that same row
+/// becomes "Send this location" with the street under the pin; the locate
+/// button turns it back. "Share live location" opens its durations inline,
+/// and nearby places and search sit under it. Current, chosen, live and nearby
+/// are one surface rather than a menu of modes, and sending where you are is
+/// still one tap.
+///
+/// The panel is a sheet: drag it (or scroll the list) up to nearly full
+/// screen when browsing places, back down to see the map.
 ///
 /// Move the map and the pin lifts off while it moves, lands with a tick when
 /// it stops, and the panel underneath names the street it landed on. Search
@@ -44,18 +49,25 @@ class PickedPlace {
 /// in picker mode (`MapViewFactory.swift` / `.kt`: no marker, reports the
 /// centre on `cameraIdle`), or OpenFreeMap in `flutter_map`.
 class LocationPickerScreen extends StatefulWidget {
-  const LocationPickerScreen({super.key, this.start});
+  const LocationPickerScreen({super.key, this.start, this.allowLive = true});
+
+  /// False where live shares are not allowed (a room whose messages expire);
+  /// the live row is left out.
+  final bool allowLive;
 
   /// Where to open: your position if known, else a wide view of the world.
   final LocationFix? start;
 
-  static Future<PickedPlace?> open(BuildContext context, {LocationFix? start}) =>
-      Navigator.of(context, rootNavigator: true).push(
-        MaterialPageRoute<PickedPlace>(
-          fullscreenDialog: true,
-          builder: (_) => LocationPickerScreen(start: start),
-        ),
-      );
+  static Future<LocationShareChoice?> open(
+    BuildContext context, {
+    LocationFix? start,
+    bool allowLive = true,
+  }) => Navigator.of(context, rootNavigator: true).push(
+    MaterialPageRoute<LocationShareChoice>(
+      fullscreenDialog: true,
+      builder: (_) => LocationPickerScreen(start: start, allowLive: allowLive),
+    ),
+  );
 
   @override
   State<LocationPickerScreen> createState() => _LocationPickerScreenState();
@@ -112,6 +124,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
   @override
   void dispose() {
+    _sheet.dispose();
     _native?.setMethodCallHandler(null);
     _ofmIdle?.cancel();
     _searchDebounce?.cancel();
@@ -206,10 +219,34 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     _moveTo(LatLng(fix.latitude, fix.longitude), spanMeters: 500);
   }
 
-  void _send(double lat, double lng) {
+  void _send(double lat, double lng) => _finish(
+    LocationShareChoice.place((latitude: lat, longitude: lng)),
+  );
+
+  void _finish(LocationShareChoice choice) {
     HapticFeedback.mediumImpact();
-    Navigator.of(context).pop(PickedPlace(lat, lng));
+    Navigator.of(context).pop(choice);
   }
+
+  /// The pin is still on you (within a few metres of where the map opened).
+  bool get _onMe {
+    final start = widget.start;
+    if (start == null) return false;
+    return const Distance().as(
+          LengthUnit.Meter,
+          LatLng(start.latitude, start.longitude),
+          _center,
+        ) <
+        25;
+  }
+
+  bool _liveOpen = false;
+
+  /// How far the panel sheet is pulled up, as a fraction of the screen; the
+  /// locate button rides on its top edge.
+  double _sheetExtent = _sheetRest;
+  static const double _sheetRest = 0.4;
+  final _sheet = DraggableScrollableController();
 
   // -------------------------------------------------------------- search
 
@@ -253,6 +290,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     final l10n = AppLocalizations.of(context);
     final searching = _searchFocus.hasFocus || _results != null;
     final padding = MediaQuery.paddingOf(context);
+    final height = MediaQuery.sizeOf(context).height;
+    final topBar = padding.top + (PlaceSearch.searchSupported ? 112 : 66);
     return Material(
       type: MaterialType.transparency,
       child: ColoredBox(
@@ -262,36 +301,51 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           children: [
             _map(theme),
             IgnorePointer(child: _Pin(lifted: _moving, theme: theme)),
+            if (!searching) ...[
+              // On the sheet's top edge, and gone once the sheet covers the
+              // map: there is nothing left to locate on.
+              if (_sheetExtent < 0.6)
+                Positioned(
+                  right: 14,
+                  bottom: _sheetExtent * height + 14,
+                  child: _roundButton(
+                    theme,
+                    CupertinoIcons.location_fill,
+                    l10n.locationPickerMyLocation,
+                    _goToMe,
+                  ),
+                ),
+              NotificationListener<DraggableScrollableNotification>(
+                onNotification: (n) {
+                  if ((n.extent - _sheetExtent).abs() > 0.004) {
+                    setState(() => _sheetExtent = n.extent);
+                  }
+                  return false;
+                },
+                child: DraggableScrollableSheet(
+                  controller: _sheet,
+                  initialChildSize: _sheetRest,
+                  minChildSize: 0.22,
+                  maxChildSize: 1 - (topBar + 8) / height,
+                  snap: true,
+                  snapSizes: const [_sheetRest],
+                  builder: (context, scroll) =>
+                      _panel(theme, l10n, padding, scroll),
+                ),
+              ),
+            ],
             Positioned(
               left: 0,
               right: 0,
               top: 0,
               child: _top(theme, l10n, padding),
             ),
-            if (!searching) ...[
-              Positioned(
-                right: 14,
-                bottom: _panelHeight(padding) + 14,
-                child: _roundButton(
-                  theme,
-                  CupertinoIcons.location_fill,
-                  l10n.locationPickerMyLocation,
-                  _goToMe,
-                ),
-              ),
+            if (searching)
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: _panelHeight(padding),
-                child: _panel(theme, l10n, padding),
-              ),
-            ] else
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                top: padding.top + 112,
+                top: topBar,
                 child: _resultsPanel(theme, l10n),
               ),
           ],
@@ -299,9 +353,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       ),
     );
   }
-
-  double _panelHeight(EdgeInsets padding) =>
-      (PlaceSearch.nearbySupported ? 300.0 : 112.0) + padding.bottom;
 
   Widget _top(AppTheme theme, AppLocalizations l10n, EdgeInsets padding) {
     return Container(
@@ -358,25 +409,70 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     );
   }
 
-  Widget _panel(AppTheme theme, AppLocalizations l10n, EdgeInsets padding) {
+  Widget _panel(
+    AppTheme theme,
+    AppLocalizations l10n,
+    EdgeInsets padding,
+    ScrollController scroll,
+  ) {
+    final accent = locationMapAccent(theme);
+    final start = widget.start;
+    final onMe = _onMe && !_moving;
     final address = _address;
-    final String detail;
-    if (_moving) {
-      detail = l10n.locationPickerMoving;
-    } else if (_pickedName != null) {
-      detail = [
-        _pickedName!,
-        if (address != null && address.title.isNotEmpty) address.title,
-      ].join(' · ');
-    } else if (address != null) {
-      detail = [
-        address.title,
-        address.subtitle,
-      ].where((s) => s.isNotEmpty).join(', ');
+    final street = address == null
+        ? null
+        : [address.title, address.subtitle]
+              .where((s) => s.isNotEmpty)
+              .join(', ');
+
+    // The first row: you, or the spot under the pin.
+    final Widget primary;
+    if (onMe) {
+      final acc = start!.accuracyM;
+      primary = _row(
+        theme,
+        leading: _disc(accent, CupertinoIcons.location_fill),
+        title: l10n.locationSheetSendCurrent,
+        titleColor: accent,
+        subtitle: [
+          if (acc != null) l10n.locationPickerAccurate(acc.round()),
+          ?street,
+        ].join(' · '),
+        onTap: () => _finish(const LocationShareChoice.now()),
+      );
     } else {
-      detail = formatCoordinates(_center.latitude, _center.longitude);
+      final String detail;
+      if (_moving) {
+        detail = l10n.locationPickerMoving;
+      } else if (_pickedName != null) {
+        detail = [
+          _pickedName!,
+          if (address != null && address.title.isNotEmpty) address.title,
+        ].join(' · ');
+      } else {
+        detail =
+            street ?? formatCoordinates(_center.latitude, _center.longitude);
+      }
+      primary = _row(
+        theme,
+        leading: _disc(accent, CupertinoIcons.paperplane_fill),
+        title: l10n.locationPickerSendThis,
+        titleColor: accent,
+        subtitle: detail,
+        onTap: _moving
+            ? null
+            : () => _send(_center.latitude, _center.longitude),
+      );
     }
-    return Container(
+
+    final live = widget.allowLive && start != null;
+    String durationLabel(LiveShareDuration d) => switch (d) {
+      LiveShareDuration.fifteenMinutes => l10n.locationShareFor15Minutes,
+      LiveShareDuration.oneHour => l10n.locationShareFor1Hour,
+      LiveShareDuration.eightHours => l10n.locationShareFor8Hours,
+    };
+
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: theme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -384,33 +480,60 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           BoxShadow(color: Color(0x33000000), blurRadius: 18),
         ],
       ),
-      padding: EdgeInsets.only(bottom: padding.bottom),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: ListView(
+        controller: scroll,
+        padding: EdgeInsets.only(bottom: padding.bottom + 12),
         children: [
-          const SizedBox(height: 12),
-          _row(
-            theme,
-            leading: Container(
-              width: 42,
-              height: 42,
+          // The grab handle: the sheet is meant to be pulled up.
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 8, bottom: 6),
+              width: 38,
+              height: 5,
               decoration: BoxDecoration(
-                color: locationMapAccent(theme),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                CupertinoIcons.paperplane_fill,
-                size: 19,
-                color: Colors.white,
+                color: theme.inkMuted.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
-            title: l10n.locationPickerSendThis,
-            titleColor: locationMapAccent(theme),
-            subtitle: detail,
-            onTap: _moving
-                ? null
-                : () => _send(_center.latitude, _center.longitude),
           ),
+          primary,
+          if (live) ...[
+            _row(
+              theme,
+              leading: _disc(
+                const Color(0xFF30B350),
+                CupertinoIcons.dot_radiowaves_left_right,
+              ),
+              title: l10n.locationPickerShareLive,
+              subtitle: l10n.locationSheetLiveDetail,
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _liveOpen = !_liveOpen);
+              },
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: !_liveOpen
+                  ? const SizedBox(width: double.infinity)
+                  : Padding(
+                      padding: const EdgeInsets.fromLTRB(70, 2, 16, 8),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final d in LiveShareDuration.values)
+                            _chip(
+                              theme,
+                              durationLabel(d),
+                              () => _finish(LocationShareChoice.live(d)),
+                            ),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
           if (PlaceSearch.nearbySupported) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
@@ -424,26 +547,58 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                 ),
               ),
             ),
-            Expanded(
-              child: _nearby.isEmpty
-                  ? const Center(child: CupertinoActivityIndicator())
-                  : ListView.builder(
-                      padding: EdgeInsets.zero,
-                      itemCount: _nearby.length,
-                      itemBuilder: (_, i) {
-                        final p = _nearby[i];
-                        return _row(
-                          theme,
-                          leading: _placeIcon(theme),
-                          title: p.title,
-                          subtitle: p.subtitle,
-                          onTap: () => _send(p.latitude, p.longitude),
-                        );
-                      },
-                    ),
-            ),
+            if (_nearby.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(18),
+                child: CupertinoActivityIndicator(),
+              )
+            else
+              for (final p in _nearby)
+                _row(
+                  theme,
+                  leading: _placeIcon(theme),
+                  title: p.title,
+                  subtitle: p.subtitle,
+                  onTap: () => _send(p.latitude, p.longitude),
+                ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _disc(Color color, IconData icon) => Container(
+    width: 42,
+    height: 42,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    child: Icon(icon, size: 19, color: Colors.white),
+  );
+
+  Widget _chip(AppTheme theme, String label, VoidCallback onTap) {
+    const green = Color(0xFF30B350);
+    return FocusableTap(
+      onTap: onTap,
+      shape: FocusRingShape.capsule,
+      semanticLabel: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: BoxDecoration(
+            color: green.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            label,
+            style: theme.body.copyWith(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w600,
+              color: green,
+              letterSpacing: 0,
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -10992,6 +10992,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get locationPickerMoving => '주소를 찾는 중…';
 
   @override
+  String get locationPickerShareLive => '실시간 위치 공유';
+
+  @override
+  String locationPickerAccurate(int meters) {
+    return '${meters}m 이내 정확도';
+  }
+
+  @override
   String get interactionAnswersSearch => '사람 또는 답변 검색';
 
   @override

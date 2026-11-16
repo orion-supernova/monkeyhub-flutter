@@ -3507,36 +3507,16 @@ class _RoomScreenState extends State<_RoomView>
     }
   }
 
-  /// Puts the keyboard away and waits for it to finish sliding down (up to
-  /// half a second), so whatever is measured next sees the room at full
-  /// height. True if a keyboard was up.
-  Future<bool> _lowerKeyboardForMenu() async {
-    final view = View.of(context);
-    if (view.viewInsets.bottom <= 0) return false;
-    FocusManager.instance.primaryFocus?.unfocus();
-    final until = DateTime.now().add(const Duration(milliseconds: 500));
-    while (mounted &&
-        view.viewInsets.bottom > 0 &&
-        DateTime.now().isBefore(until)) {
-      await WidgetsBinding.instance.endOfFrame;
-      await Future<void>.delayed(const Duration(milliseconds: 16));
-    }
-    // One more frame so the composer has been laid out at its resting spot.
-    await WidgetsBinding.instance.endOfFrame;
-    return true;
-  }
-
   Future<void> _onAttach() async {
     if (!await _claimMediaEntry(locationCounts: true)) return;
     try {
       if (!mounted) return; // the `finally` still clears the in-flight flag
       // The menu grows out of the "+" and is as tall as the room above it.
       // With the keyboard up the "+" rides on top of it, which left the menu
-      // half the height it needs and its bottom rows cut off. So the keyboard
-      // goes down first and the menu opens once the "+" is back at the bottom;
+      // half the height it needs. So the keyboard goes away as the menu opens,
+      // and the menu follows the "+" down with it (see showAttachmentMenu);
       // cancelling brings the keyboard back, so typing carries on untouched.
-      final hadKeyboard = await _lowerKeyboardForMenu();
-      if (!mounted) return;
+      final hadKeyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
       final family = FamilyService.maybeInstance;
       final button = _attachKey.currentContext?.findRenderObject();
       final anchor = button is RenderBox && button.hasSize
@@ -3545,7 +3525,7 @@ class _RoomScreenState extends State<_RoomView>
       setState(() => _attachMenuUp = true);
       // Resolves on the pop, as the menu starts folding back, so the "+"
       // grows back in while the menu shrinks into it.
-      final choice = await showAttachmentMenu(
+      final pending = showAttachmentMenu(
         context,
         anchor: anchor,
         allowMedia: family?.canSendMedia ?? true,
@@ -3560,6 +3540,9 @@ class _RoomScreenState extends State<_RoomView>
         // What this room takes at all. See `room_posting_policy.dart`.
         posting: _posting,
       );
+      // After the menu has measured the "+" with the keyboard still up.
+      if (hadKeyboard) FocusManager.instance.primaryFocus?.unfocus();
+      final choice = await pending;
       if (mounted) setState(() => _attachMenuUp = false);
       if (choice == null && hadKeyboard && mounted) {
         _composerFocus.requestFocus();
@@ -3845,54 +3828,53 @@ class _RoomScreenState extends State<_RoomView>
 
   // ───────────────────────── location ─────────────────────────
 
-  /// Picks a mode, clears the permission hurdles, gets a fix, and sends.
+  /// Opens the location map, then sends what was chosen there: where you are
+  /// (from a fresh fix), a chosen place, or a live share.
   ///
-  /// The order matters and is the opposite of the obvious one: the sheet opens
-  /// BEFORE any permission is requested. Asking for location the moment the
-  /// attachment menu is tapped would put a system dialog in front of somebody
-  /// who has not yet said they want to share anything — and on iOS that dialog
-  /// can only be shown once, so spending it on a tap the user might abandon is
-  /// spending it badly.
-  /// "Choose a place": the picker opens on your position when location is
-  /// allowed (asked here, since you chose to share a place), or on a wide map
-  /// when it is not; a place can be sent either way. One fix, no accuracy: a
-  /// chosen spot is exact by definition.
-  Future<void> _sendPickedPlace() async {
-    final allowed = await _ensureLocationPermission();
-    if (!mounted) return;
-    final start = allowed ? await LocationService.instance.lastKnownFix() : null;
-    if (!mounted) return;
-    final picked = await LocationPickerScreen.open(context, start: start);
-    if (picked == null || !mounted) return;
-    final replyTarget = _replyingTo;
-    if (replyTarget != null) setState(() => _replyingTo = null);
-    widget.repo.exitHistoryWindow(widget.roomId);
-    await widget.repo.sendLocation(
-      roomId: widget.roomId,
-      fix: LocationFix(
-        latitude: picked.latitude,
-        longitude: picked.longitude,
-        timestamp: DateTime.now(),
-      ),
-      replyToId: replyTarget?.id,
-    );
-    _scrollToBottom();
-  }
-
+  /// Permission is asked when Location is tapped in the attachment menu: that
+  /// tap is already the decision to share a location, and the map needs your
+  /// position to open on you. Never earlier (not when the "+" menu opens), and
+  /// declining still opens the map for sending a chosen place.
   Future<void> _shareLocation() async {
     // Live sharing is hidden in a Chamber of Secrets room — see the sheet's
     // header. The room's own message lifetime already governs how long anything
     // written there survives, and a share whose duration the room would silently
     // override is worse than one that was never offered.
-    final choice = await showLocationShareSheet(
+    // One map for all of it: the pin starts on you (send it, or go live), or
+    // move it, search, or tap a nearby place. Choosing Location is the intent
+    // to share, so this is where permission is asked; declining still opens
+    // the map, to send a chosen place.
+    final allowed = await _ensureLocationPermission();
+    if (!mounted) return;
+    final start = allowed ? await LocationService.instance.lastKnownFix() : null;
+    if (!mounted) return;
+    final choice = await LocationPickerScreen.open(
       context,
+      start: start,
       allowLive: (_room ?? widget.repo.roomById(widget.roomId))
               ?.messageLifetime ==
           null,
     );
     if (choice == null || !mounted) return;
 
-    if (choice.choosePlace) return _sendPickedPlace();
+    final place = choice.place;
+    if (place != null) {
+      final replyTarget = _replyingTo;
+      if (replyTarget != null) setState(() => _replyingTo = null);
+      widget.repo.exitHistoryWindow(widget.roomId);
+      // A chosen spot is exact by definition: no accuracy is claimed.
+      await widget.repo.sendLocation(
+        roomId: widget.roomId,
+        fix: LocationFix(
+          latitude: place.latitude,
+          longitude: place.longitude,
+          timestamp: DateTime.now(),
+        ),
+        replyToId: replyTarget?.id,
+      );
+      _scrollToBottom();
+      return;
+    }
 
     if (!await _ensureLocationPermission()) return;
     if (!mounted) return;

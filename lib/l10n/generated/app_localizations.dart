@@ -19285,6 +19285,18 @@ abstract class AppLocalizations {
   /// **'Finding the address…'**
   String get locationPickerMoving;
 
+  /// Row in the location picker that starts a live location share (durations open under it).
+  ///
+  /// In en, this message translates to:
+  /// **'Share live location'**
+  String get locationPickerShareLive;
+
+  /// How precise your current position is, under "Send current location".
+  ///
+  /// In en, this message translates to:
+  /// **'Accurate to {meters} m'**
+  String locationPickerAccurate(int meters);
+
   /// Placeholder in the search field of a poll/RSVP answers sheet: search by person or by answer.
   ///
   /// In en, this message translates to:

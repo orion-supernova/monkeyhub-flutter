@@ -118,10 +118,15 @@ Future<AttachmentMenuChoice?> showAttachmentMenu(
   RoomPostingPolicy posting = RoomPostingPolicy.open,
 }) {
   final calm = MotionScope.of(context).calm;
+  // The keyboard's height as the menu opens. The caller puts the keyboard
+  // away at the same moment; the menu then rides down with the "+" as the
+  // keyboard slides off, instead of waiting for it (which read as a lag).
+  final insetAtOpen = MediaQuery.viewInsetsOf(context).bottom;
   // The root navigator: [anchor] is in window coordinates, and on a desktop
   // the room sits in a nested pane navigator whose overlay is not the window.
   return Navigator.of(context, rootNavigator: true).push(_AttachMenuRoute(
     anchor: anchor,
+    insetAtOpen: insetAtOpen,
     calm: calm,
     barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
     child: _AttachmentSheet(
@@ -140,6 +145,7 @@ class _AttachMenuRoute extends PopupRoute<AttachmentMenuChoice> {
   _AttachMenuRoute({
     required this.anchor,
     required this.calm,
+    this.insetAtOpen = 0,
     required this.barrierLabel,
     required this.child,
   });
@@ -147,6 +153,10 @@ class _AttachMenuRoute extends PopupRoute<AttachmentMenuChoice> {
   final Rect? anchor;
   final bool calm;
   final Widget child;
+
+  /// See [showAttachmentMenu]: the "+" sat this much higher when [anchor]
+  /// was measured, on top of a keyboard that is now going away.
+  final double insetAtOpen;
 
   @override
   final String barrierLabel;
@@ -180,7 +190,14 @@ class _AttachMenuRoute extends PopupRoute<AttachmentMenuChoice> {
       Animation<double> secondaryAnimation) {
     final media = MediaQuery.of(context);
     final size = media.size;
-    final a = anchor ??
+    // Follows the "+" down as the keyboard leaves: shifted by however much
+    // of the keyboard has gone since the anchor was measured. This rebuilds
+    // with the keyboard's every frame, so the panel and its height track it.
+    final dropped = (insetAtOpen - media.viewInsets.bottom).clamp(
+      0.0,
+      insetAtOpen,
+    );
+    final a = anchor?.shift(Offset(0, dropped)) ??
         Rect.fromLTWH(16, size.height - media.padding.bottom - 56, 40, 40);
     final width = (size.width - 24).clamp(0.0, _maxWidth);
     // Out of the side the button is on: its leading edge in a left-hand

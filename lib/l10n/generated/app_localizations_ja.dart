@@ -10968,6 +10968,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get locationPickerMoving => '住所を検索中…';
 
   @override
+  String get locationPickerShareLive => 'ライブ位置情報を共有';
+
+  @override
+  String locationPickerAccurate(int meters) {
+    return '誤差 $meters m';
+  }
+
+  @override
   String get interactionAnswersSearch => '名前や回答を検索';
 
   @override

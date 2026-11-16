@@ -3188,6 +3188,8 @@
   "locationPickerNoResults": "Nenhum lugar encontrado",
   "locationPickerMyLocation": "Ir para minha localização",
   "locationPickerMoving": "Buscando o endereço…",
+  "locationPickerShareLive": "Compartilhar localização em tempo real",
+  "locationPickerAccurate": "Precisão de {meters} m",
   "interactionAnswersSearch": "Buscar pessoas ou respostas",
   "interactionFilterEmpty": "Nenhuma resposta corresponde a este filtro.",
   "interactionRetry": "Tentar novamente",

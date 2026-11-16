@@ -3188,6 +3188,8 @@
   "locationPickerNoResults": "未找到地点",
   "locationPickerMyLocation": "前往我的位置",
   "locationPickerMoving": "正在查找地址…",
+  "locationPickerShareLive": "共享实时位置",
+  "locationPickerAccurate": "精确到 {meters} 米",
   "interactionAnswersSearch": "搜索用户或回答",
   "interactionFilterEmpty": "没有符合此筛选条件的回答。",
   "interactionRetry": "重试",

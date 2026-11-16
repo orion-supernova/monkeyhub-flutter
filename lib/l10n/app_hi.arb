@@ -3188,6 +3188,8 @@
   "locationPickerNoResults": "कोई जगह नहीं मिली",
   "locationPickerMyLocation": "मेरी लोकेशन पर जाएँ",
   "locationPickerMoving": "पता ढूँढा जा रहा है…",
+  "locationPickerShareLive": "लाइव लोकेशन शेयर करें",
+  "locationPickerAccurate": "{meters} मी. तक सटीक",
   "interactionAnswersSearch": "लोग या जवाब खोजें",
   "interactionFilterEmpty": "इस फ़िल्टर से कोई जवाब मेल नहीं खाता।",
   "interactionRetry": "फिर कोशिश करें",

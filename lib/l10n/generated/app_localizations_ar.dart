@@ -11619,6 +11619,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get locationPickerMoving => 'جارٍ العثور على العنوان…';
 
   @override
+  String get locationPickerShareLive => 'مشاركة الموقع المباشر';
+
+  @override
+  String locationPickerAccurate(int meters) {
+    return 'بدقة $meters م';
+  }
+
+  @override
   String get interactionAnswersSearch => 'البحث عن أشخاص أو إجابات';
 
   @override

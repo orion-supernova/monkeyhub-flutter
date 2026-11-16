@@ -3188,6 +3188,8 @@
   "locationPickerNoResults": "Inga platser hittades",
   "locationPickerMyLocation": "Gå till min plats",
   "locationPickerMoving": "Hämtar adressen…",
+  "locationPickerShareLive": "Dela live-plats",
+  "locationPickerAccurate": "Exakt inom {meters} m",
   "interactionAnswersSearch": "Sök personer eller svar",
   "interactionFilterEmpty": "Inga svar matchar det här filtret.",
   "interactionRetry": "Försök igen",

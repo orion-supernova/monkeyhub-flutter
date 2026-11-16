@@ -11557,6 +11557,14 @@ class AppLocalizationsPt extends AppLocalizations {
   String get locationPickerMoving => 'A procurar a morada…';
 
   @override
+  String get locationPickerShareLive => 'Partilhar localização em tempo real';
+
+  @override
+  String locationPickerAccurate(int meters) {
+    return 'Precisão de $meters m';
+  }
+
+  @override
   String get interactionAnswersSearch => 'Pesquisar pessoas ou respostas';
 
   @override
@@ -28149,6 +28157,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get locationPickerMoving => 'Buscando o endereço…';
+
+  @override
+  String get locationPickerShareLive =>
+      'Compartilhar localização em tempo real';
+
+  @override
+  String locationPickerAccurate(int meters) {
+    return 'Precisão de $meters m';
+  }
 
   @override
   String get interactionAnswersSearch => 'Buscar pessoas ou respostas';

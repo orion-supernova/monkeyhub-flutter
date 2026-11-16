@@ -3188,6 +3188,8 @@
   "locationPickerNoResults": "場所が見つかりません",
   "locationPickerMyLocation": "現在地へ移動",
   "locationPickerMoving": "住所を検索中…",
+  "locationPickerShareLive": "ライブ位置情報を共有",
+  "locationPickerAccurate": "誤差 {meters} m",
   "interactionAnswersSearch": "名前や回答を検索",
   "interactionFilterEmpty": "このフィルターに一致する回答はありません。",
   "interactionRetry": "再試行",

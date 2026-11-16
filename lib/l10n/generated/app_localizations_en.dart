@@ -11446,6 +11446,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locationPickerMoving => 'Finding the address…';
 
   @override
+  String get locationPickerShareLive => 'Share live location';
+
+  @override
+  String locationPickerAccurate(int meters) {
+    return 'Accurate to $meters m';
+  }
+
+  @override
   String get interactionAnswersSearch => 'Search people or answers';
 
   @override

@@ -13400,6 +13400,10 @@
   "@locationPickerMyLocation": {"description": "Button that moves the picker map back to your own position."},
   "locationPickerMoving": "Finding the address…",
   "@locationPickerMoving": {"description": "Shown under \"Send this location\" while the map is still moving and the address is not known yet."},
+  "locationPickerShareLive": "Share live location",
+  "@locationPickerShareLive": {"description": "Row in the location picker that starts a live location share (durations open under it)."},
+  "locationPickerAccurate": "Accurate to {meters} m",
+  "@locationPickerAccurate": {"description": "How precise your current position is, under \"Send current location\".", "placeholders": {"meters": {"type": "int"}}},
   "interactionAnswersSearch": "Search people or answers",
   "@interactionAnswersSearch": {
     "description": "Placeholder in the search field of a poll/RSVP answers sheet: search by person or by answer."

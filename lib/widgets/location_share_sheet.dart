@@ -3,11 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../models/location_share.dart';
-import '../services/location_service.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
-import 'location_address.dart';
-import 'location_map_preview.dart';
 import 'ios_kit.dart' show GroupedRow, TileTone;
 import 'sheet_kit.dart';
 import '../l10n/text_case.dart';
@@ -18,16 +15,19 @@ import '../l10n/text_case.dart';
 /// duration, so "live with no duration" is not a value that can be constructed
 /// — which is the shape of the bug this feature must not have.
 class LocationShareChoice {
-  const LocationShareChoice.now() : duration = null, choosePlace = false;
+  /// Where you are, sent once (a fresh fix is taken for it).
+  const LocationShareChoice.now() : duration = null, place = null;
   const LocationShareChoice.live(LiveShareDuration this.duration)
-    : choosePlace = false;
+    : place = null;
 
-  /// Pick any spot on a map (or by search) and send that, once.
-  const LocationShareChoice.choose() : duration = null, choosePlace = true;
+  /// A spot chosen on the map or by search, sent once as it is.
+  const LocationShareChoice.place(
+    ({double latitude, double longitude}) this.place,
+  ) : duration = null;
 
   /// Null means one fix, sent once.
   final LiveShareDuration? duration;
-  final bool choosePlace;
+  final ({double latitude, double longitude})? place;
 
   bool get isLive => duration != null;
 }
@@ -87,7 +87,6 @@ class _LocationSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _CurrentSpot(),
           SheetRise(
             child: SheetGroup(
               children: [
@@ -98,13 +97,6 @@ class _LocationSheet extends StatelessWidget {
                   subtitle: l10n.locationSheetSendCurrentDetail,
                   chevron: false,
                   onTap: () => pick(const LocationShareChoice.now()),
-                ),
-                GroupedRow(
-                  icon: CupertinoIcons.map_pin_ellipse,
-                  tone: TileTone.orange,
-                  title: l10n.locationSheetChoosePlace,
-                  subtitle: l10n.locationSheetChoosePlaceDetail,
-                  onTap: () => pick(const LocationShareChoice.choose()),
                 ),
               ],
             ),
@@ -133,110 +125,6 @@ class _LocationSheet extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// Where "Send your current location" would put you, on a small map with the
-/// street under it, so you see what you are about to send.
-///
-/// Only when location is already allowed: this sheet opens before any
-/// permission is asked (see `_shareLocation` in the room), and a preview must
-/// not be the thing that asks. Uses the last known position, which costs no
-/// GPS fix; the send itself still takes a fresh one.
-class _CurrentSpot extends StatefulWidget {
-  const _CurrentSpot();
-
-  @override
-  State<_CurrentSpot> createState() => _CurrentSpotState();
-}
-
-class _CurrentSpotState extends State<_CurrentSpot> {
-  LocationFix? _fix;
-  ({String title, String subtitle})? _address;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final service = LocationService.instance;
-    try {
-      if (await service.check() != LocationAvailability.ready) return;
-      final fix = await service.lastKnownFix();
-      if (!mounted || fix == null) return;
-      setState(() {
-        _fix = fix;
-        _address = LocationAddress.peek(fix.latitude, fix.longitude);
-      });
-      final r = await LocationAddress.lookup(fix.latitude, fix.longitude);
-      if (mounted && r != null) setState(() => _address = r);
-    } catch (_) {}
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final fix = _fix;
-    if (fix == null) return const SizedBox.shrink();
-    final theme = ThemeScope.of(context);
-    final address = _address;
-    final line = address == null
-        ? formatCoordinates(fix.latitude, fix.longitude)
-        : [address.title, address.subtitle]
-              .where((s) => s.isNotEmpty)
-              .join(', ');
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: SizedBox(
-          height: 128,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              LocationMapPreview(
-                theme: theme,
-                latitude: fix.latitude,
-                longitude: fix.longitude,
-                accuracyM: fix.accuracyM,
-                bare: true,
-              ),
-              const Positioned.fill(
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        stops: [0.45, 1],
-                        colors: [Color(0x00000000), Color(0xB3000000)],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 12,
-                right: 12,
-                bottom: 9,
-                child: Text(
-                  line,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.body.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFFFFFFFF),
-                    letterSpacing: 0,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

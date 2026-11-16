@@ -11398,6 +11398,14 @@ class AppLocalizationsTr extends AppLocalizations {
   String get locationPickerMoving => 'Adres bulunuyor…';
 
   @override
+  String get locationPickerShareLive => 'Canlı konum paylaş';
+
+  @override
+  String locationPickerAccurate(int meters) {
+    return '$meters m hassasiyetle';
+  }
+
+  @override
   String get interactionAnswersSearch => 'Kişi veya yanıt ara';
 
   @override

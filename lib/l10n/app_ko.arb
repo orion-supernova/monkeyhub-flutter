@@ -3188,6 +3188,8 @@
   "locationPickerNoResults": "장소를 찾을 수 없음",
   "locationPickerMyLocation": "내 위치로 이동",
   "locationPickerMoving": "주소를 찾는 중…",
+  "locationPickerShareLive": "실시간 위치 공유",
+  "locationPickerAccurate": "{meters}m 이내 정확도",
   "interactionAnswersSearch": "사람 또는 답변 검색",
   "interactionFilterEmpty": "이 필터에 맞는 답변이 없습니다.",
   "interactionRetry": "다시 시도",

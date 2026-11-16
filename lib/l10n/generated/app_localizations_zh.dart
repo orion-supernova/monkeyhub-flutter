@@ -10859,6 +10859,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get locationPickerMoving => '正在查找地址…';
 
   @override
+  String get locationPickerShareLive => '共享实时位置';
+
+  @override
+  String locationPickerAccurate(int meters) {
+    return '精确到 $meters 米';
+  }
+
+  @override
   String get interactionAnswersSearch => '搜索用户或回答';
 
   @override

@@ -3188,6 +3188,8 @@
   "locationPickerNoResults": "لم يتم العثور على أماكن",
   "locationPickerMyLocation": "انتقل إلى موقعي",
   "locationPickerMoving": "جارٍ العثور على العنوان…",
+  "locationPickerShareLive": "مشاركة الموقع المباشر",
+  "locationPickerAccurate": "بدقة {meters} م",
   "interactionAnswersSearch": "البحث عن أشخاص أو إجابات",
   "interactionFilterEmpty": "لا توجد إجابات تطابق هذا الفلتر.",
   "interactionRetry": "المحاولة مجددًا",

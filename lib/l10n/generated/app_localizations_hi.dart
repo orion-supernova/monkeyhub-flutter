@@ -11434,6 +11434,14 @@ class AppLocalizationsHi extends AppLocalizations {
   String get locationPickerMoving => 'पता ढूँढा जा रहा है…';
 
   @override
+  String get locationPickerShareLive => 'लाइव लोकेशन शेयर करें';
+
+  @override
+  String locationPickerAccurate(int meters) {
+    return '$meters मी. तक सटीक';
+  }
+
+  @override
   String get interactionAnswersSearch => 'लोग या जवाब खोजें';
 
   @override

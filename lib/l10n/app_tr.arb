@@ -3188,6 +3188,8 @@
   "locationPickerNoResults": "Yer bulunamadı",
   "locationPickerMyLocation": "Konumuma git",
   "locationPickerMoving": "Adres bulunuyor…",
+  "locationPickerShareLive": "Canlı konum paylaş",
+  "locationPickerAccurate": "{meters} m hassasiyetle",
   "interactionAnswersSearch": "Kişi veya yanıt ara",
   "interactionFilterEmpty": "Bu filtreye uygun yanıt yok.",
   "interactionRetry": "Tekrar dene",
