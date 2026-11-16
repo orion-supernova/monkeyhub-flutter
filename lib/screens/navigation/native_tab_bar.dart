@@ -1,3 +1,5 @@
+import 'dart:convert' show jsonEncode;
+
 import 'package:flutter/foundation.dart' show listEquals, visibleForTesting;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -9,6 +11,7 @@ import '../../theme/theme_scope.dart';
 import '../../ui/foundation/caps.dart';
 import '../../ui/foundation/ui_kit.dart';
 import 'destinations.dart';
+import 'tab_menus.dart' show TabMenuItem;
 
 /// The bridge to `ios/Runner/NativeChrome.swift`.
 abstract final class NativeChrome {
@@ -97,11 +100,18 @@ class NativeTabBar extends StatefulWidget {
     required this.active,
     required this.onSelect,
     required this.badges,
+    this.menus = const [],
+    this.onMenu,
   });
 
   final HomeSection active;
   final ValueChanged<HomeSection> onSelect;
   final Map<HomeSection, int> badges;
+
+  /// Each tab's long-press menu, in [navOrder]; an empty list is no menu.
+  /// iOS draws it as a native `UIMenu` and reports the picked item's id.
+  final List<List<TabMenuItem>> menus;
+  final ValueChanged<String>? onMenu;
 
   @override
   State<NativeTabBar> createState() => _NativeTabBarState();
@@ -144,6 +154,10 @@ class _NativeTabBarState extends State<NativeTabBar> {
       final i = call.arguments as int;
       if (i >= 0 && i < navOrder.length) state.widget.onSelect(navOrder[i]);
     }
+    if (call.method == 'menu' && state != null && state.mounted) {
+      final id = call.arguments;
+      if (id is String) state.widget.onMenu?.call(id);
+    }
     return null;
   }
 
@@ -175,10 +189,14 @@ class _NativeTabBarState extends State<NativeTabBar> {
 
   void _sync() {
     final l10n = AppLocalizations.of(context);
-    final locale = Localizations.localeOf(context).toLanguageTag();
+    // Labels and the set of tabs are all configure carries, so only a
+    // language change or a tab coming or going (Calls, hidden from its own
+    // long-press menu) rebuilds the bar. Selection and badges follow in the
+    // update.
+    final locale =
+        '${Localizations.localeOf(context).toLanguageTag()}|'
+        '${navOrder.map((s) => s.name).join(',')}';
     if (locale != _lastLocale) {
-      // Labels are the only thing configure carries, so only a language
-      // change rebuilds the bar. Selection and badges follow in the update.
       _lastLocale = locale;
       _lastUpdate = null;
       _call('configure', {
@@ -199,6 +217,11 @@ class _NativeTabBarState extends State<NativeTabBar> {
       'badges': [for (final s in navOrder) widget.badges[s] ?? 0],
       'tint': theme.accent.toARGB32(),
       'dark': !theme.isLight,
+      // Encoded once, so "did the menus change" is one string compare on a
+      // shell that rebuilds for every repository notification.
+      'menus': jsonEncode([
+        for (final m in widget.menus) [for (final i in m) i.toNative()],
+      ]),
     };
     if (!_sameUpdate(update, _lastUpdate)) {
       _lastUpdate = update;
@@ -218,6 +241,7 @@ class _NativeTabBarState extends State<NativeTabBar> {
     return a['selected'] == b['selected'] &&
         a['tint'] == b['tint'] &&
         a['dark'] == b['dark'] &&
+        a['menus'] == b['menus'] &&
         listEquals(a['badges'] as List, b['badges'] as List);
   }
 

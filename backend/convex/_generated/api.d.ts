@@ -15,6 +15,7 @@ import type * as auth from "../auth.js";
 import type * as badges from "../badges.js";
 import type * as bookmarks from "../bookmarks.js";
 import type * as callFavorites from "../callFavorites.js";
+import type * as chatFolders from "../chatFolders.js";
 import type * as callHistory from "../callHistory.js";
 import type * as callLog from "../callLog.js";
 import type * as calls from "../calls.js";
@@ -181,6 +182,7 @@ declare const fullApi: ApiFromModules<{
   badges: typeof badges;
   bookmarks: typeof bookmarks;
   callFavorites: typeof callFavorites;
+  chatFolders: typeof chatFolders;
   callHistory: typeof callHistory;
   callLog: typeof callLog;
   calls: typeof calls;

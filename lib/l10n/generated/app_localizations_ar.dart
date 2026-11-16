@@ -16896,4 +16896,239 @@ class AppLocalizationsAr extends AppLocalizations {
   String streakSaveBody(int count) {
     return 'لم تلعب أمس. العب اليوم وموزتان تحافظان على سلسلتك لمدة $count يومًا.';
   }
+
+  @override
+  String get chatFolderTabAll => 'الكل';
+
+  @override
+  String get chatFolderAllChats => 'كل المحادثات';
+
+  @override
+  String get chatFolderEditFolders => 'تعديل المجلدات';
+
+  @override
+  String get chatFolderAddFolder => 'إضافة مجلد';
+
+  @override
+  String get chatFolderEdit => 'تعديل المجلد';
+
+  @override
+  String get chatFolderNew => 'مجلد جديد';
+
+  @override
+  String get chatFolderDelete => 'حذف المجلد';
+
+  @override
+  String chatFolderDeleteTitle(String name) {
+    return 'حذف \"$name\"؟';
+  }
+
+  @override
+  String get chatFolderDeleteBody =>
+      'تبقى محادثاتك في مكانها. يُحذف المجلد فقط.';
+
+  @override
+  String get chatFoldersTitle => 'مجلدات الدردشة';
+
+  @override
+  String get chatFoldersIntro =>
+      'رتّب محادثاتك في مجلدات وتنقّل بينها عبر التبويبات فوق قائمة المحادثات.';
+
+  @override
+  String get chatFoldersMine => 'مجلداتي';
+
+  @override
+  String get chatFoldersCreate => 'إنشاء مجلد';
+
+  @override
+  String chatFoldersUsed(int count, int max) {
+    return 'تم استخدام $count من $max مجلدات';
+  }
+
+  @override
+  String chatFoldersCapReached(int max) {
+    return 'لديك $max مجلدات، وهو الحد الأقصى. احذف مجلدًا لإنشاء آخر.';
+  }
+
+  @override
+  String get chatFoldersReorderHint =>
+      'اسحب لإعادة الترتيب. تتم مزامنة المجلدات على كل أجهزتك.';
+
+  @override
+  String get chatFoldersRecommended => 'مقترحة';
+
+  @override
+  String get chatFoldersAddSuggested => 'إضافة';
+
+  @override
+  String get chatFolderSuggestUnread => 'غير مقروء';
+
+  @override
+  String get chatFolderSuggestUnreadSub => 'الرسائل الجديدة من كل محادثاتك';
+
+  @override
+  String get chatFolderSuggestPersonal => 'شخصي';
+
+  @override
+  String get chatFolderSuggestPersonalSub => 'الرسائل المباشرة فقط';
+
+  @override
+  String get chatFolderSuggestGroups => 'جماعات';
+
+  @override
+  String get chatFolderSuggestGroupsSub => 'محادثات الجماعات فقط';
+
+  @override
+  String get chatFoldersShowTags => 'إظهار وسوم المجلدات';
+
+  @override
+  String get chatFoldersShowTagsSub =>
+      'أسماء المجلدات على المحادثات في كل المحادثات';
+
+  @override
+  String chatFolderChatCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count محادثة',
+      many: '$count محادثة',
+      few: '$count محادثات',
+      two: 'محادثتان',
+      one: 'محادثة واحدة',
+      zero: 'لا محادثات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFolderNameHeader => 'اسم المجلد';
+
+  @override
+  String get chatFolderNamePlaceholder => 'اسم المجلد';
+
+  @override
+  String get chatFolderIcon => 'الأيقونة';
+
+  @override
+  String get chatFolderIconNone => 'بدون';
+
+  @override
+  String get chatFolderIncluded => 'المحادثات المضمّنة';
+
+  @override
+  String get chatFolderIncludedFooter =>
+      'اختر محادثات أو أنواع محادثات لعرضها في هذا المجلد.';
+
+  @override
+  String get chatFolderAddChats => 'إضافة محادثات';
+
+  @override
+  String get chatFolderExcluded => 'المحادثات المستثناة';
+
+  @override
+  String get chatFolderExcludedFooter =>
+      'اختر محادثات أو أنواع محادثات لا تظهر في هذا المجلد أبدًا.';
+
+  @override
+  String get chatFolderExcludeChats => 'استثناء محادثات';
+
+  @override
+  String get chatFolderTypeDms => 'فردي';
+
+  @override
+  String get chatFolderTypeGroups => 'جماعات';
+
+  @override
+  String get chatFolderTypeMuted => 'المكتومة';
+
+  @override
+  String get chatFolderTypeRead => 'المقروءة';
+
+  @override
+  String get chatFolderTypeArchived => 'المؤرشفة';
+
+  @override
+  String chatFolderShowMore(int count) {
+    return 'عرض $count أخرى';
+  }
+
+  @override
+  String get chatFolderTagHeader => 'لون وسم المجلد';
+
+  @override
+  String get chatFolderTagFooter =>
+      'يعرض الوسم اسم هذا المجلد على محادثاته في كل المحادثات.';
+
+  @override
+  String get chatFolderTagNone => 'بدون وسم';
+
+  @override
+  String get chatFolderSave => 'حفظ';
+
+  @override
+  String get chatFolderCancel => 'إلغاء';
+
+  @override
+  String get chatFolderNeedsChats =>
+      'أضف محادثة واحدة على الأقل أو نوع محادثات.';
+
+  @override
+  String get chatFolderSaveFailed => 'تعذّر حفظ المجلد. حاول مرة أخرى.';
+
+  @override
+  String chatFolderRoomsCap(int max) {
+    return 'يمكن للمجلد أن يضم حتى $max محادثة تختارها بنفسك.';
+  }
+
+  @override
+  String get chatFolderPickIncludeTitle => 'تضمين محادثات';
+
+  @override
+  String get chatFolderPickExcludeTitle => 'استثناء محادثات';
+
+  @override
+  String get chatFolderPickTypes => 'أنواع المحادثات';
+
+  @override
+  String get chatFolderPickChats => 'المحادثات';
+
+  @override
+  String get chatFolderPickSearch => 'بحث في المحادثات';
+
+  @override
+  String chatFolderPickCount(int count, int max) {
+    return 'تم اختيار $count من $max محادثة';
+  }
+
+  @override
+  String get chatFolderPickDone => 'تم';
+
+  @override
+  String get chatRowActionMenuAddToFolder => 'إضافة إلى مجلد';
+
+  @override
+  String get chatRowActionMenuRemoveFromFolder => 'إزالة من المجلد';
+
+  @override
+  String chatFolderAddedToast(String name) {
+    return 'تمت الإضافة إلى $name';
+  }
+
+  @override
+  String chatFolderRemovedToast(String name) {
+    return 'تمت الإزالة من $name';
+  }
+
+  @override
+  String get chatFolderEmptyTitle => 'لا محادثات هنا بعد';
+
+  @override
+  String get chatFolderEmptyBody => 'ستظهر هنا المحادثات المطابقة لهذا المجلد.';
+
+  @override
+  String get tabMenuHideCalls => 'إخفاء تبويب المكالمات';
+
+  @override
+  String get tabMenuCallsHiddenToast =>
+      'تم إخفاء تبويب المكالمات. يمكنك إعادته من الإعدادات > التنقل.';
 }

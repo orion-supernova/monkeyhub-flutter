@@ -15,6 +15,7 @@ copy a rule into a second doc; link to its owner instead.
 
 | Doc | Owns |
 |---|---|
+| `design/chat-folders.md` | Chat folders (tabs over the chat list, editor, tags, limits), the Chats/Calls tab long-press menus, cost table. |
 | `design/calls.md` | Call bubbles, Calls tab (rows, merged rows, details sheet), call stats, favourites. |
 | `design/chat-chrome-language.md` | Chat chrome motion and look. |
 | `design/swipe-up-fork.html` | Swipe-up fork (huddle, vanish, room sheet, dock). |

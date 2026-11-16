@@ -2768,6 +2768,28 @@ export default defineSchema({
   // One row per person per call, written once when the call ends (the Calls
   // tab and its stats). Append-only apart from the owner's own quality report,
   // so subscribing to it stays cheap, unlike `calls` which heartbeats.
+  // Chat folders (docs/design/chat-folders.md): the user's own named views
+  // of the chat list. One row per folder, at most 10 per user, written only
+  // when the user edits a folder. Synced so a folder made on the phone is on
+  // the Mac. Room ids are soft: a room the user left is skipped on read and
+  // pruned on the next save.
+  chatFolders: defineTable({
+    userId: v.id("users"),
+    order: v.number(),
+    name: v.string(),
+    emoji: v.optional(v.string()),
+    // Index into the app's tag palette; unset means no tag on chat rows.
+    color: v.optional(v.number()),
+    dms: v.boolean(),
+    groups: v.boolean(),
+    excludeMuted: v.boolean(),
+    excludeRead: v.boolean(),
+    excludeArchived: v.boolean(),
+    include: v.array(v.id("rooms")),
+    exclude: v.array(v.id("rooms")),
+    updatedAt: v.number(),
+  }).index("by_user_order", ["userId", "order"]),
+
   // The Calls tab's favourites: people the user pinned THEMSELVES (the app
   // only ever suggests). Synced so a favourite set on the phone is there on
   // the Mac. Tiny: one row per pinned person, written only on add/remove.

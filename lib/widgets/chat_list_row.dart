@@ -52,7 +52,12 @@ class ChatListRow extends StatefulWidget {
     this.typists = const [],
     this.showDivider = true,
     this.liveLocation,
+    this.footer,
   });
+
+  /// A line under the preview: the chat's folder tags in All Chats. Null
+  /// draws nothing and keeps the row its usual height.
+  final Widget? footer;
 
   /// Who is sharing live location here right now (see [ChatListPreview]).
   final String? liveLocation;
@@ -171,6 +176,10 @@ class _ChatListRowState extends State<ChatListRow>
                             ),
                           ],
                         ),
+                        if (widget.footer != null) ...[
+                          const SizedBox(height: 4),
+                          widget.footer!,
+                        ],
                       ],
                     ),
                   ),

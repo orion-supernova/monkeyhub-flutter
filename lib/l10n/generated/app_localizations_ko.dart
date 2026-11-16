@@ -15954,4 +15954,227 @@ class AppLocalizationsKo extends AppLocalizations {
   String streakSaveBody(int count) {
     return '어제 플레이하지 않았어요. 오늘 플레이하면 바나나 2개로 $count일 연속 기록이 이어져요.';
   }
+
+  @override
+  String get chatFolderTabAll => '전체';
+
+  @override
+  String get chatFolderAllChats => '모든 채팅';
+
+  @override
+  String get chatFolderEditFolders => '폴더 편집';
+
+  @override
+  String get chatFolderAddFolder => '폴더 추가';
+
+  @override
+  String get chatFolderEdit => '폴더 편집';
+
+  @override
+  String get chatFolderNew => '새 폴더';
+
+  @override
+  String get chatFolderDelete => '폴더 삭제';
+
+  @override
+  String chatFolderDeleteTitle(String name) {
+    return '\"$name\" 폴더를 삭제할까요?';
+  }
+
+  @override
+  String get chatFolderDeleteBody => '채팅은 그대로 남아요. 폴더만 사라져요.';
+
+  @override
+  String get chatFoldersTitle => '채팅 폴더';
+
+  @override
+  String get chatFoldersIntro => '채팅을 폴더로 정리하고 채팅 목록 위의 탭으로 전환해 보세요.';
+
+  @override
+  String get chatFoldersMine => '내 폴더';
+
+  @override
+  String get chatFoldersCreate => '폴더 만들기';
+
+  @override
+  String chatFoldersUsed(int count, int max) {
+    return '폴더 $max개 중 $count개 사용 중';
+  }
+
+  @override
+  String chatFoldersCapReached(int max) {
+    return '폴더가 $max개로 최대예요. 새로 만들려면 하나를 삭제하세요.';
+  }
+
+  @override
+  String get chatFoldersReorderHint => '드래그해서 순서를 바꾸세요. 폴더는 모든 기기에 동기화돼요.';
+
+  @override
+  String get chatFoldersRecommended => '추천';
+
+  @override
+  String get chatFoldersAddSuggested => '추가';
+
+  @override
+  String get chatFolderSuggestUnread => '읽지 않음';
+
+  @override
+  String get chatFolderSuggestUnreadSub => '모든 채팅의 새 메시지';
+
+  @override
+  String get chatFolderSuggestPersonal => '개인';
+
+  @override
+  String get chatFolderSuggestPersonalSub => '1:1 채팅만';
+
+  @override
+  String get chatFolderSuggestGroups => '그룹';
+
+  @override
+  String get chatFolderSuggestGroupsSub => '그룹 채팅만';
+
+  @override
+  String get chatFoldersShowTags => '폴더 태그 표시';
+
+  @override
+  String get chatFoldersShowTagsSub => '모든 채팅에서 채팅에 폴더 이름 표시';
+
+  @override
+  String chatFolderChatCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '채팅 $count개',
+      one: '채팅 1개',
+      zero: '채팅 없음',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFolderNameHeader => '폴더 이름';
+
+  @override
+  String get chatFolderNamePlaceholder => '폴더 이름';
+
+  @override
+  String get chatFolderIcon => '아이콘';
+
+  @override
+  String get chatFolderIconNone => '없음';
+
+  @override
+  String get chatFolderIncluded => '포함할 채팅';
+
+  @override
+  String get chatFolderIncludedFooter => '이 폴더에 표시할 채팅이나 채팅 종류를 선택하세요.';
+
+  @override
+  String get chatFolderAddChats => '채팅 추가';
+
+  @override
+  String get chatFolderExcluded => '제외할 채팅';
+
+  @override
+  String get chatFolderExcludedFooter => '이 폴더에 표시하지 않을 채팅이나 채팅 종류를 선택하세요.';
+
+  @override
+  String get chatFolderExcludeChats => '채팅 제외';
+
+  @override
+  String get chatFolderTypeDms => '1:1 채팅';
+
+  @override
+  String get chatFolderTypeGroups => '그룹';
+
+  @override
+  String get chatFolderTypeMuted => '음소거';
+
+  @override
+  String get chatFolderTypeRead => '읽음';
+
+  @override
+  String get chatFolderTypeArchived => '보관됨';
+
+  @override
+  String chatFolderShowMore(int count) {
+    return '$count개 더 보기';
+  }
+
+  @override
+  String get chatFolderTagHeader => '폴더 태그 색상';
+
+  @override
+  String get chatFolderTagFooter => '태그는 모든 채팅에서 해당 폴더의 채팅에 폴더 이름을 보여줘요.';
+
+  @override
+  String get chatFolderTagNone => '태그 없음';
+
+  @override
+  String get chatFolderSave => '저장';
+
+  @override
+  String get chatFolderCancel => '취소';
+
+  @override
+  String get chatFolderNeedsChats => '채팅이나 채팅 종류를 하나 이상 추가하세요.';
+
+  @override
+  String get chatFolderSaveFailed => '폴더를 저장하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String chatFolderRoomsCap(int max) {
+    return '폴더에는 직접 고른 채팅을 최대 $max개까지 담을 수 있어요.';
+  }
+
+  @override
+  String get chatFolderPickIncludeTitle => '채팅 포함';
+
+  @override
+  String get chatFolderPickExcludeTitle => '채팅 제외';
+
+  @override
+  String get chatFolderPickTypes => '채팅 종류';
+
+  @override
+  String get chatFolderPickChats => '채팅';
+
+  @override
+  String get chatFolderPickSearch => '채팅 검색';
+
+  @override
+  String chatFolderPickCount(int count, int max) {
+    return '채팅 $max개 중 $count개 선택됨';
+  }
+
+  @override
+  String get chatFolderPickDone => '완료';
+
+  @override
+  String get chatRowActionMenuAddToFolder => '폴더에 추가';
+
+  @override
+  String get chatRowActionMenuRemoveFromFolder => '폴더에서 제거';
+
+  @override
+  String chatFolderAddedToast(String name) {
+    return '$name에 추가했어요';
+  }
+
+  @override
+  String chatFolderRemovedToast(String name) {
+    return '$name에서 제거했어요';
+  }
+
+  @override
+  String get chatFolderEmptyTitle => '아직 채팅이 없어요';
+
+  @override
+  String get chatFolderEmptyBody => '이 폴더에 맞는 채팅이 여기에 표시돼요.';
+
+  @override
+  String get tabMenuHideCalls => '통화 탭 숨기기';
+
+  @override
+  String get tabMenuCallsHiddenToast => '통화 탭을 숨겼어요. 설정 > 내비게이션에서 다시 켤 수 있어요.';
 }

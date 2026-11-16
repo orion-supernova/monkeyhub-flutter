@@ -595,6 +595,7 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
 <tr><td>Vendored <code>liquid_glass_widgets</code></td><td>1.17.0 dropped nothing but also had no per-tab pill widths: the patch had to be re-applied by diffing pristine 1.16.1 against our copy (one import and three constructor hunks did not apply cleanly)</td><td><span class="pill ok">fixed</span></td></tr>
 <tr><td>Vendored <code>liquid_glass_widgets</code></td><td>1.17.0 &rarr; 1.17.4 (2026-11-16): <code>patch</code> reported every hunk as applied, and two were wrong. Upstream had added <code>textCapitalization</code> itself (duplicate parameter), and four identical <code>JellyClipper(</code> hunks landed two-on-one. A clean <code>patch</code> run proves nothing on repeated context; <code>flutter analyze</code> the package after every upgrade</td><td><span class="pill ok">fixed</span></td></tr>
 <tr><td>liquid_glass.dart</td><td>Kit read outside the settings listener left a mounted button on the old recipe (caught by test while building phase 1)</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td><code>hero_dock.dart</code> (profile, room info)</td><td>Scrolling a profile made the avatar and name look broken: from about 80 to 140pt of scroll the still-large circle sat on top of the name, because both pieces slid sideways on the same slow clock as their vertical travel and the circle's bottom reached the name's top line before they had separated horizontally. Found by rendering frames every 20pt of scroll</td><td><span class="pill ok">fixed 2026-11-16: sideways travel runs on its own clock (half the dock distance, ease out) for both pieces, and the name keeps its left edge while it shrinks, so they are side by side before they meet vertically. Pose maths lives in one place (<code>avatarPose</code>)</span></td></tr>
 <tr><td><code>sheet_kit.dart</code> action sheet (Tell friends confirm)</td><td>The confirm's only answer, "Send it", looked disabled: a plain row in the recessed grey group, under a raised, shadowed Cancel capsule, so Cancel read as the live button. A plain row is right in a menu of choices, wrong for a one-answer confirm</td><td><span class="pill ok">fixed 2026-11-16: <code>IosSheetAction.prominent</code> draws the answer as the destructive pill's recipe in the accent (own pill, accent label); <code>confirmTellFriends</code> uses it. Preview: <code>dialog_sheets_preview.dart --plain-name tell</code></span></td></tr>
 </table></div>
 
@@ -632,6 +633,11 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
 <!-- ======================================================================= -->
 <h2 id="decisions">11. Decisions log</h2>
 <ul>
+  <li><strong>2026-11-16</strong> Tab long-press menus (Chats: folders, Calls: hide) are one data list
+  (<code>tab_menus.dart</code>) drawn twice: a <code>UIContextMenuInteraction</code> on the native UITabBar (real iOS menu,
+  nil for tabs without one so the system's hold-to-drag still works) and <code>showPullDownMenu</code> on the Flutter bars.
+  The pill bar opens it on a still 480ms hold; any travel first keeps the drag-to-switch. The radial orb gets none: it is
+  itself a hold-and-drag gesture. Folder tabs sit in the chat list's scroll view under the search reveal, not pinned.</li>
   <li><strong>2026-11-16</strong> Bottom areas are never solid. Sign-in flow pages (login, recovery phrase, social
   username, child pair, child setup) scroll under the home indicator, and the theme onboarding button floats
   (<code>FloatingFloor</code>: a painted dim that stops short of opaque, no blur, no <code>ShaderMask</code>). The login
@@ -682,6 +688,11 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
   <code>ChatRepository._attach</code>: the subscriptions run the same queries, the seed doubled their boot reads, and on a
   weak signal every subscription waited up to 15 s behind it. Offline with no cache now keeps the (8 s bounded) skeleton
   instead of claiming "no chats". Same reasoning as <code>openRoom</code> subscribing directly to <code>messages:list</code>.</li>
+  <li><strong>2026-11-16</strong> Profile pull-to-expand (Telegram): <code>HeroPage.expandedPhoto</code> opts in. Pulling
+  down 72pt latches the avatar open into a full-width photo (spring, light haptic); it stays open on release and folds back
+  as soon as the page scrolls up. The picture is laid out once at a fixed square and only scaled and clipped (no per-frame
+  decode, no blur), painted under the bar; the name and handle ride over it in white with a plain gradient scrim. Off for
+  people without a photo and for rooms; the tap opens the existing fullscreen viewer.</li>
 </ul>
 
 <footer>Maintained alongside the code. Update §5, §8 and §9 in the same commit as the change they describe.</footer>

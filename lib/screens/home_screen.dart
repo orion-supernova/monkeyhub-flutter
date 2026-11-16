@@ -18,6 +18,8 @@ import '../drop/drop_item.dart';
 import '../drop/drop_zone.dart';
 import '../widgets/pending_placeholder.dart';
 import '../widgets/skeleton_rows.dart';
+import '../data/chat_folder_store.dart';
+import '../data/chat_folders.dart';
 import '../data/room_filter.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
@@ -35,7 +37,12 @@ import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/ios_kit.dart' show CollapsedTitleFade;
 import '../widgets/sunlit_surface.dart' show SunlitBackdrop;
+import '../widgets/app_toast.dart';
 import '../widgets/archived_folder_row.dart';
+import '../widgets/destructive_sheet.dart' show showConfirmSheet;
+import '../widgets/chat_folder_tabs.dart';
+import '../widgets/pull_down_menu.dart';
+import 'chat_folders_screen.dart';
 import '../widgets/chat_list_parts.dart' show chatListTitleOf;
 import 'archived_chats_screen.dart';
 import '../widgets/chat_list_row.dart';
@@ -54,7 +61,6 @@ import '../widgets/user_avatar.dart';
 import 'navigation/destinations.dart';
 import 'navigation/open_room.dart';
 import 'navigation/tab_reselect.dart';
-import '../widgets/app_toast.dart';
 import '../widgets/new_chat_menu.dart';
 import 'create_room_sheet.dart';
 import 'discover_screen.dart';
@@ -207,6 +213,7 @@ class _HomeScreenState extends State<HomeScreen>
     // subscription to stay correct is the kind of coupling that breaks quietly;
     // two setState calls in one frame coalesce into a single rebuild.
     SettingsStore.instance.addListener(_onChange);
+    ChatFolderStore.instance.addListener(_onChange);
     // `_me` is fetched once and drives the header avatar, with the session as
     // its stand-in until then. A handle change rewrites the session and would
     // otherwise leave both here showing the old one until this screen is
@@ -230,6 +237,7 @@ class _HomeScreenState extends State<HomeScreen>
     widget.repo.removeListener(_onChange);
     widget.family.removeListener(_onChange);
     SettingsStore.instance.removeListener(_onChange);
+    ChatFolderStore.instance.removeListener(_onChange);
     widget.auth.removeListener(_onAuth);
     UiSelectionStore.instance.removeListener(_openPendingRequests);
     _scroll.dispose();
@@ -587,6 +595,47 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  /// A long-press choice on a folder tab.
+  Future<void> _onFolderTabAction(
+    ChatFolder? folder,
+    FolderTabAction action,
+  ) async {
+    switch (action) {
+      case FolderTabAction.editAll:
+        await openChatFolders(context, repo: widget.repo, api: widget.api);
+      case FolderTabAction.edit:
+        if (folder == null) return;
+        await openChatFolderEditor(
+          context,
+          repo: widget.repo,
+          api: widget.api,
+          folder: folder,
+        );
+      case FolderTabAction.delete:
+        if (folder == null) return;
+        final l10n = AppLocalizations.of(context);
+        final ok = await showConfirmSheet(
+          context,
+          headline: l10n.chatFolderDeleteTitle(folder.name),
+          body: l10n.chatFolderDeleteBody,
+          confirmLabel: l10n.chatFolderDelete,
+          icon: CupertinoIcons.folder_badge_minus,
+        );
+        if (!ok) return;
+        try {
+          await ChatFolderStore.instance.remove(folder.id);
+        } catch (_) {
+          if (mounted) {
+            showAppToast(
+              context,
+              l10n.chatFolderSaveFailed,
+              tone: ToastTone.danger,
+            );
+          }
+        }
+    }
+  }
+
   void _showJoinByCode() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -682,7 +731,15 @@ class _HomeScreenState extends State<HomeScreen>
     // typing keystroke in any room, so the cue and the list must not each go
     // and filter it themselves. Archived rooms never enter this pipeline —
     // they're reachable only through the Archived Chats page.
-    final allRooms = widget.repo.activeRooms;
+    //
+    // A folder swaps the base set: its own rule decides archived rooms
+    // (chatFolders.excludeArchived), so it reads every room, not just the
+    // active ones.
+    final folderStore = ChatFolderStore.instance;
+    final folder = folderStore.active;
+    final allRooms = folder == null
+        ? widget.repo.activeRooms
+        : folder.apply(widget.repo.rooms);
     final searching = _searchQuery.trim().isNotEmpty;
     final matched = searching
         ? allRooms.where((r) => _matchesSearch(r, _searchQuery)).toList()
@@ -804,7 +861,17 @@ class _HomeScreenState extends State<HomeScreen>
                           onOpenArchived: openArchived,
                           onCollapse: _collapsePullPanel,
                         ),
-                        AnimatedSize(
+                        if (folderStore.folders.isNotEmpty) ...[
+                          ChatFolderTabs(
+                            folders: folderStore.folders,
+                            activeId: folder?.id,
+                            rooms: widget.repo.rooms,
+                            onSelect: SettingsStore.instance.setActiveFolder,
+                            onAction: _onFolderTabAction,
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                        if (folder == null) AnimatedSize(
                           duration: theme.motionMed,
                           curve: Curves.easeOutCubic,
                           alignment: Alignment.topCenter,
@@ -820,7 +887,7 @@ class _HomeScreenState extends State<HomeScreen>
                         // the tab badge and nothing else. While any has
                         // something unread the folder stays here, counting
                         // rooms and naming who is waiting.
-                        AnimatedSize(
+                        if (folder == null) AnimatedSize(
                           duration: theme.motionMed,
                           curve: Curves.easeOutCubic,
                           alignment: Alignment.topCenter,
@@ -917,6 +984,7 @@ class _HomeScreenState extends State<HomeScreen>
                             repo: widget.repo,
                             api: widget.api,
                             filter: filter,
+                            folder: folder,
                             allRooms: allRooms,
                             rooms: visibleRooms,
                             searchQuery: _searchQuery,
@@ -1140,6 +1208,7 @@ class _RoomsPanel extends StatefulWidget {
     required this.repo,
     required this.api,
     required this.filter,
+    required this.folder,
     required this.allRooms,
     required this.rooms,
     required this.searchQuery,
@@ -1148,6 +1217,9 @@ class _RoomsPanel extends StatefulWidget {
   final ChatRepository repo;
   final ChatApi api;
   final RoomFilter filter;
+
+  /// The folder on screen, or null for All Chats.
+  final ChatFolder? folder;
 
   /// Every room, unfiltered — only used to tell "you have no rooms" apart from
   /// "your filter hid them all", and to size the escape hatch.
@@ -1199,9 +1271,18 @@ class _RoomsPanelState extends State<_RoomsPanel> {
       isArchived: room.isArchived,
       isMuted: room.isMuted,
       canMute: widget.repo.capabilitiesFor(room).canMute,
+      canAddToFolder: true,
+      inFolder: widget.folder?.matches(room) ?? false,
     );
     if (!mounted) return;
     switch (action) {
+      case ChatRowAction.addToFolder:
+        await _addToFolder(room);
+        break;
+      case ChatRowAction.removeFromFolder:
+        final folder = widget.folder;
+        if (folder != null) await _setInFolder(folder, room, add: false);
+        break;
       case ChatRowAction.pin:
         await widget.repo.pinRoom(room.id);
         break;
@@ -1232,6 +1313,94 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     }
   }
 
+  /// "Add to Folder": every folder with a check where the chat already is,
+  /// tap to put it in or take it out, and "New Folder" with the chat in it.
+  Future<void> _addToFolder(ChatRoom room) async {
+    final l10n = AppLocalizations.of(context);
+    final store = ChatFolderStore.instance;
+    final folders = store.folders;
+    const newFolder = '\u0000new';
+    final picked = await showPullDownMenu<String>(
+      context: context,
+      anchorKey: _keyFor(room.id),
+      items: [
+        for (final f in folders)
+          if (f.id.isNotEmpty)
+            PullDownItem(
+              value: f.id,
+              label: [f.emoji, f.name].whereType<String>().join(' '),
+              checked: f.matches(room),
+            ),
+        if (!store.atCap)
+          PullDownItem(
+            value: newFolder,
+            label: l10n.chatFolderNew,
+            icon: CupertinoIcons.folder_badge_plus,
+            startsGroup: folders.isNotEmpty,
+          ),
+      ],
+    );
+    if (picked == null || !mounted) return;
+    if (picked == newFolder) {
+      await openChatFolderEditor(
+        context,
+        repo: widget.repo,
+        api: widget.api,
+        seed: ChatFolder(id: '', name: '', include: [room.id]),
+      );
+      return;
+    }
+    final folder = store.byId(picked);
+    if (folder == null) return;
+    await _setInFolder(folder, room, add: !folder.matches(room));
+  }
+
+  Future<void> _setInFolder(
+    ChatFolder folder,
+    ChatRoom room, {
+    required bool add,
+  }) async {
+    final l10n = AppLocalizations.of(context);
+    HapticFeedback.lightImpact();
+    try {
+      await ChatFolderStore.instance.toggleRoom(folder, room, add: add);
+      if (!mounted) return;
+      showAppToast(
+        context,
+        add
+            ? l10n.chatFolderAddedToast(folder.name)
+            : l10n.chatFolderRemovedToast(folder.name),
+        tone: ToastTone.success,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showAppToast(
+        context,
+        '$e'.contains('TOO_MANY_FOLDER_ROOMS')
+            ? l10n.chatFolderRoomsCap(kMaxFolderRooms)
+            : l10n.chatFolderSaveFailed,
+        tone: ToastTone.danger,
+      );
+    }
+  }
+
+  /// The folder tags under a row in All Chats, or null for none.
+  Widget? _tagsFor(ChatRoom room) {
+    if (widget.folder != null || !SettingsStore.instance.showFolderTags) {
+      return null;
+    }
+    final tags = folderTagsFor(room, ChatFolderStore.instance.folders);
+    if (tags.isEmpty) return null;
+    return Wrap(
+      spacing: 4,
+      runSpacing: 3,
+      children: [
+        for (final t in tags.take(3))
+          FolderTagChip(name: t.name, color: t.color),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -1245,6 +1414,27 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     // `roomsLoaded` is for. All three are the same empty list, and telling
     // someone with a hundred rooms that they have none for as long as their
     // network takes was the whole of the bug.
+    final folder = widget.folder;
+    if (folder != null && allRooms.isEmpty) {
+      final l10n = AppLocalizations.of(context);
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+        child: EmptyState(
+          icon: CupertinoIcons.folder,
+          title: l10n.chatFolderEmptyTitle,
+          message: l10n.chatFolderEmptyBody,
+          actionLabel: l10n.chatFolderEdit,
+          onAction: () => openChatFolderEditor(
+            context,
+            repo: widget.repo,
+            api: widget.api,
+            folder: folder,
+          ),
+          compact: true,
+        ),
+      );
+    }
+
     if (allRooms.isEmpty) {
       return PendingPlaceholder(
         pending: !widget.repo.roomsLoaded,
@@ -1479,6 +1669,7 @@ class _RoomsPanelState extends State<_RoomsPanel> {
                   dmUser: repo.otherUserFor(room),
                   typists: repo.typingIn(room.id),
                   liveLocation: _liveLocationLine(context, room),
+                  footer: _tagsFor(room),
                   showDivider: showDivider,
                   onTap: () =>
                       openRoom(context, roomId: room.id, repo: repo, api: api),

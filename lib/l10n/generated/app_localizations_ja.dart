@@ -15921,4 +15921,227 @@ class AppLocalizationsJa extends AppLocalizations {
   String streakSaveBody(int count) {
     return '昨日はプレイしませんでした。今日プレイすれば、バナナ2本で$count日の連続記録が続きます。';
   }
+
+  @override
+  String get chatFolderTabAll => 'すべて';
+
+  @override
+  String get chatFolderAllChats => 'すべてのチャット';
+
+  @override
+  String get chatFolderEditFolders => 'フォルダを編集';
+
+  @override
+  String get chatFolderAddFolder => 'フォルダを追加';
+
+  @override
+  String get chatFolderEdit => 'フォルダを編集';
+
+  @override
+  String get chatFolderNew => '新規フォルダ';
+
+  @override
+  String get chatFolderDelete => 'フォルダを削除';
+
+  @override
+  String chatFolderDeleteTitle(String name) {
+    return '「$name」を削除しますか？';
+  }
+
+  @override
+  String get chatFolderDeleteBody => 'チャットはそのまま残ります。消えるのはフォルダだけです。';
+
+  @override
+  String get chatFoldersTitle => 'チャットフォルダ';
+
+  @override
+  String get chatFoldersIntro => 'チャットをフォルダに整理して、チャットリストの上のタブで切り替えましょう。';
+
+  @override
+  String get chatFoldersMine => 'マイフォルダ';
+
+  @override
+  String get chatFoldersCreate => 'フォルダを作成';
+
+  @override
+  String chatFoldersUsed(int count, int max) {
+    return '$max個中$count個のフォルダを使用中';
+  }
+
+  @override
+  String chatFoldersCapReached(int max) {
+    return 'フォルダは$max個で上限です。新しく作るには1つ削除してください。';
+  }
+
+  @override
+  String get chatFoldersReorderHint => 'ドラッグして並べ替え。フォルダはすべてのデバイスで同期されます。';
+
+  @override
+  String get chatFoldersRecommended => 'おすすめ';
+
+  @override
+  String get chatFoldersAddSuggested => '追加';
+
+  @override
+  String get chatFolderSuggestUnread => '未読';
+
+  @override
+  String get chatFolderSuggestUnreadSub => 'すべてのチャットの新着メッセージ';
+
+  @override
+  String get chatFolderSuggestPersonal => '個人';
+
+  @override
+  String get chatFolderSuggestPersonalSub => 'ダイレクトメッセージのみ';
+
+  @override
+  String get chatFolderSuggestGroups => 'グループ';
+
+  @override
+  String get chatFolderSuggestGroupsSub => 'グループチャットのみ';
+
+  @override
+  String get chatFoldersShowTags => 'フォルダタグを表示';
+
+  @override
+  String get chatFoldersShowTagsSub => '「すべてのチャット」のチャットにフォルダ名を表示';
+
+  @override
+  String chatFolderChatCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のチャット',
+      one: '1件のチャット',
+      zero: 'チャットなし',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFolderNameHeader => 'フォルダ名';
+
+  @override
+  String get chatFolderNamePlaceholder => 'フォルダ名';
+
+  @override
+  String get chatFolderIcon => 'アイコン';
+
+  @override
+  String get chatFolderIconNone => 'なし';
+
+  @override
+  String get chatFolderIncluded => '含めるチャット';
+
+  @override
+  String get chatFolderIncludedFooter => 'このフォルダに表示するチャットやチャットの種類を選びます。';
+
+  @override
+  String get chatFolderAddChats => 'チャットを追加';
+
+  @override
+  String get chatFolderExcluded => '除外するチャット';
+
+  @override
+  String get chatFolderExcludedFooter => 'このフォルダに表示しないチャットやチャットの種類を選びます。';
+
+  @override
+  String get chatFolderExcludeChats => 'チャットを除外';
+
+  @override
+  String get chatFolderTypeDms => 'ダイレクトメッセージ';
+
+  @override
+  String get chatFolderTypeGroups => 'グループ';
+
+  @override
+  String get chatFolderTypeMuted => 'ミュート';
+
+  @override
+  String get chatFolderTypeRead => '既読';
+
+  @override
+  String get chatFolderTypeArchived => 'アーカイブ済み';
+
+  @override
+  String chatFolderShowMore(int count) {
+    return 'さらに$count件を表示';
+  }
+
+  @override
+  String get chatFolderTagHeader => 'フォルダタグの色';
+
+  @override
+  String get chatFolderTagFooter => 'タグは「すべてのチャット」で、そのフォルダのチャットにフォルダ名を表示します。';
+
+  @override
+  String get chatFolderTagNone => 'タグなし';
+
+  @override
+  String get chatFolderSave => '保存';
+
+  @override
+  String get chatFolderCancel => 'キャンセル';
+
+  @override
+  String get chatFolderNeedsChats => 'チャットまたはチャットの種類を1つ以上追加してください。';
+
+  @override
+  String get chatFolderSaveFailed => 'フォルダを保存できませんでした。もう一度お試しください。';
+
+  @override
+  String chatFolderRoomsCap(int max) {
+    return '手動で選べるチャットは1フォルダにつき最大$max件です。';
+  }
+
+  @override
+  String get chatFolderPickIncludeTitle => 'チャットを含める';
+
+  @override
+  String get chatFolderPickExcludeTitle => 'チャットを除外';
+
+  @override
+  String get chatFolderPickTypes => 'チャットの種類';
+
+  @override
+  String get chatFolderPickChats => 'チャット';
+
+  @override
+  String get chatFolderPickSearch => 'チャットを検索';
+
+  @override
+  String chatFolderPickCount(int count, int max) {
+    return '$max件中$count件のチャットを選択中';
+  }
+
+  @override
+  String get chatFolderPickDone => '完了';
+
+  @override
+  String get chatRowActionMenuAddToFolder => 'フォルダに追加';
+
+  @override
+  String get chatRowActionMenuRemoveFromFolder => 'フォルダから削除';
+
+  @override
+  String chatFolderAddedToast(String name) {
+    return '$nameに追加しました';
+  }
+
+  @override
+  String chatFolderRemovedToast(String name) {
+    return '$nameから削除しました';
+  }
+
+  @override
+  String get chatFolderEmptyTitle => 'まだチャットがありません';
+
+  @override
+  String get chatFolderEmptyBody => 'このフォルダに一致するチャットがここに表示されます。';
+
+  @override
+  String get tabMenuHideCalls => '通話タブを非表示';
+
+  @override
+  String get tabMenuCallsHiddenToast => '通話タブを非表示にしました。設定 > ナビゲーションで元に戻せます。';
 }

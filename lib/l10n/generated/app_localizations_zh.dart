@@ -15780,4 +15780,227 @@ class AppLocalizationsZh extends AppLocalizations {
   String streakSaveBody(int count) {
     return '你昨天没玩。今天玩一局，用 2 根香蕉让你的 $count 天连胜继续。';
   }
+
+  @override
+  String get chatFolderTabAll => '全部';
+
+  @override
+  String get chatFolderAllChats => '所有聊天';
+
+  @override
+  String get chatFolderEditFolders => '编辑文件夹';
+
+  @override
+  String get chatFolderAddFolder => '添加文件夹';
+
+  @override
+  String get chatFolderEdit => '编辑文件夹';
+
+  @override
+  String get chatFolderNew => '新建文件夹';
+
+  @override
+  String get chatFolderDelete => '删除文件夹';
+
+  @override
+  String chatFolderDeleteTitle(String name) {
+    return '删除“$name”？';
+  }
+
+  @override
+  String get chatFolderDeleteBody => '你的聊天会保留在原处，只会删除文件夹。';
+
+  @override
+  String get chatFoldersTitle => '聊天文件夹';
+
+  @override
+  String get chatFoldersIntro => '把聊天整理进文件夹，用聊天列表上方的标签页来回切换。';
+
+  @override
+  String get chatFoldersMine => '我的文件夹';
+
+  @override
+  String get chatFoldersCreate => '创建文件夹';
+
+  @override
+  String chatFoldersUsed(int count, int max) {
+    return '已使用 $count/$max 个文件夹';
+  }
+
+  @override
+  String chatFoldersCapReached(int max) {
+    return '你已有 $max 个文件夹，已达上限。删除一个才能再创建。';
+  }
+
+  @override
+  String get chatFoldersReorderHint => '拖动可重新排序。文件夹会同步到你的所有设备。';
+
+  @override
+  String get chatFoldersRecommended => '推荐';
+
+  @override
+  String get chatFoldersAddSuggested => '添加';
+
+  @override
+  String get chatFolderSuggestUnread => '未读';
+
+  @override
+  String get chatFolderSuggestUnreadSub => '来自所有聊天的新消息';
+
+  @override
+  String get chatFolderSuggestPersonal => '个人';
+
+  @override
+  String get chatFolderSuggestPersonalSub => '仅私聊';
+
+  @override
+  String get chatFolderSuggestGroups => '群组';
+
+  @override
+  String get chatFolderSuggestGroupsSub => '仅群聊';
+
+  @override
+  String get chatFoldersShowTags => '显示文件夹标签';
+
+  @override
+  String get chatFoldersShowTagsSub => '在“所有聊天”的聊天上显示文件夹名称';
+
+  @override
+  String chatFolderChatCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个聊天',
+      one: '1 个聊天',
+      zero: '没有聊天',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFolderNameHeader => '文件夹名称';
+
+  @override
+  String get chatFolderNamePlaceholder => '文件夹名称';
+
+  @override
+  String get chatFolderIcon => '图标';
+
+  @override
+  String get chatFolderIconNone => '无';
+
+  @override
+  String get chatFolderIncluded => '包含的聊天';
+
+  @override
+  String get chatFolderIncludedFooter => '选择要在此文件夹中显示的聊天或聊天类型。';
+
+  @override
+  String get chatFolderAddChats => '添加聊天';
+
+  @override
+  String get chatFolderExcluded => '排除的聊天';
+
+  @override
+  String get chatFolderExcludedFooter => '选择永远不在此文件夹中显示的聊天或聊天类型。';
+
+  @override
+  String get chatFolderExcludeChats => '排除聊天';
+
+  @override
+  String get chatFolderTypeDms => '私聊';
+
+  @override
+  String get chatFolderTypeGroups => '群聊';
+
+  @override
+  String get chatFolderTypeMuted => '已静音';
+
+  @override
+  String get chatFolderTypeRead => '已读';
+
+  @override
+  String get chatFolderTypeArchived => '已归档';
+
+  @override
+  String chatFolderShowMore(int count) {
+    return '再显示 $count 个';
+  }
+
+  @override
+  String get chatFolderTagHeader => '文件夹标签颜色';
+
+  @override
+  String get chatFolderTagFooter => '标签会在“所有聊天”中的相应聊天上显示此文件夹的名称。';
+
+  @override
+  String get chatFolderTagNone => '无标签';
+
+  @override
+  String get chatFolderSave => '保存';
+
+  @override
+  String get chatFolderCancel => '取消';
+
+  @override
+  String get chatFolderNeedsChats => '请至少添加一个聊天或聊天类型。';
+
+  @override
+  String get chatFolderSaveFailed => '无法保存文件夹，请重试。';
+
+  @override
+  String chatFolderRoomsCap(int max) {
+    return '一个文件夹最多可手动选择 $max 个聊天。';
+  }
+
+  @override
+  String get chatFolderPickIncludeTitle => '包含聊天';
+
+  @override
+  String get chatFolderPickExcludeTitle => '排除聊天';
+
+  @override
+  String get chatFolderPickTypes => '聊天类型';
+
+  @override
+  String get chatFolderPickChats => '聊天';
+
+  @override
+  String get chatFolderPickSearch => '搜索聊天';
+
+  @override
+  String chatFolderPickCount(int count, int max) {
+    return '已选择 $count/$max 个聊天';
+  }
+
+  @override
+  String get chatFolderPickDone => '完成';
+
+  @override
+  String get chatRowActionMenuAddToFolder => '添加到文件夹';
+
+  @override
+  String get chatRowActionMenuRemoveFromFolder => '从文件夹移除';
+
+  @override
+  String chatFolderAddedToast(String name) {
+    return '已添加到 $name';
+  }
+
+  @override
+  String chatFolderRemovedToast(String name) {
+    return '已从 $name 移除';
+  }
+
+  @override
+  String get chatFolderEmptyTitle => '这里还没有聊天';
+
+  @override
+  String get chatFolderEmptyBody => '符合此文件夹条件的聊天会显示在这里。';
+
+  @override
+  String get tabMenuHideCalls => '隐藏通话标签页';
+
+  @override
+  String get tabMenuCallsHiddenToast => '通话标签页已隐藏。可在 设置 > 导航 中恢复。';
 }

@@ -16801,4 +16801,237 @@ class AppLocalizationsEs extends AppLocalizations {
   String streakSaveBody(int count) {
     return 'Ayer no jugaste. Juega hoy y con 2 plátanos tu racha de $count días sigue viva.';
   }
+
+  @override
+  String get chatFolderTabAll => 'Todos';
+
+  @override
+  String get chatFolderAllChats => 'Todos los chats';
+
+  @override
+  String get chatFolderEditFolders => 'Editar carpetas';
+
+  @override
+  String get chatFolderAddFolder => 'Agregar carpeta';
+
+  @override
+  String get chatFolderEdit => 'Editar carpeta';
+
+  @override
+  String get chatFolderNew => 'Nueva carpeta';
+
+  @override
+  String get chatFolderDelete => 'Eliminar carpeta';
+
+  @override
+  String chatFolderDeleteTitle(String name) {
+    return '¿Eliminar \"$name\"?';
+  }
+
+  @override
+  String get chatFolderDeleteBody =>
+      'Tus chats se quedan donde están. Solo se va la carpeta.';
+
+  @override
+  String get chatFoldersTitle => 'Carpetas de chat';
+
+  @override
+  String get chatFoldersIntro =>
+      'Organiza tus chats en carpetas y cambia entre ellas con las pestañas sobre tu lista de chats.';
+
+  @override
+  String get chatFoldersMine => 'Mis carpetas';
+
+  @override
+  String get chatFoldersCreate => 'Crear una carpeta';
+
+  @override
+  String chatFoldersUsed(int count, int max) {
+    return '$count de $max carpetas usadas';
+  }
+
+  @override
+  String chatFoldersCapReached(int max) {
+    return 'Tienes $max carpetas, el máximo posible. Elimina una para crear otra.';
+  }
+
+  @override
+  String get chatFoldersReorderHint =>
+      'Arrastra para reordenar. Las carpetas se sincronizan en todos tus dispositivos.';
+
+  @override
+  String get chatFoldersRecommended => 'Recomendadas';
+
+  @override
+  String get chatFoldersAddSuggested => 'Agregar';
+
+  @override
+  String get chatFolderSuggestUnread => 'Sin leer';
+
+  @override
+  String get chatFolderSuggestUnreadSub => 'Mensajes nuevos de todos tus chats';
+
+  @override
+  String get chatFolderSuggestPersonal => 'Personal';
+
+  @override
+  String get chatFolderSuggestPersonalSub => 'Solo mensajes directos';
+
+  @override
+  String get chatFolderSuggestGroups => 'Grupos';
+
+  @override
+  String get chatFolderSuggestGroupsSub => 'Solo chats de grupo';
+
+  @override
+  String get chatFoldersShowTags => 'Mostrar etiquetas de carpeta';
+
+  @override
+  String get chatFoldersShowTagsSub =>
+      'Nombres de carpeta en los chats de Todos los chats';
+
+  @override
+  String chatFolderChatCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count chats',
+      one: '1 chat',
+      zero: 'Sin chats',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFolderNameHeader => 'Nombre de la carpeta';
+
+  @override
+  String get chatFolderNamePlaceholder => 'Nombre de la carpeta';
+
+  @override
+  String get chatFolderIcon => 'Icono';
+
+  @override
+  String get chatFolderIconNone => 'Ninguno';
+
+  @override
+  String get chatFolderIncluded => 'Chats incluidos';
+
+  @override
+  String get chatFolderIncludedFooter =>
+      'Elige chats o tipos de chat para mostrar en esta carpeta.';
+
+  @override
+  String get chatFolderAddChats => 'Agregar chats';
+
+  @override
+  String get chatFolderExcluded => 'Chats excluidos';
+
+  @override
+  String get chatFolderExcludedFooter =>
+      'Elige chats o tipos de chat que nunca se muestran en esta carpeta.';
+
+  @override
+  String get chatFolderExcludeChats => 'Excluir chats';
+
+  @override
+  String get chatFolderTypeDms => 'Mensajes directos';
+
+  @override
+  String get chatFolderTypeGroups => 'Grupos';
+
+  @override
+  String get chatFolderTypeMuted => 'Silenciados';
+
+  @override
+  String get chatFolderTypeRead => 'Leídos';
+
+  @override
+  String get chatFolderTypeArchived => 'Archivados';
+
+  @override
+  String chatFolderShowMore(int count) {
+    return 'Mostrar $count más';
+  }
+
+  @override
+  String get chatFolderTagHeader => 'Color de la etiqueta de carpeta';
+
+  @override
+  String get chatFolderTagFooter =>
+      'La etiqueta muestra el nombre de esta carpeta en sus chats de Todos los chats.';
+
+  @override
+  String get chatFolderTagNone => 'Sin etiqueta';
+
+  @override
+  String get chatFolderSave => 'Guardar';
+
+  @override
+  String get chatFolderCancel => 'Cancelar';
+
+  @override
+  String get chatFolderNeedsChats => 'Agrega al menos un chat o tipo de chat.';
+
+  @override
+  String get chatFolderSaveFailed =>
+      'No se pudo guardar la carpeta. Inténtalo de nuevo.';
+
+  @override
+  String chatFolderRoomsCap(int max) {
+    return 'Una carpeta puede tener hasta $max chats elegidos a mano.';
+  }
+
+  @override
+  String get chatFolderPickIncludeTitle => 'Incluir chats';
+
+  @override
+  String get chatFolderPickExcludeTitle => 'Excluir chats';
+
+  @override
+  String get chatFolderPickTypes => 'Tipos de chat';
+
+  @override
+  String get chatFolderPickChats => 'Chats';
+
+  @override
+  String get chatFolderPickSearch => 'Buscar chats';
+
+  @override
+  String chatFolderPickCount(int count, int max) {
+    return '$count de $max chats elegidos';
+  }
+
+  @override
+  String get chatFolderPickDone => 'Listo';
+
+  @override
+  String get chatRowActionMenuAddToFolder => 'Agregar a carpeta';
+
+  @override
+  String get chatRowActionMenuRemoveFromFolder => 'Quitar de la carpeta';
+
+  @override
+  String chatFolderAddedToast(String name) {
+    return 'Agregado a $name';
+  }
+
+  @override
+  String chatFolderRemovedToast(String name) {
+    return 'Quitado de $name';
+  }
+
+  @override
+  String get chatFolderEmptyTitle => 'Aún no hay chats aquí';
+
+  @override
+  String get chatFolderEmptyBody =>
+      'Los chats que coincidan con esta carpeta aparecerán aquí.';
+
+  @override
+  String get tabMenuHideCalls => 'Ocultar pestaña Llamadas';
+
+  @override
+  String get tabMenuCallsHiddenToast =>
+      'Pestaña Llamadas oculta. Recupérala en Ajustes > Navegación.';
 }

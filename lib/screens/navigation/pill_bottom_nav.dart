@@ -26,6 +26,10 @@ import 'destinations.dart';
 /// this is short enough to read as "the pill responds to pressure".
 const Duration _kHoldToGrab = Duration(milliseconds: 220);
 
+/// A hold this long without travelling opens the tab's long-press menu
+/// (Chats: folders, Calls: hide) instead of carrying the pill.
+const Duration _kHoldForMenu = Duration(milliseconds: 480);
+
 /// Horizontal travel that grabs the pill without waiting for [_kHoldToGrab].
 ///
 /// Deliberately below [kTouchSlop] (18): the bar owns its whole width, there is
@@ -188,9 +192,16 @@ class PillBottomNav extends StatefulWidget {
     required this.onSelect,
     required this.badges,
     this.profile,
+    this.menuSections = const {},
+    this.onMenu,
   });
   final HomeSection active;
   final ValueChanged<HomeSection> onSelect;
+
+  /// Tabs that have a long-press menu; a still hold on one calls [onMenu]
+  /// with the tab's rect in global coordinates.
+  final Set<HomeSection> menuSections;
+  final void Function(HomeSection section, Rect tab)? onMenu;
 
   /// Glass and layout to render with. Null — the shell — reads the live
   /// settings. The tuning screen passes an interpolated profile so the bar
@@ -270,6 +281,7 @@ class _PillBottomNavState extends State<PillBottomNav>
   /// instead of once per pointer move.
   int _nearest = 0;
   Timer? _holdTimer;
+  Timer? _menuTimer;
 
   /// The return leg of a tap's pop, scheduled because a tap has no finger left
   /// to lift. See [_pop].
@@ -315,6 +327,7 @@ class _PillBottomNavState extends State<PillBottomNav>
   @override
   void dispose() {
     _holdTimer?.cancel();
+    _menuTimer?.cancel();
     _popTimer?.cancel();
     _ticker
       ..stop()
@@ -424,6 +437,12 @@ class _PillBottomNavState extends State<PillBottomNav>
     _moved = false;
     _holdTimer?.cancel();
     _holdTimer = Timer(_kHoldToGrab, _beginGrab);
+    _menuTimer?.cancel();
+    _menuTimer = null;
+    if (widget.onMenu != null &&
+        widget.menuSections.contains(navOrder[_pressIndex])) {
+      _menuTimer = Timer(_kHoldForMenu, _openMenu);
+    }
     // A new gesture owns the grab spring from here, so the previous tap's
     // return leg must not fire into the middle of it and deflate a squish or an
     // inflate that this press has since asked for. Cancelling is safe without
@@ -469,7 +488,11 @@ class _PillBottomNavState extends State<PillBottomNav>
       // still a move, and on a fast flick it can be most of the bar.
       _beginGrab();
     }
-    if (travelled) _moved = true;
+    if (travelled) {
+      _moved = true;
+      _menuTimer?.cancel();
+      _menuTimer = null;
+    }
     _follow(_lastX);
   }
 
@@ -522,7 +545,28 @@ class _PillBottomNavState extends State<PillBottomNav>
     _settleToActive();
   }
 
+  /// The still hold matured: drop the pill where it was and hand the tab to
+  /// the shell's menu. The pointer is released here, so the eventual lift
+  /// selects nothing.
+  void _openMenu() {
+    _menuTimer = null;
+    final onMenu = widget.onMenu;
+    final box = _barKey.currentContext?.findRenderObject() as RenderBox?;
+    if (_pointer == null || _moved || onMenu == null || box == null) return;
+    final index = _pressIndex;
+    final section = navOrder[index];
+    final w = box.size.width / _count;
+    final slot = _rtl ? _count - 1 - index : index;
+    final rect = box.localToGlobal(Offset(slot * w, 0)) &
+        Size(w, box.size.height);
+    _endPointer();
+    _settleToActive();
+    onMenu(section, rect);
+  }
+
   void _endPointer() {
+    _menuTimer?.cancel();
+    _menuTimer = null;
     _holdTimer?.cancel();
     _holdTimer = null;
     _pointer = null;

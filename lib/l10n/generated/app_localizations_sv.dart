@@ -16681,4 +16681,238 @@ class AppLocalizationsSv extends AppLocalizations {
   String streakSaveBody(int count) {
     return 'Du spelade inte i går. Spela i dag så håller 2 bananer liv i din svit på $count dagar.';
   }
+
+  @override
+  String get chatFolderTabAll => 'Alla';
+
+  @override
+  String get chatFolderAllChats => 'Alla chattar';
+
+  @override
+  String get chatFolderEditFolders => 'Redigera mappar';
+
+  @override
+  String get chatFolderAddFolder => 'Lägg till mapp';
+
+  @override
+  String get chatFolderEdit => 'Redigera mapp';
+
+  @override
+  String get chatFolderNew => 'Ny mapp';
+
+  @override
+  String get chatFolderDelete => 'Ta bort mapp';
+
+  @override
+  String chatFolderDeleteTitle(String name) {
+    return 'Ta bort \"$name\"?';
+  }
+
+  @override
+  String get chatFolderDeleteBody =>
+      'Dina chattar ligger kvar. Bara mappen försvinner.';
+
+  @override
+  String get chatFoldersTitle => 'Chattmappar';
+
+  @override
+  String get chatFoldersIntro =>
+      'Sortera dina chattar i mappar och växla mellan dem med flikarna ovanför chattlistan.';
+
+  @override
+  String get chatFoldersMine => 'Mina mappar';
+
+  @override
+  String get chatFoldersCreate => 'Skapa en mapp';
+
+  @override
+  String chatFoldersUsed(int count, int max) {
+    return '$count av $max mappar använda';
+  }
+
+  @override
+  String chatFoldersCapReached(int max) {
+    return 'Du har $max mappar, det mesta som går. Ta bort en för att göra en ny.';
+  }
+
+  @override
+  String get chatFoldersReorderHint =>
+      'Dra för att ändra ordning. Mappar synkas till alla dina enheter.';
+
+  @override
+  String get chatFoldersRecommended => 'Rekommenderade';
+
+  @override
+  String get chatFoldersAddSuggested => 'Lägg till';
+
+  @override
+  String get chatFolderSuggestUnread => 'Olästa';
+
+  @override
+  String get chatFolderSuggestUnreadSub =>
+      'Nya meddelanden från alla dina chattar';
+
+  @override
+  String get chatFolderSuggestPersonal => 'Privat';
+
+  @override
+  String get chatFolderSuggestPersonalSub => 'Bara direktmeddelanden';
+
+  @override
+  String get chatFolderSuggestGroups => 'Grupper';
+
+  @override
+  String get chatFolderSuggestGroupsSub => 'Bara gruppchattar';
+
+  @override
+  String get chatFoldersShowTags => 'Visa mapptaggar';
+
+  @override
+  String get chatFoldersShowTagsSub => 'Mappnamn på chattar i Alla chattar';
+
+  @override
+  String chatFolderChatCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count chattar',
+      one: '1 chatt',
+      zero: 'Inga chattar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFolderNameHeader => 'Mappnamn';
+
+  @override
+  String get chatFolderNamePlaceholder => 'Mappnamn';
+
+  @override
+  String get chatFolderIcon => 'Ikon';
+
+  @override
+  String get chatFolderIconNone => 'Ingen';
+
+  @override
+  String get chatFolderIncluded => 'Inkluderade chattar';
+
+  @override
+  String get chatFolderIncludedFooter =>
+      'Välj chattar eller typer av chattar som ska visas i den här mappen.';
+
+  @override
+  String get chatFolderAddChats => 'Lägg till chattar';
+
+  @override
+  String get chatFolderExcluded => 'Exkluderade chattar';
+
+  @override
+  String get chatFolderExcludedFooter =>
+      'Välj chattar eller typer av chattar som aldrig ska visas i den här mappen.';
+
+  @override
+  String get chatFolderExcludeChats => 'Exkludera chattar';
+
+  @override
+  String get chatFolderTypeDms => 'Direktmeddelanden';
+
+  @override
+  String get chatFolderTypeGroups => 'Grupper';
+
+  @override
+  String get chatFolderTypeMuted => 'Tystade';
+
+  @override
+  String get chatFolderTypeRead => 'Lästa';
+
+  @override
+  String get chatFolderTypeArchived => 'Arkiverade';
+
+  @override
+  String chatFolderShowMore(int count) {
+    return 'Visa $count till';
+  }
+
+  @override
+  String get chatFolderTagHeader => 'Mapptaggens färg';
+
+  @override
+  String get chatFolderTagFooter =>
+      'Taggen visar den här mappens namn på dess chattar i Alla chattar.';
+
+  @override
+  String get chatFolderTagNone => 'Ingen tagg';
+
+  @override
+  String get chatFolderSave => 'Spara';
+
+  @override
+  String get chatFolderCancel => 'Avbryt';
+
+  @override
+  String get chatFolderNeedsChats =>
+      'Lägg till minst en chatt eller typ av chatt.';
+
+  @override
+  String get chatFolderSaveFailed =>
+      'Det gick inte att spara mappen. Försök igen.';
+
+  @override
+  String chatFolderRoomsCap(int max) {
+    return 'En mapp kan ha upp till $max handplockade chattar.';
+  }
+
+  @override
+  String get chatFolderPickIncludeTitle => 'Inkludera chattar';
+
+  @override
+  String get chatFolderPickExcludeTitle => 'Exkludera chattar';
+
+  @override
+  String get chatFolderPickTypes => 'Chattyper';
+
+  @override
+  String get chatFolderPickChats => 'Chattar';
+
+  @override
+  String get chatFolderPickSearch => 'Sök chattar';
+
+  @override
+  String chatFolderPickCount(int count, int max) {
+    return '$count av $max chattar valda';
+  }
+
+  @override
+  String get chatFolderPickDone => 'Klart';
+
+  @override
+  String get chatRowActionMenuAddToFolder => 'Lägg till i mapp';
+
+  @override
+  String get chatRowActionMenuRemoveFromFolder => 'Ta bort från mapp';
+
+  @override
+  String chatFolderAddedToast(String name) {
+    return 'Tillagd i $name';
+  }
+
+  @override
+  String chatFolderRemovedToast(String name) {
+    return 'Borttagen från $name';
+  }
+
+  @override
+  String get chatFolderEmptyTitle => 'Inga chattar här än';
+
+  @override
+  String get chatFolderEmptyBody =>
+      'Chattar som matchar den här mappen dyker upp här.';
+
+  @override
+  String get tabMenuHideCalls => 'Dölj fliken Samtal';
+
+  @override
+  String get tabMenuCallsHiddenToast =>
+      'Fliken Samtal är dold. Få tillbaka den i Inställningar > Navigering.';
 }

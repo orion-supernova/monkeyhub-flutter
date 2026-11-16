@@ -108,6 +108,11 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   "gameResults.userId": { rule: "cascade", index: "by_user_day_game", why: "Daily results are the user's own; retention policy is a separate decision (plan section 7)." },
 
   // ── call history ──────────────────────────────────────────────────────────
+  // ── chat folders ──────────────────────────────────────────────────────────
+  "chatFolders.userId": { rule: "cascade", index: "by_user_order", why: "A person's chat folders go with their account." },
+  "chatFolders.include[]": { rule: "softRef", why: "Rooms the user put in a folder; the app skips ids it is not a member of, and drops them from its next save." },
+  "chatFolders.exclude[]": { rule: "softRef", why: "Rooms the user kept out of a folder; the app skips ids it is not a member of, and drops them from its next save." },
+
   "callFavorites.userId": { rule: "cascade", index: "by_user_added", why: "A person's favourites go with their account." },
   "callFavorites.peerId": { rule: "cascade", index: "by_peer", why: "A deleted account is nobody's favourite any more; a pinned circle for a gone person cannot be called." },
   "callLog.userId": { rule: "cascade", index: "by_user_started", why: "A person's call history goes with their account." },

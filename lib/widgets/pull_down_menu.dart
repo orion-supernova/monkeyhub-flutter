@@ -21,9 +21,13 @@ class PullDownItem<T> {
     this.checked = false,
     this.destructive = false,
     this.startsGroup = false,
+    this.badge,
   });
 
   final T value;
+
+  /// A count after the label; see [MenuRow.badge].
+  final String? badge;
   final String label;
   final IconData? icon;
 
@@ -45,24 +49,30 @@ class PullDownItem<T> {
 /// row's "Never ⌃⌄", a toolbar's sort button. Same glass, same row, same
 /// entrance, no scrim.
 ///
-/// Anchored to [anchorKey]'s box: trailing edges aligned, below it when there
+/// Anchored to [anchorKey]'s box (or [anchorRect], in global coordinates): trailing edges aligned, below it when there
 /// is room and above it when there is not, and pinned inside the safe area
 /// whatever the anchor's position.
 Future<T?> showPullDownMenu<T>({
   required BuildContext context,
-  required GlobalKey anchorKey,
+  GlobalKey? anchorKey,
+  Rect? anchorRect,
   required List<PullDownItem<T>> items,
 }) {
-  final box = anchorKey.currentContext?.findRenderObject() as RenderBox?;
-  if (box == null || !box.attached) return Future.value();
-  final anchor = box.localToGlobal(Offset.zero) & box.size;
+  assert(anchorKey != null || anchorRect != null);
+  Rect? anchor = anchorRect;
+  if (anchor == null) {
+    final box = anchorKey?.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached) return Future.value();
+    anchor = box.localToGlobal(Offset.zero) & box.size;
+  }
+  final at = anchor;
   final overlay = Overlay.of(context, rootOverlay: true);
   final completer = Completer<T?>();
   HapticFeedback.selectionClick();
   late OverlayEntry entry;
   entry = OverlayEntry(
     builder: (_) => _PullDownOverlay<T>(
-      anchor: anchor,
+      anchor: at,
       items: items,
       onResolve: (v) {
         if (!completer.isCompleted) completer.complete(v);
@@ -188,6 +198,7 @@ class _PullDownOverlayState<T> extends State<_PullDownOverlay<T>>
         label: item.label,
         icon: item.icon,
         destructive: item.destructive,
+        badge: item.badge,
         height: _PullDownOverlayState._rowH - 1,
         padding: const EdgeInsets.only(left: 12, right: 16),
         lineHeight: 1.25,

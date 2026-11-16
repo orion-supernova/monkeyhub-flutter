@@ -188,6 +188,7 @@ Home server: warm standby (deploy.sh pushes both when reachable)</code></pre>
 <tr><td><code>roomContentCounts</code></td><td>photos, videos, files, voice, links per room</td><td>scanning tabs on open</td><td>Live 2026-11-06, kept by the write hook</td></tr>
 </table></div>
 
+<p><b>Small per-user tables (growth story, R14).</b> <code>callFavorites</code> (24 rows per user) and <code>chatFolders</code> (10 rows per user, at most 200 room ids each, 2026-11-16) are bounded by a cap enforced in the mutation and cascade with the account; neither needs a sweep. Cost table for chat folders: <code>docs/design/chat-folders.md</code>.</p>
 <h3>Hot documents (who writes them, who reads them)</h3>
 <div class="tbl"><table>
 <tr><th>Document</th><th>Written by</th><th>Read by (re-run on every write)</th></tr>

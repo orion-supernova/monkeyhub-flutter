@@ -494,6 +494,8 @@ class _ArchivedRowState extends State<_ArchivedRow> {
       case ChatRowAction.pin:
       case ChatRowAction.unpin:
       case ChatRowAction.archive:
+      case ChatRowAction.addToFolder:
+      case ChatRowAction.removeFromFolder:
       case null:
         break;
     }

@@ -16870,4 +16870,239 @@ class AppLocalizationsFr extends AppLocalizations {
   String streakSaveBody(int count) {
     return 'Tu n’as pas joué hier. Joue aujourd’hui et 2 bananes gardent ta série de $count jours.';
   }
+
+  @override
+  String get chatFolderTabAll => 'Tous';
+
+  @override
+  String get chatFolderAllChats => 'Tous les chats';
+
+  @override
+  String get chatFolderEditFolders => 'Modifier les dossiers';
+
+  @override
+  String get chatFolderAddFolder => 'Ajouter un dossier';
+
+  @override
+  String get chatFolderEdit => 'Modifier le dossier';
+
+  @override
+  String get chatFolderNew => 'Nouveau dossier';
+
+  @override
+  String get chatFolderDelete => 'Supprimer le dossier';
+
+  @override
+  String chatFolderDeleteTitle(String name) {
+    return 'Supprimer « $name » ?';
+  }
+
+  @override
+  String get chatFolderDeleteBody =>
+      'Tes chats restent où ils sont. Seul le dossier disparaît.';
+
+  @override
+  String get chatFoldersTitle => 'Dossiers de discussion';
+
+  @override
+  String get chatFoldersIntro =>
+      'Range tes chats dans des dossiers et passe de l\'un à l\'autre avec les onglets au-dessus de ta liste.';
+
+  @override
+  String get chatFoldersMine => 'Mes dossiers';
+
+  @override
+  String get chatFoldersCreate => 'Créer un dossier';
+
+  @override
+  String chatFoldersUsed(int count, int max) {
+    return '$count dossiers sur $max utilisés';
+  }
+
+  @override
+  String chatFoldersCapReached(int max) {
+    return 'Tu as $max dossiers, le maximum possible. Supprime-en un pour en créer un autre.';
+  }
+
+  @override
+  String get chatFoldersReorderHint =>
+      'Fais glisser pour réordonner. Les dossiers se synchronisent sur tous tes appareils.';
+
+  @override
+  String get chatFoldersRecommended => 'Recommandés';
+
+  @override
+  String get chatFoldersAddSuggested => 'Ajouter';
+
+  @override
+  String get chatFolderSuggestUnread => 'Non lus';
+
+  @override
+  String get chatFolderSuggestUnreadSub =>
+      'Les nouveaux messages de tous tes chats';
+
+  @override
+  String get chatFolderSuggestPersonal => 'Perso';
+
+  @override
+  String get chatFolderSuggestPersonalSub => 'Messages directs uniquement';
+
+  @override
+  String get chatFolderSuggestGroups => 'Groupes';
+
+  @override
+  String get chatFolderSuggestGroupsSub => 'Chats de groupe uniquement';
+
+  @override
+  String get chatFoldersShowTags => 'Afficher les étiquettes de dossier';
+
+  @override
+  String get chatFoldersShowTagsSub =>
+      'Noms de dossier sur les chats de Tous les chats';
+
+  @override
+  String chatFolderChatCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count chats',
+      one: '1 chat',
+      zero: 'Aucun chat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFolderNameHeader => 'Nom du dossier';
+
+  @override
+  String get chatFolderNamePlaceholder => 'Nom du dossier';
+
+  @override
+  String get chatFolderIcon => 'Icône';
+
+  @override
+  String get chatFolderIconNone => 'Aucune';
+
+  @override
+  String get chatFolderIncluded => 'Chats inclus';
+
+  @override
+  String get chatFolderIncludedFooter =>
+      'Choisis des chats ou des types de chat à afficher dans ce dossier.';
+
+  @override
+  String get chatFolderAddChats => 'Ajouter des chats';
+
+  @override
+  String get chatFolderExcluded => 'Chats exclus';
+
+  @override
+  String get chatFolderExcludedFooter =>
+      'Choisis des chats ou des types de chat qui n\'apparaîtront jamais dans ce dossier.';
+
+  @override
+  String get chatFolderExcludeChats => 'Exclure des chats';
+
+  @override
+  String get chatFolderTypeDms => 'Messages directs';
+
+  @override
+  String get chatFolderTypeGroups => 'Groupes';
+
+  @override
+  String get chatFolderTypeMuted => 'En sourdine';
+
+  @override
+  String get chatFolderTypeRead => 'Lus';
+
+  @override
+  String get chatFolderTypeArchived => 'Archivés';
+
+  @override
+  String chatFolderShowMore(int count) {
+    return 'Afficher $count de plus';
+  }
+
+  @override
+  String get chatFolderTagHeader => 'Couleur de l\'étiquette';
+
+  @override
+  String get chatFolderTagFooter =>
+      'L\'étiquette affiche le nom de ce dossier sur ses chats dans Tous les chats.';
+
+  @override
+  String get chatFolderTagNone => 'Sans étiquette';
+
+  @override
+  String get chatFolderSave => 'Enregistrer';
+
+  @override
+  String get chatFolderCancel => 'Annuler';
+
+  @override
+  String get chatFolderNeedsChats =>
+      'Ajoute au moins un chat ou un type de chat.';
+
+  @override
+  String get chatFolderSaveFailed =>
+      'Impossible d\'enregistrer le dossier. Réessaie.';
+
+  @override
+  String chatFolderRoomsCap(int max) {
+    return 'Un dossier peut contenir jusqu\'à $max chats choisis à la main.';
+  }
+
+  @override
+  String get chatFolderPickIncludeTitle => 'Inclure des chats';
+
+  @override
+  String get chatFolderPickExcludeTitle => 'Exclure des chats';
+
+  @override
+  String get chatFolderPickTypes => 'Types de chat';
+
+  @override
+  String get chatFolderPickChats => 'Chats';
+
+  @override
+  String get chatFolderPickSearch => 'Rechercher des chats';
+
+  @override
+  String chatFolderPickCount(int count, int max) {
+    return '$count chats sur $max choisis';
+  }
+
+  @override
+  String get chatFolderPickDone => 'Terminé';
+
+  @override
+  String get chatRowActionMenuAddToFolder => 'Ajouter au dossier';
+
+  @override
+  String get chatRowActionMenuRemoveFromFolder => 'Retirer du dossier';
+
+  @override
+  String chatFolderAddedToast(String name) {
+    return 'Ajouté à $name';
+  }
+
+  @override
+  String chatFolderRemovedToast(String name) {
+    return 'Retiré de $name';
+  }
+
+  @override
+  String get chatFolderEmptyTitle => 'Pas encore de chats ici';
+
+  @override
+  String get chatFolderEmptyBody =>
+      'Les chats qui correspondent à ce dossier apparaîtront ici.';
+
+  @override
+  String get tabMenuHideCalls => 'Masquer l\'onglet Appels';
+
+  @override
+  String get tabMenuCallsHiddenToast =>
+      'Onglet Appels masqué. Retrouve-le dans Réglages > Navigation.';
 }

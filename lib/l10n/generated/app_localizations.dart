@@ -27402,6 +27402,402 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You missed yesterday. Play today and 2 bananas keep your {count}-day streak going.'**
   String streakSaveBody(int count);
+
+  /// Chat list folder tab that shows every chat (Telegram's 'All' tab). Very short.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get chatFolderTabAll;
+
+  /// Menu item that switches the chat list back to every chat, out of a folder.
+  ///
+  /// In en, this message translates to:
+  /// **'All Chats'**
+  String get chatFolderAllChats;
+
+  /// Menu item: open the chat folders settings page.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Folders'**
+  String get chatFolderEditFolders;
+
+  /// Menu item shown when the user has no chat folders yet: create one.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Folder'**
+  String get chatFolderAddFolder;
+
+  /// Menu item / page title: edit one chat folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Folder'**
+  String get chatFolderEdit;
+
+  /// Page title / menu item: create a new chat folder.
+  ///
+  /// In en, this message translates to:
+  /// **'New Folder'**
+  String get chatFolderNew;
+
+  /// Destructive button/menu item: delete a chat folder (the chats themselves stay).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Folder'**
+  String get chatFolderDelete;
+
+  /// Confirm title before deleting a chat folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"?'**
+  String chatFolderDeleteTitle(String name);
+
+  /// Confirm body before deleting a chat folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Your chats stay where they are. Only the folder goes.'**
+  String get chatFolderDeleteBody;
+
+  /// Settings page title and settings row: chat folders.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat Folders'**
+  String get chatFoldersTitle;
+
+  /// Intro text at the top of the Chat Folders page.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort chats into folders and switch between them with the tabs above your chat list.'**
+  String get chatFoldersIntro;
+
+  /// Section header: the user's chat folders.
+  ///
+  /// In en, this message translates to:
+  /// **'My Folders'**
+  String get chatFoldersMine;
+
+  /// Row that creates a new chat folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a Folder'**
+  String get chatFoldersCreate;
+
+  /// Footer under the user's folders: how many of the allowed folders exist.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {max} folders used'**
+  String chatFoldersUsed(int count, int max);
+
+  /// Shown when the user has the maximum number of folders.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {max} folders, the most there can be. Delete one to make another.'**
+  String chatFoldersCapReached(int max);
+
+  /// Footer hint on the folders list.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder. Folders sync to all your devices.'**
+  String get chatFoldersReorderHint;
+
+  /// Section header: suggested chat folders the user can add with one tap.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get chatFoldersRecommended;
+
+  /// Small button on a suggested folder row: add this folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get chatFoldersAddSuggested;
+
+  /// Suggested folder name: chats with unread messages.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread'**
+  String get chatFolderSuggestUnread;
+
+  /// Subtitle of the suggested Unread folder.
+  ///
+  /// In en, this message translates to:
+  /// **'New messages from all your chats'**
+  String get chatFolderSuggestUnreadSub;
+
+  /// Suggested folder name: only direct (one-to-one) chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal'**
+  String get chatFolderSuggestPersonal;
+
+  /// Subtitle of the suggested Personal folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Only direct messages'**
+  String get chatFolderSuggestPersonalSub;
+
+  /// Suggested folder name: only group chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups'**
+  String get chatFolderSuggestGroups;
+
+  /// Subtitle of the suggested Groups folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Only group chats'**
+  String get chatFolderSuggestGroupsSub;
+
+  /// Switch: show coloured folder-name tags on chats in All Chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Show folder tags'**
+  String get chatFoldersShowTags;
+
+  /// Subtitle of the folder tags switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder names on chats in All Chats'**
+  String get chatFoldersShowTagsSub;
+
+  /// Subtitle of a folder row: how many chats are in that folder right now.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No chats} =1{1 chat} other{{count} chats}}'**
+  String chatFolderChatCount(int count);
+
+  /// Section header above the folder name field.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder name'**
+  String get chatFolderNameHeader;
+
+  /// Placeholder in the folder name field.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder name'**
+  String get chatFolderNamePlaceholder;
+
+  /// Row title: pick an emoji icon for the folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon'**
+  String get chatFolderIcon;
+
+  /// Choice for no folder icon.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get chatFolderIconNone;
+
+  /// Section header: chats and chat types shown in the folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Included chats'**
+  String get chatFolderIncluded;
+
+  /// Footer under the included chats section.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose chats or kinds of chat to show in this folder.'**
+  String get chatFolderIncludedFooter;
+
+  /// Row that opens the picker to include chats in a folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Chats'**
+  String get chatFolderAddChats;
+
+  /// Section header: chats and chat kinds kept out of the folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded chats'**
+  String get chatFolderExcluded;
+
+  /// Footer under the excluded chats section.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose chats or kinds of chat that never show in this folder.'**
+  String get chatFolderExcludedFooter;
+
+  /// Row that opens the picker to exclude chats from a folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Exclude Chats'**
+  String get chatFolderExcludeChats;
+
+  /// Chat type: one-to-one chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct messages'**
+  String get chatFolderTypeDms;
+
+  /// Chat type: group chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups'**
+  String get chatFolderTypeGroups;
+
+  /// Chat type to exclude: muted chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Muted'**
+  String get chatFolderTypeMuted;
+
+  /// Chat type to exclude: chats with nothing unread.
+  ///
+  /// In en, this message translates to:
+  /// **'Read'**
+  String get chatFolderTypeRead;
+
+  /// Chat type to exclude: archived chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get chatFolderTypeArchived;
+
+  /// Expands a long list of chats in the folder editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Show {count} more'**
+  String chatFolderShowMore(int count);
+
+  /// Section header: pick the colour of this folder's tag.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder tag colour'**
+  String get chatFolderTagHeader;
+
+  /// Footer under the tag colour picker.
+  ///
+  /// In en, this message translates to:
+  /// **'The tag shows this folder\'s name on its chats in All Chats.'**
+  String get chatFolderTagFooter;
+
+  /// Tag colour choice: draw no tag.
+  ///
+  /// In en, this message translates to:
+  /// **'No tag'**
+  String get chatFolderTagNone;
+
+  /// Button: save the folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get chatFolderSave;
+
+  /// Button: leave the folder editor without saving.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get chatFolderCancel;
+
+  /// Error when saving a folder that would include nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one chat or kind of chat.'**
+  String get chatFolderNeedsChats;
+
+  /// Error toast when saving a folder fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the folder. Try again.'**
+  String get chatFolderSaveFailed;
+
+  /// Shown when the user tries to pick more chats than allowed.
+  ///
+  /// In en, this message translates to:
+  /// **'A folder can hold up to {max} chats picked by hand.'**
+  String chatFolderRoomsCap(int max);
+
+  /// Picker title: choose chats to include in a folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Include Chats'**
+  String get chatFolderPickIncludeTitle;
+
+  /// Picker title: choose chats to keep out of a folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Exclude Chats'**
+  String get chatFolderPickExcludeTitle;
+
+  /// Picker section header: kinds of chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat types'**
+  String get chatFolderPickTypes;
+
+  /// Picker section header: individual chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Chats'**
+  String get chatFolderPickChats;
+
+  /// Search field placeholder in the folder chat picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Search chats'**
+  String get chatFolderPickSearch;
+
+  /// Picker footer: how many chats are picked by hand out of the allowed number.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {max} chats chosen'**
+  String chatFolderPickCount(int count, int max);
+
+  /// Button that closes the chat picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get chatFolderPickDone;
+
+  /// Chat row long-press menu item: put this chat into a folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Folder'**
+  String get chatRowActionMenuAddToFolder;
+
+  /// Chat row long-press menu item: take this chat out of the folder being viewed.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Folder'**
+  String get chatRowActionMenuRemoveFromFolder;
+
+  /// Toast after adding a chat to a folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to {name}'**
+  String chatFolderAddedToast(String name);
+
+  /// Toast after removing a chat from a folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from {name}'**
+  String chatFolderRemovedToast(String name);
+
+  /// Empty state title when a folder has no chats.
+  ///
+  /// In en, this message translates to:
+  /// **'No chats here yet'**
+  String get chatFolderEmptyTitle;
+
+  /// Empty state body when a folder has no chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Chats that match this folder will show up here.'**
+  String get chatFolderEmptyBody;
+
+  /// Long-press menu on the Calls tab: remove the Calls tab from the tab bar.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide Calls Tab'**
+  String get tabMenuHideCalls;
+
+  /// Toast after hiding the Calls tab from its long-press menu. Keep the Settings > Navigation path matching the app's settings page names.
+  ///
+  /// In en, this message translates to:
+  /// **'Calls tab hidden. Bring it back in Settings > Navigation.'**
+  String get tabMenuCallsHiddenToast;
 }
 
 class _AppLocalizationsDelegate

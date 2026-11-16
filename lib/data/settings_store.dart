@@ -103,6 +103,9 @@ class SettingsStore extends ChangeNotifier {
   static const _kComposerModeHintSeenRoomIds = 'mh.composerModeHintSeenRoomIds';
   static const _kFilterStyle = 'mh.filterStyle';
   static const _kRoomFilter = 'mh.roomFilter';
+  static const _kActiveFolder = 'mh.chatFolder.active';
+  static const _kFolderTags = 'mh.chatFolder.tags';
+  static const _kFoldersCache = 'mh.chatFolder.cache';
   static const _kGlassProfile = 'mh.glass.profile';
   static const _kGlassSlots = 'mh.glass.slots';
   static const _kGlassPreset = 'mh.glass.preset';
@@ -144,6 +147,7 @@ class SettingsStore extends ChangeNotifier {
     _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kMapSource, _kMapStyle, _kMapTraffic, _kMapShowMe, _kOfmStyle, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kForkFullScreen, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
     _kVideoQualityTier, _kAutoLowerVideoQuality, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
+    _kActiveFolder, _kFolderTags, _kFoldersCache,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kUiKit, _kNativeScope, _kNativeRideAlong, _kShaderGlass, _kLocale, _kMotionLevel, _kPowerSaving, _kHaptics,
     _kScheduledIndicator, _kSebastianEnabled, _kTranslationTarget,
     _kTranslatedRoomIds, _kMarloweBrainId, _kCompanionForceCpu,
@@ -229,6 +233,9 @@ class SettingsStore extends ChangeNotifier {
   ShaderGlassConfig _shaderGlass = const ShaderGlassConfig();
   NativeScope _nativeScope = NativeScope.tabBar;
   RoomFilter _roomFilter = RoomFilter.empty;
+  String? _activeFolderId;
+  bool _showFolderTags = true;
+  String? _chatFoldersCache;
   GlassProfile _glass = _presetById(kDefaultGlassPresetId).profile;
   List<GlassPreset> _glassSlots = const [];
   String? _glassPresetId = kDefaultGlassPresetId;
@@ -613,6 +620,21 @@ class SettingsStore extends ChangeNotifier {
   /// an active-filter cue and a one-tap "show all" escape when this is set.
   RoomFilter get roomFilter => _roomFilter;
 
+  /// The chat folder the list is showing, or null for All Chats. Persisted,
+  /// so the app reopens on the folder it was left on; an id whose folder is
+  /// gone reads as All Chats (see `ChatFolderStore.active`).
+  String? get activeFolderId => _activeFolderId;
+
+  /// Whether chat rows in All Chats carry a coloured tag for each folder
+  /// they are in (Telegram's folder tags). Default on; only folders with a
+  /// tag colour draw one.
+  bool get showFolderTags => _showFolderTags;
+
+  /// The last folder list the server sent, as JSON, so the folder tabs are
+  /// there on a cold start before the subscription answers. This account's
+  /// data: [setChatFoldersCache] with null on sign-out.
+  String? get chatFoldersCache => _chatFoldersCache;
+
   /// Live glass tuning — what every [LiquidGlass] and the bottom bar actually
   /// render with right now. Not necessarily equal to any saved preset: moving
   /// a slider edits this and clears [glassPresetId].
@@ -891,6 +913,9 @@ class SettingsStore extends ChangeNotifier {
     // First-launch default is chips; honour an explicit 'drawer' selection.
     _filterStyle = fs == 'drawer' ? FilterStyle.drawer : FilterStyle.chips;
     _roomFilter = RoomFilter.decode(s[_kRoomFilter]);
+    _activeFolderId = s[_kActiveFolder];
+    _showFolderTags = s[_kFolderTags] != 'false'; // default true
+    _chatFoldersCache = s[_kFoldersCache];
     _nativeScope = s[_kNativeScope] == 'everything'
         ? NativeScope.everything
         : NativeScope.tabBar;
@@ -1132,6 +1157,44 @@ class SettingsStore extends ChangeNotifier {
           /* storage unavailable; in-memory state still right */
         });
     await _filterWrite;
+  }
+
+  Future<void> setActiveFolder(String? id) async {
+    if (_activeFolderId == id) return;
+    _activeFolderId = id;
+    notifyListeners();
+    try {
+      if (id == null) {
+        await _storage.delete(key: _kActiveFolder);
+      } else {
+        await _storage.write(key: _kActiveFolder, value: id);
+      }
+    } catch (_) {
+      /* storage unavailable; in-memory state still right */
+    }
+  }
+
+  Future<void> setShowFolderTags(bool v) async {
+    if (_showFolderTags == v) return;
+    _showFolderTags = v;
+    notifyListeners();
+    await _storage.write(key: _kFolderTags, value: v ? 'true' : 'false');
+  }
+
+  /// No [notifyListeners]: the cache is read once at attach, and the store
+  /// that writes it notifies for itself.
+  Future<void> setChatFoldersCache(String? json) async {
+    if (_chatFoldersCache == json) return;
+    _chatFoldersCache = json;
+    try {
+      if (json == null) {
+        await _storage.delete(key: _kFoldersCache);
+      } else {
+        await _storage.write(key: _kFoldersCache, value: json);
+      }
+    } catch (_) {
+      /* storage unavailable; the subscription refills it */
+    }
   }
 
   Future<void> setPushEnabled(bool v) async {

@@ -12,6 +12,7 @@ import '../data/chat_repository.dart';
 import '../data/glass_config.dart' show glassPresetName;
 import '../companions/brain_manager.dart';
 import '../companions/companion.dart';
+import '../data/chat_folder_store.dart';
 import '../data/settings_store.dart';
 import '../widgets/app_toast.dart';
 import 'navigation/scroll_memory.dart';
@@ -61,6 +62,7 @@ import 'speaker_color_screen.dart';
 import 'logo_screen.dart';
 import 'motion_screen.dart';
 import 'map_apps_screen.dart';
+import 'chat_folders_screen.dart';
 import 'navigation_screen.dart';
 import 'navigation/destinations.dart';
 import '../ui/foundation/ui_kit.dart';
@@ -772,6 +774,19 @@ class _SettingsScreenState extends State<SettingsScreen>
                       _open('navigation', (_) => const NavigationScreen()),
                 ),
                 _HubRow(
+                  icon: CupertinoIcons.folder_fill,
+                  tone: TileTone.blue,
+                  title: l10n.chatFoldersTitle,
+                  value: ChatFolderStore.instance.folders.isEmpty
+                      ? null
+                      : '${ChatFolderStore.instance.folders.length}',
+                  selected: _isOpen('chatFolders'),
+                  onTap: () => _open(
+                    'chatFolders',
+                    (_) => ChatFoldersScreen(repo: widget.repo, api: widget.api),
+                  ),
+                ),
+                _HubRow(
                   icon: CupertinoIcons.wand_stars,
                   tone: TileTone.pink,
                   title: l10n.settingsHubMotion,
@@ -1171,6 +1186,18 @@ class _SettingsScreenState extends State<SettingsScreen>
           kw: l10n.settingsSearchKwNavigation,
           enKw: en.settingsSearchKwNavigation,
           onOpen: () => _open('navigation', (_) => const NavigationScreen())),
+      page('chatFolders',
+          title: l10n.chatFoldersTitle,
+          enTitle: en.chatFoldersTitle,
+          section: appearance,
+          icon: CupertinoIcons.folder_fill,
+          tone: TileTone.blue,
+          kw: l10n.chatFoldersIntro,
+          enKw: en.chatFoldersIntro,
+          onOpen: () => _open(
+            'chatFolders',
+            (_) => ChatFoldersScreen(repo: widget.repo, api: widget.api),
+          )),
       page('motion',
           title: l10n.settingsHubMotion,
           enTitle: en.settingsHubMotion,

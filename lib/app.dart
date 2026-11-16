@@ -47,6 +47,7 @@ import 'calls/incoming_group_call_screen.dart';
 import 'calls/native_call_handler.dart';
 import 'calls/phone_call_activity.dart';
 import 'calls/signaling_subscriber.dart';
+import 'data/chat_folder_store.dart';
 import 'data/chat_repository.dart';
 import 'data/feed_store.dart';
 import 'data/profile_cache.dart';
@@ -1905,6 +1906,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         // The Calls tab's missed-call badge: one cheap subscription, and only
         // while the tab is switched on.
         CallLogStore.instance.setEnabled(SettingsStore.instance.showCallsTab);
+        // Chat folders: the tabs over the chat list, synced across devices.
+        unawaited(ChatFolderStore.instance.attach());
         // Which rooms to look in: the chat list's, re-announced only when the
         // set changes.
         _repo.removeListener(_syncLiveCallRooms);
@@ -2031,6 +2034,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         _repo.removeListener(_syncLiveCallRooms);
         LiveCallsStore.instance.detach();
         CallLogStore.instance.setEnabled(false);
+        // Folder names and the rooms in them are this account's.
+        await ChatFolderStore.instance.detach();
         ChallengesStore.instance.clear();
         // And for the share-sheet suggestions, which name people and live
         // OUTSIDE the app — in the system's shortcut store and in Siri's

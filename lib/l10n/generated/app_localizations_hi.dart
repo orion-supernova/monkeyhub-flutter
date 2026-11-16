@@ -16617,4 +16617,235 @@ class AppLocalizationsHi extends AppLocalizations {
   String streakSaveBody(int count) {
     return 'आपने कल नहीं खेला। आज खेलें, और 2 केले आपकी $count दिन की स्ट्रीक जारी रखेंगे।';
   }
+
+  @override
+  String get chatFolderTabAll => 'सभी';
+
+  @override
+  String get chatFolderAllChats => 'सभी चैट';
+
+  @override
+  String get chatFolderEditFolders => 'फ़ोल्डर बदलें';
+
+  @override
+  String get chatFolderAddFolder => 'फ़ोल्डर जोड़ें';
+
+  @override
+  String get chatFolderEdit => 'फ़ोल्डर बदलें';
+
+  @override
+  String get chatFolderNew => 'नया फ़ोल्डर';
+
+  @override
+  String get chatFolderDelete => 'फ़ोल्डर मिटाएँ';
+
+  @override
+  String chatFolderDeleteTitle(String name) {
+    return '\"$name\" मिटाएँ?';
+  }
+
+  @override
+  String get chatFolderDeleteBody =>
+      'आपकी चैट वहीं रहेंगी जहाँ हैं। सिर्फ़ फ़ोल्डर हटेगा।';
+
+  @override
+  String get chatFoldersTitle => 'चैट फ़ोल्डर';
+
+  @override
+  String get chatFoldersIntro =>
+      'अपनी चैट को फ़ोल्डर में सजाएँ और चैट सूची के ऊपर टैब से उनके बीच बदलें।';
+
+  @override
+  String get chatFoldersMine => 'मेरे फ़ोल्डर';
+
+  @override
+  String get chatFoldersCreate => 'फ़ोल्डर बनाएँ';
+
+  @override
+  String chatFoldersUsed(int count, int max) {
+    return '$max में से $count फ़ोल्डर इस्तेमाल हुए';
+  }
+
+  @override
+  String chatFoldersCapReached(int max) {
+    return 'आपके पास $max फ़ोल्डर हैं, यही सबसे ज़्यादा हो सकते हैं। नया बनाने के लिए एक मिटाएँ।';
+  }
+
+  @override
+  String get chatFoldersReorderHint =>
+      'क्रम बदलने के लिए खींचें। फ़ोल्डर आपके सभी डिवाइस पर सिंक होते हैं।';
+
+  @override
+  String get chatFoldersRecommended => 'सुझाए गए';
+
+  @override
+  String get chatFoldersAddSuggested => 'जोड़ें';
+
+  @override
+  String get chatFolderSuggestUnread => 'अपठित';
+
+  @override
+  String get chatFolderSuggestUnreadSub => 'आपकी सभी चैट के नए मैसेज';
+
+  @override
+  String get chatFolderSuggestPersonal => 'पर्सनल';
+
+  @override
+  String get chatFolderSuggestPersonalSub => 'सिर्फ़ डायरेक्ट मैसेज';
+
+  @override
+  String get chatFolderSuggestGroups => 'ग्रुप';
+
+  @override
+  String get chatFolderSuggestGroupsSub => 'सिर्फ़ ग्रुप चैट';
+
+  @override
+  String get chatFoldersShowTags => 'फ़ोल्डर टैग दिखाएँ';
+
+  @override
+  String get chatFoldersShowTagsSub => 'सभी चैट में चैट पर फ़ोल्डर के नाम';
+
+  @override
+  String chatFolderChatCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count चैट',
+      one: '1 चैट',
+      zero: 'कोई चैट नहीं',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFolderNameHeader => 'फ़ोल्डर का नाम';
+
+  @override
+  String get chatFolderNamePlaceholder => 'फ़ोल्डर का नाम';
+
+  @override
+  String get chatFolderIcon => 'आइकन';
+
+  @override
+  String get chatFolderIconNone => 'कोई नहीं';
+
+  @override
+  String get chatFolderIncluded => 'शामिल चैट';
+
+  @override
+  String get chatFolderIncludedFooter =>
+      'इस फ़ोल्डर में दिखाने के लिए चैट या चैट के प्रकार चुनें।';
+
+  @override
+  String get chatFolderAddChats => 'चैट जोड़ें';
+
+  @override
+  String get chatFolderExcluded => 'बाहर रखी गई चैट';
+
+  @override
+  String get chatFolderExcludedFooter =>
+      'वे चैट या चैट के प्रकार चुनें जो इस फ़ोल्डर में कभी न दिखें।';
+
+  @override
+  String get chatFolderExcludeChats => 'चैट बाहर रखें';
+
+  @override
+  String get chatFolderTypeDms => 'डायरेक्ट मैसेज';
+
+  @override
+  String get chatFolderTypeGroups => 'ग्रुप';
+
+  @override
+  String get chatFolderTypeMuted => 'म्यूट';
+
+  @override
+  String get chatFolderTypeRead => 'पढ़ी हुई';
+
+  @override
+  String get chatFolderTypeArchived => 'आर्काइव की गई';
+
+  @override
+  String chatFolderShowMore(int count) {
+    return '$count और दिखाएँ';
+  }
+
+  @override
+  String get chatFolderTagHeader => 'फ़ोल्डर टैग का रंग';
+
+  @override
+  String get chatFolderTagFooter =>
+      'टैग सभी चैट में उस फ़ोल्डर की चैट पर फ़ोल्डर का नाम दिखाता है।';
+
+  @override
+  String get chatFolderTagNone => 'कोई टैग नहीं';
+
+  @override
+  String get chatFolderSave => 'सेव करो';
+
+  @override
+  String get chatFolderCancel => 'रद्द करो';
+
+  @override
+  String get chatFolderNeedsChats => 'कम से कम एक चैट या चैट का प्रकार जोड़ें।';
+
+  @override
+  String get chatFolderSaveFailed =>
+      'फ़ोल्डर सेव नहीं हो सका। फिर से कोशिश करें।';
+
+  @override
+  String chatFolderRoomsCap(int max) {
+    return 'एक फ़ोल्डर में हाथ से चुनी गई ज़्यादा से ज़्यादा $max चैट रह सकती हैं।';
+  }
+
+  @override
+  String get chatFolderPickIncludeTitle => 'चैट शामिल करें';
+
+  @override
+  String get chatFolderPickExcludeTitle => 'चैट बाहर रखें';
+
+  @override
+  String get chatFolderPickTypes => 'चैट के प्रकार';
+
+  @override
+  String get chatFolderPickChats => 'चैट';
+
+  @override
+  String get chatFolderPickSearch => 'चैट खोजें';
+
+  @override
+  String chatFolderPickCount(int count, int max) {
+    return '$max में से $count चैट चुनी गईं';
+  }
+
+  @override
+  String get chatFolderPickDone => 'हो गया';
+
+  @override
+  String get chatRowActionMenuAddToFolder => 'फ़ोल्डर में जोड़ें';
+
+  @override
+  String get chatRowActionMenuRemoveFromFolder => 'फ़ोल्डर से हटाएँ';
+
+  @override
+  String chatFolderAddedToast(String name) {
+    return '$name में जोड़ा गया';
+  }
+
+  @override
+  String chatFolderRemovedToast(String name) {
+    return '$name से हटाया गया';
+  }
+
+  @override
+  String get chatFolderEmptyTitle => 'यहाँ अभी कोई चैट नहीं';
+
+  @override
+  String get chatFolderEmptyBody => 'इस फ़ोल्डर से मेल खाती चैट यहाँ दिखेंगी।';
+
+  @override
+  String get tabMenuHideCalls => 'कॉल टैब छिपाएँ';
+
+  @override
+  String get tabMenuCallsHiddenToast =>
+      'कॉल टैब छिपा दिया गया। इसे सेटिंग्स > नेविगेशन में वापस ला सकते हैं।';
 }

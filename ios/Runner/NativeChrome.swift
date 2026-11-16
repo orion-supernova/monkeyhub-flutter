@@ -16,7 +16,8 @@ import UIKit
 /// reports taps. Every Dart call is idempotent, so a hot restart — which
 /// leaves this view alive under a fresh isolate — resyncs by just calling
 /// `configure` again.
-final class NativeChrome: NSObject, UITabBarDelegate {
+final class NativeChrome: NSObject, UITabBarDelegate,
+    UIContextMenuInteractionDelegate {
   private let channel: FlutterMethodChannel
   private weak var hostController: UIViewController?
   private var bar: UITabBar? {
@@ -55,6 +56,15 @@ final class NativeChrome: NSObject, UITabBarDelegate {
   /// the tab bar vanished. Calls from anyone but the current owner are
   /// ignored.
   private var owner: Int = -1
+
+  /// Each tab's long-press menu, in tab order, as Dart last sent it
+  /// (`lib/screens/navigation/tab_menus.dart`). An empty list is no menu,
+  /// and the hold falls through to the bar's own behaviour.
+  private var menus: [[[String: Any]]] = []
+
+  /// The stand-in the menu lifts out of while it is open: a snapshot of the
+  /// pressed tab, laid over it. Removed when the menu closes.
+  private var menuAnchor: UIView?
 
   /// Takes the controller, never its view. Reading `.view` here — during scene
   /// connection, before the window is visible and before FlutterSceneDelegate
@@ -135,6 +145,7 @@ final class NativeChrome: NSObject, UITabBarDelegate {
       return tabItem
     }
     tabBar.translatesAutoresizingMaskIntoConstraints = false
+    tabBar.addInteraction(UIContextMenuInteraction(delegate: self))
     host.addSubview(tabBar)
     NSLayoutConstraint.activate([
       tabBar.leadingAnchor.constraint(equalTo: host.leadingAnchor),
@@ -157,10 +168,149 @@ final class NativeChrome: NSObject, UITabBarDelegate {
     if let tint = args["tint"] as? Int {
       bar.tintColor = UIColor(argb: tint)
     }
+    if let json = args["menus"] as? String,
+       let data = json.data(using: .utf8),
+       let parsed = try? JSONSerialization.jsonObject(with: data)
+         as? [[[String: Any]]] {
+      menus = parsed
+    }
     if let dark = args["dark"] as? Bool {
       // The app's theme, not the phone's: Midnight on a phone in light mode
       // still wants dark glass.
       bar.overrideUserInterfaceStyle = dark ? .dark : .light
+    }
+  }
+
+  // MARK: Long-press menus
+
+  /// Where tab [index] sits in the bar's own coordinates. Reads the system's
+  /// tab buttons when it can find exactly one per item, and otherwise splits
+  /// the bar evenly, which is how iOS lays the tabs out anyway.
+  private func tabRect(_ index: Int, in bar: UITabBar) -> CGRect {
+    let count = max(bar.items?.count ?? 1, 1)
+    var buttons: [UIView] = []
+    func walk(_ v: UIView) {
+      for sub in v.subviews {
+        let name = String(describing: type(of: sub))
+        if name.contains("TabBarButton") || name.contains("TabButton") {
+          buttons.append(sub)
+        } else {
+          walk(sub)
+        }
+      }
+    }
+    walk(bar)
+    if buttons.count == count {
+      let frames = buttons
+        .map { $0.convert($0.bounds, to: bar) }
+        .sorted { $0.minX < $1.minX }
+      let rtl = bar.effectiveUserInterfaceLayoutDirection == .rightToLeft
+      return frames[rtl ? count - 1 - index : index]
+    }
+    let w = bar.bounds.width / CGFloat(count)
+    return CGRect(x: w * CGFloat(index), y: 0, width: w,
+                  height: min(bar.bounds.height, 64))
+  }
+
+  private func tabIndex(at point: CGPoint, in bar: UITabBar) -> Int? {
+    let count = bar.items?.count ?? 0
+    guard count > 0 else { return nil }
+    var best: (Int, CGFloat)?
+    for i in 0..<count {
+      let r = tabRect(i, in: bar)
+      if r.contains(point) { return i }
+      let d = abs(r.midX - point.x)
+      if best == nil || d < best!.1 { best = (i, d) }
+    }
+    return best?.0
+  }
+
+  private func buildMenu(_ items: [[String: Any]]) -> UIMenu {
+    var groups: [[UIMenuElement]] = [[]]
+    for item in items {
+      guard let id = item["id"] as? String,
+            let title = item["title"] as? String else { continue }
+      if item["group"] as? Bool == true, !(groups.last?.isEmpty ?? true) {
+        groups.append([])
+      }
+      let symbol = item["symbol"] as? String
+      let action = UIAction(
+        title: title,
+        image: symbol.flatMap { UIImage(systemName: $0) }
+      ) { [weak self] _ in
+        self?.channel.invokeMethod("menu", arguments: id)
+      }
+      if item["checked"] as? Bool == true { action.state = .on }
+      if item["destructive"] as? Bool == true {
+        action.attributes = .destructive
+      }
+      if #available(iOS 16, *), let subtitle = item["subtitle"] as? String {
+        action.subtitle = subtitle
+      }
+      groups[groups.count - 1].append(action)
+    }
+    if groups.count == 1 { return UIMenu(children: groups[0]) }
+    return UIMenu(children: groups.map {
+      UIMenu(title: "", options: .displayInline, children: $0)
+    })
+  }
+
+  func contextMenuInteraction(
+    _ interaction: UIContextMenuInteraction,
+    configurationForMenuAtLocation location: CGPoint
+  ) -> UIContextMenuConfiguration? {
+    guard let bar, bar.alpha > 0.5,
+          let index = tabIndex(at: location, in: bar),
+          index < menus.count, !menus[index].isEmpty
+    else { return nil }
+    let items = menus[index]
+    return UIContextMenuConfiguration(
+      identifier: NSNumber(value: index),
+      previewProvider: nil
+    ) { [weak self] _ in
+      self?.buildMenu(items)
+    }
+  }
+
+  func contextMenuInteraction(
+    _ interaction: UIContextMenuInteraction,
+    previewForHighlightingMenuWithConfiguration
+      configuration: UIContextMenuConfiguration
+  ) -> UITargetedPreview? {
+    guard let bar,
+          let index = (configuration.identifier as? NSNumber)?.intValue
+    else { return nil }
+    let rect = tabRect(index, in: bar)
+    menuAnchor?.removeFromSuperview()
+    let anchor = bar.resizableSnapshotView(
+      from: rect, afterScreenUpdates: false, withCapInsets: .zero
+    ) ?? UIView()
+    anchor.frame = rect
+    anchor.isUserInteractionEnabled = false
+    bar.addSubview(anchor)
+    menuAnchor = anchor
+    let params = UIPreviewParameters()
+    params.backgroundColor = .clear
+    params.visiblePath = UIBezierPath(
+      roundedRect: anchor.bounds,
+      cornerRadius: min(anchor.bounds.height, anchor.bounds.width) / 2
+    )
+    return UITargetedPreview(view: anchor, parameters: params)
+  }
+
+  func contextMenuInteraction(
+    _ interaction: UIContextMenuInteraction,
+    willEndFor configuration: UIContextMenuConfiguration,
+    animator: UIContextMenuInteractionAnimating?
+  ) {
+    let done = { [weak self] in
+      self?.menuAnchor?.removeFromSuperview()
+      self?.menuAnchor = nil
+    }
+    if let animator {
+      animator.addCompletion(done)
+    } else {
+      done()
     }
   }
 

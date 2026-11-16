@@ -36,6 +36,7 @@ class MenuRow extends StatefulWidget {
     this.fontSize = 17,
     this.lineHeight,
     this.iconSize = 19,
+    this.badge,
   })  : highlighted = null,
         onHover = null,
         iconFirst = false;
@@ -55,6 +56,7 @@ class MenuRow extends StatefulWidget {
     this.lineHeight = 1.2,
     this.iconSize = 15,
   })  : leading = null,
+        badge = null,
         divider = false,
         iconFirst = true;
 
@@ -76,6 +78,9 @@ class MenuRow extends StatefulWidget {
   /// Null leaves the theme's own line height.
   final double? lineHeight;
   final double iconSize;
+
+  /// A count after the label, in muted ink (a folder's unread chats).
+  final String? badge;
 
   /// Null on a touch row; the parent's cursor on a pointer row.
   final bool? highlighted;
@@ -124,6 +129,17 @@ class _MenuRowState extends State<MenuRow> with TeardownSafe<MenuRow> {
         ?widget.leading,
         if (widget.iconFirst && glyph != null) ...[glyph, const SizedBox(width: 9)],
         text,
+        if (widget.badge != null) ...[
+          const SizedBox(width: 8),
+          Text(
+            widget.badge!,
+            style: theme.body.copyWith(
+              fontSize: widget.fontSize - 2,
+              color: theme.inkSoft,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
         if (!widget.iconFirst && glyph != null) ...[
           const SizedBox(width: 12),
           glyph,

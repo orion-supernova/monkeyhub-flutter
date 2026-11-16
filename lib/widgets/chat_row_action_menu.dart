@@ -39,6 +39,12 @@ enum ChatRowAction {
   mute,
   unmute,
 
+  /// Opens the folder picker for this chat (Telegram's "Add to Folder").
+  addToFolder,
+
+  /// Takes the chat out of the folder the list is showing.
+  removeFromFolder,
+
   /// Not one of the menu's rows — resolved when the lifted preview card
   /// itself is tapped rather than one of the options below it. The same
   /// action the room's own row already offers on a plain tap; the preview
@@ -151,6 +157,8 @@ Future<ChatRowAction?> showChatRowActionMenu({
   required bool isArchived,
   required bool isMuted,
   required bool canMute,
+  bool canAddToFolder = false,
+  bool inFolder = false,
 }) async {
   final overlay = Overlay.of(context, rootOverlay: true);
   final anchorCtx = anchorKey.currentContext;
@@ -182,6 +190,8 @@ Future<ChatRowAction?> showChatRowActionMenu({
       isArchived: isArchived,
       isMuted: isMuted,
       canMute: canMute,
+      canAddToFolder: canAddToFolder,
+      inFolder: inFolder,
       onResolve: (result) {
         if (!completer.isCompleted) completer.complete(result);
         releaseChrome();
@@ -206,6 +216,8 @@ class _ChatRowActionMenuOverlay extends StatefulWidget {
     required this.isArchived,
     required this.isMuted,
     required this.canMute,
+    this.canAddToFolder = false,
+    this.inFolder = false,
     required this.onResolve,
   });
 
@@ -220,6 +232,8 @@ class _ChatRowActionMenuOverlay extends StatefulWidget {
   final bool isArchived;
   final bool isMuted;
   final bool canMute;
+  final bool canAddToFolder;
+  final bool inFolder;
   final ValueChanged<ChatRowAction?> onResolve;
 
   @override
@@ -289,6 +303,8 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> wi
     if (!widget.isArchived) widget.isPinned ? ChatRowAction.unpin : ChatRowAction.pin,
     if (widget.canMute) widget.isMuted ? ChatRowAction.unmute : ChatRowAction.mute,
     widget.isArchived ? ChatRowAction.unarchive : ChatRowAction.archive,
+    if (widget.canAddToFolder) ChatRowAction.addToFolder,
+    if (widget.inFolder) ChatRowAction.removeFromFolder,
   ];
 
   @override
@@ -977,6 +993,8 @@ class _ChatRowActionRow extends StatelessWidget {
     ChatRowAction.unarchive => (CupertinoIcons.tray_arrow_up, l10n.chatRowActionMenuUnarchiveLabel),
     ChatRowAction.mute => (CupertinoIcons.bell_slash, l10n.chatRowActionMenuMuteLabel),
     ChatRowAction.unmute => (CupertinoIcons.bell, l10n.chatRowActionMenuUnmuteLabel),
+    ChatRowAction.addToFolder => (CupertinoIcons.folder_badge_plus, l10n.chatRowActionMenuAddToFolder),
+    ChatRowAction.removeFromFolder => (CupertinoIcons.folder_badge_minus, l10n.chatRowActionMenuRemoveFromFolder),
     // Never actually reached: `_actions` (the only place a `ChatRowAction`
     // becomes an `_ChatRowActionRow`) never includes `open` — it resolves
     // straight from a tap on the lifted card, not a row in this list. Listed

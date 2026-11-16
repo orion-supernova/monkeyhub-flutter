@@ -29,11 +29,18 @@ class ShaderTabBar extends StatelessWidget {
     required this.active,
     required this.onSelect,
     required this.badges,
+    this.menuSections = const {},
+    this.onMenu,
   });
 
   final HomeSection active;
   final ValueChanged<HomeSection> onSelect;
   final Map<HomeSection, int> badges;
+
+  /// Tabs with a long-press menu, and where to send a hold on one (the
+  /// tab's rect in global coordinates).
+  final Set<HomeSection> menuSections;
+  final void Function(HomeSection section, Rect tab)? onMenu;
 
   static const double barHeight = 64;
 
@@ -155,7 +162,29 @@ class ShaderTabBar extends StatelessWidget {
         // icon of each tab that has one, on the same slot grid the bar uses.
         final count = dests.length;
         final slot = (box.maxWidth - 2 * tabInset) / count;
-        return Stack(
+        void hold(LongPressStartDetails d) {
+          final menu = onMenu;
+          if (menu == null) return;
+          final i = ((d.localPosition.dx - tabInset) / slot)
+              .floor()
+              .clamp(0, count - 1);
+          if (!menuSections.contains(dests[i].section)) return;
+          HapticFeedback.mediumImpact();
+          final origin = d.globalPosition - d.localPosition;
+          menu(
+            dests[i].section,
+            Rect.fromLTWH(
+              origin.dx + tabInset + slot * i,
+              origin.dy,
+              slot,
+              barHeight,
+            ),
+          );
+        }
+
+        return GestureDetector(
+          onLongPressStart: onMenu == null ? null : hold,
+          child: Stack(
           clipBehavior: Clip.none,
           children: [
             tabs,
@@ -172,6 +201,7 @@ class ShaderTabBar extends StatelessWidget {
                   ),
                 ),
           ],
+        ),
         );
       },
     );

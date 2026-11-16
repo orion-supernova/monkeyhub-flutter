@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../backend/feed_api.dart';
+import '../data/chat_folder_store.dart';
 import '../data/chat_repository.dart';
 import '../data/feed_store.dart';
 import '../data/settings_store.dart';
@@ -36,6 +37,7 @@ import 'navigation/open_room.dart';
 import 'navigation/pill_bottom_nav.dart';
 import 'navigation/room_side_pane.dart';
 import 'navigation/section_switcher.dart';
+import 'navigation/tab_menus.dart';
 import 'navigation/tab_reselect.dart';
 import 'room_screen.dart';
 import 'settings_screen.dart';
@@ -89,6 +91,8 @@ class _HomeShellState extends State<HomeShell> {
     FeedStore.instance.addListener(_onFeed);
     // Missed calls move the Calls tab's badge.
     CallLogStore.instance.addListener(_onSettings);
+    // Folder names and counts ride in the Chats tab's long-press menu.
+    ChatFolderStore.instance.addListener(_onSettings);
     // Lights the Settings tab the moment either the launch check or a manual
     // "Check for Updates" tap finds a newer build.
     UpdateAvailability.instance.addListener(_onSettings);
@@ -140,6 +144,7 @@ class _HomeShellState extends State<HomeShell> {
     widget.repo.removeListener(_onSettings);
     FeedStore.instance.removeListener(_onFeed);
     CallLogStore.instance.removeListener(_onSettings);
+    ChatFolderStore.instance.removeListener(_onSettings);
     UpdateAvailability.instance.removeListener(_onSettings);
     super.dispose();
   }
@@ -213,6 +218,43 @@ class _HomeShellState extends State<HomeShell> {
         widget.family.pendingCount +
         (UpdateAvailability.instance.available ? 1 : 0),
   };
+
+  /// Tabs whose long-press opens a menu: Chats (folders) and Calls (hide).
+  Set<HomeSection> get _menuSections => {
+    HomeSection.chat,
+    if (SettingsStore.instance.showCallsTab) HomeSection.calls,
+  };
+
+  /// A hold on a Flutter-drawn tab: its menu, anchored to the tab.
+  void _openTabMenu(HomeSection section, Rect tab) {
+    unawaited(
+      showTabMenu(
+        context,
+        section: section,
+        anchorRect: tab,
+        repo: widget.repo,
+        api: widget.api,
+        select: _select,
+      ),
+    );
+  }
+
+  /// The same menus as plain data for the iOS tab bar, one list per tab in
+  /// [navOrder].
+  List<List<TabMenuItem>> _nativeMenus(AppLocalizations l10n) => [
+    for (final s in navOrder) tabMenuFor(s, l10n, widget.repo),
+  ];
+
+  /// A pick from the native bar's menu.
+  void _onNativeMenu(String id) => unawaited(
+    runTabMenu(
+      context,
+      id: id,
+      repo: widget.repo,
+      api: widget.api,
+      select: _select,
+    ),
+  );
 
   Widget _section() {
     switch (SettingsStore.instance.section) {
@@ -308,6 +350,8 @@ class _HomeShellState extends State<HomeShell> {
                 active: settings.section,
                 onSelect: _select,
                 badges: _badges,
+                menus: _nativeMenus(AppLocalizations.of(context)),
+                onMenu: _onNativeMenu,
               ),
             )
           else if (UiKit.of(context) == UiKit.shader)
@@ -317,12 +361,16 @@ class _HomeShellState extends State<HomeShell> {
               active: settings.section,
               onSelect: _select,
               badges: _badges,
+              menuSections: _menuSections,
+              onMenu: _openTabMenu,
             )
           else
             PillBottomNav(
               active: settings.section,
               onSelect: _select,
               badges: _badges,
+              menuSections: _menuSections,
+              onMenu: _openTabMenu,
             ),
         ],
       ),
@@ -352,6 +400,8 @@ class _HomeShellState extends State<HomeShell> {
                   active: settings.section,
                   onSelect: _select,
                   badges: _badges,
+                  menuSections: _menuSections,
+                  onMenu: _openTabMenu,
                 ),
                 VerticalDivider(
                   width: 0.5,
@@ -694,11 +744,17 @@ class _SideRail extends StatelessWidget {
     required this.active,
     required this.onSelect,
     required this.badges,
+    required this.menuSections,
+    required this.onMenu,
   });
 
   final HomeSection active;
   final ValueChanged<HomeSection> onSelect;
   final Map<HomeSection, int> badges;
+
+  /// Right-click or a long press on one of these opens its tab menu.
+  final Set<HomeSection> menuSections;
+  final void Function(HomeSection section, Rect tab) onMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -754,12 +810,23 @@ class _SideRail extends StatelessWidget {
     int badge = 0,
   }) {
     final isActive = s == active;
+    final hasMenu = menuSections.contains(s);
     return FocusableTap(
       onTap: () => onSelect(s),
       semanticLabel: label,
       shape: FocusRingShape.capsule,
-      child: GestureDetector(
+      child: Builder(
+        builder: (btn) {
+          void menu() {
+            final box = btn.findRenderObject() as RenderBox?;
+            if (box == null || !box.attached) return;
+            onMenu(s, box.localToGlobal(Offset.zero) & box.size);
+          }
+
+          return GestureDetector(
         onTap: () => onSelect(s),
+        onLongPress: hasMenu ? menu : null,
+        onSecondaryTap: hasMenu ? menu : null,
         behavior: HitTestBehavior.opaque,
         child: AnimatedContainer(
           duration: theme.motionFast,
@@ -824,6 +891,8 @@ class _SideRail extends StatelessWidget {
             ],
           ),
         ),
+      );
+        },
       ),
     );
   }

@@ -16645,4 +16645,235 @@ class AppLocalizationsEn extends AppLocalizations {
   String streakSaveBody(int count) {
     return 'You missed yesterday. Play today and 2 bananas keep your $count-day streak going.';
   }
+
+  @override
+  String get chatFolderTabAll => 'All';
+
+  @override
+  String get chatFolderAllChats => 'All Chats';
+
+  @override
+  String get chatFolderEditFolders => 'Edit Folders';
+
+  @override
+  String get chatFolderAddFolder => 'Add Folder';
+
+  @override
+  String get chatFolderEdit => 'Edit Folder';
+
+  @override
+  String get chatFolderNew => 'New Folder';
+
+  @override
+  String get chatFolderDelete => 'Delete Folder';
+
+  @override
+  String chatFolderDeleteTitle(String name) {
+    return 'Delete \"$name\"?';
+  }
+
+  @override
+  String get chatFolderDeleteBody =>
+      'Your chats stay where they are. Only the folder goes.';
+
+  @override
+  String get chatFoldersTitle => 'Chat Folders';
+
+  @override
+  String get chatFoldersIntro =>
+      'Sort chats into folders and switch between them with the tabs above your chat list.';
+
+  @override
+  String get chatFoldersMine => 'My Folders';
+
+  @override
+  String get chatFoldersCreate => 'Create a Folder';
+
+  @override
+  String chatFoldersUsed(int count, int max) {
+    return '$count of $max folders used';
+  }
+
+  @override
+  String chatFoldersCapReached(int max) {
+    return 'You have $max folders, the most there can be. Delete one to make another.';
+  }
+
+  @override
+  String get chatFoldersReorderHint =>
+      'Drag to reorder. Folders sync to all your devices.';
+
+  @override
+  String get chatFoldersRecommended => 'Recommended';
+
+  @override
+  String get chatFoldersAddSuggested => 'Add';
+
+  @override
+  String get chatFolderSuggestUnread => 'Unread';
+
+  @override
+  String get chatFolderSuggestUnreadSub => 'New messages from all your chats';
+
+  @override
+  String get chatFolderSuggestPersonal => 'Personal';
+
+  @override
+  String get chatFolderSuggestPersonalSub => 'Only direct messages';
+
+  @override
+  String get chatFolderSuggestGroups => 'Groups';
+
+  @override
+  String get chatFolderSuggestGroupsSub => 'Only group chats';
+
+  @override
+  String get chatFoldersShowTags => 'Show folder tags';
+
+  @override
+  String get chatFoldersShowTagsSub => 'Folder names on chats in All Chats';
+
+  @override
+  String chatFolderChatCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count chats',
+      one: '1 chat',
+      zero: 'No chats',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFolderNameHeader => 'Folder name';
+
+  @override
+  String get chatFolderNamePlaceholder => 'Folder name';
+
+  @override
+  String get chatFolderIcon => 'Icon';
+
+  @override
+  String get chatFolderIconNone => 'None';
+
+  @override
+  String get chatFolderIncluded => 'Included chats';
+
+  @override
+  String get chatFolderIncludedFooter =>
+      'Choose chats or kinds of chat to show in this folder.';
+
+  @override
+  String get chatFolderAddChats => 'Add Chats';
+
+  @override
+  String get chatFolderExcluded => 'Excluded chats';
+
+  @override
+  String get chatFolderExcludedFooter =>
+      'Choose chats or kinds of chat that never show in this folder.';
+
+  @override
+  String get chatFolderExcludeChats => 'Exclude Chats';
+
+  @override
+  String get chatFolderTypeDms => 'Direct messages';
+
+  @override
+  String get chatFolderTypeGroups => 'Groups';
+
+  @override
+  String get chatFolderTypeMuted => 'Muted';
+
+  @override
+  String get chatFolderTypeRead => 'Read';
+
+  @override
+  String get chatFolderTypeArchived => 'Archived';
+
+  @override
+  String chatFolderShowMore(int count) {
+    return 'Show $count more';
+  }
+
+  @override
+  String get chatFolderTagHeader => 'Folder tag colour';
+
+  @override
+  String get chatFolderTagFooter =>
+      'The tag shows this folder\'s name on its chats in All Chats.';
+
+  @override
+  String get chatFolderTagNone => 'No tag';
+
+  @override
+  String get chatFolderSave => 'Save';
+
+  @override
+  String get chatFolderCancel => 'Cancel';
+
+  @override
+  String get chatFolderNeedsChats => 'Add at least one chat or kind of chat.';
+
+  @override
+  String get chatFolderSaveFailed => 'Couldn\'t save the folder. Try again.';
+
+  @override
+  String chatFolderRoomsCap(int max) {
+    return 'A folder can hold up to $max chats picked by hand.';
+  }
+
+  @override
+  String get chatFolderPickIncludeTitle => 'Include Chats';
+
+  @override
+  String get chatFolderPickExcludeTitle => 'Exclude Chats';
+
+  @override
+  String get chatFolderPickTypes => 'Chat types';
+
+  @override
+  String get chatFolderPickChats => 'Chats';
+
+  @override
+  String get chatFolderPickSearch => 'Search chats';
+
+  @override
+  String chatFolderPickCount(int count, int max) {
+    return '$count of $max chats chosen';
+  }
+
+  @override
+  String get chatFolderPickDone => 'Done';
+
+  @override
+  String get chatRowActionMenuAddToFolder => 'Add to Folder';
+
+  @override
+  String get chatRowActionMenuRemoveFromFolder => 'Remove from Folder';
+
+  @override
+  String chatFolderAddedToast(String name) {
+    return 'Added to $name';
+  }
+
+  @override
+  String chatFolderRemovedToast(String name) {
+    return 'Removed from $name';
+  }
+
+  @override
+  String get chatFolderEmptyTitle => 'No chats here yet';
+
+  @override
+  String get chatFolderEmptyBody =>
+      'Chats that match this folder will show up here.';
+
+  @override
+  String get tabMenuHideCalls => 'Hide Calls Tab';
+
+  @override
+  String get tabMenuCallsHiddenToast =>
+      'Calls tab hidden. Bring it back in Settings > Navigation.';
 }

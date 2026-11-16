@@ -16565,4 +16565,235 @@ class AppLocalizationsTr extends AppLocalizations {
   String streakSaveBody(int count) {
     return 'Dün oynamadın. Bugün oyna, 2 muzla $count günlük serin devam etsin.';
   }
+
+  @override
+  String get chatFolderTabAll => 'Tümü';
+
+  @override
+  String get chatFolderAllChats => 'Tüm sohbetler';
+
+  @override
+  String get chatFolderEditFolders => 'Klasörleri düzenle';
+
+  @override
+  String get chatFolderAddFolder => 'Klasör ekle';
+
+  @override
+  String get chatFolderEdit => 'Klasörü düzenle';
+
+  @override
+  String get chatFolderNew => 'Yeni klasör';
+
+  @override
+  String get chatFolderDelete => 'Klasörü sil';
+
+  @override
+  String chatFolderDeleteTitle(String name) {
+    return '\"$name\" silinsin mi?';
+  }
+
+  @override
+  String get chatFolderDeleteBody =>
+      'Sohbetlerin olduğu yerde kalır. Sadece klasör gider.';
+
+  @override
+  String get chatFoldersTitle => 'Sohbet Klasörleri';
+
+  @override
+  String get chatFoldersIntro =>
+      'Sohbetlerini klasörlere ayır, sohbet listenin üstündeki sekmelerle aralarında geç.';
+
+  @override
+  String get chatFoldersMine => 'Klasörlerim';
+
+  @override
+  String get chatFoldersCreate => 'Klasör oluştur';
+
+  @override
+  String chatFoldersUsed(int count, int max) {
+    return '$max klasörden $count tanesi kullanıldı';
+  }
+
+  @override
+  String chatFoldersCapReached(int max) {
+    return '$max klasörün var, en fazla bu kadar olabilir. Yenisi için birini sil.';
+  }
+
+  @override
+  String get chatFoldersReorderHint =>
+      'Sıralamak için sürükle. Klasörler tüm cihazlarında senkronize olur.';
+
+  @override
+  String get chatFoldersRecommended => 'Önerilenler';
+
+  @override
+  String get chatFoldersAddSuggested => 'Ekle';
+
+  @override
+  String get chatFolderSuggestUnread => 'Okunmamış';
+
+  @override
+  String get chatFolderSuggestUnreadSub => 'Tüm sohbetlerinden yeni mesajlar';
+
+  @override
+  String get chatFolderSuggestPersonal => 'Kişisel';
+
+  @override
+  String get chatFolderSuggestPersonalSub => 'Sadece birebir sohbetler';
+
+  @override
+  String get chatFolderSuggestGroups => 'Gruplar';
+
+  @override
+  String get chatFolderSuggestGroupsSub => 'Sadece grup sohbetleri';
+
+  @override
+  String get chatFoldersShowTags => 'Klasör etiketlerini göster';
+
+  @override
+  String get chatFoldersShowTagsSub =>
+      'Tüm Sohbetler\'deki sohbetlerde klasör adları';
+
+  @override
+  String chatFolderChatCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sohbet',
+      one: '1 sohbet',
+      zero: 'Sohbet yok',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFolderNameHeader => 'Klasör adı';
+
+  @override
+  String get chatFolderNamePlaceholder => 'Klasör adı';
+
+  @override
+  String get chatFolderIcon => 'Simge';
+
+  @override
+  String get chatFolderIconNone => 'Yok';
+
+  @override
+  String get chatFolderIncluded => 'Dahil edilen sohbetler';
+
+  @override
+  String get chatFolderIncludedFooter =>
+      'Bu klasörde görünecek sohbetleri veya sohbet türlerini seç.';
+
+  @override
+  String get chatFolderAddChats => 'Sohbet ekle';
+
+  @override
+  String get chatFolderExcluded => 'Hariç tutulan sohbetler';
+
+  @override
+  String get chatFolderExcludedFooter =>
+      'Bu klasörde hiç görünmeyecek sohbetleri veya sohbet türlerini seç.';
+
+  @override
+  String get chatFolderExcludeChats => 'Sohbetleri hariç tut';
+
+  @override
+  String get chatFolderTypeDms => 'Birebir mesajlar';
+
+  @override
+  String get chatFolderTypeGroups => 'Gruplar';
+
+  @override
+  String get chatFolderTypeMuted => 'Sessize alınanlar';
+
+  @override
+  String get chatFolderTypeRead => 'Okunanlar';
+
+  @override
+  String get chatFolderTypeArchived => 'Arşivlenenler';
+
+  @override
+  String chatFolderShowMore(int count) {
+    return '$count tane daha göster';
+  }
+
+  @override
+  String get chatFolderTagHeader => 'Klasör etiketi rengi';
+
+  @override
+  String get chatFolderTagFooter =>
+      'Etiket, Tüm Sohbetler\'de sohbetlerin üzerinde bu klasörün adını gösterir.';
+
+  @override
+  String get chatFolderTagNone => 'Etiket yok';
+
+  @override
+  String get chatFolderSave => 'Kaydet';
+
+  @override
+  String get chatFolderCancel => 'Vazgeç';
+
+  @override
+  String get chatFolderNeedsChats => 'En az bir sohbet veya sohbet türü ekle.';
+
+  @override
+  String get chatFolderSaveFailed => 'Klasör kaydedilemedi. Tekrar dene.';
+
+  @override
+  String chatFolderRoomsCap(int max) {
+    return 'Bir klasöre elle en fazla $max sohbet ekleyebilirsin.';
+  }
+
+  @override
+  String get chatFolderPickIncludeTitle => 'Sohbetleri dahil et';
+
+  @override
+  String get chatFolderPickExcludeTitle => 'Sohbetleri hariç tut';
+
+  @override
+  String get chatFolderPickTypes => 'Sohbet türleri';
+
+  @override
+  String get chatFolderPickChats => 'Sohbetler';
+
+  @override
+  String get chatFolderPickSearch => 'Sohbetlerde ara';
+
+  @override
+  String chatFolderPickCount(int count, int max) {
+    return '$max sohbetten $count tanesi seçildi';
+  }
+
+  @override
+  String get chatFolderPickDone => 'Tamam';
+
+  @override
+  String get chatRowActionMenuAddToFolder => 'Klasöre ekle';
+
+  @override
+  String get chatRowActionMenuRemoveFromFolder => 'Klasörden çıkar';
+
+  @override
+  String chatFolderAddedToast(String name) {
+    return '$name klasörüne eklendi';
+  }
+
+  @override
+  String chatFolderRemovedToast(String name) {
+    return '$name klasöründen çıkarıldı';
+  }
+
+  @override
+  String get chatFolderEmptyTitle => 'Burada henüz sohbet yok';
+
+  @override
+  String get chatFolderEmptyBody => 'Bu klasöre uyan sohbetler burada görünür.';
+
+  @override
+  String get tabMenuHideCalls => 'Aramalar sekmesini gizle';
+
+  @override
+  String get tabMenuCallsHiddenToast =>
+      'Aramalar sekmesi gizlendi. Ayarlar > Gezinme\'den geri getirebilirsin.';
 }

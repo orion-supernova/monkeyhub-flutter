@@ -16804,6 +16804,241 @@ class AppLocalizationsPt extends AppLocalizations {
   String streakSaveBody(int count) {
     return 'Ontem não jogaste. Joga hoje e 2 bananas mantêm a tua série de $count dias.';
   }
+
+  @override
+  String get chatFolderTabAll => 'Todas';
+
+  @override
+  String get chatFolderAllChats => 'Todas as conversas';
+
+  @override
+  String get chatFolderEditFolders => 'Editar pastas';
+
+  @override
+  String get chatFolderAddFolder => 'Adicionar pasta';
+
+  @override
+  String get chatFolderEdit => 'Editar pasta';
+
+  @override
+  String get chatFolderNew => 'Nova pasta';
+
+  @override
+  String get chatFolderDelete => 'Eliminar pasta';
+
+  @override
+  String chatFolderDeleteTitle(String name) {
+    return 'Eliminar \"$name\"?';
+  }
+
+  @override
+  String get chatFolderDeleteBody =>
+      'As tuas conversas ficam onde estão. Só a pasta desaparece.';
+
+  @override
+  String get chatFoldersTitle => 'Pastas de conversas';
+
+  @override
+  String get chatFoldersIntro =>
+      'Organiza as tuas conversas em pastas e alterna entre elas com os separadores por cima da lista de conversas.';
+
+  @override
+  String get chatFoldersMine => 'As minhas pastas';
+
+  @override
+  String get chatFoldersCreate => 'Criar uma pasta';
+
+  @override
+  String chatFoldersUsed(int count, int max) {
+    return '$count de $max pastas usadas';
+  }
+
+  @override
+  String chatFoldersCapReached(int max) {
+    return 'Tens $max pastas, o máximo possível. Elimina uma para criar outra.';
+  }
+
+  @override
+  String get chatFoldersReorderHint =>
+      'Arrasta para reordenar. As pastas sincronizam em todos os teus dispositivos.';
+
+  @override
+  String get chatFoldersRecommended => 'Recomendadas';
+
+  @override
+  String get chatFoldersAddSuggested => 'Adicionar';
+
+  @override
+  String get chatFolderSuggestUnread => 'Não lidas';
+
+  @override
+  String get chatFolderSuggestUnreadSub =>
+      'Mensagens novas de todas as tuas conversas';
+
+  @override
+  String get chatFolderSuggestPersonal => 'Pessoal';
+
+  @override
+  String get chatFolderSuggestPersonalSub => 'Só mensagens diretas';
+
+  @override
+  String get chatFolderSuggestGroups => 'Grupos';
+
+  @override
+  String get chatFolderSuggestGroupsSub => 'Só conversas de grupo';
+
+  @override
+  String get chatFoldersShowTags => 'Mostrar etiquetas de pasta';
+
+  @override
+  String get chatFoldersShowTagsSub =>
+      'Nomes de pasta nas conversas de Todas as conversas';
+
+  @override
+  String chatFolderChatCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conversas',
+      one: '1 conversa',
+      zero: 'Sem conversas',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFolderNameHeader => 'Nome da pasta';
+
+  @override
+  String get chatFolderNamePlaceholder => 'Nome da pasta';
+
+  @override
+  String get chatFolderIcon => 'Ícone';
+
+  @override
+  String get chatFolderIconNone => 'Nenhum';
+
+  @override
+  String get chatFolderIncluded => 'Conversas incluídas';
+
+  @override
+  String get chatFolderIncludedFooter =>
+      'Escolhe conversas ou tipos de conversa a mostrar nesta pasta.';
+
+  @override
+  String get chatFolderAddChats => 'Adicionar conversas';
+
+  @override
+  String get chatFolderExcluded => 'Conversas excluídas';
+
+  @override
+  String get chatFolderExcludedFooter =>
+      'Escolhe conversas ou tipos de conversa que nunca aparecem nesta pasta.';
+
+  @override
+  String get chatFolderExcludeChats => 'Excluir conversas';
+
+  @override
+  String get chatFolderTypeDms => 'Mensagens diretas';
+
+  @override
+  String get chatFolderTypeGroups => 'Grupos';
+
+  @override
+  String get chatFolderTypeMuted => 'Silenciadas';
+
+  @override
+  String get chatFolderTypeRead => 'Lidas';
+
+  @override
+  String get chatFolderTypeArchived => 'Arquivadas';
+
+  @override
+  String chatFolderShowMore(int count) {
+    return 'Mostrar mais $count';
+  }
+
+  @override
+  String get chatFolderTagHeader => 'Cor da etiqueta da pasta';
+
+  @override
+  String get chatFolderTagFooter =>
+      'A etiqueta mostra o nome desta pasta nas suas conversas em Todas as conversas.';
+
+  @override
+  String get chatFolderTagNone => 'Sem etiqueta';
+
+  @override
+  String get chatFolderSave => 'Guardar';
+
+  @override
+  String get chatFolderCancel => 'Cancelar';
+
+  @override
+  String get chatFolderNeedsChats =>
+      'Adiciona pelo menos uma conversa ou tipo de conversa.';
+
+  @override
+  String get chatFolderSaveFailed =>
+      'Não foi possível guardar a pasta. Tenta novamente.';
+
+  @override
+  String chatFolderRoomsCap(int max) {
+    return 'Uma pasta pode ter até $max conversas escolhidas à mão.';
+  }
+
+  @override
+  String get chatFolderPickIncludeTitle => 'Incluir conversas';
+
+  @override
+  String get chatFolderPickExcludeTitle => 'Excluir conversas';
+
+  @override
+  String get chatFolderPickTypes => 'Tipos de conversa';
+
+  @override
+  String get chatFolderPickChats => 'Conversas';
+
+  @override
+  String get chatFolderPickSearch => 'Pesquisar conversas';
+
+  @override
+  String chatFolderPickCount(int count, int max) {
+    return '$count de $max conversas escolhidas';
+  }
+
+  @override
+  String get chatFolderPickDone => 'Concluído';
+
+  @override
+  String get chatRowActionMenuAddToFolder => 'Adicionar à pasta';
+
+  @override
+  String get chatRowActionMenuRemoveFromFolder => 'Remover da pasta';
+
+  @override
+  String chatFolderAddedToast(String name) {
+    return 'Adicionada a $name';
+  }
+
+  @override
+  String chatFolderRemovedToast(String name) {
+    return 'Removida de $name';
+  }
+
+  @override
+  String get chatFolderEmptyTitle => 'Ainda não há conversas aqui';
+
+  @override
+  String get chatFolderEmptyBody =>
+      'As conversas que correspondem a esta pasta aparecem aqui.';
+
+  @override
+  String get tabMenuHideCalls => 'Ocultar separador Chamadas';
+
+  @override
+  String get tabMenuCallsHiddenToast =>
+      'Separador Chamadas oculto. Volta a ativá-lo em Definições > Navegação.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -33584,4 +33819,239 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String streakSaveBody(int count) {
     return 'Você não jogou ontem. Jogue hoje e 2 bananas mantêm sua sequência de $count dias.';
   }
+
+  @override
+  String get chatFolderTabAll => 'Todas';
+
+  @override
+  String get chatFolderAllChats => 'Todas as conversas';
+
+  @override
+  String get chatFolderEditFolders => 'Editar pastas';
+
+  @override
+  String get chatFolderAddFolder => 'Adicionar pasta';
+
+  @override
+  String get chatFolderEdit => 'Editar pasta';
+
+  @override
+  String get chatFolderNew => 'Nova pasta';
+
+  @override
+  String get chatFolderDelete => 'Apagar pasta';
+
+  @override
+  String chatFolderDeleteTitle(String name) {
+    return 'Apagar \"$name\"?';
+  }
+
+  @override
+  String get chatFolderDeleteBody =>
+      'Suas conversas continuam onde estão. Só a pasta some.';
+
+  @override
+  String get chatFoldersTitle => 'Pastas de chats';
+
+  @override
+  String get chatFoldersIntro =>
+      'Organize suas conversas em pastas e alterne entre elas pelas abas acima da lista de conversas.';
+
+  @override
+  String get chatFoldersMine => 'Minhas pastas';
+
+  @override
+  String get chatFoldersCreate => 'Criar uma pasta';
+
+  @override
+  String chatFoldersUsed(int count, int max) {
+    return '$count de $max pastas usadas';
+  }
+
+  @override
+  String chatFoldersCapReached(int max) {
+    return 'Você tem $max pastas, o máximo possível. Apague uma para criar outra.';
+  }
+
+  @override
+  String get chatFoldersReorderHint =>
+      'Arraste para reordenar. As pastas sincronizam em todos os seus dispositivos.';
+
+  @override
+  String get chatFoldersRecommended => 'Recomendadas';
+
+  @override
+  String get chatFoldersAddSuggested => 'Adicionar';
+
+  @override
+  String get chatFolderSuggestUnread => 'Não lidas';
+
+  @override
+  String get chatFolderSuggestUnreadSub =>
+      'Mensagens novas de todas as suas conversas';
+
+  @override
+  String get chatFolderSuggestPersonal => 'Pessoal';
+
+  @override
+  String get chatFolderSuggestPersonalSub => 'Só mensagens diretas';
+
+  @override
+  String get chatFolderSuggestGroups => 'Grupos';
+
+  @override
+  String get chatFolderSuggestGroupsSub => 'Só conversas em grupo';
+
+  @override
+  String get chatFoldersShowTags => 'Mostrar etiquetas de pasta';
+
+  @override
+  String get chatFoldersShowTagsSub =>
+      'Nomes de pasta nas conversas de Todas as conversas';
+
+  @override
+  String chatFolderChatCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conversas',
+      one: '1 conversa',
+      zero: 'Sem conversas',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get chatFolderNameHeader => 'Nome da pasta';
+
+  @override
+  String get chatFolderNamePlaceholder => 'Nome da pasta';
+
+  @override
+  String get chatFolderIcon => 'Ícone';
+
+  @override
+  String get chatFolderIconNone => 'Nenhum';
+
+  @override
+  String get chatFolderIncluded => 'Conversas incluídas';
+
+  @override
+  String get chatFolderIncludedFooter =>
+      'Escolha conversas ou tipos de conversa para mostrar nesta pasta.';
+
+  @override
+  String get chatFolderAddChats => 'Adicionar conversas';
+
+  @override
+  String get chatFolderExcluded => 'Conversas excluídas';
+
+  @override
+  String get chatFolderExcludedFooter =>
+      'Escolha conversas ou tipos de conversa que nunca aparecem nesta pasta.';
+
+  @override
+  String get chatFolderExcludeChats => 'Excluir conversas';
+
+  @override
+  String get chatFolderTypeDms => 'Mensagens diretas';
+
+  @override
+  String get chatFolderTypeGroups => 'Grupos';
+
+  @override
+  String get chatFolderTypeMuted => 'Silenciadas';
+
+  @override
+  String get chatFolderTypeRead => 'Lidas';
+
+  @override
+  String get chatFolderTypeArchived => 'Arquivadas';
+
+  @override
+  String chatFolderShowMore(int count) {
+    return 'Mostrar mais $count';
+  }
+
+  @override
+  String get chatFolderTagHeader => 'Cor da etiqueta da pasta';
+
+  @override
+  String get chatFolderTagFooter =>
+      'A etiqueta mostra o nome desta pasta nas conversas dela em Todas as conversas.';
+
+  @override
+  String get chatFolderTagNone => 'Sem etiqueta';
+
+  @override
+  String get chatFolderSave => 'Salvar';
+
+  @override
+  String get chatFolderCancel => 'Cancelar';
+
+  @override
+  String get chatFolderNeedsChats =>
+      'Adicione pelo menos uma conversa ou tipo de conversa.';
+
+  @override
+  String get chatFolderSaveFailed =>
+      'Não foi possível salvar a pasta. Tente de novo.';
+
+  @override
+  String chatFolderRoomsCap(int max) {
+    return 'Uma pasta pode ter até $max conversas escolhidas a dedo.';
+  }
+
+  @override
+  String get chatFolderPickIncludeTitle => 'Incluir conversas';
+
+  @override
+  String get chatFolderPickExcludeTitle => 'Excluir conversas';
+
+  @override
+  String get chatFolderPickTypes => 'Tipos de conversa';
+
+  @override
+  String get chatFolderPickChats => 'Conversas';
+
+  @override
+  String get chatFolderPickSearch => 'Buscar conversas';
+
+  @override
+  String chatFolderPickCount(int count, int max) {
+    return '$count de $max conversas escolhidas';
+  }
+
+  @override
+  String get chatFolderPickDone => 'Pronto';
+
+  @override
+  String get chatRowActionMenuAddToFolder => 'Adicionar à pasta';
+
+  @override
+  String get chatRowActionMenuRemoveFromFolder => 'Remover da pasta';
+
+  @override
+  String chatFolderAddedToast(String name) {
+    return 'Adicionada a $name';
+  }
+
+  @override
+  String chatFolderRemovedToast(String name) {
+    return 'Removida de $name';
+  }
+
+  @override
+  String get chatFolderEmptyTitle => 'Ainda não há conversas aqui';
+
+  @override
+  String get chatFolderEmptyBody =>
+      'As conversas que combinam com esta pasta aparecem aqui.';
+
+  @override
+  String get tabMenuHideCalls => 'Ocultar aba Chamadas';
+
+  @override
+  String get tabMenuCallsHiddenToast =>
+      'Aba Chamadas oculta. Traga de volta em Configurações > Navegação.';
 }
