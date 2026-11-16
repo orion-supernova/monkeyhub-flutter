@@ -18,9 +18,10 @@ import 'map_app_picker.dart';
 import '../theme/app_theme.dart';
 import 'app_toast.dart';
 import 'attachment_bubble_frame.dart';
+import 'location_address.dart';
 import 'location_map_preview.dart';
+import 'user_avatar.dart';
 import 'message_stamp.dart';
-import 'meta_text.dart';
 
 /// A location in the transcript: one fix, or a live share that is running, or
 /// one that has finished.
@@ -224,43 +225,175 @@ class _LocationBubbleState extends State<LocationBubble>
     final ended = state == LiveShareState.ended;
     final live = state == LiveShareState.live;
 
-    final map = RepaintBoundary(
+    final accent = locationMapAccent(theme);
+    final face = widget.author != null && (live || ended);
+    final address = live
+        ? null
+        : LocationAddress.peek(share.latitude, share.longitude);
+    if (address == null && !live) _lookUpAddress(share);
+    final coords = formatCoordinates(share.latitude, share.longitude);
+    final acc = share.accuracyM;
+
+    // The card is all map. Everything else sits on it: a badge top right,
+    // and over a soft dark fade at the bottom, what this is, the time line,
+    // and Stop on your own running share. Light text on the fade reads the
+    // same on a day map, a night map and a satellite photo.
+    final String title;
+    final String subtitle;
+    var warn = false;
+    if (live) {
+      title = l10n.locationMapTitleLive;
+      if (share.isStaleAt(now)) {
+        subtitle = l10n.locationBubbleNoRecentUpdate;
+        warn = true;
+      } else {
+        subtitle = l10n.locationBubbleLiveUntil(
+          formatClockTime(share.liveExpiresAt!),
+        );
+      }
+    } else if (ended) {
+      // Titled by the place, and still says where they were: the room
+      // already saw it while the share ran, so hiding it would only cost the
+      // transcript its record.
+      final hasAddress = address?.title.isNotEmpty ?? false;
+      title = hasAddress ? address!.title : l10n.attachmentMenuLocationLabel;
+      final endedLine = l10n.locationBubbleLiveEnded(
+        formatClockTime(share.liveEndedAt ?? share.liveExpiresAt!),
+      );
+      subtitle = hasAddress ? endedLine : '$endedLine\n$coords';
+    } else {
+      title = (address?.title.isNotEmpty ?? false)
+          ? address!.title
+          : l10n.attachmentMenuLocationLabel;
+      final where = address?.subtitle ?? '';
+      // Without an address the coordinates stand in, with how precise they
+      // are; an unknown accuracy is left unsaid rather than guessed.
+      subtitle = where.isNotEmpty
+          ? where
+          : acc == null
+          ? coords
+          : '$coords  ${l10n.locationBubbleAccuracy(acc.round())}';
+    }
+    final showStop = live && widget.onStopSharing != null && widget.publishing;
+    final height = widget.width * 0.86;
+
+    Widget mapLayer() => LocationMapPreview(
+      theme: theme,
+      latitude: share.latitude,
+      longitude: share.longitude,
+      accuracyM: share.accuracyM,
+      dimmed: ended,
+      pulse: live && _pulse != null ? _pulse!.value : 0,
+      pictureOut: _picture,
+      showDot: !face,
+      bare: true,
+    );
+
+    final card = RepaintBoundary(
       key: _mapKey,
       child: ClipRRect(
-        borderRadius: BorderRadius.only(
-          topLeft: widget.radius.topLeft,
-          topRight: widget.radius.topRight,
-        ),
+        borderRadius: widget.radius,
         child: SizedBox(
           width: widget.width,
-          height: widget.width * 0.54,
+          height: height,
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _pulse == null || !live
-                  ? LocationMapPreview(
-                      theme: theme,
-                      latitude: share.latitude,
-                      longitude: share.longitude,
-                      accuracyM: share.accuracyM,
-                      dimmed: ended,
-                      pictureOut: _picture,
-                    )
-                  : AnimatedBuilder(
+              live && _pulse != null
+                  ? AnimatedBuilder(
                       animation: _pulse!,
-                      builder: (_, _) => LocationMapPreview(
-                        theme: theme,
-                        latitude: share.latitude,
-                        longitude: share.longitude,
-                        accuracyM: share.accuracyM,
-                        pulse: _pulse!.value,
-                        pictureOut: _picture,
+                      builder: (_, _) => mapLayer(),
+                    )
+                  : mapLayer(),
+              if (face)
+                Center(
+                  child: _Face(
+                    user: widget.author!,
+                    api: widget.api,
+                    ring: ended ? theme.inkMuted : accent,
+                    surface: theme.surface,
+                    dimmed: ended,
+                  ),
+                ),
+              const Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: [0.5, 0.78, 1],
+                        colors: [
+                          Color(0x00000000),
+                          Color(0x8C000000),
+                          Color(0xD9000000),
+                        ],
                       ),
                     ),
+                  ),
+                ),
+              ),
+              if (live || ended)
+                Positioned(
+                  top: 9,
+                  right: 9,
+                  child: _overlayBadge(
+                    theme,
+                    sentenceCaseOf(
+                      context,
+                      live
+                          ? l10n.locationBubbleLiveBadge
+                          : l10n.locationBubbleEndedBadge,
+                    ),
+                    live: live,
+                  ),
+                ),
+              Positioned(
+                left: 13,
+                // Clear of the time stamp in the corner.
+                right: widget.stamp == null ? 13 : 70,
+                bottom: 11,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.body.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFFFFFFF),
+                        height: 1.2,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.body.copyWith(
+                        fontSize: 13,
+                        color: warn
+                            ? const Color(0xFFFF8A80)
+                            : const Color(0xD9FFFFFF),
+                        height: 1.25,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                    if (showStop) ...[
+                      const SizedBox(height: 8),
+                      _overlayStop(l10n),
+                    ],
+                  ],
+                ),
+              ),
               if (widget.stamp != null)
                 Positioned(
-                  right: 6,
-                  bottom: 6,
+                  right: 7,
+                  bottom: 7,
                   child: KeyedSubtree(
                     key: kVisibleStampKey,
                     child: widget.stamp!,
@@ -276,87 +409,100 @@ class _LocationBubbleState extends State<LocationBubble>
       theme: theme,
       width: widget.width,
       radius: widget.radius,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          FocusableTap(
-            onTap: _openMap,
-            radius: theme.radiusLg,
-            semanticLabel: l10n.locationMapRecenter,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _openMap,
-              // No `onLongPress` here, unlike this widget's own history. One
-              // set here would sit in the SAME gesture arena as
-              // `_BubbleGestureDetector`'s in `message_bubble.dart` — racing
-              // the standard long-press instead of losing to it outright — and
-              // used to answer every long-press itself with a bare "copy
-              // coordinates", which is how a location message ended up the one
-              // bubble type with no reply/forward/pin/save/select/delete/
-              // report menu at all. The standard menu is wired the same way
-              // every other bubble type gets it, from `MessageBubble`'s outer
-              // detector; COPY COORDINATES now lives inside it too, as
-              // [MessageAction.copyCoordinates] — see
-              // [MessageCapabilities.canCopyCoordinates].
-              child: map,
+      child: FocusableTap(
+        onTap: _openMap,
+        radius: theme.radiusLg,
+        semanticLabel: '$title, $subtitle',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _openMap,
+          // No `onLongPress` here: one would sit in the same gesture arena
+          // as `_BubbleGestureDetector`'s in `message_bubble.dart` and race
+          // the standard long-press menu (reply, forward, copy coordinates…)
+          // instead of losing to it.
+          child: card,
+        ),
+      ),
+    );
+  }
+
+  ({double lat, double lng})? _lookedUp;
+
+  /// The street name for a one-off location, from the shared OS-geocoder
+  /// cache; the bubble rebuilds once it arrives.
+  void _lookUpAddress(LocationShare share) {
+    final at = (lat: share.latitude, lng: share.longitude);
+    if (_lookedUp == at) return;
+    _lookedUp = at;
+    LocationAddress.lookup(share.latitude, share.longitude).then((r) {
+      if (mounted && r != null) setState(() {});
+    });
+  }
+
+  Widget _overlayBadge(AppTheme theme, String text, {required bool live}) =>
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+        decoration: BoxDecoration(
+          color: live ? locationMapAccent(theme) : const Color(0xB3000000),
+          borderRadius: BorderRadius.circular(999),
+          boxShadow: const [
+            BoxShadow(color: Color(0x33000000), blurRadius: 6),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (live) ...[
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFFFFF),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 5),
+            ],
+            Text(
+              text,
+              style: theme.body.copyWith(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFFFFFFFF),
+                letterSpacing: 0.2,
+                height: 1.1,
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _overlayStop(AppLocalizations l10n) {
+    final label = l10n.locationBubbleStopSharing;
+    return FocusableTap(
+      onTap: _stop,
+      shape: FocusRingShape.capsule,
+      semanticLabel: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _stop,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF453A),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            label,
+            style: widget.theme.body.copyWith(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFFFFFFFF),
+              letterSpacing: 0,
+              height: 1.15,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 11, 14, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.attachmentMenuLocationLabel,
-                        style: theme.body.copyWith(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: theme.ink,
-                          height: 1.2,
-                        ),
-                      ),
-                    ),
-                    if (live)
-                      _badge(
-                        theme,
-                        text: sentenceCaseOf(
-                          context,
-                          l10n.locationBubbleLiveBadge,
-                        ),
-                        live: true,
-                      ),
-                    if (ended)
-                      _badge(
-                        theme,
-                        text: sentenceCaseOf(
-                          context,
-                          l10n.locationBubbleEndedBadge,
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                _caption(theme, l10n, share, now, live: live, ended: ended),
-                const SizedBox(height: 4),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 2,
-                  children: [
-                    _openButton(theme, l10n),
-                    if (live &&
-                        widget.onStopSharing != null &&
-                        widget.publishing)
-                      _stopButton(theme, l10n),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -381,196 +527,6 @@ class _LocationBubbleState extends State<LocationBubble>
       ),
     );
   }
-
-  Widget _badge(AppTheme theme, {required String text, bool live = false}) {
-    final color = live
-        ? attachmentReadableInk(theme, locationMapAccent(theme))
-        : attachmentSecondaryInk(theme);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: attachmentRowFill(theme),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            text,
-            style: attachmentMetaStyle(
-              theme,
-            ).copyWith(color: color, fontWeight: FontWeight.w500, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// The map's readout, kept inside the quiet card footer.
-  ///
-  /// The card carries the geometry and the badge carries the state, but neither
-  /// survives a screenshot, a screen reader or a viewer who glanced at it. "Live
-  /// until 14:30" in text is the part that actually tells someone what they are
-  /// looking at, which is why it is a sentence and not an icon.
-  Widget _caption(
-    AppTheme theme,
-    AppLocalizations l10n,
-    LocationShare share,
-    DateTime now, {
-    required bool live,
-    required bool ended,
-  }) {
-    final lines = <Widget>[];
-
-    if (live) {
-      lines.add(
-        _line(
-          theme,
-          CupertinoIcons.dot_radiowaves_left_right,
-          l10n.locationBubbleLiveUntil(formatClockTime(share.liveExpiresAt!)),
-        ),
-      );
-      if (share.isStaleAt(now)) {
-        // Said plainly rather than shown as a subtle dimming, because the
-        // difference between "they have stopped walking" and "their phone
-        // stopped reporting" is the entire reliability of this feature, and only
-        // one of those is safe to act on.
-        lines.add(
-          _line(
-            theme,
-            CupertinoIcons.exclamationmark_triangle,
-            l10n.locationBubbleNoRecentUpdate,
-            warn: true,
-          ),
-        );
-      }
-    } else if (ended) {
-      lines.add(
-        _line(
-          theme,
-          CupertinoIcons.stop_circle,
-          l10n.locationBubbleLiveEnded(
-            formatClockTime(share.liveEndedAt ?? share.liveExpiresAt!),
-          ),
-        ),
-      );
-    }
-
-    final acc = share.accuracyM;
-    lines.add(
-      _line(
-        theme,
-        null,
-        acc == null
-            ? formatCoordinates(share.latitude, share.longitude)
-            : '${formatCoordinates(share.latitude, share.longitude)}  '
-                  '${l10n.locationBubbleAccuracy(acc.round())}',
-      ),
-    );
-
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: widget.width),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: lines,
-      ),
-    );
-  }
-
-  Widget _line(
-    AppTheme theme,
-    IconData? icon,
-    String text, {
-    bool warn = false,
-  }) {
-    final color = warn ? theme.danger : attachmentSecondaryInk(theme);
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 13, color: color),
-            const SizedBox(width: 6),
-          ],
-          Flexible(
-            child: Text(
-              text,
-              style: metaText(theme, color: color).copyWith(
-                fontSize: 13,
-                height: 1.3,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _stopButton(AppTheme theme, AppLocalizations l10n) => _action(
-    theme,
-    l10n.locationBubbleStopSharing,
-    onTap: _stop,
-    color: attachmentReadableInk(theme, theme.danger),
-  );
-
-  Widget _openButton(AppTheme theme, AppLocalizations l10n) => _action(
-    theme,
-    l10n.locationBubbleOpenInMaps,
-    onTap: () => _openInMaps(),
-    color: attachmentReadableInk(theme, locationMapAccent(theme)),
-    icon: CupertinoIcons.arrow_up_right,
-  );
-
-  Widget _action(
-    AppTheme theme,
-    String label, {
-    required VoidCallback onTap,
-    required Color color,
-    IconData? icon,
-  }) => FocusableTap(
-    onTap: onTap,
-    shape: FocusRingShape.capsule,
-    semanticLabel: label,
-    child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-          decoration: BoxDecoration(
-            color: attachmentRowFill(theme),
-            border: Border.all(color: attachmentEdge(theme), width: 0.6),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: Text(
-                  label,
-                  style: theme.body.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: color,
-                    height: 1.15,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ),
-              if (icon != null) ...[
-                const SizedBox(width: 5),
-                Icon(icon, size: 12, color: color),
-              ],
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
 
   Future<void> _stop() async {
     HapticFeedback.mediumImpact();
@@ -636,5 +592,57 @@ class _LocationBubbleState extends State<LocationBubble>
     } finally {
       _openingMaps = false;
     }
+  }
+}
+
+/// The sharer's face on a live share's card, where the dot would be: the
+/// person is the point.
+class _Face extends StatelessWidget {
+  const _Face({
+    required this.user,
+    required this.api,
+    required this.ring,
+    required this.surface,
+    required this.dimmed,
+  });
+
+  final ChatUser user;
+  final ChatApi? api;
+  final Color ring;
+  final Color surface;
+  final bool dimmed;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget avatar = UserAvatar(user: user, api: api, size: 34, showStatus: false);
+    if (dimmed) {
+      avatar = Opacity(
+        opacity: 0.7,
+        child: ColorFiltered(
+          colorFilter: const ColorFilter.matrix(<double>[
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0, 0, 0, 1, 0,
+          ]),
+          child: avatar,
+        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.all(2.5),
+      decoration: BoxDecoration(
+        color: ring,
+        shape: BoxShape.circle,
+        boxShadow: const [
+          BoxShadow(color: Color(0x4D000000), blurRadius: 8, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(1.5),
+        decoration: BoxDecoration(color: surface, shape: BoxShape.circle),
+        child: avatar,
+      ),
+    );
   }
 }

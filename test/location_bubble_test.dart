@@ -295,8 +295,10 @@ void main() {
     );
     await tester.pump();
     expect(tester.takeException(), isNull);
-    expect(find.text('Open in maps'), findsOneWidget);
-    expect(find.textContaining('41.01380, 28.94970'), findsOneWidget);
+    // The card is all map now; its one action, on your own running share,
+    // still fits at a large text size.
+    expect(find.text('Stop sharing'), findsOneWidget);
+    expect(find.textContaining('Live until'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

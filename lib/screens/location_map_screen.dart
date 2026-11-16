@@ -22,6 +22,7 @@ import '../ui/foundation/caps.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/location_address.dart';
 import '../widgets/location_map_preview.dart';
 import '../widgets/location_map_snapshot.dart';
 import '../widgets/location_pin.dart';
@@ -149,8 +150,6 @@ class LocationMapScreen extends StatefulWidget {
 }
 
 class _LocationMapScreenState extends State<LocationMapScreen> {
-  static const _snapshot = MethodChannel('monkeyhub/map_snapshot');
-
   MapEngine? _engine;
   MethodChannel? _native;
   final _ofm = MapController();
@@ -170,7 +169,6 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
   bool _pinDone = false;
   bool _pinEnded = false;
 
-  ({String title, String subtitle})? _address;
   LocationShare? _geocodedAt;
 
   LocationFix? _me;
@@ -181,6 +179,10 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
   Timer? _readyFallback;
   late DateTime _now = widget.clock();
   late LocationShare _shown = widget.share.value;
+  late ({String title, String subtitle})? _address = LocationAddress.peek(
+    _shown.latitude,
+    _shown.longitude,
+  );
   bool _stopping = false;
 
   late final double _spanMeters =
@@ -335,10 +337,9 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
       ? const {}
       : {'pinImage': pin.png, 'pinScale': pin.scale, 'pinAnchorY': pin.anchorY};
 
-  /// The street name over the map. Asked of the OS geocoder (Apple's, or
-  /// Android's), again only once a live share has moved a block or so.
+  /// The street name over the map, from the shared OS-geocoder cache; asked
+  /// again only once a live share has moved a block or so.
   Future<void> _geocode() async {
-    if (!Caps.systemMaps) return;
     final at = _shown;
     final last = _geocodedAt;
     if (last != null &&
@@ -346,17 +347,8 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
       return;
     }
     _geocodedAt = at;
-    try {
-      final r = await _snapshot.invokeMapMethod<String, Object?>('geocode', {
-        'latitude': at.latitude,
-        'longitude': at.longitude,
-      });
-      if (!mounted || r == null) return;
-      final title = (r['title'] as String?) ?? '';
-      final subtitle = (r['subtitle'] as String?) ?? '';
-      if (title.isEmpty && subtitle.isEmpty) return;
-      setState(() => _address = (title: title, subtitle: subtitle));
-    } catch (_) {}
+    final r = await LocationAddress.lookup(at.latitude, at.longitude);
+    if (mounted && r != null) setState(() => _address = r);
   }
 
   /// Your own position, for the distance line and the "both of us" view.

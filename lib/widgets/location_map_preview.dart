@@ -134,7 +134,18 @@ class LocationMapPreview extends StatelessWidget {
     this.pulse = 0,
     this.dimmed = false,
     this.pictureOut,
+    this.showDot = true,
+    this.bare = false,
   });
+
+  /// Leave out the scale bar and north arrow: for a caller that lays its own
+  /// text over the card, where they would only collide with it.
+  final bool bare;
+
+  /// Draw the position dot. Off when the caller puts something of its own
+  /// on the point (the bubble's face for a live share); the live halo and the
+  /// accuracy ring still draw.
+  final bool showDot;
 
   /// Told the street-map picture once it is showing, for whoever wants to
   /// reuse it (the bubble flies it into the full-screen map).
@@ -167,6 +178,8 @@ class LocationMapPreview extends StatelessWidget {
       pulse: pulse,
       dimmed: dimmed,
       layers: layers,
+      showDot: showDot,
+      bare: bare,
       textDirection: Directionality.of(context),
     );
 
@@ -457,7 +470,12 @@ class _GraticulePainter extends CustomPainter {
     required this.dimmed,
     required this.layers,
     required this.textDirection,
+    this.showDot = true,
+    this.bare = false,
   });
+
+  final bool showDot;
+  final bool bare;
 
   final AppTheme theme;
   final double latitude;
@@ -500,8 +518,10 @@ class _GraticulePainter extends CustomPainter {
     );
 
     _paintGraticule(canvas, size, centre, stepM, stepPx);
-    _paintScaleBar(canvas, size, stepM, stepPx);
-    _paintNorth(canvas, size);
+    if (!bare) {
+      _paintScaleBar(canvas, size, stepM, stepPx);
+      _paintNorth(canvas, size);
+    }
 
     canvas.restore();
   }
@@ -633,6 +653,8 @@ class _GraticulePainter extends CustomPainter {
       );
     }
 
+    if (!showDot) return;
+
     // A dot, not a teardrop pin. A pin's point is its position and its body
     // hangs above it, which at this size puts the visual centre of mass several
     // pixels north of the place being described. A concentric dot is centred on
@@ -711,5 +733,7 @@ class _GraticulePainter extends CustomPainter {
       (layers != _Layers.ground && old.pulse != pulse) ||
       old.dimmed != dimmed ||
       old.layers != layers ||
+      old.showDot != showDot ||
+      old.bare != bare ||
       old.theme != theme;
 }
