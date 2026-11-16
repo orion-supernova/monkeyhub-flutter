@@ -12782,7 +12782,7 @@ class AppLocalizationsSv extends AppLocalizations {
       'Byt till live-spel, drag för drag, direkt';
 
   @override
-  String get chatGameLiveNow => 'Alla spelar samtidigt, just nu.';
+  String get chatGameLiveNow => 'Live';
 
   @override
   String get chatGameLiveUnavailable => 'Hen är inte online just nu';
@@ -13586,6 +13586,9 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => 'Spela live';
+
+  @override
+  String get chatGameLiveEveryone => 'Alla spelar samtidigt, just nu.';
 
   @override
   String get chatGameLivePause =>

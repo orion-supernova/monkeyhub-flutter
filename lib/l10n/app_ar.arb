@@ -3749,7 +3749,7 @@
   "chatGameBoardsHintGroup": "مباشرة هنا. خذ مقعدك أو شاهد فقط.",
   "chatGamePartyHint": "الجميع يلعبون في الوقت نفسه، فاجمعوا الأصدقاء أولًا.",
   "chatGameLiveTitle": "العب مباشرة",
-  "chatGameLiveNow": "الجميع يلعبون في الوقت نفسه، الآن.",
+  "chatGameLiveEveryone": "الجميع يلعبون في الوقت نفسه، الآن.",
   "chatGameLivePause": "إذا خرج أحدهم يتوقف اللعب. أمامه دقيقتان للعودة وإلا يخسر.",
   "chatGameTurnsTitle": "العب بالتناوب",
   "chatGameTurnsAnytime": "العب حركتك متى شئت. كل حركة تظهر في الدردشة.",

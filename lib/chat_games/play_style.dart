@@ -117,7 +117,7 @@ class PlayStyleCard extends StatelessWidget {
     };
     final lines = switch (style) {
       PlayStyle.live => [
-        (CupertinoIcons.person_2_fill, l10n.chatGameLiveNow),
+        (CupertinoIcons.person_2_fill, l10n.chatGameLiveEveryone),
         (CupertinoIcons.pause_circle_fill, l10n.chatGameLivePause),
       ],
       PlayStyle.turns => [

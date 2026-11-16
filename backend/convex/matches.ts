@@ -1748,7 +1748,11 @@ export const graceExpire = internalMutation({
  * State lives on the game row (`liveRequest`), dead [LIVE_REQUEST_TTL_MS]
  * after `at` with no scheduled job: every reader and [answerLive] compare
  * `at` to the clock. Cost: ~6 reads (game, member, partner presence, the
- * room's open games), 2 writes (game, asker's presence row).
+ * room's open games), 2 writes (game, asker's presence row), and one push to
+ * the partner (one scheduled action, the same as a nudge). The push is what
+ * reaches a partner who is online but not in this chat: the in-chat card
+ * alone was invisible to them. A repeat ask while one stands returns before
+ * this, so it never pushes twice.
  */
 export const requestLive = mutation({
   args: { matchId: v.id("matches"), userId: v.id("users") },
@@ -1786,6 +1790,7 @@ export const requestLive = mutation({
     await assertRoomAtTable(ctx, match.roomId, "live");
     await ctx.db.patch(matchId, { liveRequest: { seat, at: now } });
     await beatOnce(ctx, matchId, userId);
+    await pushAbout(ctx, matchId, partner, userId, "liveAsked");
     return { asked: true };
   },
 });

@@ -12240,7 +12240,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatGameLiveWantsSub => '今すぐライブ対戦に切り替えて、一手ずつ指しましょう';
 
   @override
-  String get chatGameLiveNow => 'みんな同時に、今すぐ遊ぶ。';
+  String get chatGameLiveNow => 'ライブ';
 
   @override
   String get chatGameLiveUnavailable => '相手は今オンラインではありません';
@@ -13014,6 +13014,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => 'ライブで遊ぶ';
+
+  @override
+  String get chatGameLiveEveryone => 'みんな同時に、今すぐ遊ぶ。';
 
   @override
   String get chatGameLivePause => '誰かが抜けたら一時停止。2分以内に戻らないと負けになるよ。';

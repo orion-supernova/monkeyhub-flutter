@@ -3749,7 +3749,7 @@
   "chatGameBoardsHintGroup": "Live, här i gruppen. Hoppa in eller bara kolla på.",
   "chatGamePartyHint": "Alla spelar samtidigt, så samla gänget först.",
   "chatGameLiveTitle": "Spela live",
-  "chatGameLiveNow": "Alla spelar samtidigt, just nu.",
+  "chatGameLiveEveryone": "Alla spelar samtidigt, just nu.",
   "chatGameLivePause": "Drar någon? Då pausas det. 2 minuter att komma tillbaka, annars förlorar hen.",
   "chatGameTurnsTitle": "Turas om",
   "chatGameTurnsAnytime": "Gör ditt drag när du vill. Varje drag hamnar i chatten.",

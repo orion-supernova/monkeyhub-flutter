@@ -3749,7 +3749,7 @@
   "chatGameBoardsHintGroup": "ここでライブ対戦。参加しても、観戦だけでもOK。",
   "chatGamePartyHint": "全員同時に遊ぶから、まずはメンバーを集めよう。",
   "chatGameLiveTitle": "ライブで遊ぶ",
-  "chatGameLiveNow": "みんな同時に、今すぐ遊ぶ。",
+  "chatGameLiveEveryone": "みんな同時に、今すぐ遊ぶ。",
   "chatGameLivePause": "誰かが抜けたら一時停止。2分以内に戻らないと負けになるよ。",
   "chatGameTurnsTitle": "交互に遊ぶ",
   "chatGameTurnsAnytime": "好きな時に一手。指した手はチャットに届くよ。",

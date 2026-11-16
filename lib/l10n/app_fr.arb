@@ -3749,7 +3749,7 @@
   "chatGameBoardsHintGroup": "En direct, ici même. Prends une place ou regarde.",
   "chatGamePartyHint": "Tout le monde joue en même temps, alors rameute la bande d’abord.",
   "chatGameLiveTitle": "Jouer en direct",
-  "chatGameLiveNow": "Tout le monde joue en même temps, maintenant.",
+  "chatGameLiveEveryone": "Tout le monde joue en même temps, maintenant.",
   "chatGameLivePause": "Quelqu’un part ? Ça se met en pause. 2 minutes pour revenir, sinon il perd.",
   "chatGameTurnsTitle": "Jouer tour à tour",
   "chatGameTurnsAnytime": "Joue quand tu veux. Chaque coup arrive dans le chat.",

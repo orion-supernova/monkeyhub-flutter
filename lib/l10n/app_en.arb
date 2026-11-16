@@ -16192,8 +16192,8 @@
   "@chatGameLiveTitle": {
     "description": "Mode choice card title in the start-game sheet: play the game live, now."
   },
-  "chatGameLiveNow": "Everyone plays at the same time, right now.",
-  "@chatGameLiveNow": {
+  "chatGameLiveEveryone": "Everyone plays at the same time, right now.",
+  "@chatGameLiveEveryone": {
     "description": "Live mode card, first line: everyone is playing at the same moment."
   },
   "chatGameLivePause": "Someone leaves? It pauses. 2 minutes to get back, or they forfeit.",

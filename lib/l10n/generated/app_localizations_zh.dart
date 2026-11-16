@@ -12123,7 +12123,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chatGameLiveWantsSub => '马上切换成实时对局，你一步我一步';
 
   @override
-  String get chatGameLiveNow => '大家同一时间，现在就玩。';
+  String get chatGameLiveNow => '实时';
 
   @override
   String get chatGameLiveUnavailable => '对方现在不在线';
@@ -12896,6 +12896,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => '实时玩';
+
+  @override
+  String get chatGameLiveEveryone => '大家同一时间，现在就玩。';
 
   @override
   String get chatGameLivePause => '有人离开会暂停。2 分钟内不回来就算输。';

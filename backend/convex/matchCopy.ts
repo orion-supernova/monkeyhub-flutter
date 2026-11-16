@@ -17,7 +17,8 @@ export type MatchCopyKey =
   | "youWon"
   | "draw"
   | "takebackAsked"
-  | "takebackGiven";
+  | "takebackGiven"
+  | "liveAsked";
 
 type Copy = { names: Record<string, string> } & Record<MatchCopyKey, string>;
 
@@ -33,6 +34,7 @@ const COPY: Record<string, Copy> = {
     draw: "{game} with {name} ended in a draw.",
     takebackAsked: "{name} asked to take back their last move in {game}.",
     takebackGiven: "{name} let you take back your move. Your move in {game}.",
+    liveAsked: "{name} wants to play {game} live with you, right now. Tap to join.",
   },
   tr: {
     names: { tictactoe: "XOX", connectfour: "Dörtlü", reversi: "Reversi", checkers: "Dama", dots: "Kutu Kapmaca", chess: "Satranç" },
@@ -45,6 +47,7 @@ const COPY: Record<string, Copy> = {
     draw: "{name} ile {game} oyunu berabere bitti.",
     takebackAsked: "{name}, {game} oyununda son hamlesini geri almak istiyor.",
     takebackGiven: "{name} hamleni geri almana izin verdi. {game} oyununda sıra sende.",
+    liveAsked: "{name} seninle {game} oyununu şimdi canlı oynamak istiyor. Katılmak için dokun.",
   },
   ar: {
     names: { tictactoe: "إكس أو", connectfour: "أربعة في صف", reversi: "ريفرسي", checkers: "الداما", dots: "النقاط والمربعات", chess: "الشطرنج" },
@@ -57,6 +60,7 @@ const COPY: Record<string, Copy> = {
     draw: "انتهت {game} مع {name} بالتعادل.",
     takebackAsked: "طلب {name} التراجع عن آخر حركة في {game}.",
     takebackGiven: "سمح لك {name} بالتراجع عن حركتك. دورك في {game}.",
+    liveAsked: "يريد {name} أن يلعب {game} معك مباشرةً الآن. اضغط للانضمام.",
   },
   es: {
     names: { tictactoe: "Tres en raya", connectfour: "Conecta 4", reversi: "Reversi", checkers: "Damas", dots: "Puntos y cajas", chess: "Ajedrez" },
@@ -69,6 +73,7 @@ const COPY: Record<string, Copy> = {
     draw: "{game} con {name} terminó en empate.",
     takebackAsked: "{name} pidió deshacer su última jugada en {game}.",
     takebackGiven: "{name} te dejó deshacer tu jugada. Te toca en {game}.",
+    liveAsked: "{name} quiere jugar {game} contigo en vivo, ahora mismo. Toca para unirte.",
   },
   fr: {
     names: { tictactoe: "Morpion", connectfour: "Puissance 4", reversi: "Reversi", checkers: "Dames", dots: "Pipopipette", chess: "Échecs" },
@@ -81,6 +86,7 @@ const COPY: Record<string, Copy> = {
     draw: "{game} avec {name} s’est terminé par une égalité.",
     takebackAsked: "{name} demande à annuler son dernier coup dans {game}.",
     takebackGiven: "{name} te laisse annuler ton coup. À toi de jouer dans {game}.",
+    liveAsked: "{name} veut jouer à {game} en direct avec toi, maintenant. Touche pour rejoindre.",
   },
   hi: {
     names: { tictactoe: "टिक-टैक-टो", connectfour: "कनेक्ट फ़ोर", reversi: "रिवर्सी", checkers: "चेकर्स", dots: "डॉट्स एंड बॉक्सेस", chess: "शतरंज" },
@@ -93,6 +99,7 @@ const COPY: Record<string, Copy> = {
     draw: "{name} के साथ {game} बराबरी पर खत्म हुआ।",
     takebackAsked: "{name} {game} में अपनी पिछली चाल वापस लेना चाहते हैं।",
     takebackGiven: "{name} ने तुम्हें अपनी चाल वापस लेने दी। {game} में तुम्हारी बारी।",
+    liveAsked: "{name} अभी आपके साथ {game} लाइव खेलना चाहते हैं। जुड़ने के लिए टैप करें।",
   },
   ja: {
     names: { tictactoe: "まるばつ", connectfour: "四目並べ", reversi: "リバーシ", checkers: "チェッカー", dots: "ドット・アンド・ボックス", chess: "チェス" },
@@ -105,6 +112,7 @@ const COPY: Record<string, Copy> = {
     draw: "{name}さんとの{game}は引き分けでした。",
     takebackAsked: "{name}さんが{game}で直前の手を戻したいそうです。",
     takebackGiven: "{name}さんが手を戻すのを許可しました。{game}であなたの番です。",
+    liveAsked: "{name}さんが今すぐ{game}をライブで対戦したいそうです。タップして参加。",
   },
   ko: {
     names: { tictactoe: "틱택토", connectfour: "사목", reversi: "리버시", checkers: "체커", dots: "점과 상자", chess: "체스" },
@@ -117,6 +125,7 @@ const COPY: Record<string, Copy> = {
     draw: "{name}님과의 {game}은 무승부로 끝났어요.",
     takebackAsked: "{name}님이 {game}에서 마지막 수를 무르고 싶어 해요.",
     takebackGiven: "{name}님이 수 무르기를 허락했어요. {game}에서 내 차례예요.",
+    liveAsked: "{name}님이 지금 {game}을 실시간으로 같이 하고 싶어 해요. 탭해서 참여하세요.",
   },
   "pt-br": {
     names: { tictactoe: "Jogo da velha", connectfour: "Lig 4", reversi: "Reversi", checkers: "Damas", dots: "Pontinhos", chess: "Xadrez" },
@@ -129,6 +138,7 @@ const COPY: Record<string, Copy> = {
     draw: "{game} com {name} terminou empatado.",
     takebackAsked: "{name} pediu para voltar a última jogada em {game}.",
     takebackGiven: "{name} deixou você voltar sua jogada. Sua vez em {game}.",
+    liveAsked: "{name} quer jogar {game} ao vivo com você agora. Toque para entrar.",
   },
   pt: {
     names: { tictactoe: "Jogo do galo", connectfour: "4 em linha", reversi: "Reversi", checkers: "Damas", dots: "Pontos e quadrados", chess: "Xadrez" },
@@ -141,6 +151,7 @@ const COPY: Record<string, Copy> = {
     draw: "{game} com {name} terminou empatado.",
     takebackAsked: "{name} pediu para anular a última jogada em {game}.",
     takebackGiven: "{name} deixou-te anular a tua jogada. É a tua vez em {game}.",
+    liveAsked: "{name} quer jogar {game} em direto contigo agora. Toca para entrar.",
   },
   sv: {
     names: { tictactoe: "Tre i rad", connectfour: "Fyra i rad", reversi: "Reversi", checkers: "Dam", dots: "Prickar och lådor", chess: "Schack" },
@@ -153,6 +164,7 @@ const COPY: Record<string, Copy> = {
     draw: "{game} med {name} slutade oavgjort.",
     takebackAsked: "{name} vill ta tillbaka sitt senaste drag i {game}.",
     takebackGiven: "{name} lät dig ta tillbaka ditt drag. Din tur i {game}.",
+    liveAsked: "{name} vill spela {game} live med dig, nu direkt. Tryck för att vara med.",
   },
   zh: {
     names: { tictactoe: "井字棋", connectfour: "四子棋", reversi: "黑白棋", checkers: "跳棋", dots: "点格棋", chess: "国际象棋" },
@@ -165,6 +177,7 @@ const COPY: Record<string, Copy> = {
     draw: "和 {name} 的 {game} 以平局结束。",
     takebackAsked: "{name} 想在 {game} 中悔一步棋。",
     takebackGiven: "{name} 同意你悔棋。轮到你在 {game} 中走了。",
+    liveAsked: "{name} 想现在和你实时对战 {game}。点按加入。",
   },
 };
 

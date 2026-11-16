@@ -3749,7 +3749,7 @@
   "chatGameBoardsHintGroup": "Ao vivo, aqui mesmo. Entra no jogo ou fica só a ver.",
   "chatGamePartyHint": "Joga toda a gente ao mesmo tempo, por isso junta a malta primeiro.",
   "chatGameLiveTitle": "Jogar ao vivo",
-  "chatGameLiveNow": "Joga toda a gente ao mesmo tempo, agora.",
+  "chatGameLiveEveryone": "Joga toda a gente ao mesmo tempo, agora.",
   "chatGameLivePause": "Alguém sai? O jogo fica em pausa. Tem 2 minutos para voltar, senão perde.",
   "chatGameTurnsTitle": "Jogar por turnos",
   "chatGameTurnsAnytime": "Joga quando quiseres. Cada jogada aparece no chat.",

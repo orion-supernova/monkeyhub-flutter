@@ -616,7 +616,7 @@ class _LiveIgniteState extends State<LiveIgnite>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1200),
+    duration: const Duration(milliseconds: 1800),
   );
   bool _started = false;
 

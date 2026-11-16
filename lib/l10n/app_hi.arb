@@ -3749,7 +3749,7 @@
   "chatGameBoardsHintGroup": "लाइव, यहीं पर। सीट पकड़ो या बस देखो।",
   "chatGamePartyHint": "सब एक साथ खेलते हैं, तो पहले गैंग इकट्ठा कर लो।",
   "chatGameLiveTitle": "लाइव खेलो",
-  "chatGameLiveNow": "सब एक ही टाइम पर, अभी खेलते हैं।",
+  "chatGameLiveEveryone": "सब एक ही टाइम पर, अभी खेलते हैं।",
   "chatGameLivePause": "कोई निकल गया? गेम रुक जाएगा। 2 मिनट में वापस नहीं आया तो हार जाएगा।",
   "chatGameTurnsTitle": "बारी-बारी खेलो",
   "chatGameTurnsAnytime": "जब मन करे चाल चलो। हर चाल चैट में आ जाती है।",

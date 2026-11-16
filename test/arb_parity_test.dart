@@ -35,6 +35,21 @@ void main() {
   final en = read(english);
   final enKeys = messageKeys(en);
 
+  // jsonDecode keeps the LAST of two equal keys without a word, so a second
+  // `chatGameLiveNow` (a whole sentence) once replaced the one-word "Live"
+  // flash on the board in every language. Read the raw top-level lines.
+  test('no ARB defines the same key twice', () {
+    final top = RegExp(r'^  "([^"]+)":', multiLine: true);
+    for (final f in arbs) {
+      final seen = <String>{};
+      final dups = <String>{};
+      for (final m in top.allMatches(f.readAsStringSync())) {
+        if (!seen.add(m.group(1)!)) dups.add(m.group(1)!);
+      }
+      expect(dups, isEmpty, reason: '${f.path} repeats keys');
+    }
+  });
+
   test('every locale ships the same key set as English', () {
     expect(arbs.length, 12, reason: 'expected 12 ARB files in lib/l10n');
 

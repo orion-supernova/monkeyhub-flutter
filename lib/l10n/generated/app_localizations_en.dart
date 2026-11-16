@@ -12755,7 +12755,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Switch to a live game, one move after another, right now';
 
   @override
-  String get chatGameLiveNow => 'Everyone plays at the same time, right now.';
+  String get chatGameLiveNow => 'Live';
 
   @override
   String get chatGameLiveUnavailable => 'They are not online right now';
@@ -13557,6 +13557,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => 'Play live';
+
+  @override
+  String get chatGameLiveEveryone =>
+      'Everyone plays at the same time, right now.';
 
   @override
   String get chatGameLivePause =>

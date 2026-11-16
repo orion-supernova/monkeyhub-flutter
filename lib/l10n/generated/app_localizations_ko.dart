@@ -12264,7 +12264,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatGameLiveWantsSub => '지금 바로 라이브로 바꿔서 한 수씩 주고받아요';
 
   @override
-  String get chatGameLiveNow => '모두 동시에, 지금 바로 해요.';
+  String get chatGameLiveNow => '라이브';
 
   @override
   String get chatGameLiveUnavailable => '상대가 지금 온라인이 아니에요';
@@ -13038,6 +13038,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => '실시간으로 하기';
+
+  @override
+  String get chatGameLiveEveryone => '모두 동시에, 지금 바로 해요.';
 
   @override
   String get chatGameLivePause => '누가 나가면 일시정지돼요. 2분 안에 안 돌아오면 패배예요.';

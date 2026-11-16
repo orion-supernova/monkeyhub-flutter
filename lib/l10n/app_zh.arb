@@ -3749,7 +3749,7 @@
   "chatGameBoardsHintGroup": "就在这儿实时玩。上桌或者围观都行。",
   "chatGamePartyHint": "大家同时玩，先把人叫齐吧。",
   "chatGameLiveTitle": "实时玩",
-  "chatGameLiveNow": "大家同一时间，现在就玩。",
+  "chatGameLiveEveryone": "大家同一时间，现在就玩。",
   "chatGameLivePause": "有人离开会暂停。2 分钟内不回来就算输。",
   "chatGameTurnsTitle": "轮流玩",
   "chatGameTurnsAnytime": "想什么时候走都行，每一步都会发到聊天里。",

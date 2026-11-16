@@ -21379,10 +21379,10 @@ abstract class AppLocalizations {
   /// **'Switch to a live game, one move after another, right now'**
   String get chatGameLiveWantsSub;
 
-  /// Live mode card, first line: everyone is playing at the same moment.
+  /// Word that flashes on the board the moment a turn by turn game becomes live.
   ///
   /// In en, this message translates to:
-  /// **'Everyone plays at the same time, right now.'**
+  /// **'Live'**
   String get chatGameLiveNow;
 
   /// Toast: a go-live request was refused because the other player is not online.
@@ -22650,6 +22650,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Play live'**
   String get chatGameLiveTitle;
+
+  /// Live mode card, first line: everyone is playing at the same moment.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone plays at the same time, right now.'**
+  String get chatGameLiveEveryone;
 
   /// Live mode card, second line: leaving pauses the game; 2 minutes to come back or that player forfeits.
   ///

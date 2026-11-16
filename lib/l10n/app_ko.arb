@@ -3749,7 +3749,7 @@
   "chatGameBoardsHintGroup": "여기서 바로 실시간으로. 참여하거나 구경만 해도 돼요.",
   "chatGamePartyHint": "다 같이 동시에 하니까 먼저 멤버부터 모아요.",
   "chatGameLiveTitle": "실시간으로 하기",
-  "chatGameLiveNow": "모두 동시에, 지금 바로 해요.",
+  "chatGameLiveEveryone": "모두 동시에, 지금 바로 해요.",
   "chatGameLivePause": "누가 나가면 일시정지돼요. 2분 안에 안 돌아오면 패배예요.",
   "chatGameTurnsTitle": "번갈아 하기",
   "chatGameTurnsAnytime": "아무 때나 두면 돼요. 둔 수는 채팅에 올라가요.",

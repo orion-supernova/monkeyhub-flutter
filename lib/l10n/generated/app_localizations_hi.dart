@@ -12745,7 +12745,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get chatGameLiveWantsSub => 'अभी लाइव गेम पर आ जाएँ, चाल दर चाल';
 
   @override
-  String get chatGameLiveNow => 'सब एक ही टाइम पर, अभी खेलते हैं।';
+  String get chatGameLiveNow => 'लाइव';
 
   @override
   String get chatGameLiveUnavailable => 'वे अभी ऑनलाइन नहीं हैं';
@@ -13536,6 +13536,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => 'लाइव खेलो';
+
+  @override
+  String get chatGameLiveEveryone => 'सब एक ही टाइम पर, अभी खेलते हैं।';
 
   @override
   String get chatGameLivePause =>

@@ -181,6 +181,11 @@ class _MatchScreenState extends State<MatchScreen> {
     _lastMode = widget.initial?.mode;
     _c.addListener(_onChange);
     _c.start();
+    // A draft (and a game opened with its row in hand) is complete before
+    // anything changes, so waiting for [_onChange] would hold the guide back
+    // until the player's first tap: it must come before the first move.
+    final m = _c.serverMatch;
+    if (m != null && m.game != 'fight') _maybeIntro(m);
   }
 
   @override

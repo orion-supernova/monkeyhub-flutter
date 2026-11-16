@@ -12961,7 +12961,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'انتقلا إلى لعبة مباشرة، نقلة بعد نقلة، الآن';
 
   @override
-  String get chatGameLiveNow => 'الجميع يلعبون في الوقت نفسه، الآن.';
+  String get chatGameLiveNow => 'مباشر';
 
   @override
   String get chatGameLiveUnavailable => 'ليس متصلاً الآن';
@@ -13771,6 +13771,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => 'العب مباشرة';
+
+  @override
+  String get chatGameLiveEveryone => 'الجميع يلعبون في الوقت نفسه، الآن.';
 
   @override
   String get chatGameLivePause =>

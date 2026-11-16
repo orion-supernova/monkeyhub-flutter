@@ -12687,11 +12687,11 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String chatGameLiveAsking(String name) {
-    return '$name ile canlı oynamayı öneriyorsun';
+    return '$name ile canlı oynamak istiyorsun';
   }
 
   @override
-  String get chatGameLiveAskingSub => 'Cevabı bekleniyor';
+  String get chatGameLiveAskingSub => 'Cevap bekleniyor';
 
   @override
   String chatGameLiveWants(String name) {
@@ -12699,10 +12699,11 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get chatGameLiveWantsSub => 'Hamle hamle, şimdi canlı oyuna geçin';
+  String get chatGameLiveWantsSub =>
+      'Hamleler anında gelsin, şimdi karşılıklı oynayın';
 
   @override
-  String get chatGameLiveNow => 'Herkes aynı anda, hemen şimdi oynar.';
+  String get chatGameLiveNow => 'Canlı';
 
   @override
   String get chatGameLiveUnavailable => 'Karşındaki şu an çevrimiçi değil';
@@ -12711,7 +12712,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chatGameLiveBusy => 'Bu sohbette zaten canlı bir oyun sürüyor';
 
   @override
-  String get chatGameLiveExpired => 'İstek zaman aşımına uğradı';
+  String get chatGameLiveExpired => 'Bu isteğin süresi doldu';
 
   @override
   String get chatGameCancel => 'Vazgeç';
@@ -13496,6 +13497,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => 'Canlı oyna';
+
+  @override
+  String get chatGameLiveEveryone => 'Herkes aynı anda, hemen şimdi oynar.';
 
   @override
   String get chatGameLivePause =>

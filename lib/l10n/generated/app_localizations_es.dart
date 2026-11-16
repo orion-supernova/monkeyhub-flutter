@@ -12870,7 +12870,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Pasad a una partida en directo, jugada tras jugada, ahora mismo';
 
   @override
-  String get chatGameLiveNow => 'Todos juegan a la vez, ahora mismo.';
+  String get chatGameLiveNow => 'En directo';
 
   @override
   String get chatGameLiveUnavailable => 'Ahora no está en línea';
@@ -13675,6 +13675,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chatGameLiveTitle => 'Jugar en vivo';
+
+  @override
+  String get chatGameLiveEveryone => 'Todos juegan a la vez, ahora mismo.';
 
   @override
   String get chatGameLivePause =>
