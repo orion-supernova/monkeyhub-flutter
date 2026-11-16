@@ -191,7 +191,10 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
           child: Stack(
             children: [
               theme.backgroundLayer(context),
+              // Bottom inset left to the scroller's padding, so the words
+              // run to the edge of the glass instead of stopping at a band.
               SafeArea(
+                bottom: false,
                 child: Column(
                   children: [
                     // A full-screen modal's way out is a × top-leading, never
@@ -230,7 +233,7 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
                           // content was 337pt on a 393pt phone, three short of
                           // the two-column word grid.
                           child: SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+                            padding: EdgeInsets.fromLTRB(20, 8, 20, edgeToEdgeBottom(context, 28)),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: _body(theme),

@@ -6,6 +6,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/density.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
+import '../widgets/floating_floor.dart';
 import '../theme/motion.dart';
 import '../theme/theme_preference.dart';
 import '../theme/theme_scope.dart';
@@ -101,59 +102,27 @@ class _ThemeOnboardingScreenState extends State<ThemeOnboardingScreen> {
                       ),
                     ),
                   ),
+                  // The page runs the full height and the button floats over
+                  // it: no band of its own under the content.
                   Expanded(
-                    child: Stack(
-                      children: [
-                        Positioned.fill(child: _steps(context, motion)),
-                        // Content dissolves into the page above the button
-                        // instead of being sliced off by it. A painted
-                        // gradient rather than a ShaderMask, which would
-                        // force an offscreen layer on every scroll frame.
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          height: 28,
-                          child: IgnorePointer(
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    theme.background.withValues(alpha: 0),
-                                    theme.background,
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      20,
-                      10,
-                      20,
-                      edgeToEdgeBottom(context, 16),
-                    ),
-                    // The one big commit on the screen: it plays the heavier
-                    // haptic itself instead of the default selection tick.
-                    child: SheetActionButton(
-                      label: _step == 0
-                          ? l10n.onboardingContinue
-                          : l10n.onboardingGetStarted,
-                      haptic: false,
-                      onTap: () {
-                        HapticFeedback.mediumImpact();
-                        if (_step == 0) {
-                          setState(() => _step = 1);
-                        } else {
-                          _finish();
-                        }
-                      },
+                    child: FloatingFloor(
+                      floor: SheetActionButton(
+                        label: _step == 0
+                            ? l10n.onboardingContinue
+                            : l10n.onboardingGetStarted,
+                        // The one big commit on the screen: it plays the
+                        // heavier haptic itself instead of the selection tick.
+                        haptic: false,
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          if (_step == 0) {
+                            setState(() => _step = 1);
+                          } else {
+                            _finish();
+                          }
+                        },
+                      ),
+                      child: _steps(context, motion),
                     ),
                   ),
                 ],
@@ -255,7 +224,8 @@ class _LookStep extends StatelessWidget {
         );
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
+      // Bottom: clear of the floating button (see FloatingFloor).
+      padding: EdgeInsets.fromLTRB(0, 8, 0, edgeToEdgeBottom(context, 24)),
       children: [
         gutter(const _BrandEntrance()),
         const SizedBox(height: 20),
@@ -362,7 +332,7 @@ class _IconStep extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      padding: EdgeInsets.fromLTRB(20, 8, 20, edgeToEdgeBottom(context, 24)),
       children: [
         Text(
           l10n.onboardingIconTitle,

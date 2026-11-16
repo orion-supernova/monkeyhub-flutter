@@ -149,11 +149,13 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
           children: [
             theme.backgroundLayer(context),
             SafeArea(
+              // The scroller's padding clears the home indicator instead.
+              bottom: false,
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: ContentWidth.auth),
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 36, 20, 24),
+                    padding: EdgeInsets.fromLTRB(20, 36, 20, edgeToEdgeBottom(context, 24)),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

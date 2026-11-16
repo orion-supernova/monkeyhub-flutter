@@ -5,6 +5,7 @@ import '../backend/chat_api.dart';
 import '../data/username_availability_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
@@ -118,6 +119,8 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
+            // The scroller's padding clears the home indicator instead.
+            bottom: false,
             child: AdaptivePageBody(
               child: Column(
               children: [
@@ -136,7 +139,7 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
                 ),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+                    padding: EdgeInsets.fromLTRB(20, 4, 20, edgeToEdgeBottom(context, 32)),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

@@ -508,6 +508,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             theme.backgroundLayer(context),
             SafeArea(
+              bottom: false,
               child: LayoutBuilder(
                 builder: (context, outer) {
                   // Desktop/web only, and sign-in only — scanning a QR needs a
@@ -765,7 +766,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _footer({required bool showPhoneLink}) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 12, 28, 20),
+      // The bottom inset is this padding's, not a SafeArea's: the page
+      // scrolls to the edge of the glass.
+      padding: EdgeInsets.fromLTRB(28, 12, 28, edgeToEdgeBottom(context, 20)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -781,29 +784,41 @@ class _LoginScreenState extends State<LoginScreen> {
                 _mode == _AuthMode.signUp ? _AuthMode.signIn : _AuthMode.signUp,
               ),
             ),
-            // No spacers between the links: each is a 44pt touch target
-            // already, which is the rhythm.
-            if (_mode == _AuthMode.signIn) ...[
-              TextLinkButton(
-                label: l10n.loginForgotPassword,
-                onTap: () => _switchTo(_AuthMode.reset),
+            // The other ways in are footnotes to the one above, so they
+            // read as one quiet line (wrapping when a language needs it)
+            // rather than a column of full-size links competing with it.
+            if (_mode == _AuthMode.signIn)
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 22,
+                children: [
+                  TextLinkButton(
+                    label: l10n.loginForgotPassword,
+                    muted: true,
+                    fontSize: 15,
+                    onTap: () => _switchTo(_AuthMode.reset),
+                  ),
+                  TextLinkButton(
+                    label: l10n.loginChildAccount,
+                    muted: true,
+                    fontSize: 15,
+                    onTap: () => setState(() => _pairing = true),
+                  ),
+                  // Desktop/web only — scanning a QR needs a phone on the
+                  // other end, so this is offered ALONGSIDE the password form
+                  // rather than replacing it: not every self-hosted
+                  // deployment's users will have a paired phone to scan with.
+                  // Suppressed when the panel itself is already showing
+                  // beside the form (`build`).
+                  if (Caps.hover && showPhoneLink)
+                    TextLinkButton(
+                      label: l10n.loginWithPhone,
+                      muted: true,
+                      fontSize: 15,
+                      onTap: () => setState(() => _deviceLogin = true),
+                    ),
+                ],
               ),
-              TextLinkButton(
-                label: l10n.loginChildAccount,
-                onTap: () => setState(() => _pairing = true),
-              ),
-              // Desktop/web only — scanning a QR needs a phone on the other
-              // end, so this is offered ALONGSIDE the password form rather
-              // than replacing it: not every self-hosted deployment's users
-              // will have a paired phone to scan with. Suppressed when the
-              // panel itself is already showing beside the form (`build`).
-              if (Caps.hover && showPhoneLink) ...[
-                TextLinkButton(
-                  label: l10n.loginWithPhone,
-                  onTap: () => setState(() => _deviceLogin = true),
-                ),
-              ],
-            ],
           ],
           // Sign-up only. The Profile screen carries the permanent link that
           // Guideline 5.1.1(i) requires; this one is here because sign-up is
@@ -823,7 +838,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // also what makes self-hosting reachable at all on a handset that has
           // never signed in — otherwise the feature would need an account on
           // the very server you were trying not to use.
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           const _ServerChip(),
         ],
       ),

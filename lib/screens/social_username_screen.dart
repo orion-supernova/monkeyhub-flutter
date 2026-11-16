@@ -191,7 +191,11 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
         child: Stack(
           children: [
             theme.backgroundLayer(context),
+            // Not the bottom inset: the page scrolls to the edge of the glass
+            // and its padding clears the home indicator instead, so there is
+            // no solid band under the content.
             SafeArea(
+              bottom: false,
               child: Column(
                 children: [
                   // The way out. This screen is pushed as a fullscreenDialog,
@@ -226,7 +230,7 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                         constraints:
                             const BoxConstraints(maxWidth: ContentWidth.auth),
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                          padding: EdgeInsets.fromLTRB(20, 8, 20, edgeToEdgeBottom(context, 24)),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
