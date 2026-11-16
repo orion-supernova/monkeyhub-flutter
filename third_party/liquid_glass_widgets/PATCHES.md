@@ -1,4 +1,4 @@
-# Patches on liquid_glass_widgets 1.17.0
+# Patches on liquid_glass_widgets 1.17.4
 
 Vendored from pub.dev (MIT). `example/` and `skills/` were dropped. Every change is marked `SWIRL PATCH` in the source: `grep -rn "SWIRL PATCH" lib`.
 
@@ -14,11 +14,20 @@ Touched: `resolveVariableTabPill` (`tab_bar_layout_utils.dart`), `AnimatedGlassI
 
 ## Text input knobs (MonkeyHub patch)
 
-`GlassTextField` (and `.search`) dropped the inner field's `textCapitalization`, `autocorrect`, `enableSuggestions`, `autofillHints` and `keyboardAppearance`, which the app needs (login autofill, no-autocorrect usernames, dark keyboards). They are now optional constructor parameters forwarded to the `CupertinoTextField`. Marked `MONKEYHUB PATCH` in `lib/widgets/input/glass_text_field.dart`.
+`GlassTextField` (and `.search`) dropped the inner field's `autocorrect`, `enableSuggestions`, `autofillHints` and `keyboardAppearance`, which the app needs (login autofill, no-autocorrect usernames, dark keyboards). They are optional constructor parameters forwarded to the `CupertinoTextField`. `textCapitalization` was part of this patch until upstream added it in 1.17.3; ours was dropped then. Marked `MONKEYHUB PATCH` in `lib/widgets/input/glass_text_field.dart`.
 
 ## Upgrading
 
 Upstream 1.17.0 (2026-11-07) does not include per-tab pill widths, so every `SWIRL PATCH` block was re-applied by diffing pristine 1.16.1 against our 1.16.1 and patching the result onto 1.17.0 (the indicator needed its import re-added by hand; `glass_tab_bar.dart` needed three hunks re-placed). To upgrade again: copy the new release over this folder and re-apply the `SWIRL PATCH` blocks (9 marked lines in 6 files) and the `MONKEYHUB PATCH` in `glass_text_field.dart`. `example/` and `skills/` stay dropped.
+
+## 1.17.4 (2026-11-16)
+
+Upgraded from 1.17.0 by applying `diff -ruN pristine-1.17.0/lib ours/lib` onto pristine 1.17.4. Two things needed a hand:
+
+- `glass_text_field.dart`: upstream now has `textCapitalization` itself, so the patch's copy (two constructor lines, the field, one forwarded argument) was removed.
+- `tab_bar_bottom_internal.dart`: the four `JellyClipper(` hunks landed two-on-one (duplicate named arguments on two clippers, none on the other two). Each clipper takes exactly one `itemWidths` and one `slotPadding`.
+
+What 1.17.1 to 1.17.4 changed that matters here: the five fragment shaders have a single-exit `main()` (Flutter 3.50 warns about, and Windows and web can fail on, early returns beside texture sampling); `GlassSwitch.onChanged` and `GlassDialogAction.onPressed` are nullable (null = disabled); Standard-quality surfaces gained rim shading and correct top/bottom corner radii; tab bar pill edge and lifted-lens fixes. The app analyzes clean against it with no call-site changes.
 
 ## What 1.17.0 changed that matters to MonkeyHub
 

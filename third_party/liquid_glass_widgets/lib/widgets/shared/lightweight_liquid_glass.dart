@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
+import '../../constants/glass_defaults.dart';
 import '../../src/engine/internal/transform_tracking_repaint_boundary_mixin.dart';
 import '../../src/renderer/liquid_glass_renderer.dart';
 import '../../theme/glass_theme.dart';
@@ -483,14 +484,13 @@ class _LightweightLiquidGlassState extends State<LightweightLiquidGlass>
       child: widget.child,
     );
 
-    // ClipRRect/ClipRSuperellipse are preferred over ClipPath because Flutter
-    // PR #177551 (3.41+) forwards these clip types to the iOS PlatformView
-    // mutator stack, letting BackdropFilter clip correctly over PlatformViews.
+    // ClipRRect matches lightweight_glass.frag's circular-arc RRect SDF
+    // boundary identically (eliminating the corner-shoulder clip/shader
+    // mismatch that occurs when a superellipse clip slices into a circular-arc
+    // SDF rim), and Flutter PR #177551 (3.41+) forwards ClipRRect to the iOS
+    // PlatformView mutator stack so BackdropFilter clips over PlatformViews.
     final shapeRadius = widget.shape.toBorderRadius();
     if (shapeRadius != null) {
-      if (widget.shape.isSuperellipse) {
-        return ClipRSuperellipse(borderRadius: shapeRadius, child: effect);
-      }
       return ClipRRect(borderRadius: shapeRadius, child: effect);
     }
     return ClipPath(
@@ -959,35 +959,44 @@ class _RenderLightweightGlass extends RenderProxyBox
     shader.setFloat(index++, (_settings.chromaticAberration).clamp(0.0, 1.0));
 
     // 16: uCornerRadius (float) - Logical
-    // For LiquidVerticalRoundedSuperellipse: write -1.0 to signal asymmetric mode.
+    // For vertically asymmetric shapes, -1.0 selects per-corner radii.
     // Slots 24-27 (uData6) will carry the four per-corner radii in that case.
-    double? cornerRadius;
+    final maxRadius = math.min(size.width, size.height) / 2.0;
+    double cornerRadius = 0.0;
     double topLeftR = 0.0;
     double topRightR = 0.0;
     double bottomRightR = 0.0;
     double bottomLeftR = 0.0;
     bool isAsymmetric = false;
 
-    if (_shape is LiquidVerticalRoundedSuperellipse) {
-      // Asymmetric mode: each pair of corners has a different radius.
-      // topLeft == topRight == topRadius; bottomLeft == bottomRight == bottomRadius.
-      final s = _shape as LiquidVerticalRoundedSuperellipse;
-      final maxTop = math.min(size.width, size.height) / 2.0;
-      final maxBot = math.min(size.width, size.height) / 2.0;
-      topLeftR = s.topRadius.clamp(0.0, maxTop);
-      topRightR = s.topRadius.clamp(0.0, maxTop);
-      bottomRightR = s.bottomRadius.clamp(0.0, maxBot);
-      bottomLeftR = s.bottomRadius.clamp(0.0, maxBot);
-      isAsymmetric = true;
-    } else {
-      // effectiveRadius is obfuscation-safe: typed virtual dispatch on the
-      // sealed LiquidShape hierarchy — not a dynamic property lookup or a
-      // runtimeType.toString() heuristic (both break under --obfuscate).
-      final maxRadius = math.min(size.width, size.height) / 2.0;
-      cornerRadius = _shape.effectiveRadius.clamp(0.0, maxRadius);
+    switch (_shape) {
+      case LiquidVerticalRoundedRectangle(
+          :final topRadius,
+          :final bottomRadius
+        ):
+      case LiquidVerticalRoundedSuperellipse(
+          :final topRadius,
+          :final bottomRadius
+        ):
+        // Match the clip for both circular and superellipse vertical shapes.
+        // Using effectiveRadius here would apply the larger radius to all corners.
+        final topR = GlassDefaults.safeRadius(topRadius).clamp(0.0, maxRadius);
+        final botR =
+            GlassDefaults.safeRadius(bottomRadius).clamp(0.0, maxRadius);
+        topLeftR = topR;
+        topRightR = topR;
+        bottomRightR = botR;
+        bottomLeftR = botR;
+        isAsymmetric = true;
+      case LiquidRoundedRectangle(:final borderRadius):
+      case LiquidRoundedSuperellipse(:final borderRadius):
+        cornerRadius =
+            GlassDefaults.safeRadius(borderRadius).clamp(0.0, maxRadius);
+      case LiquidOval():
+        cornerRadius = maxRadius;
     }
 
-    shader.setFloat(index++, isAsymmetric ? -1.0 : cornerRadius!);
+    shader.setFloat(index++, isAsymmetric ? -1.0 : cornerRadius);
 
     // 17, 18: uScale (vec2) - Physical Scale (Includes DPR + Transforms)
     shader.setFloat(index++, physicalScale.dx);
@@ -1040,5 +1049,11 @@ class _RenderLightweightGlass extends RenderProxyBox
     // 34: uBodyMode — 0.0 = adaptive, 1.0 = clear.
     shader.setFloat(
         index++, _settings.bodyMode == GlassBodyMode.clear ? 1.0 : 0.0);
+
+    // 35..38 (uRimConfig): (rimShade, rimLight, rimShadeEnds, reserved)
+    shader.setFloat(index++, _settings.rimShade.clamp(0.0, 4.0));
+    shader.setFloat(index++, _settings.rimLight.clamp(0.0, 4.0));
+    shader.setFloat(index++, _settings.rimShadeEnds.clamp(0.0, 1.0));
+    shader.setFloat(index++, 0.0);
   }
 }

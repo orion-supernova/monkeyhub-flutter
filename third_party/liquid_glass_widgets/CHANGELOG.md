@@ -1,3 +1,59 @@
+# 1.17.4
+
+## Features
+
+- **`GlassSwitch` disabled state (`GlassSwitch.onChanged` is now `ValueChanged<bool>?`) (#485, #486):** Passing `onChanged: null` disables the switch — rendering it at 50% group opacity (matching `UISwitch` and `CupertinoSwitch`), ignoring touch, drag, and keyboard input without lifting into a glass lens, reporting disabled state to assistive technology, and still sliding the thumb on programmatic `value` updates. Direct callers should update `switchWidget.onChanged(v)` to `switchWidget.onChanged?.call(v)`.
+
+## Bug Fixes
+
+- **`LiquidVerticalRoundedRectangle` corner radii in `GlassQuality.standard` (PR #487):** Preserves independent top and bottom corner radii in the Standard glass renderer (`LightweightLiquidGlass`) instead of applying the larger `effectiveRadius` to all four corners. Thanks to [@wow-sven](https://github.com/wow-sven) for the fix (#487).
+- **Flutter 3.50.0 / Windows HLSL & Web ANGLE shader single-exit `main()` (`flutter/flutter#190809`):** Refactored `void main()` across all five fragment shaders (`progressive_blur.frag`, `lightweight_glass.frag`, `interactive_indicator.frag`, `liquid_glass_render.frag`, and `liquid_glass_geometry_blended.frag`) to eliminate early/multiple `return;` statements alongside `sampler2D` texture sampling — silencing all four `impellerc` warnings on Flutter `3.50.0` (`flutter build web --wasm`, Windows, and mobile) and preventing `d3dcompiler_47.dll` (FXC) HLSL compilation failures on Windows Direct3D and Chrome ANGLE with zero visual or GPU performance regressions.
+- **Shader CI & test guards (`scripts/validate_shaders.sh`, `test/shaders/single_return_main_test.dart`):** Extended shader validation to enforce single-exit `main()` statically, run Flutter's `impellerc` multi-target runtime stage check (failing on any `[WARNING]`) alongside `glslangValidator`, and guard against regressions in `flutter test` across all platforms.
+
+# 1.17.3
+
+## Features
+
+- **Disabled dialog actions (`GlassDialogAction.onPressed` is now `VoidCallback?`) (PR #480):** Passing `null` keeps an action in place while ignoring input and reporting disabled state to assistive technology (`tertiaryLabel` on `ios27` / `ios26`; dimmed `GlassButton` on `classic`). Direct callers should update `action.onPressed()` to `action.onPressed?.call()`. Thanks to [@ncosgray](https://github.com/ncosgray) for the contribution (#478, #480).
+- **`GlassTextField` and `GlassTextArea` text capitalization (`textCapitalization`) (PR #477):** Forwards `TextCapitalization` (default `none`) to the underlying `CupertinoTextField`. Thanks to [@RuslanTsitser](https://github.com/RuslanTsitser) for the contribution (#477).
+
+## Bug Fixes
+
+- **iOS 26 / 27 lifted lens contours, `GlassTabBar` platter physics, and `GlassSegmentedControl` parity (PR #481):** Calibrated `GlassTabBar` lifted magnification (`1.15×`), press-lift/overdrag platter motion, and solid-pill foreground contrast during drag; refined lifted indicator perimeter contours and dark-mode interior clarity across `GlassTabBar`, `GlassSegmentedControl`, `GlassSwitch`, and `GlassSlider`; and aligned `GlassSegmentedControl` resting `ios26` appearance with `ios27`.
+- **`GlassDialog` and `showGlassActionSheet` content scrolling, keyboard avoidance, and semantics (PR #479):** Scrolls tall headers while keeping actions pinned, re-centers above the keyboard, adds `alertDialog` / `dialog` route semantics and accessibility-scale label wrapping, and fixes `MaterialApp` text styling. Thanks to [@ncosgray](https://github.com/ncosgray) for the fix (#478, #479).
+- **`GlassMenu` and `GlassPopover` modal barrier semantics (PR #470):** Blocks background page semantics while an overlay is open without detaching the overlay from the semantics tree, and retains `GlassPopover` across open/close cycles. Thanks to [@imariman](https://github.com/imariman) for the fix (#470, #471).
+- **`GlassNavigationShell` pinned chrome behind open page `GlassMenu` barriers (PR #476):** Places pinned top and bottom bars behind open page menu barriers for both hit-testing and assistive traversal. Thanks to [@imariman](https://github.com/imariman) for the fix (#472, #476).
+- **`GlassPicker.showSheet` selection result, semantics, and `MaterialApp` styling (PR #474):** Returns the picked item via a Cancel / title / Done header, exposes the wheel as a single adjustable semantics node, and applies Cupertino `DefaultTextStyle` in both `GlassPicker.showSheet` and `showGlassDatePicker` under `MaterialApp`. Thanks to [@imariman](https://github.com/imariman) for the fix (#473, #474).
+
+# 1.17.2
+
+## Features
+
+- **`GlassChip` solid surface support (`GlassChip.surfaceStyle`, `GlassChip.color`):** `GlassChip` now accepts `surfaceStyle` and `color`, automatically inheriting `GlassSurfaceStyle.solid` inside solid cards/sections to render a zero-shader pill well with keyboard focus and single-line ellipsis clamping.
+
+## Bug Fixes
+
+- **Improved `GlassQuality.standard` visual parity (`GlassTabBar`, `GlassSegmentedControl`, `GlassSwitch`, `GlassSlider`, `AdaptiveGlass`):** Upgraded standard-tier surfaces and lifted indicator pills across `classic`, `ios26`, and `ios27` (Skia, Web, and standard quality) with meniscus rim shading, directional specular highlights, and inner lens depth; tuned `GlassTabBar` lifted pill height on `standard`; and fixed `GlassSwitch` press-hold bloom deflating across parent rebuilds.
+- **`GlassSegmentedControl` `GlassStyle.ios27` resting appearance:** Calibrated the Light Mode track fill, removed resting Light Mode indicator shadow bleed across the track border, and aligned default unselected label weight and contrast with native iOS 27.
+- **`GlassNavigationShell` pinned chrome over fullscreen dialogs and sheets (PR #466):** Fixed newly pushed `fullscreenDialog` routes (and routes pushed over modal sheets) keeping the previous route's pinned bar items instead of showing their own. Thanks to [@veloce](https://github.com/veloce) for the fix (#466).
+- **Linear interactive back-swipe parallax (`GlassPageRoute`, `GlassPageTransitionsBuilder`) (PR #468):** Keeps the underlying route's delegated parallax linear with the finger during interactive swipe-back while preserving the Cupertino curve for non-interactive transitions, and aligns `GlassPageTransitionsBuilder` with the `500 ms` Cupertino duration. Thanks to [@yohom](https://github.com/yohom) for the fix (#468).
+
+# 1.17.1
+
+## Features
+
+- **`GlassMenuItem` checked radio semantics (`GlassMenuItem.semanticsChecked`) (PR #462):** Reports a menu row as a checked or unchecked item of a mutually exclusive group (`AXRadioButton` on macOS VoiceOver) without changing visuals. Thanks to [@imariman](https://github.com/imariman) for the contribution (#462).
+- **Rounded page clipping during navigation transitions (`GlassPage`, `GlassScaffold`, `GlassNavigationStack`, `GlassPageRoute`, `GlassPageTransitionsBuilder`, `GlassPageTransitionClip`) (#451):** Clips transitioning pages with a continuous superellipse corner radius (adaptive to the active iPhone display bezel radius by default, or configurable via `transitionCornerRadius`) and card-edge shadow during push, pop, and interactive swipe-back gestures. Thanks to [@Vincen-dev](https://github.com/Vincen-dev) for suggesting the feature (#451).
+
+## Bug Fixes
+
+- **`GlassSwitch`, `GlassSlider`, and `GlassSegmentedControl` lifted lens & theme quality defaults:** Kept theme-level `GlassThemeVariant.quality` at `null` so body widgets (`GlassButton`, `GlassCard`, `GlassPage`) default to `GlassQuality.standard` without hitting the 16-shape layer limit, while `GlassSwitch`, `GlassSlider`, and `GlassSegmentedControl` default to `GlassQuality.premium` in `ios27`/`ios26` (`standard` in `classic`) even inside `GlassGroupedSection` / `GlassContainer`.
+- **`GlassTabBar` and `AnimatedGlassIndicator` pill rendering:** Fixed right-edge frost bleed on `GlassTabBar.searchable` when the search bar is collapsed and eliminated stair-stepped edge pixelation inside lifted indicator pills while preserving the concave lens pinch.
+- **iOS 27 `GlassQuality.standard` rim and corner outlines:** Added native iOS 27 rim light and light-mode rim shade to the lightweight shader and aligned the widget clip with the shader's rounded-rect SDF for smooth, continuous corner outlines.
+- **`GlassMenu`, `GlassPullDownButton`, and `GlassPopover` liquid morph parity (#453):** Restored native iOS 26/27 open and close morph physics for `GlassQuality.premium` — immediate trigger handoff, pill-to-droplet open contour, full J-curve overshoot on open, symmetric ~350 ms close spring, and smooth trigger-anchored contraction and trigger re-materialization on close. Thanks to [@denweeLabs](https://github.com/denweeLabs) for reporting (#453).
+- **`GlassFullScreenCoverBar`, `GlassFullScreenCoverBarButton`, and `GlassEditButton` default quality:** Default to `GlassQuality.premium` in `GlassStyle.ios27` and `GlassStyle.ios26` so full-screen cover and edit toolbar buttons preserve native material optics.
+- **`GlassSegmentedControl` active-lens text and icon contrast (`activeSelectedColor`):** Phase-locked the selected segment's text and icon color to the indicator's glass-bloom phase (`thickness: 0.0 → 0.15`) across fixed and `.scrollable` modes so high-contrast inverted resting pills (e.g. a dark pill in Light Mode or a white pill in Dark Mode) smoothly transition to the ambient label color (or an explicit `activeSelectedColor`) while the solid pill dissolves into the clear glass lens.
+
 # 1.17.0
 
 ## Breaking & Behavior Changes (Upgrading from ≤ 1.16.x)
