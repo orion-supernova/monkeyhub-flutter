@@ -11507,6 +11507,24 @@ class AppLocalizationsSv extends AppLocalizations {
   String get liveLocationBannerSheetTitle => 'Live-platser';
 
   @override
+  String get mapOfmStyleHeader => 'OpenFreeMap-stil';
+
+  @override
+  String get ofmStyleLiberty => 'Färgglad';
+
+  @override
+  String get ofmStyleBright => 'Ljus och klar';
+
+  @override
+  String get ofmStylePositron => 'Ljus';
+
+  @override
+  String get ofmStyleDark => 'Mörk';
+
+  @override
+  String get ofmStyleFiord => 'Midnattsblå';
+
+  @override
   String get interactionAnswersSearch => 'Sök personer eller svar';
 
   @override

@@ -19333,6 +19333,42 @@ abstract class AppLocalizations {
   /// **'Live locations'**
   String get liveLocationBannerSheetTitle;
 
+  /// Section header for choosing how OpenFreeMap maps look.
+  ///
+  /// In en, this message translates to:
+  /// **'OpenFreeMap style'**
+  String get mapOfmStyleHeader;
+
+  /// OpenFreeMap map style option in map settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Colorful'**
+  String get ofmStyleLiberty;
+
+  /// OpenFreeMap map style option in map settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Bright'**
+  String get ofmStyleBright;
+
+  /// OpenFreeMap map style option in map settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get ofmStylePositron;
+
+  /// OpenFreeMap map style option in map settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get ofmStyleDark;
+
+  /// OpenFreeMap map style option in map settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Midnight blue'**
+  String get ofmStyleFiord;
+
   /// Placeholder in the search field of a poll/RSVP answers sheet: search by person or by answer.
   ///
   /// In en, this message translates to:

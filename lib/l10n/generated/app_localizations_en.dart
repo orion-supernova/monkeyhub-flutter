@@ -11483,6 +11483,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get liveLocationBannerSheetTitle => 'Live locations';
 
   @override
+  String get mapOfmStyleHeader => 'OpenFreeMap style';
+
+  @override
+  String get ofmStyleLiberty => 'Colorful';
+
+  @override
+  String get ofmStyleBright => 'Bright';
+
+  @override
+  String get ofmStylePositron => 'Light';
+
+  @override
+  String get ofmStyleDark => 'Dark';
+
+  @override
+  String get ofmStyleFiord => 'Midnight blue';
+
+  @override
   String get interactionAnswersSearch => 'Search people or answers';
 
   @override

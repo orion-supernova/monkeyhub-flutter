@@ -199,7 +199,16 @@ class LiveLocationPublisher {
     bool monitorSignificantChanges = false,
   }) {
     stop();
-    if (!handle.isResumableAt(_now())) return;
+    if (!handle.isResumableAt(_now())) {
+      // Over while the app was gone. The native side may still hold what the
+      // share started (iOS significant-change monitoring and the "sharing"
+      // notification; Android's service) — nothing else would tear it down,
+      // which left the OS saying "sharing" for a share every chat showed as
+      // ended. Tear it down and forget the handle.
+      unawaited(_platform.stopSharing());
+      unawaited(_store.clear());
+      return;
+    }
 
     _begin(
       messageId: handle.messageId,
@@ -259,7 +268,18 @@ class LiveLocationPublisher {
 
     _listen();
     _heartbeat = Timer.periodic(kLiveHeartbeat, (_) => _beat());
+    // Ends on its deadline by itself. Without this a share only noticed its
+    // deadline when a fix or a heartbeat came in, and a phone lying still
+    // with the app in the background could go on reporting "sharing" well
+    // past the end every viewer already saw.
+    final left = expiresAt.difference(_now());
+    _deadline = Timer(
+      left.isNegative ? Duration.zero : left,
+      () => stop(forget: true),
+    );
   }
+
+  Timer? _deadline;
 
   /// Opens (or re-opens) the position stream at the current [_mode].
   ///
@@ -322,6 +342,8 @@ class LiveLocationPublisher {
     final wasRunning = isRunning;
     _heartbeat?.cancel();
     _heartbeat = null;
+    _deadline?.cancel();
+    _deadline = null;
     final sub = _sub;
     _sub = null;
     final ended = _onEnded;
@@ -369,6 +391,12 @@ class LiveLocationPublisher {
     _deepBackgroundTimer?.cancel();
     _deepBackgroundTimer = null;
     if (visible) {
+      // Timers do not run in a suspended app; coming back is the first chance
+      // to notice a deadline that passed meanwhile.
+      if (isRunning && _isPastDeadline()) {
+        unawaited(stop(forget: true));
+        return;
+      }
       _applyMode(LiveLocationMode.foreground);
       return;
     }

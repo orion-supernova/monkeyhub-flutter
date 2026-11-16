@@ -11029,6 +11029,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get liveLocationBannerSheetTitle => '실시간 위치';
 
   @override
+  String get mapOfmStyleHeader => 'OpenFreeMap 스타일';
+
+  @override
+  String get ofmStyleLiberty => '컬러풀';
+
+  @override
+  String get ofmStyleBright => '선명하게';
+
+  @override
+  String get ofmStylePositron => '밝게';
+
+  @override
+  String get ofmStyleDark => '어둡게';
+
+  @override
+  String get ofmStyleFiord => '미드나잇 블루';
+
+  @override
   String get interactionAnswersSearch => '사람 또는 답변 검색';
 
   @override

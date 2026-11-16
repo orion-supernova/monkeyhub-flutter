@@ -11596,6 +11596,24 @@ class AppLocalizationsPt extends AppLocalizations {
   String get liveLocationBannerSheetTitle => 'Localizações em tempo real';
 
   @override
+  String get mapOfmStyleHeader => 'Estilo do OpenFreeMap';
+
+  @override
+  String get ofmStyleLiberty => 'Colorido';
+
+  @override
+  String get ofmStyleBright => 'Vivo';
+
+  @override
+  String get ofmStylePositron => 'Claro';
+
+  @override
+  String get ofmStyleDark => 'Escuro';
+
+  @override
+  String get ofmStyleFiord => 'Azul-noite';
+
+  @override
   String get interactionAnswersSearch => 'Pesquisar pessoas ou respostas';
 
   @override
@@ -28228,6 +28246,24 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get liveLocationBannerSheetTitle => 'Localizações em tempo real';
+
+  @override
+  String get mapOfmStyleHeader => 'Estilo do OpenFreeMap';
+
+  @override
+  String get ofmStyleLiberty => 'Colorido';
+
+  @override
+  String get ofmStyleBright => 'Vivo';
+
+  @override
+  String get ofmStylePositron => 'Claro';
+
+  @override
+  String get ofmStyleDark => 'Escuro';
+
+  @override
+  String get ofmStyleFiord => 'Azul-noite';
 
   @override
   String get interactionAnswersSearch => 'Buscar pessoas ou respostas';

@@ -11472,6 +11472,24 @@ class AppLocalizationsHi extends AppLocalizations {
   String get liveLocationBannerSheetTitle => 'लाइव लोकेशन';
 
   @override
+  String get mapOfmStyleHeader => 'OpenFreeMap स्टाइल';
+
+  @override
+  String get ofmStyleLiberty => 'रंगीन';
+
+  @override
+  String get ofmStyleBright => 'चमकीला';
+
+  @override
+  String get ofmStylePositron => 'हल्का';
+
+  @override
+  String get ofmStyleDark => 'गहरा';
+
+  @override
+  String get ofmStyleFiord => 'मिडनाइट ब्लू';
+
+  @override
   String get interactionAnswersSearch => 'लोग या जवाब खोजें';
 
   @override

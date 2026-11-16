@@ -11435,6 +11435,24 @@ class AppLocalizationsTr extends AppLocalizations {
   String get liveLocationBannerSheetTitle => 'Canlı konumlar';
 
   @override
+  String get mapOfmStyleHeader => 'OpenFreeMap stili';
+
+  @override
+  String get ofmStyleLiberty => 'Renkli';
+
+  @override
+  String get ofmStyleBright => 'Parlak';
+
+  @override
+  String get ofmStylePositron => 'Açık';
+
+  @override
+  String get ofmStyleDark => 'Koyu';
+
+  @override
+  String get ofmStyleFiord => 'Gece mavisi';
+
+  @override
   String get interactionAnswersSearch => 'Kişi veya yanıt ara';
 
   @override

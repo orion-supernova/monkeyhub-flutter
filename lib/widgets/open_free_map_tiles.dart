@@ -11,9 +11,10 @@ import 'open_free_map_snapshot.dart';
 /// Each 256-point tile is rendered once, at [scale] device pixels per point,
 /// and cached by Flutter's image cache like any other picture.
 class OpenFreeMapTileProvider extends TileProvider {
-  OpenFreeMapTileProvider({required this.dark, required this.scale});
+  OpenFreeMapTileProvider({required this.styleName, required this.scale});
 
-  final bool dark;
+  /// OpenFreeMap style name (see [OpenFreeMapSnapshot.currentStyle]).
+  final String styleName;
   final double scale;
 
   @override
@@ -22,7 +23,7 @@ class OpenFreeMapTileProvider extends TileProvider {
         z: coordinates.z,
         x: coordinates.x,
         y: coordinates.y,
-        dark: dark,
+        styleName: styleName,
         scale: scale,
       );
 }
@@ -33,14 +34,14 @@ class _OpenFreeMapTile extends ImageProvider<_OpenFreeMapTile> {
     required this.z,
     required this.x,
     required this.y,
-    required this.dark,
+    required this.styleName,
     required this.scale,
   });
 
   final int z;
   final int x;
   final int y;
-  final bool dark;
+  final String styleName;
   final double scale;
 
   @override
@@ -59,7 +60,7 @@ class _OpenFreeMapTile extends ImageProvider<_OpenFreeMapTile> {
       x: x,
       y: y,
       scale: scale,
-      dark: dark,
+      styleName: styleName,
     );
     // flutter_map treats a failed tile as missing and keeps the layer going;
     // the next pan asks again.
@@ -73,9 +74,9 @@ class _OpenFreeMapTile extends ImageProvider<_OpenFreeMapTile> {
       other.z == z &&
       other.x == x &&
       other.y == y &&
-      other.dark == dark &&
+      other.styleName == styleName &&
       other.scale == scale;
 
   @override
-  int get hashCode => Object.hash(z, x, y, dark, scale);
+  int get hashCode => Object.hash(z, x, y, styleName, scale);
 }

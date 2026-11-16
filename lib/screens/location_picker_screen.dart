@@ -810,7 +810,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             ),
             minZoom: 2,
             maxZoom: 20,
-            backgroundColor: dark
+            backgroundColor: SettingsStore.instance.ofmStyle.isDark
                 ? const Color(0xFF0C0C0C)
                 : const Color(0xFFF8F4F0),
             interactionOptions: const InteractionOptions(
@@ -830,7 +830,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           children: [
             TileLayer(
               tileProvider: OpenFreeMapTileProvider(
-                dark: dark,
+                styleName: OpenFreeMapSnapshot.currentStyle,
                 scale: MediaQuery.devicePixelRatioOf(context),
               ),
               maxNativeZoom: 20,

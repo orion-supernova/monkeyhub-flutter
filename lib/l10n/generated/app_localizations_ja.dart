@@ -11005,6 +11005,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get liveLocationBannerSheetTitle => 'ライブ位置情報';
 
   @override
+  String get mapOfmStyleHeader => 'OpenFreeMapのスタイル';
+
+  @override
+  String get ofmStyleLiberty => 'カラフル';
+
+  @override
+  String get ofmStyleBright => 'ブライト';
+
+  @override
+  String get ofmStylePositron => 'ライト';
+
+  @override
+  String get ofmStyleDark => 'ダーク';
+
+  @override
+  String get ofmStyleFiord => 'ミッドナイトブルー';
+
+  @override
   String get interactionAnswersSearch => '名前や回答を検索';
 
   @override

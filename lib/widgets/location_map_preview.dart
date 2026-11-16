@@ -283,7 +283,13 @@ class _MapPictureState extends State<_MapPicture> {
   }
 
   void _settingsChanged() {
-    if (MapEngines.current != _engine) _resolve();
+    final now = MapEngines.current;
+    if (now != _engine) {
+      _resolve();
+    } else if (now != null && widget.cacheKey(now) != _key) {
+      // Same engine, new look (an OpenFreeMap style change).
+      _request(now);
+    }
   }
 
   void _resolve() {

@@ -13416,6 +13416,18 @@
   "@liveLocationBannerView": {"description": "Button on the live location strip; opens the live map."},
   "liveLocationBannerSheetTitle": "Live locations",
   "@liveLocationBannerSheetTitle": {"description": "Title of the list shown when several people share live location."},
+  "mapOfmStyleHeader": "OpenFreeMap style",
+  "@mapOfmStyleHeader": {"description": "Section header for choosing how OpenFreeMap maps look."},
+  "ofmStyleLiberty": "Colorful",
+  "@ofmStyleLiberty": {"description": "OpenFreeMap map style option in map settings."},
+  "ofmStyleBright": "Bright",
+  "@ofmStyleBright": {"description": "OpenFreeMap map style option in map settings."},
+  "ofmStylePositron": "Light",
+  "@ofmStylePositron": {"description": "OpenFreeMap map style option in map settings."},
+  "ofmStyleDark": "Dark",
+  "@ofmStyleDark": {"description": "OpenFreeMap map style option in map settings."},
+  "ofmStyleFiord": "Midnight blue",
+  "@ofmStyleFiord": {"description": "OpenFreeMap map style option in map settings."},
   "interactionAnswersSearch": "Search people or answers",
   "@interactionAnswersSearch": {
     "description": "Placeholder in the search field of a poll/RSVP answers sheet: search by person or by answer."

@@ -27,6 +27,7 @@ import '../widgets/location_map_preview.dart';
 import '../widgets/location_map_snapshot.dart';
 import '../widgets/location_pin.dart';
 import '../widgets/map_engine.dart';
+import '../widgets/ofm_style_choices.dart';
 import '../widgets/message_stamp.dart';
 import '../widgets/open_free_map_snapshot.dart';
 import '../widgets/open_free_map_tiles.dart';
@@ -1118,7 +1119,7 @@ class _LocationMapScreenState extends State<LocationMapScreen>
         initialZoom: _initialZoom,
         minZoom: 2,
         maxZoom: 20,
-        backgroundColor: dark
+        backgroundColor: SettingsStore.instance.ofmStyle.isDark
             ? const Color(0xFF0C0C0C)
             : const Color(0xFFF8F4F0),
         interactionOptions: const InteractionOptions(
@@ -1133,7 +1134,7 @@ class _LocationMapScreenState extends State<LocationMapScreen>
       children: [
         TileLayer(
           tileProvider: OpenFreeMapTileProvider(
-            dark: dark,
+            styleName: OpenFreeMapSnapshot.currentStyle,
             scale: MediaQuery.devicePixelRatioOf(context),
           ),
           maxNativeZoom: 20,
@@ -1283,7 +1284,10 @@ class _MapSettingsSheet extends StatelessWidget {
                   ),
                 ],
               ),
-              if (!systemMaps) GroupedFooter(l.mapStyleOpenFreeMapNote),
+              if (!systemMaps) ...[
+                const OfmStyleChoices(),
+                GroupedFooter(l.mapStyleOpenFreeMapNote),
+              ],
             ],
           ),
         );

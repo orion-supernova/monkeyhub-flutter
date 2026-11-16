@@ -8,6 +8,8 @@ import 'package:flutter/painting.dart';
 import 'package:http/http.dart' as http;
 import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 
+import '../data/settings_store.dart';
+
 /// A street-map picture from OpenFreeMap, for platforms with no OS map
 /// renderer (Android, Windows, Linux, web). Apple platforms use MapKit
 /// instead; see `location_map_snapshot.dart`.
@@ -19,8 +21,8 @@ import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 /// `vector_tile_renderer` package — the same image contract MapKit gives the
 /// Apple side, so the bubble never runs a live map widget while scrolling.
 ///
-/// Styles: Liberty for light themes (OpenFreeMap's most detailed), Dark for
-/// dark ones. Attribution is required by OpenFreeMap's terms and drawn by the
+/// Style: whichever is chosen in Settings › Maps ([currentStyle]); Liberty,
+/// OpenFreeMap's most detailed and colourful, by default. Attribution is required by OpenFreeMap's terms and drawn by the
 /// card ([attribution]).
 ///
 /// Everything fails soft: no network, a style the renderer can't read, or a
@@ -38,18 +40,16 @@ abstract final class OpenFreeMapSnapshot {
   /// Web-Mercator metres per 256-px tile pixel at zoom 0 on the equator.
   static const _metersPerPixelZ0 = 156543.03392;
 
-  /// OpenFreeMap style names for light and dark app themes. Dark is the
-  /// neutral grey one; Fiord (slate blue) was compared on 2026-11-15 and
-  /// clashed with the non-blue app themes.
-  static const lightStyle = 'liberty';
-  static const darkStyle = 'dark';
+  /// The style chosen in Settings › Maps (Liberty, the colourful one, by
+  /// default), by its name on tiles.openfreemap.org.
+  static String get currentStyle => SettingsStore.instance.ofmStyle.name;
 
   static http.Client _client = http.Client();
 
   @visibleForTesting
   static set client(http.Client value) => _client = value;
 
-  static final _styles = <bool, Future<_Style?>>{};
+  static final _styles = <String, Future<_Style?>>{};
   static Future<String?>? _tileUrl;
 
   /// Decoded tiles, shared between nearby bubbles (a street of shared pins
@@ -65,7 +65,7 @@ abstract final class OpenFreeMapSnapshot {
     required double spanMeters,
     required Size size,
     required double scale,
-    required bool dark,
+    required String styleName,
   }) {
     // Display zoom: the zoom at which the span fills the card's width.
     final zoom = zoomFor(
@@ -88,7 +88,7 @@ abstract final class OpenFreeMapSnapshot {
       top: ((cy - size.height / 2) * scale).roundToDouble() / scale,
       size: size,
       scale: scale,
-      dark: dark,
+      styleName: styleName,
     );
   }
 
@@ -99,14 +99,14 @@ abstract final class OpenFreeMapSnapshot {
     required int x,
     required int y,
     required double scale,
-    required bool dark,
+    required String styleName,
   }) => _renderRegion(
     zoom: z.toDouble(),
     left: x * 256.0,
     top: y * 256.0,
     size: const Size(256, 256),
     scale: scale,
-    dark: dark,
+    styleName: styleName,
   );
 
   /// The web-Mercator zoom at which [spanMeters] spans [widthPoints].
@@ -139,10 +139,10 @@ abstract final class OpenFreeMapSnapshot {
     required double top,
     required Size size,
     required double scale,
-    required bool dark,
+    required String styleName,
   }) async {
     try {
-      final style = await _style(dark);
+      final style = await _style(styleName);
       final url = await (_tileUrl ??= _fetchTileUrl());
       if (style == null || url == null) {
         _tileUrl = null; // Retry the TileJSON next time.
@@ -218,20 +218,18 @@ abstract final class OpenFreeMapSnapshot {
     }
   }
 
-  static Future<_Style?> _style(bool dark) {
-    final cached = _styles[dark];
+  static Future<_Style?> _style(String name) {
+    final cached = _styles[name];
     if (cached != null) return cached;
-    final future = _fetchStyle(dark).then((style) {
-      if (style == null) _styles.remove(dark); // Retry next time.
+    final future = _fetchStyle(name).then((style) {
+      if (style == null) _styles.remove(name); // Retry next time.
       return style;
     });
-    return _styles[dark] = future;
+    return _styles[name] = future;
   }
 
-  static Future<_Style?> _fetchStyle(bool dark) async {
-    final res = await _client.get(
-      Uri.parse('$_base/styles/${dark ? darkStyle : lightStyle}'),
-    );
+  static Future<_Style?> _fetchStyle(String name) async {
+    final res = await _client.get(Uri.parse('$_base/styles/$name'));
     if (res.statusCode != 200) return null;
     final json = jsonDecode(res.body) as Map<String, dynamic>;
     final theme = vtr.ThemeReader().read(json);

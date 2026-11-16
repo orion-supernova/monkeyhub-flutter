@@ -11660,6 +11660,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String get liveLocationBannerSheetTitle => 'المواقع المباشرة';
 
   @override
+  String get mapOfmStyleHeader => 'نمط OpenFreeMap';
+
+  @override
+  String get ofmStyleLiberty => 'ملوّن';
+
+  @override
+  String get ofmStyleBright => 'ساطع';
+
+  @override
+  String get ofmStylePositron => 'فاتح';
+
+  @override
+  String get ofmStyleDark => 'داكن';
+
+  @override
+  String get ofmStyleFiord => 'أزرق ليلي';
+
+  @override
   String get interactionAnswersSearch => 'البحث عن أشخاص أو إجابات';
 
   @override

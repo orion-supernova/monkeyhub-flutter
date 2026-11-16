@@ -10896,6 +10896,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get liveLocationBannerSheetTitle => '实时位置';
 
   @override
+  String get mapOfmStyleHeader => 'OpenFreeMap 样式';
+
+  @override
+  String get ofmStyleLiberty => '多彩';
+
+  @override
+  String get ofmStyleBright => '明亮';
+
+  @override
+  String get ofmStylePositron => '浅色';
+
+  @override
+  String get ofmStyleDark => '深色';
+
+  @override
+  String get ofmStyleFiord => '午夜蓝';
+
+  @override
   String get interactionAnswersSearch => '搜索用户或回答';
 
   @override

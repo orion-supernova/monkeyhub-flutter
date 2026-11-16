@@ -138,7 +138,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(snapshots, 0);
-    expect(requested.any((u) => u.contains('/styles/dark')), isTrue);
+    // Colorful (Liberty) by default, whatever the app's theme.
+    expect(requested.any((u) => u.contains('/styles/liberty')), isTrue);
     expect(requested.any((u) => u.endsWith('.pbf')), isTrue);
     expect(find.byType(Image), findsOneWidget);
     expect(find.text(OpenFreeMapSnapshot.attribution), findsOneWidget);

@@ -67,6 +67,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kMapStyle = 'mh.maps.style';
   static const _kMapTraffic = 'mh.maps.traffic';
   static const _kMapShowMe = 'mh.maps.showMe';
+  static const _kOfmStyle = 'mh.maps.ofmStyle';
   static const _kMapAppName = 'mh.maps.name';
   static const _kAutoplayExpressions = 'mh.autoplayExpressions';
   static const _kStickerSuggestions = 'mh.stickerSuggestions';
@@ -140,7 +141,7 @@ class SettingsStore extends ChangeNotifier {
     _kLayout, _kNav, _kSection, _kShowCallsTab, _kCallsSeenAt, _kCallsFavSnoozed, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
-    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kMapSource, _kMapStyle, _kMapTraffic, _kMapShowMe, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kForkFullScreen, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
+    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kMapSource, _kMapStyle, _kMapTraffic, _kMapShowMe, _kOfmStyle, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kForkFullScreen, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
     _kVideoQualityTier, _kAutoLowerVideoQuality, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kUiKit, _kNativeScope, _kNativeRideAlong, _kShaderGlass, _kLocale, _kMotionLevel, _kPowerSaving, _kHaptics,
@@ -203,6 +204,7 @@ class SettingsStore extends ChangeNotifier {
   MapStyle _mapStyle = MapStyle.map;
   bool _mapTraffic = false;
   bool _mapShowMe = true;
+  OfmStyle _ofmStyle = OfmStyle.liberty;
   String? _mapAppName;
   bool _autoplayExpressions = true;
   bool _stickerSuggestions = true;
@@ -411,6 +413,10 @@ class SettingsStore extends ChangeNotifier {
   MapStyle get mapStyle => _mapStyle;
   bool get mapTraffic => _mapTraffic;
   bool get mapShowMe => _mapShowMe;
+
+  /// OpenFreeMap's look, wherever OpenFreeMap draws (it does not follow the
+  /// app's light/dark theme: a colourful map reads well on both).
+  OfmStyle get ofmStyle => _ofmStyle;
   String? get mapAppName => _mapAppName;
 
   /// Whether GIFs and animated stickers play by themselves in the transcript
@@ -854,6 +860,7 @@ class SettingsStore extends ChangeNotifier {
     _mapStyle = MapStyle.values.asNameMap()[s[_kMapStyle]] ?? MapStyle.map;
     _mapTraffic = s[_kMapTraffic] == 'true'; // default false
     _mapShowMe = s[_kMapShowMe] != 'false'; // default true
+    _ofmStyle = OfmStyle.values.asNameMap()[s[_kOfmStyle]] ?? OfmStyle.liberty;
     _mapAppName = s[_kMapAppName];
     _autoplayExpressions = s[_kAutoplayExpressions] != 'false'; // default true
     _stickerSuggestions = s[_kStickerSuggestions] != 'false'; // default true
@@ -1288,6 +1295,13 @@ class SettingsStore extends ChangeNotifier {
     _mapShowMe = v;
     notifyListeners();
     await _storage.write(key: _kMapShowMe, value: '$v');
+  }
+
+  Future<void> setOfmStyle(OfmStyle v) async {
+    if (_ofmStyle == v) return;
+    _ofmStyle = v;
+    notifyListeners();
+    await _storage.write(key: _kOfmStyle, value: v.name);
   }
 
   Future<void> setMapApp(String? id, String? name) async {
@@ -1795,6 +1809,20 @@ enum MapSource { system, openFreeMap }
 
 /// The full-screen map's type. Hybrid and satellite need the OS maps.
 enum MapStyle { map, hybrid, satellite }
+
+/// OpenFreeMap's styles, by their style names on tiles.openfreemap.org.
+/// Liberty (colourful) is the default.
+enum OfmStyle {
+  liberty,
+  bright,
+  positron,
+  dark,
+  fiord;
+
+  /// Drawn on a dark ground: the map's own background, for the space a
+  /// tile has not filled yet.
+  bool get isDark => this == dark || this == fiord;
+}
 
 enum RoomLayout { list, cards, grid }
 

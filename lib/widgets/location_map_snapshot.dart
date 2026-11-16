@@ -38,7 +38,7 @@ abstract final class LocationMapSnapshot {
     required bool dark,
     required MapEngine engine,
   }) =>
-      '${engine.name},${latitude.toStringAsFixed(6)},${longitude.toStringAsFixed(6)},'
+      '${engine.name}${engine == MapEngine.openFreeMap ? '/${OpenFreeMapSnapshot.currentStyle}' : ''},${latitude.toStringAsFixed(6)},${longitude.toStringAsFixed(6)},'
       '${spanMeters.round()},${size.width.round()}x${size.height.round()},'
       '${scale.toStringAsFixed(1)},${dark ? 'd' : 'l'}';
 
@@ -107,7 +107,7 @@ abstract final class LocationMapSnapshot {
       spanMeters: spanMeters,
       size: size,
       scale: scale,
-      dark: dark,
+      styleName: OpenFreeMapSnapshot.currentStyle,
     );
     if (image == null) return null;
     // Encoded once so it rides the same ImageProvider cache as the OS PNGs.

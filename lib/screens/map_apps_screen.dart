@@ -7,6 +7,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../services/maps_handoff.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/map_engine.dart';
+import '../widgets/ofm_style_choices.dart';
 import '../widgets/settings_pickers.dart';
 
 class MapAppsScreen extends StatefulWidget {
@@ -104,7 +105,10 @@ class _MapAppsScreenState extends State<MapAppsScreen>
   /// elsewhere OpenFreeMap is the only source and there is nothing to choose.
   List<Widget> _mapSource(SettingsStore store, AppLocalizations l) {
     final system = MapEngines.systemName;
-    if (system == null) return const [];
+    // OpenFreeMap's look, wherever OpenFreeMap is what draws.
+    final ofmShown =
+        system == null || store.mapSource == MapSource.openFreeMap;
+    if (system == null) return const [OfmStyleChoices()];
     return [
       GroupedSection(
         header: l.mapSourceSection,
@@ -136,6 +140,7 @@ class _MapAppsScreenState extends State<MapAppsScreen>
             ? '${l.mapSourceFooter}\n${l.mapSourceGoogleUnavailable}'
             : l.mapSourceFooter,
       ),
+      if (ofmShown) const OfmStyleChoices(),
     ];
   }
 }

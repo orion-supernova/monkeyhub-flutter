@@ -11644,6 +11644,24 @@ class AppLocalizationsFr extends AppLocalizations {
   String get liveLocationBannerSheetTitle => 'Positions en direct';
 
   @override
+  String get mapOfmStyleHeader => 'Style OpenFreeMap';
+
+  @override
+  String get ofmStyleLiberty => 'Coloré';
+
+  @override
+  String get ofmStyleBright => 'Lumineux';
+
+  @override
+  String get ofmStylePositron => 'Clair';
+
+  @override
+  String get ofmStyleDark => 'Sombre';
+
+  @override
+  String get ofmStyleFiord => 'Bleu nuit';
+
+  @override
   String get interactionAnswersSearch =>
       'Rechercher des personnes ou des réponses';
 
