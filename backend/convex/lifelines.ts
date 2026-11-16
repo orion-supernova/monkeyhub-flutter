@@ -46,11 +46,6 @@ async function walletOf(ctx: any, userId: any) {
     .first();
 }
 
-async function isChild(ctx: any, userId: any): Promise<boolean> {
-  const user = await ctx.db.get(userId);
-  return user?.accountType === "child";
-}
-
 /** The wallet as the app draws it. */
 export function walletView(row: any, now: number) {
   const today = utcDay(now);
@@ -73,11 +68,14 @@ export const mine = query({
   },
 });
 
-/** Today's free banana. Idempotent: a second claim the same day is a no-op. */
+/**
+ * Today's free banana. Idempotent: a second claim the same day is a no-op.
+ * Every account, children included: it is the videos a child is kept from,
+ * not bananas.
+ */
 export const claimFree = mutation({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
-    if (await isChild(ctx, userId)) throw new Error("NOT_FOR_CHILD");
     const now = Date.now();
     const today = utcDay(now);
     const row = await walletOf(ctx, userId);

@@ -19,7 +19,7 @@ they are stuck:
 | Earn | Amount |
 |---|---|
 | Rewarded video | 1, every 3rd video of the day 2 |
-| Free daily banana (mobile) | 1 |
+| Free daily banana (every account and platform, children included) | 1 |
 | Daily video cap | 15 (UTC day) |
 
 Why people keep watching: the sheet opens exactly when they are stuck, one
@@ -38,7 +38,12 @@ Videos play on iOS and Android only (`RewardedAds.available`). The wallet is
 the account's, so Mac, web, Windows and Linux can spend bananas earned on a
 phone; where the watch button would be they get "Bananas come from short
 videos in the phone app" and Get the app. Child accounts never see a video and
-the server refuses to credit one.
+the server refuses to credit one; they do get the free daily banana.
+
+The count lives in the Games tab's top bar (`BananaPill`): a drawn banana
+(`BananaGlyph`, no emoji font needed) that pops when bananas land and waves
+while today's free one is waiting. Tapping it opens the wallet sheet
+(`showBananaWallet`): balance, what bananas get you, watch, free daily.
 
 ## Ads setup
 

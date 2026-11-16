@@ -4,8 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/ads/banana_sheet.dart';
+import 'package:monkeyhub/ads/banana_glyph.dart';
+import 'package:monkeyhub/ads/banana_pill.dart';
 import 'package:monkeyhub/ads/banana_wallet.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
+import 'package:monkeyhub/widgets/tab_root_bar.dart';
 
 import 'preview_kit.dart';
 
@@ -72,4 +75,97 @@ void main() {
     await snap(tester, previewApp(BasicTheme.midnight(), _Opener(open)), 'banana_desktop.png', act: () async {});
     debugDefaultTargetPlatformOverride = null;
   });
+
+  testWidgets('wallet, phone', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    BananaWallet.instance
+      ..balance = 4
+      ..adsLeft = 12
+      ..nextBonusIn = 2
+      ..freeReady = true;
+    await snap(
+      tester,
+      previewApp(BasicTheme.midnight(), _Opener((c) => showBananaWallet(c, userId: 'u'))),
+      'banana_wallet.png',
+      act: () async {},
+    );
+    debugDefaultTargetPlatformOverride = null;
+  });
+  testWidgets('glyph and pill', (tester) async {
+    BananaWallet.instance
+      ..balance = 7
+      ..freeReady = false;
+    await snap(
+      tester,
+      previewApp(
+        BasicTheme.daylight(),
+        const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  BananaGlyph(size: 22),
+                  SizedBox(width: 16),
+                  BananaGlyph(size: 48),
+                  SizedBox(width: 16),
+                  BananaGlyph(size: 120),
+                ],
+              ),
+              SizedBox(height: 30),
+              BananaPill(userId: 'u'),
+            ],
+          ),
+        ),
+      ),
+      'banana_glyph.png',
+      act: () async {},
+    );
+  });
+
+  for (final (name, size) in [('phone', kIphone16Pro), ('desktop', const Size(1280, 800))]) {
+    testWidgets('games tab bar, $name', (tester) async {
+      BananaWallet.instance
+        ..balance = 12
+        ..freeReady = true;
+      final scroll = ScrollController();
+      await snap(
+        tester,
+        previewApp(
+          BasicTheme.midnight(),
+          Stack(
+            children: [
+              ListView(
+                controller: scroll,
+                padding: const EdgeInsets.only(top: 120, left: 20, right: 20),
+                children: [
+                  for (var i = 0; i < 4; i++)
+                    Container(
+                      height: 120,
+                      margin: const EdgeInsets.only(bottom: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C1D22),
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                    ),
+                ],
+              ),
+              TabRootBar(
+                title: 'Games',
+                scroll: scroll,
+                trailing: const BananaPill(userId: 'u'),
+              ),
+            ],
+          ),
+        ),
+        'banana_tabbar_$name.png',
+        size: size,
+        dpr: name == 'desktop' ? 2 : 3,
+        topInset: name == 'desktop' ? 0 : kIphoneTopInset,
+        bottomInset: name == 'desktop' ? 0 : kIphoneBottomInset,
+        act: () async {},
+      );
+    });
+  }
 }

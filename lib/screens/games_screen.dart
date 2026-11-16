@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import '../ads/banana_pill.dart';
 import 'package:flutter/material.dart';
 
 import '../ads/banana_sheet.dart';
@@ -313,7 +314,13 @@ class _GamesScreenState extends State<GamesScreen>
               ),
             )),
           ),
-          TabRootBar(title: l10n.destinationsGamesLabel, scroll: _scroll),
+          TabRootBar(
+            title: l10n.destinationsGamesLabel,
+            scroll: _scroll,
+            trailing: widget.repo.userId == null
+                ? null
+                : BananaPill(userId: widget.repo.userId!),
+          ),
         ],
       ),
     );
