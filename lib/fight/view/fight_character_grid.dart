@@ -59,6 +59,11 @@ class FightCharacterGrid extends StatelessWidget {
   final ValueChanged<int> onPick;
   final FightLook look;
 
+  /// The narrowest a card may be with a whole family on one line. Every
+  /// current phone clears it, so the cast is all on screen with no card cut
+  /// off at the edge; only a very narrow window falls back to sideways rows.
+  static const double _minFit = 58;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -67,7 +72,7 @@ class FightCharacterGrid extends StatelessWidget {
         const gap = 8.0;
         // Five across when they fit at a readable size, else a sideways row.
         final fit = (box.maxWidth - gap * 4) / 5;
-        final w = fit >= 76 ? (maxCardWidth == null ? fit : (fit < maxCardWidth! ? fit : maxCardWidth!)) : 84.0;
+        final w = fit >= _minFit ? (maxCardWidth == null ? fit : (fit < maxCardWidth! ? fit : maxCardWidth!)) : 84.0;
         final h = w * 1.3;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +95,10 @@ class FightCharacterGrid extends StatelessWidget {
                 height: h,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  physics: fit >= 76 ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+                  physics: fit >= _minFit ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+                  // A row that does scroll runs to the screen edge instead of
+                  // being cut square inside the page padding.
+                  clipBehavior: Clip.none,
                   itemCount: ids.length,
                   separatorBuilder: (_, _) => const SizedBox(width: gap),
                   itemBuilder: (context, i) {
@@ -145,6 +153,11 @@ class _Card extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             gradient: LinearGradient(colors: [top, bottom], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          // Over the art, so the frame keeps one width round the corners and
+          // picking a card does not shift its contents.
+          foregroundDecoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: selected ? const Color(0xffffd23a) : const Color(0x22ffffff), width: selected ? 2.5 : 1),
           ),

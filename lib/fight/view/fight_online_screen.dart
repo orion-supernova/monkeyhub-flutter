@@ -784,8 +784,14 @@ class FightSeatCard extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: ready ? const Color(0xffffd23a) : const Color(0x33ffffff), width: 2.5),
           boxShadow: const [BoxShadow(color: Color(0x66000000), blurRadius: 24, offset: Offset(0, 12))],
+        ),
+        // The frame is drawn over the art, not around it: a border in the
+        // background decoration insets the child, whose square corners then
+        // cut into the rounded frame.
+        foregroundDecoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: ready ? const Color(0xffffd23a) : const Color(0x33ffffff), width: 2.5),
         ),
         child: Stack(
           children: [

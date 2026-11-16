@@ -125,6 +125,8 @@ class FightStagePicker extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
+        // Runs to the screen edge rather than ending in a square cut.
+        clipBehavior: Clip.none,
         padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
         itemCount: ids.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
@@ -181,6 +183,9 @@ class _StageCard extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          foregroundDecoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: selected ? const Color(0xffffd23a) : const Color(0x22ffffff), width: selected ? 2.5 : 1),
           ),
