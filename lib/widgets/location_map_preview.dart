@@ -133,7 +133,12 @@ class LocationMapPreview extends StatelessWidget {
     this.accuracyM,
     this.pulse = 0,
     this.dimmed = false,
+    this.pictureOut,
   });
+
+  /// Told the street-map picture once it is showing, for whoever wants to
+  /// reuse it (the bubble flies it into the full-screen map).
+  final ValueNotifier<MapPicture?>? pictureOut;
 
   final AppTheme theme;
   final double latitude;
@@ -186,6 +191,7 @@ class LocationMapPreview extends StatelessWidget {
                 scale: MediaQuery.devicePixelRatioOf(context),
                 dark: theme.background.computeLuminance() < 0.4,
                 dimmed: dimmed,
+                pictureOut: pictureOut,
               ),
             CustomPaint(painter: painter(_Layers.marks)),
           ],
@@ -208,8 +214,10 @@ class _MapPicture extends StatefulWidget {
     required this.scale,
     required this.dark,
     required this.dimmed,
+    this.pictureOut,
   });
 
+  final ValueNotifier<MapPicture?>? pictureOut;
   final double latitude;
   final double longitude;
   final double spanMeters;
@@ -243,7 +251,10 @@ class _MapPictureState extends State<_MapPicture> {
     // The Maps setting can change while the bubble is on screen.
     SettingsStore.instance.addListener(_settingsChanged);
     _resolve();
+    _started = true;
   }
+
+  bool _started = false;
 
   @override
   void dispose() {
@@ -281,7 +292,14 @@ class _MapPictureState extends State<_MapPicture> {
     final key = _key = widget.cacheKey(engine);
     final ready = LocationMapSnapshot.ready(key);
     if (ready != null) {
-      if (mounted) setState(() => _picture = ready);
+      // Reached from initState on a cache hit, where setState is not
+      // allowed; the first build reads the field anyway.
+      if (_started) {
+        setState(() => _picture = ready);
+      } else {
+        _picture = ready;
+      }
+      widget.pictureOut?.value = ready;
       return;
     }
     LocationMapSnapshot.load(
@@ -296,6 +314,7 @@ class _MapPictureState extends State<_MapPicture> {
     ).then((picture) {
       if (!mounted || key != _key || picture == null) return;
       setState(() => _picture = picture);
+      widget.pictureOut?.value = picture;
     });
   }
 

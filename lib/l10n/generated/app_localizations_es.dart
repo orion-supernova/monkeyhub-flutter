@@ -11469,6 +11469,61 @@ class AppLocalizationsEs extends AppLocalizations {
       'Google Maps no está disponible en este dispositivo, así que se usa OpenFreeMap.';
 
   @override
+  String get locationMapTitleLive => 'Ubicación en tiempo real';
+
+  @override
+  String get locationMapTitlePinned => 'Ubicación';
+
+  @override
+  String locationMapNameYou(String name) {
+    return '$name (Tú)';
+  }
+
+  @override
+  String get locationMapYou => 'Tú';
+
+  @override
+  String locationMapAway(String distance) {
+    return 'a $distance';
+  }
+
+  @override
+  String locationMapUpdatedAt(String time) {
+    return 'Actualizado a las $time';
+  }
+
+  @override
+  String get locationMapDirections => 'Cómo llegar';
+
+  @override
+  String get locationMapShare => 'Compartir';
+
+  @override
+  String get locationMapShowBoth => 'Mostraros a ambos';
+
+  @override
+  String get locationMapSettings => 'Ajustes del mapa';
+
+  @override
+  String get mapStyleMap => 'Mapa';
+
+  @override
+  String get mapStyleHybrid => 'Híbrido';
+
+  @override
+  String get mapStyleSatellite => 'Satélite';
+
+  @override
+  String get mapTraffic => 'Tráfico';
+
+  @override
+  String get mapShowMyLocation => 'Mostrar mi ubicación';
+
+  @override
+  String get mapStyleOpenFreeMapNote =>
+      'El satélite y el tráfico vienen con Apple Maps o Google Maps. Elígelos en Ajustes › Mapas.';
+
+  @override
   String get interactionAnswersSearch => 'Buscar personas o respuestas';
 
   @override

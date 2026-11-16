@@ -19135,6 +19135,102 @@ abstract class AppLocalizations {
   /// **'Google Maps isn\'t available on this device, so OpenFreeMap is used.'**
   String get mapSourceGoogleUnavailable;
 
+  /// Title of the full-screen map for a live location share.
+  ///
+  /// In en, this message translates to:
+  /// **'Live location'**
+  String get locationMapTitleLive;
+
+  /// Title of the full-screen map for a one-off shared location when no address is known.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get locationMapTitlePinned;
+
+  /// Label above your own avatar on the map, e.g. "Murat (You)".
+  ///
+  /// In en, this message translates to:
+  /// **'{name} (You)'**
+  String locationMapNameYou(String name);
+
+  /// Bottom card name when the shared location is your own.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get locationMapYou;
+
+  /// Distance between you and the shared location, e.g. "1.2 km away".
+  ///
+  /// In en, this message translates to:
+  /// **'{distance} away'**
+  String locationMapAway(String distance);
+
+  /// When a live location last moved, as a clock time, e.g. "Updated 13:48".
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {time}'**
+  String locationMapUpdatedAt(String time);
+
+  /// Button that opens the location in a maps app for directions.
+  ///
+  /// In en, this message translates to:
+  /// **'Directions'**
+  String get locationMapDirections;
+
+  /// Button that shares the location (link) to other apps.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get locationMapShare;
+
+  /// Map button that zooms to show both you and the shared location.
+  ///
+  /// In en, this message translates to:
+  /// **'Show you both'**
+  String get locationMapShowBoth;
+
+  /// Title of the sheet with map type and traffic options; also the button label.
+  ///
+  /// In en, this message translates to:
+  /// **'Map settings'**
+  String get locationMapSettings;
+
+  /// Map type: the normal street map.
+  ///
+  /// In en, this message translates to:
+  /// **'Map'**
+  String get mapStyleMap;
+
+  /// Map type: satellite imagery with street names on top.
+  ///
+  /// In en, this message translates to:
+  /// **'Hybrid'**
+  String get mapStyleHybrid;
+
+  /// Map type: satellite imagery only.
+  ///
+  /// In en, this message translates to:
+  /// **'Satellite'**
+  String get mapStyleSatellite;
+
+  /// Toggle that shows live traffic on the map.
+  ///
+  /// In en, this message translates to:
+  /// **'Traffic'**
+  String get mapTraffic;
+
+  /// Toggle that shows your own position on the map.
+  ///
+  /// In en, this message translates to:
+  /// **'Show my location'**
+  String get mapShowMyLocation;
+
+  /// Footnote in map settings when OpenFreeMap is the map source. "Settings" and "Maps" name the app screens.
+  ///
+  /// In en, this message translates to:
+  /// **'Satellite and traffic come with Apple Maps or Google Maps. Choose them in Settings › Maps.'**
+  String get mapStyleOpenFreeMapNote;
+
   /// Placeholder in the search field of a poll/RSVP answers sheet: search by person or by answer.
   ///
   /// In en, this message translates to:

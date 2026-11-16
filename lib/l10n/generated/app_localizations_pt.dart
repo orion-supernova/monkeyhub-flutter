@@ -11474,6 +11474,61 @@ class AppLocalizationsPt extends AppLocalizations {
       'O Google Maps não está disponível neste dispositivo, por isso é usado o OpenFreeMap.';
 
   @override
+  String get locationMapTitleLive => 'Localização em tempo real';
+
+  @override
+  String get locationMapTitlePinned => 'Localização';
+
+  @override
+  String locationMapNameYou(String name) {
+    return '$name (Tu)';
+  }
+
+  @override
+  String get locationMapYou => 'Tu';
+
+  @override
+  String locationMapAway(String distance) {
+    return 'a $distance';
+  }
+
+  @override
+  String locationMapUpdatedAt(String time) {
+    return 'Atualizado às $time';
+  }
+
+  @override
+  String get locationMapDirections => 'Direções';
+
+  @override
+  String get locationMapShare => 'Partilhar';
+
+  @override
+  String get locationMapShowBoth => 'Mostrar ambos';
+
+  @override
+  String get locationMapSettings => 'Definições do mapa';
+
+  @override
+  String get mapStyleMap => 'Mapa';
+
+  @override
+  String get mapStyleHybrid => 'Híbrido';
+
+  @override
+  String get mapStyleSatellite => 'Satélite';
+
+  @override
+  String get mapTraffic => 'Trânsito';
+
+  @override
+  String get mapShowMyLocation => 'Mostrar a minha localização';
+
+  @override
+  String get mapStyleOpenFreeMapNote =>
+      'O satélite e o trânsito vêm com o Apple Maps ou o Google Maps. Escolhe-os em Definições › Mapas.';
+
+  @override
   String get interactionAnswersSearch => 'Pesquisar pessoas ou respostas';
 
   @override
@@ -27983,6 +28038,61 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get mapSourceGoogleUnavailable =>
       'O Google Maps não está disponível neste dispositivo, então o OpenFreeMap é usado.';
+
+  @override
+  String get locationMapTitleLive => 'Localização em tempo real';
+
+  @override
+  String get locationMapTitlePinned => 'Localização';
+
+  @override
+  String locationMapNameYou(String name) {
+    return '$name (Você)';
+  }
+
+  @override
+  String get locationMapYou => 'Você';
+
+  @override
+  String locationMapAway(String distance) {
+    return 'a $distance';
+  }
+
+  @override
+  String locationMapUpdatedAt(String time) {
+    return 'Atualizado às $time';
+  }
+
+  @override
+  String get locationMapDirections => 'Como chegar';
+
+  @override
+  String get locationMapShare => 'Compartilhar';
+
+  @override
+  String get locationMapShowBoth => 'Mostrar vocês dois';
+
+  @override
+  String get locationMapSettings => 'Configurações do mapa';
+
+  @override
+  String get mapStyleMap => 'Mapa';
+
+  @override
+  String get mapStyleHybrid => 'Híbrido';
+
+  @override
+  String get mapStyleSatellite => 'Satélite';
+
+  @override
+  String get mapTraffic => 'Trânsito';
+
+  @override
+  String get mapShowMyLocation => 'Mostrar minha localização';
+
+  @override
+  String get mapStyleOpenFreeMapNote =>
+      'Satélite e trânsito vêm com o Apple Maps ou o Google Maps. Escolha em Configurações › Mapas.';
 
   @override
   String get interactionAnswersSearch => 'Buscar pessoas ou respostas';

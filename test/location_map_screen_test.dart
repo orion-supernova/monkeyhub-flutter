@@ -59,11 +59,18 @@ void main() {
         LocationMapScreen(
           share: share,
           clock: () => now,
-          title: 'Zeynep',
+          name: 'Zeynep',
           onOpenInMaps: (_) async => opened++,
         ),
       ),
     );
+    // The face pin is drawn off the fake clock (Picture.toImage).
+    await tester.runAsync(() async {
+      for (var i = 0; i < 50 && find.byType(MarkerLayer).evaluate().isEmpty; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await tester.pump();
+      }
+    });
     await tester.pump();
 
     MarkerLayer markerLayer() => tester.widget<MarkerLayer>(find.byType(MarkerLayer));
@@ -80,7 +87,7 @@ void main() {
     expect(markerLayer().markers.single.point.latitude, 41.01);
     expect(markerLayer().markers.single.point.longitude, 29.02);
 
-    await tester.tap(find.text('Open in maps'));
+    await tester.tap(find.text('Directions'));
     await tester.pump();
     expect(opened, 1);
 
@@ -93,6 +100,8 @@ void main() {
     );
     await tester.pump();
     expect(find.textContaining('ended'), findsOneWidget);
+    // The person, by name, in the card.
+    expect(find.text('Zeynep'), findsOneWidget);
     expect(find.text(OpenFreeMapSnapshot.attribution), findsOneWidget);
   });
 }

@@ -9,6 +9,10 @@ final class MapSnapshot: NSObject {
         let channel = FlutterMethodChannel(name: "monkeyhub/map_snapshot",
                                            binaryMessenger: messenger)
         channel.setMethodCallHandler { call, result in
+            if call.method == "geocode" {
+                geocode(call.arguments as? [String: Any] ?? [:], result)
+                return
+            }
             guard call.method == "snapshot" else {
                 result(FlutterMethodNotImplemented)
                 return
@@ -60,6 +64,43 @@ final class MapSnapshot: NSObject {
                     result(png.map { FlutterStandardTypedData(bytes: $0) })
                 }
             }
+        }
+    }
+
+    /// Reverse geocode for the location bubble's address line.
+    private static func geocode(_ args: [String: Any], _ result: @escaping FlutterResult) {
+        guard let lat = args["latitude"] as? Double,
+              let lng = args["longitude"] as? Double,
+              CLLocationCoordinate2DIsValid(CLLocationCoordinate2D(latitude: lat, longitude: lng)) else {
+            result(nil)
+            return
+        }
+        let geocoder = CLGeocoder()
+        geocoder.reverseGeocodeLocation(CLLocation(latitude: lat, longitude: lng),
+                                        preferredLocale: Locale.current) { marks, _ in
+            // Held until completion so the request is not cancelled.
+            _ = geocoder
+            var out: [String: String]?
+            if let p = marks?.first {
+                var title = p.thoroughfare ?? ""
+                if !title.isEmpty, let n = p.subThoroughfare, !n.isEmpty { title += " " + n }
+                if title.isEmpty { title = p.name ?? p.locality ?? "" }
+                let place = p.locality ?? p.subAdministrativeArea
+                var line = ""
+                if let zip = p.postalCode, !zip.isEmpty {
+                    line = place.map { zip + " " + $0 } ?? zip
+                } else if let place = place {
+                    line = place
+                }
+                if let country = p.country, let iso = p.isoCountryCode,
+                   iso != Locale.current.regionCode {
+                    line = line.isEmpty ? country : line + ", " + country
+                }
+                if !title.isEmpty || !line.isEmpty {
+                    out = ["title": title, "subtitle": line]
+                }
+            }
+            DispatchQueue.main.async { result(out) }
         }
     }
 }

@@ -64,6 +64,9 @@ class SettingsStore extends ChangeNotifier {
   static const _kCloseKeepsRunning = 'mh.closeKeepsRunning';
   static const _kMapAppId = 'mh.maps.app';
   static const _kMapSource = 'mh.maps.source';
+  static const _kMapStyle = 'mh.maps.style';
+  static const _kMapTraffic = 'mh.maps.traffic';
+  static const _kMapShowMe = 'mh.maps.showMe';
   static const _kMapAppName = 'mh.maps.name';
   static const _kAutoplayExpressions = 'mh.autoplayExpressions';
   static const _kStickerSuggestions = 'mh.stickerSuggestions';
@@ -137,7 +140,7 @@ class SettingsStore extends ChangeNotifier {
     _kLayout, _kNav, _kSection, _kShowCallsTab, _kCallsSeenAt, _kCallsFavSnoozed, _kPushEnabled, _kGameReminders,
     _kFriendActivity, _kChatStyle, _kReplyStyle,
     _kBubbleStyle, _kSpeakerTint, _kViewReadReceipts, _kLogoMode,
-    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kMapSource, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kForkFullScreen, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
+    _kManualLogoThemeId, _kShowLinkUrls, _kShowPresenceDots, _kShortcutPeek, _kAlbumCards, _kCompactDesktop, _kCloseKeepsRunning, _kMapAppId, _kMapAppName, _kMapSource, _kMapStyle, _kMapTraffic, _kMapShowMe, _kShowNetworkStats, _kTipsSeen, _kForkPeekCount, _kForkGestureDone, _kForkFullScreen, _kFightLook, _kFightChar, _kFightSound, _kFightMusic,
     _kVideoQualityTier, _kAutoLowerVideoQuality, _kRecoveryPromptDismissed,
     _kComposerModeHintSeenRoomIds, _kFilterStyle, _kRoomFilter,
     _kGlassProfile, _kGlassSlots, _kGlassPreset, _kUiKit, _kNativeScope, _kNativeRideAlong, _kShaderGlass, _kLocale, _kMotionLevel, _kPowerSaving, _kHaptics,
@@ -197,6 +200,9 @@ class SettingsStore extends ChangeNotifier {
   bool? _closeKeepsRunning;
   String? _mapAppId;
   MapSource _mapSource = MapSource.system;
+  MapStyle _mapStyle = MapStyle.map;
+  bool _mapTraffic = false;
+  bool _mapShowMe = true;
   String? _mapAppName;
   bool _autoplayExpressions = true;
   bool _stickerSuggestions = true;
@@ -399,6 +405,12 @@ class SettingsStore extends ChangeNotifier {
   /// map): the OS's own (Apple Maps, Google Maps on Android) or OpenFreeMap.
   /// Platforms with no OS maps always use OpenFreeMap; see `map_engine.dart`.
   MapSource get mapSource => _mapSource;
+
+  /// The full-screen map's type, traffic layer and own-position dot, kept
+  /// between opens like a maps app keeps them.
+  MapStyle get mapStyle => _mapStyle;
+  bool get mapTraffic => _mapTraffic;
+  bool get mapShowMe => _mapShowMe;
   String? get mapAppName => _mapAppName;
 
   /// Whether GIFs and animated stickers play by themselves in the transcript
@@ -839,6 +851,9 @@ class SettingsStore extends ChangeNotifier {
     _closeKeepsRunning = ckr == null ? null : ckr == 'true';
     _mapAppId = s[_kMapAppId];
     _mapSource = MapSource.values.asNameMap()[s[_kMapSource]] ?? MapSource.system;
+    _mapStyle = MapStyle.values.asNameMap()[s[_kMapStyle]] ?? MapStyle.map;
+    _mapTraffic = s[_kMapTraffic] == 'true'; // default false
+    _mapShowMe = s[_kMapShowMe] != 'false'; // default true
     _mapAppName = s[_kMapAppName];
     _autoplayExpressions = s[_kAutoplayExpressions] != 'false'; // default true
     _stickerSuggestions = s[_kStickerSuggestions] != 'false'; // default true
@@ -1252,6 +1267,27 @@ class SettingsStore extends ChangeNotifier {
     _mapSource = v;
     notifyListeners();
     await _storage.write(key: _kMapSource, value: v.name);
+  }
+
+  Future<void> setMapStyle(MapStyle v) async {
+    if (_mapStyle == v) return;
+    _mapStyle = v;
+    notifyListeners();
+    await _storage.write(key: _kMapStyle, value: v.name);
+  }
+
+  Future<void> setMapTraffic(bool v) async {
+    if (_mapTraffic == v) return;
+    _mapTraffic = v;
+    notifyListeners();
+    await _storage.write(key: _kMapTraffic, value: '$v');
+  }
+
+  Future<void> setMapShowMe(bool v) async {
+    if (_mapShowMe == v) return;
+    _mapShowMe = v;
+    notifyListeners();
+    await _storage.write(key: _kMapShowMe, value: '$v');
   }
 
   Future<void> setMapApp(String? id, String? name) async {
@@ -1756,6 +1792,9 @@ enum NativeScope { tabBar, everything }
 /// macOS and Google Maps on Android (when Play Services and a key exist);
 /// [openFreeMap] is OpenStreetMap data from openfreemap.org.
 enum MapSource { system, openFreeMap }
+
+/// The full-screen map's type. Hybrid and satellite need the OS maps.
+enum MapStyle { map, hybrid, satellite }
 
 enum RoomLayout { list, cards, grid }
 

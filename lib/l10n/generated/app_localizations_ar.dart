@@ -11536,6 +11536,61 @@ class AppLocalizationsAr extends AppLocalizations {
       'خرائط Google غير متاحة على هذا الجهاز، لذلك يُستخدم OpenFreeMap.';
 
   @override
+  String get locationMapTitleLive => 'الموقع المباشر';
+
+  @override
+  String get locationMapTitlePinned => 'الموقع';
+
+  @override
+  String locationMapNameYou(String name) {
+    return '$name (أنت)';
+  }
+
+  @override
+  String get locationMapYou => 'أنت';
+
+  @override
+  String locationMapAway(String distance) {
+    return 'على بعد $distance';
+  }
+
+  @override
+  String locationMapUpdatedAt(String time) {
+    return 'تم التحديث $time';
+  }
+
+  @override
+  String get locationMapDirections => 'الاتجاهات';
+
+  @override
+  String get locationMapShare => 'مشاركة';
+
+  @override
+  String get locationMapShowBoth => 'إظهاركما معًا';
+
+  @override
+  String get locationMapSettings => 'إعدادات الخريطة';
+
+  @override
+  String get mapStyleMap => 'خريطة';
+
+  @override
+  String get mapStyleHybrid => 'مختلط';
+
+  @override
+  String get mapStyleSatellite => 'قمر صناعي';
+
+  @override
+  String get mapTraffic => 'حركة المرور';
+
+  @override
+  String get mapShowMyLocation => 'إظهار موقعي';
+
+  @override
+  String get mapStyleOpenFreeMapNote =>
+      'القمر الصناعي وحركة المرور متاحان مع خرائط Apple أو خرائط Google. اخترها من الإعدادات › الخرائط.';
+
+  @override
   String get interactionAnswersSearch => 'البحث عن أشخاص أو إجابات';
 
   @override

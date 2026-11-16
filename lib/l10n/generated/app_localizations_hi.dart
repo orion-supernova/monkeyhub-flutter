@@ -11351,6 +11351,61 @@ class AppLocalizationsHi extends AppLocalizations {
       'इस डिवाइस पर Google Maps उपलब्ध नहीं है, इसलिए OpenFreeMap इस्तेमाल हो रहा है।';
 
   @override
+  String get locationMapTitleLive => 'लाइव लोकेशन';
+
+  @override
+  String get locationMapTitlePinned => 'लोकेशन';
+
+  @override
+  String locationMapNameYou(String name) {
+    return '$name (आप)';
+  }
+
+  @override
+  String get locationMapYou => 'आप';
+
+  @override
+  String locationMapAway(String distance) {
+    return '$distance दूर';
+  }
+
+  @override
+  String locationMapUpdatedAt(String time) {
+    return '$time पर अपडेट हुआ';
+  }
+
+  @override
+  String get locationMapDirections => 'दिशा-निर्देश';
+
+  @override
+  String get locationMapShare => 'शेयर करें';
+
+  @override
+  String get locationMapShowBoth => 'आप दोनों को दिखाएँ';
+
+  @override
+  String get locationMapSettings => 'मैप सेटिंग';
+
+  @override
+  String get mapStyleMap => 'मैप';
+
+  @override
+  String get mapStyleHybrid => 'हाइब्रिड';
+
+  @override
+  String get mapStyleSatellite => 'सैटेलाइट';
+
+  @override
+  String get mapTraffic => 'ट्रैफ़िक';
+
+  @override
+  String get mapShowMyLocation => 'मेरी लोकेशन दिखाएँ';
+
+  @override
+  String get mapStyleOpenFreeMapNote =>
+      'सैटेलाइट और ट्रैफ़िक Apple Maps या Google Maps के साथ मिलते हैं। सेटिंग › मैप में चुनें।';
+
+  @override
   String get interactionAnswersSearch => 'लोग या जवाब खोजें';
 
   @override

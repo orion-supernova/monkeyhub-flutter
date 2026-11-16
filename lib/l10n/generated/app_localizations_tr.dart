@@ -11315,6 +11315,61 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bu cihazda Google Haritalar kullanılamıyor, bu yüzden OpenFreeMap kullanılıyor.';
 
   @override
+  String get locationMapTitleLive => 'Canlı konum';
+
+  @override
+  String get locationMapTitlePinned => 'Konum';
+
+  @override
+  String locationMapNameYou(String name) {
+    return '$name (Sen)';
+  }
+
+  @override
+  String get locationMapYou => 'Sen';
+
+  @override
+  String locationMapAway(String distance) {
+    return '$distance uzakta';
+  }
+
+  @override
+  String locationMapUpdatedAt(String time) {
+    return 'Güncellendi: $time';
+  }
+
+  @override
+  String get locationMapDirections => 'Yol tarifi';
+
+  @override
+  String get locationMapShare => 'Paylaş';
+
+  @override
+  String get locationMapShowBoth => 'İkinizi de göster';
+
+  @override
+  String get locationMapSettings => 'Harita ayarları';
+
+  @override
+  String get mapStyleMap => 'Harita';
+
+  @override
+  String get mapStyleHybrid => 'Hibrit';
+
+  @override
+  String get mapStyleSatellite => 'Uydu';
+
+  @override
+  String get mapTraffic => 'Trafik';
+
+  @override
+  String get mapShowMyLocation => 'Konumumu göster';
+
+  @override
+  String get mapStyleOpenFreeMapNote =>
+      'Uydu ve trafik Apple Haritalar veya Google Haritalar ile gelir. Ayarlar › Haritalar\'dan seçebilirsin.';
+
+  @override
   String get interactionAnswersSearch => 'Kişi veya yanıt ara';
 
   @override

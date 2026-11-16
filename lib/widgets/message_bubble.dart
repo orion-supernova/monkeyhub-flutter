@@ -638,6 +638,7 @@ class MessageBubble extends StatelessWidget {
       message: message,
       isMine: isMine,
       ephemeral: ephemeral,
+      author: author,
       api: api,
       quote: quote,
       useHero: useHero,
@@ -964,6 +965,7 @@ class EphemeralMessageBubble extends StatelessWidget {
       message: message,
       isMine: isMine,
       ephemeral: true,
+      author: author,
       api: api,
       useHero: useHero,
       metrics: metrics,
@@ -1634,6 +1636,10 @@ Widget buildMessageContent({
   required bool isMine,
   required bool ephemeral,
   required ChatApi api,
+
+  /// The sender, for content that shows their face (the full-screen map
+  /// opened from a location card).
+  ChatUser? author,
 
   /// A reply quote to draw at the top INSIDE the bubble ([ReplyStyle.quote]).
   /// Only text bubbles take it — see [quoteFitsInside]; every other shape
@@ -2369,6 +2375,8 @@ Widget buildMessageContent({
         stamp: stampFor(StampTone.onMedia),
         onStopSharing: onStopLiveShare,
         publishing: publishingLiveShare,
+        author: author,
+        api: api,
       );
     case MessageType.poll:
     case MessageType.checklist:

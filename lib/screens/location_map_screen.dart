@@ -3,74 +3,142 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart' show Colors;
+import 'package:flutter/material.dart' show Colors, Material, MaterialType;
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../backend/chat_api.dart';
+import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../models/chat_user.dart';
 import '../models/location_share.dart';
+import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../ui/foundation/caps.dart';
+import '../widgets/adaptive_sheet.dart';
+import '../widgets/app_toast.dart';
+import '../widgets/ios_kit.dart';
 import '../widgets/location_map_preview.dart';
+import '../widgets/location_map_snapshot.dart';
+import '../widgets/location_pin.dart';
 import '../widgets/map_engine.dart';
 import '../widgets/message_stamp.dart';
 import '../widgets/open_free_map_snapshot.dart';
 import '../widgets/open_free_map_tiles.dart';
+import '../widgets/settings_pickers.dart' show GroupedFooter;
+import '../widgets/sheet_kit.dart';
+import '../widgets/user_avatar.dart';
 import '../widgets/viewer_chrome.dart';
 
-/// A shared location, full screen and movable, opened by tapping its bubble.
+/// What the bubble hands the full-screen map: where it flies from and the
+/// picture it already shows, so the opening is one continuous motion.
+class LocationMapOrigin {
+  const LocationMapOrigin({
+    required this.rect,
+    required this.radius,
+    required this.spanMeters,
+    this.picture,
+  });
+
+  /// The bubble's map card, in global coordinates.
+  final Rect rect;
+  final double radius;
+
+  /// How many metres the card's width covers. The full-screen map opens at
+  /// the same scale, so the picture that flies up lands on the same streets.
+  final double spanMeters;
+  final MapPicture? picture;
+}
+
+/// A shared location, full screen, opened by tapping its bubble.
 ///
-/// The map comes from the same [MapEngine] as the bubble's picture: a native
-/// MapKit view on iOS and macOS, a native Google map on Android (both platform
-/// views, `MapViewFactory.swift` / `MapViewFactory.kt`), or OpenFreeMap tiles
-/// in `flutter_map` everywhere else.
+/// Grows out of the bubble's map card (the card's own picture flies to full
+/// width at the same scale, then the live map fades in under it), and goes
+/// back into it on close.
 ///
-/// Live shares move here by themselves. [share] is fed by the bubble every
-/// time the message updates, and each new fix moves the marker; the camera
-/// follows it until the viewer pans away, and the locate button brings it
-/// back. That is the fix for having to tap "Open in maps" again for every
-/// update: a maps app only ever gets one fixed coordinate.
+/// The map is the same [MapEngine] as the card: a native MapKit view on iOS
+/// and macOS, a native Google map on Android (`MapViewFactory.swift` /
+/// `.kt`), or OpenFreeMap tiles in `flutter_map`. On it: the sharer's face
+/// with their name, the accuracy ring, and for a live share the path walked
+/// since the map opened. Around it: the address, map type / traffic / my
+/// location settings, "show us both", and a card with the person, their
+/// distance from you, the time left, Directions, Share, Copy, and Stop
+/// sharing on your own share.
+///
+/// Live shares move by themselves: [share] is fed by the bubble on every
+/// message update and each fix glides the face to its new spot. The camera
+/// follows until the viewer moves the map; the locate button resumes it.
 class LocationMapScreen extends StatefulWidget {
   const LocationMapScreen({
     super.key,
     required this.share,
     required this.onOpenInMaps,
     required this.clock,
-    this.title,
+    this.name,
+    this.author,
+    this.api,
+    this.isMine = false,
+    this.onStopSharing,
+    this.origin,
+    this.initialTrail = const [],
   });
 
   final ValueListenable<LocationShare> share;
+
   /// Hands the location to a maps app. Given this screen's context so the
-  /// app picker sheet opens above the map, not under it.
+  /// app picker opens above the map.
   final Future<void> Function(BuildContext context) onOpenInMaps;
   final DateTime Function() clock;
 
-  /// Who shared it; the bar's title.
-  final String? title;
+  /// The sharer's display name.
+  final String? name;
+  final ChatUser? author;
+  final ChatApi? api;
+  final bool isMine;
+
+  /// Present only on the share this device is publishing right now.
+  final Future<void> Function()? onStopSharing;
+  final LocationMapOrigin? origin;
+
+  /// Positions the bubble already saw this share pass through.
+  final List<LatLng> initialTrail;
 
   static Future<void> open(
     BuildContext context, {
     required ValueListenable<LocationShare> share,
     required Future<void> Function(BuildContext context) onOpenInMaps,
     required DateTime Function() clock,
-    String? title,
+    String? name,
+    ChatUser? author,
+    ChatApi? api,
+    bool isMine = false,
+    Future<void> Function()? onStopSharing,
+    LocationMapOrigin? origin,
+    List<LatLng> initialTrail = const [],
   }) {
     return Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 220),
-        reverseTransitionDuration: const Duration(milliseconds: 180),
+        opaque: false,
+        barrierColor: Colors.transparent,
+        transitionDuration: const Duration(milliseconds: 380),
+        reverseTransitionDuration: const Duration(milliseconds: 280),
+        // The screen draws its own flight from the route's animation.
+        transitionsBuilder: (_, _, _, child) => child,
         pageBuilder: (_, _, _) => LocationMapScreen(
           share: share,
           onOpenInMaps: onOpenInMaps,
           clock: clock,
-          title: title,
-        ),
-        transitionsBuilder: (_, anim, _, child) => FadeTransition(
-          opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
-          child: child,
+          name: name,
+          author: author,
+          api: api,
+          isMine: isMine,
+          onStopSharing: onStopSharing,
+          origin: origin,
+          initialTrail: initialTrail,
         ),
       ),
     );
@@ -81,27 +149,55 @@ class LocationMapScreen extends StatefulWidget {
 }
 
 class _LocationMapScreenState extends State<LocationMapScreen> {
+  static const _snapshot = MethodChannel('monkeyhub/map_snapshot');
+
   MapEngine? _engine;
   MethodChannel? _native;
   final _ofm = MapController();
   bool _ofmReady = false;
 
+  /// The live map has drawn; the flying picture can step aside.
+  bool _mapReady = false;
+
   /// The camera follows a live share until the viewer moves the map.
   bool _follow = true;
 
+  LocationPinImage? _pin;
+  bool _pinTried = false;
+
+  /// The first pin attempt finished (with or without an image); the map
+  /// waits for it so it is born with the face rather than swapping one in.
+  bool _pinDone = false;
+  bool _pinEnded = false;
+
+  ({String title, String subtitle})? _address;
+  LocationShare? _geocodedAt;
+
+  LocationFix? _me;
+  bool _meAllowed = false;
+
+  late final List<LatLng> _trail = [...widget.initialTrail];
   Timer? _tick;
+  Timer? _readyFallback;
   late DateTime _now = widget.clock();
   late LocationShare _shown = widget.share.value;
+  bool _stopping = false;
 
-  /// Wide enough to see the streets around the point, and the reported
-  /// accuracy ring when there is one.
-  late final double _spanMeters = (spanMetersFor(_shown.accuracyM) * 2.5)
-      .clamp(600.0, 12000.0);
+  late final double _spanMeters =
+      widget.origin?.spanMeters ??
+      (spanMetersFor(_shown.accuracyM) * 2.5).clamp(600.0, 12000.0);
+
+  bool get _live => _shown.stateAt(_now) == LiveShareState.live;
+  bool get _ended => _shown.stateAt(_now) == LiveShareState.ended;
+  bool get _systemMaps =>
+      _engine == MapEngine.appleMaps || _engine == MapEngine.googleMaps;
 
   @override
   void initState() {
     super.initState();
     widget.share.addListener(_moved);
+    SettingsStore.instance.addListener(_settingsChanged);
+    if (_live) _addTrail(_shown);
     final known = MapEngines.current;
     if (known != null) {
       _engine = known;
@@ -111,21 +207,41 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
       });
     }
     _syncTick();
+    _geocode();
+    _locateMe();
+    // A map that never says it drew still has to show eventually.
+    _readyFallback = Timer(const Duration(milliseconds: 2500), _markReady);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_pinTried) {
+      _pinTried = true;
+      _renderPin();
+    }
   }
 
   @override
   void dispose() {
     widget.share.removeListener(_moved);
+    SettingsStore.instance.removeListener(_settingsChanged);
+    _native?.setMethodCallHandler(null);
     _tick?.cancel();
+    _readyFallback?.cancel();
     _ofm.dispose();
     super.dispose();
   }
 
+  // ---------------------------------------------------------------- data
+
   void _syncTick() {
-    final live = _shown.stateAt(widget.clock()) == LiveShareState.live;
-    if (live) {
+    if (_live) {
       _tick ??= Timer.periodic(const Duration(seconds: 1), (_) {
-        if (mounted) setState(() => _now = widget.clock());
+        if (!mounted) return;
+        final wasLive = _live;
+        setState(() => _now = widget.clock());
+        if (wasLive && !_live) _onEnded();
       });
     } else {
       _tick?.cancel();
@@ -133,27 +249,165 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
     }
   }
 
-  void _moved() {
-    final next = widget.share.value;
-    if (next.latitude == _shown.latitude &&
-        next.longitude == _shown.longitude &&
-        next.accuracyM == _shown.accuracyM) {
-      setState(() => _shown = next); // Times only (updated / ended).
-      _syncTick();
+  void _onEnded() {
+    _syncTick();
+    if (!_pinEnded) _renderPin();
+  }
+
+  void _addTrail(LocationShare s) {
+    final p = LatLng(s.latitude, s.longitude);
+    if (_trail.isNotEmpty &&
+        _trail.last.latitude == p.latitude &&
+        _trail.last.longitude == p.longitude) {
       return;
     }
-    setState(() => _shown = next);
+    _trail.add(p);
+    if (_trail.length > 400) _trail.removeAt(0);
+  }
+
+  List<List<double>> get _trailArgs => [
+    for (final p in _trail) [p.latitude, p.longitude],
+  ];
+
+  void _moved() {
+    final next = widget.share.value;
+    final moved =
+        next.latitude != _shown.latitude ||
+        next.longitude != _shown.longitude ||
+        next.accuracyM != _shown.accuracyM;
+    final wasLive = _live;
+    setState(() {
+      _shown = next;
+      _now = widget.clock();
+    });
+    if (wasLive && !_live) _onEnded();
     _syncTick();
+    if (!moved) return;
+    if (_live) _addTrail(next);
     _native?.invokeMethod<void>('update', {
       'latitude': next.latitude,
       'longitude': next.longitude,
       'accuracyM': next.accuracyM,
       'follow': _follow,
+      'trail': _trailArgs,
     });
     if (_ofmReady && _follow) {
       _ofm.move(LatLng(next.latitude, next.longitude), _ofm.camera.zoom);
     }
+    _geocode();
   }
+
+  Future<void> _renderPin() async {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final scale = MediaQuery.devicePixelRatioOf(context);
+    final name = widget.name ?? widget.author?.displayName ?? '';
+    final ended = _ended;
+    final pin = await LocationPinImage.render(
+      theme: theme,
+      label: widget.isMine
+          ? (name.isEmpty ? l10n.locationMapYou : l10n.locationMapNameYou(name))
+          : name,
+      user: widget.author,
+      api: widget.api,
+      ring: ended ? theme.inkMuted : locationMapAccent(theme),
+      scale: scale,
+    );
+    if (!mounted) return;
+    final first = !_pinDone;
+    setState(() {
+      _pin = pin ?? _pin;
+      _pinDone = true;
+      _pinEnded = ended;
+    });
+    if (!first && pin != null) {
+      _native?.invokeMethod<void>('update', {
+        'latitude': _shown.latitude,
+        'longitude': _shown.longitude,
+        'accuracyM': _shown.accuracyM,
+        'follow': false,
+        ..._pinArgs(pin),
+      });
+    }
+  }
+
+  Map<String, Object?> _pinArgs(LocationPinImage? pin) => pin == null
+      ? const {}
+      : {'pinImage': pin.png, 'pinScale': pin.scale, 'pinAnchorY': pin.anchorY};
+
+  /// The street name over the map. Asked of the OS geocoder (Apple's, or
+  /// Android's), again only once a live share has moved a block or so.
+  Future<void> _geocode() async {
+    if (!Caps.systemMaps) return;
+    final at = _shown;
+    final last = _geocodedAt;
+    if (last != null &&
+        at.distanceMetersTo(last.latitude, last.longitude) < 120) {
+      return;
+    }
+    _geocodedAt = at;
+    try {
+      final r = await _snapshot.invokeMapMethod<String, Object?>('geocode', {
+        'latitude': at.latitude,
+        'longitude': at.longitude,
+      });
+      if (!mounted || r == null) return;
+      final title = (r['title'] as String?) ?? '';
+      final subtitle = (r['subtitle'] as String?) ?? '';
+      if (title.isEmpty && subtitle.isEmpty) return;
+      setState(() => _address = (title: title, subtitle: subtitle));
+    } catch (_) {}
+  }
+
+  /// Your own position, for the distance line and the "both of us" view.
+  /// Only when location is already allowed: opening a map never prompts.
+  Future<void> _locateMe() async {
+    if (!SettingsStore.instance.mapShowMe || widget.isMine) return;
+    final service = LocationService.instance;
+    try {
+      if (await service.check() != LocationAvailability.ready) return;
+      if (!mounted) return;
+      setState(() => _meAllowed = true);
+      _native?.invokeMethod<void>('setShowsUser', {'on': true});
+      final quick = await service.lastKnownFix();
+      if (mounted && quick != null) setState(() => _me = quick);
+      final fresh = await service.currentFix();
+      if (mounted && fresh != null) setState(() => _me = fresh);
+    } catch (_) {}
+  }
+
+  void _settingsChanged() {
+    final s = SettingsStore.instance;
+    _native?.invokeMethod<void>('setMapType', {'type': _typeName(s.mapStyle)});
+    _native?.invokeMethod<void>('setTraffic', {'on': s.mapTraffic});
+    _native?.invokeMethod<void>('setShowsUser', {
+      'on': s.mapShowMe && _meAllowed,
+    });
+    if (mounted) setState(() {});
+  }
+
+  static String _typeName(MapStyle s) => switch (s) {
+    MapStyle.map => 'standard',
+    MapStyle.hybrid => 'hybrid',
+    MapStyle.satellite => 'satellite',
+  };
+
+  void _markReady() {
+    _readyFallback?.cancel();
+    if (mounted && !_mapReady) setState(() => _mapReady = true);
+  }
+
+  Future<dynamic> _fromNative(MethodCall call) async {
+    switch (call.method) {
+      case 'ready':
+        _markReady();
+      case 'gesture':
+        if (_follow && mounted) setState(() => _follow = false);
+    }
+    return null;
+  }
+
+  // ------------------------------------------------------------- actions
 
   void _recenter() {
     HapticFeedback.selectionClick();
@@ -164,143 +418,521 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
     }
   }
 
-  /// The zoom at which [_spanMeters] fills roughly a phone's width.
+  void _showBoth() {
+    final me = _me;
+    if (me == null) return _recenter();
+    HapticFeedback.selectionClick();
+    setState(() => _follow = false);
+    _native?.invokeMethod<void>('showBoth');
+    if (_ofmReady) {
+      _ofm.fitCamera(
+        CameraFit.coordinates(
+          coordinates: [
+            LatLng(_shown.latitude, _shown.longitude),
+            LatLng(me.latitude, me.longitude),
+          ],
+          padding: const EdgeInsets.fromLTRB(60, 160, 60, 280),
+          maxZoom: 17,
+        ),
+      );
+    }
+  }
+
+  Future<void> _share() async {
+    HapticFeedback.selectionClick();
+    final lat = _shown.latitude.toStringAsFixed(6);
+    final lng = _shown.longitude.toStringAsFixed(6);
+    final url = Caps.nativeApple
+        ? 'https://maps.apple.com/?ll=$lat,$lng&q=$lat,$lng'
+        : 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+    final name = widget.name;
+    final box = context.findRenderObject() as RenderBox?;
+    await SharePlus.instance.share(
+      ShareParams(
+        text: name == null || name.isEmpty ? url : '$name\n$url',
+        sharePositionOrigin: box == null
+            ? null
+            : box.localToGlobal(Offset.zero) & box.size,
+      ),
+    );
+  }
+
+  void _copy() {
+    HapticFeedback.selectionClick();
+    Clipboard.setData(
+      ClipboardData(text: formatCoordinates(_shown.latitude, _shown.longitude)),
+    );
+    AppToast.of(
+      context,
+    ).show(AppLocalizations.of(context).locationBubbleCoordinatesCopied);
+  }
+
+  Future<void> _stop() async {
+    final stop = widget.onStopSharing;
+    if (stop == null || _stopping) return;
+    HapticFeedback.mediumImpact();
+    setState(() => _stopping = true);
+    try {
+      await stop();
+    } finally {
+      if (mounted) setState(() => _stopping = false);
+    }
+  }
+
+  Future<void> _openSettings() async {
+    HapticFeedback.selectionClick();
+    await showAdaptiveSheet<void>(
+      context,
+      useRootNavigator: true,
+      builder: (_) => _MapSettingsSheet(
+        systemMaps: _systemMaps,
+        onShowMe: (on) async {
+          if (on && !_meAllowed) {
+            final ok =
+                await LocationService.instance.ensureAvailable() ==
+                LocationAvailability.ready;
+            if (!ok) return;
+          }
+          await SettingsStore.instance.setMapShowMe(on);
+          if (on) _locateMe();
+        },
+      ),
+    );
+  }
+
   double get _initialZoom => OpenFreeMapSnapshot.zoomFor(
     latitude: _shown.latitude,
     spanMeters: _spanMeters,
-    widthPoints: 390,
+    widthPoints: MediaQuery.sizeOf(context).width,
   );
 
   bool _dark(AppTheme theme) => theme.background.computeLuminance() < 0.4;
 
+  // --------------------------------------------------------------- build
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    final state = _shown.stateAt(_now);
+    final route = ModalRoute.of(context)?.animation;
+    final Animation<double> flight = route == null
+        ? const AlwaysStoppedAnimation(1.0)
+        : CurvedAnimation(
+            parent: route,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
 
-    return ColoredBox(
-      color: theme.background,
-      child: Stack(
-        fit: StackFit.expand,
+    return AnimatedBuilder(
+      animation: flight,
+      builder: (context, _) {
+        final t = flight.value.clamp(0.0, 1.0);
+        final settled =
+            route == null || route.status == AnimationStatus.completed;
+        final chrome = const Interval(0.55, 1).transform(t);
+        // A transparent Material gives the card's text a style to inherit;
+        // without one Flutter draws its debug underline.
+        return Material(
+          type: MaterialType.transparency,
+          child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Opacity(
+              opacity: t,
+              child: ColoredBox(color: theme.background),
+            ),
+            Opacity(
+              opacity: const Interval(0.25, 1).transform(t),
+              child: Listener(
+                onPointerDown: (_) {
+                  if (_follow && _engine == MapEngine.openFreeMap) {
+                    setState(() => _follow = false);
+                  }
+                },
+                child: _map(theme),
+              ),
+            ),
+            _flyingPicture(t, settled),
+            Opacity(
+              opacity: chrome,
+              child: IgnorePointer(
+                ignoring: !settled,
+                child: _chrome(theme, chrome),
+              ),
+            ),
+          ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// The bubble's own map picture, flying from the card to full width at the
+  /// same scale, then fading once the live map has drawn under it. Shown
+  /// again for the trip home.
+  Widget _flyingPicture(double t, bool settled) {
+    final origin = widget.origin;
+    final picture = origin?.picture;
+    if (origin == null || picture == null) return const SizedBox.shrink();
+    final screen = MediaQuery.sizeOf(context);
+    final aspect = origin.rect.height / origin.rect.width;
+    final end = Rect.fromCenter(
+      center: screen.center(Offset.zero),
+      width: screen.width,
+      height: screen.width * aspect,
+    );
+    final rect = Rect.lerp(origin.rect, end, t)!;
+    final visible = !settled || !_mapReady;
+    return Positioned.fromRect(
+      rect: rect,
+      child: IgnorePointer(
+        child: AnimatedOpacity(
+          opacity: visible ? 1 : 0,
+          duration: Duration(milliseconds: visible ? 0 : 260),
+          curve: Curves.easeOut,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(origin.radius * (1 - t)),
+            child: Image(
+              image: picture.image,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _chrome(AppTheme theme, double t) {
+    final l10n = AppLocalizations.of(context);
+    final address = _address;
+    final String title;
+    final String? subtitle;
+    if (_live || _ended) {
+      title = l10n.locationMapTitleLive;
+      subtitle = address == null
+          ? null
+          : [
+              address.title,
+              address.subtitle,
+            ].where((s) => s.isNotEmpty).join(', ');
+    } else {
+      title = (address?.title.isNotEmpty ?? false)
+          ? address!.title
+          : l10n.locationMapTitlePinned;
+      subtitle = address?.subtitle;
+    }
+    final slide = (1 - t) * 24;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Positioned(
+          top: -slide,
+          left: 0,
+          right: 0,
+          child: ViewerTopBar(
+            band: true,
+            onClose: () => Navigator.of(context).maybePop(),
+            title: title,
+            subtitle: subtitle,
+          ),
+        ),
+        Positioned(
+          right: 12,
+          top: MediaQuery.paddingOf(context).top + 64,
+          child: _controls(theme, l10n),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: -slide,
+          child: _card(theme, l10n),
+        ),
+      ],
+    );
+  }
+
+  Widget _controls(AppTheme theme, AppLocalizations l10n) {
+    Widget button(IconData icon, String label, VoidCallback onTap) =>
+        FocusableTap(
+          onTap: onTap,
+          semanticLabel: label,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: SizedBox(
+              width: 46,
+              height: 46,
+              child: Icon(icon, size: 21, color: locationMapAccent(theme)),
+            ),
+          ),
+        );
+    final divider = Container(
+      width: 30,
+      height: 0.6,
+      color: theme.inkMuted.withValues(alpha: 0.25),
+    );
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.surface.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Any touch on the map stops the camera chasing a live share; the
-          // locate button turns it back on. A Listener sees pointers without
-          // taking them from the map's own gestures.
-          Listener(
-            onPointerDown: (_) {
-              if (_follow) setState(() => _follow = false);
-            },
-            child: _map(theme),
+          button(
+            CupertinoIcons.square_stack_3d_up,
+            l10n.locationMapSettings,
+            _openSettings,
           ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: ViewerTopBar(
-              band: true,
-              onClose: () => Navigator.of(context).maybePop(),
-              title: widget.title,
-              subtitle: _status(l10n, state),
-              actions: [
-                ViewerChromeButton(
-                  icon: _follow
-                      ? CupertinoIcons.location_fill
-                      : CupertinoIcons.location,
-                  semanticLabel: l10n.locationMapRecenter,
-                  onTap: _recenter,
-                ),
-              ],
+          divider,
+          button(
+            _follow ? CupertinoIcons.location_fill : CupertinoIcons.location,
+            l10n.locationMapRecenter,
+            _recenter,
+          ),
+          if (_me != null) ...[
+            divider,
+            button(
+              CupertinoIcons.person_2_fill,
+              l10n.locationMapShowBoth,
+              _showBoth,
             ),
-          ),
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 0,
-            child: SafeArea(
-              top: false,
-              minimum: const EdgeInsets.only(bottom: 16),
-              child: Center(child: _openButton(theme, l10n)),
-            ),
-          ),
+          ],
         ],
       ),
     );
   }
 
-  String _status(AppLocalizations l10n, LiveShareState state) {
-    final acc = _shown.accuracyM;
-    final where = acc == null
-        ? formatCoordinates(_shown.latitude, _shown.longitude)
-        : '${formatCoordinates(_shown.latitude, _shown.longitude)}  '
-              '${l10n.locationBubbleAccuracy(acc.round())}';
-    switch (state) {
-      case LiveShareState.live:
-        final until = l10n.locationBubbleLiveUntil(
+  Widget _card(AppTheme theme, AppLocalizations l10n) {
+    final name = widget.isMine
+        ? l10n.locationMapYou
+        : (widget.name ?? widget.author?.displayName ?? '');
+    final lines = <({String text, bool warn})>[];
+    if (_live) {
+      lines.add((
+        text: l10n.locationBubbleLiveUntil(
           formatClockTime(_shown.liveExpiresAt!),
-        );
-        return _shown.isStaleAt(_now)
-            ? '$until · ${l10n.locationBubbleNoRecentUpdate}'
-            : until;
-      case LiveShareState.ended:
-        return l10n.locationBubbleLiveEnded(
+        ),
+        warn: false,
+      ));
+      if (_shown.isStaleAt(_now)) {
+        lines.add((text: l10n.locationBubbleNoRecentUpdate, warn: true));
+      }
+    } else if (_ended) {
+      lines.add((
+        text: l10n.locationBubbleLiveEnded(
           formatClockTime(_shown.liveEndedAt ?? _shown.liveExpiresAt!),
-        );
-      case LiveShareState.fixed:
-        return where;
+        ),
+        warn: false,
+      ));
     }
+    final detail = <String>[];
+    final me = _me;
+    if (me != null) {
+      detail.add(
+        l10n.locationMapAway(
+          _distance(_shown.distanceMetersTo(me.latitude, me.longitude)),
+        ),
+      );
+    }
+    final updated = _shown.liveUpdatedAt;
+    if (_live && updated != null && !_shown.isStaleAt(_now)) {
+      detail.add(l10n.locationMapUpdatedAt(formatClockTime(updated)));
+    }
+    if (!_live && !_ended) {
+      final acc = _shown.accuracyM;
+      detail.add(
+        acc == null
+            ? formatCoordinates(_shown.latitude, _shown.longitude)
+            : '${formatCoordinates(_shown.latitude, _shown.longitude)}  '
+                  '${l10n.locationBubbleAccuracy(acc.round())}',
+      );
+    }
+    if (detail.isNotEmpty) lines.add((text: detail.join(' · '), warn: false));
+
+    final muted = theme.inkMuted;
+    final user = widget.author;
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: theme.surface,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x40000000),
+              blurRadius: 24,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                if (user != null)
+                  UserAvatar(
+                    user: user,
+                    api: widget.api,
+                    size: 46,
+                    showStatus: false,
+                    ring: true,
+                    ringColor: _ended ? muted : locationMapAccent(theme),
+                  )
+                else
+                  Icon(
+                    CupertinoIcons.location_solid,
+                    size: 30,
+                    color: locationMapAccent(theme),
+                  ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.body.copyWith(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: theme.ink,
+                          letterSpacing: 0,
+                        ),
+                      ),
+                      for (final line in lines)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            line.text,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.body.copyWith(
+                              fontSize: 13.5,
+                              color: line.warn ? theme.danger : muted,
+                              letterSpacing: 0,
+                              height: 1.25,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (widget.onStopSharing != null && _live) ...[
+                  const SizedBox(width: 8),
+                  _pill(
+                    theme,
+                    label: l10n.locationBubbleStopSharing,
+                    color: theme.danger,
+                    filled: false,
+                    busy: _stopping,
+                    onTap: _stop,
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _pill(
+                    theme,
+                    label: l10n.locationMapDirections,
+                    icon: CupertinoIcons.arrow_turn_up_right,
+                    color: locationMapAccent(theme),
+                    filled: true,
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      widget.onOpenInMaps(context);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                _round(
+                  theme,
+                  CupertinoIcons.square_arrow_up,
+                  l10n.locationMapShare,
+                  _share,
+                ),
+                const SizedBox(width: 10),
+                _round(
+                  theme,
+                  CupertinoIcons.doc_on_doc,
+                  l10n.locationBubbleCoordinatesCopied,
+                  _copy,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Widget _openButton(AppTheme theme, AppLocalizations l10n) {
-    final label = l10n.locationBubbleOpenInMaps;
-    void open() {
-      HapticFeedback.lightImpact();
-      widget.onOpenInMaps(context);
-    }
+  static String _distance(double m) {
+    if (m < 1000) return '${(m / 10).round() * 10} m';
+    if (m < 10000) return '${(m / 1000).toStringAsFixed(1)} km';
+    return '${(m / 1000).round()} km';
+  }
 
+  Widget _pill(
+    AppTheme theme, {
+    required String label,
+    required Color color,
+    required bool filled,
+    required VoidCallback onTap,
+    IconData? icon,
+    bool busy = false,
+  }) {
+    final fg = filled ? Colors.white : color;
     return FocusableTap(
-      onTap: open,
+      onTap: busy ? null : onTap,
       shape: FocusRingShape.capsule,
       semanticLabel: label,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: open,
+        onTap: busy ? null : onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: locationMapAccent(theme),
+            color: filled ? color : color.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(999),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x33000000),
-                blurRadius: 16,
-                offset: Offset(0, 6),
-              ),
-            ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                CupertinoIcons.map_fill,
-                size: 17,
-                color: Colors.white,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: theme.body.copyWith(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                  letterSpacing: 0,
+              if (busy)
+                CupertinoActivityIndicator(color: fg, radius: 8)
+              else if (icon != null)
+                Icon(icon, size: 17, color: fg),
+              if (busy || icon != null) const SizedBox(width: 7),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.body.copyWith(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w600,
+                    color: fg,
+                    letterSpacing: 0,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              const Icon(
-                CupertinoIcons.arrow_up_right,
-                size: 13,
-                color: Colors.white,
               ),
             ],
           ),
@@ -309,24 +941,58 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
     );
   }
 
+  Widget _round(
+    AppTheme theme,
+    IconData icon,
+    String label,
+    VoidCallback onTap,
+  ) => FocusableTap(
+    onTap: onTap,
+    shape: FocusRingShape.capsule,
+    semanticLabel: label,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: theme.inkMuted.withValues(alpha: 0.14),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 19, color: theme.ink),
+      ),
+    ),
+  );
+
+  // ---------------------------------------------------------------- maps
+
   Widget _map(AppTheme theme) {
     final engine = _engine;
-    if (engine == null) return const SizedBox.expand();
+    // Wait for the first face render too, so the native map is born with it
+    // rather than showing a stock pin that swaps a moment later.
+    if (engine == null || !_pinDone) return const SizedBox.expand();
     final dark = _dark(theme);
+    final settings = SettingsStore.instance;
     final params = <String, Object?>{
       'latitude': _shown.latitude,
       'longitude': _shown.longitude,
       'accuracyM': _shown.accuracyM,
       'spanMeters': _spanMeters,
       'dark': dark,
+      'mapType': _typeName(settings.mapStyle),
+      'traffic': settings.mapTraffic,
+      'showsUser': settings.mapShowMe && _meAllowed,
+      'trail': _trailArgs,
+      ..._pinArgs(_pin),
     };
     void created(int id) {
-      _native = MethodChannel('monkeyhub/map_view_$id');
+      final channel = MethodChannel('monkeyhub/map_view_$id');
+      channel.setMethodCallHandler(_fromNative);
+      _native = channel;
     }
 
     const viewType = 'monkeyhub/map_view';
-    // Platform views get every gesture: the map is the whole screen, and the
-    // only Flutter chrome over it is buttons.
     final gestures = <Factory<OneSequenceGestureRecognizer>>{
       Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
     };
@@ -365,7 +1031,8 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
     final point = LatLng(_shown.latitude, _shown.longitude);
     final accent = locationMapAccent(theme);
     final acc = _shown.accuracyM;
-    final ended = _shown.stateAt(_now) == LiveShareState.ended;
+    final pin = _pin;
+    final me = _me;
     return FlutterMap(
       mapController: _ofm,
       options: MapOptions(
@@ -379,7 +1046,11 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
         interactionOptions: const InteractionOptions(
           flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
         ),
-        onMapReady: () => _ofmReady = true,
+        onMapReady: () {
+          _ofmReady = true;
+          // Tiles draw progressively; give the first ones a moment.
+          Timer(const Duration(milliseconds: 350), _markReady);
+        },
       ),
       children: [
         TileLayer(
@@ -392,10 +1063,20 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
           // A tile that failed (offline, OpenFreeMap down) is simply absent;
           // the next pan asks again. Nothing to log per tile.
           errorTileCallback: (_, _, _) {},
-          // OpenFreeMap asks clients to identify themselves generically; no
-          // user details, ever.
           userAgentPackageName: 'app.monkeyhub',
         ),
+        if (_trail.length > 1)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: List.of(_trail),
+                color: accent.withValues(alpha: 0.55),
+                strokeWidth: 3,
+                strokeCap: StrokeCap.round,
+                strokeJoin: StrokeJoin.round,
+              ),
+            ],
+          ),
         if (acc != null && acc > 0)
           CircleLayer(
             circles: [
@@ -411,28 +1092,44 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
           ),
         MarkerLayer(
           markers: [
+            if (me != null && SettingsStore.instance.mapShowMe)
+              Marker(
+                point: LatLng(me.latitude, me.longitude),
+                width: 22,
+                height: 22,
+                child: const _MeDot(),
+              ),
             Marker(
               point: point,
-              width: 26,
-              height: 26,
-              child: _Dot(
-                color: ended ? theme.inkMuted : accent,
-                ring: theme.surface,
-                hollow: ended,
-              ),
+              width: pin?.size.width ?? 26,
+              height: pin?.size.height ?? 26,
+              alignment: pin == null
+                  ? Alignment.center
+                  : Alignment(0, 1 - 2 * pin.anchorY),
+              child: pin == null
+                  ? _Dot(
+                      color: _ended ? theme.inkMuted : accent,
+                      ring: theme.surface,
+                      hollow: _ended,
+                    )
+                  : Image.memory(
+                      pin.png,
+                      scale: pin.scale,
+                      gaplessPlayback: true,
+                    ),
             ),
           ],
         ),
         Align(
-          alignment: Alignment.bottomLeft,
+          alignment: Alignment.topLeft,
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+              padding: const EdgeInsets.fromLTRB(10, 60, 10, 0),
               child: Text(
                 OpenFreeMapSnapshot.attribution,
                 style: TextStyle(
                   inherit: false,
-                  fontSize: 10,
+                  fontSize: 9.5,
                   color: dark
                       ? const Color(0x99FFFFFF)
                       : const Color(0x8C000000),
@@ -446,7 +1143,95 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
   }
 }
 
-/// The bubble's marker, at full-screen size.
+/// Map type, traffic and your own position. Satellite and traffic only exist
+/// on the OS maps; on OpenFreeMap the sheet says where to get them.
+class _MapSettingsSheet extends StatelessWidget {
+  const _MapSettingsSheet({required this.systemMaps, required this.onShowMe});
+
+  final bool systemMaps;
+  final Future<void> Function(bool on) onShowMe;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) {
+        final store = SettingsStore.instance;
+        return SheetFrame(
+          title: l.locationMapSettings,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (systemMaps)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                  child: IosSegmentedControl<MapStyle>(
+                    value: store.mapStyle,
+                    onChanged: (v) {
+                      HapticFeedback.selectionClick();
+                      store.setMapStyle(v);
+                    },
+                    segments: [
+                      IosSegment(value: MapStyle.map, label: l.mapStyleMap),
+                      IosSegment(
+                        value: MapStyle.hybrid,
+                        label: l.mapStyleHybrid,
+                      ),
+                      IosSegment(
+                        value: MapStyle.satellite,
+                        label: l.mapStyleSatellite,
+                      ),
+                    ],
+                  ),
+                ),
+              GroupedSection(
+                children: [
+                  if (systemMaps)
+                    GroupedRow.toggle(
+                      icon: CupertinoIcons.car_detailed,
+                      tone: TileTone.orange,
+                      title: l.mapTraffic,
+                      value: store.mapTraffic,
+                      onChanged: store.setMapTraffic,
+                    ),
+                  GroupedRow.toggle(
+                    icon: CupertinoIcons.location_fill,
+                    tone: TileTone.blue,
+                    title: l.mapShowMyLocation,
+                    value: store.mapShowMe,
+                    onChanged: onShowMe,
+                  ),
+                ],
+              ),
+              if (!systemMaps) GroupedFooter(l.mapStyleOpenFreeMapNote),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Your own position on the OpenFreeMap map: the system's blue dot.
+class _MeDot extends StatelessWidget {
+  const _MeDot();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: const Color(0xFF0A84FF),
+      border: Border.all(color: Colors.white, width: 3),
+      boxShadow: const [
+        BoxShadow(color: Color(0x40000000), blurRadius: 5, offset: Offset(0, 1)),
+      ],
+    ),
+  );
+}
+
+/// The plain marker for when no face could be drawn.
 class _Dot extends StatelessWidget {
   const _Dot({required this.color, required this.ring, required this.hollow});
 

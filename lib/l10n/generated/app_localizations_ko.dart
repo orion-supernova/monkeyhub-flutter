@@ -10910,6 +10910,61 @@ class AppLocalizationsKo extends AppLocalizations {
       '이 기기에서는 Google 지도를 사용할 수 없어 OpenFreeMap을 사용합니다.';
 
   @override
+  String get locationMapTitleLive => '실시간 위치';
+
+  @override
+  String get locationMapTitlePinned => '위치';
+
+  @override
+  String locationMapNameYou(String name) {
+    return '$name (나)';
+  }
+
+  @override
+  String get locationMapYou => '나';
+
+  @override
+  String locationMapAway(String distance) {
+    return '$distance 거리';
+  }
+
+  @override
+  String locationMapUpdatedAt(String time) {
+    return '$time에 업데이트됨';
+  }
+
+  @override
+  String get locationMapDirections => '길찾기';
+
+  @override
+  String get locationMapShare => '공유';
+
+  @override
+  String get locationMapShowBoth => '둘 다 보기';
+
+  @override
+  String get locationMapSettings => '지도 설정';
+
+  @override
+  String get mapStyleMap => '지도';
+
+  @override
+  String get mapStyleHybrid => '하이브리드';
+
+  @override
+  String get mapStyleSatellite => '위성';
+
+  @override
+  String get mapTraffic => '교통';
+
+  @override
+  String get mapShowMyLocation => '내 위치 보기';
+
+  @override
+  String get mapStyleOpenFreeMapNote =>
+      '위성과 교통 정보는 Apple 지도나 Google 지도에서 제공됩니다. 설정 › 지도에서 선택하세요.';
+
+  @override
   String get interactionAnswersSearch => '사람 또는 답변 검색';
 
   @override

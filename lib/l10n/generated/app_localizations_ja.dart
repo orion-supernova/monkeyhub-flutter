@@ -10886,6 +10886,61 @@ class AppLocalizationsJa extends AppLocalizations {
       'このデバイスではGoogleマップを利用できないため、OpenFreeMapを使用します。';
 
   @override
+  String get locationMapTitleLive => 'ライブ位置情報';
+
+  @override
+  String get locationMapTitlePinned => '位置情報';
+
+  @override
+  String locationMapNameYou(String name) {
+    return '$name（あなた）';
+  }
+
+  @override
+  String get locationMapYou => 'あなた';
+
+  @override
+  String locationMapAway(String distance) {
+    return '$distance先';
+  }
+
+  @override
+  String locationMapUpdatedAt(String time) {
+    return '$timeに更新';
+  }
+
+  @override
+  String get locationMapDirections => '経路';
+
+  @override
+  String get locationMapShare => '共有';
+
+  @override
+  String get locationMapShowBoth => '2人とも表示';
+
+  @override
+  String get locationMapSettings => 'マップ設定';
+
+  @override
+  String get mapStyleMap => '地図';
+
+  @override
+  String get mapStyleHybrid => 'ハイブリッド';
+
+  @override
+  String get mapStyleSatellite => '航空写真';
+
+  @override
+  String get mapTraffic => '交通状況';
+
+  @override
+  String get mapShowMyLocation => '自分の位置を表示';
+
+  @override
+  String get mapStyleOpenFreeMapNote =>
+      '航空写真と交通状況はAppleマップまたはGoogleマップで使えます。設定 › マップで選べます。';
+
+  @override
   String get interactionAnswersSearch => '名前や回答を検索';
 
   @override

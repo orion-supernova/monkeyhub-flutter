@@ -5,6 +5,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.location.Address
+import android.location.Geocoder
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -24,6 +27,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.lang.ref.WeakReference
+import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.cos
@@ -66,6 +70,9 @@ object MapSnapshotBridge {
     /** PNG compression is slow enough to be felt on the main thread. */
     private val compressor: ExecutorService = Executors.newSingleThreadExecutor()
 
+    /** Blocking Geocoder calls (API < 33) stay off the PNG compressor's thread. */
+    private val geocoder_executor: ExecutorService = Executors.newSingleThreadExecutor()
+
     private var activityRef: WeakReference<Activity>? = null
     private var appContext: Context? = null
 
@@ -94,6 +101,7 @@ object MapSnapshotBridge {
                 when (call.method) {
                     "available" -> result.success(isAvailable())
                     "snapshot" -> enqueue(call.arguments as? Map<*, *>, result)
+                    "geocode" -> geocode(call.arguments as? Map<*, *>, result)
                     else -> result.notImplemented()
                 }
             }
@@ -121,6 +129,64 @@ object MapSnapshotBridge {
             ?.getString("com.google.android.geo.API_KEY")
     } catch (_: Throwable) {
         null
+    }
+
+    /** Runs on the main thread (channel handler); replies on the main thread. */
+    private fun geocode(args: Map<*, *>?, result: MethodChannel.Result) {
+        val lat = (args?.get("latitude") as? Number)?.toDouble()
+        val lng = (args?.get("longitude") as? Number)?.toDouble()
+        val ctx = activityRef?.get() ?: appContext
+        if (lat == null || lng == null || ctx == null) {
+            result.success(null)
+            return
+        }
+        var replied = false
+        fun reply(list: List<Address>?) {
+            main.post {
+                if (replied) return@post
+                replied = true
+                val a = list?.firstOrNull()
+                val out: Map<String, String>? = if (a == null) null else {
+                    val street = a.thoroughfare?.let { t ->
+                        a.subThoroughfare?.let { "$t $it" } ?: t
+                    }
+                    val title = street ?: a.featureName ?: a.locality
+                    val city = a.locality ?: a.subAdminArea
+                    val subtitle = listOfNotNull(a.postalCode, city)
+                        .filter { it.isNotBlank() }
+                        .joinToString(" ")
+                    if (title.isNullOrBlank()) null
+                    else mapOf("title" to title, "subtitle" to subtitle)
+                }
+                try { result.success(out) } catch (_: Throwable) {}
+            }
+        }
+        try {
+            if (!Geocoder.isPresent()) {
+                result.success(null)
+                return
+            }
+            val geocoder = Geocoder(ctx, Locale.getDefault())
+            if (Build.VERSION.SDK_INT >= 33) {
+                geocoder.getFromLocation(lat, lng, 1, object : Geocoder.GeocodeListener {
+                    override fun onGeocode(addresses: MutableList<Address>) = reply(addresses)
+                    override fun onError(errorMessage: String?) = reply(null)
+                })
+            } else {
+                geocoder_executor.execute {
+                    val list = try {
+                        @Suppress("DEPRECATION")
+                        geocoder.getFromLocation(lat, lng, 1)
+                    } catch (_: Throwable) {
+                        null
+                    }
+                    reply(list)
+                }
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "geocode failed", t)
+            reply(null)
+        }
     }
 
     private fun enqueue(args: Map<*, *>?, result: MethodChannel.Result) {

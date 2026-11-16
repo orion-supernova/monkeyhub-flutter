@@ -11386,6 +11386,61 @@ class AppLocalizationsSv extends AppLocalizations {
       'Google Maps är inte tillgängligt på den här enheten, så OpenFreeMap används.';
 
   @override
+  String get locationMapTitleLive => 'Live-plats';
+
+  @override
+  String get locationMapTitlePinned => 'Plats';
+
+  @override
+  String locationMapNameYou(String name) {
+    return '$name (Du)';
+  }
+
+  @override
+  String get locationMapYou => 'Du';
+
+  @override
+  String locationMapAway(String distance) {
+    return '$distance bort';
+  }
+
+  @override
+  String locationMapUpdatedAt(String time) {
+    return 'Uppdaterad $time';
+  }
+
+  @override
+  String get locationMapDirections => 'Vägbeskrivning';
+
+  @override
+  String get locationMapShare => 'Dela';
+
+  @override
+  String get locationMapShowBoth => 'Visa er båda';
+
+  @override
+  String get locationMapSettings => 'Kartinställningar';
+
+  @override
+  String get mapStyleMap => 'Karta';
+
+  @override
+  String get mapStyleHybrid => 'Hybrid';
+
+  @override
+  String get mapStyleSatellite => 'Satellit';
+
+  @override
+  String get mapTraffic => 'Trafik';
+
+  @override
+  String get mapShowMyLocation => 'Visa min plats';
+
+  @override
+  String get mapStyleOpenFreeMapNote =>
+      'Satellit och trafik finns med Apple Kartor eller Google Maps. Välj dem i Inställningar › Kartor.';
+
+  @override
   String get interactionAnswersSearch => 'Sök personer eller svar';
 
   @override

@@ -8,7 +8,12 @@ import '../l10n/generated/app_localizations.dart';
 import '../l10n/text_case.dart';
 import '../models/chat_message.dart';
 import '../models/location_share.dart';
+import 'package:latlong2/latlong.dart';
+
+import '../backend/chat_api.dart';
+import '../models/chat_user.dart';
 import '../screens/location_map_screen.dart';
+import 'location_map_snapshot.dart' show MapPicture;
 import 'map_app_picker.dart';
 import '../theme/app_theme.dart';
 import 'app_toast.dart';
@@ -42,6 +47,8 @@ import 'meta_text.dart';
 class LocationBubble extends StatefulWidget {
   const LocationBubble({
     super.key,
+    this.author,
+    this.api,
     required this.theme,
     required this.message,
     required this.isMine,
@@ -55,6 +62,11 @@ class LocationBubble extends StatefulWidget {
 
   final AppTheme theme;
   final ChatMessage message;
+
+  /// Who sent it and the API to load their face with, for the full-screen
+  /// map's marker and card. Null in previews.
+  final ChatUser? author;
+  final ChatApi? api;
   final bool isMine;
   final double width;
   final BorderRadius radius;
@@ -109,6 +121,8 @@ class _LocationBubbleState extends State<LocationBubble>
   @override
   void initState() {
     super.initState();
+    final share = widget.message.locationShare;
+    if (share != null) _recordTrail(share);
     _syncClock();
   }
 
@@ -116,11 +130,31 @@ class _LocationBubbleState extends State<LocationBubble>
   /// message's newest copy, so a live share keeps moving there by itself.
   ValueNotifier<LocationShare>? _live;
 
+  /// The card's map picture, once drawn: it is what flies up into the
+  /// full-screen map.
+  final _picture = ValueNotifier<MapPicture?>(null);
+  final _mapKey = GlobalKey();
+
+  /// Where a live share has been since this bubble appeared, for the path on
+  /// the full-screen map.
+  final _trail = <LatLng>[];
+
+  void _recordTrail(LocationShare share) {
+    if (share.stateAt(widget.clock()) != LiveShareState.live) return;
+    final p = LatLng(share.latitude, share.longitude);
+    if (_trail.isNotEmpty && _trail.last == p) return;
+    _trail.add(p);
+    if (_trail.length > 400) _trail.removeAt(0);
+  }
+
   @override
   void didUpdateWidget(LocationBubble old) {
     super.didUpdateWidget(old);
     final share = widget.message.locationShare;
-    if (share != null) _live?.value = share;
+    if (share != null) {
+      _live?.value = share;
+      _recordTrail(share);
+    }
     // A share can arrive live and later be replaced by an ended copy from the
     // subscription; re-evaluate rather than assuming the state at mount holds.
     _syncClock();
@@ -129,6 +163,7 @@ class _LocationBubbleState extends State<LocationBubble>
   @override
   void dispose() {
     _live?.dispose();
+    _picture.dispose();
     _tick?.cancel();
     _pulse?.dispose();
     super.dispose();
@@ -190,6 +225,7 @@ class _LocationBubbleState extends State<LocationBubble>
     final live = state == LiveShareState.live;
 
     final map = RepaintBoundary(
+      key: _mapKey,
       child: ClipRRect(
         borderRadius: BorderRadius.only(
           topLeft: widget.radius.topLeft,
@@ -208,6 +244,7 @@ class _LocationBubbleState extends State<LocationBubble>
                       longitude: share.longitude,
                       accuracyM: share.accuracyM,
                       dimmed: ended,
+                      pictureOut: _picture,
                     )
                   : AnimatedBuilder(
                       animation: _pulse!,
@@ -217,6 +254,7 @@ class _LocationBubbleState extends State<LocationBubble>
                         longitude: share.longitude,
                         accuracyM: share.accuracyM,
                         pulse: _pulse!.value,
+                        pictureOut: _picture,
                       ),
                     ),
               if (widget.stamp != null)
@@ -545,13 +583,28 @@ class _LocationBubbleState extends State<LocationBubble>
     HapticFeedback.selectionClick();
     final live = _live ??= ValueNotifier(share);
     live.value = share;
+    final box = _mapKey.currentContext?.findRenderObject() as RenderBox?;
+    final origin = box == null || !box.hasSize
+        ? null
+        : LocationMapOrigin(
+            rect: box.localToGlobal(Offset.zero) & box.size,
+            radius: widget.radius.topLeft.x,
+            spanMeters: spanMetersFor(share.accuracyM),
+            picture: _picture.value,
+          );
     await LocationMapScreen.open(
       context,
       share: live,
       clock: widget.clock,
-      title: widget.message.senderName.isEmpty
+      name: widget.message.senderName.isEmpty
           ? null
           : widget.message.resolvedSenderName(context),
+      author: widget.author,
+      api: widget.api,
+      isMine: widget.isMine,
+      onStopSharing: widget.publishing ? widget.onStopSharing : null,
+      origin: origin,
+      initialTrail: List.of(_trail),
       onOpenInMaps: (from) => _openInMaps(from),
     );
   }

@@ -10777,6 +10777,61 @@ class AppLocalizationsZh extends AppLocalizations {
       '此设备无法使用 Google 地图，因此使用 OpenFreeMap。';
 
   @override
+  String get locationMapTitleLive => '实时位置';
+
+  @override
+  String get locationMapTitlePinned => '位置';
+
+  @override
+  String locationMapNameYou(String name) {
+    return '$name（你）';
+  }
+
+  @override
+  String get locationMapYou => '你';
+
+  @override
+  String locationMapAway(String distance) {
+    return '距离 $distance';
+  }
+
+  @override
+  String locationMapUpdatedAt(String time) {
+    return '更新于 $time';
+  }
+
+  @override
+  String get locationMapDirections => '路线';
+
+  @override
+  String get locationMapShare => '分享';
+
+  @override
+  String get locationMapShowBoth => '显示你们两个';
+
+  @override
+  String get locationMapSettings => '地图设置';
+
+  @override
+  String get mapStyleMap => '地图';
+
+  @override
+  String get mapStyleHybrid => '混合';
+
+  @override
+  String get mapStyleSatellite => '卫星';
+
+  @override
+  String get mapTraffic => '路况';
+
+  @override
+  String get mapShowMyLocation => '显示我的位置';
+
+  @override
+  String get mapStyleOpenFreeMapNote =>
+      '卫星和路况需要 Apple 地图或 Google 地图。可在设置 › 地图中选择。';
+
+  @override
   String get interactionAnswersSearch => '搜索用户或回答';
 
   @override
