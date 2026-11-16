@@ -311,16 +311,25 @@ class _ActionStrip extends StatelessWidget {
                                 Icon(a.icon, size: 20, color: Colors.white),
                                 if (w > 56) ...[
                                   const SizedBox(height: 3),
-                                  Text(
-                                    a.label,
-                                    maxLines: 1,
-                                    // 13 on the body face — the caption slot
-                                    // is tracked mono on character themes.
-                                    style: theme.bodySoft.copyWith(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0,
-                                      color: Colors.white,
+                                  // Laid out at the settled button's width,
+                                  // so a long label ("Sabitlemeyi kaldır")
+                                  // wraps to two lines instead of running off
+                                  // both edges, and never reflows mid-swipe.
+                                  SizedBox(
+                                    width: _ChatRowSwipeState._buttonWidth - 8,
+                                    child: Text(
+                                      a.label,
+                                      maxLines: 2,
+                                      textAlign: TextAlign.center,
+                                      // 13 on the body face — the caption slot
+                                      // is tracked mono on character themes.
+                                      style: theme.bodySoft.copyWith(
+                                        fontSize: 13,
+                                        height: 1.15,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ],

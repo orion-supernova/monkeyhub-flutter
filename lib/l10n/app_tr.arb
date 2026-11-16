@@ -4605,6 +4605,6 @@
   "chatFolderRemovedToast": "{name} klasöründen çıkarıldı",
   "chatFolderEmptyTitle": "Burada henüz sohbet yok",
   "chatFolderEmptyBody": "Bu klasöre uyan sohbetler burada görünür.",
-  "tabMenuHideCalls": "Aramalar sekmesini gizle",
+  "tabMenuHideCalls": "Sekmeyi gizle",
   "tabMenuCallsHiddenToast": "Aramalar sekmesi gizlendi. Ayarlar > Gezinme'den geri getirebilirsin."
 }

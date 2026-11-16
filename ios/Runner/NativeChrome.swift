@@ -280,21 +280,21 @@ final class NativeChrome: NSObject, UITabBarDelegate,
     guard let bar,
           let index = (configuration.identifier as? NSNumber)?.intValue
     else { return nil }
+    // An empty, clear stand-in over the tab rather than a snapshot of it: a
+    // snapshot of the glass bar caught the rows behind it and lifted them as
+    // a stray lens over the bar. Nothing lifts now; the menu just opens from
+    // the tab, with no platter or shadow.
     let rect = tabRect(index, in: bar)
     menuAnchor?.removeFromSuperview()
-    let anchor = bar.resizableSnapshotView(
-      from: rect, afterScreenUpdates: false, withCapInsets: .zero
-    ) ?? UIView()
-    anchor.frame = rect
+    let anchor = UIView(frame: rect)
+    anchor.backgroundColor = .clear
     anchor.isUserInteractionEnabled = false
     bar.addSubview(anchor)
     menuAnchor = anchor
     let params = UIPreviewParameters()
     params.backgroundColor = .clear
-    params.visiblePath = UIBezierPath(
-      roundedRect: anchor.bounds,
-      cornerRadius: min(anchor.bounds.height, anchor.bounds.width) / 2
-    )
+    params.shadowPath = UIBezierPath()
+    params.visiblePath = UIBezierPath(rect: anchor.bounds)
     return UITargetedPreview(view: anchor, parameters: params)
   }
 

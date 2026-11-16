@@ -27,6 +27,7 @@ import '../media/upload_service.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/account_kit.dart';
@@ -815,6 +816,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _u.avatarStorageId != null &&
       _u.avatarStorageId!.isNotEmpty;
 
+  /// On a phone the picture opens by pulling the page down (see
+  /// [HeroPage.expandedPhoto]), so the circle takes no tap there.
+  bool get _avatarTapOpens => _canViewAvatar && !context.isCompact;
+
   /// Tag shared with the [Hero] around the avatar below. Keyed on the user, not
   /// the storage id, so replacing your picture mid-session doesn't orphan it.
   String get _avatarHeroTag => 'profile-avatar-${_u.id}';
@@ -1161,7 +1166,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     (_avatarSize * MediaQuery.devicePixelRatioOf(context)).round(),
               )
           : null,
-      onPhotoTap: _openAvatarFullscreen,
       children: [
         if (!_isMe && _u.isRedacted) ...[
           SoftNote(
@@ -1305,11 +1309,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             width: _avatarSize,
             height: _avatarSize,
             child: FocusableTap(
-              onTap: _canViewAvatar ? _openAvatarFullscreen : null,
+              onTap: _avatarTapOpens ? _openAvatarFullscreen : null,
               shape: FocusRingShape.circle,
               semanticLabel: l10n.profileScreenViewProfilePictureSemantic,
               child: GestureDetector(
-                onTap: _canViewAvatar ? _openAvatarFullscreen : null,
+                onTap: _avatarTapOpens ? _openAvatarFullscreen : null,
                 child: Builder(builder: (context) {
                   final avatar = UserAvatar(
                     user: _u,

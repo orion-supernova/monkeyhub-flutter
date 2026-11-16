@@ -1318,28 +1318,31 @@ class _RoomsPanelState extends State<_RoomsPanel> {
   Future<void> _addToFolder(ChatRoom room) async {
     final l10n = AppLocalizations.of(context);
     final store = ChatFolderStore.instance;
-    final folders = store.folders;
+    final folders = store.folders.where((f) => f.id.isNotEmpty).toList();
     const newFolder = '\u0000new';
-    final picked = await showPullDownMenu<String>(
-      context: context,
-      anchorKey: _keyFor(room.id),
-      items: [
-        for (final f in folders)
-          if (f.id.isNotEmpty)
-            PullDownItem(
-              value: f.id,
-              label: [f.emoji, f.name].whereType<String>().join(' '),
-              checked: f.matches(room),
-            ),
-        if (!store.atCap)
-          PullDownItem(
-            value: newFolder,
-            label: l10n.chatFolderNew,
-            icon: CupertinoIcons.folder_badge_plus,
-            startsGroup: folders.isNotEmpty,
-          ),
-      ],
-    );
+    // With no folder yet, a menu holding only "New Folder" floated over the
+    // next row like a stray: go straight to the editor with the chat in it.
+    final picked = folders.isEmpty
+        ? newFolder
+        : await showPullDownMenu<String>(
+            context: context,
+            anchorKey: _keyFor(room.id),
+            items: [
+              for (final f in folders)
+                PullDownItem(
+                  value: f.id,
+                  label: [f.emoji, f.name].whereType<String>().join(' '),
+                  checked: f.matches(room),
+                ),
+              if (!store.atCap)
+                PullDownItem(
+                  value: newFolder,
+                  label: l10n.chatFolderNew,
+                  icon: CupertinoIcons.folder_badge_plus,
+                  startsGroup: true,
+                ),
+            ],
+          );
     if (picked == null || !mounted) return;
     if (picked == newFolder) {
       await openChatFolderEditor(

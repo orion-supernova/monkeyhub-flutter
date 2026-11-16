@@ -53,7 +53,6 @@ class HeroPage extends StatefulWidget {
     required this.children,
     this.actions = const [],
     this.expandedPhoto,
-    this.onPhotoTap,
   });
 
   /// Opts the page into Telegram's pull-to-expand: pulling down past the top
@@ -62,9 +61,6 @@ class HeroPage extends StatefulWidget {
   /// laid out in (it is only scaled and clipped after that). Null keeps the
   /// plain rubber band, and a null while open closes it.
   final Widget Function(BuildContext context, Size size)? expandedPhoto;
-
-  /// A tap on the open photo.
-  final VoidCallback? onPhotoTap;
 
   /// What the bar shows once the hero has scrolled away.
   final String title;
@@ -116,7 +112,7 @@ class _HeroPageState extends State<HeroPage>
     final position = _scroll.position;
     final s = position.pixels;
     if (s <= 0 || s >= docked) return false;
-    final target = s < docked / 2 ? 0.0 : math.min(docked, position.maxScrollExtent);
+    final target = s < docked / 2 ? 0.0 : docked;
     if ((target - s).abs() < 1) return false;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scroll.hasClients) return;
@@ -146,7 +142,6 @@ class _HeroPageState extends State<HeroPage>
     _dock.configurePhoto(
       enabled: widget.expandedPhoto != null && context.isCompact,
       builder: widget.expandedPhoto,
-      onTap: widget.onPhotoTap,
       calm: MotionScope.of(context).calm,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -209,6 +204,23 @@ class _HeroPageState extends State<HeroPage>
                         : KeyedSubtree(key: _heroKey, child: widget.hero),
                   ),
                   ...readableSlivers(context, widget.children),
+                  // A short page could not scroll the whole dock and rested
+                  // half way, a big circle stuck on the name: tops the page
+                  // up so the dock always completes.
+                  ListenableBuilder(
+                    listenable: _dock.geometry,
+                    builder: (context, _) => SliverLayoutBuilder(
+                      builder: (context, c) {
+                        final docked = _dock.dockedAt ?? 0;
+                        final short = docked +
+                            c.viewportMainAxisExtent -
+                            c.precedingScrollExtent;
+                        return SliverToBoxAdapter(
+                          child: SizedBox(height: math.max(0, short.ceilToDouble())),
+                        );
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),

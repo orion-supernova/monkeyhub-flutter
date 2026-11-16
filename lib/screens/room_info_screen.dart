@@ -25,6 +25,7 @@ import '../models/room_admin.dart';
 import '../models/room_capabilities.dart';
 import '../models/room_content_item.dart';
 import '../theme/app_theme.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/account_kit.dart';
 import '../widgets/app_toast.dart';
@@ -1076,12 +1077,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                     (_avatarSize * MediaQuery.devicePixelRatioOf(context)).round(),
               )
           : null,
-      onPhotoTap: r.isDm && peer?.avatarStorageId != null
-          ? () => _openAvatarFullscreen(
-                storageId: peer!.avatarStorageId!,
-                heroTag: 'room-info-peer-avatar-${peer.id}',
-              )
-          : null,
       children: [
         // Name/visibility don't apply to a 1:1 DM — the room is just the two
         // people — nor to a room the app owns. Text, not a text field, until
@@ -1561,7 +1556,10 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       final peerStorageId = peer?.avatarStorageId;
       // A gradient-initials placeholder isn't worth a fullscreen route, so the
       // tap only arms once there's a real picture behind it.
-      final canViewPeer = peerStorageId != null && peerStorageId.isNotEmpty;
+      // On a phone the picture opens by pulling the page down instead.
+      final canViewPeer = peerStorageId != null &&
+          peerStorageId.isNotEmpty &&
+          !context.isCompact;
       return Center(
         child: Column(
           children: [

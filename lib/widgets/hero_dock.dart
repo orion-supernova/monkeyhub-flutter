@@ -93,7 +93,6 @@ class HeroDockController {
   bool expandable = false;
   bool _calm = false;
   Widget Function(BuildContext context, Size size)? _photoBuilder;
-  VoidCallback? _onPhotoTap;
 
   /// Fires as the expansion animates.
   Listenable get expandListenable => _anim;
@@ -104,12 +103,10 @@ class HeroDockController {
   void configurePhoto({
     required bool enabled,
     Widget Function(BuildContext context, Size size)? builder,
-    VoidCallback? onTap,
     bool calm = false,
   }) {
     expandable = enabled && builder != null;
     _photoBuilder = builder;
-    _onPhotoTap = onTap;
     _calm = calm;
     if (!expandable && (_expanded || _anim.value != 0)) {
       _expanded = false;
@@ -245,9 +242,8 @@ class HeroDockController {
   /// Where the avatar circle's centre is drawn now, and its scale: at rest,
   /// grown by a pull, or on its way into the bar. Null until measured.
   ///
-  /// Vertical travel runs on a clock a little faster than the name's, and the
-  /// sideways travel on a much faster one: the still-large circle must be out
-  /// from above the name before the name's top line rises to meet it.
+  /// It slides on a clock a little faster than the name's (as Telegram's
+  /// does) so the still-large circle keeps clear of the name rising under it.
   ({Offset centre, double scale})? avatarPose() {
     final g = _avatar.value;
     final range = dockedAt;
@@ -259,7 +255,6 @@ class HeroDockController {
     final grow = _grow(stretch);
     final p = (up / range).clamp(0.0, 1.0);
     final e = (up / (range * 0.8)).clamp(0.0, 1.0);
-    final hx = Curves.easeOutCubic.transform((up / (range * 0.5)).clamp(0.0, 1.0));
     // The circle has three times as far to shrink as the name, so a linear
     // shrink left a speck of a face over a still-big name: its size eases
     // in, half way to easeIn, on the name's clock.
@@ -268,7 +263,7 @@ class HeroDockController {
     // The circle's centre, not the box's: a badge can make the box bigger.
     final cx0 = g.centre.dx - _avatarExtent / 2 + d / 2;
     final cy0 = g.centre.dy - _avatarExtent / 2 + d / 2 + spacer;
-    final cx = lerpDouble(cx0, _groupLeft + kDockedAvatar / 2, hx)!;
+    final cx = lerpDouble(cx0, _groupLeft + kDockedAvatar / 2, e)!;
     final cy = lerpDouble(cy0, barCentre, e)! + stretch + d / 2 * (grow - 1);
     return (centre: Offset(cx, cy), scale: scale);
   }
@@ -298,12 +293,9 @@ class HeroDockController {
         children: [
           Positioned.fromRect(
             rect: rect,
-            child: GestureDetector(
-              // Translucent over an ignoring child: the tap is heard, and the
-              // drag still reaches the scroll view underneath.
-              behavior: HitTestBehavior.translucent,
-              onTap: t > 0.6 ? _onPhotoTap : null,
-              child: IgnorePointer(
+            // Nothing to tap: the open photo IS the full view. Drags reach
+            // the scroll view underneath.
+            child: IgnorePointer(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(radius),
                   child: Stack(
@@ -349,7 +341,6 @@ class HeroDockController {
                   ),
                 ),
               ),
-            ),
           ),
         ],
       ),
@@ -582,11 +573,11 @@ class _HeroDockTitleState extends _DockPieceState<HeroDockTitle> {
       if (range != null && dock.titleFits) {
         final p = (up / range).clamp(0.0, 1.0);
         scale = 1 + (dock._titleScale - 1) * p;
-        // The name keeps its left edge while it shrinks and slides to its
-        // slot, and gets there early: the avatar is on its way past it.
-        final hx = Curves.easeOutCubic.transform((up / (range * 0.5)).clamp(0.0, 1.0));
-        final left = lerpDouble(baseLeft, dock._groupLeft + kDockedAvatar + _dockGap, hx)!;
-        cx = left + w * scale / 2;
+        final cx1 = dock._groupLeft +
+            kDockedAvatar +
+            _dockGap +
+            w * dock._titleScale / 2;
+        cx = lerpDouble(cx, cx1, p)!;
         cy = lerpDouble(cyRest, dock.barCentre, p)! + stretch + push;
       } else if (range != null) {
         // Too long to dock: the name scrolls away under the bar and a

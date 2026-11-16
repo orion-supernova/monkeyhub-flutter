@@ -16791,7 +16791,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chatFolderEmptyBody => 'Bu klasöre uyan sohbetler burada görünür.';
 
   @override
-  String get tabMenuHideCalls => 'Aramalar sekmesini gizle';
+  String get tabMenuHideCalls => 'Sekmeyi gizle';
 
   @override
   String get tabMenuCallsHiddenToast =>
