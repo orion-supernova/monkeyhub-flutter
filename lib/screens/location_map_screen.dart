@@ -125,9 +125,11 @@ class LocationMapScreen extends StatefulWidget {
       PageRouteBuilder(
         opaque: false,
         barrierColor: Colors.transparent,
-        transitionDuration: const Duration(milliseconds: 380),
-        reverseTransitionDuration: const Duration(milliseconds: 280),
-        // The screen draws its own flight from the route's animation.
+        // Opening is the screen's own animation (it waits for the live map
+        // to draw first); closing runs on the route's.
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+        // The screen draws its own flight from these animations.
         transitionsBuilder: (_, _, _, child) => child,
         pageBuilder: (_, _, _) => LocationMapScreen(
           share: share,
@@ -149,7 +151,8 @@ class LocationMapScreen extends StatefulWidget {
   State<LocationMapScreen> createState() => _LocationMapScreenState();
 }
 
-class _LocationMapScreenState extends State<LocationMapScreen> {
+class _LocationMapScreenState extends State<LocationMapScreen>
+    with SingleTickerProviderStateMixin {
   MapEngine? _engine;
   MethodChannel? _native;
   final _ofm = MapController();
@@ -157,6 +160,20 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
 
   /// The live map has drawn; the flying picture can step aside.
   bool _mapReady = false;
+
+  /// The opening flight. Started once the live map has drawn (or after a
+  /// short wait at most), so what grows out of the card is the real map, not
+  /// a picture with a blank screen around it.
+  late final AnimationController _open = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 440),
+  );
+  Timer? _openFallback;
+
+  void _startFlight() {
+    _openFallback?.cancel();
+    if (!_open.isAnimating && _open.value == 0) _open.forward();
+  }
 
   /// The camera follows a live share until the viewer moves the map.
   bool _follow = true;
@@ -210,6 +227,13 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
     _locateMe();
     // A map that never says it drew still has to show eventually.
     _readyFallback = Timer(const Duration(milliseconds: 2500), _markReady);
+    // With no card to grow from there is nothing to wait for; with one, the
+    // card holds for the live map at most this long.
+    if (widget.origin == null) {
+      _open.value = 1;
+    } else {
+      _openFallback = Timer(const Duration(milliseconds: 450), _startFlight);
+    }
   }
 
   @override
@@ -228,6 +252,8 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
     _native?.setMethodCallHandler(null);
     _tick?.cancel();
     _readyFallback?.cancel();
+    _openFallback?.cancel();
+    _open.dispose();
     _ofm.dispose();
     super.dispose();
   }
@@ -382,6 +408,7 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
   void _markReady() {
     _readyFallback?.cancel();
     if (mounted && !_mapReady) setState(() => _mapReady = true);
+    if (mounted) _startFlight();
   }
 
   Future<dynamic> _fromNative(MethodCall call) async {
@@ -501,13 +528,20 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final route = ModalRoute.of(context)?.animation;
-    final Animation<double> flight = route == null
+    // Out: the screen's own controller (it waits for the live map). Back:
+    // the route's reverse. Their product is one 0..1 flight either way.
+    final opening = CurvedAnimation(
+      parent: _open,
+      curve: Curves.easeInOutCubicEmphasized,
+    );
+    final closing = route == null
         ? const AlwaysStoppedAnimation(1.0)
         : CurvedAnimation(
             parent: route,
-            curve: Curves.easeInOutCubicEmphasized,
+            curve: Curves.linear,
             reverseCurve: Curves.easeInOutCubic,
           );
+    final flight = _FlightProduct(opening, closing);
     final screen = MediaQuery.sizeOf(context);
     // Built once per frame of the flight, not per animation tick of the
     // contents: the map itself never rebuilds while it flies.
@@ -529,7 +563,8 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
         builder: (context, _) {
           final t = flight.value.clamp(0.0, 1.0);
           final settled =
-              route == null || route.status == AnimationStatus.completed;
+              (route == null || route.status == AnimationStatus.completed) &&
+              _open.isCompleted;
           final chrome = const Interval(0.6, 1).transform(t);
           return Stack(
             fit: StackFit.expand,
@@ -573,7 +608,7 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
         children: [
           ColoredBox(color: theme.background),
           map,
-          _picture(screen, settled),
+          _picture(screen, settled, t),
         ],
       ),
     );
@@ -606,17 +641,30 @@ class _LocationMapScreenState extends State<LocationMapScreen> {
   /// The card's picture, at full width and the card's aspect, centred where
   /// the live map puts the point: identical to the card at frame one, and to
   /// the live map underneath once it has drawn.
-  Widget _picture(Size screen, bool settled) {
+  Widget _picture(Size screen, bool settled, double t) {
     final picture = widget.origin?.picture;
     final origin = widget.origin;
     if (origin == null || picture == null) return const SizedBox.shrink();
     final aspect = origin.rect.height / origin.rect.width;
-    final visible = !settled || !_mapReady;
+    // In flight, once the live map has drawn, the picture hands over to it
+    // while both are moving (the eye does not catch a crossfade mid-motion),
+    // and takes over again as the map lands back on the card. Settled, it is
+    // simply gone, or still covering a map that has not drawn yet.
+    final double opacity;
+    if (!_mapReady) {
+      opacity = 1;
+    } else if (settled) {
+      opacity = 0;
+    } else {
+      opacity = 1 - const Interval(0.2, 0.7).transform(t);
+    }
     return Center(
       child: IgnorePointer(
         child: AnimatedOpacity(
-          opacity: visible ? 1 : 0,
-          duration: Duration(milliseconds: visible ? 0 : 280),
+          opacity: opacity,
+          // Instant while the flight drives it frame by frame; a short fade
+          // only for a map that draws after it has landed.
+          duration: Duration(milliseconds: settled ? 220 : 0),
           curve: Curves.easeOut,
           child: SizedBox(
             width: screen.width,
@@ -1304,4 +1352,14 @@ class _RectClip extends CustomClipper<RRect> {
 
   @override
   bool shouldReclip(_RectClip old) => old.rect != rect || old.radius != radius;
+}
+
+/// Two 0..1 animations multiplied: the screen's opening flight and the
+/// route's closing one, so the layout reads a single progress value.
+class _FlightProduct extends CompoundAnimation<double> {
+  _FlightProduct(Animation<double> first, Animation<double> next)
+    : super(first: first, next: next);
+
+  @override
+  double get value => first.value * next.value;
 }

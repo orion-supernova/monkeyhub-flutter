@@ -10867,6 +10867,35 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String liveLocationBannerOne(String name) {
+    return '$name 正在共享实时位置';
+  }
+
+  @override
+  String get liveLocationBannerYou => '你正在共享实时位置';
+
+  @override
+  String liveLocationBannerMany(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 人正在共享实时位置',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String liveLocationBannerUntil(String time) {
+    return '直到 $time';
+  }
+
+  @override
+  String get liveLocationBannerView => '查看';
+
+  @override
+  String get liveLocationBannerSheetTitle => '实时位置';
+
+  @override
   String get interactionAnswersSearch => '搜索用户或回答';
 
   @override

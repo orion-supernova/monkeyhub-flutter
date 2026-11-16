@@ -13404,6 +13404,18 @@
   "@locationPickerShareLive": {"description": "Row in the location picker that starts a live location share (durations open under it)."},
   "locationPickerAccurate": "Accurate to {meters} m",
   "@locationPickerAccurate": {"description": "How precise your current position is, under \"Send current location\".", "placeholders": {"meters": {"type": "int"}}},
+  "liveLocationBannerOne": "{name} is sharing live location",
+  "@liveLocationBannerOne": {"description": "Strip under a chat header while one person shares live location there.", "placeholders": {"name": {"type": "String"}}},
+  "liveLocationBannerYou": "You're sharing live location",
+  "@liveLocationBannerYou": {"description": "The strip when the one live share running in the chat is your own."},
+  "liveLocationBannerMany": "{count, plural, other{{count} people are sharing live location}}",
+  "@liveLocationBannerMany": {"description": "The strip when several people share live location in the chat.", "placeholders": {"count": {"type": "int"}}},
+  "liveLocationBannerUntil": "until {time}",
+  "@liveLocationBannerUntil": {"description": "After the strip title: when the share ends, as a clock time.", "placeholders": {"time": {"type": "String"}}},
+  "liveLocationBannerView": "View",
+  "@liveLocationBannerView": {"description": "Button on the live location strip; opens the live map."},
+  "liveLocationBannerSheetTitle": "Live locations",
+  "@liveLocationBannerSheetTitle": {"description": "Title of the list shown when several people share live location."},
   "interactionAnswersSearch": "Search people or answers",
   "@interactionAnswersSearch": {
     "description": "Placeholder in the search field of a poll/RSVP answers sheet: search by person or by answer."

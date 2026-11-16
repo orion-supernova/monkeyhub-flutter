@@ -11627,6 +11627,39 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String liveLocationBannerOne(String name) {
+    return '$name يشارك موقعه المباشر';
+  }
+
+  @override
+  String get liveLocationBannerYou => 'أنت تشارك موقعك المباشر';
+
+  @override
+  String liveLocationBannerMany(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count شخص يشاركون مواقعهم المباشرة',
+      many: '$count شخصًا يشاركون مواقعهم المباشرة',
+      few: '$count أشخاص يشاركون مواقعهم المباشرة',
+      two: 'شخصان يشاركان موقعهما المباشر',
+      one: 'شخص واحد يشارك موقعه المباشر',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String liveLocationBannerUntil(String time) {
+    return 'حتى $time';
+  }
+
+  @override
+  String get liveLocationBannerView => 'عرض';
+
+  @override
+  String get liveLocationBannerSheetTitle => 'المواقع المباشرة';
+
+  @override
   String get interactionAnswersSearch => 'البحث عن أشخاص أو إجابات';
 
   @override

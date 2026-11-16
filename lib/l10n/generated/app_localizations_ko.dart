@@ -11000,6 +11000,35 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String liveLocationBannerOne(String name) {
+    return '$name님이 실시간 위치를 공유 중';
+  }
+
+  @override
+  String get liveLocationBannerYou => '실시간 위치를 공유하는 중';
+
+  @override
+  String liveLocationBannerMany(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count명이 실시간 위치를 공유 중',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String liveLocationBannerUntil(String time) {
+    return '$time까지';
+  }
+
+  @override
+  String get liveLocationBannerView => '보기';
+
+  @override
+  String get liveLocationBannerSheetTitle => '실시간 위치';
+
+  @override
   String get interactionAnswersSearch => '사람 또는 답변 검색';
 
   @override

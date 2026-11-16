@@ -11454,6 +11454,35 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String liveLocationBannerOne(String name) {
+    return '$name is sharing live location';
+  }
+
+  @override
+  String get liveLocationBannerYou => 'You\'re sharing live location';
+
+  @override
+  String liveLocationBannerMany(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count people are sharing live location',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String liveLocationBannerUntil(String time) {
+    return 'until $time';
+  }
+
+  @override
+  String get liveLocationBannerView => 'View';
+
+  @override
+  String get liveLocationBannerSheetTitle => 'Live locations';
+
+  @override
   String get interactionAnswersSearch => 'Search people or answers';
 
   @override

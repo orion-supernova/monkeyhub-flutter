@@ -19297,6 +19297,42 @@ abstract class AppLocalizations {
   /// **'Accurate to {meters} m'**
   String locationPickerAccurate(int meters);
 
+  /// Strip under a chat header while one person shares live location there.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is sharing live location'**
+  String liveLocationBannerOne(String name);
+
+  /// The strip when the one live share running in the chat is your own.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re sharing live location'**
+  String get liveLocationBannerYou;
+
+  /// The strip when several people share live location in the chat.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{{count} people are sharing live location}}'**
+  String liveLocationBannerMany(int count);
+
+  /// After the strip title: when the share ends, as a clock time.
+  ///
+  /// In en, this message translates to:
+  /// **'until {time}'**
+  String liveLocationBannerUntil(String time);
+
+  /// Button on the live location strip; opens the live map.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get liveLocationBannerView;
+
+  /// Title of the list shown when several people share live location.
+  ///
+  /// In en, this message translates to:
+  /// **'Live locations'**
+  String get liveLocationBannerSheetTitle;
+
   /// Placeholder in the search field of a poll/RSVP answers sheet: search by person or by answer.
   ///
   /// In en, this message translates to:

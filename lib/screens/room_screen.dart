@@ -106,7 +106,10 @@ import '../ui/native/native_control.dart';
 import '../widgets/anchored_scroll.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
+import 'location_map_screen.dart';
 import 'location_picker_screen.dart';
+import '../widgets/live_location_banner.dart';
+import '../widgets/map_app_picker.dart';
 import '../widgets/read_only_composer_footer.dart';
 import '../widgets/bulk_action_bar.dart';
 import '../widgets/busy_scrim.dart';
@@ -6318,6 +6321,79 @@ class _RoomScreenState extends State<_RoomView>
     );
   }
 
+  /// The room's live location shares that are running now, newest first,
+  /// for the strip under the header.
+  List<ChatMessage> _liveSharesIn(List<ChatMessage> messages) => [
+    for (final m in messages.reversed)
+      if (m.type == MessageType.liveLocation && m.isLiveLocationRunning(_now))
+        m,
+  ];
+
+  Widget _liveLocationBanner(
+    List<ChatMessage> messages,
+    String me, {
+    bool glass = false,
+  }) => LiveLocationBanner(
+    shares: _liveSharesIn(messages),
+    currentUserId: me,
+    authorOf: (id) => _members[id] ?? widget.repo.userById(id),
+    api: widget.api,
+    glass: glass,
+    onOpen: (m) => _openLiveShare(m, me),
+  );
+
+  /// The live map for [m], opened from the strip rather than its bubble, so
+  /// it may be far up the transcript or out of the list altogether. Fed from
+  /// the repository directly: every update to the message moves the map,
+  /// whatever the transcript has built.
+  Future<void> _openLiveShare(ChatMessage m, String me) async {
+    final first = m.locationShare;
+    if (first == null) return;
+    final share = ValueNotifier(first);
+    void sync() {
+      final latest = widget.repo.findMessageInRoom(widget.roomId, m.id);
+      final s = latest?.locationShare;
+      if (s != null) share.value = s;
+    }
+
+    widget.repo.addListener(sync);
+    final mine = m.senderId == me;
+    try {
+      await LocationMapScreen.open(
+        context,
+        share: share,
+        clock: DateTime.now,
+        name: mine
+            ? null
+            : (_members[m.senderId] ?? widget.repo.userById(m.senderId))
+                  ?.displayName,
+        author: _members[m.senderId] ?? widget.repo.userById(m.senderId),
+        api: widget.api,
+        isMine: mine,
+        onStopSharing: mine && widget.repo.activeLiveShareMessageId == m.id
+            ? () => widget.repo.stopLiveLocation(messageId: m.id)
+            : null,
+        onOpenInMaps: (from) async {
+          final at = share.value;
+          final result = await openMapLocation(
+            from,
+            latitude: at.latitude,
+            longitude: at.longitude,
+          );
+          if (result == MapOpenResult.failed && from.mounted) {
+            AppToast.of(from).show(
+              AppLocalizations.of(from).locationBubbleNoMapsApp,
+              tone: ToastTone.danger,
+            );
+          }
+        },
+      );
+    } finally {
+      widget.repo.removeListener(sync);
+      share.dispose();
+    }
+  }
+
   Widget _buildClassic(BuildContext context, ChatRoom room, List<ChatMessage> messages, List<RoomItem> items, String me) {
     final theme = ThemeScope.of(context);
     // Read once, not once per reference — this branch used to call
@@ -6349,6 +6425,8 @@ class _RoomScreenState extends State<_RoomView>
               roomId: room.id,
               userId: me,
             ),
+          // Live location running here. Zero height when none is.
+          _liveLocationBanner(messages, me),
           // The room's open games. Zero height when there are none.
           ActiveGamesBanner(roomId: room.id, userId: me),
           // Admins only, and zero height with nothing waiting. Above the pins:
@@ -6552,6 +6630,7 @@ class _RoomScreenState extends State<_RoomView>
         Sebastian.instance.isReady;
     final suggestions = _suggestions.pending;
     final topChromeH = 60.0 +
+        (_liveSharesIn(messages).isEmpty ? 0.0 : kLiveLocationBannerHeight) +
         (_gamesOpen ? kGamesBannerHeight : 0.0) +
         (suggestions.isEmpty ? 0.0 : kSuggestionsBannerHeight) +
         (pins.isEmpty ? 0.0 : kPinnedBannerHeight) +
@@ -6675,6 +6754,8 @@ class _RoomScreenState extends State<_RoomView>
                         roomId: room.id,
                         userId: me,
                       ),
+                    // Reserved in `topChromeH` above, while a share runs.
+                    _liveLocationBanner(messages, me, glass: true),
                     // Reserved in `topChromeH` above, when a game is open.
                     // Frosted, the pinned strip's sibling.
                     ActiveGamesBanner(roomId: room.id, userId: me, glass: true),

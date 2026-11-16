@@ -10976,6 +10976,35 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String liveLocationBannerOne(String name) {
+    return '$nameさんがライブ位置情報を共有中';
+  }
+
+  @override
+  String get liveLocationBannerYou => 'ライブ位置情報を共有中';
+
+  @override
+  String liveLocationBannerMany(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count人がライブ位置情報を共有中',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String liveLocationBannerUntil(String time) {
+    return '$timeまで';
+  }
+
+  @override
+  String get liveLocationBannerView => '表示';
+
+  @override
+  String get liveLocationBannerSheetTitle => 'ライブ位置情報';
+
+  @override
   String get interactionAnswersSearch => '名前や回答を検索';
 
   @override

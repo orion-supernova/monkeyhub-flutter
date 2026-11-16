@@ -11477,6 +11477,36 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String liveLocationBannerOne(String name) {
+    return '$name delar sin live-plats';
+  }
+
+  @override
+  String get liveLocationBannerYou => 'Du delar din live-plats';
+
+  @override
+  String liveLocationBannerMany(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count personer delar sin live-plats',
+      one: '$count person delar sin live-plats',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String liveLocationBannerUntil(String time) {
+    return 'till $time';
+  }
+
+  @override
+  String get liveLocationBannerView => 'Visa';
+
+  @override
+  String get liveLocationBannerSheetTitle => 'Live-platser';
+
+  @override
   String get interactionAnswersSearch => 'Sök personer eller svar';
 
   @override

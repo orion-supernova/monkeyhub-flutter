@@ -11442,6 +11442,36 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String liveLocationBannerOne(String name) {
+    return '$name लाइव लोकेशन शेयर कर रहे हैं';
+  }
+
+  @override
+  String get liveLocationBannerYou => 'आप लाइव लोकेशन शेयर कर रहे हैं';
+
+  @override
+  String liveLocationBannerMany(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count लोग लाइव लोकेशन शेयर कर रहे हैं',
+      one: '$count व्यक्ति लाइव लोकेशन शेयर कर रहा है',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String liveLocationBannerUntil(String time) {
+    return '$time तक';
+  }
+
+  @override
+  String get liveLocationBannerView => 'देखें';
+
+  @override
+  String get liveLocationBannerSheetTitle => 'लाइव लोकेशन';
+
+  @override
   String get interactionAnswersSearch => 'लोग या जवाब खोजें';
 
   @override

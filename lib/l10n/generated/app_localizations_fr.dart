@@ -11614,6 +11614,36 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String liveLocationBannerOne(String name) {
+    return '$name partage sa position en direct';
+  }
+
+  @override
+  String get liveLocationBannerYou => 'Vous partagez votre position en direct';
+
+  @override
+  String liveLocationBannerMany(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count personnes partagent leur position en direct',
+      one: '$count personne partage sa position en direct',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String liveLocationBannerUntil(String time) {
+    return 'jusqu\'à $time';
+  }
+
+  @override
+  String get liveLocationBannerView => 'Voir';
+
+  @override
+  String get liveLocationBannerSheetTitle => 'Positions en direct';
+
+  @override
   String get interactionAnswersSearch =>
       'Rechercher des personnes ou des réponses';
 

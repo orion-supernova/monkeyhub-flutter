@@ -11565,6 +11565,37 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String liveLocationBannerOne(String name) {
+    return '$name está a partilhar a localização em tempo real';
+  }
+
+  @override
+  String get liveLocationBannerYou =>
+      'Estás a partilhar a localização em tempo real';
+
+  @override
+  String liveLocationBannerMany(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pessoas estão a partilhar a localização em tempo real',
+      one: '$count pessoa está a partilhar a localização em tempo real',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String liveLocationBannerUntil(String time) {
+    return 'até às $time';
+  }
+
+  @override
+  String get liveLocationBannerView => 'Ver';
+
+  @override
+  String get liveLocationBannerSheetTitle => 'Localizações em tempo real';
+
+  @override
   String get interactionAnswersSearch => 'Pesquisar pessoas ou respostas';
 
   @override
@@ -28166,6 +28197,37 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String locationPickerAccurate(int meters) {
     return 'Precisão de $meters m';
   }
+
+  @override
+  String liveLocationBannerOne(String name) {
+    return '$name está compartilhando a localização em tempo real';
+  }
+
+  @override
+  String get liveLocationBannerYou =>
+      'Você está compartilhando a localização em tempo real';
+
+  @override
+  String liveLocationBannerMany(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pessoas estão compartilhando a localização em tempo real',
+      one: '$count pessoa está compartilhando a localização em tempo real',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String liveLocationBannerUntil(String time) {
+    return 'até $time';
+  }
+
+  @override
+  String get liveLocationBannerView => 'Ver';
+
+  @override
+  String get liveLocationBannerSheetTitle => 'Localizações em tempo real';
 
   @override
   String get interactionAnswersSearch => 'Buscar pessoas ou respostas';

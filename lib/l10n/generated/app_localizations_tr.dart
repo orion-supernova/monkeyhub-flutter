@@ -11406,6 +11406,35 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String liveLocationBannerOne(String name) {
+    return '$name canlı konum paylaşıyor';
+  }
+
+  @override
+  String get liveLocationBannerYou => 'Canlı konum paylaşıyorsun';
+
+  @override
+  String liveLocationBannerMany(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kişi canlı konum paylaşıyor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String liveLocationBannerUntil(String time) {
+    return '$time saatine kadar';
+  }
+
+  @override
+  String get liveLocationBannerView => 'Gör';
+
+  @override
+  String get liveLocationBannerSheetTitle => 'Canlı konumlar';
+
+  @override
   String get interactionAnswersSearch => 'Kişi veya yanıt ara';
 
   @override
