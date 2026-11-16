@@ -3506,10 +3506,36 @@ class _RoomScreenState extends State<_RoomView>
     }
   }
 
+  /// Puts the keyboard away and waits for it to finish sliding down (up to
+  /// half a second), so whatever is measured next sees the room at full
+  /// height. True if a keyboard was up.
+  Future<bool> _lowerKeyboardForMenu() async {
+    final view = View.of(context);
+    if (view.viewInsets.bottom <= 0) return false;
+    FocusManager.instance.primaryFocus?.unfocus();
+    final until = DateTime.now().add(const Duration(milliseconds: 500));
+    while (mounted &&
+        view.viewInsets.bottom > 0 &&
+        DateTime.now().isBefore(until)) {
+      await WidgetsBinding.instance.endOfFrame;
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+    }
+    // One more frame so the composer has been laid out at its resting spot.
+    await WidgetsBinding.instance.endOfFrame;
+    return true;
+  }
+
   Future<void> _onAttach() async {
     if (!await _claimMediaEntry(locationCounts: true)) return;
     try {
       if (!mounted) return; // the `finally` still clears the in-flight flag
+      // The menu grows out of the "+" and is as tall as the room above it.
+      // With the keyboard up the "+" rides on top of it, which left the menu
+      // half the height it needs and its bottom rows cut off. So the keyboard
+      // goes down first and the menu opens once the "+" is back at the bottom;
+      // cancelling brings the keyboard back, so typing carries on untouched.
+      final hadKeyboard = await _lowerKeyboardForMenu();
+      if (!mounted) return;
       final family = FamilyService.maybeInstance;
       final button = _attachKey.currentContext?.findRenderObject();
       final anchor = button is RenderBox && button.hasSize
@@ -3534,6 +3560,9 @@ class _RoomScreenState extends State<_RoomView>
         posting: _posting,
       );
       if (mounted) setState(() => _attachMenuUp = false);
+      if (choice == null && hadKeyboard && mounted) {
+        _composerFocus.requestFocus();
+      }
       if (choice == null || !mounted) return;
       final nav = Navigator.of(context);
       switch (choice) {
