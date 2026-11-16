@@ -11441,6 +11441,34 @@ class AppLocalizationsSv extends AppLocalizations {
       'Satellit och trafik finns med Apple Kartor eller Google Maps. Välj dem i Inställningar › Kartor.';
 
   @override
+  String get locationSheetChoosePlace => 'Välj en plats';
+
+  @override
+  String get locationSheetChoosePlaceDetail =>
+      'Sök, eller flytta kartan till valfri punkt';
+
+  @override
+  String get locationPickerTitle => 'Skicka plats';
+
+  @override
+  String get locationPickerSearch => 'Sök eller ange en adress';
+
+  @override
+  String get locationPickerSendThis => 'Skicka den här platsen';
+
+  @override
+  String get locationPickerNearby => 'Platser i närheten';
+
+  @override
+  String get locationPickerNoResults => 'Inga platser hittades';
+
+  @override
+  String get locationPickerMyLocation => 'Gå till min plats';
+
+  @override
+  String get locationPickerMoving => 'Hämtar adressen…';
+
+  @override
   String get interactionAnswersSearch => 'Sök personer eller svar';
 
   @override

@@ -22,6 +22,14 @@ final class MapSnapshot: NSObject {
         let channel = FlutterMethodChannel(name: "monkeyhub/map_snapshot",
                                            binaryMessenger: messenger)
         channel.setMethodCallHandler { call, result in
+            if call.method == "search" {
+                search(call.arguments as? [String: Any] ?? [:], result)
+                return
+            }
+            if call.method == "nearby" {
+                nearby(call.arguments as? [String: Any] ?? [:], result)
+                return
+            }
             if call.method == "geocode" {
                 geocode(call.arguments as? [String: Any] ?? [:], result)
                 return
@@ -111,6 +119,88 @@ final class MapSnapshot: NSObject {
                 }
             }
             DispatchQueue.main.async { result(out) }
+        }
+    }
+
+    // MARK: search / nearby
+
+    private static func shortAddress(_ p: CLPlacemark) -> String {
+        var street = p.thoroughfare ?? ""
+        if !street.isEmpty, let n = p.subThoroughfare, !n.isEmpty { street += " " + n }
+        return [street, p.locality ?? ""].filter { !$0.isEmpty }.joined(separator: ", ")
+    }
+
+    private static func describe(_ item: MKMapItem) -> [String: Any]? {
+        let p = item.placemark
+        let c = p.coordinate
+        guard CLLocationCoordinate2DIsValid(c) else { return nil }
+        let title = item.name ?? p.title ?? ""
+        var subtitle = shortAddress(p)
+        if subtitle == title { subtitle = p.locality ?? "" }
+        return ["title": title, "subtitle": subtitle,
+                "latitude": c.latitude, "longitude": c.longitude]
+    }
+
+    /// Kept alive until their completion handler has run.
+    private static var activeSearches: [ObjectIdentifier: MKLocalSearch] = [:]
+
+    private static func run(_ search: MKLocalSearch, limit: Int, origin: CLLocation?,
+                            _ result: @escaping FlutterResult) {
+        let key = ObjectIdentifier(search)
+        activeSearches[key] = search
+        search.start { response, _ in
+            var items = response?.mapItems ?? []
+            if let origin = origin {
+                items.sort {
+                    CLLocation(latitude: $0.placemark.coordinate.latitude,
+                               longitude: $0.placemark.coordinate.longitude).distance(from: origin)
+                    < CLLocation(latitude: $1.placemark.coordinate.latitude,
+                                 longitude: $1.placemark.coordinate.longitude).distance(from: origin)
+                }
+            }
+            let out = items.compactMap { describe($0) }.prefix(limit)
+            DispatchQueue.main.async {
+                activeSearches[key] = nil
+                result(Array(out))
+            }
+        }
+    }
+
+    private static func search(_ args: [String: Any], _ result: @escaping FlutterResult) {
+        let query = (args["query"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty,
+              let lat = (args["latitude"] as? NSNumber)?.doubleValue,
+              let lng = (args["longitude"] as? NSNumber)?.doubleValue,
+              CLLocationCoordinate2DIsValid(CLLocationCoordinate2D(latitude: lat, longitude: lng)) else {
+            result([[String: Any]]())
+            return
+        }
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = query
+        request.region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: lat, longitude: lng),
+                                            latitudinalMeters: 50_000, longitudinalMeters: 50_000)
+        if #available(iOS 13.0, *) {
+            request.resultTypes = [.address, .pointOfInterest]
+        }
+        run(MKLocalSearch(request: request), limit: 12, origin: nil, result)
+    }
+
+    private static func nearby(_ args: [String: Any], _ result: @escaping FlutterResult) {
+        guard let lat = (args["latitude"] as? NSNumber)?.doubleValue,
+              let lng = (args["longitude"] as? NSNumber)?.doubleValue,
+              CLLocationCoordinate2DIsValid(CLLocationCoordinate2D(latitude: lat, longitude: lng)) else {
+            result([[String: Any]]())
+            return
+        }
+        let radius = (args["radius"] as? NSNumber)?.doubleValue ?? 300
+        if #available(iOS 14.0, *) {
+            let request = MKLocalPointsOfInterestRequest(
+                center: CLLocationCoordinate2D(latitude: lat, longitude: lng),
+                radius: max(radius, 1))
+            run(MKLocalSearch(request: request), limit: 20,
+                origin: CLLocation(latitude: lat, longitude: lng), result)
+        } else {
+            result([[String: Any]]())
         }
     }
 }

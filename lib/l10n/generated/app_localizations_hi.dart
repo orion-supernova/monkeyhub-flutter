@@ -11406,6 +11406,34 @@ class AppLocalizationsHi extends AppLocalizations {
       'सैटेलाइट और ट्रैफ़िक Apple Maps या Google Maps के साथ मिलते हैं। सेटिंग › मैप में चुनें।';
 
   @override
+  String get locationSheetChoosePlace => 'कोई जगह चुनें';
+
+  @override
+  String get locationSheetChoosePlaceDetail =>
+      'खोजें, या मैप को किसी भी जगह ले जाएँ';
+
+  @override
+  String get locationPickerTitle => 'लोकेशन भेजें';
+
+  @override
+  String get locationPickerSearch => 'खोजें या पता लिखें';
+
+  @override
+  String get locationPickerSendThis => 'यह लोकेशन भेजें';
+
+  @override
+  String get locationPickerNearby => 'आस-पास की जगहें';
+
+  @override
+  String get locationPickerNoResults => 'कोई जगह नहीं मिली';
+
+  @override
+  String get locationPickerMyLocation => 'मेरी लोकेशन पर जाएँ';
+
+  @override
+  String get locationPickerMoving => 'पता ढूँढा जा रहा है…';
+
+  @override
   String get interactionAnswersSearch => 'लोग या जवाब खोजें';
 
   @override

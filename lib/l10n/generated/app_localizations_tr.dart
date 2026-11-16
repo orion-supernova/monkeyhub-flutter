@@ -11370,6 +11370,34 @@ class AppLocalizationsTr extends AppLocalizations {
       'Uydu ve trafik Apple Haritalar veya Google Haritalar ile gelir. Ayarlar › Haritalar\'dan seçebilirsin.';
 
   @override
+  String get locationSheetChoosePlace => 'Bir yer seç';
+
+  @override
+  String get locationSheetChoosePlaceDetail =>
+      'Ara ya da haritayı istediğin noktaya kaydır';
+
+  @override
+  String get locationPickerTitle => 'Konum gönder';
+
+  @override
+  String get locationPickerSearch => 'Ara veya adres gir';
+
+  @override
+  String get locationPickerSendThis => 'Bu konumu gönder';
+
+  @override
+  String get locationPickerNearby => 'Yakındaki yerler';
+
+  @override
+  String get locationPickerNoResults => 'Yer bulunamadı';
+
+  @override
+  String get locationPickerMyLocation => 'Konumuma git';
+
+  @override
+  String get locationPickerMoving => 'Adres bulunuyor…';
+
+  @override
   String get interactionAnswersSearch => 'Kişi veya yanıt ara';
 
   @override

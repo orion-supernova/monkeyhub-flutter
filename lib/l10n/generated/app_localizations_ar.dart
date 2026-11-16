@@ -11591,6 +11591,34 @@ class AppLocalizationsAr extends AppLocalizations {
       'القمر الصناعي وحركة المرور متاحان مع خرائط Apple أو خرائط Google. اخترها من الإعدادات › الخرائط.';
 
   @override
+  String get locationSheetChoosePlace => 'اختر مكانًا';
+
+  @override
+  String get locationSheetChoosePlaceDetail =>
+      'ابحث أو حرّك الخريطة إلى أي نقطة';
+
+  @override
+  String get locationPickerTitle => 'إرسال الموقع';
+
+  @override
+  String get locationPickerSearch => 'ابحث أو أدخل عنوانًا';
+
+  @override
+  String get locationPickerSendThis => 'إرسال هذا الموقع';
+
+  @override
+  String get locationPickerNearby => 'أماكن قريبة';
+
+  @override
+  String get locationPickerNoResults => 'لم يتم العثور على أماكن';
+
+  @override
+  String get locationPickerMyLocation => 'انتقل إلى موقعي';
+
+  @override
+  String get locationPickerMoving => 'جارٍ العثور على العنوان…';
+
+  @override
   String get interactionAnswersSearch => 'البحث عن أشخاص أو إجابات';
 
   @override

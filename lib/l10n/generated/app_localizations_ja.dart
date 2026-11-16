@@ -10941,6 +10941,33 @@ class AppLocalizationsJa extends AppLocalizations {
       '航空写真と交通状況はAppleマップまたはGoogleマップで使えます。設定 › マップで選べます。';
 
   @override
+  String get locationSheetChoosePlace => '場所を選ぶ';
+
+  @override
+  String get locationSheetChoosePlaceDetail => '検索するか、地図を好きな場所に動かします';
+
+  @override
+  String get locationPickerTitle => '位置情報を送信';
+
+  @override
+  String get locationPickerSearch => '検索または住所を入力';
+
+  @override
+  String get locationPickerSendThis => 'この位置を送信';
+
+  @override
+  String get locationPickerNearby => '近くの場所';
+
+  @override
+  String get locationPickerNoResults => '場所が見つかりません';
+
+  @override
+  String get locationPickerMyLocation => '現在地へ移動';
+
+  @override
+  String get locationPickerMoving => '住所を検索中…';
+
+  @override
   String get interactionAnswersSearch => '名前や回答を検索';
 
   @override

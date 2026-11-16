@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Handler
 import android.os.Looper
+import android.graphics.Point
 import android.os.SystemClock
 import android.util.Log
 import android.view.View
@@ -30,6 +31,12 @@ import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.engine.FlutterEngine
+import kotlin.math.PI
+import kotlin.math.atan
+import kotlin.math.ln
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sinh
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.StandardMessageCodec
@@ -86,6 +93,8 @@ private class MapPlatformView(
         const val PAD_TOP_DP = 110
         const val PAD_BOTTOM_DP = 220
         const val BOTH_PAD_DP = 80
+        const val PICK_PAD_TOP_DP = 120
+        const val PICK_PAD_BOTTOM_DP = 300
     }
 
     private val ctx: Context = context
@@ -113,6 +122,12 @@ private class MapPlatformView(
     }
 
     private fun num(m: Map<*, *>?, key: String): Double? = (m?.get(key) as? Number)?.toDouble()
+
+    /**
+     * Location-picker mode: no marker, circle or trail; Dart draws a centre pin
+     * over the view's FULL bounds and listens for `cameraIdle`/`cameraMoving`.
+     */
+    private val picker: Boolean = params?.get("picker") as? Boolean ?: false
 
     private var lat = num(params, "latitude") ?: 0.0
     private var lng = num(params, "longitude") ?: 0.0
@@ -212,6 +227,15 @@ private class MapPlatformView(
                         showBoth()
                         result.success(null)
                     }
+                    "moveTo" -> {
+                        val args = call.arguments as? Map<*, *>
+                        val nLat = num(args, "latitude")
+                        val nLng = num(args, "longitude")
+                        if (nLat != null && nLng != null) {
+                            moveTo(nLat, nLng, num(args, "spanMeters"), args?.get("animated") as? Boolean ?: false)
+                        }
+                        result.success(null)
+                    }
                     "setDark" -> {
                         dark = (call.arguments as? Map<*, *>)?.get("dark") as? Boolean ?: false
                         applyStyle()
@@ -240,11 +264,85 @@ private class MapPlatformView(
         }
         applyStyle()
         // `lat`/`lng` may already have moved on if an update beat the map.
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), initialZoom))
-        googleMap.setPadding(0, dp(PAD_TOP_DP), 0, dp(PAD_BOTTOM_DP))
+        if (picker) {
+            // Padding first, so the corrected target below lands the point at the full centre.
+            googleMap.setPadding(0, dp(PICK_PAD_TOP_DP), 0, dp(PICK_PAD_BOTTOM_DP))
+            // A flat north-up map keeps the centre correction a pure screen-y shift.
+            googleMap.uiSettings.isRotateGesturesEnabled = false
+            googleMap.uiSettings.isTiltGesturesEnabled = false
+            googleMap.moveCamera(
+                CameraUpdateFactory.newLatLngZoom(centreTarget(LatLng(lat, lng), initialZoom), initialZoom)
+            )
+        } else {
+            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), initialZoom))
+            googleMap.setPadding(0, dp(PAD_TOP_DP), 0, dp(PAD_BOTTOM_DP))
+        }
         applyMapType()
         googleMap.isTrafficEnabled = traffic
         applyShowsUser()
+        if (!picker) addMarkerAndOverlays(googleMap)
+
+        googleMap.setOnCameraMoveStartedListener { reason ->
+            if (picker && !disposed) channel.invokeMethod("cameraMoving", null)
+            if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE) {
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastGestureAt >= GESTURE_THROTTLE_MS) {
+                    lastGestureAt = now
+                    if (!disposed) channel.invokeMethod("gesture", null)
+                }
+            }
+        }
+        googleMap.setOnCameraIdleListener {
+            if (disposed) return@setOnCameraIdleListener
+            val p = reportedCentre(googleMap)
+            channel.invokeMethod(
+                "cameraIdle",
+                mapOf("latitude" to p.latitude, "longitude" to p.longitude),
+            )
+        }
+        googleMap.setOnMapLoadedCallback { sendReady() }
+        main.postDelayed(readyFallback, READY_FALLBACK_MS)
+    }
+
+    /** The coordinate under the view's FULL-bounds centre (picker) or the camera target. */
+    private fun reportedCentre(g: GoogleMap): LatLng {
+        if (picker && mapView.width > 0 && mapView.height > 0) {
+            try {
+                return g.projection.fromScreenLocation(Point(mapView.width / 2, mapView.height / 2))
+            } catch (_: Throwable) {}
+        }
+        return g.cameraPosition.target
+    }
+
+    /**
+     * Camera target that puts [c] at the view's full-bounds centre. GoogleMap
+     * keeps its target at the centre of the PADDED area, which sits (bottom-top)/2
+     * above the full centre, so the target is that many px north of [c]
+     * (north-up map, 256 dp world at zoom 0 like [MapStyles.zoomFor]).
+     */
+    private fun centreTarget(c: LatLng, zoom: Float): LatLng {
+        val dy = ((dp(PICK_PAD_BOTTOM_DP) - dp(PICK_PAD_TOP_DP)) / 2.0)
+        val world = 256.0 * density * 2.0.pow(zoom.toDouble())
+        val s = sin(Math.toRadians(c.latitude)).coerceIn(-0.9999, 0.9999)
+        val y = (0.5 - ln((1 + s) / (1 - s)) / (4 * PI)) * world
+        val ny = (y - dy).coerceIn(0.0, world)
+        val lat = Math.toDegrees(atan(sinh(PI * (1 - 2 * ny / world))))
+        return LatLng(lat, c.longitude)
+    }
+
+    private fun moveTo(nLat: Double, nLng: Double, span: Double?, animated: Boolean) {
+        lat = nLat
+        lng = nLng
+        val g = map ?: return
+        val widthDp = if (mapView.width > 0) mapView.width / density.toDouble() else FALLBACK_WIDTH_DP
+        val zoom = if (span != null) MapStyles.zoomFor(nLat, span, widthDp) else g.cameraPosition.zoom
+        val c = LatLng(nLat, nLng)
+        val target = if (picker) centreTarget(c, zoom) else c
+        val upd = CameraUpdateFactory.newLatLngZoom(target, zoom)
+        if (animated) g.animateCamera(upd) else g.moveCamera(upd)
+    }
+
+    private fun addMarkerAndOverlays(googleMap: GoogleMap) {
         val pin = pinBitmap
         val opts = MarkerOptions().position(LatLng(lat, lng)).zIndex(2f)
         if (pin != null) {
@@ -260,18 +358,6 @@ private class MapPlatformView(
         marker = googleMap.addMarker(opts)
         syncCircle(LatLng(lat, lng))
         applyTrail()
-
-        googleMap.setOnCameraMoveStartedListener { reason ->
-            if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE) {
-                val now = SystemClock.elapsedRealtime()
-                if (now - lastGestureAt >= GESTURE_THROTTLE_MS) {
-                    lastGestureAt = now
-                    if (!disposed) channel.invokeMethod("gesture", null)
-                }
-            }
-        }
-        googleMap.setOnMapLoadedCallback { sendReady() }
-        main.postDelayed(readyFallback, READY_FALLBACK_MS)
     }
 
     private fun sendReady() {
@@ -290,6 +376,7 @@ private class MapPlatformView(
     }
 
     private fun applyTrail() {
+        if (picker) return
         val g = map ?: return
         val pts = trailPoints
         if (pts == null || pts.size < 2) {

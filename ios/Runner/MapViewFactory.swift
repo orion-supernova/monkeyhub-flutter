@@ -10,7 +10,9 @@ import UIKit
 /// Per-view channel `monkeyhub/map_view_<viewId>`: `update`, `recenter`,
 /// `setDark`, `setMapType`, `setTraffic`, `setShowsUser`, `showBoth`. Optional
 /// creation params: `pinImage` (+`pinScale`, `pinAnchorY`), `mapType`,
-/// `traffic`, `showsUser`, `trail`. Events to Dart: `ready`, `gesture`.
+/// `traffic`, `showsUser`, `trail`, `picker` (no pin/accuracy/trail, wider margins).
+/// Also `moveTo`. Events to Dart: `ready`, `gesture`, `cameraIdle`, and in
+/// picker mode `cameraMoving`.
 /// The macOS twin is `macos/Runner/MapViewFactory.swift`.
 final class MapViewFactory: NSObject, FlutterPlatformViewFactory {
     private let messenger: FlutterBinaryMessenger
@@ -44,6 +46,7 @@ private final class MapPlatformView: NSObject, FlutterPlatformView, MKMapViewDel
     private var trailLine: MKPolyline?
     private var trailCoords: [CLLocationCoordinate2D] = []
     private let originalSpan: Double
+    private let picker: Bool
     private var dark: Bool
     private var pinImage: UIImage?
     private var pinAnchorY: Double = 1
@@ -60,6 +63,7 @@ private final class MapPlatformView: NSObject, FlutterPlatformView, MKMapViewDel
         let accuracy = params["accuracyM"] as? Double
         originalSpan = max(params["spanMeters"] as? Double ?? 500, 1)
         dark = params["dark"] as? Bool ?? false
+        picker = params["picker"] as? Bool ?? false
         mapTypeName = params["mapType"] as? String ?? "standard"
         trafficOn = params["traffic"] as? Bool ?? false
 
@@ -77,9 +81,12 @@ private final class MapPlatformView: NSObject, FlutterPlatformView, MKMapViewDel
         map.showsUserLocation = params["showsUser"] as? Bool ?? false
         // Keep Apple's logo, Legal link, compass and scale clear of the
         // Flutter chrome (top bar ~110pt, bottom card ~220pt).
-        map.layoutMargins = UIEdgeInsets(top: 110, left: 8, bottom: 220, right: 8)
-        map.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 110, leading: 8,
-                                                               bottom: 220, trailing: 8)
+        // Picker mode: Dart overlays a search bar (top) and a panel (bottom).
+        let topMargin: CGFloat = picker ? 120 : 110
+        let bottomMargin: CGFloat = picker ? 300 : 220
+        map.layoutMargins = UIEdgeInsets(top: topMargin, left: 8, bottom: bottomMargin, right: 8)
+        map.directionalLayoutMargins = NSDirectionalEdgeInsets(top: topMargin, leading: 8,
+                                                               bottom: bottomMargin, trailing: 8)
         map.isZoomEnabled = true
         map.isScrollEnabled = true
         map.isRotateEnabled = true
@@ -89,11 +96,13 @@ private final class MapPlatformView: NSObject, FlutterPlatformView, MKMapViewDel
                                          latitudinalMeters: originalSpan,
                                          longitudinalMeters: originalSpan),
                       animated: false)
-        readPin(params)
         annotation.coordinate = centre
-        map.addAnnotation(annotation)
-        setCircle(centre: centre, radius: accuracy)
-        setTrail(Self.parseTrail(params["trail"]))
+        if !picker {
+            readPin(params)
+            map.addAnnotation(annotation)
+            setCircle(centre: centre, radius: accuracy)
+            setTrail(Self.parseTrail(params["trail"]))
+        }
 
         channel.setMethodCallHandler { [weak self] call, result in
             self?.handle(call, result) ?? result(nil)
@@ -225,6 +234,23 @@ private final class MapPlatformView: NSObject, FlutterPlatformView, MKMapViewDel
                 map.setCenter(centre, animated: true)
             }
             result(nil)
+        case "moveTo":
+            guard let lat = (args["latitude"] as? NSNumber)?.doubleValue,
+                  let lng = (args["longitude"] as? NSNumber)?.doubleValue else {
+                result(nil)
+                return
+            }
+            let target = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+            let animated = args["animated"] as? Bool ?? true
+            if let span = (args["spanMeters"] as? NSNumber)?.doubleValue, span > 0 {
+                map.setRegion(MKCoordinateRegion(center: target,
+                                                 latitudinalMeters: span,
+                                                 longitudinalMeters: span),
+                              animated: animated)
+            } else {
+                map.setCenter(target, animated: animated)
+            }
+            result(nil)
         case "recenter":
             let centre = annotation.coordinate
             map.setRegion(MKCoordinateRegion(center: centre,
@@ -314,7 +340,16 @@ private final class MapPlatformView: NSObject, FlutterPlatformView, MKMapViewDel
         fireReady()
     }
 
+    func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+        // centerCoordinate is the centre of the full bounds (layout margins
+        // do not offset it), which is where Dart draws its centre pin.
+        let c = mapView.centerCoordinate
+        channel.invokeMethod("cameraIdle", arguments: ["latitude": c.latitude,
+                                                       "longitude": c.longitude])
+    }
+
     func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
+        if picker { channel.invokeMethod("cameraMoving", arguments: nil) }
         guard let host = mapView.subviews.first,
               host.gestureRecognizers?.contains(where: {
                   $0.state == .began || $0.state == .changed

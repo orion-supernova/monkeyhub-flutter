@@ -106,6 +106,7 @@ import '../ui/native/native_control.dart';
 import '../widgets/anchored_scroll.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
+import 'location_picker_screen.dart';
 import '../widgets/read_only_composer_footer.dart';
 import '../widgets/bulk_action_bar.dart';
 import '../widgets/busy_scrim.dart';
@@ -3852,6 +3853,32 @@ class _RoomScreenState extends State<_RoomView>
   /// who has not yet said they want to share anything — and on iOS that dialog
   /// can only be shown once, so spending it on a tap the user might abandon is
   /// spending it badly.
+  /// "Choose a place": the picker opens on your position when location is
+  /// allowed (asked here, since you chose to share a place), or on a wide map
+  /// when it is not; a place can be sent either way. One fix, no accuracy: a
+  /// chosen spot is exact by definition.
+  Future<void> _sendPickedPlace() async {
+    final allowed = await _ensureLocationPermission();
+    if (!mounted) return;
+    final start = allowed ? await LocationService.instance.lastKnownFix() : null;
+    if (!mounted) return;
+    final picked = await LocationPickerScreen.open(context, start: start);
+    if (picked == null || !mounted) return;
+    final replyTarget = _replyingTo;
+    if (replyTarget != null) setState(() => _replyingTo = null);
+    widget.repo.exitHistoryWindow(widget.roomId);
+    await widget.repo.sendLocation(
+      roomId: widget.roomId,
+      fix: LocationFix(
+        latitude: picked.latitude,
+        longitude: picked.longitude,
+        timestamp: DateTime.now(),
+      ),
+      replyToId: replyTarget?.id,
+    );
+    _scrollToBottom();
+  }
+
   Future<void> _shareLocation() async {
     // Live sharing is hidden in a Chamber of Secrets room — see the sheet's
     // header. The room's own message lifetime already governs how long anything
@@ -3864,6 +3891,8 @@ class _RoomScreenState extends State<_RoomView>
           null,
     );
     if (choice == null || !mounted) return;
+
+    if (choice.choosePlace) return _sendPickedPlace();
 
     if (!await _ensureLocationPermission()) return;
     if (!mounted) return;

@@ -11529,6 +11529,34 @@ class AppLocalizationsPt extends AppLocalizations {
       'O satélite e o trânsito vêm com o Apple Maps ou o Google Maps. Escolhe-os em Definições › Mapas.';
 
   @override
+  String get locationSheetChoosePlace => 'Escolher um local';
+
+  @override
+  String get locationSheetChoosePlaceDetail =>
+      'Pesquisa ou move o mapa para qualquer ponto';
+
+  @override
+  String get locationPickerTitle => 'Enviar localização';
+
+  @override
+  String get locationPickerSearch => 'Pesquisar ou introduzir uma morada';
+
+  @override
+  String get locationPickerSendThis => 'Enviar esta localização';
+
+  @override
+  String get locationPickerNearby => 'Locais próximos';
+
+  @override
+  String get locationPickerNoResults => 'Nenhum local encontrado';
+
+  @override
+  String get locationPickerMyLocation => 'Ir para a minha localização';
+
+  @override
+  String get locationPickerMoving => 'A procurar a morada…';
+
+  @override
   String get interactionAnswersSearch => 'Pesquisar pessoas ou respostas';
 
   @override
@@ -28093,6 +28121,34 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get mapStyleOpenFreeMapNote =>
       'Satélite e trânsito vêm com o Apple Maps ou o Google Maps. Escolha em Configurações › Mapas.';
+
+  @override
+  String get locationSheetChoosePlace => 'Escolher um lugar';
+
+  @override
+  String get locationSheetChoosePlaceDetail =>
+      'Pesquise ou mova o mapa para qualquer ponto';
+
+  @override
+  String get locationPickerTitle => 'Enviar localização';
+
+  @override
+  String get locationPickerSearch => 'Pesquise ou digite um endereço';
+
+  @override
+  String get locationPickerSendThis => 'Enviar esta localização';
+
+  @override
+  String get locationPickerNearby => 'Lugares próximos';
+
+  @override
+  String get locationPickerNoResults => 'Nenhum lugar encontrado';
+
+  @override
+  String get locationPickerMyLocation => 'Ir para minha localização';
+
+  @override
+  String get locationPickerMoving => 'Buscando o endereço…';
 
   @override
   String get interactionAnswersSearch => 'Buscar pessoas ou respostas';

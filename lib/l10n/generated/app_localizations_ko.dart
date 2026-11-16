@@ -10965,6 +10965,33 @@ class AppLocalizationsKo extends AppLocalizations {
       '위성과 교통 정보는 Apple 지도나 Google 지도에서 제공됩니다. 설정 › 지도에서 선택하세요.';
 
   @override
+  String get locationSheetChoosePlace => '장소 선택';
+
+  @override
+  String get locationSheetChoosePlaceDetail => '검색하거나 지도를 원하는 곳으로 옮기세요';
+
+  @override
+  String get locationPickerTitle => '위치 보내기';
+
+  @override
+  String get locationPickerSearch => '검색하거나 주소 입력';
+
+  @override
+  String get locationPickerSendThis => '이 위치 보내기';
+
+  @override
+  String get locationPickerNearby => '주변 장소';
+
+  @override
+  String get locationPickerNoResults => '장소를 찾을 수 없음';
+
+  @override
+  String get locationPickerMyLocation => '내 위치로 이동';
+
+  @override
+  String get locationPickerMoving => '주소를 찾는 중…';
+
+  @override
   String get interactionAnswersSearch => '사람 또는 답변 검색';
 
   @override

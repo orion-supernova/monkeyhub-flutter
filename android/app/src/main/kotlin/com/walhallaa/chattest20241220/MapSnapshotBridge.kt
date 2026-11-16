@@ -102,6 +102,10 @@ object MapSnapshotBridge {
                     "available" -> result.success(isAvailable())
                     "snapshot" -> enqueue(call.arguments as? Map<*, *>, result)
                     "geocode" -> geocode(call.arguments as? Map<*, *>, result)
+                    "search" -> search(call.arguments as? Map<*, *>, result)
+                    // Deliberately empty: nearby places would need Google Places,
+                    // which is paid per request. Dart treats [] as "no suggestions".
+                    "nearby" -> result.success(emptyList<Map<String, Any>>())
                     else -> result.notImplemented()
                 }
             }
@@ -185,6 +189,117 @@ object MapSnapshotBridge {
             }
         } catch (t: Throwable) {
             Log.w(TAG, "geocode failed", t)
+            reply(null)
+        }
+    }
+
+    /**
+     * Forward geocoding for the location picker's search field. Tries a +-0.5
+     * degree box around the user first, then the whole world. Runs on the main
+     * thread; replies on the main thread with up to 10 maps of
+     * title/subtitle/latitude/longitude (empty on no Geocoder or any error).
+     */
+    private fun search(args: Map<*, *>?, result: MethodChannel.Result) {
+        val query = (args?.get("query") as? String)?.trim()
+        val lat = (args?.get("latitude") as? Number)?.toDouble()
+        val lng = (args?.get("longitude") as? Number)?.toDouble()
+        val ctx = activityRef?.get() ?: appContext
+        if (query.isNullOrEmpty() || ctx == null) {
+            result.success(emptyList<Map<String, Any>>())
+            return
+        }
+        var replied = false
+        fun reply(list: List<Address>?) {
+            main.post {
+                if (replied) return@post
+                replied = true
+                val out = ArrayList<Map<String, Any>>()
+                for (a in list.orEmpty()) {
+                    if (out.size >= 10) break
+                    if (!a.hasLatitude() || !a.hasLongitude()) continue
+                    val sub = a.subThoroughfare
+                    val feature = a.featureName?.takeIf {
+                        it.isNotBlank() && it != sub && !it.all { ch -> ch.isDigit() }
+                    }
+                    val title = feature ?: a.thoroughfare ?: a.locality
+                    if (title.isNullOrBlank()) continue
+                    val street = listOfNotNull(a.thoroughfare, sub)
+                        .filter { it.isNotBlank() }
+                        .joinToString(" ")
+                    val subtitle = listOf(street, a.locality.orEmpty())
+                        .filter { it.isNotBlank() && it != title }
+                        .joinToString(", ")
+                    out.add(
+                        mapOf(
+                            "title" to title,
+                            "subtitle" to subtitle,
+                            "latitude" to a.latitude,
+                            "longitude" to a.longitude,
+                        )
+                    )
+                }
+                try { result.success(out) } catch (_: Throwable) {}
+            }
+        }
+        try {
+            if (!Geocoder.isPresent()) {
+                reply(null)
+                return
+            }
+            val geocoder = Geocoder(ctx, Locale.getDefault())
+            // [box] = lowerLeftLat, lowerLeftLng, upperRightLat, upperRightLng.
+            fun runQuery(box: DoubleArray?, done: (List<Address>?) -> Unit) {
+                try {
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        val listener = object : Geocoder.GeocodeListener {
+                            override fun onGeocode(addresses: MutableList<Address>) = done(addresses)
+                            override fun onError(errorMessage: String?) = done(null)
+                        }
+                        if (box != null) {
+                            geocoder.getFromLocationName(
+                                query, 10, box[0], box[1], box[2], box[3], listener,
+                            )
+                        } else {
+                            geocoder.getFromLocationName(query, 10, listener)
+                        }
+                    } else {
+                        geocoder_executor.execute {
+                            val list = try {
+                                @Suppress("DEPRECATION")
+                                if (box != null) {
+                                    geocoder.getFromLocationName(
+                                        query, 10, box[0], box[1], box[2], box[3],
+                                    )
+                                } else {
+                                    geocoder.getFromLocationName(query, 10)
+                                }
+                            } catch (_: Throwable) {
+                                null
+                            }
+                            done(list)
+                        }
+                    }
+                } catch (_: Throwable) {
+                    done(null)
+                }
+            }
+            val box: DoubleArray? = if (lat != null && lng != null) {
+                doubleArrayOf(
+                    (lat - 0.5).coerceAtLeast(-90.0),
+                    (lng - 0.5).coerceAtLeast(-180.0),
+                    (lat + 0.5).coerceAtMost(90.0),
+                    (lng + 0.5).coerceAtMost(180.0),
+                )
+            } else null
+            if (box == null) {
+                runQuery(null) { reply(it) }
+            } else {
+                runQuery(box) { first ->
+                    if (first.isNullOrEmpty()) runQuery(null) { reply(it) } else reply(first)
+                }
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "search failed", t)
             reply(null)
         }
     }

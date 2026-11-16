@@ -11524,6 +11524,34 @@ class AppLocalizationsEs extends AppLocalizations {
       'El satélite y el tráfico vienen con Apple Maps o Google Maps. Elígelos en Ajustes › Mapas.';
 
   @override
+  String get locationSheetChoosePlace => 'Elegir un lugar';
+
+  @override
+  String get locationSheetChoosePlaceDetail =>
+      'Busca o mueve el mapa a cualquier punto';
+
+  @override
+  String get locationPickerTitle => 'Enviar ubicación';
+
+  @override
+  String get locationPickerSearch => 'Busca o escribe una dirección';
+
+  @override
+  String get locationPickerSendThis => 'Enviar esta ubicación';
+
+  @override
+  String get locationPickerNearby => 'Lugares cercanos';
+
+  @override
+  String get locationPickerNoResults => 'No se encontraron lugares';
+
+  @override
+  String get locationPickerMyLocation => 'Ir a mi ubicación';
+
+  @override
+  String get locationPickerMoving => 'Buscando la dirección…';
+
+  @override
   String get interactionAnswersSearch => 'Buscar personas o respuestas';
 
   @override

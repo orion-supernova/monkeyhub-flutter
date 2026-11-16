@@ -11578,6 +11578,34 @@ class AppLocalizationsFr extends AppLocalizations {
       'Le satellite et le trafic viennent avec Plans d\'Apple ou Google Maps. Choisissez-les dans Réglages › Cartes.';
 
   @override
+  String get locationSheetChoosePlace => 'Choisir un lieu';
+
+  @override
+  String get locationSheetChoosePlaceDetail =>
+      'Recherchez ou déplacez la carte n\'importe où';
+
+  @override
+  String get locationPickerTitle => 'Envoyer une position';
+
+  @override
+  String get locationPickerSearch => 'Rechercher ou saisir une adresse';
+
+  @override
+  String get locationPickerSendThis => 'Envoyer cette position';
+
+  @override
+  String get locationPickerNearby => 'Lieux à proximité';
+
+  @override
+  String get locationPickerNoResults => 'Aucun lieu trouvé';
+
+  @override
+  String get locationPickerMyLocation => 'Aller à ma position';
+
+  @override
+  String get locationPickerMoving => 'Recherche de l\'adresse…';
+
+  @override
   String get interactionAnswersSearch =>
       'Rechercher des personnes ou des réponses';
 

@@ -11418,6 +11418,34 @@ class AppLocalizationsEn extends AppLocalizations {
       'Satellite and traffic come with Apple Maps or Google Maps. Choose them in Settings › Maps.';
 
   @override
+  String get locationSheetChoosePlace => 'Choose a place';
+
+  @override
+  String get locationSheetChoosePlaceDetail =>
+      'Search, or move the map to any spot';
+
+  @override
+  String get locationPickerTitle => 'Send location';
+
+  @override
+  String get locationPickerSearch => 'Search or enter an address';
+
+  @override
+  String get locationPickerSendThis => 'Send this location';
+
+  @override
+  String get locationPickerNearby => 'Nearby places';
+
+  @override
+  String get locationPickerNoResults => 'No places found';
+
+  @override
+  String get locationPickerMyLocation => 'Go to my location';
+
+  @override
+  String get locationPickerMoving => 'Finding the address…';
+
+  @override
   String get interactionAnswersSearch => 'Search people or answers';
 
   @override

@@ -34,6 +34,7 @@ private final class MapHostView: MKMapView, MKMapViewDelegate {
     private var trailLine: MKPolyline?
     private var trailCoords: [CLLocationCoordinate2D] = []
     private let originalSpan: Double
+    private let picker: Bool
     private var isDark: Bool
     private var pinImage: NSImage?
     private var pinAnchorY: Double = 1
@@ -52,6 +53,7 @@ private final class MapHostView: MKMapView, MKMapViewDelegate {
         let accuracy = params["accuracyM"] as? Double
         originalSpan = max(params["spanMeters"] as? Double ?? 500, 1)
         isDark = params["dark"] as? Bool ?? false
+        picker = params["picker"] as? Bool ?? false
         mapTypeName = params["mapType"] as? String ?? "standard"
         trafficOn = params["traffic"] as? Bool ?? false
         channel = FlutterMethodChannel(name: "monkeyhub/map_view_\(viewId)",
@@ -67,7 +69,9 @@ private final class MapHostView: MKMapView, MKMapViewDelegate {
         showsUserLocation = params["showsUser"] as? Bool ?? false
         // Keeps Apple's logo/Legal/compass/scale clear of the Flutter chrome
         // (top ~110pt, bottom ~220pt). macOS has no layoutMargins on MKMapView.
-        additionalSafeAreaInsets = NSEdgeInsets(top: 110, left: 8, bottom: 220, right: 8)
+        // Picker mode: Dart overlays a search bar (top) and a panel (bottom).
+        additionalSafeAreaInsets = NSEdgeInsets(top: picker ? 120 : 110, left: 8,
+                                                bottom: picker ? 300 : 220, right: 8)
         isZoomEnabled = true
         isScrollEnabled = true
         isRotateEnabled = true
@@ -78,11 +82,13 @@ private final class MapHostView: MKMapView, MKMapViewDelegate {
                                      latitudinalMeters: originalSpan,
                                      longitudinalMeters: originalSpan),
                   animated: false)
-        readPin(params)
         pin.coordinate = centre
-        addAnnotation(pin)
-        setCircle(centre: centre, radius: accuracy)
-        setTrail(Self.parseTrail(params["trail"]))
+        if !picker {
+            readPin(params)
+            addAnnotation(pin)
+            setCircle(centre: centre, radius: accuracy)
+            setTrail(Self.parseTrail(params["trail"]))
+        }
 
         channel.setMethodCallHandler { [weak self] call, result in
             self?.handle(call, result) ?? result(nil)
@@ -225,6 +231,24 @@ private final class MapHostView: MKMapView, MKMapViewDelegate {
                 setCenter(centre, animated: true)
             }
             result(nil)
+        case "moveTo":
+            guard let lat = (args["latitude"] as? NSNumber)?.doubleValue,
+                  let lng = (args["longitude"] as? NSNumber)?.doubleValue else {
+                result(nil)
+                return
+            }
+            let target = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+            let animated = args["animated"] as? Bool ?? true
+            markProgrammatic()
+            if let span = (args["spanMeters"] as? NSNumber)?.doubleValue, span > 0 {
+                setRegion(MKCoordinateRegion(center: target,
+                                             latitudinalMeters: span,
+                                             longitudinalMeters: span),
+                          animated: animated)
+            } else {
+                setCenter(target, animated: animated)
+            }
+            result(nil)
         case "recenter":
             markProgrammatic()
             setRegion(MKCoordinateRegion(center: pin.coordinate,
@@ -314,6 +338,7 @@ private final class MapHostView: MKMapView, MKMapViewDelegate {
     }
 
     func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
+        if picker { channel.invokeMethod("cameraMoving", arguments: nil) }
         let now = Date()
         guard now >= programmaticUntil,
               now.timeIntervalSince(lastGestureAt) >= 0.5 else { return }
@@ -323,6 +348,11 @@ private final class MapHostView: MKMapView, MKMapViewDelegate {
 
     func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
         programmaticUntil = Date.distantPast
+        // centerCoordinate is the centre of the full bounds (safe-area insets
+        // do not offset it), which is where Dart draws its centre pin.
+        let c = mapView.centerCoordinate
+        channel.invokeMethod("cameraIdle", arguments: ["latitude": c.latitude,
+                                                       "longitude": c.longitude])
     }
 
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {

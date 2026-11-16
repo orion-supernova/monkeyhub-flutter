@@ -19231,6 +19231,60 @@ abstract class AppLocalizations {
   /// **'Satellite and traffic come with Apple Maps or Google Maps. Choose them in Settings › Maps.'**
   String get mapStyleOpenFreeMapNote;
 
+  /// Row in the location sheet that opens a map to pick any place.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a place'**
+  String get locationSheetChoosePlace;
+
+  /// Subtitle under "Choose a place".
+  ///
+  /// In en, this message translates to:
+  /// **'Search, or move the map to any spot'**
+  String get locationSheetChoosePlaceDetail;
+
+  /// Title of the full-screen place picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Send location'**
+  String get locationPickerTitle;
+
+  /// Placeholder of the place picker search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search or enter an address'**
+  String get locationPickerSearch;
+
+  /// Button that sends the place under the map pin.
+  ///
+  /// In en, this message translates to:
+  /// **'Send this location'**
+  String get locationPickerSendThis;
+
+  /// Section header for places near the pin.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearby places'**
+  String get locationPickerNearby;
+
+  /// Shown when a place search finds nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'No places found'**
+  String get locationPickerNoResults;
+
+  /// Button that moves the picker map back to your own position.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to my location'**
+  String get locationPickerMyLocation;
+
+  /// Shown under "Send this location" while the map is still moving and the address is not known yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding the address…'**
+  String get locationPickerMoving;
+
   /// Placeholder in the search field of a poll/RSVP answers sheet: search by person or by answer.
   ///
   /// In en, this message translates to:

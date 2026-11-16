@@ -10832,6 +10832,33 @@ class AppLocalizationsZh extends AppLocalizations {
       '卫星和路况需要 Apple 地图或 Google 地图。可在设置 › 地图中选择。';
 
   @override
+  String get locationSheetChoosePlace => '选择地点';
+
+  @override
+  String get locationSheetChoosePlaceDetail => '搜索，或将地图移到任意位置';
+
+  @override
+  String get locationPickerTitle => '发送位置';
+
+  @override
+  String get locationPickerSearch => '搜索或输入地址';
+
+  @override
+  String get locationPickerSendThis => '发送此位置';
+
+  @override
+  String get locationPickerNearby => '附近地点';
+
+  @override
+  String get locationPickerNoResults => '未找到地点';
+
+  @override
+  String get locationPickerMyLocation => '前往我的位置';
+
+  @override
+  String get locationPickerMoving => '正在查找地址…';
+
+  @override
   String get interactionAnswersSearch => '搜索用户或回答';
 
   @override
