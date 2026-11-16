@@ -242,10 +242,8 @@ class _BananaArt {
       Offset(0.66, 0.235),
       Offset(0.752, 0.495),
     ],
-    (t) =>
-        _lerp(0.075, 0.062, t) *
-        _cap(1 - t, 0.2) *
-        (0.85 + 0.3 * math.sin(math.pi * t)),
+    // A strip of peel: wide where it leaves the fruit, tapering to a point.
+    (t) => _lerp(0.105, 0.034, math.pow(t, 1.2).toDouble()) * _cap(1 - t, 0.11),
   );
   static final _fruit = _Part(
     const [
@@ -271,16 +269,17 @@ class _BananaArt {
   );
   static final _frontFlap = _Part(
     const [
-      Offset(0.292, 0.372),
-      Offset(0.165, 0.40),
-      Offset(0.155, 0.655),
-      Offset(0.235, 0.775),
+      Offset(0.318, 0.405),
+      Offset(0.18, 0.385),
+      Offset(0.150, 0.62),
+      Offset(0.205, 0.785),
     ],
+    // Widest just after it leaves the fruit, then tapering to a point.
     (t) =>
-        _lerp(0.145, 0.095, t) *
-        _cap(t, 0.08) *
-        _cap(1 - t, 0.14) *
-        (0.9 + 0.2 * math.sin(math.pi * t)),
+        _lerp(0.165, 0.04, math.pow(t, 1.3).toDouble()) *
+        _cap(t, 0.13) *
+        _cap(1 - t, 0.11) *
+        (0.92 + 0.16 * math.sin(math.pi * math.min(1, t * 1.6))),
   );
 
   static ui.Picture record(double s) {
@@ -325,6 +324,33 @@ class _BananaArt {
         ..style = PaintingStyle.stroke
         ..strokeWidth = s * 0.014,
     );
+    canvas.restore();
+  }
+
+  /// Fills [part] as a thin strip of peel, not a tube: an even cream face,
+  /// shade gathering toward the base and along the edge turned from the
+  /// light, a soft dip down the middle where the peel is concave.
+  static void _flat(Canvas canvas, double s, _Part part, _Tone tone) {
+    final lit = part.lit;
+    final base = part.outline(s);
+    canvas.drawPath(base, Paint()..color = tone.mid);
+    canvas.save();
+    canvas.clipPath(base);
+    // The lit half, a touch lighter.
+    canvas.drawPath(part.outline(s, scale: 0.6, shift: 0.22 * lit),
+        _soft(tone.light, 0.02, s));
+    // The concave dip down the middle.
+    canvas.drawPath(part.outline(s, scale: 0.18, shift: -0.04 * lit, t0: 0.1, t1: 0.85),
+        _soft(tone.dark.withValues(alpha: 0.35), 0.014, s));
+    // The edge turned away from the light.
+    canvas.drawPath(part.outline(s, scale: 0.3, shift: -0.38 * lit),
+        _soft(tone.dark.withValues(alpha: 0.7), 0.014, s));
+    // Shade where it leaves the fruit.
+    canvas.drawPath(part.outline(s, t0: 0, t1: 0.22, scale: 1.1),
+        _soft(tone.dark.withValues(alpha: 0.55), 0.03, s));
+    // A thin bright lip on the lit edge: the light catching the peel's edge.
+    canvas.drawPath(part.outline(s, scale: 0.08, shift: 0.46 * lit, t0: 0.12, t1: 0.9),
+        _soft(tone.shine.withValues(alpha: 0.8), 0.004, s));
     canvas.restore();
   }
 
@@ -434,7 +460,7 @@ class _BananaArt {
       _backFlap.outline(s, shift: -0.14 * _backFlap.lit, scale: 1.0),
       Paint()..color = _skinEdge,
     );
-    _shade(canvas, s, _backFlap, _cream);
+    _flat(canvas, s, _backFlap, _cream);
     _grain(canvas, s, _backFlap, _cream.dark, seed: 3, lines: 6, specks: 40);
     _curl(canvas, s, _backFlap, 0.86);
     // Where it leaves the fruit, it sits in the fruit's shade.
@@ -565,7 +591,7 @@ class _BananaArt {
     final fruitShown = Path.combine(PathOperation.difference, fruit, body);
     _cast(canvas, s, front, fruitShown, const Offset(0.02, -0.004),
         const Color(0xFF8E7444).withValues(alpha: 0.45), 0.016);
-    _shade(canvas, s, _frontFlap, _cream);
+    _flat(canvas, s, _frontFlap, _cream);
     _grain(canvas, s, _frontFlap, _cream.dark, seed: 5, lines: 8, specks: 50);
     // The fold at its top, where it bends away from the fruit.
     canvas.save();
