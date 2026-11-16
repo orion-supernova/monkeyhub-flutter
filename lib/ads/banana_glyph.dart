@@ -585,12 +585,12 @@ class _BananaArt {
     canvas.save();
     canvas.clipPath(body);
     final rnd = math.Random(21);
-    for (var i = 0; i < 7; i++) {
+    for (var i = 0; i < 16; i++) {
       final t = 0.2 + rnd.nextDouble() * 0.7;
       final f = -0.05 * _body.lit + (rnd.nextDouble() - 0.35) * 0.75;
       final q = (_body.at(t) + _body.normal(t) * (f * _body.width(t))) * s;
-      final r = s * (0.0015 + math.pow(rnd.nextDouble(), 2.6) * 0.003);
-      final a = 0.18 + rnd.nextDouble() * 0.2;
+      final r = s * (0.002 + math.pow(rnd.nextDouble(), 2.4) * 0.006);
+      final a = 0.32 + rnd.nextDouble() * 0.4;
       canvas.drawOval(
         Rect.fromCenter(center: q, width: r * 3.2, height: r * 2.2),
         _soft(const Color(0xFFA06A12).withValues(alpha: a * 0.35), 0.005, s),
@@ -603,10 +603,13 @@ class _BananaArt {
     canvas.restore();
     _drawLip(canvas, s, _body.outline(s));
     // The stalk end: a graded brown cap.
-    final tip = _body.outline(s, t0: 0.975, t1: 1.0, scale: 0.9);
+    final tip = _body.outline(s, t0: 0.962, t1: 1.0, scale: 1.0);
     canvas.drawPath(
       tip,
-      _soft(const Color(0xFF6B4E2A).withValues(alpha: 0.85), 0.003, s),
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFF8C6232), Color(0xFF543818), Color(0xFF38240F)],
+        ).createShader(tip.getBounds()),
     );
 
     // 4. Front flap: skin along its outer edge, a shadow onto the body.
