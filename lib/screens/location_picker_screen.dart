@@ -242,6 +242,11 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
   bool _liveOpen = false;
 
+  /// The duration picked under "Share live location", waiting for the
+  /// confirm button: a chip only chooses, so a wrong tap can be changed or
+  /// the whole screen closed before anything starts.
+  LiveShareDuration? _livePick;
+
   /// How far the panel sheet is pulled up, as a fraction of the screen; the
   /// locate button rides on its top edge.
   double _sheetExtent = _sheetRest;
@@ -519,16 +524,29 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   ? const SizedBox(width: double.infinity)
                   : Padding(
                       padding: const EdgeInsets.fromLTRB(70, 2, 16, 8),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          for (final d in LiveShareDuration.values)
-                            _chip(
-                              theme,
-                              durationLabel(d),
-                              () => _finish(LocationShareChoice.live(d)),
-                            ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final d in LiveShareDuration.values)
+                                _chip(
+                                  theme,
+                                  durationLabel(d),
+                                  selected: _livePick == d,
+                                  () {
+                                    HapticFeedback.selectionClick();
+                                    setState(() => _livePick = d);
+                                  },
+                                ),
+                            ],
+                          ),
+                          if (_livePick != null) ...[
+                            const SizedBox(height: 10),
+                            _startLive(theme, l10n, _livePick!),
+                          ],
                         ],
                       ),
                     ),
@@ -574,7 +592,60 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     child: Icon(icon, size: 19, color: Colors.white),
   );
 
-  Widget _chip(AppTheme theme, String label, VoidCallback onTap) {
+  /// Starts the live share for [d]. Its own button, after the chip, so the
+  /// choice is confirmed rather than taken on the first tap.
+  Widget _startLive(
+    AppTheme theme,
+    AppLocalizations l10n,
+    LiveShareDuration d,
+  ) {
+    const green = Color(0xFF30B350);
+    void go() => _finish(LocationShareChoice.live(d));
+    return FocusableTap(
+      onTap: go,
+      shape: FocusRingShape.capsule,
+      semanticLabel: l10n.locationPickerShareLive,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: go,
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          decoration: BoxDecoration(
+            color: green,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                CupertinoIcons.dot_radiowaves_left_right,
+                size: 17,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                l10n.locationPickerShareLive,
+                style: theme.body.copyWith(
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  letterSpacing: 0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _chip(
+    AppTheme theme,
+    String label,
+    VoidCallback onTap, {
+    bool selected = false,
+  }) {
     const green = Color(0xFF30B350);
     return FocusableTap(
       onTap: onTap,
@@ -586,8 +657,12 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           decoration: BoxDecoration(
-            color: green.withValues(alpha: 0.14),
+            color: green.withValues(alpha: selected ? 0.3 : 0.14),
             borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected ? green : const Color(0x00000000),
+              width: 1.5,
+            ),
           ),
           child: Text(
             label,

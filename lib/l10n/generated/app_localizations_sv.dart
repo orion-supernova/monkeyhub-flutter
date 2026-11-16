@@ -11525,6 +11525,19 @@ class AppLocalizationsSv extends AppLocalizations {
   String get ofmStyleFiord => 'Midnattsblå';
 
   @override
+  String get mapLiveRestartTitle => 'Fortsätt dela efter omstart';
+
+  @override
+  String get mapLiveRestartOn => 'På';
+
+  @override
+  String get mapLiveRestartOff => 'Av';
+
+  @override
+  String get mapLiveRestartFooter =>
+      'En live-delning fortsätter efter att telefonen startats om eller appen stängts bara om platsåtkomst är tillåten Alltid. Tryck för att ändra i telefonens Inställningar.';
+
+  @override
   String get interactionAnswersSearch => 'Sök personer eller svar';
 
   @override

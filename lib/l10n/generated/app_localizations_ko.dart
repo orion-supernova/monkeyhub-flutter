@@ -11047,6 +11047,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get ofmStyleFiord => '미드나잇 블루';
 
   @override
+  String get mapLiveRestartTitle => '재시작 후에도 계속 공유';
+
+  @override
+  String get mapLiveRestartOn => '켬';
+
+  @override
+  String get mapLiveRestartOff => '끔';
+
+  @override
+  String get mapLiveRestartFooter =>
+      '휴대폰이 재시작되거나 앱이 종료된 뒤에도 실시간 공유가 이어지려면 위치 접근이 \'항상\'으로 허용되어야 합니다. 탭하여 휴대폰 설정에서 변경하세요.';
+
+  @override
   String get interactionAnswersSearch => '사람 또는 답변 검색';
 
   @override

@@ -1478,6 +1478,7 @@ class _RoomsPanelState extends State<_RoomsPanel> {
                   api: api,
                   dmUser: repo.otherUserFor(room),
                   typists: repo.typingIn(room.id),
+                  liveLocation: _liveLocationLine(context, room),
                   showDivider: showDivider,
                   onTap: () =>
                       openRoom(context, roomId: room.id, repo: repo, api: api),
@@ -1512,6 +1513,17 @@ class _RoomsPanelState extends State<_RoomsPanel> {
   }
 
   /// Swipe right: pin or unpin — the Telegram/Mail leading action.
+  /// "You're sharing live location" / "Zeynep is sharing live location" for
+  /// a room with a share running, in place of its last message.
+  String? _liveLocationLine(BuildContext context, ChatRoom room) {
+    final share = widget.repo.runningLiveShareIn(room.id);
+    if (share == null) return null;
+    final l10n = AppLocalizations.of(context);
+    if (share.mine) return l10n.liveLocationBannerYou;
+    final name = widget.repo.userById(share.senderId)?.displayName ?? share.name;
+    return l10n.liveLocationBannerOne(name);
+  }
+
   List<SwipeAction> _leadingSwipes(ChatRoom room) {
     final l10n = AppLocalizations.of(context);
     final repo = widget.repo;

@@ -7,6 +7,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_preference.dart' show AppThemeBrightness;
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
 import 'live_call_row.dart';
@@ -177,10 +178,16 @@ class ChatListPreview extends StatelessWidget {
     this.lineHeight = 1.3,
     this.maxLines = 2,
     this.surface,
+    this.liveLocation,
   });
 
   final ChatRoom room;
   final LiveRoomCall? call;
+
+  /// Who is sharing live location in this room right now, if anyone: said
+  /// in place of the last message, as a call is, since the share's own bubble
+  /// is soon buried under whatever is said after it.
+  final String? liveLocation;
   final List<ChatUser> typists;
   final double fontSize;
   final double lineHeight;
@@ -204,6 +211,52 @@ class ChatListPreview extends StatelessWidget {
           call: call,
           fontSize: fontSize - 2,
           surface: surface,
+        ),
+      );
+    }
+    final live = liveLocation;
+    if (live != null) {
+      final fill = Color.alphaBlend(
+        const Color(0xFF30B350).withValues(alpha: theme.isLight ? 0.13 : 0.18),
+        surface ?? theme.background,
+      );
+      final ink = theme.isLight
+          ? const Color(0xFF1E7A35)
+          : const Color(0xFF5FD87A);
+      return Align(
+        alignment: AlignmentDirectional.centerStart,
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                CupertinoIcons.dot_radiowaves_left_right,
+                size: fontSize - 1,
+                color: ink,
+              ),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  live,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.bodySoft.copyWith(
+                    fontSize: fontSize - 2,
+                    fontWeight: FontWeight.w600,
+                    color: ink,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }

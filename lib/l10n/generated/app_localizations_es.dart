@@ -11608,6 +11608,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ofmStyleFiord => 'Azul noche';
 
   @override
+  String get mapLiveRestartTitle => 'Seguir compartiendo tras reiniciar';
+
+  @override
+  String get mapLiveRestartOn => 'Activado';
+
+  @override
+  String get mapLiveRestartOff => 'Desactivado';
+
+  @override
+  String get mapLiveRestartFooter =>
+      'Una ubicación en tiempo real solo se retoma tras reiniciar el teléfono o cerrar la app si la ubicación está permitida Siempre. Toca para cambiarlo en los Ajustes del teléfono.';
+
+  @override
   String get interactionAnswersSearch => 'Buscar personas o respuestas';
 
   @override

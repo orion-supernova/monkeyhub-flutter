@@ -13428,6 +13428,14 @@
   "@ofmStyleDark": {"description": "OpenFreeMap map style option in map settings."},
   "ofmStyleFiord": "Midnight blue",
   "@ofmStyleFiord": {"description": "OpenFreeMap map style option in map settings."},
+  "mapLiveRestartTitle": "Keep sharing after a restart",
+  "@mapLiveRestartTitle": {"description": "Settings > Maps row about letting live location sharing resume after a restart (OS location permission Always)."},
+  "mapLiveRestartOn": "On",
+  "@mapLiveRestartOn": {"description": "Settings > Maps row about letting live location sharing resume after a restart (OS location permission Always)."},
+  "mapLiveRestartOff": "Off",
+  "@mapLiveRestartOff": {"description": "Settings > Maps row about letting live location sharing resume after a restart (OS location permission Always)."},
+  "mapLiveRestartFooter": "A live share picks itself back up after your phone restarts or the app is closed only if location is allowed Always. Tap to change it in your phone's Settings.",
+  "@mapLiveRestartFooter": {"description": "Settings > Maps row about letting live location sharing resume after a restart (OS location permission Always)."},
   "interactionAnswersSearch": "Search people or answers",
   "@interactionAnswersSearch": {
     "description": "Placeholder in the search field of a poll/RSVP answers sheet: search by person or by answer."

@@ -154,16 +154,16 @@ class _LocationSheet extends StatelessWidget {
 /// arrive later as "Keep Only While Using / Change to Always" — see
 /// `LiveLocationPlatform.requestAlwaysAuthorization`. That is by design and this
 /// sheet promises nothing more specific than "we'll ask".
-Future<bool> showLiveShareBackgroundSheet(BuildContext context) async {
-  final res = await showAdaptiveSheet<bool>(
-    context,
-    builder: (_) => const _BackgroundUpgradeSheet(),
-  );
-  // A dismissed sheet is a no. Not asking is the same answer as declining, and
-  // treating a swipe-away as consent to a background permission would be the
-  // single worst thing this file could do.
-  return res ?? false;
-}
+/// Null when the sheet was closed without an answer: that is backing out of
+/// the share, not an answer to the question, so the caller cancels the share
+/// (and the question is asked again next time). Closing it used to start the
+/// share anyway, which left no way to stop a share you had changed your mind
+/// about at this step.
+Future<bool?> showLiveShareBackgroundSheet(BuildContext context) =>
+    showAdaptiveSheet<bool>(
+      context,
+      builder: (_) => const _BackgroundUpgradeSheet(),
+    );
 
 class _BackgroundUpgradeSheet extends StatelessWidget {
   const _BackgroundUpgradeSheet();

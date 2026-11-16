@@ -3793,6 +3793,33 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
   String? get activeLiveShareMessageId => liveLocation.activeMessageId;
   String? get activeLiveShareRoomId => liveLocation.activeRoomId;
 
+  /// A live location share running in [roomId] right now, for the chat list
+  /// row: yours (this device is publishing it), else the newest one by
+  /// someone else among the messages this device has loaded. Read from the
+  /// cache only (no server reads); a chat never opened since launch can miss
+  /// someone else's share until it is.
+  ({bool mine, String senderId, String name})? runningLiveShareIn(
+    String roomId,
+  ) {
+    final now = DateTime.now();
+    final mineId = activeLiveShareMessageId;
+    if (activeLiveShareRoomId == roomId && mineId != null) {
+      return (mine: true, senderId: '', name: '');
+    }
+    final messages = _messages[roomId];
+    if (messages == null) return null;
+    var seen = 0;
+    for (final m in messages.reversed) {
+      // Shares last at most eight hours; there is no need to walk a whole
+      // history to find one.
+      if (++seen > 300) break;
+      if (m.type == MessageType.liveLocation && m.isLiveLocationRunning(now)) {
+        return (mine: false, senderId: m.senderId, name: m.senderName);
+      }
+    }
+    return null;
+  }
+
   /// Listens for the STOP button on the platform's own notification.
   ///
   /// Installed once per repository rather than per share, and never cancelled:

@@ -11662,6 +11662,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get ofmStyleFiord => 'Bleu nuit';
 
   @override
+  String get mapLiveRestartTitle => 'Continuer après un redémarrage';
+
+  @override
+  String get mapLiveRestartOn => 'Activé';
+
+  @override
+  String get mapLiveRestartOff => 'Désactivé';
+
+  @override
+  String get mapLiveRestartFooter =>
+      'Un partage en direct ne reprend après un redémarrage ou la fermeture de l\'app que si la position est autorisée Toujours. Touchez pour le modifier dans les Réglages du téléphone.';
+
+  @override
   String get interactionAnswersSearch =>
       'Rechercher des personnes ou des réponses';
 

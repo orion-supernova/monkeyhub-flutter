@@ -11614,6 +11614,19 @@ class AppLocalizationsPt extends AppLocalizations {
   String get ofmStyleFiord => 'Azul-noite';
 
   @override
+  String get mapLiveRestartTitle => 'Continuar a partilhar após reiniciar';
+
+  @override
+  String get mapLiveRestartOn => 'Ativado';
+
+  @override
+  String get mapLiveRestartOff => 'Desativado';
+
+  @override
+  String get mapLiveRestartFooter =>
+      'Uma partilha em tempo real só é retomada depois de o telefone reiniciar ou de a app fechar se a localização estiver permitida Sempre. Toca para mudar nas Definições do telefone.';
+
+  @override
   String get interactionAnswersSearch => 'Pesquisar pessoas ou respostas';
 
   @override
@@ -28264,6 +28277,19 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get ofmStyleFiord => 'Azul-noite';
+
+  @override
+  String get mapLiveRestartTitle => 'Continuar compartilhando após reiniciar';
+
+  @override
+  String get mapLiveRestartOn => 'Ativado';
+
+  @override
+  String get mapLiveRestartOff => 'Desativado';
+
+  @override
+  String get mapLiveRestartFooter =>
+      'Um compartilhamento em tempo real só é retomado depois que o celular reinicia ou o app é fechado se a localização estiver permitida Sempre. Toque para mudar nos Ajustes do celular.';
 
   @override
   String get interactionAnswersSearch => 'Buscar pessoas ou respostas';

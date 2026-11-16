@@ -11023,6 +11023,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get ofmStyleFiord => 'ミッドナイトブルー';
 
   @override
+  String get mapLiveRestartTitle => '再起動後も共有を続ける';
+
+  @override
+  String get mapLiveRestartOn => 'オン';
+
+  @override
+  String get mapLiveRestartOff => 'オフ';
+
+  @override
+  String get mapLiveRestartFooter =>
+      'スマホの再起動やアプリの終了後にライブ共有を再開するには、位置情報を「常に」許可する必要があります。タップしてスマホの設定で変更できます。';
+
+  @override
   String get interactionAnswersSearch => '名前や回答を検索';
 
   @override

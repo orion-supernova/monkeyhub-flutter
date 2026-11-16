@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
+import 'package:monkeyhub/models/location_share.dart';
 import 'package:monkeyhub/screens/location_picker_screen.dart';
 import 'package:monkeyhub/services/location_service.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
@@ -130,8 +131,13 @@ void main() {
     await open();
     await tester.tap(find.text('Share live location'));
     await tester.pumpAndSettle();
+    // A duration only chooses; nothing starts until it is confirmed.
     await tester.tap(find.text('For 1 hour'));
     await tester.pumpAndSettle();
+    expect(picked, isNull);
+    await tester.tap(find.text('Share live location').last);
+    await tester.pumpAndSettle();
     expect(picked?.isLive, isTrue);
+    expect(picked?.duration, LiveShareDuration.oneHour);
   });
 }

@@ -11453,6 +11453,20 @@ class AppLocalizationsTr extends AppLocalizations {
   String get ofmStyleFiord => 'Gece mavisi';
 
   @override
+  String get mapLiveRestartTitle =>
+      'Yeniden başlatmadan sonra paylaşmaya devam et';
+
+  @override
+  String get mapLiveRestartOn => 'Açık';
+
+  @override
+  String get mapLiveRestartOff => 'Kapalı';
+
+  @override
+  String get mapLiveRestartFooter =>
+      'Canlı paylaşım, telefonun yeniden başladıktan ya da uygulama kapandıktan sonra yalnızca konum izni Her Zaman ise kendiliğinden devam eder. Telefonunun Ayarlar\'ından değiştirmek için dokun.';
+
+  @override
   String get interactionAnswersSearch => 'Kişi veya yanıt ara';
 
   @override

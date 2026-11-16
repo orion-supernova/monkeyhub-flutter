@@ -11678,6 +11678,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get ofmStyleFiord => 'أزرق ليلي';
 
   @override
+  String get mapLiveRestartTitle => 'متابعة المشاركة بعد إعادة التشغيل';
+
+  @override
+  String get mapLiveRestartOn => 'تشغيل';
+
+  @override
+  String get mapLiveRestartOff => 'إيقاف';
+
+  @override
+  String get mapLiveRestartFooter =>
+      'لا تُستأنف المشاركة المباشرة بعد إعادة تشغيل الهاتف أو إغلاق التطبيق إلا إذا كان الوصول إلى الموقع مسموحًا دائمًا. اضغط لتغييره من إعدادات الهاتف.';
+
+  @override
   String get interactionAnswersSearch => 'البحث عن أشخاص أو إجابات';
 
   @override

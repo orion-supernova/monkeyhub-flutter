@@ -51,7 +51,11 @@ class ChatListRow extends StatefulWidget {
     this.dmUser,
     this.typists = const [],
     this.showDivider = true,
+    this.liveLocation,
   });
+
+  /// Who is sharing live location here right now (see [ChatListPreview]).
+  final String? liveLocation;
 
   final ChatRoom room;
   final VoidCallback onTap;
@@ -154,6 +158,7 @@ class _ChatListRowState extends State<ChatListRow>
                               child: ChatListPreview(
                                 room: room,
                                 call: call,
+                                liveLocation: widget.liveLocation,
                                 typists: widget.typists,
                                 fontSize: previewSize,
                                 lineHeight: density.chatRowPreviewHeight,

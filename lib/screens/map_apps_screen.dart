@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../services/live_location_permission.dart'
+    show BackgroundLocationTier, tierSurvivesTermination;
+import '../services/live_location_platform.dart';
+import '../services/location_service.dart';
 import '../services/maps_handoff.dart';
 import '../widgets/ios_kit.dart';
 import '../widgets/map_engine.dart';
@@ -19,6 +23,11 @@ class MapAppsScreen extends StatefulWidget {
 class _MapAppsScreenState extends State<MapAppsScreen>
     with WidgetsBindingObserver {
   List<MapApp>? _apps;
+
+  /// Whether live shares can pick themselves back up after a restart (the
+  /// OS location permission is Always). Re-read on every return to the app,
+  /// since it is changed in the phone's Settings.
+  BackgroundLocationTier? _tier;
   @override
   void initState() {
     super.initState();
@@ -46,6 +55,11 @@ class _MapAppsScreenState extends State<MapAppsScreen>
   Future<void> _load() async {
     final apps = await MapsHandoff.availableApps();
     if (mounted) setState(() => _apps = apps);
+    final platform = LiveLocationPlatform.instance;
+    if (platform.supportsAlways) {
+      final tier = await platform.authorizationTier();
+      if (mounted) setState(() => _tier = tier);
+    }
   }
 
   @override
@@ -96,6 +110,24 @@ class _MapAppsScreenState extends State<MapAppsScreen>
           if (apps != null && apps.every((app) => app.id == 'browser'))
             GroupedFooter(l.mapAppsNoInstalled),
           ..._mapSource(store, l),
+          if (_tier != null) ...[
+            GroupedSection(
+              children: [
+                GroupedRow(
+                  icon: CupertinoIcons.dot_radiowaves_left_right,
+                  tone: TileTone.green,
+                  title: l.mapLiveRestartTitle,
+                  value: tierSurvivesTermination(_tier!)
+                      ? l.mapLiveRestartOn
+                      : l.mapLiveRestartOff,
+                  // The answer lives with the OS, which only lets an app ask
+                  // once; changing it is a trip to the phone's Settings.
+                  onTap: () => LocationService.instance.openAppSettings(),
+                ),
+              ],
+            ),
+            GroupedFooter(l.mapLiveRestartFooter),
+          ],
         ],
       );
     },

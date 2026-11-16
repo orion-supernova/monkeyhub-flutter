@@ -3890,8 +3890,9 @@ class _RoomScreenState extends State<_RoomView>
     // be the upfront prompt this whole flow exists to avoid.
     var keepRunningInBackground = false;
     if (choice.isLive) {
-      keepRunningInBackground = await _offerBackgroundUpgradeIfDue();
-      if (!mounted) return;
+      final keep = await _offerBackgroundUpgradeIfDue();
+      if (!mounted || keep == null) return;
+      keepRunningInBackground = keep;
     }
 
     final l10n = AppLocalizations.of(context);
@@ -3971,7 +3972,10 @@ class _RoomScreenState extends State<_RoomView>
   /// Availability is passed as ready because the caller has just established it
   /// through [_ensureLocationPermission]; re-deriving it here would be a second
   /// permission round trip for an answer we hold.
-  Future<bool> _offerBackgroundUpgradeIfDue() async {
+  /// Whether the share can survive the app being closed, asking first when
+  /// due. Null when the person closed that question without answering: the
+  /// share is cancelled.
+  Future<bool?> _offerBackgroundUpgradeIfDue() async {
     final platform = LiveLocationPlatform.instance;
     final store = LiveShareResumeStore.instance;
     final tier = await platform.authorizationTier();
@@ -3986,9 +3990,13 @@ class _RoomScreenState extends State<_RoomView>
     }
 
     final wants = await showLiveShareBackgroundSheet(context);
+    // Closed without an answer: backing out of the share. Not marked, so the
+    // question comes back with the next share.
+    if (wants == null) return null;
     // Marked whichever way they answered, and marked even if the request below
     // fails. The point of the flag is "this person has been asked", not "this
-    // person has granted" — see the sheet's own doc comment.
+    // person has granted" — see the sheet's own doc comment. (Settings › Maps
+    // says where to change it later.)
     await store.markAlwaysUpgradeOffered();
     if (!wants) return false;
 

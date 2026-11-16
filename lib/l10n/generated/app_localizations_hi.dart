@@ -11490,6 +11490,19 @@ class AppLocalizationsHi extends AppLocalizations {
   String get ofmStyleFiord => 'मिडनाइट ब्लू';
 
   @override
+  String get mapLiveRestartTitle => 'रीस्टार्ट के बाद भी शेयर करते रहें';
+
+  @override
+  String get mapLiveRestartOn => 'चालू';
+
+  @override
+  String get mapLiveRestartOff => 'बंद';
+
+  @override
+  String get mapLiveRestartFooter =>
+      'फ़ोन रीस्टार्ट होने या ऐप बंद होने के बाद लाइव शेयर तभी फिर शुरू होता है जब लोकेशन की अनुमति हमेशा के लिए हो। फ़ोन की सेटिंग में बदलने के लिए टैप करें।';
+
+  @override
   String get interactionAnswersSearch => 'लोग या जवाब खोजें';
 
   @override

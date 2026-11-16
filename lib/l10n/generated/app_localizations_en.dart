@@ -11501,6 +11501,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ofmStyleFiord => 'Midnight blue';
 
   @override
+  String get mapLiveRestartTitle => 'Keep sharing after a restart';
+
+  @override
+  String get mapLiveRestartOn => 'On';
+
+  @override
+  String get mapLiveRestartOff => 'Off';
+
+  @override
+  String get mapLiveRestartFooter =>
+      'A live share picks itself back up after your phone restarts or the app is closed only if location is allowed Always. Tap to change it in your phone\'s Settings.';
+
+  @override
   String get interactionAnswersSearch => 'Search people or answers';
 
   @override

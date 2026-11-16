@@ -19369,6 +19369,30 @@ abstract class AppLocalizations {
   /// **'Midnight blue'**
   String get ofmStyleFiord;
 
+  /// Settings > Maps row about letting live location sharing resume after a restart (OS location permission Always).
+  ///
+  /// In en, this message translates to:
+  /// **'Keep sharing after a restart'**
+  String get mapLiveRestartTitle;
+
+  /// Settings > Maps row about letting live location sharing resume after a restart (OS location permission Always).
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get mapLiveRestartOn;
+
+  /// Settings > Maps row about letting live location sharing resume after a restart (OS location permission Always).
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get mapLiveRestartOff;
+
+  /// Settings > Maps row about letting live location sharing resume after a restart (OS location permission Always).
+  ///
+  /// In en, this message translates to:
+  /// **'A live share picks itself back up after your phone restarts or the app is closed only if location is allowed Always. Tap to change it in your phone\'s Settings.'**
+  String get mapLiveRestartFooter;
+
   /// Placeholder in the search field of a poll/RSVP answers sheet: search by person or by answer.
   ///
   /// In en, this message translates to:

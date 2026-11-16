@@ -10914,6 +10914,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ofmStyleFiord => '午夜蓝';
 
   @override
+  String get mapLiveRestartTitle => '重启后继续共享';
+
+  @override
+  String get mapLiveRestartOn => '开';
+
+  @override
+  String get mapLiveRestartOff => '关';
+
+  @override
+  String get mapLiveRestartFooter =>
+      '只有当位置权限为“始终”时，实时共享才能在手机重启或应用关闭后自动恢复。轻点可在手机设置中更改。';
+
+  @override
   String get interactionAnswersSearch => '搜索用户或回答';
 
   @override
