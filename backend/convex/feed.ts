@@ -811,9 +811,12 @@ export const post = mutation({
  * intermittently, by timezone, for a minority of pairs. That is exactly the bug
  * class nobody reproduces.
  *
- * Access is `canSeeMoment` and nothing else: the same function the board and
- * the archive go through, so a row this returns is a row the caller could have
- * reached anyway. Returns `null` rather than throwing for every failure — gone,
+ * Access is `canSeeMoment` plus the same expiry the board applies, so a row
+ * this returns is a row the caller could have reached anyway: once a friend's
+ * moment has expired it is history, and history is the author's `pointsPast`
+ * opt-in (the gate `archive` uses). Without that check an old notification, or
+ * just a remembered id, opened a highlight its author believed was gone.
+ * Returns `null` rather than throwing for every failure — gone, expired,
  * unfriended, made private since the push went out — because the caller is a
  * tap on a notification that may be hours old, and there is nothing for the
  * person to do about any of them. The Feed falls back to opening the board.
@@ -844,6 +847,11 @@ export const moment = query({
     if (!mine) {
       const author = await ctx.db.get(m.userId);
       if (!author) return null;
+      // Off a friend's board after 24 hours; only their opted-in history may
+      // still show it. No extra read: the author row is needed below anyway.
+      if (m.expiresAt <= Date.now() && !visibilityOf(author).pointsPast) {
+        return null;
+      }
       authorRow = author;
     }
 
