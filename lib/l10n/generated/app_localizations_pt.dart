@@ -17039,6 +17039,69 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get tabMenuCallsHiddenToast =>
       'Separador Chamadas oculto. Volta a ativá-lo em Definições > Navegação.';
+
+  @override
+  String get ageSheetTitle => 'Quando nasceste?';
+
+  @override
+  String get ageSheetBodySignUp =>
+      'A tua data de nascimento é privada. Nunca a mostramos no teu perfil nem a partilhamos com ninguém. Só a usamos para confirmar que o MonkeyHub é adequado à tua idade.';
+
+  @override
+  String get ageSheetBodyExisting =>
+      'Para continuares a usar o MonkeyHub, diz-nos o mês e o ano em que nasceste. É privado: nunca o mostramos no teu perfil nem o partilhamos com ninguém, e só o usamos para confirmar que o MonkeyHub é adequado à tua idade.';
+
+  @override
+  String get ageMonthLabel => 'Mês';
+
+  @override
+  String get ageYearLabel => 'Ano';
+
+  @override
+  String get ageContinue => 'Continuar';
+
+  @override
+  String get ageConfirmTitle => 'Está correto?';
+
+  @override
+  String ageConfirmBody(String month, String year, String age) {
+    return 'Nasceste em $month de $year, por isso tens $age anos. Não podes alterar isto mais tarde.';
+  }
+
+  @override
+  String get ageConfirmChange => 'Alterar';
+
+  @override
+  String get ageConfirmYes => 'Sim, está correto';
+
+  @override
+  String get ageTooYoungTitle => 'O MonkeyHub é para maiores de 9 anos';
+
+  @override
+  String get ageTooYoungBody =>
+      'Ainda não podes criar uma conta. Estaremos aqui quando fores mais velho!';
+
+  @override
+  String get ageNeedsGuardianTitle => 'Pede a um dos teus pais';
+
+  @override
+  String get ageNeedsGuardianBody =>
+      'Para usares o MonkeyHub antes dos 13 anos, um dos teus pais tem de criar uma conta familiar para ti a partir da própria conta MonkeyHub.';
+
+  @override
+  String get ageGateOk => 'OK';
+
+  @override
+  String get ageWrongContactSupport => 'A minha idade está errada';
+
+  @override
+  String authErrorAgeRestricted(String email) {
+    return 'Esta conta está em pausa porque pertence a alguém com menos de 13 anos. Um dos teus pais pode criar uma conta familiar para ti. Se a tua idade estiver errada, envia um email para $email.';
+  }
+
+  @override
+  String get authErrorAgeInvalid =>
+      'Essa data não parece correta. Verifica o mês e o ano.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -34054,4 +34117,67 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get tabMenuCallsHiddenToast =>
       'Aba Chamadas oculta. Traga de volta em Configurações > Navegação.';
+
+  @override
+  String get ageSheetTitle => 'Quando você nasceu?';
+
+  @override
+  String get ageSheetBodySignUp =>
+      'Sua data de nascimento é privada. Nunca a mostramos no seu perfil nem a compartilhamos com ninguém. Só a usamos para confirmar que o MonkeyHub é adequado para a sua idade.';
+
+  @override
+  String get ageSheetBodyExisting =>
+      'Para continuar usando o MonkeyHub, informe o mês e o ano em que você nasceu. É privado: nunca mostramos no seu perfil nem compartilhamos com ninguém, e só usamos para confirmar que o MonkeyHub é adequado para a sua idade.';
+
+  @override
+  String get ageMonthLabel => 'Mês';
+
+  @override
+  String get ageYearLabel => 'Ano';
+
+  @override
+  String get ageContinue => 'Continuar';
+
+  @override
+  String get ageConfirmTitle => 'Está certo?';
+
+  @override
+  String ageConfirmBody(String month, String year, String age) {
+    return 'Você nasceu em $month de $year, então tem $age anos. Não dá para mudar isso depois.';
+  }
+
+  @override
+  String get ageConfirmChange => 'Alterar';
+
+  @override
+  String get ageConfirmYes => 'Sim, está certo';
+
+  @override
+  String get ageTooYoungTitle => 'O MonkeyHub é para maiores de 9 anos';
+
+  @override
+  String get ageTooYoungBody =>
+      'Você ainda não pode criar uma conta. Estaremos aqui quando você for mais velho!';
+
+  @override
+  String get ageNeedsGuardianTitle => 'Peça a um responsável';
+
+  @override
+  String get ageNeedsGuardianBody =>
+      'Para usar o MonkeyHub antes dos 13 anos, um responsável precisa criar uma conta familiar para você pela própria conta do MonkeyHub.';
+
+  @override
+  String get ageGateOk => 'OK';
+
+  @override
+  String get ageWrongContactSupport => 'Minha idade está errada';
+
+  @override
+  String authErrorAgeRestricted(String email) {
+    return 'Esta conta está pausada porque pertence a alguém com menos de 13 anos. Um responsável pode criar uma conta familiar para você. Se sua idade estiver errada, envie um e-mail para $email.';
+  }
+
+  @override
+  String get authErrorAgeInvalid =>
+      'Essa data não parece certa. Confira o mês e o ano.';
 }

@@ -17105,4 +17105,67 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get tabMenuCallsHiddenToast =>
       'Onglet Appels masqué. Retrouve-le dans Réglages > Navigation.';
+
+  @override
+  String get ageSheetTitle => 'Quand es-tu né(e) ?';
+
+  @override
+  String get ageSheetBodySignUp =>
+      'Ta date de naissance reste privée. Nous ne l’affichons jamais sur ton profil et ne la partageons avec personne. Nous l’utilisons uniquement pour vérifier que MonkeyHub convient à ton âge.';
+
+  @override
+  String get ageSheetBodyExisting =>
+      'Pour continuer à utiliser MonkeyHub, indique-nous le mois et l’année de ta naissance. Cela reste privé : nous ne l’affichons jamais sur ton profil, ne le partageons avec personne et l’utilisons uniquement pour vérifier que MonkeyHub convient à ton âge.';
+
+  @override
+  String get ageMonthLabel => 'Mois';
+
+  @override
+  String get ageYearLabel => 'Année';
+
+  @override
+  String get ageContinue => 'Continuer';
+
+  @override
+  String get ageConfirmTitle => 'C’est bien ça ?';
+
+  @override
+  String ageConfirmBody(String month, String year, String age) {
+    return 'Tu es né(e) en $month $year, tu as donc $age ans. Tu ne pourras pas le modifier plus tard.';
+  }
+
+  @override
+  String get ageConfirmChange => 'Modifier';
+
+  @override
+  String get ageConfirmYes => 'Oui, c’est bien ça';
+
+  @override
+  String get ageTooYoungTitle => 'MonkeyHub est pour les 9 ans et plus';
+
+  @override
+  String get ageTooYoungBody =>
+      'Tu ne peux pas encore créer de compte. Nous serons là quand tu seras plus grand(e) !';
+
+  @override
+  String get ageNeedsGuardianTitle => 'Demande à un parent';
+
+  @override
+  String get ageNeedsGuardianBody =>
+      'Pour utiliser MonkeyHub avant tes 13 ans, un parent doit te créer un compte familial depuis son propre compte MonkeyHub.';
+
+  @override
+  String get ageGateOk => 'OK';
+
+  @override
+  String get ageWrongContactSupport => 'Mon âge est faux';
+
+  @override
+  String authErrorAgeRestricted(String email) {
+    return 'Ce compte est en pause car il appartient à une personne de moins de 13 ans. Un parent peut te créer un compte familial. Si ton âge est faux, écris à $email.';
+  }
+
+  @override
+  String get authErrorAgeInvalid =>
+      'Cette date ne semble pas correcte. Vérifie le mois et l’année.';
 }

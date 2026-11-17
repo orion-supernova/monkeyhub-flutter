@@ -807,7 +807,8 @@ describe("shims, alerts, scrub, cursors, orphan sweep", () => {
   test("the ghost keeps accountType and the ban, and nothing that describes the person", async () => {
     const t = convexTest(schema);
     const u = await mkUser(t, "pii", {
-      name: "Pat", email: "p@x.com", birthYear: 2012, accountType: "child", suspendedAt: 5,
+      name: "Pat", email: "p@x.com", birthYear: 2012, birthMonth: 4, accountType: "child", suspendedAt: 5,
+      ageGivenAt: 4, ageRestrictedAt: 4, ageResetAt: 4, ageResetBy: "staff", ageResetReason: "typo",
       visibility: { avatar: "nobody" }, childPolicy: {
         publicRoomsEnabled: false, callsEnabled: false, mediaEnabled: false,
         canRequestContacts: false, canCreateRooms: false,
@@ -815,7 +816,7 @@ describe("shims, alerts, scrub, cursors, orphan sweep", () => {
     });
     await t.run((ctx) => startUserDeletion(ctx, u));
     const g: any = await get(t, u);
-    for (const f of ["name", "email", "birthYear", "visibility", "childPolicy", "usernameChangedAt", "lastNudgedDayKey", "termsAcceptedAt", "termsVersion"]) {
+    for (const f of ["name", "email", "birthYear", "birthMonth", "ageGivenAt", "ageRestrictedAt", "ageResetAt", "ageResetBy", "ageResetReason", "visibility", "childPolicy", "usernameChangedAt", "lastNudgedDayKey", "termsAcceptedAt", "termsVersion"]) {
       expect(g[f], f).toBeUndefined();
     }
     expect(g.accountType).toBe("child");

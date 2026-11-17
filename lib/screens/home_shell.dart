@@ -4,6 +4,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
+import '../auth/age_gate.dart';
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../backend/feed_api.dart';
@@ -97,10 +98,16 @@ class _HomeShellState extends State<HomeShell> {
     // "Check for Updates" tap finds a newer build.
     UpdateAvailability.instance.addListener(_onSettings);
     // The Terms of Use, for an account that never ticked the sign-up box (it
-    // predates the box, or an old build made it). Once per shell, a frame
-    // late because it pushes a sheet; a no-op for everyone who agreed.
+    // predates the box, or an old build made it), then the age, for an account
+    // that never gave one (`age_gate.dart`). Once per shell, a frame late
+    // because they push sheets, one after the other; a no-op for everyone who
+    // already answered.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) unawaited(ensureTermsAccepted(context, widget.api));
+      if (!mounted) return;
+      unawaited(() async {
+        await ensureTermsAccepted(context, widget.api);
+        if (mounted) await ensureAgeGiven(context, widget.api);
+      }());
     });
     // Debug convenience for simulator screenshots:
     // `--dart-define=OPEN_LAB=true` opens the Controls lab after the first

@@ -16796,4 +16796,67 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get tabMenuCallsHiddenToast =>
       'Aramalar sekmesi gizlendi. Ayarlar > Gezinme\'den geri getirebilirsin.';
+
+  @override
+  String get ageSheetTitle => 'Ne zaman doğdun?';
+
+  @override
+  String get ageSheetBodySignUp =>
+      'Doğum tarihin gizli kalır. Profilinde asla gösterilmez ve kimseyle paylaşılmaz. Yalnızca MonkeyHub’ın yaşına uygun olup olmadığını kontrol etmek için kullanılır.';
+
+  @override
+  String get ageSheetBodyExisting =>
+      'MonkeyHub’ı kullanmaya devam etmek için doğduğun ayı ve yılı söyle. Bu bilgi gizli kalır: profilinde asla gösterilmez, kimseyle paylaşılmaz ve yalnızca MonkeyHub’ın yaşına uygun olup olmadığını kontrol etmek için kullanılır.';
+
+  @override
+  String get ageMonthLabel => 'Ay';
+
+  @override
+  String get ageYearLabel => 'Yıl';
+
+  @override
+  String get ageContinue => 'Devam';
+
+  @override
+  String get ageConfirmTitle => 'Bu doğru mu?';
+
+  @override
+  String ageConfirmBody(String month, String year, String age) {
+    return '$month $year doğumlusun, yani $age yaşındasın. Bunu daha sonra değiştiremezsin.';
+  }
+
+  @override
+  String get ageConfirmChange => 'Değiştir';
+
+  @override
+  String get ageConfirmYes => 'Evet, doğru';
+
+  @override
+  String get ageTooYoungTitle => 'MonkeyHub 9 yaş ve üzeri içindir';
+
+  @override
+  String get ageTooYoungBody =>
+      'Henüz hesap oluşturamazsın. Büyüdüğünde burada olacağız!';
+
+  @override
+  String get ageNeedsGuardianTitle => 'Bir ebeveynine sor';
+
+  @override
+  String get ageNeedsGuardianBody =>
+      '13 yaşından önce MonkeyHub’ı kullanmak için bir ebeveyninin kendi MonkeyHub hesabından senin için bir aile hesabı oluşturması gerekir.';
+
+  @override
+  String get ageGateOk => 'Tamam';
+
+  @override
+  String get ageWrongContactSupport => 'Yaşım yanlış';
+
+  @override
+  String authErrorAgeRestricted(String email) {
+    return 'Bu hesap 13 yaşından küçük birine ait olduğu için duraklatıldı. Bir ebeveynin senin için bir aile hesabı oluşturabilir. Yaşın yanlışsa $email adresine e-posta gönder.';
+  }
+
+  @override
+  String get authErrorAgeInvalid =>
+      'Bu tarih doğru görünmüyor. Ayı ve yılı kontrol et.';
 }

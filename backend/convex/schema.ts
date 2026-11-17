@@ -112,7 +112,26 @@ export default defineSchema({
     // guardian via `family.createChildAccount`, can only sign in by redeeming
     // a pairing code (never a password), and cannot sign itself out.
     accountType: v.optional(v.string()), // "adult" | "child"
+    // Birth year: set by the guardian for a child account, and by the person
+    // themselves (with `birthMonth`) at sign-up or on the age sheet. Self or
+    // staff only, never shown to anyone else. Rules: `ageCore.ts`.
     birthYear: v.optional(v.number()),
+    birthMonth: v.optional(v.number()), // 1 to 12
+    // When the person gave their own age. Absent = they still owe the age
+    // sheet (accounts from before 2026-11-17, and old builds' sign-ups). Once
+    // set the age is locked: only staff can change it (`moderation.staffResetAge`
+    // / `staffLowerAge`).
+    ageGivenAt: v.optional(v.number()),
+    // Restricted for age: the account gave an age under 13. Set by
+    // `moderation.restrictForAge`, which revokes every session with reason
+    // "age"; `mintSession` and `resolveSession` then answer AGE_RESTRICTED.
+    ageRestrictedAt: v.optional(v.number()),
+    // The one staff reset this account is allowed (`moderation.staffResetAge`):
+    // when, which staff member, and why. Set once, never cleared, so a second
+    // reset is refused.
+    ageResetAt: v.optional(v.number()),
+    ageResetBy: v.optional(v.string()),
+    ageResetReason: v.optional(v.string()),
     // What this child is allowed to do without asking. Guardian-controlled
     // via `family.setChildPolicy`; the child can never edit it. Only ever set
     // on accountType === "child" rows.
@@ -3095,10 +3114,15 @@ export default defineSchema({
     // Absent on sessions from clients that predate the secret.
     deviceSecretHash: v.optional(v.string()),
     // Why the session was revoked, so `requireSession` can tell a suspension
-    // from a deletion from a cap eviction. Absent on legacy rows and plain
-    // sign-outs (those keep the owner lookup).
+    // from an age restriction from a deletion from a cap eviction. Absent on
+    // legacy rows and plain sign-outs (those keep the owner lookup).
     revokedReason: v.optional(
-      v.union(v.literal("suspended"), v.literal("deleted"), v.literal("evicted")),
+      v.union(
+        v.literal("suspended"),
+        v.literal("age"),
+        v.literal("deleted"),
+        v.literal("evicted"),
+      ),
     ),
   })
     // The hot path once enforcement lands: one equality probe per request.

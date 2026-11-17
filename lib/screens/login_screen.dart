@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart' show TapGestureRecognizer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 
+import '../auth/age_gate.dart';
 import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/recovery_phrase.dart';
@@ -176,6 +177,10 @@ class _LoginScreenState extends State<LoginScreen> {
   /// The EULA box on the sign-up form. Sign-up will not run without it.
   bool _termsAccepted = false;
 
+  /// The answer to the age step (`age_gate.dart`), kept across a failed
+  /// submit like the recovery phrase, so a retry does not ask twice.
+  BirthMonth? _birth;
+
   @override
   void initState() {
     super.initState();
@@ -187,6 +192,17 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() {
           _suspended = true;
           _error = AppLocalizations.of(context).authErrorAccountSuspended;
+        });
+      });
+    }
+    // Or because the account gave an age under 13: the same delete action,
+    // with the reason and the support address for a wrong age.
+    if (SessionGuard.instance.takeAgeRestrictedNotice()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _suspended = true;
+          _error = AppLocalizations.of(context).authErrorAgeRestricted(kSupportEmail);
         });
       });
     }
@@ -281,7 +297,10 @@ class _LoginScreenState extends State<LoginScreen> {
   /// A sign-in the server refused as ACCOUNT_SUSPENDED: show the ban notice with
   /// the delete action, even though no session is held (it may be long gone).
   bool _offerSuspendedDelete(Object e, {SocialCredential? credential}) {
-    if (!e.toString().contains('ACCOUNT_SUSPENDED')) return false;
+    final text = e.toString();
+    if (!text.contains('ACCOUNT_SUSPENDED') && !text.contains('AGE_RESTRICTED')) {
+      return false;
+    }
     _suspended = true;
     _deleteFailed = false;
     _deleteFinal = false;
@@ -302,6 +321,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // mint a fresh phrase rather than resurrect an abandoned one.
     _pendingPhrase = null;
     _phraseConfirmed = false;
+    _birth = null;
     // The three modes share one username field, so a verdict earned in
     // sign-up would still be sitting there on the way back — describing a
     // name the user typed under different rules, minutes ago. Re-fed rather
@@ -379,6 +399,21 @@ class _LoginScreenState extends State<LoginScreen> {
       });
       return;
     }
+    // Sign-up asks the age first: a child too young for their own account is
+    // stopped here, before a phrase is made or anything is sent.
+    if (_mode == _AuthMode.signUp && _birth == null) {
+      setState(() {
+        _busy = true;
+        _error = null;
+      });
+      final birth = await askAgeForSignUp(context);
+      if (!mounted) return;
+      if (birth == null) {
+        setState(() => _busy = false);
+        return;
+      }
+      _birth = birth;
+    }
     // Sign-up runs the save-your-phrase gate BEFORE creating the account.
     //
     // `_busy` is raised FIRST, covering the gate as well as the request that
@@ -413,6 +448,7 @@ class _LoginScreenState extends State<LoginScreen> {
             name: name.isEmpty ? username : name,
             password: _password.text,
             recoveryKeyHash: recoveryPhraseHash(_pendingPhrase!.canonical),
+            birth: _birth,
           );
         case _AuthMode.signIn:
           await widget.auth.signIn(

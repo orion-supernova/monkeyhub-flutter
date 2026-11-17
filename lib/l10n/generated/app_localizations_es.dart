@@ -17034,4 +17034,67 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get tabMenuCallsHiddenToast =>
       'Pestaña Llamadas oculta. Recupérala en Ajustes > Navegación.';
+
+  @override
+  String get ageSheetTitle => '¿Cuándo naciste?';
+
+  @override
+  String get ageSheetBodySignUp =>
+      'Tu fecha de nacimiento es privada. Nunca la mostramos en tu perfil ni la compartimos con nadie. Solo la usamos para comprobar que MonkeyHub es adecuado para tu edad.';
+
+  @override
+  String get ageSheetBodyExisting =>
+      'Para seguir usando MonkeyHub, dinos el mes y el año en que naciste. Es privado: nunca lo mostramos en tu perfil ni lo compartimos con nadie, y solo lo usamos para comprobar que MonkeyHub es adecuado para tu edad.';
+
+  @override
+  String get ageMonthLabel => 'Mes';
+
+  @override
+  String get ageYearLabel => 'Año';
+
+  @override
+  String get ageContinue => 'Continuar';
+
+  @override
+  String get ageConfirmTitle => '¿Es correcto?';
+
+  @override
+  String ageConfirmBody(String month, String year, String age) {
+    return 'Naciste en $month de $year, así que tienes $age años. No podrás cambiarlo más tarde.';
+  }
+
+  @override
+  String get ageConfirmChange => 'Cambiar';
+
+  @override
+  String get ageConfirmYes => 'Sí, es correcto';
+
+  @override
+  String get ageTooYoungTitle => 'MonkeyHub es para mayores de 9 años';
+
+  @override
+  String get ageTooYoungBody =>
+      'Todavía no puedes crear una cuenta. ¡Aquí estaremos cuando seas mayor!';
+
+  @override
+  String get ageNeedsGuardianTitle => 'Pídeselo a tu madre o padre';
+
+  @override
+  String get ageNeedsGuardianBody =>
+      'Para usar MonkeyHub antes de cumplir 13 años, tu madre o padre tiene que crearte una cuenta familiar desde su propia cuenta de MonkeyHub.';
+
+  @override
+  String get ageGateOk => 'Aceptar';
+
+  @override
+  String get ageWrongContactSupport => 'Mi edad es incorrecta';
+
+  @override
+  String authErrorAgeRestricted(String email) {
+    return 'Esta cuenta está en pausa porque pertenece a alguien menor de 13 años. Tu madre o padre puede crearte una cuenta familiar. Si tu edad es incorrecta, escribe a $email.';
+  }
+
+  @override
+  String get authErrorAgeInvalid =>
+      'Esa fecha no parece correcta. Revisa el mes y el año.';
 }

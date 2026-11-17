@@ -101,6 +101,23 @@ class SessionGuard {
   /// like the two above, plus a reason the login screen has to give.
   static const _suspended = 'ACCOUNT_SUSPENDED';
 
+  /// The account gave an age under 13 and is restricted
+  /// (`moderation.restrictForAge`). Handled exactly like a ban (the session
+  /// is gone, the revoked token may still delete the account) but the login
+  /// screen explains it differently.
+  static const _ageRestricted = 'AGE_RESTRICTED';
+
+  /// Set when the last loss was an age restriction. Read-and-clear through
+  /// [takeAgeRestrictedNotice].
+  bool _ageNotice = false;
+
+  /// Whether the user was just signed out by an age restriction. Clears it.
+  bool takeAgeRestrictedNotice() {
+    final v = _ageNotice;
+    _ageNotice = false;
+    return v;
+  }
+
   /// Set when the last loss was a ban, so the login screen the user lands on
   /// can say why instead of looking like an ordinary sign-out. Read-and-clear
   /// through [takeSuspendedNotice].
@@ -193,7 +210,8 @@ class SessionGuard {
     final text = error.toString();
     return text.contains(_unknown) ||
         text.contains(_revoked) ||
-        text.contains(_suspended);
+        text.contains(_suspended) ||
+        text.contains(_ageRestricted);
   }
 
   /// Report a failed call, together with the token it actually went out under
@@ -239,7 +257,23 @@ class SessionGuard {
       _suspendedNotice = true;
       _suspensionPending = true;
     }
+    if (error.toString().contains(_ageRestricted)) {
+      _ageNotice = true;
+      _suspensionPending = true;
+    }
     debugPrint('[session] server rejected our token — signing out');
+    onSessionLost?.call();
+  }
+
+  /// The age sheet's answer restricted this account (`age.submit` revoked the
+  /// session in the same call), so sign out now instead of waiting for the
+  /// next call to fail.
+  void ageRestrictedNow() {
+    if (_lost) return;
+    _lost = true;
+    _ageNotice = true;
+    _suspensionPending = true;
+    debugPrint('[session] account restricted for age — signing out');
     onSessionLost?.call();
   }
 

@@ -42,6 +42,7 @@ import {
 import { assertNotLocked, clearFailures, loginKey, noteFailure } from "./rateLimit";
 import { assertCleanName } from "./contentFilter";
 import { termsStamp } from "./terms";
+import { signupAgeStamp } from "./ageCore";
 import {
   ERR_DISPLAY_NAME_RESERVED,
   ERR_USERNAME_RESERVED,
@@ -241,6 +242,9 @@ export const completeSignUp = publicAction({
     name: v.optional(v.string()),
     // The EULA checkbox on the username step. See `terms.ts`.
     termsVersion: v.optional(v.number()),
+    // The age step. Optional for old builds; see `ageCore.signupAgeStamp`.
+    birthYear: v.optional(v.number()),
+    birthMonth: v.optional(v.number()),
   },
   returns: authResultValidator,
   // Annotated to break a self-referential inference cycle — see the note on
@@ -266,6 +270,8 @@ export const completeSignUp = publicAction({
       name: args.name,
       appleRefreshToken,
       termsVersion: args.termsVersion,
+      birthYear: args.birthYear,
+      birthMonth: args.birthMonth,
     });
   },
 });
@@ -362,7 +368,9 @@ export const deleteSuspendedByIdentity = internalMutation({
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("USER_NOT_FOUND");
     if (user.accountType === ACCOUNT_CHILD) throw new Error(ERR_MUST_PAIR);
-    if (user.suspendedAt === undefined || user.deletingAt !== undefined) {
+    // Suspended or restricted for age: see `auth.deleteSuspendedAccount`.
+    const locked = user.suspendedAt !== undefined || user.ageRestrictedAt !== undefined;
+    if (!locked || user.deletingAt !== undefined) {
       throw new Error(ERR_NOT_ALLOWED);
     }
     await deleteOwnAccount(ctx, userId);
@@ -747,11 +755,15 @@ export const createWithIdentity = internalMutation({
     name: v.optional(v.string()),
     appleRefreshToken: v.optional(v.string()),
     termsVersion: v.optional(v.number()),
+    birthYear: v.optional(v.number()),
+    birthMonth: v.optional(v.number()),
   },
   returns: authResultValidator,
   handler: async (ctx, args) => {
     const username = normaliseUsername(args.username);
     const terms = termsStamp(args.termsVersion);
+    // Under 13 is refused before anything is written. See `ageCore.ts`.
+    const age = signupAgeStamp(args.birthYear, args.birthMonth);
     await assertNoCaseTwin(ctx, username);
     await throttleSignup(ctx, args.deviceId);
 
@@ -819,6 +831,7 @@ export const createWithIdentity = internalMutation({
       email: args.email,
       createdAt: now,
       ...terms,
+      ...age,
     });
     await syncProfile(ctx, userId);
     await markOnline(ctx, userId, { now });

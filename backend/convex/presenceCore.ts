@@ -24,9 +24,14 @@ export const BEAT_THROTTLE_MS = PRESENCE_WRITE_INTERVAL_MS; // 90_000
 /** A beat this soon after an explicit offline does not bring the user back. */
 export const RESURRECT_GUARD_MS = 60_000;
 
-/** Tombstoned or suspended: presence must not be written for them. */
+/** Tombstoned, suspended or restricted for age: presence must not be written
+ * for them. */
 function isGone(user: any): boolean {
-  return user.deletingAt !== undefined || user.suspendedAt !== undefined;
+  return (
+    user.deletingAt !== undefined ||
+    user.suspendedAt !== undefined ||
+    user.ageRestrictedAt !== undefined
+  );
 }
 
 export function isPresenceStatus(s: unknown): s is PresenceStatus {

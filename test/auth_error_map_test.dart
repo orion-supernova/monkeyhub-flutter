@@ -92,6 +92,11 @@ void main() {
       'DEVICE_LOGIN_REQUEST_EXPIRED',
       'DEVICE_LOGIN_CODE_EXPIRED',
       'DEVICE_LOGIN_DENIED',
+      // ageCore.ts
+      'AGE_RESTRICTED',
+      'AGE_TOO_YOUNG',
+      'AGE_NEEDS_GUARDIAN',
+      'AGE_INVALID',
     };
 
     test('every mapped key is one the backend throws', () {

@@ -9,19 +9,21 @@
  */
 
 import type * as adSsv from "../adSsv.js";
+import type * as age from "../age.js";
+import type * as ageCore from "../ageCore.js";
 import type * as alertBurst from "../alertBurst.js";
 import type * as appleTokens from "../appleTokens.js";
 import type * as auth from "../auth.js";
 import type * as badges from "../badges.js";
 import type * as bookmarks from "../bookmarks.js";
 import type * as callFavorites from "../callFavorites.js";
-import type * as chatFolders from "../chatFolders.js";
 import type * as callHistory from "../callHistory.js";
 import type * as callLog from "../callLog.js";
 import type * as calls from "../calls.js";
 import type * as cdnPurge from "../cdnPurge.js";
 import type * as challengeCopy from "../challengeCopy.js";
 import type * as challenges from "../challenges.js";
+import type * as chatFolders from "../chatFolders.js";
 import type * as childGuard from "../childGuard.js";
 import type * as contentCounts from "../contentCounts.js";
 import type * as contentCountsCore from "../contentCountsCore.js";
@@ -176,19 +178,21 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   adSsv: typeof adSsv;
+  age: typeof age;
+  ageCore: typeof ageCore;
   alertBurst: typeof alertBurst;
   appleTokens: typeof appleTokens;
   auth: typeof auth;
   badges: typeof badges;
   bookmarks: typeof bookmarks;
   callFavorites: typeof callFavorites;
-  chatFolders: typeof chatFolders;
   callHistory: typeof callHistory;
   callLog: typeof callLog;
   calls: typeof calls;
   cdnPurge: typeof cdnPurge;
   challengeCopy: typeof challengeCopy;
   challenges: typeof challenges;
+  chatFolders: typeof chatFolders;
   childGuard: typeof childGuard;
   contentCounts: typeof contentCounts;
   contentCountsCore: typeof contentCountsCore;

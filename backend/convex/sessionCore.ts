@@ -4,6 +4,7 @@ import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { internalMutation } from "./dbHooks";
 import { internal } from "./_generated/api";
 import { continueSweep, sweepArgs } from "./sweep";
+import { ERR_AGE_RESTRICTED } from "./ageCore";
 
 /**
  * Bearer sessions: the primitives.
@@ -154,6 +155,10 @@ export async function mintSession(
   const account = await ctx.db.get(userId);
   if (account?.suspendedAt !== undefined && account !== null) {
     throw new Error(ERR_ACCOUNT_SUSPENDED);
+  }
+  // Same door for an account restricted for age (`moderation.restrictForAge`).
+  if (account?.ageRestrictedAt !== undefined && account !== null) {
+    throw new Error(ERR_AGE_RESTRICTED);
   }
   // A scrubbed ghost (`deletionCore.startUserDeletion`) must not sign in. Inline
   // rather than `isTombstoned`: deletionCore imports this file.
@@ -474,6 +479,21 @@ export async function resolveSession(
       }
       throw new Error(ERR_ACCOUNT_SUSPENDED);
     }
+    if (row.revokedReason === "age") {
+      // The same shape as "suspended" above, for an account restricted for
+      // age: AGE_RESTRICTED while the restriction stands, plain REVOKED once
+      // staff lifted it (the person signs in again), and `allowSuspended`
+      // (auth.deleteAccount alone) lets the revoked session delete the account.
+      const owner = await ctx.db.get(row.userId);
+      if (owner === null || owner.deletingAt !== undefined) {
+        throw new Error(ERR_SESSION_REVOKED);
+      }
+      if (owner.ageRestrictedAt === undefined) throw new Error(ERR_SESSION_REVOKED);
+      if (opts?.allowSuspended && row.revokedAt >= owner.ageRestrictedAt) {
+        return { userId: row.userId, sessionId: row._id };
+      }
+      throw new Error(ERR_AGE_RESTRICTED);
+    }
     const owner = await ctx.db.get(row.userId);
     // Deleting beats suspended: a suspended user who deleted themselves gets the
     // plain sign-out, and a second `deleteAccount` call ends here (not allowed
@@ -518,6 +538,10 @@ export async function resolveSession(
   // Free: the row is already in hand. See `moderation.suspendAccount`.
   if (user.suspendedAt !== undefined && !opts?.allowSuspended) {
     throw new Error(ERR_ACCOUNT_SUSPENDED);
+  }
+  // Free too. See `moderation.restrictForAge`.
+  if (user.ageRestrictedAt !== undefined && !opts?.allowSuspended) {
+    throw new Error(ERR_AGE_RESTRICTED);
   }
   return { userId: row.userId, sessionId: row._id };
 }

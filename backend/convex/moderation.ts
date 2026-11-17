@@ -23,6 +23,7 @@ import { deleteCommentCore } from "./momentComments";
 import { REPORT_RETENTION_MS } from "./users";
 import { markOffline } from "./presenceCore";
 import { SESSION_LIVE_CAP, liftAccountBans, recordAccountBans } from "./sessionCore";
+import { ageBand, ageInYears, assertValidBirth } from "./ageCore";
 
 /** Sessions revoked per transaction; a full page schedules the continuation. */
 const SUSPEND_SESSIONS_MAX = SESSION_LIVE_CAP * 2;
@@ -132,16 +133,171 @@ export async function suspendAccount(ctx: any, targetId: any, byId: any) {
   // signed up from the same install (sessionCore.recordAccountBans).
   await recordAccountBans(ctx, targetId, target.email);
   await markOffline(ctx, targetId, { now });
+  await leavePublicRooms(ctx, targetId);
+}
+
+/**
+ * Takes [userId] out of every public room, through the same teardown as an
+ * admin removing them (which re-seats ownership if they held it). Private
+ * rooms and DMs are left alone; see [suspendAccount] for why.
+ */
+async function leavePublicRooms(ctx: any, userId: any) {
   const memberships = await ctx.db
     .query("roomMembers")
-    .withIndex("by_user", (q: any) => q.eq("userId", targetId))
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
     .collect();
   for (const m of memberships) {
     const room = await ctx.db.get(m.roomId);
     if (!room || room.isPrivate !== false || isSystemRoom(room)) continue;
-    await removeMembership(ctx, room._id, targetId);
+    await removeMembership(ctx, room._id, userId);
   }
 }
+
+// ── Age ─────────────────────────────────────────────────────────────────────
+//
+// Rules and numbers live in `ageCore.ts`. What lives here is what happens to an
+// existing account that comes out under 13, and the two things staff can do
+// about an age, both run from the CLI with the admin key:
+//
+//   npx convex run moderation:staffResetAge \
+//     '{"username":"…","by":"<staff handle>","reason":"…"}'
+//   npx convex run moderation:staffLowerAge \
+//     '{"username":"…","by":"<staff handle>","birthYear":2014,"birthMonth":3}'
+//
+// The lawful shape (decided 2026-11-17): the person's own age is locked once
+// given. Staff may clear it ONCE per account so the person enters it again
+// (a typo, an adult who slipped), and may always make it younger, never older.
+// No ID or photo is ever asked for: that is more sensitive data, from children,
+// than the check is worth.
+
+/**
+ * Restricts [userId] for age: every session revoked with reason "age", offline,
+ * out of public rooms, hidden from search. The age stays on the row so staff can
+ * see what was entered. Reversible by [staffResetAge]; deletable by the person
+ * (`auth.deleteSuspendedAccount` and the Apple/Google twin accept it).
+ *
+ * Not a ban: no install or email hashes are recorded, because a parent creating
+ * a family account on the same phone is exactly what we want to happen next.
+ */
+export async function restrictForAge(ctx: any, userId: any) {
+  const user = await ctx.db.get(userId);
+  if (!user) throw new Error("USER_NOT_FOUND");
+  if (user.ageRestrictedAt !== undefined) return;
+  const now = Date.now();
+  await ctx.db.patch(userId, { ageRestrictedAt: now });
+  await revokeLiveSessions(ctx, userId, "age", now);
+  await markOffline(ctx, userId, { now });
+  await leavePublicRooms(ctx, userId);
+}
+
+/** One page of [userId]'s live sessions revoked for [reason]; a full page
+ * schedules [revokeAgeRestrictedSessions] for the rest. */
+async function revokeLiveSessions(ctx: any, userId: any, reason: "age", now: number) {
+  const rows = await ctx.db
+    .query("sessions")
+    .withIndex("by_user_live_seen", (q: any) =>
+      q.eq("userId", userId).eq("revokedAt", undefined),
+    )
+    .take(SUSPEND_SESSIONS_MAX);
+  for (const s of rows) {
+    await ctx.db.patch(s._id, { revokedAt: now, revokedReason: reason });
+  }
+  if (rows.length === SUSPEND_SESSIONS_MAX) {
+    await ctx.scheduler.runAfter(0, internal.moderation.revokeAgeRestrictedSessions, {
+      userId,
+    });
+  }
+}
+
+/** The continuation of [revokeLiveSessions]. Stops once none are live, or when
+ * the restriction was lifted meanwhile. */
+export const revokeAgeRestrictedSessions = internalMutation({
+  args: { userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user || user.ageRestrictedAt === undefined) return null;
+    await revokeLiveSessions(ctx, userId, "age", Date.now());
+    return null;
+  },
+});
+
+async function userByHandle(ctx: any, username: string) {
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_username", (q: any) => q.eq("username", username))
+    .first();
+  if (!user || isTombstoned(user)) throw new Error("USER_NOT_FOUND");
+  if (isSystemAccount(user)) throw new Error("SYSTEM_ACCOUNT");
+  if (user.accountType === "child") throw new Error(ERR_AGE_CHILD_ACCOUNT);
+  return user;
+}
+
+/** Family accounts carry the guardian's answer; the guardian changes it. */
+export const ERR_AGE_CHILD_ACCOUNT = "AGE_CHILD_ACCOUNT";
+/** The account already had its one reset. */
+export const ERR_AGE_RESET_USED = "AGE_RESET_USED";
+/** [staffLowerAge] was given a date that makes the person older. */
+export const ERR_AGE_NOT_LOWER = "AGE_NOT_LOWER";
+
+/**
+ * The one reset an account gets: clears the age (and any restriction it caused)
+ * so the person enters it again on their next sign-in, with the confirm step.
+ * Records who, when and why on the row; a second call answers AGE_RESET_USED.
+ * Sessions stay revoked: the person signs in again, like after an unban.
+ */
+export const staffResetAge = internalMutation({
+  args: { username: v.string(), by: v.string(), reason: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { username, by, reason }) => {
+    const user = await userByHandle(ctx, username);
+    if (!by.trim() || !reason.trim()) throw new Error("REASON_REQUIRED");
+    if (user.ageResetAt !== undefined) throw new Error(ERR_AGE_RESET_USED);
+    await ctx.db.patch(user._id, {
+      birthYear: undefined,
+      birthMonth: undefined,
+      ageGivenAt: undefined,
+      ageRestrictedAt: undefined,
+      ageResetAt: Date.now(),
+      ageResetBy: by.trim(),
+      ageResetReason: reason.trim(),
+    });
+    return null;
+  },
+});
+
+/**
+ * Makes the stored age younger (the person says they are younger than they
+ * entered). Always allowed, any number of times, because it only ever moves
+ * towards more protection; a date that makes them older is refused
+ * (AGE_NOT_LOWER, use [staffResetAge]). Comes out under 13 → restricted.
+ */
+export const staffLowerAge = internalMutation({
+  args: {
+    username: v.string(),
+    by: v.string(),
+    birthYear: v.number(),
+    birthMonth: v.number(),
+  },
+  returns: v.object({ restricted: v.boolean() }),
+  handler: async (ctx, { username, by, birthYear, birthMonth }) => {
+    const user = await userByHandle(ctx, username);
+    if (!by.trim()) throw new Error("REASON_REQUIRED");
+    assertValidBirth(birthYear, birthMonth);
+    if (user.birthYear !== undefined && user.birthMonth !== undefined) {
+      const was = user.birthYear * 12 + user.birthMonth;
+      if (birthYear * 12 + birthMonth < was) throw new Error(ERR_AGE_NOT_LOWER);
+    }
+    await ctx.db.patch(user._id, {
+      birthYear,
+      birthMonth,
+      ageGivenAt: user.ageGivenAt ?? Date.now(),
+    });
+    const restricted = ageBand(ageInYears(birthYear, birthMonth)) !== "ok";
+    if (restricted) await restrictForAge(ctx, user._id);
+    return { restricted };
+  },
+});
 
 /** Lifts a suspension. Sessions stay revoked; the person signs in again. */
 export async function unsuspendAccount(ctx: any, targetId: any) {

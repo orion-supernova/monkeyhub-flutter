@@ -16876,4 +16876,67 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tabMenuCallsHiddenToast =>
       'Calls tab hidden. Bring it back in Settings > Navigation.';
+
+  @override
+  String get ageSheetTitle => 'When were you born?';
+
+  @override
+  String get ageSheetBodySignUp =>
+      'Your birthday stays private. We never show it on your profile or share it with anyone. We only use it to check that MonkeyHub is right for your age.';
+
+  @override
+  String get ageSheetBodyExisting =>
+      'To keep using MonkeyHub, tell us the month and year you were born. It stays private: we never show it on your profile or share it with anyone, and only use it to check that MonkeyHub is right for your age.';
+
+  @override
+  String get ageMonthLabel => 'Month';
+
+  @override
+  String get ageYearLabel => 'Year';
+
+  @override
+  String get ageContinue => 'Continue';
+
+  @override
+  String get ageConfirmTitle => 'Is this right?';
+
+  @override
+  String ageConfirmBody(String month, String year, String age) {
+    return 'You were born in $month $year, so you’re $age. You can’t change this later.';
+  }
+
+  @override
+  String get ageConfirmChange => 'Change';
+
+  @override
+  String get ageConfirmYes => 'Yes, that’s right';
+
+  @override
+  String get ageTooYoungTitle => 'MonkeyHub is for ages 9 and up';
+
+  @override
+  String get ageTooYoungBody =>
+      'You can’t create an account yet. We’ll be here when you’re older!';
+
+  @override
+  String get ageNeedsGuardianTitle => 'Ask a parent';
+
+  @override
+  String get ageNeedsGuardianBody =>
+      'To use MonkeyHub before you turn 13, a parent needs to set up a family account for you from their own MonkeyHub account.';
+
+  @override
+  String get ageGateOk => 'OK';
+
+  @override
+  String get ageWrongContactSupport => 'My age is wrong';
+
+  @override
+  String authErrorAgeRestricted(String email) {
+    return 'This account is paused because it belongs to someone under 13. A parent can set up a family account for you. If your age is wrong, email $email.';
+  }
+
+  @override
+  String get authErrorAgeInvalid =>
+      'That date doesn’t look right. Check the month and year.';
 }

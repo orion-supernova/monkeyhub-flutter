@@ -422,9 +422,15 @@ export async function startUserDeletion(
       // the search index in every runtime.
       searchName: "",
       // The rest of what describes the person. No plan step reads any of it:
-      // birth year, the child's policy, privacy settings, the nudge and
-      // rename bookkeeping, and the terms they accepted.
+      // birth year and month, the child's policy, privacy settings, the nudge
+      // and rename bookkeeping, and the terms they accepted.
       birthYear: undefined,
+      birthMonth: undefined,
+      ageGivenAt: undefined,
+      ageRestrictedAt: undefined,
+      ageResetAt: undefined,
+      ageResetBy: undefined,
+      ageResetReason: undefined,
       childPolicy: undefined,
       visibility: undefined,
       usernameChangedAt: undefined,

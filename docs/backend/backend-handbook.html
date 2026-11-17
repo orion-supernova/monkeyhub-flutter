@@ -631,6 +631,16 @@ EOF</code></pre>
 <tr><td><code>messages.send</code> guard</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
 <tr><td><code>moderation:roomTail</code> (staff CLI)</td><td>&le; 200 messages + 1 per distinct author</td><td>0</td><td>Only the staff watcher, per new message in that room</td><td>0</td></tr>
 </table></div>
+<ol start="4">
+  <li><b>Age check.</b> Under 9 no account, 9 to 12 only a family account, 13 and over their own (rules in <code>ageCore.ts</code>, feature in <code>docs/design/age-check.md</code>). Sign-up (<code>auth.signup</code>, <code>socialAuth.createWithIdentity</code>) refuses under 13 before writing anything; <code>birthYear</code>/<code>birthMonth</code> are optional args so old builds still sign up, then <code>age:status</code>/<code>age:submit</code> ask on the next build. An account that answers under 13 is restricted (<code>moderation.restrictForAge</code>): sessions revoked with the new reason <code>"age"</code>, which <code>resolveSession</code> and <code>mintSession</code> answer as <code>AGE_RESTRICTED</code>, exactly the suspension pattern, so a live session costs nothing extra. The suspended-account delete paths accept it. Staff tools: <code>moderation:staffResetAge</code> (once per account, logged on the row) and <code>moderation:staffLowerAge</code> (younger only). No new tables, indexes or crons.</li>
+</ol>
+<div class="tbl"><table>
+<tr><th>Action</th><th>Reads</th><th>Writes</th><th>Re-runs</th><th>Idle</th></tr>
+<tr><td><code>age:status</code> (once per launch)</td><td>1 get</td><td>0</td><td>None (one-shot)</td><td>0</td></tr>
+<tr><td><code>age:submit</code>, 13+</td><td>1 get</td><td>1 patch</td><td>Own <code>users</code> readers, once</td><td>0</td></tr>
+<tr><td><code>age:submit</code>, under 13</td><td>+ &le; 100 live sessions, own memberships</td><td>+ 1 per live session, presence, public-room removals</td><td>Friends' presence and public rosters, once</td><td>0</td></tr>
+<tr><td><code>resolveSession</code> / <code>mintSession</code></td><td>0 extra; 1 get on a session revoked for age (cold)</td><td>0</td><td>0</td><td>0</td></tr>
+</table></div>
 <h3>Recommended order</h3>
 <ol>
   <li>Phase A: A1 (mirror off), A2 (file reaper), A3 (cache + purge; needs the Cloudflare token).</li>

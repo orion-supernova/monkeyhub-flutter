@@ -19735,5 +19735,97 @@
   "tabMenuHideCalls": "Hide Calls Tab",
   "@tabMenuHideCalls": {"description": "Long-press menu on the Calls tab: remove the Calls tab from the tab bar."},
   "tabMenuCallsHiddenToast": "Calls tab hidden. Bring it back in Settings > Navigation.",
-  "@tabMenuCallsHiddenToast": {"description": "Toast after hiding the Calls tab from its long-press menu. Keep the Settings > Navigation path matching the app's settings page names."}
+  "@tabMenuCallsHiddenToast": {"description": "Toast after hiding the Calls tab from its long-press menu. Keep the Settings > Navigation path matching the app's settings page names."},
+  "ageSheetTitle": "When were you born?",
+  "@ageSheetTitle": {
+    "description": "Title of the age sheet (sign-up, and existing accounts that never gave an age)."
+  },
+  "ageSheetBodySignUp": "Your birthday stays private. We never show it on your profile or share it with anyone. We only use it to check that MonkeyHub is right for your age.",
+  "@ageSheetBodySignUp": {
+    "description": "Age sheet body at sign-up."
+  },
+  "ageSheetBodyExisting": "To keep using MonkeyHub, tell us the month and year you were born. It stays private: we never show it on your profile or share it with anyone, and only use it to check that MonkeyHub is right for your age.",
+  "@ageSheetBodyExisting": {
+    "description": "Age sheet body for an existing account; the sheet cannot be dismissed."
+  },
+  "ageMonthLabel": "Month",
+  "@ageMonthLabel": {
+    "description": "Screen reader label for the birth month wheel."
+  },
+  "ageYearLabel": "Year",
+  "@ageYearLabel": {
+    "description": "Screen reader label for the birth year wheel."
+  },
+  "ageContinue": "Continue",
+  "@ageContinue": {
+    "description": "Button under the birth month and year wheels."
+  },
+  "ageConfirmTitle": "Is this right?",
+  "@ageConfirmTitle": {
+    "description": "Title of the step that confirms the entered birth month and year."
+  },
+  "ageConfirmBody": "You were born in {month} {year}, so you’re {age}. You can’t change this later.",
+  "@ageConfirmBody": {
+    "description": "Confirm step. month is the localized month name, year the 4-digit year, age the whole years old.",
+    "placeholders": {
+      "month": {
+        "type": "String",
+        "example": "March"
+      },
+      "year": {
+        "type": "String",
+        "example": "2014"
+      },
+      "age": {
+        "type": "String",
+        "example": "12"
+      }
+    }
+  },
+  "ageConfirmChange": "Change",
+  "@ageConfirmChange": {
+    "description": "Confirm step button that goes back to the wheels."
+  },
+  "ageConfirmYes": "Yes, that’s right",
+  "@ageConfirmYes": {
+    "description": "Confirm step button that saves the age."
+  },
+  "ageTooYoungTitle": "MonkeyHub is for ages 9 and up",
+  "@ageTooYoungTitle": {
+    "description": "Shown when the entered age is under 9."
+  },
+  "ageTooYoungBody": "You can’t create an account yet. We’ll be here when you’re older!",
+  "@ageTooYoungBody": {
+    "description": "Body under ageTooYoungTitle."
+  },
+  "ageNeedsGuardianTitle": "Ask a parent",
+  "@ageNeedsGuardianTitle": {
+    "description": "Shown when the entered age is 9 to 12."
+  },
+  "ageNeedsGuardianBody": "To use MonkeyHub before you turn 13, a parent needs to set up a family account for you from their own MonkeyHub account.",
+  "@ageNeedsGuardianBody": {
+    "description": "Body under ageNeedsGuardianTitle: a parent creates a family account from their own account."
+  },
+  "ageGateOk": "OK",
+  "@ageGateOk": {
+    "description": "Closes the age refusal step."
+  },
+  "ageWrongContactSupport": "My age is wrong",
+  "@ageWrongContactSupport": {
+    "description": "Button on the age refusal step that emails support."
+  },
+  "authErrorAgeRestricted": "This account is paused because it belongs to someone under 13. A parent can set up a family account for you. If your age is wrong, email {email}.",
+  "@authErrorAgeRestricted": {
+    "description": "Login screen error for an account restricted because it gave an age under 13. email is the support address.",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "info@walhallaa.com"
+      }
+    }
+  },
+  "authErrorAgeInvalid": "That date doesn’t look right. Check the month and year.",
+  "@authErrorAgeInvalid": {
+    "description": "Error when the birth month and year are not a real past date."
+  }
 }

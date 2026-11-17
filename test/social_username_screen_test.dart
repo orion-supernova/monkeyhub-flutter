@@ -3,6 +3,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:monkeyhub/auth/age_gate.dart' show BirthMonth;
 import 'package:monkeyhub/auth/auth_service.dart';
 import 'package:monkeyhub/auth/social_sign_in.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
@@ -27,6 +29,9 @@ import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 /// the network. Every assertion is about what is on screen, so the AuthService
 /// is never actually called.
 void main() {
+  // The age step reads its on-device lock (`AgeGateLock`) from here.
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   /// Never invoked — the tests below only tap controls that navigate or switch
   /// mode locally, never the submit button.
   AuthService inertAuth() => AuthService(ChatApi(ConvexBackend.instance));
@@ -147,6 +152,14 @@ void main() {
     await tester.tap(find.text('Create account'));
     await tester.pumpAndSettle();
 
+    // Then the age step (`age_gate.dart`): the wheels open 15 years back,
+    // which is old enough, so Continue and confirm.
+    expect(find.text('When were you born?'), findsOneWidget);
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Yes, that’s right'));
+    await tester.pumpAndSettle();
+
     expect(find.byType(SocialUsernameScreen), findsNothing,
         reason: 'the route must pop, or it hides the HomeShell underneath it');
   });
@@ -164,6 +177,7 @@ class _StubAuth extends AuthService {
     required SocialCredential credential,
     required String username,
     String? name,
+    BirthMonth? birth,
   }) async {}
 
   @override

@@ -16003,4 +16003,65 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tabMenuCallsHiddenToast => '通话标签页已隐藏。可在 设置 > 导航 中恢复。';
+
+  @override
+  String get ageSheetTitle => '你是什么时候出生的？';
+
+  @override
+  String get ageSheetBodySignUp =>
+      '你的出生日期会保密。我们绝不会在你的个人资料中显示，也不会与任何人分享。我们只用它来确认 MonkeyHub 是否适合你的年龄。';
+
+  @override
+  String get ageSheetBodyExisting =>
+      '要继续使用 MonkeyHub，请告诉我们你出生的年份和月份。这些信息会保密：我们绝不会在你的个人资料中显示，也不会与任何人分享，只用它来确认 MonkeyHub 是否适合你的年龄。';
+
+  @override
+  String get ageMonthLabel => '月份';
+
+  @override
+  String get ageYearLabel => '年份';
+
+  @override
+  String get ageContinue => '继续';
+
+  @override
+  String get ageConfirmTitle => '这样对吗？';
+
+  @override
+  String ageConfirmBody(String month, String year, String age) {
+    return '你出生于 $year 年$month，所以你 $age 岁。之后无法更改。';
+  }
+
+  @override
+  String get ageConfirmChange => '修改';
+
+  @override
+  String get ageConfirmYes => '对，没错';
+
+  @override
+  String get ageTooYoungTitle => 'MonkeyHub 适合 9 岁及以上的用户';
+
+  @override
+  String get ageTooYoungBody => '你现在还不能创建账户。等你长大了，我们在这里等你！';
+
+  @override
+  String get ageNeedsGuardianTitle => '请找家长帮忙';
+
+  @override
+  String get ageNeedsGuardianBody =>
+      '要在 13 岁之前使用 MonkeyHub，需要家长用自己的 MonkeyHub 账户为你创建一个家庭账户。';
+
+  @override
+  String get ageGateOk => '好';
+
+  @override
+  String get ageWrongContactSupport => '我的年龄不对';
+
+  @override
+  String authErrorAgeRestricted(String email) {
+    return '此账户已暂停，因为它属于未满 13 岁的用户。家长可以为你创建家庭账户。如果你的年龄有误，请发送邮件至 $email。';
+  }
+
+  @override
+  String get authErrorAgeInvalid => '这个日期看起来不对。请检查年份和月份。';
 }

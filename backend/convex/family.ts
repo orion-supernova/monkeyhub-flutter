@@ -1566,8 +1566,11 @@ export const promoteToAdult = mutation({
     await ctx.db.patch(childId, {
       accountType: undefined,
       childPolicy: undefined,
-      // Only ever collected for a child account, and read nowhere.
+      // The guardian's answer for the child. Cleared with the child status: the
+      // new adult account gives its own age on the age sheet (`age.ts`).
       birthYear: undefined,
+      birthMonth: undefined,
+      ageGivenAt: undefined,
       passwordHash: await hashPassword(passwordHash),
     });
 

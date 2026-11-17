@@ -16915,4 +16915,67 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get tabMenuCallsHiddenToast =>
       'Fliken Samtal är dold. Få tillbaka den i Inställningar > Navigering.';
+
+  @override
+  String get ageSheetTitle => 'När är du född?';
+
+  @override
+  String get ageSheetBodySignUp =>
+      'Din födelsedag är privat. Vi visar den aldrig i din profil och delar den inte med någon. Vi använder den bara för att kontrollera att MonkeyHub passar din ålder.';
+
+  @override
+  String get ageSheetBodyExisting =>
+      'Ange vilken månad och vilket år du är född för att fortsätta använda MonkeyHub. Det är privat: vi visar det aldrig i din profil, delar det inte med någon och använder det bara för att kontrollera att MonkeyHub passar din ålder.';
+
+  @override
+  String get ageMonthLabel => 'Månad';
+
+  @override
+  String get ageYearLabel => 'År';
+
+  @override
+  String get ageContinue => 'Fortsätt';
+
+  @override
+  String get ageConfirmTitle => 'Stämmer det?';
+
+  @override
+  String ageConfirmBody(String month, String year, String age) {
+    return 'Du är född i $month $year, så du är $age år. Du kan inte ändra det senare.';
+  }
+
+  @override
+  String get ageConfirmChange => 'Ändra';
+
+  @override
+  String get ageConfirmYes => 'Ja, det stämmer';
+
+  @override
+  String get ageTooYoungTitle => 'MonkeyHub är för dig som är 9 år eller äldre';
+
+  @override
+  String get ageTooYoungBody =>
+      'Du kan inte skapa ett konto än. Vi finns här när du blir äldre!';
+
+  @override
+  String get ageNeedsGuardianTitle => 'Fråga en förälder';
+
+  @override
+  String get ageNeedsGuardianBody =>
+      'För att använda MonkeyHub innan du fyller 13 behöver en förälder skapa ett familjekonto åt dig från sitt eget MonkeyHub-konto.';
+
+  @override
+  String get ageGateOk => 'OK';
+
+  @override
+  String get ageWrongContactSupport => 'Min ålder är fel';
+
+  @override
+  String authErrorAgeRestricted(String email) {
+    return 'Det här kontot är pausat eftersom det tillhör någon under 13 år. En förälder kan skapa ett familjekonto åt dig. Om din ålder är fel, mejla $email.';
+  }
+
+  @override
+  String get authErrorAgeInvalid =>
+      'Datumet ser inte rätt ut. Kontrollera månad och år.';
 }

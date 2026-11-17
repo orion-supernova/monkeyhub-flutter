@@ -16848,4 +16848,67 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get tabMenuCallsHiddenToast =>
       'कॉल टैब छिपा दिया गया। इसे सेटिंग्स > नेविगेशन में वापस ला सकते हैं।';
+
+  @override
+  String get ageSheetTitle => 'आपका जन्म कब हुआ?';
+
+  @override
+  String get ageSheetBodySignUp =>
+      'आपकी जन्मतिथि निजी रहती है। हम इसे कभी आपकी प्रोफ़ाइल पर नहीं दिखाते और न ही किसी से साझा करते हैं। हम इसका इस्तेमाल सिर्फ़ यह जाँचने के लिए करते हैं कि MonkeyHub आपकी उम्र के लिए सही है।';
+
+  @override
+  String get ageSheetBodyExisting =>
+      'MonkeyHub इस्तेमाल करते रहने के लिए हमें अपने जन्म का महीना और साल बताएँ। यह निजी रहता है: हम इसे कभी आपकी प्रोफ़ाइल पर नहीं दिखाते, किसी से साझा नहीं करते, और सिर्फ़ यह जाँचने के लिए इस्तेमाल करते हैं कि MonkeyHub आपकी उम्र के लिए सही है।';
+
+  @override
+  String get ageMonthLabel => 'महीना';
+
+  @override
+  String get ageYearLabel => 'साल';
+
+  @override
+  String get ageContinue => 'जारी रखें';
+
+  @override
+  String get ageConfirmTitle => 'क्या यह सही है?';
+
+  @override
+  String ageConfirmBody(String month, String year, String age) {
+    return 'आपका जन्म $month $year में हुआ, यानी आपकी उम्र $age है। आप इसे बाद में बदल नहीं सकेंगे।';
+  }
+
+  @override
+  String get ageConfirmChange => 'बदलें';
+
+  @override
+  String get ageConfirmYes => 'हाँ, यह सही है';
+
+  @override
+  String get ageTooYoungTitle => 'MonkeyHub 9 साल और उससे बड़ी उम्र के लिए है';
+
+  @override
+  String get ageTooYoungBody =>
+      'आप अभी खाता नहीं बना सकते। जब आप बड़े होंगे, हम यहीं मिलेंगे!';
+
+  @override
+  String get ageNeedsGuardianTitle => 'माता-पिता से पूछें';
+
+  @override
+  String get ageNeedsGuardianBody =>
+      '13 साल का होने से पहले MonkeyHub इस्तेमाल करने के लिए, माता-पिता को अपने MonkeyHub खाते से आपके लिए एक फ़ैमिली खाता बनाना होगा।';
+
+  @override
+  String get ageGateOk => 'ठीक है';
+
+  @override
+  String get ageWrongContactSupport => 'मेरी उम्र गलत है';
+
+  @override
+  String authErrorAgeRestricted(String email) {
+    return 'यह खाता रोका गया है क्योंकि यह 13 साल से कम उम्र के किसी व्यक्ति का है। माता-पिता आपके लिए फ़ैमिली खाता बना सकते हैं। अगर आपकी उम्र गलत है, तो $email पर ईमेल करें।';
+  }
+
+  @override
+  String get authErrorAgeInvalid =>
+      'यह तारीख सही नहीं लग रही। महीना और साल जाँचें।';
 }

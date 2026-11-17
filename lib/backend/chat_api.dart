@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../auth/age_gate.dart' show BirthMonth;
 import '../auth/recovery_phrase.dart';
 import '../auth/session_store.dart';
 import '../auth/social_sign_in.dart';
@@ -46,6 +47,7 @@ class ChatApi {
     required String name,
     required String password,
     required String recoveryKeyHash,
+    BirthMonth? birth,
   }) async {
     final res = await _cv.mutation('auth:signup', {
       'username': username,
@@ -59,6 +61,9 @@ class ChatApi {
       // The EULA box on the sign-up form, which the form will not submit
       // without. See `terms.ts`.
       'termsVersion': kTermsVersion,
+      // The age step (`age_gate.dart`); the server refuses under 13 too.
+      if (birth != null) 'birthYear': birth.year,
+      if (birth != null) 'birthMonth': birth.month,
     });
     return AuthResult.fromJson(res as Map<String, dynamic>);
   }
@@ -283,6 +288,7 @@ class ChatApi {
     required SocialCredential credential,
     required String username,
     String? name,
+    BirthMonth? birth,
   }) async {
     final res = await _cv.action('socialAuth:completeSignUp', {
       'provider': credential.provider.wire,
@@ -296,6 +302,8 @@ class ChatApi {
       if (name != null && name.isNotEmpty) 'name': name,
       // The EULA box on the username step, which will not submit without it.
       'termsVersion': kTermsVersion,
+      if (birth != null) 'birthYear': birth.year,
+      if (birth != null) 'birthMonth': birth.month,
     });
     return AuthResult.fromJson(res as Map<String, dynamic>);
   }
@@ -2629,6 +2637,30 @@ class ChatApi {
   /// Records acceptance of [kTermsVersion].
   Future<void> acceptTerms() async {
     await _cv.mutation('terms:accept', {'version': kTermsVersion});
+  }
+
+  /// Whether this account still owes its age (`age.status`). Null when the
+  /// server could not say: like the Terms sheet, the age sheet only blocks on
+  /// a definite "yes, needed".
+  Future<bool?> ageNeeded() async {
+    try {
+      final res = await _cv.query('age:status', const {});
+      if (res is! Map) return null;
+      return res['needed'] == true;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Records this account's age, once (`age.submit`). True when it came out
+  /// under 13 and the server restricted the account, which also revoked this
+  /// session.
+  Future<bool> submitAge(BirthMonth birth) async {
+    final res = await _cv.mutation('age:submit', {
+      'birthYear': birth.year,
+      'birthMonth': birth.month,
+    });
+    return res is Map && res['restricted'] == true;
   }
 
   Future<List<ChatUser>> searchUsers({required String query, required String currentUserId}) async {

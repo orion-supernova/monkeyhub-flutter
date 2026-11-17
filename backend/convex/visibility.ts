@@ -218,7 +218,7 @@ export async function seenVisibilityOf(ctx: any, userId: any): Promise<string | 
  * The fields of a `users` row any other user may see, already redacted.
  *
  * Spreading a user document is a data leak — a row carries `passwordHash`,
- * `recoveryKeyHash`, the push routing tokens, `birthYear`, and the
+ * `recoveryKeyHash`, the push routing tokens, `birthYear` / `birthMonth`, and the
  * `visibility` / `childPolicy` blocks that are self-or-guardian only. With no
  * `returns:` validator on a Convex handler, the shape of this object IS the
  * access-control boundary, so add a field here only after asking whether every

@@ -27798,6 +27798,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Calls tab hidden. Bring it back in Settings > Navigation.'**
   String get tabMenuCallsHiddenToast;
+
+  /// Title of the age sheet (sign-up, and existing accounts that never gave an age).
+  ///
+  /// In en, this message translates to:
+  /// **'When were you born?'**
+  String get ageSheetTitle;
+
+  /// Age sheet body at sign-up.
+  ///
+  /// In en, this message translates to:
+  /// **'Your birthday stays private. We never show it on your profile or share it with anyone. We only use it to check that MonkeyHub is right for your age.'**
+  String get ageSheetBodySignUp;
+
+  /// Age sheet body for an existing account; the sheet cannot be dismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'To keep using MonkeyHub, tell us the month and year you were born. It stays private: we never show it on your profile or share it with anyone, and only use it to check that MonkeyHub is right for your age.'**
+  String get ageSheetBodyExisting;
+
+  /// Screen reader label for the birth month wheel.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get ageMonthLabel;
+
+  /// Screen reader label for the birth year wheel.
+  ///
+  /// In en, this message translates to:
+  /// **'Year'**
+  String get ageYearLabel;
+
+  /// Button under the birth month and year wheels.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get ageContinue;
+
+  /// Title of the step that confirms the entered birth month and year.
+  ///
+  /// In en, this message translates to:
+  /// **'Is this right?'**
+  String get ageConfirmTitle;
+
+  /// Confirm step. month is the localized month name, year the 4-digit year, age the whole years old.
+  ///
+  /// In en, this message translates to:
+  /// **'You were born in {month} {year}, so you’re {age}. You can’t change this later.'**
+  String ageConfirmBody(String month, String year, String age);
+
+  /// Confirm step button that goes back to the wheels.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get ageConfirmChange;
+
+  /// Confirm step button that saves the age.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, that’s right'**
+  String get ageConfirmYes;
+
+  /// Shown when the entered age is under 9.
+  ///
+  /// In en, this message translates to:
+  /// **'MonkeyHub is for ages 9 and up'**
+  String get ageTooYoungTitle;
+
+  /// Body under ageTooYoungTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You can’t create an account yet. We’ll be here when you’re older!'**
+  String get ageTooYoungBody;
+
+  /// Shown when the entered age is 9 to 12.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a parent'**
+  String get ageNeedsGuardianTitle;
+
+  /// Body under ageNeedsGuardianTitle: a parent creates a family account from their own account.
+  ///
+  /// In en, this message translates to:
+  /// **'To use MonkeyHub before you turn 13, a parent needs to set up a family account for you from their own MonkeyHub account.'**
+  String get ageNeedsGuardianBody;
+
+  /// Closes the age refusal step.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get ageGateOk;
+
+  /// Button on the age refusal step that emails support.
+  ///
+  /// In en, this message translates to:
+  /// **'My age is wrong'**
+  String get ageWrongContactSupport;
+
+  /// Login screen error for an account restricted because it gave an age under 13. email is the support address.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is paused because it belongs to someone under 13. A parent can set up a family account for you. If your age is wrong, email {email}.'**
+  String authErrorAgeRestricted(String email);
+
+  /// Error when the birth month and year are not a real past date.
+  ///
+  /// In en, this message translates to:
+  /// **'That date doesn’t look right. Check the month and year.'**
+  String get authErrorAgeInvalid;
 }
 
 class _AppLocalizationsDelegate

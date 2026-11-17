@@ -17131,4 +17131,67 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get tabMenuCallsHiddenToast =>
       'تم إخفاء تبويب المكالمات. يمكنك إعادته من الإعدادات > التنقل.';
+
+  @override
+  String get ageSheetTitle => 'متى وُلدت؟';
+
+  @override
+  String get ageSheetBodySignUp =>
+      'تاريخ ميلادك يبقى خاصًا. لا نعرضه أبدًا في ملفك الشخصي ولا نشاركه مع أي أحد. نستخدمه فقط للتحقق من أن MonkeyHub مناسب لعمرك.';
+
+  @override
+  String get ageSheetBodyExisting =>
+      'لمواصلة استخدام MonkeyHub، أخبرنا بشهر وسنة ميلادك. تبقى هذه المعلومة خاصة: لا نعرضها أبدًا في ملفك الشخصي ولا نشاركها مع أي أحد، ونستخدمها فقط للتحقق من أن MonkeyHub مناسب لعمرك.';
+
+  @override
+  String get ageMonthLabel => 'الشهر';
+
+  @override
+  String get ageYearLabel => 'السنة';
+
+  @override
+  String get ageContinue => 'متابعة';
+
+  @override
+  String get ageConfirmTitle => 'هل هذا صحيح؟';
+
+  @override
+  String ageConfirmBody(String month, String year, String age) {
+    return 'وُلدت في $month $year، أي أن عمرك $age. لا يمكنك تغيير ذلك لاحقًا.';
+  }
+
+  @override
+  String get ageConfirmChange => 'تغيير';
+
+  @override
+  String get ageConfirmYes => 'نعم، هذا صحيح';
+
+  @override
+  String get ageTooYoungTitle => 'MonkeyHub لمن هم في سن 9 سنوات فأكثر';
+
+  @override
+  String get ageTooYoungBody =>
+      'لا يمكنك إنشاء حساب بعد. سنكون هنا عندما تكبر!';
+
+  @override
+  String get ageNeedsGuardianTitle => 'اطلب من أحد والديك';
+
+  @override
+  String get ageNeedsGuardianBody =>
+      'لاستخدام MonkeyHub قبل أن تبلغ 13 عامًا، يجب أن ينشئ أحد والديك حساب عائلة لك من حسابه في MonkeyHub.';
+
+  @override
+  String get ageGateOk => 'حسنًا';
+
+  @override
+  String get ageWrongContactSupport => 'عمري غير صحيح';
+
+  @override
+  String authErrorAgeRestricted(String email) {
+    return 'هذا الحساب متوقف مؤقتًا لأنه يخص شخصًا دون 13 عامًا. يمكن لأحد والديك إنشاء حساب عائلة لك. إذا كان عمرك غير صحيح، راسلنا على $email.';
+  }
+
+  @override
+  String get authErrorAgeInvalid =>
+      'يبدو أن هذا التاريخ غير صحيح. تحقق من الشهر والسنة.';
 }

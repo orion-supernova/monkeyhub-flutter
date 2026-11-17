@@ -676,6 +676,8 @@ export async function searchUsersCore(
       // Banned accounts are unfindable for as long as the ban lasts. See
       // `moderation.suspendAccount`.
       if (u.suspendedAt !== undefined) return false;
+      // So are accounts restricted for age (`moderation.restrictForAge`).
+      if (u.ageRestrictedAt !== undefined) return false;
       const handle = u.username.toLowerCase();
       const fuzzy =
         handle.includes(needle) ||

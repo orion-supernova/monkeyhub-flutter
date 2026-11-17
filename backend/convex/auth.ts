@@ -33,6 +33,7 @@ import {
 } from "./systemAccount";
 import { assertCleanName } from "./contentFilter";
 import { termsStamp } from "./terms";
+import { signupAgeStamp } from "./ageCore";
 import { searchNameOf } from "./userSearch";
 import {
   assertNotLocked,
@@ -119,6 +120,10 @@ export const signup = publicMutation({
     // The EULA version the user ticked the box for. Optional only so old
     // builds can still sign up — see the compatibility note in `terms.ts`.
     termsVersion: v.optional(v.number()),
+    // Birth year and month from the age step. Optional only so old builds can
+    // still sign up; see `ageCore.signupAgeStamp`.
+    birthYear: v.optional(v.number()),
+    birthMonth: v.optional(v.number()),
   },
   handler: async (
     ctx,
@@ -131,11 +136,16 @@ export const signup = publicMutation({
       deviceId,
       deviceSecret,
       termsVersion,
+      birthYear,
+      birthMonth,
     },
   ) => {
     let username = rawUsername;
     // Before anything else: a present-but-stale version is a refusal.
     const terms = termsStamp(termsVersion);
+    // And under 13 is refused before anything is written, so a refused child
+    // leaves no data behind.
+    const age = signupAgeStamp(birthYear, birthMonth);
     // Same handle rules as social signup and rename, which this path skipped.
     username = normaliseUsername(username);
     await assertNoCaseTwin(ctx, username);
@@ -175,6 +185,7 @@ export const signup = publicMutation({
       email,
       createdAt: Date.now(),
       ...terms,
+      ...age,
     });
     await syncProfile(ctx, userId);
     await markOnline(ctx, userId, { now: Date.now() });
@@ -559,7 +570,10 @@ export const deleteSuspendedAccount = publicMutation({
       return refusal("WRONG_PASSWORD");
     }
     await clearFailures(ctx, key);
-    if (user.suspendedAt === undefined || isTombstoned(user)) {
+    // Restricted for age counts too: that account cannot sign in either, and
+    // deleting it is the person's right (`moderation.restrictForAge`).
+    const locked = user.suspendedAt !== undefined || user.ageRestrictedAt !== undefined;
+    if (!locked || isTombstoned(user)) {
       throw new Error(ERR_NOT_ALLOWED);
     }
     await deleteOwnAccount(ctx, user._id);

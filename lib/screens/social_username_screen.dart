@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 
+import '../auth/age_gate.dart';
 import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/social_sign_in.dart';
@@ -88,6 +89,11 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
   /// acceptance sheet).
   bool _termsAccepted = false;
 
+  /// The age step's answer, kept across a failed submit so a retry (a taken
+  /// username) does not ask twice.
+  BirthMonth? _birth;
+  bool _askingAge = false;
+
   @override
   void dispose() {
     _availability.dispose();
@@ -126,6 +132,19 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
       setState(() => _error = AppLocalizations.of(context).termsMustAccept);
       return;
     }
+    // A new account asks the age first (`age_gate.dart`). Linking an existing
+    // account does not: that account already has its own answer, or owes the
+    // age sheet after sign-in.
+    if (_mode == _Mode.create && _birth == null) {
+      // Guarded, not `_busy`: the sheet is modal already, and a spinner on the
+      // button behind it would only say something is loading when nothing is.
+      if (_askingAge) return;
+      _askingAge = true;
+      final birth = await askAgeForSignUp(context);
+      _askingAge = false;
+      if (!mounted || birth == null) return;
+      _birth = birth;
+    }
 
     setState(() {
       _busy = true;
@@ -139,6 +158,7 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
           credential: widget.credential,
           username: username,
           name: name.isEmpty ? null : name,
+          birth: _birth,
         );
       } else {
         await widget.auth.linkSocialToExistingAccount(

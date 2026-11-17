@@ -19,6 +19,7 @@ library;
 
 import '../backend/server_limits.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../legal_links.dart' show kSupportEmail;
 
 /// A function rather than a top-level const — the copy comes from
 /// [AppLocalizations], which needs a resolved instance, not a BuildContext,
@@ -109,6 +110,16 @@ Map<String, String> authErrorMessages(AppLocalizations l10n) => {
   'LAST_GUARDIAN': l10n.authErrorLastGuardian,
   // terms.ERR_TERMS_NOT_ACCEPTED: a sign-up that sent a stale EULA version.
   'TERMS_NOT_ACCEPTED': l10n.termsMustAccept,
+
+  // ── age (ageCore.ts) ───────────────────────────────────────────────────
+  // The account gave an age under 13: thrown at sign-in by every path, and
+  // by every call its revoked sessions make.
+  'AGE_RESTRICTED': l10n.authErrorAgeRestricted(kSupportEmail),
+  // Sign-up refusals. The age sheet stops these before the request; the
+  // server answers them too for any client that did not.
+  'AGE_TOO_YOUNG': l10n.ageTooYoungTitle,
+  'AGE_NEEDS_GUARDIAN': l10n.ageNeedsGuardianBody,
+  'AGE_INVALID': l10n.authErrorAgeInvalid,
 };
 
 /// Maps a thrown backend error onto human copy.

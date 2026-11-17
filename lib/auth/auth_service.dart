@@ -9,6 +9,7 @@ import '../diagnostics/diag_log.dart';
 import '../models/family.dart';
 import '../push/device_identity.dart';
 import '../push/push_manager.dart';
+import 'age_gate.dart' show BirthMonth;
 import 'session_guard.dart';
 import 'session_store.dart';
 import 'social_sign_in.dart';
@@ -50,12 +51,14 @@ class AuthService extends ChangeNotifier {
     required String name,
     required String password,
     required String recoveryKeyHash,
+    BirthMonth? birth,
   }) async {
     final res = await _api.signup(
       username: username,
       name: name,
       password: password,
       recoveryKeyHash: recoveryKeyHash,
+      birth: birth,
     );
     // Persist BEFORE notifying, so "signed in" can never mean "signed in but
     // not on disk". The old order was the reverse, to keep a slow keychain
@@ -102,11 +105,13 @@ class AuthService extends ChangeNotifier {
     required SocialCredential credential,
     required String username,
     String? name,
+    BirthMonth? birth,
   }) async {
     final res = await _api.completeSocialSignUp(
       credential: credential,
       username: username,
       name: name,
+      birth: birth,
     );
     await _adoptSession(res);
   }
@@ -651,7 +656,8 @@ class AuthService extends ChangeNotifier {
         final tokenGone =
             text.contains('SESSION_UNKNOWN') ||
             text.contains('SESSION_REVOKED') ||
-            text.contains('ACCOUNT_SUSPENDED');
+            text.contains('ACCOUNT_SUSPENDED') ||
+            text.contains('AGE_RESTRICTED');
         if (tokenGone) {
           throw StateError('the banned session is no longer honoured');
         }

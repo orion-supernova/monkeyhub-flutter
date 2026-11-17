@@ -16178,4 +16178,65 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get tabMenuCallsHiddenToast => '통화 탭을 숨겼어요. 설정 > 내비게이션에서 다시 켤 수 있어요.';
+
+  @override
+  String get ageSheetTitle => '언제 태어났나요?';
+
+  @override
+  String get ageSheetBodySignUp =>
+      '생년월은 비공개예요. 프로필에 표시하거나 다른 사람과 공유하지 않아요. MonkeyHub가 나이에 맞는지 확인하는 데만 사용해요.';
+
+  @override
+  String get ageSheetBodyExisting =>
+      'MonkeyHub를 계속 사용하려면 태어난 연도와 월을 알려 주세요. 이 정보는 비공개예요. 프로필에 표시하거나 다른 사람과 공유하지 않고, MonkeyHub가 나이에 맞는지 확인하는 데만 사용해요.';
+
+  @override
+  String get ageMonthLabel => '월';
+
+  @override
+  String get ageYearLabel => '연도';
+
+  @override
+  String get ageContinue => '계속';
+
+  @override
+  String get ageConfirmTitle => '맞나요?';
+
+  @override
+  String ageConfirmBody(String month, String year, String age) {
+    return '$year년 $month에 태어났으니 $age세예요. 나중에 바꿀 수 없어요.';
+  }
+
+  @override
+  String get ageConfirmChange => '변경';
+
+  @override
+  String get ageConfirmYes => '네, 맞아요';
+
+  @override
+  String get ageTooYoungTitle => 'MonkeyHub는 9세 이상만 이용할 수 있어요';
+
+  @override
+  String get ageTooYoungBody => '아직 계정을 만들 수 없어요. 더 크면 다시 만나요!';
+
+  @override
+  String get ageNeedsGuardianTitle => '보호자에게 부탁하세요';
+
+  @override
+  String get ageNeedsGuardianBody =>
+      '13세가 되기 전에 MonkeyHub를 사용하려면 보호자가 자신의 MonkeyHub 계정에서 가족 계정을 만들어 줘야 해요.';
+
+  @override
+  String get ageGateOk => '확인';
+
+  @override
+  String get ageWrongContactSupport => '나이가 잘못됐어요';
+
+  @override
+  String authErrorAgeRestricted(String email) {
+    return '이 계정은 13세 미만 사용자의 계정이라 일시 중지되었어요. 보호자가 가족 계정을 만들어 줄 수 있어요. 나이가 잘못되었다면 $email로 이메일을 보내 주세요.';
+  }
+
+  @override
+  String get authErrorAgeInvalid => '날짜가 올바르지 않은 것 같아요. 연도와 월을 확인하세요.';
 }
