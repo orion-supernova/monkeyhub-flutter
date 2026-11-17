@@ -40,7 +40,7 @@ import {
 } from "./roomPolicy";
 import { ERR_FILTER_BLOCKED, hasHit } from "./contentFilter";
 import { FilterBlockedError, screenAndReport } from "./moderationCore";
-import { isSystemAccount, isSystemRoom } from "./systemAccount";
+import { MOD_NOTICE_PREFIX, isSystemAccount, isSystemRoom } from "./systemAccount";
 import { canReadRoom } from "./roomAccess";
 import { noteEngaged } from "./engagement";
 import { receiptOf, receiptRoster, stateOf } from "./roomState";
@@ -1327,6 +1327,14 @@ export async function sendCore(ctx: any, { roomId, userId, content, type, mediaS
   // reads this after that point — the insert, the gallery bucket, the room
   // preview, the push body — must see the type actually written.
   let msgType = type ?? "text";
+  // A staff notice is drawn as an official line, so nobody may send one.
+  if (
+    msgType === "system" &&
+    typeof content === "string" &&
+    content.startsWith(MOD_NOTICE_PREFIX)
+  ) {
+    throw new Error("SYSTEM_NOTICE_RESERVED");
+  }
 
   // GIFs and stickers, resolved BEFORE the guard because what they resolve to
   // is part of what the guard checks — an official pack sticker needs no media

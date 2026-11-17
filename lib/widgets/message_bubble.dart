@@ -81,6 +81,7 @@ import 'vanish_card.dart';
 import 'hold_scrub.dart';
 import 'vanish_scope.dart';
 import 'vanish_sealed.dart';
+import 'support_notice_line.dart';
 import 'vanish_stamp.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -388,6 +389,8 @@ class MessageBubble extends StatelessWidget {
           HuddleHistory.isAlone(message.content)) {
         return _systemLineMenu(HuddleHistoryLine(content: message.content));
       }
+      final notice = supportNoticeBody(message.type, message.content);
+      if (notice != null) return _systemLineMenu(SupportNoticeLine(body: notice));
     }
     // A reply sent in vanish mode that answers a message now gone says
     // "Vanished" in place of "Message removed".

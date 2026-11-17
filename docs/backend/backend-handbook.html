@@ -619,6 +619,16 @@ EOF</code></pre>
 <tr><td><code>/calls/ringing</code> answer that ends a card</td><td>+1 point read of the call row</td><td>+1 patch of the call row, once per device per call (idempotent)</td><td>None for a terminal row. For an "answered elsewhere" answer, the two parties' <code>activeCallForUser</code>, exactly what the app's ack already caused</td><td>0</td></tr>
 <tr><td><code>voipPush.sendVoipTaken</code></td><td>unchanged</td><td>unchanged; one APNs request fewer per dismissed device</td><td>0</td><td>0</td></tr>
 </table></div>
+<h3>Decided 2026-11-17</h3>
+<ol>
+  <li><b>Staff notices in a chat come from a third system account, "MonkeyHub Support" (<code>monkeyhub_support</code>).</b> A report about a group of testers swearing at each other needed a way to speak to the whole group. <code>moderation:postNotice</code> (internal, run from the CLI) inserts one <code>type: "system"</code> line whose content starts with <code>MOD_NOTICE_PREFIX</code> ("MonkeyHub Support: "). New builds draw it as a centred warn-tone <code>Notice</code>; older builds draw a plain bubble signed by the account, which is why the wire text is a readable sentence and why the account has its own name rather than posting as Monkey Reporter. <code>messages.send</code> refuses a system message carrying the prefix (<code>SYSTEM_NOTICE_RESERVED</code>), so the client trusts the prefix without resolving the author. The account is not added to the room and no push is sent; the insert takes the next <code>seq</code> through the hooks, so it counts as unread. Secret and system rooms are refused. <code>moderation:roomTail</code> (internal, read-only, <code>npx convex run --watch</code>) is the staff view of a reported room.</li>
+</ol>
+<div class="tbl"><table>
+<tr><th>Action</th><th>Reads</th><th>Writes</th><th>Re-runs</th><th>Idle</th></tr>
+<tr><td><code>moderation:postNotice</code> (staff, rare)</td><td>2 (room, account by handle)</td><td>1 message insert (+ hook seq and counts), 1 room patch</td><td>Each member's chat list and the open room, once</td><td>0</td></tr>
+<tr><td><code>messages.send</code> guard</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td><code>moderation:roomTail</code> (staff CLI)</td><td>&le; 200 messages + 1 per distinct author</td><td>0</td><td>Only the staff watcher, per new message in that room</td><td>0</td></tr>
+</table></div>
 <h3>Recommended order</h3>
 <ol>
   <li>Phase A: A1 (mirror off), A2 (file reaper), A3 (cache + purge; needs the Cloudflare token).</li>

@@ -212,6 +212,27 @@ export const SYSTEM_ROOM_MODERATION = "moderation";
 export const MODERATION_ROOM_NAME = "MH Moderation";
 
 /**
+ * The account staff notices are posted from (`moderation.postNotice`). Its own
+ * account rather than the reporter's: on builds that draw the notice as a plain
+ * bubble, the sender's name is the first thing a reader sees, and it has to say
+ * who is talking to them. Inside the reserved `monkeyhub` substring, so no
+ * person can hold it or a look-alike.
+ */
+export const SUPPORT_USERNAME = "monkeyhub_support";
+
+/** Its display name, which signs every notice. */
+export const SUPPORT_DISPLAY_NAME = "MonkeyHub Support";
+
+/**
+ * Leads the content of a staff notice: a `type: "system"` line from
+ * [SUPPORT_USERNAME]. New builds draw it as a centred notice; older builds draw
+ * a plain bubble, which is why the wire text is a readable sentence and not a
+ * code. `messages.send` refuses it from anyone else, so the client may trust it.
+ * Permanent once shipped (the app matches on it).
+ */
+export const MOD_NOTICE_PREFIX = "MonkeyHub Support: ";
+
+/**
  * Who reads the moderation room AND who may act on a report card.
  *
  * The same people as the log room, derived rather than restated so the two

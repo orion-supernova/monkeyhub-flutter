@@ -820,6 +820,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// [HeroPage.expandedPhoto]), so the circle takes no tap there.
   bool get _avatarTapOpens => _canViewAvatar && !context.isCompact;
 
+  /// Your own circle with no picture in it: the tap goes where the camera
+  /// badge goes. A 32pt badge was the only door, and a tester on desktop never
+  /// found it (2026-11-17, a diagnostics report begging for a profile photo).
+  bool get _avatarTapChanges => _isMe && !_canViewAvatar;
+
+  VoidCallback? get _avatarTap => _avatarTapOpens
+      ? _openAvatarFullscreen
+      : _avatarTapChanges && !_busy
+          ? _openAvatarSheet
+          : null;
+
   /// Tag shared with the [Hero] around the avatar below. Keyed on the user, not
   /// the storage id, so replacing your picture mid-session doesn't orphan it.
   String get _avatarHeroTag => 'profile-avatar-${_u.id}';
@@ -1309,11 +1320,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             width: _avatarSize,
             height: _avatarSize,
             child: FocusableTap(
-              onTap: _avatarTapOpens ? _openAvatarFullscreen : null,
+              onTap: _avatarTap,
               shape: FocusRingShape.circle,
-              semanticLabel: l10n.profileScreenViewProfilePictureSemantic,
+              semanticLabel: _avatarTapChanges
+                  ? l10n.profileScreenChangeProfilePictureSemantic
+                  : l10n.profileScreenViewProfilePictureSemantic,
               child: GestureDetector(
-                onTap: _avatarTapOpens ? _openAvatarFullscreen : null,
+                onTap: _avatarTap,
                 child: Builder(builder: (context) {
                   final avatar = UserAvatar(
                     user: _u,

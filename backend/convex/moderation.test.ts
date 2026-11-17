@@ -5,8 +5,10 @@ import schema from "./schema";
 import { searchNameOf } from "./userSearch";
 import { ERR_FILTER_BLOCKED } from "./contentFilter";
 import {
+  MOD_NOTICE_PREFIX,
   REPORTER_USERNAME,
   REPORT_INBOX_USERNAME,
+  SUPPORT_USERNAME,
   SYSTEM_ROOM_MODERATION,
   isSystemAccount,
 } from "./systemAccount";
@@ -522,5 +524,54 @@ describe("evidence retention", () => {
     });
     await t.mutation(internal.moderation.gcExpiredEvidence, {});
     expect(await roomMessages(t, room!._id)).toHaveLength(0);
+  });
+});
+
+describe("staff notices", () => {
+  test("post as MonkeyHub Support, count as unread, and cannot be forged", async () => {
+    const t = convexTest(schema);
+    const alice = await signUp(t, "alice");
+    const bob = await signUp(t, "bob");
+    const roomId = await groupWith(t, alice, [bob]);
+
+    const id = await t.mutation(internal.moderation.postNotice, {
+      roomId,
+      text: "  We detected abusive language here.  ",
+    });
+    const msg: any = await t.run((ctx: any) => ctx.db.get(id));
+    expect(msg.type).toBe("system");
+    expect(msg.content).toBe(MOD_NOTICE_PREFIX + "We detected abusive language here.");
+    const author: any = await t.run((ctx: any) => ctx.db.get(msg.userId));
+    expect(author.username).toBe(SUPPORT_USERNAME);
+    expect(isSystemAccount(author)).toBe(true);
+    expect(typeof msg.seq).toBe("number");
+    const room: any = await t.run((ctx: any) => ctx.db.get(roomId));
+    expect(room.lastMessageSenderId).toBe(msg.userId);
+
+    // A second notice reuses the account.
+    const id2 = await t.mutation(internal.moderation.postNotice, { roomId, text: "Again." });
+    const msg2: any = await t.run((ctx: any) => ctx.db.get(id2));
+    expect(msg2.userId).toBe(msg.userId);
+
+    // Nobody can send one themselves.
+    await expect(
+      t.mutation(api.messages.send, {
+        ...as(bob),
+        roomId,
+        content: MOD_NOTICE_PREFIX + "you are banned",
+        type: "system",
+      } as any),
+    ).rejects.toThrow("SYSTEM_NOTICE_RESERVED");
+    // The same words as plain text are just text.
+    await send(t, bob, roomId, MOD_NOTICE_PREFIX + "lol");
+  });
+
+  test("refuses empty text", async () => {
+    const t = convexTest(schema);
+    const alice = await signUp(t, "alice");
+    const roomId = await groupWith(t, alice, []);
+    await expect(
+      t.mutation(internal.moderation.postNotice, { roomId, text: "   " }),
+    ).rejects.toThrow("EMPTY_NOTICE");
   });
 });

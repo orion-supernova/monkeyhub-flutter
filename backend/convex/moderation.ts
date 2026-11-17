@@ -1,16 +1,23 @@
 import { internalMutation } from "./dbHooks";
 import { internal } from "./_generated/api";
 import { mutation, query } from "./functions";
+import { internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { removeMessageAndFanout } from "./messages";
 import { removeMembership } from "./roomAdmin";
 import {
+  MOD_NOTICE_PREFIX,
   REPORTER_USERNAME,
+  SUPPORT_DISPLAY_NAME,
+  SUPPORT_USERNAME,
   isModerationStaff,
   isSystemAccount,
   isSystemRoom,
 } from "./systemAccount";
 import { postOutcome } from "./moderationCore";
+import { ensureSystemAccount } from "./systemRooms";
+import { isTombstoned } from "./deletionCore";
+import { isSecretRoom } from "./vanishCore";
 import { deleteMomentCore } from "./momentCleanup";
 import { deleteCommentCore } from "./momentComments";
 import { REPORT_RETENTION_MS } from "./users";
@@ -366,5 +373,107 @@ export const reportEvidence = query({
       mediaUrl: await url(r.evidenceMediaStorageId),
       posterUrl: await url(r.evidencePosterStorageId),
     };
+  },
+});
+
+/** The account notices are posted from; created on first use, no room. */
+const SUPPORT_SPEC = {
+  username: SUPPORT_USERNAME,
+  displayName: SUPPORT_DISPLAY_NAME,
+} as const;
+
+/** Longest staff notice, in characters. A notice is a sentence or two. */
+const MAX_NOTICE_CHARS = 600;
+
+/**
+ * Post a staff notice into a chat: one `type: "system"` line from the
+ * MonkeyHub Support account, read by every member. Staff-only by being
+ * internal: it runs from the CLI with the deployment's admin key, never from an
+ * app.
+ *
+ *   npx convex run moderation:postNotice '{"roomId":"…","text":"We detected …"}'
+ *
+ * The content is [MOD_NOTICE_PREFIX] + [text], which `messages.send` refuses
+ * from anyone else. The account is not added to the room: the line is a fact
+ * about the room, not a member speaking. The insert goes through the write
+ * hooks, so it takes the next `seq` and counts as unread for every member like
+ * any message; no push is sent.
+ *
+ * Cost: 2 reads (room, support account by handle) + 1 insert + 1 room patch;
+ * every member's chat list and the open room re-run once. Idle cost 0.
+ */
+export const postNotice = internalMutation({
+  args: { roomId: v.id("rooms"), text: v.string() },
+  returns: v.id("messages"),
+  handler: async (ctx, { roomId, text }) => {
+    const body = text.trim();
+    if (!body) throw new Error("EMPTY_NOTICE");
+    if (body.length > MAX_NOTICE_CHARS) throw new Error("NOTICE_TOO_LONG");
+    const room = await ctx.db.get(roomId);
+    if (!room || isTombstoned(room)) throw new Error("ROOM_NOT_FOUND");
+    if (isSystemRoom(room)) throw new Error("SYSTEM_ROOM");
+    // A self-destructing room would delete the notice on its own clock.
+    if (isSecretRoom(room) || room.messageLifetime) {
+      throw new Error("NOTICE_NOT_ALLOWED_IN_SECRET_ROOM");
+    }
+    const supportId = await ensureSystemAccount(ctx, SUPPORT_SPEC);
+    const now = Date.now();
+    const messageId = await ctx.db.insert("messages", {
+      roomId,
+      userId: supportId,
+      content: MOD_NOTICE_PREFIX + body,
+      createdAt: now,
+      type: "system",
+    });
+    await ctx.db.patch(roomId, {
+      lastMessage: MOD_NOTICE_PREFIX + body,
+      lastMessageTime: now,
+      lastMessageSenderId: supportId,
+    });
+    return messageId;
+  },
+});
+
+/** Most messages [roomTail] returns. */
+const ROOM_TAIL_MAX = 200;
+
+/**
+ * The newest messages of one room as plain lines, for staff checking a
+ * reported chat from the CLI. Internal, so only the deployment's admin key can
+ * run it, and read-only. `--watch` keeps it live:
+ *
+ *   npx convex run --watch moderation:roomTail '{"roomId":"…"}'
+ *
+ * Bounded (R4): one `by_room_time` page plus one point read per distinct
+ * author. Media comes back as a storage URL.
+ */
+export const roomTail = internalQuery({
+  args: { roomId: v.id("rooms"), limit: v.optional(v.number()) },
+  returns: v.array(v.string()),
+  handler: async (ctx, { roomId, limit }) => {
+    const n = Math.max(1, Math.min(limit ?? 50, ROOM_TAIL_MAX));
+    const rows = await ctx.db
+      .query("messages")
+      .withIndex("by_room_time", (q) => q.eq("roomId", roomId))
+      .order("desc")
+      .take(n);
+    const handles = new Map<string, string>();
+    const lines: string[] = [];
+    for (const m of rows.reverse()) {
+      const key = m.userId.toString();
+      if (!handles.has(key)) {
+        handles.set(key, (await ctx.db.get(m.userId))?.username ?? "?");
+      }
+      const at = new Date(m.createdAt).toISOString().slice(0, 16).replace("T", " ");
+      const media = m.mediaStorageId ? await ctx.storage.getUrl(m.mediaStorageId) : null;
+      const parts = [
+        `${at} @${handles.get(key)} [${m.type ?? "text"}]`,
+        m.content,
+        m.fileName ? `(${m.fileName})` : "",
+        media ?? "",
+      ];
+      lines.push(parts.filter(Boolean).join(" "));
+    }
+    return lines;
   },
 });

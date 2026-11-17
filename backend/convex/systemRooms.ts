@@ -53,6 +53,12 @@ export type SystemRoomSpec = {
   isLegacyRoom?: (room: any, accountId: any) => boolean;
 };
 
+/** The account half of a [SystemRoomSpec]: enough for an account with no room. */
+export type SystemAccountSpec = Pick<
+  SystemRoomSpec,
+  "username" | "formerUsernames" | "displayName"
+>;
+
 /** Same shape as `messages.mintNonce` — see the note there on `Math.random`. */
 function randomHex(bytes: number): string {
   const buf = new Uint8Array(bytes);
@@ -75,7 +81,7 @@ function randomHex(bytes: number): string {
  */
 export async function ensureSystemAccount(
   ctx: any,
-  spec: SystemRoomSpec,
+  spec: SystemAccountSpec,
 ): Promise<any> {
   const byName = (username: string) =>
     ctx.db
