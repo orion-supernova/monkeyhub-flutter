@@ -511,3 +511,121 @@ export const staffDeleteAccount = internalMutation({
     return await startUserDeletion(ctx, user._id, { reason: "staff" });
   },
 });
+
+/**
+ * Everything a set of accounts has posted, for a staff case review: every chat
+ * they are in (all messages, from anyone, so replies read in context), their
+ * feed posts with comments, and their devices. Internal and read-only; the
+ * local report generator (`backend/tools/case_report.py`) calls it with the admin key.
+ *
+ * Bounded: at most 10 accounts, 50 chats each, 500 messages per chat, 200
+ * posts per account, 100 comments per post.
+ */
+export const caseFile = internalQuery({
+  args: { usernames: v.array(v.string()) },
+  returns: v.any(),
+  handler: async (ctx, { usernames }) => {
+    if (usernames.length > 10) throw new Error("TOO_MANY");
+    const handles = new Map<string, string>();
+    const handleOf = async (id: any) => {
+      const key = id.toString();
+      if (!handles.has(key)) handles.set(key, ((await ctx.db.get(id)) as any)?.username ?? "?");
+      return handles.get(key)!;
+    };
+    const url = async (id: any) => (id ? await ctx.storage.getUrl(id) : null);
+
+    const people: any[] = [];
+    const roomIds = new Set<string>();
+    for (const username of usernames) {
+      const u = await ctx.db
+        .query("users")
+        .withIndex("by_username", (q) => q.eq("username", username))
+        .first();
+      if (!u) continue;
+      handles.set(u._id.toString(), u.username ?? "?");
+      const devices = await ctx.db
+        .query("userDevices")
+        .withIndex("by_user", (q: any) => q.eq("userId", u._id))
+        .take(20);
+      const memberships = await ctx.db
+        .query("roomMembers")
+        .withIndex("by_user", (q) => q.eq("userId", u._id))
+        .take(50);
+      for (const m of memberships) roomIds.add(m.roomId.toString());
+      const moments = await ctx.db
+        .query("moments")
+        .withIndex("by_user_created", (q) => q.eq("userId", u._id))
+        .order("desc")
+        .take(200);
+      const posts: any[] = [];
+      for (const p of moments) {
+        const comments = await ctx.db
+          .query("momentComments")
+          .withIndex("by_moment_created", (q) => q.eq("momentId", p._id))
+          .take(100);
+        const lines: any[] = [];
+        for (const c of comments) {
+          lines.push({
+            at: c.createdAt ?? c._creationTime,
+            by: await handleOf(c.userId),
+            text: (c as any).text ?? (c as any).content ?? "",
+          });
+        }
+        posts.push({
+          at: p.createdAt,
+          expiresAt: p.expiresAt,
+          caption: p.caption ?? "",
+          kind: p.mediaKind ?? null,
+          url: await url(p.mediaStorageId),
+          comments: lines,
+        });
+      }
+      people.push({
+        username: u.username,
+        name: u.name ?? "",
+        createdAt: u.createdAt,
+        avatarUrl: await url(u.avatarStorageId),
+        devices: devices.map((d: any) => ({
+          name: d.deviceName ?? "",
+          platform: d.platform ?? "",
+          locale: d.locale ?? "",
+          tzOffsetMinutes: d.tzOffsetMinutes ?? null,
+          lastSeenAt: d.lastSeenAt ?? null,
+        })),
+        posts,
+      });
+    }
+
+    const chats: any[] = [];
+    for (const rid of roomIds) {
+      const room: any = await ctx.db.get(rid as any);
+      if (!room || isTombstoned(room)) continue;
+      const roster = await ctx.db
+        .query("roomMembers")
+        .withIndex("by_room_user", (q: any) => q.eq("roomId", room._id))
+        .take(50);
+      const members: string[] = [];
+      for (const r of roster) members.push(await handleOf(r.userId));
+      const rows = await ctx.db
+        .query("messages")
+        .withIndex("by_room_time", (q) => q.eq("roomId", room._id))
+        .take(500);
+      if (rows.length === 0) continue;
+      const messages: any[] = [];
+      for (const m of rows) {
+        messages.push({
+          at: m.createdAt,
+          by: await handleOf(m.userId),
+          type: m.type ?? "text",
+          content: m.content,
+          fileName: m.fileName ?? null,
+          mimeType: m.mimeType ?? null,
+          url: await url(m.mediaStorageId),
+        });
+      }
+      const isDm = typeof room.name === "string" && room.name.startsWith("dm:");
+      chats.push({ name: isDm ? null : room.name, isDm, members, messages });
+    }
+    return { generatedAt: Date.now(), people, chats };
+  },
+});
