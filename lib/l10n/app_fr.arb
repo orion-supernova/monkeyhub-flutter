@@ -1425,7 +1425,7 @@
   "authErrorSocialAlreadyLinked": "C’est déjà lié à ce compte.",
   "authErrorSocialNotLinked": "Ce n’est pas lié à ce compte.",
   "authErrorSocialLastCredential": "C’est le seul moyen d’accéder à ce compte. Définis d’abord un mot de passe.",
-  "authErrorUsernameInvalid": "Choisis un nom d’utilisateur entre 1 et 32 caractères.",
+  "authErrorUsernameInvalid": "Utilise de 1 à 32 lettres, chiffres ou tirets bas, sans espaces.",
   "authErrorUsernameChangedRecently": "Tu as changé de nom d’utilisateur récemment. Tu pourras le changer à nouveau 30 jours après le dernier changement.",
   "authErrorInboxHandleLocked": "Ce compte reçoit les signalements de problèmes de tout le monde, son nom d’utilisateur est donc fixe.",
   "glassKnobLabelFrost": "Givre",

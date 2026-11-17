@@ -575,3 +575,15 @@ describe("staff notices", () => {
     ).rejects.toThrow("EMPTY_NOTICE");
   });
 });
+
+describe("username shape", () => {
+  test("one word of letters, digits and underscore, in any script", async () => {
+    const t = convexTest(schema);
+    for (const ok of ["sau", "TM7", "a_b", "göksu", "ali_2", "太郎", "مرحبا"]) {
+      await signUp(t, ok);
+    }
+    for (const bad of ["El jefferies", "a.b", "a-b", "@me", "hi!", "x​y"]) {
+      await expect(signUp(t, bad)).rejects.toThrow("USERNAME_INVALID");
+    }
+  });
+});

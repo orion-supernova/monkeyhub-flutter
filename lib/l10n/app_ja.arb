@@ -1415,7 +1415,7 @@
   "authErrorSocialAlreadyLinked": "すでにこのアカウントに連携されています。",
   "authErrorSocialNotLinked": "このアカウントには連携されていません。",
   "authErrorSocialLastCredential": "サインインできる唯一の方法です。先にパスワードを設定してください。",
-  "authErrorUsernameInvalid": "ユーザー名は1〜32文字で入力してください。",
+  "authErrorUsernameInvalid": "ユーザー名は1〜32文字の文字・数字・アンダースコアで、スペースは使えません。",
   "authErrorUsernameChangedRecently": "最近ユーザー名を変更しています。前回の変更から30日後に再度変更できます。",
   "authErrorInboxHandleLocked": "このアカウントは全員の問題報告を受け取るため、ユーザー名は固定です。",
   "glassKnobLabelFrost": "すりガラス",

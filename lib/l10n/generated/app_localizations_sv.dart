@@ -5101,7 +5101,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get authErrorUsernameInvalid =>
-      'Välj ett användarnamn på mellan 1 och 32 tecken.';
+      'Använd 1 till 32 bokstäver, siffror eller understreck, utan mellanslag.';
 
   @override
   String get authErrorUsernameChangedRecently =>

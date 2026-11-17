@@ -5085,7 +5085,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get authErrorUsernameInvalid =>
-      '1 से 32 अक्षरों के बीच यूज़रनेम चुनो।';
+      '1 से 32 अक्षर, अंक या अंडरस्कोर इस्तेमाल करो, बिना स्पेस के।';
 
   @override
   String get authErrorUsernameChangedRecently =>

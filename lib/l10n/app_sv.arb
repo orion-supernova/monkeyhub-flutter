@@ -1425,7 +1425,7 @@
   "authErrorSocialAlreadyLinked": "Det är redan länkat till det här kontot.",
   "authErrorSocialNotLinked": "Det är inte länkat till det här kontot.",
   "authErrorSocialLastCredential": "Det är det enda sättet att komma in på det här kontot. Skapa ett lösenord först.",
-  "authErrorUsernameInvalid": "Välj ett användarnamn på mellan 1 och 32 tecken.",
+  "authErrorUsernameInvalid": "Använd 1 till 32 bokstäver, siffror eller understreck, utan mellanslag.",
   "authErrorUsernameChangedRecently": "Du har bytt användarnamn nyligen. Du kan byta igen 30 dagar efter det senaste bytet.",
   "authErrorInboxHandleLocked": "Det här kontot tar emot allas problemrapporter, så dess användarnamn är låst.",
   "glassKnobLabelFrost": "Frostning",

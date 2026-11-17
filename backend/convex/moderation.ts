@@ -16,7 +16,7 @@ import {
 } from "./systemAccount";
 import { postOutcome } from "./moderationCore";
 import { ensureSystemAccount } from "./systemRooms";
-import { isTombstoned } from "./deletionCore";
+import { getLiveUser, isTombstoned, startUserDeletion } from "./deletionCore";
 import { isSecretRoom } from "./vanishCore";
 import { deleteMomentCore } from "./momentCleanup";
 import { deleteCommentCore } from "./momentComments";
@@ -475,5 +475,39 @@ export const roomTail = internalQuery({
       lines.push(parts.filter(Boolean).join(" "));
     }
     return lines;
+  },
+});
+
+/**
+ * Delete an account as staff, from the CLI with the admin key:
+ *
+ *   npx convex run moderation:staffDeleteAccount '{"username":"…"}'
+ *
+ * The same teardown as a self-serve delete (`deletionCore.startUserDeletion`:
+ * scrub the row, revoke sessions, queue the engine, which removes every
+ * related row in bounded slices), logged with reason "staff". Refuses system
+ * and staff accounts. A child is deleted directly; a guardian whose child is
+ * still live is refused, so delete the child first (no child is left with
+ * nobody). Returns the deletion job id.
+ */
+export const staffDeleteAccount = internalMutation({
+  args: { username: v.string() },
+  returns: v.union(v.id("deletions"), v.null()),
+  handler: async (ctx, { username }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", username))
+      .first();
+    if (!user) throw new Error("USER_NOT_FOUND");
+    if (isSystemAccount(user)) throw new Error("SYSTEM_ACCOUNT");
+    if (isModerationStaff(user)) throw new Error("STAFF_ACCOUNT");
+    const children = await ctx.db
+      .query("guardianships")
+      .withIndex("by_guardian", (q) => q.eq("guardianId", user._id))
+      .take(20);
+    for (const link of children) {
+      if (await getLiveUser(ctx, link.childId)) throw new Error("HAS_LIVE_CHILD");
+    }
+    return await startUserDeletion(ctx, user._id, { reason: "staff" });
   },
 });

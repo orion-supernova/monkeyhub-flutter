@@ -1425,7 +1425,7 @@
   "authErrorSocialAlreadyLinked": "Isso já está vinculado a esta conta.",
   "authErrorSocialNotLinked": "Isso não está vinculado a esta conta.",
   "authErrorSocialLastCredential": "Essa é a única forma de entrar nesta conta. Defina uma senha primeiro.",
-  "authErrorUsernameInvalid": "Escolha um nome de usuário com 1 a 32 caracteres.",
+  "authErrorUsernameInvalid": "Use de 1 a 32 letras, números ou sublinhados, sem espaços.",
   "authErrorUsernameChangedRecently": "Você mudou seu nome de usuário recentemente. Pode mudar de novo 30 dias depois da última vez.",
   "authErrorInboxHandleLocked": "Esta conta recebe os relatórios de problemas de todo mundo, então o nome de usuário é fixo.",
   "glassKnobLabelFrost": "Fosco",

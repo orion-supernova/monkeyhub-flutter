@@ -4890,7 +4890,8 @@ class AppLocalizationsKo extends AppLocalizations {
       '이 계정에 로그인할 수 있는 유일한 방법이에요. 먼저 비밀번호를 설정해 주세요.';
 
   @override
-  String get authErrorUsernameInvalid => '사용자 이름은 1자에서 32자 사이로 입력해 주세요.';
+  String get authErrorUsernameInvalid =>
+      '사용자 이름은 1~32자의 문자, 숫자, 밑줄로 만들고 공백은 넣을 수 없어요.';
 
   @override
   String get authErrorUsernameChangedRecently =>

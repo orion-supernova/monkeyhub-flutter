@@ -5168,7 +5168,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get authErrorUsernameInvalid =>
-      'اختر اسم مستخدم يتراوح طوله بين 1 و32 حرفًا.';
+      'استخدم من 1 إلى 32 حرفًا أو رقمًا أو شرطة سفلية، بدون مسافات.';
 
   @override
   String get authErrorUsernameChangedRecently =>

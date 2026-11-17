@@ -4814,7 +4814,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authErrorSocialLastCredential => '这是登录此账号的唯一方式，请先设置密码。';
 
   @override
-  String get authErrorUsernameInvalid => '用户名长度需在 1 到 32 个字符之间。';
+  String get authErrorUsernameInvalid => '用户名需为 1 到 32 个字母、数字或下划线，不能有空格。';
 
   @override
   String get authErrorUsernameChangedRecently =>

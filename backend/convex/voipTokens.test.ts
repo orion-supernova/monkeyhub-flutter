@@ -117,7 +117,7 @@ describe("voipTokens.upsertDevice — one physical device, one account", () => {
       // One install: both sign-ins carry the same per-install secret, which is
       // the proof that lets the second account take the device's row.
       const secret = "c".repeat(64);
-      const a = await signUp(t, "a-first", "shared-phone", secret);
+      const a = await signUp(t, "a_first", "shared-phone", secret);
       await t.mutation(api.voipTokens.registerDevice, {
         userId: a.userId,
         sessionToken: a.token,
@@ -126,7 +126,7 @@ describe("voipTokens.upsertDevice — one physical device, one account", () => {
         deviceName: "iPhone",
       });
       // Signing in as B on the same install ends A's session there.
-      const b = await signUp(t, "b-second", "shared-phone", secret);
+      const b = await signUp(t, "b_second", "shared-phone", secret);
       await t.mutation(api.voipTokens.registerDevice, {
         userId: b.userId,
         sessionToken: b.token,
@@ -146,7 +146,7 @@ describe("voipTokens.upsertDevice — one physical device, one account", () => {
   test("a user's OTHER devices are untouched by the eviction", async () => {
     const t = convexTest(schema);
     const secret = "c".repeat(64);
-    const a = await signUp(t, "a-two-devices", "phone", secret);
+    const a = await signUp(t, "a_two_devices", "phone", secret);
     await t.mutation(api.voipTokens.registerDevice, {
       userId: a.userId,
       sessionToken: a.token,
@@ -159,7 +159,7 @@ describe("voipTokens.upsertDevice — one physical device, one account", () => {
       deviceId: "laptop",
       platform: "macos",
     });
-    const b = await signUp(t, "b-takes-one", "phone", secret);
+    const b = await signUp(t, "b_takes_one", "phone", secret);
     await t.mutation(api.voipTokens.registerDevice, {
       userId: b.userId,
       sessionToken: b.token,

@@ -100,23 +100,28 @@ const signInResultValidator = v.union(
  * rename must be exactly one that would have been accepted at creation, and two
  * copies of this would drift the first time either moved.
  *
- * Note what is deliberately absent — a charset rule. Handles are not
- * constrained to any alphabet, so one can legitimately contain spaces or
- * non-Latin characters, and a regex added here would invalidate names people
- * already answer to. What IS refused is the invisible: control and format
- * characters (zero-width joiners and spaces, direction overrides), which
- * render as nothing and exist in a handle only to make it look like another.
+ * Not constrained to one alphabet: a handle may be Arabic, Japanese or
+ * Turkish. But it is one word of letters, digits and `_`, the same characters
+ * the app's @mention matcher reads (`lib/models/mention.dart`, `_wordChar`).
+ * Before 2026-11-17 anything visible was allowed, and "El jefferies" signed up
+ * with a space: a handle nobody could @mention. Existing handles are not
+ * touched; this runs only where a handle is chosen (signup, child account,
+ * rename). The class also refuses the invisible (control and format
+ * characters, zero-width joiners, direction overrides).
  */
 export function normaliseUsername(raw: string): string {
   const username = raw.trim();
   if (username.length === 0 || username.length > 32) {
     throw new Error("USERNAME_INVALID");
   }
-  if (/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(username)) {
+  if (!USERNAME_SHAPE.test(username)) {
     throw new Error("USERNAME_INVALID");
   }
   return username;
 }
+
+/** One word: letters of any script, digits, underscore. */
+const USERNAME_SHAPE = /^[\p{L}\p{N}_]+$/u;
 
 /**
  * Refuses a handle that differs from an existing one only by letter case.

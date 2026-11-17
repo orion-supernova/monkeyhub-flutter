@@ -5121,7 +5121,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get authErrorUsernameInvalid =>
-      'Elige un nombre de usuario de entre 1 y 32 caracteres.';
+      'Usa de 1 a 32 letras, números o guiones bajos, sin espacios.';
 
   @override
   String get authErrorUsernameChangedRecently =>

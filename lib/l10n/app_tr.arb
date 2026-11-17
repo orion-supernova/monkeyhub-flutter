@@ -1415,7 +1415,7 @@
   "authErrorSocialAlreadyLinked": "Bu zaten bu hesaba bağlı.",
   "authErrorSocialNotLinked": "Bu, bu hesaba bağlı değil.",
   "authErrorSocialLastCredential": "Bu hesaba girişin tek yolu bu. Önce bir şifre belirle.",
-  "authErrorUsernameInvalid": "1 ile 32 karakter arasında bir kullanıcı adı seç.",
+  "authErrorUsernameInvalid": "1 ile 32 arasında harf, rakam veya alt çizgi kullan, boşluk olmasın.",
   "authErrorUsernameChangedRecently": "Kullanıcı adını yakın zamanda değiştirdin. Sonuncusundan 30 gün sonra tekrar değiştirebilirsin.",
   "authErrorInboxHandleLocked": "Bu hesap herkesin sorun bildirimlerini alıyor, bu yüzden kullanıcı adı sabit.",
   "glassKnobLabelFrost": "Buzlanma",

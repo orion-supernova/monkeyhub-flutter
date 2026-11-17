@@ -5059,7 +5059,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authErrorUsernameInvalid =>
-      'Pick a username between 1 and 32 characters.';
+      'Use 1 to 32 letters, numbers or underscores, with no spaces.';
 
   @override
   String get authErrorUsernameChangedRecently =>

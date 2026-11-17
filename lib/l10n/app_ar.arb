@@ -1415,7 +1415,7 @@
   "authErrorSocialAlreadyLinked": "هذا مرتبط بالفعل بهذا الحساب.",
   "authErrorSocialNotLinked": "هذا غير مرتبط بهذا الحساب.",
   "authErrorSocialLastCredential": "هذه هي الوسيلة الوحيدة للدخول إلى هذا الحساب. عيّن كلمة مرور أولًا.",
-  "authErrorUsernameInvalid": "اختر اسم مستخدم يتراوح طوله بين 1 و32 حرفًا.",
+  "authErrorUsernameInvalid": "استخدم من 1 إلى 32 حرفًا أو رقمًا أو شرطة سفلية، بدون مسافات.",
   "authErrorUsernameChangedRecently": "لقد غيّرت اسم المستخدم مؤخرًا. يمكنك تغييره مجددًا بعد 30 يومًا من آخر تغيير.",
   "authErrorInboxHandleLocked": "هذا الحساب يستقبل بلاغات المشاكل من الجميع، لذا فاسم المستخدم الخاص به ثابت.",
   "glassKnobLabelFrost": "ضبابي",

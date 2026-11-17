@@ -1415,7 +1415,7 @@
   "authErrorSocialAlreadyLinked": "该账号已绑定到此账号。",
   "authErrorSocialNotLinked": "该账号未绑定到此账号。",
   "authErrorSocialLastCredential": "这是登录此账号的唯一方式，请先设置密码。",
-  "authErrorUsernameInvalid": "用户名长度需在 1 到 32 个字符之间。",
+  "authErrorUsernameInvalid": "用户名需为 1 到 32 个字母、数字或下划线，不能有空格。",
   "authErrorUsernameChangedRecently": "你最近更改过用户名。距离上次更改 30 天后才能再次更改。",
   "authErrorInboxHandleLocked": "此账号接收所有人的问题反馈，因此用户名固定。",
   "glassKnobLabelFrost": "磨砂",

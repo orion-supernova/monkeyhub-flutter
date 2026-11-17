@@ -1425,7 +1425,7 @@
   "authErrorSocialAlreadyLinked": "Isso já está associado a esta conta.",
   "authErrorSocialNotLinked": "Isso não está associado a esta conta.",
   "authErrorSocialLastCredential": "Essa é a única forma de aceder a esta conta. Define uma palavra-passe primeiro.",
-  "authErrorUsernameInvalid": "Escolhe um nome de utilizador com 1 a 32 caracteres.",
+  "authErrorUsernameInvalid": "Usa de 1 a 32 letras, números ou sublinhados, sem espaços.",
   "authErrorUsernameChangedRecently": "Alteraste o teu nome de utilizador recentemente. Podes alterá-lo novamente 30 dias após a última alteração.",
   "authErrorInboxHandleLocked": "Esta conta recebe os relatórios de problemas de toda a gente, por isso o nome de utilizador é fixo.",
   "glassKnobLabelFrost": "Fosco",

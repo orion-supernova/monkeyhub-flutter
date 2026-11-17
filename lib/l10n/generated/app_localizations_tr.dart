@@ -5045,7 +5045,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get authErrorUsernameInvalid =>
-      '1 ile 32 karakter arasında bir kullanıcı adı seç.';
+      '1 ile 32 arasında harf, rakam veya alt çizgi kullan, boşluk olmasın.';
 
   @override
   String get authErrorUsernameChangedRecently =>

@@ -4881,7 +4881,8 @@ class AppLocalizationsJa extends AppLocalizations {
       'サインインできる唯一の方法です。先にパスワードを設定してください。';
 
   @override
-  String get authErrorUsernameInvalid => 'ユーザー名は1〜32文字で入力してください。';
+  String get authErrorUsernameInvalid =>
+      'ユーザー名は1〜32文字の文字・数字・アンダースコアで、スペースは使えません。';
 
   @override
   String get authErrorUsernameChangedRecently =>

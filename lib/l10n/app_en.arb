@@ -5709,7 +5709,7 @@
   "@authErrorSocialLastCredential": {
     "description": "Shown when SOCIAL_LAST_CREDENTIAL comes back — unlinking would leave the account with no way to sign in."
   },
-  "authErrorUsernameInvalid": "Pick a username between 1 and 32 characters.",
+  "authErrorUsernameInvalid": "Use 1 to 32 letters, numbers or underscores, with no spaces.",
   "@authErrorUsernameInvalid": {
     "description": "Shown when USERNAME_INVALID comes back from username normalisation."
   },

@@ -8636,7 +8636,7 @@ abstract class AppLocalizations {
   /// Shown when USERNAME_INVALID comes back from username normalisation.
   ///
   /// In en, this message translates to:
-  /// **'Pick a username between 1 and 32 characters.'**
+  /// **'Use 1 to 32 letters, numbers or underscores, with no spaces.'**
   String get authErrorUsernameInvalid;
 
   /// Shown when USERNAME_CHANGED_RECENTLY comes back — the 30-day cooldown on handle changes has not elapsed.

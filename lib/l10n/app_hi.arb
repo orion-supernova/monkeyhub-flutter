@@ -1415,7 +1415,7 @@
   "authErrorSocialAlreadyLinked": "वह पहले से इस अकाउंट से लिंक है।",
   "authErrorSocialNotLinked": "वह इस अकाउंट से लिंक नहीं है।",
   "authErrorSocialLastCredential": "इस अकाउंट में जाने का यही इकलौता रास्ता है। पहले एक पासवर्ड सेट करो।",
-  "authErrorUsernameInvalid": "1 से 32 अक्षरों के बीच यूज़रनेम चुनो।",
+  "authErrorUsernameInvalid": "1 से 32 अक्षर, अंक या अंडरस्कोर इस्तेमाल करो, बिना स्पेस के।",
   "authErrorUsernameChangedRecently": "आपने हाल ही में अपना यूज़रनेम बदला है। पिछली बार के 30 दिन बाद आप इसे दोबारा बदल सकते हैं।",
   "authErrorInboxHandleLocked": "यह अकाउंट सभी की समस्या रिपोर्ट पाता है, इसलिए इसका यूज़रनेम तय है।",
   "glassKnobLabelFrost": "धुंधला",
