@@ -63,7 +63,9 @@ def download(url, media_dir, cache):
     if url in cache:
         return cache[url]
     try:
-        with urllib.request.urlopen(url, timeout=60) as r:
+        # Cloudflare refuses Python's default user agent (403).
+        req = urllib.request.Request(url, headers={"User-Agent": "monkeyhub-case-report/1"})
+        with urllib.request.urlopen(req, timeout=60) as r:
             body = r.read()
             ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip()
     except Exception as e:  # a file deleted since: keep going
