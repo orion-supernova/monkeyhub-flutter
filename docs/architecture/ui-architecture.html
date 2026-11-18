@@ -453,6 +453,7 @@ no exact native form (an icon without an SF Symbol in <code>sfSymbolFor</code>, 
 <tr><td>Action sheet</td><td><code>showIosActionSheet</code></td><td>sheet_kit.dart</td><td></td></tr>
 <tr><td>Toast</td><td><code>showAppToast</code></td><td>widgets/app_toast.dart</td><td>(snackbars are banned)</td></tr>
 <tr><td>Person avatar</td><td><code>UserAvatar</code></td><td>widgets/user_avatar.dart</td><td><code>score_row</code> monogram stack, redundant <code>ClipOval</code>s in calls</td></tr>
+<tr><td>Hero head circle (profile, DM, group info)</td><td><code>HeroFace</code>, <code>heroPullPhoto</code></td><td>widgets/hero_face.dart</td><td>three hand-built copies in <code>profile_screen</code> and <code>room_info_screen</code> (own badge, spinner, docking and pull-photo code each)</td></tr>
 <tr><td>Room avatar</td><td><code>ChatRoomAvatar</code></td><td>widgets/chat_list_row.dart</td><td><code>room_screen _RoomAvatar</code> (<code>ephemeralGlyph</code>), <code>destructive_sheet</code> ClipOval, <code>room_info</code> saved disc (<code>SavedMessagesFace</code>)</td></tr>
 <tr><td>Empty state</td><td><code>EmptyState</code> / <code>EmptyLine</code></td><td>widgets/empty_state.dart</td><td>~11 private <code>_EmptyState</code>/<code>_Empty</code></td></tr>
 <tr><td>Skeleton</td><td><code>SkeletonBox</code> family</td><td>widgets/skeleton_rows.dart</td><td>~9 private shimmers</td></tr>

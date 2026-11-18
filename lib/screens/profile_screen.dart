@@ -19,7 +19,6 @@ import '../data/chat_repository.dart';
 import '../data/username_availability_controller.dart';
 import '../family/family_service.dart';
 import '../models/family.dart' show RequestStage;
-import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/file_url_cache.dart';
 import '../media/image_raster.dart';
@@ -30,12 +29,12 @@ import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/remote_image.dart';
 import '../widgets/account_kit.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/block_choice_sheet.dart';
 import '../widgets/hero_dock.dart';
+import '../widgets/hero_face.dart';
 import '../widgets/destructive_sheet.dart' show showConfirmSheet;
 import '../widgets/ios_kit.dart';
 import '../widgets/labeled_field.dart';
@@ -44,7 +43,6 @@ import '../widgets/recovery_banner.dart';
 import '../widgets/sheet_kit.dart';
 import '../widgets/social_sign_in_buttons.dart';
 import '../widgets/report_sheet.dart';
-import '../widgets/steady_hero.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/username_status_label.dart';
 import 'approvals_screen.dart';
@@ -98,12 +96,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  static const double _avatarSize = 104;
-
-  /// How far the camera badge used to poke past the avatar's edge. Kept so the
-  /// badge lands on the same pixels now that it is positioned from a box that
-  /// is [_badgeOverhang] larger instead of at a negative offset.
-  static const double _badgeOverhang = 2;
+  static const double _avatarSize = kHeroFaceSize;
 
   ChatUser? _user;
   bool _loading = false;
@@ -1191,16 +1184,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       hero: _hero(theme),
       // Pulling down opens the picture full width, as Telegram does; a
       // lettered placeholder has no picture to open.
-      expandedPhoto: _canViewAvatar
-          ? (context, size) => RemoteImage(
-                storageId: _u.avatarStorageId!,
-                api: widget.api!,
-                width: size.width,
-                height: size.height,
-                placeholderDecodeWidth:
-                    (_avatarSize * MediaQuery.devicePixelRatioOf(context)).round(),
-              )
-          : null,
+      expandedPhoto: heroPullPhoto(
+        storageId: _u.avatarStorageId,
+        api: widget.api,
+        size: _avatarSize,
+      ),
       children: [
         if (!_isMe && _u.isRedacted) ...[
           SoftNote(
@@ -1233,11 +1221,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         children: [
           // The avatar and name dock into the bar as the page scrolls.
-          HeroDockAvatar(
-            diameter: _avatarSize,
-            extent: _avatarSize + _badgeOverhang,
-            child: AvatarPop(child: _avatarWithBadge(theme)),
-          ),
+          _face(),
           const SizedBox(height: 14),
           HeroDockTitle(
             fontSize: theme.displayMedium.fontSize ?? 28,
@@ -1327,100 +1311,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _avatarWithBadge(AppTheme theme) {
+  /// The head circle. The circle and the camera badge both open the photo
+  /// sheet on your own profile: two ways in, one sheet.
+  Widget _face() {
     final l10n = AppLocalizations.of(context);
-    // Sized to _avatarSize + _badgeOverhang rather than letting the Stack take
-    // the avatar's own size: RenderBox.hitTest bails before descending when
-    // the point is outside `size`, and Clip.none only affects painting.
-    return SizedBox(
-      width: _avatarSize + _badgeOverhang,
-      height: _avatarSize + _badgeOverhang,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: 0,
-            top: 0,
-            width: _avatarSize,
-            height: _avatarSize,
-            child: FocusableTap(
-              onTap: _avatarTap,
-              shape: FocusRingShape.circle,
-              semanticLabel: _avatarTapChanges
-                  ? l10n.profileScreenChangeProfilePictureSemantic
-                  : l10n.profileScreenViewProfilePictureSemantic,
-              child: GestureDetector(
-                onTap: _avatarTap,
-                child: Builder(builder: (context) {
-                  final avatar = UserAvatar(
-                    user: _u,
-                    size: _avatarSize,
-                    api: widget.api,
-                    // Own presence is never news, and the dot sits exactly
-                    // where the camera badge goes.
-                    showStatus: false,
-                  );
-                  // Only the real-image case flies — a lettered placeholder
-                  // has nothing to fly to, and a Hero for it would leave a tag
-                  // with no counterpart.
-                  if (!_canViewAvatar) return avatar;
-                  return SteadyHero(tag: _avatarHeroTag, child: avatar);
-                }),
-              ),
-            ),
-          ),
-          if (_changingAvatar)
-            Positioned(
-              left: 0,
-              top: 0,
-              width: _avatarSize,
-              height: _avatarSize,
-              // Must not swallow taps meant for the badge.
-              child: IgnorePointer(
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black.withValues(alpha: 0.45),
-                  ),
-                  alignment: Alignment.center,
-                  child: const SizedBox(
-                    width: 26,
-                    height: 26,
-                    child: CupertinoActivityIndicator(
-                      radius: 13,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          if (_isMe)
-            Positioned(
-              right: 0,
-              bottom: 0,
-              // Fades as the avatar starts for the bar.
-              child: HeroDockFade(child: SpringPress(
-                onTap: _busy ? null : _openAvatarSheet,
-                semanticLabel: l10n.profileScreenChangeProfilePictureSemantic,
-                scale: 0.88,
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: theme.accent,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: theme.background, width: 3),
-                  ),
-                  child: Icon(
-                    CupertinoIcons.camera_fill,
-                    size: 14,
-                    color: theme.accentInk,
-                  ),
-                ),
-              )),
-            ),
-        ],
+    return HeroFace(
+      face: UserAvatar(
+        user: _u,
+        size: _avatarSize,
+        api: widget.api,
+        // Own presence is never news, and the dot sits where the badge goes.
+        showStatus: false,
       ),
+      size: _avatarSize,
+      heroTag: _canViewAvatar ? _avatarHeroTag : null,
+      onTap: _avatarTap,
+      tapLabel: _avatarTapChanges
+          ? l10n.profileScreenChangeProfilePictureSemantic
+          : l10n.profileScreenViewProfilePictureSemantic,
+      // Kept while busy (a badge that vanished mid-upload would read as the
+      // feature going away); the tap is simply ignored until it is done.
+      onBadge: _isMe
+          ? () {
+              if (!_busy) _openAvatarSheet();
+            }
+          : null,
+      badgeLabel: l10n.profileScreenChangeProfilePictureSemantic,
+      busy: _changingAvatar,
     );
   }
 

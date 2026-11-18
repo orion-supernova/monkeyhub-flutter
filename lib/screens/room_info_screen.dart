@@ -38,7 +38,6 @@ import '../widgets/sheet_kit.dart';
 import '../widgets/message_life_picker.dart';
 import '../widgets/mute_room_sheet.dart';
 import '../widgets/password_field.dart';
-import '../widgets/photo_chrome.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/room_invite_friends_sheet.dart';
 import '../widgets/room_invite_sheet.dart';
@@ -47,7 +46,7 @@ import '../widgets/room_change_requests_sheet.dart';
 import '../widgets/room_join_requests_sheet.dart';
 import '../widgets/room_member_actions_sheet.dart';
 import '../widgets/hero_dock.dart';
-import '../widgets/steady_hero.dart';
+import '../widgets/hero_face.dart';
 import '../theme/speaker_colors.dart';
 import '../widgets/user_avatar.dart';
 import 'room_colors_screen.dart';
@@ -1066,16 +1065,11 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       // Any real picture opens full width on a pull, as in Telegram: the
       // person's in a DM, the room's own in a group. A monogram or the Saved
       // Messages face has nothing to open, so those keep the plain rubber band.
-      expandedPhoto: _pullPhotoId(r, peer) != null
-          ? (context, size) => RemoteImage(
-                storageId: _pullPhotoId(r, peer)!,
-                api: widget.api,
-                width: size.width,
-                height: size.height,
-                placeholderDecodeWidth:
-                    (_avatarSize * MediaQuery.devicePixelRatioOf(context)).round(),
-              )
-          : null,
+      expandedPhoto: heroPullPhoto(
+        storageId: _pullPhotoId(r, peer),
+        api: widget.api,
+        size: _avatarSize,
+      ),
       children: [
         // Name/visibility don't apply to a 1:1 DM — the room is just the two
         // people — nor to a room the app owns. Text, not a text field, until
@@ -1515,19 +1509,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   }
 
   /// Diameter of the avatar at the top of this screen.
-  static const _avatarSize = 104.0;
-
-  /// The avatar circle, popped in on arrival and docked into the bar on
-  /// scroll. [extent] covers a badge hanging past the circle.
-  Widget _dockingAvatar(Widget child, {double extent = _avatarSize}) =>
-      HeroDockAvatar(
-        diameter: _avatarSize,
-        extent: extent,
-        child: AvatarPop(child: child),
-      );
-
-  /// How far the camera badge hangs past the avatar's circle.
-  static const _badgeOverhang = 2.0;
+  static const _avatarSize = kHeroFaceSize;
 
   /// The picture a pull-down opens: the peer's in a DM, the room's own
   /// otherwise. Null when there is no real picture to open.
@@ -1550,93 +1532,64 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     );
   }
 
+  /// The head circle ([HeroFace], shared with the profile page). Only the
+  /// picture, the tap and the badge differ by room kind.
   Widget _avatarBlock(AppTheme theme, ChatRoom r, ChatUser? peer) {
     const size = _avatarSize;
+    final l10n = AppLocalizations.of(context);
     if (r.isSavedMessages) {
-      return Center(
-        child: _dockingAvatar(SavedMessagesFace(size: size)),
-      );
+      return const Center(child: HeroFace(face: SavedMessagesFace(size: size)));
     }
-    // A DM shows the other person's avatar, and it isn't editable — you can't
+    // A DM shows the other person's picture, and it isn't editable: you can't
     // rename or re-skin someone else.
     if (r.isDm) {
-      final peerStorageId = peer?.avatarStorageId;
-      // A gradient-initials placeholder isn't worth a fullscreen route, so the
-      // tap only arms once there's a real picture behind it.
-      // On a phone the picture opens by pulling the page down instead.
-      final canViewPeer = peerStorageId != null &&
-          peerStorageId.isNotEmpty &&
-          !context.isCompact;
+      if (peer == null) {
+        return Center(
+          child: HeroFace(
+            face: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: theme.ink.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                CupertinoIcons.person_fill,
+                color: theme.inkMuted,
+                size: size * 0.42,
+              ),
+            ),
+          ),
+        );
+      }
+      final photo = _pullPhotoId(r, peer);
+      final heroTag = 'room-info-peer-avatar-${peer.id}';
       return Center(
-        child: Column(
-          children: [
-            if (peer != null)
-              _dockingAvatar(Builder(builder: (context) {
-                final avatar = UserAvatar(user: peer, size: size, api: widget.api);
-                if (!canViewPeer) return avatar;
-                final heroTag = 'room-info-peer-avatar-${peer.id}';
-                return FocusableTap(
-                  onTap: () => _openAvatarFullscreen(
-                    storageId: peerStorageId,
-                    heroTag: heroTag,
-                  ),
-                  shape: FocusRingShape.circle,
-                  semanticLabel: AppLocalizations.of(context).roomInfoScreenViewProfilePictureSemantic,
-                  child: GestureDetector(
-                    onTap: () => _openAvatarFullscreen(
-                      storageId: peerStorageId,
-                      heroTag: heroTag,
-                    ),
-                    child: SteadyHero(tag: heroTag, child: avatar),
-                  ),
-                );
-              }))
-            else
-              _dockingAvatar(Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  color: theme.ink.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  CupertinoIcons.person_fill,
-                  color: theme.inkMuted,
-                  size: size * 0.42,
-                ),
-              )),
-          ],
+        child: HeroFace(
+          face: UserAvatar(user: peer, size: size, api: widget.api),
+          heroTag: photo == null ? null : heroTag,
+          // On a phone the picture opens by pulling the page down instead.
+          onTap: photo == null || context.isCompact
+              ? null
+              : () => _openAvatarFullscreen(storageId: photo, heroTag: heroTag),
+          tapLabel: l10n.roomInfoScreenViewProfilePictureSemantic,
         ),
       );
     }
-    final hasAvatar = r.avatarStorageId != null && r.avatarStorageId!.isNotEmpty;
+    final photo = _pullPhotoId(r, peer);
     final heroTag = 'room-info-avatar-${r.id}';
-    final Widget picture = Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(shape: BoxShape.circle),
-      clipBehavior: Clip.antiAlias,
-      child: hasAvatar
-          ? SteadyHero(
-              tag: heroTag,
-              child: RemoteImage(
-                storageId: r.avatarStorageId!,
-                api: widget.api,
-                width: size,
-                height: size,
-                borderRadius: BorderRadius.circular(size),
-              ),
-            )
-          : MonogramAvatar(label: r.name, seed: r.id, size: size),
-    );
-    // The badge means two different things now — "set this" for an admin,
-    // "ask for this" for everybody else — and the badge itself cannot say
-    // which. A camera glyph that quietly files a request would be the one
-    // control on this screen that lies about what a tap does, so the caption
-    // below says it out loud, before the tap rather than after it.
+    // The badge means two different things: "set this" for an admin, "ask for
+    // this" for everybody else, and the badge itself cannot say which. So the
+    // caption below says it out loud, before the tap rather than after it.
     final suggesting = r.isGroupChat &&
         !_perms.canEditRoom &&
         _perms.canSuggestChanges;
+    // `rooms.updateRoomAvatar` stays admin-only; a member's tap ends in
+    // `roomChangeRequests.propose` instead (see [_changeAvatar]). Still gated:
+    // without it somebody who can do NEITHER would pick a photo, sit through
+    // the upload, and be refused at the last step.
+    final canChange =
+        !r.isGroupChat || _perms.canEditRoom || _perms.canSuggestChanges;
     return Center(
       // The picture is for looking at; editing lives on the badge. Tapping the
       // image itself used to open the picker, which meant a room's avatar was
@@ -1644,109 +1597,39 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _dockingAvatar(
-            extent: size + _badgeOverhang,
-            SizedBox(
-              width: size + _badgeOverhang,
-              height: size + _badgeOverhang,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    width: size,
-                    height: size,
-                    child: hasAvatar
-                        ? FocusableTap(
-                            onTap: () => _openAvatarFullscreen(
-                              storageId: r.avatarStorageId!,
-                              heroTag: heroTag,
-                            ),
-                            shape: FocusRingShape.circle,
-                            semanticLabel: AppLocalizations.of(context).roomInfoScreenViewRoomPictureSemantic,
-                            child: GestureDetector(
-                              onTap: () => _openAvatarFullscreen(
-                                storageId: r.avatarStorageId!,
-                                heroTag: heroTag,
-                              ),
-                              child: picture,
-                            ),
-                          )
-                        : picture,
-                  ),
-                  if (_changingAvatar)
-                    Positioned(
-                      left: 0,
-                      top: 0,
+          HeroFace(
+            face: ClipOval(
+              child: photo != null
+                  ? RemoteImage(
+                      storageId: photo,
+                      api: widget.api,
                       width: size,
                       height: size,
-                      // Must not swallow taps meant for the badge.
-                      child: IgnorePointer(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.black.withValues(alpha: 0.45),
-                          ),
-                          child: Center(
-                            child: PhotoSpinner(
-                              size: 26,
-                              color: Colors.white.withValues(alpha: 0.95),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  // The badge, for people who may change the picture — and now also
-                  // for people who may ASK to. `rooms.updateRoomAvatar` stays
-                  // admin-only; a member's tap ends in `roomChangeRequests.propose`
-                  // instead (see [_changeAvatar]), which is why the gate widened
-                  // rather than the mutation loosening.
-                  //
-                  // Still gated: without it somebody who can do NEITHER would pick a
-                  // photo, sit through the upload, and be refused at the last step.
-                  if (!r.isGroupChat || _perms.canEditRoom || _perms.canSuggestChanges)
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    // Fades as the avatar starts for the bar: a badge shrunk
-                    // to a speck would be a target nobody can hit.
-                    child: HeroDockFade(child: FocusableTap(
-                      onTap: _working ? null : _changeAvatar,
-                      shape: FocusRingShape.circle,
-                      semanticLabel: r.isGroupChat && !_perms.canEditRoom
-                          ? AppLocalizations.of(context).roomInfoScreenSuggestRoomPictureSemantic
-                          : hasAvatar
-                              ? AppLocalizations.of(context).roomInfoScreenChangeRoomPictureSemantic
-                              : AppLocalizations.of(context).roomInfoScreenAddRoomPictureSemantic,
-                      child: GestureDetector(
-                        onTap: _working ? null : _changeAvatar,
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: theme.accent,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: theme.background, width: 3),
-                          ),
-                          child: Icon(
-                            CupertinoIcons.camera_fill,
-                            size: 14,
-                            color: theme.accentInk,
-                          ),
-                        ),
-                      ),
-                    )),
-                  ),
-                ],
-              ),
+                      borderRadius: BorderRadius.circular(size),
+                    )
+                  : MonogramAvatar(label: r.name, seed: r.id, size: size),
             ),
+            heroTag: photo == null ? null : heroTag,
+            onTap: photo == null
+                ? null
+                : () => _openAvatarFullscreen(storageId: photo, heroTag: heroTag),
+            tapLabel: l10n.roomInfoScreenViewRoomPictureSemantic,
+            onBadge: canChange
+                ? () {
+                    if (!_working) _changeAvatar();
+                  }
+                : null,
+            badgeLabel: suggesting
+                ? l10n.roomInfoScreenSuggestRoomPictureSemantic
+                : photo != null
+                    ? l10n.roomInfoScreenChangeRoomPictureSemantic
+                    : l10n.roomInfoScreenAddRoomPictureSemantic,
+            busy: _changingAvatar,
           ),
           if (suggesting) ...[
             const SizedBox(height: 8),
             Text(
-              AppLocalizations.of(context).roomInfoScreenSuggestAvatarNote,
+              l10n.roomInfoScreenSuggestAvatarNote,
               style: groupedMetaStyle(theme),
               textAlign: TextAlign.center,
             ),
