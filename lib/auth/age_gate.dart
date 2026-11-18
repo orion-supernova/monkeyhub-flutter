@@ -9,6 +9,7 @@ import '../legal_links.dart';
 import '../services/link_opener.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../ui/foundation/ui_kit.dart' show FlutterSkinsOnly;
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/sheet_kit.dart';
@@ -225,7 +226,11 @@ class _AgeSheetState extends State<_AgeSheet> {
     // An existing account cannot leave without answering. Sign-up can always
     // back out. (The refused step is sign-up only: see [_confirm].)
     final canClose = !widget.existing;
-    return PopScope(
+    // Flutter buttons only, never the native Liquid Glass ones (owner's call,
+    // 2026-11-18): a sheet that blocks the whole app should not depend on the
+    // native overlay being up and placed.
+    return FlutterSkinsOnly(
+      child: PopScope(
       canPop: canClose,
       child: SheetFrame(
         title: title,
@@ -242,6 +247,7 @@ class _AgeSheetState extends State<_AgeSheet> {
           },
         ),
       ),
+    ),
     );
   }
 
