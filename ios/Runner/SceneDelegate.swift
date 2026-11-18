@@ -70,7 +70,7 @@ class SceneDelegate: FlutterSceneDelegate {
 final class CaptureGuard {
   static let shared = CaptureGuard()
 
-  private let field = UITextField()
+  private let field = WindowSizedSecureField()
   private(set) var installed = false
   private var wanted = false
 
@@ -78,14 +78,21 @@ final class CaptureGuard {
     guard !installed, let host = window.layer.superlayer else { return }
     field.isSecureTextEntry = false
     field.isUserInteractionEnabled = false
-    field.frame = .zero
-    window.addSubview(field)
+    // Window-sized, not 0x0. The window's layer ends up inside this field's
+    // canvas, and iOS 27 hit-tests touches through the layer tree: under a
+    // 0x0 field every touch missed the app, while hover and scroll (which
+    // skip that test) still arrived (2026-11-18, iOS 27.2 simulator).
+    field.frame = window.bounds
+    field.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    window.insertSubview(field, at: 0)
     guard let canvas = Self.canvas(of: field) else {
       field.removeFromSuperview()
       return
     }
     host.addSublayer(field.layer)
     canvas.addSublayer(window.layer)
+    field.canvas = canvas
+    field.setNeedsLayout()
     installed = true
     field.isSecureTextEntry = wanted
   }
@@ -117,5 +124,21 @@ final class CaptureGuard {
       .compactMap { $0 as? UIWindowScene }
       .flatMap { $0.windows }
       .first { $0.isKeyWindow }
+  }
+}
+
+/// The secure field CaptureGuard borrows. Keeps its canvas layer at its own
+/// full size: the field's text layout sizes the canvas to the (empty) text,
+/// which would shrink the touch target back to nothing on the next layout.
+final class WindowSizedSecureField: UITextField {
+  weak var canvas: CALayer?
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    guard let canvas else { return }
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    canvas.frame = bounds
+    CATransaction.commit()
   }
 }

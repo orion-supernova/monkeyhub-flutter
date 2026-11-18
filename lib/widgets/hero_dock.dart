@@ -435,12 +435,18 @@ abstract class _DockPieceState<T extends StatefulWidget> extends State<T> {
   /// Draws [child] with its top left at [topLeft] in the page's coordinates.
   /// Unseen for the one frame before the first measurement. One widget shape
   /// either way, so [child]'s state survives the switch.
+  ///
+  /// The translate is the OUTER layer on purpose. Inside an [Opacity] it moved
+  /// the paint but not the hit box: RenderOpacity tests a tap against its own
+  /// untranslated rect at the page's top left, so every docked piece drew in
+  /// place and took no taps (the profile and room avatars, the editable name;
+  /// 2026-11-18). RenderTransform skips that bounds check and maps the point.
   Widget place({required Offset? topLeft, required Widget child}) {
     return Align(
       alignment: Alignment.topLeft,
-      child: Opacity(
-        opacity: topLeft == null ? 0 : 1,
-        child: Transform.translate(offset: topLeft ?? Offset.zero, child: child),
+      child: Transform.translate(
+        offset: topLeft ?? Offset.zero,
+        child: Opacity(opacity: topLeft == null ? 0 : 1, child: child),
       ),
     );
   }
