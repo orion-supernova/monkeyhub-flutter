@@ -2674,6 +2674,8 @@
   "acctSaveToPhotos": "写真に保存",
   "acctTakeSelfie": "セルフィーを撮る",
   "acctChooseFromLibrary": "ライブラリから選択",
+  "acctViewPhoto": "写真を表示",
+  "acctPhotoUpdateFailed": "写真を更新できませんでした。もう一度お試しください。",
   "acctCancel": "キャンセル",
   "acctSave": "保存",
   "acctChange": "変更",

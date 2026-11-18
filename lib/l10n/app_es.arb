@@ -2674,6 +2674,8 @@
   "acctSaveToPhotos": "Guardar en Fotos",
   "acctTakeSelfie": "Hacer un selfie",
   "acctChooseFromLibrary": "Elegir de la fototeca",
+  "acctViewPhoto": "Ver foto",
+  "acctPhotoUpdateFailed": "No se pudo actualizar tu foto. Inténtalo de nuevo.",
   "acctCancel": "Cancelar",
   "acctSave": "Guardar",
   "acctChange": "Cambiar",

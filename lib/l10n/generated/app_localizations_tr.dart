@@ -9622,6 +9622,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get acctChooseFromLibrary => 'Arşivden seç';
 
   @override
+  String get acctViewPhoto => 'Fotoğrafı gör';
+
+  @override
+  String get acctPhotoUpdateFailed => 'Fotoğrafın güncellenemedi. Tekrar dene.';
+
+  @override
   String get acctCancel => 'Vazgeç';
 
   @override

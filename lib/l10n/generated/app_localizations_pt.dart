@@ -9766,6 +9766,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get acctChooseFromLibrary => 'Escolher da biblioteca';
 
   @override
+  String get acctViewPhoto => 'Ver foto';
+
+  @override
+  String get acctPhotoUpdateFailed =>
+      'Não foi possível atualizar a tua foto. Tenta novamente.';
+
+  @override
   String get acctCancel => 'Cancelar';
 
   @override
@@ -26855,6 +26862,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get acctChooseFromLibrary => 'Escolher da biblioteca';
+
+  @override
+  String get acctViewPhoto => 'Ver foto';
+
+  @override
+  String get acctPhotoUpdateFailed =>
+      'Não foi possível atualizar sua foto. Tente de novo.';
 
   @override
   String get acctCancel => 'Cancelar';

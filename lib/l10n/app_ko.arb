@@ -2674,6 +2674,8 @@
   "acctSaveToPhotos": "사진에 저장",
   "acctTakeSelfie": "셀카 찍기",
   "acctChooseFromLibrary": "보관함에서 선택",
+  "acctViewPhoto": "사진 보기",
+  "acctPhotoUpdateFailed": "사진을 업데이트하지 못했어요. 다시 시도해 주세요.",
   "acctCancel": "취소",
   "acctSave": "저장",
   "acctChange": "변경",

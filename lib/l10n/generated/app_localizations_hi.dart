@@ -9673,6 +9673,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get acctChooseFromLibrary => 'लाइब्रेरी से चुनें';
 
   @override
+  String get acctViewPhoto => 'फ़ोटो देखें';
+
+  @override
+  String get acctPhotoUpdateFailed =>
+      'आपकी फ़ोटो अपडेट नहीं हो सकी। फिर से कोशिश करें।';
+
+  @override
   String get acctCancel => 'रद्द करें';
 
   @override

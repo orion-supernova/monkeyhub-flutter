@@ -16201,6 +16201,18 @@ abstract class AppLocalizations {
   /// **'Choose from library'**
   String get acctChooseFromLibrary;
 
+  /// Profile-photo sheet option: open your current profile photo full screen.
+  ///
+  /// In en, this message translates to:
+  /// **'View photo'**
+  String get acctViewPhoto;
+
+  /// Toast when uploading a new profile photo fails (network or server error).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update your photo. Try again.'**
+  String get acctPhotoUpdateFailed;
+
   /// Cancel button in profile sheets and dialogs.
   ///
   /// In en, this message translates to:

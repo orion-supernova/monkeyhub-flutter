@@ -2674,6 +2674,8 @@
   "acctSaveToPhotos": "حفظ في الصور",
   "acctTakeSelfie": "التقط صورة سيلفي",
   "acctChooseFromLibrary": "اختر من المكتبة",
+  "acctViewPhoto": "عرض الصورة",
+  "acctPhotoUpdateFailed": "تعذّر تحديث صورتك. حاول مرة أخرى.",
   "acctCancel": "إلغاء",
   "acctSave": "حفظ",
   "acctChange": "تغيير",

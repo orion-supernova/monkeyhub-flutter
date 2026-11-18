@@ -9652,6 +9652,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get acctChooseFromLibrary => 'Choose from library';
 
   @override
+  String get acctViewPhoto => 'View photo';
+
+  @override
+  String get acctPhotoUpdateFailed => 'Couldn\'t update your photo. Try again.';
+
+  @override
   String get acctCancel => 'Cancel';
 
   @override

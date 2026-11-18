@@ -11142,6 +11142,14 @@
   "@acctChooseFromLibrary": {
     "description": "Profile-photo sheet option: pick a photo from the library."
   },
+  "acctViewPhoto": "View photo",
+  "@acctViewPhoto": {
+    "description": "Profile-photo sheet option: open your current profile photo full screen."
+  },
+  "acctPhotoUpdateFailed": "Couldn't update your photo. Try again.",
+  "@acctPhotoUpdateFailed": {
+    "description": "Toast when uploading a new profile photo fails (network or server error)."
+  },
   "acctCancel": "Cancel",
   "@acctCancel": {
     "description": "Cancel button in profile sheets and dialogs."

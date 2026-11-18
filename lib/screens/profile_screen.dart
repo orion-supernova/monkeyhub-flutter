@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart' show CameraLensDirection;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/cupertino.dart'
     show CupertinoActivityIndicator, CupertinoIcons;
 import 'package:flutter/material.dart';
@@ -816,14 +817,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _u.avatarStorageId != null &&
       _u.avatarStorageId!.isNotEmpty;
 
-  /// On a phone the picture opens by pulling the page down (see
-  /// [HeroPage.expandedPhoto]), so the circle takes no tap there.
-  bool get _avatarTapOpens => _canViewAvatar && !context.isCompact;
+  /// Someone else's picture opens full screen on a tap. On a phone it opens by
+  /// pulling the page down instead (see [HeroPage.expandedPhoto]).
+  bool get _avatarTapOpens => !_isMe && _canViewAvatar && !context.isCompact;
 
-  /// Your own circle with no picture in it: the tap goes where the camera
-  /// badge goes. A 32pt badge was the only door, and a tester on desktop never
-  /// found it (2026-11-17, a diagnostics report begging for a profile photo).
-  bool get _avatarTapChanges => _isMe && !_canViewAvatar;
+  /// Your own circle always opens the photo sheet, picture or not; the sheet
+  /// carries "View photo" when there is one. A 32pt badge was the only door:
+  /// a desktop tester with no photo never found it (2026-11-17), and on a
+  /// phone a circle that already had a photo took no tap at all, so replacing
+  /// it was impossible for anyone who missed the badge (2026-11-18).
+  bool get _avatarTapChanges => _isMe;
 
   VoidCallback? get _avatarTap => _avatarTapOpens
       ? _openAvatarFullscreen
@@ -849,10 +852,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _openAvatarSheet() async {
     final action = await showAvatarActionSheet(
       context,
-      hasAvatar: _u.avatarStorageId != null && _u.avatarStorageId!.isNotEmpty,
+      hasAvatar: _canViewAvatar,
     );
     if (action == null || !mounted) return;
     switch (action) {
+      case AvatarAction.view:
+        _openAvatarFullscreen();
+        break;
       case AvatarAction.download:
         await _downloadAvatar();
         break;
@@ -913,6 +919,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // The camera's own shortcut into the photo library. `_busy` is already
         // raised, and the library path re-raises it harmlessly.
         await _pickAndUploadAvatarFromLibrary();
+      case CameraUnavailable() when _noSystemCamera:
+        // No in-app camera (a PC with no webcam, or one another app holds)
+        // and no system camera to fall back to: `image_picker` on Windows,
+        // macOS and Linux throws a StateError for `ImageSource.camera`, which
+        // left the avatar spinning for good. The library still sets a photo.
+        await _pickAndUploadAvatarFromLibrary();
       case CameraUnavailable():
         // The in-app camera could not start. Fall back to the system camera so
         // there is still a way to set a picture. Not mirrored: `image_picker`
@@ -927,6 +939,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await _uploadAvatar(null); // cancelled — clears the spinner
     }
   }
+
+  /// Desktop `image_picker` implementations have no system camera without a
+  /// registered camera delegate, which this app does not register.
+  static bool get _noSystemCamera =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.windows ||
+          defaultTargetPlatform == TargetPlatform.macOS ||
+          defaultTargetPlatform == TargetPlatform.linux);
 
   Future<void> _pickAndUploadAvatarFromLibrary() async {
     if (widget.api == null || widget.repo?.userId == null) return;
@@ -1010,11 +1030,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await api.updateAvatar(userId: repo!.userId!, storageId: storageId);
       await _refresh();
     } catch (e) {
-      // Silent unless a server limit refused it (file too large, storage
-      // full, too many uploads): that the user can't fix by retrying.
+      // A server limit (file too large, storage full, too many uploads) gets
+      // its own words; anything else still gets a word, because a spinner
+      // that stops on the old picture reads as nothing having happened.
       if (mounted) {
-        final limit = serverLimitMessage(e, AppLocalizations.of(context));
-        if (limit != null) showAppToast(context, limit);
+        final l10n = AppLocalizations.of(context);
+        showAppToast(
+          context,
+          serverLimitMessage(e, l10n) ?? l10n.acctPhotoUpdateFailed,
+        );
       }
     } finally {
       if (mounted) {
@@ -1852,7 +1876,7 @@ class _EditFieldSheetState extends State<_EditFieldSheet> {
       );
 }
 
-enum AvatarAction { download, capture, library }
+enum AvatarAction { view, download, capture, library }
 
 Future<AvatarAction?> showAvatarActionSheet(
   BuildContext context, {
@@ -1864,10 +1888,18 @@ Future<AvatarAction?> showAvatarActionSheet(
     context,
     title: l10n.acctProfilePhoto,
     actions: [
-      // Not in a browser: `gal` writes to the system photo library and ships
-      // no web implementation, so the choice would throw
-      // MissingPluginException the moment it was tapped.
-      if (hasAvatar && !kIsWeb)
+      if (hasAvatar)
+        IosSheetAction(
+          label: l10n.acctViewPhoto,
+          value: AvatarAction.view,
+          icon: CupertinoIcons.person_crop_circle,
+        ),
+      // Not in a browser or on Linux: `gal` writes to the system photo
+      // library and ships no implementation for either, so the choice would
+      // throw MissingPluginException the moment it was tapped.
+      if (hasAvatar &&
+          !kIsWeb &&
+          defaultTargetPlatform != TargetPlatform.linux)
         IosSheetAction(
           label: l10n.acctSaveToPhotos,
           value: AvatarAction.download,

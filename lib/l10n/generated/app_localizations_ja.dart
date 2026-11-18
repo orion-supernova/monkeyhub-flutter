@@ -9266,6 +9266,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get acctChooseFromLibrary => 'ライブラリから選択';
 
   @override
+  String get acctViewPhoto => '写真を表示';
+
+  @override
+  String get acctPhotoUpdateFailed => '写真を更新できませんでした。もう一度お試しください。';
+
+  @override
   String get acctCancel => 'キャンセル';
 
   @override

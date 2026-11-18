@@ -2674,6 +2674,8 @@
   "acctSaveToPhotos": "फ़ोटो में सहेजें",
   "acctTakeSelfie": "सेल्फ़ी लें",
   "acctChooseFromLibrary": "लाइब्रेरी से चुनें",
+  "acctViewPhoto": "फ़ोटो देखें",
+  "acctPhotoUpdateFailed": "आपकी फ़ोटो अपडेट नहीं हो सकी। फिर से कोशिश करें।",
   "acctCancel": "रद्द करें",
   "acctSave": "सहेजें",
   "acctChange": "बदलें",

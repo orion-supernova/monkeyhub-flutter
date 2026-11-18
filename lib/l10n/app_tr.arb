@@ -2674,6 +2674,8 @@
   "acctSaveToPhotos": "Fotoğraflar'a kaydet",
   "acctTakeSelfie": "Selfie çek",
   "acctChooseFromLibrary": "Arşivden seç",
+  "acctViewPhoto": "Fotoğrafı gör",
+  "acctPhotoUpdateFailed": "Fotoğrafın güncellenemedi. Tekrar dene.",
   "acctCancel": "Vazgeç",
   "acctSave": "Kaydet",
   "acctChange": "Değiştir",

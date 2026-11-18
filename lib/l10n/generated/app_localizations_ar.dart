@@ -9837,6 +9837,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get acctChooseFromLibrary => 'اختر من المكتبة';
 
   @override
+  String get acctViewPhoto => 'عرض الصورة';
+
+  @override
+  String get acctPhotoUpdateFailed => 'تعذّر تحديث صورتك. حاول مرة أخرى.';
+
+  @override
   String get acctCancel => 'إلغاء';
 
   @override

@@ -9290,6 +9290,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get acctChooseFromLibrary => '보관함에서 선택';
 
   @override
+  String get acctViewPhoto => '사진 보기';
+
+  @override
+  String get acctPhotoUpdateFailed => '사진을 업데이트하지 못했어요. 다시 시도해 주세요.';
+
+  @override
   String get acctCancel => '취소';
 
   @override

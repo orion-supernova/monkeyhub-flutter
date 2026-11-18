@@ -2674,6 +2674,8 @@
   "acctSaveToPhotos": "存储到照片",
   "acctTakeSelfie": "自拍",
   "acctChooseFromLibrary": "从图库选取",
+  "acctViewPhoto": "查看照片",
+  "acctPhotoUpdateFailed": "无法更新你的照片，请重试。",
   "acctCancel": "取消",
   "acctSave": "保存",
   "acctChange": "更改",

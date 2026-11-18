@@ -600,6 +600,7 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
 <tr><td><code>chat_row_swipe.dart</code></td><td>Labels were one line in an unbounded box, so "Sabitlemeyi kaldır" ran off both edges of the 74pt button</td><td><span class="pill ok">fixed 2026-11-16: up to two centred lines at the settled button width (no reflow mid-swipe)</span></td></tr>
 <tr><td>Add to Folder (<code>home_screen.dart</code>)</td><td>With no folders the picker was a one-row pull-down ("New Folder") floating over the next row</td><td><span class="pill ok">fixed 2026-11-16: no folders opens the editor straight away with the chat in it</span></td></tr>
 <tr><td><code>sheet_kit.dart</code> action sheet (Tell friends confirm)</td><td>The confirm's only answer, "Send it", looked disabled: a plain row in the recessed grey group, under a raised, shadowed Cancel capsule, so Cancel read as the live button. A plain row is right in a menu of choices, wrong for a one-answer confirm</td><td><span class="pill ok">fixed 2026-11-16: <code>IosSheetAction.prominent</code> draws the answer as the destructive pill's recipe in the accent (own pill, accent label); <code>confirmTellFriends</code> uses it. Preview: <code>dialog_sheets_preview.dart --plain-name tell</code></span></td></tr>
+<tr><td><code>profile_screen.dart</code> own avatar</td><td>Support mail (Windows user) and a repro on iPhone: no way to change a profile picture you already have. On a phone the 2026-11-16 decision took the tap off the circle, so only the 32pt camera badge opened the sheet. On desktop the circle opened full screen instead. Two Windows-only traps on the same path: with no webcam, the fallback asked <code>image_picker</code> for a system camera, which throws a <code>StateError</code> on Windows, macOS and Linux and left the avatar spinning for good; and a failed upload said nothing</td><td><span class="pill ok">fixed 2026-11-18: your own circle always opens the photo sheet, which gains "View photo" when you have one; desktop falls back to the library when the camera cannot start; any upload failure shows a toast; "Save to Photos" hidden on Linux (no <code>gal</code> there)</span></td></tr>
 </table></div>
 
 <!-- ======================================================================= -->
@@ -637,7 +638,9 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
 <h2 id="decisions">11. Decisions log</h2>
 <ul>
   <li><strong>2026-11-16</strong> On a phone, a person's picture opens by pulling the profile down (full-width photo), so
-  the avatar takes no tap there; tablets and desktop, which have no pull, keep tap to open. Group pictures keep the tap.</li>
+  the avatar takes no tap there; tablets and desktop, which have no pull, keep tap to open. Group pictures keep the tap.
+  <strong>Amended 2026-11-18:</strong> this applies to other people's pictures only. Your own circle always opens the photo
+  sheet (replace, view, save), because a badge alone was not a findable way to change it.</li>
   <li><strong>2026-11-16</strong> Tab long-press menus (Chats: folders, Calls: hide) are one data list
   (<code>tab_menus.dart</code>) drawn twice: a <code>UIContextMenuInteraction</code> on the native UITabBar (real iOS menu,
   nil for tabs without one so the system's hold-to-drag still works) and <code>showPullDownMenu</code> on the Flutter bars.

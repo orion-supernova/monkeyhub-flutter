@@ -9160,6 +9160,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get acctChooseFromLibrary => '从图库选取';
 
   @override
+  String get acctViewPhoto => '查看照片';
+
+  @override
+  String get acctPhotoUpdateFailed => '无法更新你的照片，请重试。';
+
+  @override
   String get acctCancel => '取消';
 
   @override

@@ -2674,6 +2674,8 @@
   "acctSaveToPhotos": "Spara i Bilder",
   "acctTakeSelfie": "Ta en selfie",
   "acctChooseFromLibrary": "Välj från biblioteket",
+  "acctViewPhoto": "Visa foto",
+  "acctPhotoUpdateFailed": "Det gick inte att uppdatera ditt foto. Försök igen.",
   "acctCancel": "Avbryt",
   "acctSave": "Spara",
   "acctChange": "Ändra",

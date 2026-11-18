@@ -9698,6 +9698,13 @@ class AppLocalizationsSv extends AppLocalizations {
   String get acctChooseFromLibrary => 'Välj från biblioteket';
 
   @override
+  String get acctViewPhoto => 'Visa foto';
+
+  @override
+  String get acctPhotoUpdateFailed =>
+      'Det gick inte att uppdatera ditt foto. Försök igen.';
+
+  @override
   String get acctCancel => 'Avbryt';
 
   @override

@@ -9808,6 +9808,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get acctChooseFromLibrary => 'Choisir dans la photothèque';
 
   @override
+  String get acctViewPhoto => 'Voir la photo';
+
+  @override
+  String get acctPhotoUpdateFailed =>
+      'Impossible de mettre à jour ta photo. Réessaie.';
+
+  @override
   String get acctCancel => 'Annuler';
 
   @override
