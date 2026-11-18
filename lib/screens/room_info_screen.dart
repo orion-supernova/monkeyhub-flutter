@@ -1063,13 +1063,12 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     return HeroPage(
       title: title,
       hero: _hero(theme, r, peer, title, caps),
-      // A person's picture opens full width on a pull, as in Telegram. Rooms
-      // keep the plain rubber band.
-      expandedPhoto: r.isDm &&
-              peer?.avatarStorageId != null &&
-              peer!.avatarStorageId!.isNotEmpty
+      // Any real picture opens full width on a pull, as in Telegram: the
+      // person's in a DM, the room's own in a group. A monogram or the Saved
+      // Messages face has nothing to open, so those keep the plain rubber band.
+      expandedPhoto: _pullPhotoId(r, peer) != null
           ? (context, size) => RemoteImage(
-                storageId: peer.avatarStorageId!,
+                storageId: _pullPhotoId(r, peer)!,
                 api: widget.api,
                 width: size.width,
                 height: size.height,
@@ -1529,6 +1528,14 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
 
   /// How far the camera badge hangs past the avatar's circle.
   static const _badgeOverhang = 2.0;
+
+  /// The picture a pull-down opens: the peer's in a DM, the room's own
+  /// otherwise. Null when there is no real picture to open.
+  String? _pullPhotoId(ChatRoom r, ChatUser? peer) {
+    if (r.isSavedMessages) return null;
+    final id = r.isDm ? peer?.avatarStorageId : r.avatarStorageId;
+    return id == null || id.isEmpty ? null : id;
+  }
 
   void _openAvatarFullscreen({
     required String storageId,

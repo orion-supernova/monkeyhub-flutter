@@ -641,6 +641,9 @@ settings migration from <code>GlassEngine</code>, Lite skin in <code>LiquidGlass
   the avatar takes no tap there; tablets and desktop, which have no pull, keep tap to open. Group pictures keep the tap.
   <strong>Amended 2026-11-18:</strong> this applies to other people's pictures only. Your own circle always opens the photo
   sheet (replace, view, save), because a badge alone was not a findable way to change it.</li>
+  <li><strong>2026-11-18</strong> Group and room info pages open the room's picture full width on a pull, as DMs and
+  profiles do, when there is a real picture (a monogram or Saved Messages keeps the plain rubber band). The camera badge
+  and the circle both stay tappable; on your own profile both open the same photo sheet.</li>
   <li><strong>2026-11-16</strong> Tab long-press menus (Chats: folders, Calls: hide) are one data list
   (<code>tab_menus.dart</code>) drawn twice: a <code>UIContextMenuInteraction</code> on the native UITabBar (real iOS menu,
   nil for tabs without one so the system's hold-to-drag still works) and <code>showPullDownMenu</code> on the Flutter bars.
