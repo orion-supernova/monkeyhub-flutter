@@ -17104,4 +17104,23 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get authErrorAgeInvalid =>
       'Esa fecha no parece correcta. Revisa el mes y el año.';
+
+  @override
+  String get continueAsTitle => 'Hola de nuevo';
+
+  @override
+  String get continueAsIntro =>
+      'Tu cuenta está guardada en la cuenta de Apple o Google de este dispositivo, así que puedes seguir aquí mismo. Sin código.';
+
+  @override
+  String continueAsButton(String name) {
+    return 'Continuar como $name';
+  }
+
+  @override
+  String get continueAsOther => 'Usar otra cuenta';
+
+  @override
+  String get continueAsFailed =>
+      'Ese inicio de sesión guardado ya no funciona. Pide a un adulto un código nuevo.';
 }

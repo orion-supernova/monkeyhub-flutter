@@ -16070,4 +16070,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get authErrorAgeInvalid => '这个日期看起来不对。请检查年份和月份。';
+
+  @override
+  String get continueAsTitle => '欢迎回来';
+
+  @override
+  String get continueAsIntro =>
+      '你的账号已保存在这台设备的 Apple 或 Google 账号中，可以直接在这里继续。无需代码。';
+
+  @override
+  String continueAsButton(String name) {
+    return '以 $name 身份继续';
+  }
+
+  @override
+  String get continueAsOther => '使用其他账号';
+
+  @override
+  String get continueAsFailed => '保存的登录已失效。请向大人要一个新代码。';
 }

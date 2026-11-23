@@ -16985,4 +16985,23 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get authErrorAgeInvalid =>
       'Datumet ser inte rätt ut. Kontrollera månad och år.';
+
+  @override
+  String get continueAsTitle => 'Välkommen tillbaka';
+
+  @override
+  String get continueAsIntro =>
+      'Ditt konto är sparat på enhetens Apple- eller Google-konto, så du kan fortsätta direkt här. Ingen kod behövs.';
+
+  @override
+  String continueAsButton(String name) {
+    return 'Fortsätt som $name';
+  }
+
+  @override
+  String get continueAsOther => 'Använd ett annat konto';
+
+  @override
+  String get continueAsFailed =>
+      'Den sparade inloggningen fungerar inte längre. Be en vuxen om en ny kod.';
 }

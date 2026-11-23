@@ -16918,4 +16918,23 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get authErrorAgeInvalid =>
       'यह तारीख सही नहीं लग रही। महीना और साल जाँचें।';
+
+  @override
+  String get continueAsTitle => 'फिर से स्वागत है';
+
+  @override
+  String get continueAsIntro =>
+      'आपका खाता इस डिवाइस के Apple या Google खाते में सेव है, इसलिए आप यहीं से जारी रख सकते हैं। कोई कोड नहीं चाहिए।';
+
+  @override
+  String continueAsButton(String name) {
+    return '$name के रूप में जारी रखें';
+  }
+
+  @override
+  String get continueAsOther => 'दूसरा खाता इस्तेमाल करें';
+
+  @override
+  String get continueAsFailed =>
+      'सेव किया गया साइन-इन अब काम नहीं कर रहा। किसी बड़े से नया कोड मांगें।';
 }

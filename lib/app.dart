@@ -1918,6 +1918,14 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         // Sticker packs, recents/favourites and the KLIPY config, ready before
         // anyone opens the composer's expression panel.
         unawaited(ExpressionStore.instance.attach(_api, s.userId));
+        // A child account's synced "Continue as" key, so the same Apple /
+        // Google account's next device skips pairing. Only in front: on
+        // Android it is a system prompt, and this also runs headless.
+        if (s.isChild &&
+            WidgetsBinding.instance.lifecycleState ==
+                AppLifecycleState.resumed) {
+          unawaited(_auth.ensureContinueKey());
+        }
         // Deliberately NOT awaited — see the note above. Push registration is
         // a best-effort background concern; nothing in this method may block
         // on it. The opt-out still has to follow the login that would

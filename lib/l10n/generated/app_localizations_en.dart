@@ -16945,4 +16945,23 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authErrorAgeInvalid =>
       'That date doesn’t look right. Check the month and year.';
+
+  @override
+  String get continueAsTitle => 'Welcome back';
+
+  @override
+  String get continueAsIntro =>
+      'Your account is saved to this device\'s Apple or Google account, so you can pick up right here. No code needed.';
+
+  @override
+  String continueAsButton(String name) {
+    return 'Continue as $name';
+  }
+
+  @override
+  String get continueAsOther => 'Use another account';
+
+  @override
+  String get continueAsFailed =>
+      'That saved sign-in has stopped working. Ask a grown-up for a new code.';
 }

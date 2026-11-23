@@ -1,4 +1,6 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/gestures.dart' show TapGestureRecognizer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
@@ -6,10 +8,12 @@ import 'package:flutter/services.dart' show HapticFeedback;
 import '../auth/age_gate.dart';
 import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
+import '../auth/continue_store.dart';
 import '../auth/recovery_phrase.dart';
 import '../auth/session_guard.dart';
 import '../auth/session_store.dart';
 import '../auth/social_sign_in.dart';
+import '../backend/convex_client.dart' show ServerRefusal;
 import '../backend/server_directory.dart';
 import '../backend/server_store.dart';
 import '../keyboard/dismiss_keyboard_on_tap.dart';
@@ -35,6 +39,7 @@ import '../widgets/terms_consent.dart';
 import '../widgets/username_status_label.dart';
 import '../widgets/ios_kit.dart';
 import 'child_pair_screen.dart';
+import 'continue_as_screen.dart';
 import 'device_login_screen.dart';
 import 'recovery_phrase_screen.dart';
 import 'server_screen.dart';
@@ -147,6 +152,12 @@ class _LoginScreenState extends State<LoginScreen> {
   /// form, and this is purely a deliberate, reversible detour off it.
   bool _deviceLogin = false;
 
+  /// Child accounts this install can continue as, found in the Apple ID's
+  /// synced keychain ([ContinueStore]). Non-empty shows [ContinueAsScreen]
+  /// over everything else until the person picks one or dismisses it.
+  /// Android never fills this: its system sheet asks instead.
+  List<ContinueAccount> _continueAccounts = const [];
+
   final _username = TextEditingController();
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
@@ -184,6 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _offerContinue());
     // Landed here because a moderator banned the account: say so, rather
     // than looking like an ordinary sign-out. See `SessionGuard`.
     if (SessionGuard.instance.takeSuspendedNotice()) {
@@ -205,6 +217,40 @@ class _LoginScreenState extends State<LoginScreen> {
           _error = AppLocalizations.of(context).authErrorAgeRestricted(kSupportEmail);
         });
       });
+    }
+  }
+
+  /// Looks for a child account saved to this device's Apple / Google account
+  /// by one of the account's other devices, and offers to continue as it,
+  /// instead of pairing again with a guardian's code.
+  ///
+  /// Not after a ban or an age restriction: the notice on screen is the point.
+  Future<void> _offerContinue() async {
+    final store = ContinueStore.instance;
+    if (!mounted || !store.supported || _suspended) return;
+    final found = await store.find();
+    if (!mounted || found.isEmpty || widget.auth.isSignedIn) return;
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      setState(() => _continueAccounts = found);
+      return;
+    }
+    // Android: the system sheet already asked, and this is what was picked.
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await widget.auth.continueAs(found.first);
+    } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      setState(() {
+        _error = e is ServerRefusal && e.code == 'CONTINUE_KEY_INVALID'
+            ? l10n.continueAsFailed
+            : _humanize(e);
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -522,6 +568,13 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    if (_continueAccounts.isNotEmpty) {
+      return ContinueAsScreen(
+        auth: widget.auth,
+        accounts: _continueAccounts,
+        onDismiss: () => setState(() => _continueAccounts = const []),
+      );
+    }
     if (_deviceLogin) {
       return DeviceLoginScreen(
         auth: widget.auth,

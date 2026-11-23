@@ -641,6 +641,17 @@ EOF</code></pre>
 <tr><td><code>age:submit</code>, under 13</td><td>+ &le; 100 live sessions, own memberships</td><td>+ 1 per live session, presence, public-room removals</td><td>Friends' presence and public rosters, once</td><td>0</td></tr>
 <tr><td><code>resolveSession</code> / <code>mintSession</code></td><td>0 extra; 1 get on a session revoked for age (cold)</td><td>0</td><td>0</td><td>0</td></tr>
 </table></div>
+<h3>Decided 2026-11-23</h3>
+<ol>
+  <li><b>"Continue as" for child accounts on a second device of the same Apple / Google account</b> (<code>continueKeys.ts</code>). Reported: a child paired on their phone installed the app on a Huawei tablet signed into the same Google account and had to be paired with a guardian's code again. A signed-in child device mints a 256-bit key (<code>continueKeys:mint</code>, plaintext returned once, sha256 stored) and saves it to the account's synced store: iCloud Keychain (synchronizable item <code>mh.continue</code>, up to 5 accounts for siblings sharing an Apple ID) or Google Password Manager through Credential Manager (<code>ContinueCredentialBridge.kt</code>; username = handle, password = key). A fresh install finds it on the login screen and asks: our own "Continue as" screen on Apple, the system "Sign in as" sheet on Android. <code>continueKeys:redeem</code> (tokenless) registers the device and mints a session like pairing does. Web, Windows and Linux have no synced store and keep pairing.</li>
+  <li><b>Child accounts only, enforced on the server.</b> Families share one Apple ID or Google account between a parent's phone and a kid's iPad; an adult key in that shared store would let the kid continue as the parent and skip the password. Mint refuses non-child accounts (<code>CHILD_NOT_ALLOWED</code>) and redeem refuses a graduated account. The guardian still sees and can sign out every device in Devices.</li>
+  <li><b>Growth (R14):</b> <code>continueKeys</code> is bounded by its parent: at most 5 rows per user (oldest evicted on mint), cascaded with the account (<code>referenceRules</code>), and a key unused for 180 days is refused and deleted on contact. No cron.</li>
+</ol>
+<div class="tbl"><table>
+<tr><th>Action</th><th>Reads</th><th>Writes</th><th>Re-runs</th><th>Idle</th></tr>
+<tr><td><code>continueKeys:mint</code> (once per child device; Apple re-checks the keychain locally each launch, no call)</td><td>1 get + &le; 6 rows by_user</td><td>1 insert, &le; 1 delete</td><td>0 (no subscription reads the table)</td><td>0</td></tr>
+<tr><td><code>continueKeys:redeem</code> (once per new device)</td><td>1 by_keyHash, user, device row, + <code>mintSession</code></td><td>key patch, device upsert, presence, + <code>mintSession</code></td><td>Same as a pairing</td><td>0</td></tr>
+</table></div>
 <h3>Recommended order</h3>
 <ol>
   <li>Phase A: A1 (mirror off), A2 (file reaper), A3 (cache + purge; needs the Cloudflare token).</li>

@@ -16865,4 +16865,23 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get authErrorAgeInvalid =>
       'Bu tarih doğru görünmüyor. Ayı ve yılı kontrol et.';
+
+  @override
+  String get continueAsTitle => 'Tekrar hoş geldin';
+
+  @override
+  String get continueAsIntro =>
+      'Hesabın bu cihazın Apple veya Google hesabına kayıtlı, kaldığın yerden devam edebilirsin. Kod gerekmez.';
+
+  @override
+  String continueAsButton(String name) {
+    return '$name olarak devam et';
+  }
+
+  @override
+  String get continueAsOther => 'Başka bir hesap kullan';
+
+  @override
+  String get continueAsFailed =>
+      'Kayıtlı giriş artık çalışmıyor. Bir büyüğünden yeni bir kod iste.';
 }

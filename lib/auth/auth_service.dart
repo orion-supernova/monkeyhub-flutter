@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
@@ -10,6 +11,7 @@ import '../models/family.dart';
 import '../push/device_identity.dart';
 import '../push/push_manager.dart';
 import 'age_gate.dart' show BirthMonth;
+import 'continue_store.dart';
 import 'session_guard.dart';
 import 'session_store.dart';
 import 'social_sign_in.dart';
@@ -206,6 +208,80 @@ class AuthService extends ChangeNotifier {
       accountType: AccountType.child,
     );
     notifyListeners();
+  }
+
+  /// Continues as a child account found in the platform account's synced
+  /// store (see [ContinueStore]): the second-device path that skips pairing.
+  /// The backend only ever hands these out for child accounts.
+  ///
+  /// A refused key is dropped from the store so it is not offered again.
+  Future<void> continueAs(ContinueAccount account) async {
+    final deviceId = await DeviceIdentity.ensure();
+    final AuthResult res;
+    try {
+      res = await _api.redeemContinueKey(
+        key: account.key,
+        deviceId: deviceId,
+        platform: DeviceIdentity.platformTag(),
+        deviceName: await DeviceIdentity.displayName(),
+      );
+    } on ServerRefusal catch (e) {
+      if (e.code == 'CONTINUE_KEY_INVALID') {
+        await ContinueStore.instance.remove(
+          userId: account.userId,
+          username: account.username,
+        );
+      }
+      rethrow;
+    }
+    await _persistSession(res, accountType: AccountType.child);
+    _session = Session(
+      userId: res.userId,
+      username: res.username,
+      name: res.name,
+      accountType: AccountType.child,
+    );
+    notifyListeners();
+  }
+
+  /// Makes sure this child account's key is in the platform account's synced
+  /// store, so the account's next device can continue instead of pairing.
+  ///
+  /// Apple: silent, and re-run on every signed-in launch so an item deleted
+  /// elsewhere heals. Android: the save is a system prompt, so it is asked
+  /// once per account per device and never again, whatever the answer.
+  /// Callers run it only while the app is in front, since that prompt needs
+  /// an activity to draw on.
+  /// Never throws: this is a convenience, not part of signing in.
+  Future<void> ensureContinueKey() async {
+    final s = _session;
+    final store = ContinueStore.instance;
+    if (s == null || !s.isChild || !store.supported) return;
+    try {
+      if (await store.hasApple(s.userId)) return;
+      final askedKey = 'mh.continueAsked.${s.userId}';
+      final prefs = await SharedPreferences.getInstance();
+      if (defaultTargetPlatform == TargetPlatform.android &&
+          (prefs.getBool(askedKey) ?? false)) {
+        return;
+      }
+      final key = await _api.mintContinueKey();
+      if (_session?.userId != s.userId) return;
+      final saved = await store.save(ContinueAccount(
+        userId: s.userId,
+        username: s.username,
+        name: s.name,
+        key: key,
+      ));
+      // Asked and answered: never prompt again on this device. A save that
+      // could not even be shown (no Play services, no activity) is retried
+      // on a later launch.
+      if (saved != ContinueSave.unavailable) {
+        await prefs.setBool(askedKey, true);
+      }
+    } catch (e) {
+      debugPrint('[auth] ensureContinueKey failed: $e');
+    }
   }
 
   Future<void> _persistSession(
@@ -472,6 +548,12 @@ class AuthService extends ChangeNotifier {
   Future<void> releaseChildDevice() async {
     final s = _session;
     if (s != null) {
+      // Handed back: stop offering "Continue as" this child on the account's
+      // devices (Apple; Android cannot delete a saved password).
+      await ContinueStore.instance.remove(
+        userId: s.userId,
+        username: s.username,
+      );
       try {
         await _api.logout(userId: s.userId);
       } catch (_) {}

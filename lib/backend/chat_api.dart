@@ -2829,6 +2829,36 @@ class ChatApi {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Continue keys — "Continue as @name" on another device of the same Apple /
+  // Google account. See backend `continueKeys.ts`.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Mints a key for the signed-in account. The plaintext comes back once and
+  /// goes straight into the synced credential store.
+  Future<String> mintContinueKey() async {
+    final res = await _cv.mutation('continueKeys:mint', const {});
+    return ((res as Map)['key'] as String);
+  }
+
+  /// Trades a synced key for a session on this device. Same shape as pairing,
+  /// `accountType` included.
+  Future<AuthResult> redeemContinueKey({
+    required String key,
+    required String deviceId,
+    required String platform,
+    String? deviceName,
+  }) async {
+    final res = await _cv.mutation('continueKeys:redeem', {
+      'key': key,
+      'deviceId': deviceId,
+      'deviceSecret': await DeviceIdentity.ensureSecret(),
+      'platform': platform,
+      'deviceName': ?deviceName,
+    });
+    return AuthResult.fromJson((res as Map).cast<String, dynamic>());
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Device login — QR / short-code sign-in for a signed-out web or desktop
   // client, approved from an already-signed-in phone. Mirrors the pairing-
   // code shape above (mint, hash, single-use, short TTL) but lives in its own
@@ -3406,10 +3436,14 @@ class AuthResult {
     required this.username,
     required this.name,
     required this.token,
+    this.accountType,
   });
   final String userId;
   final String username;
   final String name;
+
+  /// 'adult' | 'child', when the call reports it (pairing, continue keys).
+  final String? accountType;
 
   /// The bearer token, returned exactly once — at mint. It is not recoverable
   /// from the server afterwards (only its hash is stored), so a caller that
@@ -3420,6 +3454,7 @@ class AuthResult {
         username: (j['username']).toString(),
         name: (j['name']).toString(),
         token: (j['token'] ?? '').toString(),
+        accountType: j['accountType'] as String?,
       );
 }
 

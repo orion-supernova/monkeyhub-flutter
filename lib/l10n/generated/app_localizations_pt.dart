@@ -17109,6 +17109,25 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get authErrorAgeInvalid =>
       'Essa data não parece correta. Verifica o mês e o ano.';
+
+  @override
+  String get continueAsTitle => 'Bem-vindo de volta';
+
+  @override
+  String get continueAsIntro =>
+      'A tua conta está guardada na conta Apple ou Google deste dispositivo, por isso podes continuar aqui. Sem código.';
+
+  @override
+  String continueAsButton(String name) {
+    return 'Continuar como $name';
+  }
+
+  @override
+  String get continueAsOther => 'Usar outra conta';
+
+  @override
+  String get continueAsFailed =>
+      'Esse início de sessão guardado deixou de funcionar. Pede um código novo a um adulto.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -34194,4 +34213,23 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get authErrorAgeInvalid =>
       'Essa data não parece certa. Confira o mês e o ano.';
+
+  @override
+  String get continueAsTitle => 'Que bom te ver de novo';
+
+  @override
+  String get continueAsIntro =>
+      'Sua conta está salva na conta Apple ou Google deste dispositivo, então você pode continuar aqui mesmo. Sem código.';
+
+  @override
+  String continueAsButton(String name) {
+    return 'Continuar como $name';
+  }
+
+  @override
+  String get continueAsOther => 'Usar outra conta';
+
+  @override
+  String get continueAsFailed =>
+      'Esse login salvo parou de funcionar. Peça um código novo para um adulto.';
 }

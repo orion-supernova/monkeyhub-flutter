@@ -164,6 +164,12 @@ tasks.matching {
 }.configureEach { dependsOn(stripDevPluginsFromRegistrant) }
 
 dependencies {
+    // ContinueCredentialBridge — "Continue as @name" via Google Password
+    // Manager. Same version google_sign_in_android pins, declared because this
+    // module compiles against it directly.
+    implementation("androidx.credentials:credentials:1.6.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
+
     // FCM. Every push this app receives arrives through CallFcmService — call
     // wake-ups and ordinary notifications alike — as a data-only message we
     // render ourselves (ChatNotifications). There is no push SDK.

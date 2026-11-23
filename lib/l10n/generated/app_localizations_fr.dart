@@ -17175,4 +17175,23 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get authErrorAgeInvalid =>
       'Cette date ne semble pas correcte. Vérifie le mois et l’année.';
+
+  @override
+  String get continueAsTitle => 'Bon retour';
+
+  @override
+  String get continueAsIntro =>
+      'Ton compte est enregistré dans le compte Apple ou Google de cet appareil, tu peux reprendre ici. Aucun code nécessaire.';
+
+  @override
+  String continueAsButton(String name) {
+    return 'Continuer en tant que $name';
+  }
+
+  @override
+  String get continueAsOther => 'Utiliser un autre compte';
+
+  @override
+  String get continueAsFailed =>
+      'Cette connexion enregistrée ne fonctionne plus. Demande un nouveau code à un adulte.';
 }

@@ -4626,5 +4626,10 @@
   "ageGateOk": "Tamam",
   "ageWrongContactSupport": "Yaşım yanlış",
   "authErrorAgeRestricted": "Bu hesap 13 yaşından küçük birine ait olduğu için duraklatıldı. Bir ebeveynin senin için bir aile hesabı oluşturabilir. Yaşın yanlışsa {email} adresine e-posta gönder.",
-  "authErrorAgeInvalid": "Bu tarih doğru görünmüyor. Ayı ve yılı kontrol et."
+  "authErrorAgeInvalid": "Bu tarih doğru görünmüyor. Ayı ve yılı kontrol et.",
+  "continueAsTitle": "Tekrar hoş geldin",
+  "continueAsIntro": "Hesabın bu cihazın Apple veya Google hesabına kayıtlı, kaldığın yerden devam edebilirsin. Kod gerekmez.",
+  "continueAsButton": "{name} olarak devam et",
+  "continueAsOther": "Başka bir hesap kullan",
+  "continueAsFailed": "Kayıtlı giriş artık çalışmıyor. Bir büyüğünden yeni bir kod iste."
 }

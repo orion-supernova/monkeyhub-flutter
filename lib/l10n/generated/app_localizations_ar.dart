@@ -17200,4 +17200,23 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get authErrorAgeInvalid =>
       'يبدو أن هذا التاريخ غير صحيح. تحقق من الشهر والسنة.';
+
+  @override
+  String get continueAsTitle => 'مرحبًا بعودتك';
+
+  @override
+  String get continueAsIntro =>
+      'حسابك محفوظ في حساب Apple أو Google على هذا الجهاز، لذا يمكنك المتابعة من هنا. لا حاجة إلى رمز.';
+
+  @override
+  String continueAsButton(String name) {
+    return 'المتابعة باسم $name';
+  }
+
+  @override
+  String get continueAsOther => 'استخدام حساب آخر';
+
+  @override
+  String get continueAsFailed =>
+      'تسجيل الدخول المحفوظ لم يعد يعمل. اطلب رمزًا جديدًا من شخص بالغ.';
 }

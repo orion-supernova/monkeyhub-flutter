@@ -821,6 +821,21 @@ export default defineSchema({
     // Retention sweep (retention.ts): a consumed code is past its expiry too.
     .index("by_expires", ["expiresAt"]),
 
+  // "Continue as @name" on a new device of the same Apple / Google account
+  // (`continueKeys.ts`). The plaintext key lives only in that account's synced
+  // credential store (iCloud Keychain, Google Password Manager); we keep its
+  // sha256. Bounded by its parent: at most CONTINUE_KEYS_PER_USER rows per
+  // user, oldest evicted on mint, and cascaded with the account.
+  continueKeys: defineTable({
+    userId: v.id("users"),
+    keyHash: v.string(),
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+  })
+    .index("by_keyHash", ["keyHash"])
+    // Mint-time cap and account teardown.
+    .index("by_user", ["userId"]),
+
   // Short-lived, single-use codes that hand a child's device BACK — the exact
   // inverse of `pairingCodes`, and deliberately a separate table rather than a
   // `purpose` field on that one.

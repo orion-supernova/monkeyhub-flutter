@@ -68,6 +68,8 @@ class SessionGuard {
     'deviceLogin:exchangeDeviceLoginRequest',
     // A child's handset has no session until the code is redeemed.
     'family:redeemPairingCode',
+    // "Continue as @name" on a fresh install: the synced key is the credential.
+    'continueKeys:redeem',
     // Questions the login screen itself asks.
     'users:isUsernameAvailable',
     'serverDirectory:current',

@@ -16245,4 +16245,22 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authErrorAgeInvalid => '날짜가 올바르지 않은 것 같아요. 연도와 월을 확인하세요.';
+
+  @override
+  String get continueAsTitle => '다시 오신 것을 환영해요';
+
+  @override
+  String get continueAsIntro =>
+      '계정이 이 기기의 Apple 또는 Google 계정에 저장되어 있어 바로 이어서 할 수 있어요. 코드는 필요 없어요.';
+
+  @override
+  String continueAsButton(String name) {
+    return '$name(으)로 계속';
+  }
+
+  @override
+  String get continueAsOther => '다른 계정 사용';
+
+  @override
+  String get continueAsFailed => '저장된 로그인이 더 이상 작동하지 않아요. 어른에게 새 코드를 받아 주세요.';
 }

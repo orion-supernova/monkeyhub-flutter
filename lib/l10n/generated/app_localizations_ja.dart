@@ -16212,4 +16212,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get authErrorAgeInvalid => '日付が正しくないようです。年と月を確認してください。';
+
+  @override
+  String get continueAsTitle => 'おかえりなさい';
+
+  @override
+  String get continueAsIntro =>
+      'アカウントはこのデバイスの Apple または Google アカウントに保存されているので、ここからすぐに続けられます。コードは不要です。';
+
+  @override
+  String continueAsButton(String name) {
+    return '$name として続ける';
+  }
+
+  @override
+  String get continueAsOther => '別のアカウントを使う';
+
+  @override
+  String get continueAsFailed => '保存されたサインインは使えなくなりました。大人に新しいコードをもらってください。';
 }

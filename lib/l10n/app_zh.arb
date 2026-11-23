@@ -4626,5 +4626,10 @@
   "ageGateOk": "好",
   "ageWrongContactSupport": "我的年龄不对",
   "authErrorAgeRestricted": "此账户已暂停，因为它属于未满 13 岁的用户。家长可以为你创建家庭账户。如果你的年龄有误，请发送邮件至 {email}。",
-  "authErrorAgeInvalid": "这个日期看起来不对。请检查年份和月份。"
+  "authErrorAgeInvalid": "这个日期看起来不对。请检查年份和月份。",
+  "continueAsTitle": "欢迎回来",
+  "continueAsIntro": "你的账号已保存在这台设备的 Apple 或 Google 账号中，可以直接在这里继续。无需代码。",
+  "continueAsButton": "以 {name} 身份继续",
+  "continueAsOther": "使用其他账号",
+  "continueAsFailed": "保存的登录已失效。请向大人要一个新代码。"
 }

@@ -4626,5 +4626,10 @@
   "ageGateOk": "OK",
   "ageWrongContactSupport": "A minha idade está errada",
   "authErrorAgeRestricted": "Esta conta está em pausa porque pertence a alguém com menos de 13 anos. Um dos teus pais pode criar uma conta familiar para ti. Se a tua idade estiver errada, envia um email para {email}.",
-  "authErrorAgeInvalid": "Essa data não parece correta. Verifica o mês e o ano."
+  "authErrorAgeInvalid": "Essa data não parece correta. Verifica o mês e o ano.",
+  "continueAsTitle": "Bem-vindo de volta",
+  "continueAsIntro": "A tua conta está guardada na conta Apple ou Google deste dispositivo, por isso podes continuar aqui. Sem código.",
+  "continueAsButton": "Continuar como {name}",
+  "continueAsOther": "Usar outra conta",
+  "continueAsFailed": "Esse início de sessão guardado deixou de funcionar. Pede um código novo a um adulto."
 }

@@ -19835,5 +19835,15 @@
   "authErrorAgeInvalid": "That date doesn’t look right. Check the month and year.",
   "@authErrorAgeInvalid": {
     "description": "Error when the birth month and year are not a real past date."
-  }
+  },
+  "continueAsTitle": "Welcome back",
+  "@continueAsTitle": {"description": "Title of the screen offering to continue as a child account saved in this device's synced Apple/Google credential store."},
+  "continueAsIntro": "Your account is saved to this device's Apple or Google account, so you can pick up right here. No code needed.",
+  "@continueAsIntro": {"description": "Intro under the continue-as title. The account was found in the device's Apple or Google account, so no pairing code is needed."},
+  "continueAsButton": "Continue as {name}",
+  "@continueAsButton": {"description": "Button that signs in as the saved account. {name} is the account's display name or @username.", "placeholders": {"name": {"type": "String"}}},
+  "continueAsOther": "Use another account",
+  "@continueAsOther": {"description": "Link that dismisses the continue-as offer and shows the normal sign-in screen."},
+  "continueAsFailed": "That saved sign-in has stopped working. Ask a grown-up for a new code.",
+  "@continueAsFailed": {"description": "Error when the saved continue-as sign-in is no longer accepted. The reader is a child; a guardian can issue a new pairing code."}
 }

@@ -4626,5 +4626,10 @@
   "ageGateOk": "OK",
   "ageWrongContactSupport": "Mon âge est faux",
   "authErrorAgeRestricted": "Ce compte est en pause car il appartient à une personne de moins de 13 ans. Un parent peut te créer un compte familial. Si ton âge est faux, écris à {email}.",
-  "authErrorAgeInvalid": "Cette date ne semble pas correcte. Vérifie le mois et l’année."
+  "authErrorAgeInvalid": "Cette date ne semble pas correcte. Vérifie le mois et l’année.",
+  "continueAsTitle": "Bon retour",
+  "continueAsIntro": "Ton compte est enregistré dans le compte Apple ou Google de cet appareil, tu peux reprendre ici. Aucun code nécessaire.",
+  "continueAsButton": "Continuer en tant que {name}",
+  "continueAsOther": "Utiliser un autre compte",
+  "continueAsFailed": "Cette connexion enregistrée ne fonctionne plus. Demande un nouveau code à un adulte."
 }

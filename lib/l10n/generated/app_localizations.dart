@@ -27918,6 +27918,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That date doesn’t look right. Check the month and year.'**
   String get authErrorAgeInvalid;
+
+  /// Title of the screen offering to continue as a child account saved in this device's synced Apple/Google credential store.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back'**
+  String get continueAsTitle;
+
+  /// Intro under the continue-as title. The account was found in the device's Apple or Google account, so no pairing code is needed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is saved to this device\'s Apple or Google account, so you can pick up right here. No code needed.'**
+  String get continueAsIntro;
+
+  /// Button that signs in as the saved account. {name} is the account's display name or @username.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue as {name}'**
+  String continueAsButton(String name);
+
+  /// Link that dismisses the continue-as offer and shows the normal sign-in screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Use another account'**
+  String get continueAsOther;
+
+  /// Error when the saved continue-as sign-in is no longer accepted. The reader is a child; a guardian can issue a new pairing code.
+  ///
+  /// In en, this message translates to:
+  /// **'That saved sign-in has stopped working. Ask a grown-up for a new code.'**
+  String get continueAsFailed;
 }
 
 class _AppLocalizationsDelegate

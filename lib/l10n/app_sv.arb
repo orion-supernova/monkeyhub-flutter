@@ -4626,5 +4626,10 @@
   "ageGateOk": "OK",
   "ageWrongContactSupport": "Min ålder är fel",
   "authErrorAgeRestricted": "Det här kontot är pausat eftersom det tillhör någon under 13 år. En förälder kan skapa ett familjekonto åt dig. Om din ålder är fel, mejla {email}.",
-  "authErrorAgeInvalid": "Datumet ser inte rätt ut. Kontrollera månad och år."
+  "authErrorAgeInvalid": "Datumet ser inte rätt ut. Kontrollera månad och år.",
+  "continueAsTitle": "Välkommen tillbaka",
+  "continueAsIntro": "Ditt konto är sparat på enhetens Apple- eller Google-konto, så du kan fortsätta direkt här. Ingen kod behövs.",
+  "continueAsButton": "Fortsätt som {name}",
+  "continueAsOther": "Använd ett annat konto",
+  "continueAsFailed": "Den sparade inloggningen fungerar inte längre. Be en vuxen om en ny kod."
 }

@@ -4626,5 +4626,10 @@
   "ageGateOk": "OK",
   "ageWrongContactSupport": "年齢が間違っています",
   "authErrorAgeRestricted": "このアカウントは13歳未満の方のものなので、一時停止されています。保護者があなたのファミリーアカウントを作れます。年齢が間違っている場合は {email} までメールしてください。",
-  "authErrorAgeInvalid": "日付が正しくないようです。年と月を確認してください。"
+  "authErrorAgeInvalid": "日付が正しくないようです。年と月を確認してください。",
+  "continueAsTitle": "おかえりなさい",
+  "continueAsIntro": "アカウントはこのデバイスの Apple または Google アカウントに保存されているので、ここからすぐに続けられます。コードは不要です。",
+  "continueAsButton": "{name} として続ける",
+  "continueAsOther": "別のアカウントを使う",
+  "continueAsFailed": "保存されたサインインは使えなくなりました。大人に新しいコードをもらってください。"
 }

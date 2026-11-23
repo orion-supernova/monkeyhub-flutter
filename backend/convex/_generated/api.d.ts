@@ -28,6 +28,7 @@ import type * as childGuard from "../childGuard.js";
 import type * as contentCounts from "../contentCounts.js";
 import type * as contentCountsCore from "../contentCountsCore.js";
 import type * as contentFilter from "../contentFilter.js";
+import type * as continueKeys from "../continueKeys.js";
 import type * as crons from "../crons.js";
 import type * as dailyNudge from "../dailyNudge.js";
 import type * as dayKeys from "../dayKeys.js";
@@ -197,6 +198,7 @@ declare const fullApi: ApiFromModules<{
   contentCounts: typeof contentCounts;
   contentCountsCore: typeof contentCountsCore;
   contentFilter: typeof contentFilter;
+  continueKeys: typeof continueKeys;
   crons: typeof crons;
   dailyNudge: typeof dailyNudge;
   dayKeys: typeof dayKeys;

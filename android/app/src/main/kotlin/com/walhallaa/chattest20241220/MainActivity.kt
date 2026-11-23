@@ -172,6 +172,9 @@ class MainActivity : FlutterActivity(), GamepadsCompatibleActivity {
         // daily game's clock stops on it.
         PhoneCallBridge.register(this, flutterEngine)
         MapsBridge.register(this, flutterEngine)
+        // monkeyhub/continue_credential — "Continue as @name" through Google
+        // Password Manager, so a second device of the account skips pairing.
+        ContinueCredentialBridge.register(this, flutterEngine)
         // monkeyhub/map_snapshot — Google Maps still pictures for location
         // bubbles (lite-mode MapView, queued one at a time).
         MapSnapshotBridge.register(this, flutterEngine)

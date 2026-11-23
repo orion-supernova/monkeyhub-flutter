@@ -73,6 +73,9 @@ class Redactor {
     'socialAuth:linkGoogle': ArgPolicy.drop,
     'family:createChildAccount': ArgPolicy.drop,
     'family:releaseDeviceByGuardianPassword': ArgPolicy.drop,
+    // A synced "continue as" key signs anyone in as its account.
+    'continueKeys:mint': ArgPolicy.drop,
+    'continueKeys:redeem': ArgPolicy.drop,
     'rooms:create': ArgPolicy.drop,
     'rooms:join': ArgPolicy.drop,
     'rooms:updatePassword': ArgPolicy.drop,
