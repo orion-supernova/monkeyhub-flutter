@@ -6,11 +6,11 @@ list(APPEND FLUTTER_PLUGIN_LIST
   camera_desktop
   emoji_picker_flutter
   file_selector_linux
-  flutter_gemma
   flutter_secure_storage_linux
   flutter_webrtc
   gamepads_linux
   gtk
+  flutter_gemma
   record_linux
   url_launcher_linux
 )

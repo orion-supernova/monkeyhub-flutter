@@ -8,15 +8,15 @@ list(APPEND FLUTTER_PLUGIN_LIST
   connectivity_plus
   emoji_picker_flutter
   file_selector_windows
-  flutter_gemma
   flutter_secure_storage_windows
   flutter_webrtc
   gal
   gamepads_windows
   geolocator_windows
+  flutter_gemma
   record_windows
-  share_plus
   url_launcher_windows
+  share_plus
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
