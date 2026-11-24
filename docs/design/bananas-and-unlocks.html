@@ -245,7 +245,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
   <div class="sec-head"><div class="sec-num" style="background:var(--banana2)">1</div>
     <div><h2>The four rules</h2><p>Everything below follows from these. If a screen or a server check contradicts one, the screen is wrong.</p></div></div>
   <div class="grid g4">
-    <div class="card rule tint-leaf"><div class="n">1</div><div class="big-emoji">🌱</div><h4>Free to start, never a wall</h4><p>Every mode is playable on day one: 5 fighters, a stage, the Cartoon look, 5 chat games, every daily. Locked things are visible, previewable and priced, never hidden.</p></div>
+    <div class="card rule tint-leaf"><div class="n">1</div><div class="big-emoji">🌱</div><h4>Free to start, never a wall</h4><p>Every mode is playable on day one: 5 fighters, a stage, the Cartoon look, 4 chat games, every daily. Locked things are visible, previewable and priced, never hidden.</p></div>
     <div class="card rule tint-banana"><div class="n">2</div><div class="big-emoji">🔑</div><h4>Unlock once, yours forever</h4><p>An unlock belongs to the <b>account</b>, not the phone. It follows you to Mac, web, a new phone. No rentals, no expiry, no subscriptions.</p></div>
     <div class="card rule tint-sky"><div class="n">3</div><div class="big-emoji">🎟️</div><h4>Your key, your invites</h4><p>To <b>send</b> a game you must own it. Everyone you invite plays that match free. To send one back, they need their own unlock.</p></div>
     <div class="card rule tint-grape"><div class="n">4</div><div class="big-emoji">👪</div><h4>Kids ask, parents pay</h4><p>Child accounts never see a price in money. They tap <b>Ask</b>; a guardian approves and pays in their own bananas, and the unlock lands on the child's account.</p></div>
@@ -272,7 +272,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
     <thead><tr><th>Area</th><th>Free for everyone</th><th>Unlock with bananas</th><th>Why this split</th></tr></thead>
     <tbody>
       <tr><td><b>🥊 Jungle Fist</b></td><td><span class="tag t-free">5 humans</span> <span class="tag t-free">Rooftop stage</span> <span class="tag t-free">Cartoon look</span> <span class="tag t-free">All modes</span></td><td>10 animals, 5 legends, 5 stages, Painted and Pixel looks</td><td>A complete game for free; the roster is the collection.</td></tr>
-      <tr><td><b>💬 Chat games</b></td><td><span class="tag t-free">Tic-tac-toe</span> <span class="tag t-free">Connect Four</span> <span class="tag t-free">Dots</span> <span class="tag t-free">Imposter</span> <span class="tag t-free">Jungle Fist</span></td><td>Checkers, Reversi, Chess, Liar's Dice, Puzzle Race</td><td>Something quick, something deep and a party game stay free; the rest is the upgrade.</td></tr>
+      <tr><td><b>💬 Chat games</b></td><td><span class="tag t-free">Tic-tac-toe</span> <span class="tag t-free">Connect Four</span> <span class="tag t-free">Dots</span> <span class="tag t-free">Jungle Fist</span></td><td>Checkers, Reversi, Chess, Imposter, Liar's Dice, Puzzle Race</td><td>Quick classics and the fighter stay free; deeper games and every party game are the upgrade.</td></tr>
       <tr><td><b>🤖 Bot play</b></td><td>Every game you own, all levels</td><td>Follows the game: unlock Chess, play Chess bots</td><td>One ownership rule, not two.</td></tr>
       <tr><td><b>🧩 Dailies</b></td><td><span class="tag t-free">All 10, every day</span></td><td><span class="tag t-new">Later</span> Puzzle archive (past days)</td><td>The daily habit is what brings people back to earn bananas. Never lock it.</td></tr>
       <tr><td><b>🛟 Lifelines</b></td><td>3 free hints a puzzle, free takebacks per level</td><td>Unchanged (1 to 2 🍌 each)</td><td>Already shipped and balanced.</td></tr>
@@ -334,20 +334,20 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
 <!-- ───────────── 5. CHAT GAMES ───────────── -->
 <section id="chat">
   <div class="sec-head"><div class="sec-num" style="background:var(--sky)">5</div>
-    <div><h2>Chat games</h2><p>The game picker in a room (<code>game_start_sheet.dart</code>) lists 6 turn games and 4 party games. Five stay free so every room can play something right now.</p></div></div>
+    <div><h2>Chat games</h2><p>The game picker in a room (<code>game_start_sheet.dart</code>) lists 6 turn games and 4 party games. Four stay free so every room can play something right now. Every party game is an unlock.</p></div></div>
   <div class="grid g5">
     <div class="card tint-leaf"><div class="big-emoji">❌</div><h4>Tic-tac-toe</h4><span class="tag t-free">Free</span></div>
     <div class="card tint-leaf"><div class="big-emoji">🔴</div><h4>Connect Four</h4><span class="tag t-free">Free</span></div>
     <div class="card tint-leaf"><div class="big-emoji">🔲</div><h4>Dots</h4><span class="tag t-free">Free</span></div>
-    <div class="card tint-leaf"><div class="big-emoji">🕵️</div><h4>Imposter</h4><span class="tag t-free">Free · party</span></div>
     <div class="card tint-leaf"><div class="big-emoji">🥊</div><h4>Jungle Fist</h4><span class="tag t-free">Free · starter cast</span></div>
+    <div class="card"><div class="big-emoji">🕵️</div><h4>Imposter</h4><span class="price">🍌 120</span> <span class="tag t-sky">party</span></div>
     <div class="card"><div class="big-emoji">⛀</div><h4>Checkers</h4><span class="price">🍌 80</span></div>
     <div class="card"><div class="big-emoji">⚫</div><h4>Reversi</h4><span class="price">🍌 80</span></div>
     <div class="card"><div class="big-emoji">♟️</div><h4>Chess</h4><span class="price">🍌 150</span></div>
     <div class="card"><div class="big-emoji">🎲</div><h4>Liar's Dice</h4><span class="price">🍌 120</span> <span class="tag t-sky">party</span></div>
     <div class="card"><div class="big-emoji">🏁</div><h4>Puzzle Race</h4><span class="price">🍌 120</span> <span class="tag t-sky">party</span></div>
   </div>
-  <p class="small muted" style="margin-top:12px">Which five are free is one list on the server (<code>catalog.ts</code> <code>FREE</code>), so swapping Chess into the free set is a one-line change and a deploy, no app release.</p>
+  <p class="small muted" style="margin-top:12px">Which four are free is one list on the server (<code>catalog.ts</code> <code>FREE</code>), so swapping Chess into the free set is a one-line change and a deploy, no app release.</p>
 </section>
 
 <!-- ───────────── 6. HOST RULE ───────────── -->
@@ -439,7 +439,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
         <tr><td>Stage (×5)</td><td class="num price">🍌 40</td><td class="num">2</td></tr>
         <tr><td>Look: Painted, Pixel</td><td class="num price">🍌 120</td><td class="num">6</td></tr>
         <tr><td>Checkers, Reversi</td><td class="num price">🍌 80</td><td class="num">4</td></tr>
-        <tr><td>Liar's Dice, Puzzle Race</td><td class="num price">🍌 120</td><td class="num">6</td></tr>
+        <tr><td>Imposter, Liar's Dice, Puzzle Race</td><td class="num price">🍌 120</td><td class="num">6</td></tr>
         <tr><td>Chess</td><td class="num price">🍌 150</td><td class="num">7</td></tr>
       </tbody>
     </table>
@@ -451,7 +451,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
         <tr><td>🗺️ World Pack (5 stages)</td><td class="num muted">200</td><td class="num price">🍌 150</td></tr>
         <tr><td>🎨 Looks Pack (2 looks)</td><td class="num muted">240</td><td class="num price">🍌 180</td></tr>
         <tr><td><b>🥊 Jungle Fist Complete</b></td><td class="num muted">1,490</td><td class="num price">🍌 990</td></tr>
-        <tr><td><b>🎲 Game Night</b> (5 chat games)</td><td class="num muted">550</td><td class="num price">🍌 400</td></tr>
+        <tr><td><b>🎲 Game Night</b> (6 chat games)</td><td class="num muted">670</td><td class="num price">🍌 490</td></tr>
       </tbody>
     </table>
   </div>
@@ -567,7 +567,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
           <div style="font-weight:900;font-size:17px;margin-bottom:8px">Start a game</div>
           <div class="row" style="padding:7px 0"><div class="ic" style="background:#e1efff">🔴</div><div class="grow"><b>Connect Four</b></div><span class="chip" style="background:#dcf6e8;color:#127a47">Free</span></div>
           <div class="row" style="padding:7px 0"><div class="ic" style="background:#eee7ff">♟️</div><div class="grow"><b>Chess</b><div class="sub">You own it · everyone plays</div></div><span class="chip" style="background:#e1efff;color:#1d64b8">🎟️ Yours</span></div>
-          <div class="row" style="padding:7px 0"><div class="ic" style="background:#dcf6e8">🕵️</div><div class="grow"><b>Imposter</b><div class="sub">3 to 8 players</div></div><span class="chip" style="background:#dcf6e8;color:#127a47">Free</span></div>
+          <div class="row" style="padding:7px 0;opacity:.75"><div class="ic" style="background:#fff1b8">🕵️</div><div class="grow"><b>Imposter</b><div class="sub">3 to 8 players</div></div><span class="chip" style="background:#fff1b8;color:#8a5d00">🍌 120</span></div>
           <div class="row" style="padding:7px 0;opacity:.75"><div class="ic" style="background:#fff1b8">🎲</div><div class="grow"><b>Liar's Dice</b><div class="sub">Unlock once, host forever</div></div><span class="chip" style="background:#fff1b8;color:#8a5d00">🍌 120</span></div>
           <div class="row" style="padding:7px 0;opacity:.75"><div class="ic" style="background:#fff1b8">🏁</div><div class="grow"><b>Puzzle Race</b><div class="sub">Unlock once, host forever</div></div><span class="chip" style="background:#fff1b8;color:#8a5d00">🍌 120</span></div>
           <div style="margin-top:8px;background:#f7f3ea;border-radius:12px;padding:8px 10px;font-size:11.5px;color:#5d5446">🎟️ When you host, everyone in the game plays it, even if they don't own it.</div>
@@ -822,7 +822,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
   <div class="sec-head"><div class="sec-num" style="background:var(--banana2)">13</div>
     <div><h2>Decisions for you</h2><p>Defaults are picked so work can start; each one is a single line to change.</p></div></div>
   <div class="grid g2">
-    <div class="card decision"><div class="q">1</div><div><h4>Which chat games are free?</h4><p class="small">Proposed: Tic-tac-toe, Connect Four, Dots, Imposter, Jungle Fist. Chess is locked; it's the one most people expect free, so it's the first candidate to swap in if conversion is fine without it.</p></div></div>
+    <div class="card decision"><div class="q">1</div><div><h4>Which chat games are free?</h4><p class="small">Tic-tac-toe, Connect Four, Dots, Jungle Fist (Imposter moved to paid, 2026-11-25). Chess is locked; it's the one most people expect free, so it's the first candidate to swap in if conversion is fine without it.</p></div></div>
     <div class="card decision"><div class="q">2</div><div><h4>"Drawing theme" = Cartoon?</h4><p class="small">Read as the Cartoon look (the drawn one, today's default). If you meant Painted, swap the two; Painted would then be free and Cartoon 🍌 120.</p></div></div>
     <div class="card decision"><div class="q">3</div><div><h4>Fighters borrowed from the host?</h4><p class="small">Proposed yes: a guest can pick the host's fighters in that match, since "one unlock is enough" was the ask. The alternative (guests use only their own) keeps more reason to buy fighters.</p></div></div>
     <div class="card decision"><div class="q">4</div><div><h4>Prices and pack sizes</h4><p class="small">80 🍌 per $0.99 base, fighter 60, Chess 150, Complete 990. Tuned so an animal fighter is 3 max-video days. Worth one round of tester feedback before Phase 2.</p></div></div>
