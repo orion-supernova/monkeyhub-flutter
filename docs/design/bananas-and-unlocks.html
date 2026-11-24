@@ -122,6 +122,16 @@ section{padding-top:72px}
 .pack.best{border:2px solid var(--leaf)}
 .pack.best .buy{background:var(--leaf2)}
 
+.basket{position:relative;display:inline-block;width:72px;height:76px;letter-spacing:0}
+.basket i{position:absolute;font-style:normal;line-height:1}
+.basket .b1{left:4px;top:16px;font-size:32px;transform:rotate(-38deg)}
+.basket .b2{left:20px;top:6px;font-size:34px;transform:rotate(0deg)}
+.basket .b3{left:36px;top:16px;font-size:32px;transform:rotate(38deg)}
+.basket .bk{left:8px;bottom:-2px;font-size:54px;z-index:2;clip-path:inset(38% 0 0 0)}
+.basket.sm{width:44px;height:46px;margin:0 auto}
+.basket.sm .b1{left:2px;top:10px;font-size:20px}.basket.sm .b2{left:12px;top:4px;font-size:21px}.basket.sm .b3{left:22px;top:10px;font-size:20px}
+.basket.sm .bk{left:5px;bottom:-1px;font-size:33px}
+
 /* phones */
 .phones{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;margin-top:8px}
 .ph-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:272px}
@@ -416,7 +426,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
     <div><h2>Banana packs</h2><p>Consumable in-app purchases (App Store, Google Play, Mac App Store, Microsoft Store). Bought bananas land in the same wallet as earned ones and never expire.</p></div></div>
   <div class="packs">
     <div class="pack"><div class="art"><span>🍌</span></div><div class="name">Handful</div><div class="amt">80 🍌</div><div class="bonus">&nbsp;</div><span class="buy">$0.99</span></div>
-    <div class="pack"><div class="art"><span>🍌</span><span>🍌</span><span>🍌</span></div><div class="name">Bunch</div><div class="amt">450 🍌</div><div class="bonus">+12% bonus</div><span class="buy">$4.99</span></div>
+    <div class="pack"><div class="art"><span class="basket"><i class="b1">🍌</i><i class="b2">🍌</i><i class="b3">🍌</i><i class="bk">🧺</i></span></div><div class="name">Basket</div><div class="amt">450 🍌</div><div class="bonus">+12% bonus</div><span class="buy">$4.99</span></div>
     <div class="pack hot"><div class="ribbon" style="background:var(--banana2)">Most popular</div><div class="art"><span>📦</span></div><div class="name">Crate</div><div class="amt">1,000 🍌</div><div class="bonus">+25% bonus</div><span class="buy">$9.99</span></div>
     <div class="pack"><div class="art"><span>🌴</span></div><div class="name">Banana Tree</div><div class="amt">2,200 🍌</div><div class="bonus">+37% bonus</div><span class="buy">$19.99</span></div>
     <div class="pack best"><div class="ribbon" style="background:var(--leaf2)">Best value</div><div class="art"><span>🏝️</span></div><div class="name">Jungle</div><div class="amt">6,000 🍌</div><div class="bonus">+50% bonus</div><span class="buy">$49.99</span></div>
@@ -545,7 +555,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
         <div style="margin:0 12px 10px;border-radius:16px;padding:10px 12px;background:linear-gradient(135deg,#ffd84f,#ff9f43);color:#3a2600;font-weight:800;font-size:12.5px">🎁 Your first pack is doubled</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px">
           <div style="background:#fff;border-radius:16px;padding:10px;text-align:center"><div style="font-size:24px">🍌</div><b>80</b><div class="sub">$0.99</div></div>
-          <div style="background:#fff;border-radius:16px;padding:10px;text-align:center"><div style="font-size:24px">🍌🍌</div><b>450</b><div class="sub">$4.99 · +12%</div></div>
+          <div style="background:#fff;border-radius:16px;padding:10px;text-align:center"><span class="basket sm"><i class="b1">🍌</i><i class="b2">🍌</i><i class="b3">🍌</i><i class="bk">🧺</i></span><br><b>450</b><div class="sub">$4.99 · +12%</div></div>
           <div style="background:#fff7d1;border:2px solid #f5b300;border-radius:16px;padding:8px;text-align:center"><div style="font-size:24px">📦</div><b>1,000</b><div class="sub">$9.99 · +25%</div></div>
           <div style="background:#fff;border-radius:16px;padding:10px;text-align:center"><div style="font-size:24px">🌴</div><b>2,200</b><div class="sub">$19.99 · +37%</div></div>
         </div>
