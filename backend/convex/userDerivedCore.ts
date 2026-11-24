@@ -29,7 +29,7 @@ export const PUSH_DEVICE_FIELDS = [
 /** Fields of `sessions` that change which handsets are signed in. */
 export const PUSH_SESSION_FIELDS = ["userId", "deviceId", "revokedAt"] as const;
 
-export const FRIEND_PENDING_FIELDS = ["friendId", "status", "stage"] as const;
+export const FRIEND_PENDING_FIELDS = ["friendId", "status", "stage", "ignoredAt"] as const;
 export const INVITE_PENDING_FIELDS = ["inviteeId", "status", "stage"] as const;
 
 export type PushDevice = {
@@ -113,9 +113,17 @@ export async function refreshPushState(db: any, userId: any): Promise<void> {
   else await db.insert("userPushState", { userId, devices });
 }
 
-/** The pending count one `friendships` row adds to its recipient. */
+/**
+ * The pending count one `friendships` row adds to its recipient. An ignored
+ * request is still pending but no longer asks for attention.
+ */
 export function friendContribution(row: any): number {
-  return row && row.status === "pending" && isReleasedToRecipient(row.stage) ? 1 : 0;
+  return row &&
+    row.status === "pending" &&
+    isReleasedToRecipient(row.stage) &&
+    row.ignoredAt === undefined
+    ? 1
+    : 0;
 }
 
 /** The pending count one `roomInvitations` row adds to its invitee. */

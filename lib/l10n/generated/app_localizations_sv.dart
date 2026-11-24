@@ -17004,4 +17004,58 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get continueAsFailed =>
       'Den sparade inloggningen fungerar inte längre. Be en vuxen om en ny kod.';
+
+  @override
+  String get requestIgnoreButton => 'Ignorera';
+
+  @override
+  String get requestIgnoredToast =>
+      'Flyttad till Ignorerade. De får inte veta.';
+
+  @override
+  String get requestUndo => 'Ångra';
+
+  @override
+  String get requestsIgnoredRowTitle => 'Ignorerade';
+
+  @override
+  String get requestsIgnoredRowSubtitle =>
+      'Borta från din inkorg. För dem väntar den fortfarande.';
+
+  @override
+  String get ignoredRequestsTitle => 'Ignorerade förfrågningar';
+
+  @override
+  String ignoredRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count förfrågningar',
+      one: '1 förfrågan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ignoredRequestsExplainer =>
+      'Ingen får veta att du ignorerade dem, och de kan inte skicka en ny medan den här väntar. Godkänn när du vill eller radera den för gott.';
+
+  @override
+  String get ignoredRequestsEmpty => 'Inget ignorerat';
+
+  @override
+  String get requestRestoreButton => 'Återställ';
+
+  @override
+  String get requestDeleteButton => 'Radera';
+
+  @override
+  String get requestDeleteConfirmHeadline => 'Radera förfrågan?';
+
+  @override
+  String get requestDeleteConfirmBody =>
+      'Den försvinner för gott och du kan inte godkänna den senare. De får inte veta och kan skicka en ny.';
+
+  @override
+  String get requestActionFailed => 'Det gick inte. Försök igen.';
 }

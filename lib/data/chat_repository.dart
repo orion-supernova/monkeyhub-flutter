@@ -336,8 +336,21 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
   List<ChatUser> _friends = [];
   List<ChatUser> get friends => List.unmodifiable(_friends);
 
+  /// Incoming requests still asking for an answer. Ignored ones are NOT here:
+  /// everything that counts or shows "requests" (badge, chat-list folder,
+  /// Discover's segment) reads this list, and an ignored request is exactly
+  /// one that should stop asking.
   List<FriendRequest> _incomingRequests = [];
   List<FriendRequest> get incomingRequests => List.unmodifiable(_incomingRequests);
+
+  /// Incoming requests the viewer set aside. Still pending server-side.
+  List<FriendRequest> _ignoredRequests = [];
+  List<FriendRequest> get ignoredRequests => List.unmodifiable(_ignoredRequests);
+
+  /// The incoming request from [userId], ignored or not.
+  FriendRequest? incomingRequestFrom(String userId) =>
+      _incomingRequests.where((r) => r.user.id == userId).firstOrNull ??
+      _ignoredRequests.where((r) => r.user.id == userId).firstOrNull;
 
   List<FriendRequest> _outgoingRequests = [];
   List<FriendRequest> get outgoingRequests => List.unmodifiable(_outgoingRequests);
@@ -1465,9 +1478,13 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
       {'userId': userId},
       onData: (data) {
         final list = (data as List?) ?? const [];
-        _incomingRequests = list
+        final all = list
             .map((e) => FriendRequest.fromJson((e as Map).cast<String, dynamic>()))
             .toList();
+        _incomingRequests = all.where((r) => !r.ignored).toList();
+        // Most recently arrived first, the same order the inbox reads in.
+        _ignoredRequests = all.where((r) => r.ignored).toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         notifyListeners();
       },
       onError: (err) => debugPrint('incoming sub error: $err'),
@@ -2004,6 +2021,7 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
     _hasLiveRoomList = false;
     _friends = [];
     _incomingRequests = [];
+    _ignoredRequests = [];
     _outgoingRequests = [];
     _roomInvitations = [];
     _roomInvitationsSig = '';
@@ -6298,6 +6316,58 @@ class ChatRepository extends ChangeNotifier with WidgetsBindingObserver {
     final id = _userId;
     if (id == null) return;
     await api.rejectDirectRequest(userId: id, requesterId: requesterId);
+  }
+
+  /// Moves the request from [requesterId] into the ignored list, or back.
+  ///
+  /// Optimistic: the card leaves (or returns to) the inbox on the tap, not a
+  /// round trip later. The live subscription confirms it; a failure puts the
+  /// lists back and rethrows so the caller can say so.
+  Future<void> setDirectRequestIgnored(String requesterId, bool ignored) async {
+    final id = _userId;
+    if (id == null) return;
+    final from = ignored ? _incomingRequests : _ignoredRequests;
+    final req = from.where((r) => r.user.id == requesterId).firstOrNull;
+    final beforeIncoming = _incomingRequests;
+    final beforeIgnored = _ignoredRequests;
+    if (req != null) {
+      final moved = FriendRequest(
+        id: req.id,
+        user: req.user,
+        createdAt: req.createdAt,
+        roomType: req.roomType,
+        messageCount: req.messageCount,
+        messageLifetime: req.messageLifetime,
+        messageClock: req.messageClock,
+        initialMessage: req.initialMessage,
+        stage: req.stage,
+        ignored: ignored,
+        messages: req.messages,
+      );
+      List<FriendRequest> without(List<FriendRequest> l) =>
+          l.where((r) => r.user.id != requesterId).toList();
+      if (ignored) {
+        _incomingRequests = without(_incomingRequests);
+        _ignoredRequests = [moved, ...without(_ignoredRequests)];
+      } else {
+        _ignoredRequests = without(_ignoredRequests);
+        _incomingRequests = [...without(_incomingRequests), moved]
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      }
+      notifyListeners();
+    }
+    try {
+      await api.setDirectRequestIgnored(
+        userId: id,
+        requesterId: requesterId,
+        ignored: ignored,
+      );
+    } catch (_) {
+      _incomingRequests = beforeIncoming;
+      _ignoredRequests = beforeIgnored;
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<void> cancelDirectRequest(String friendId) async {

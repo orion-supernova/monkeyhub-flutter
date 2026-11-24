@@ -4631,5 +4631,19 @@
   "continueAsIntro": "Ditt konto är sparat på enhetens Apple- eller Google-konto, så du kan fortsätta direkt här. Ingen kod behövs.",
   "continueAsButton": "Fortsätt som {name}",
   "continueAsOther": "Använd ett annat konto",
-  "continueAsFailed": "Den sparade inloggningen fungerar inte längre. Be en vuxen om en ny kod."
+  "continueAsFailed": "Den sparade inloggningen fungerar inte längre. Be en vuxen om en ny kod.",
+  "requestIgnoreButton": "Ignorera",
+  "requestIgnoredToast": "Flyttad till Ignorerade. De får inte veta.",
+  "requestUndo": "Ångra",
+  "requestsIgnoredRowTitle": "Ignorerade",
+  "requestsIgnoredRowSubtitle": "Borta från din inkorg. För dem väntar den fortfarande.",
+  "ignoredRequestsTitle": "Ignorerade förfrågningar",
+  "ignoredRequestsCount": "{count, plural, =1{1 förfrågan} other{{count} förfrågningar}}",
+  "ignoredRequestsExplainer": "Ingen får veta att du ignorerade dem, och de kan inte skicka en ny medan den här väntar. Godkänn när du vill eller radera den för gott.",
+  "ignoredRequestsEmpty": "Inget ignorerat",
+  "requestRestoreButton": "Återställ",
+  "requestDeleteButton": "Radera",
+  "requestDeleteConfirmHeadline": "Radera förfrågan?",
+  "requestDeleteConfirmBody": "Den försvinner för gott och du kan inte godkänna den senare. De får inte veta och kan skicka en ny.",
+  "requestActionFailed": "Det gick inte. Försök igen."
 }

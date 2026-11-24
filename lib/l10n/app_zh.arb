@@ -4631,5 +4631,19 @@
   "continueAsIntro": "你的账号已保存在这台设备的 Apple 或 Google 账号中，可以直接在这里继续。无需代码。",
   "continueAsButton": "以 {name} 身份继续",
   "continueAsOther": "使用其他账号",
-  "continueAsFailed": "保存的登录已失效。请向大人要一个新代码。"
+  "continueAsFailed": "保存的登录已失效。请向大人要一个新代码。",
+  "requestIgnoreButton": "忽略",
+  "requestIgnoredToast": "已移到已忽略。对方不会收到通知。",
+  "requestUndo": "撤销",
+  "requestsIgnoredRowTitle": "已忽略",
+  "requestsIgnoredRowSubtitle": "不在你的收件箱中。对方仍看到请求在等待。",
+  "ignoredRequestsTitle": "已忽略的请求",
+  "ignoredRequestsCount": "{count, plural, other{{count} 个请求}}",
+  "ignoredRequestsExplainer": "没有人会知道你忽略了请求，而且在此请求等待期间对方无法再次发送。你可以随时接受，或永久删除。",
+  "ignoredRequestsEmpty": "没有已忽略的请求",
+  "requestRestoreButton": "移回",
+  "requestDeleteButton": "删除",
+  "requestDeleteConfirmHeadline": "删除此请求？",
+  "requestDeleteConfirmBody": "删除后无法恢复，之后也不能再接受。对方不会收到通知，并且可以重新发送。",
+  "requestActionFailed": "操作失败，请重试。"
 }

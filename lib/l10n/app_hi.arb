@@ -4631,5 +4631,19 @@
   "continueAsIntro": "आपका खाता इस डिवाइस के Apple या Google खाते में सेव है, इसलिए आप यहीं से जारी रख सकते हैं। कोई कोड नहीं चाहिए।",
   "continueAsButton": "{name} के रूप में जारी रखें",
   "continueAsOther": "दूसरा खाता इस्तेमाल करें",
-  "continueAsFailed": "सेव किया गया साइन-इन अब काम नहीं कर रहा। किसी बड़े से नया कोड मांगें।"
+  "continueAsFailed": "सेव किया गया साइन-इन अब काम नहीं कर रहा। किसी बड़े से नया कोड मांगें।",
+  "requestIgnoreButton": "अनदेखा करें",
+  "requestIgnoredToast": "अनदेखा में भेजा गया। उन्हें पता नहीं चलेगा।",
+  "requestUndo": "पूर्ववत करें",
+  "requestsIgnoredRowTitle": "अनदेखा",
+  "requestsIgnoredRowSubtitle": "आपके इनबॉक्स से हटा। उन्हें यह अब भी प्रतीक्षा में दिखता है।",
+  "ignoredRequestsTitle": "अनदेखे अनुरोध",
+  "ignoredRequestsCount": "{count, plural, =1{1 अनुरोध} other{{count} अनुरोध}}",
+  "ignoredRequestsExplainer": "किसी को नहीं बताया जाता कि आपने अनदेखा किया, और जब तक यह प्रतीक्षा में है वे दूसरा अनुरोध नहीं भेज सकते। कभी भी स्वीकार करें या हमेशा के लिए हटाएँ।",
+  "ignoredRequestsEmpty": "कुछ भी अनदेखा नहीं",
+  "requestRestoreButton": "वापस ले जाएँ",
+  "requestDeleteButton": "हटाएँ",
+  "requestDeleteConfirmHeadline": "यह अनुरोध हटाएँ?",
+  "requestDeleteConfirmBody": "यह हमेशा के लिए हट जाएगा और बाद में स्वीकार नहीं कर पाएँगे। उन्हें नहीं बताया जाता, और वे नया भेज सकते हैं।",
+  "requestActionFailed": "यह नहीं हुआ। फिर से कोशिश करें।"
 }

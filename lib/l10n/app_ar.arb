@@ -4631,5 +4631,19 @@
   "continueAsIntro": "حسابك محفوظ في حساب Apple أو Google على هذا الجهاز، لذا يمكنك المتابعة من هنا. لا حاجة إلى رمز.",
   "continueAsButton": "المتابعة باسم {name}",
   "continueAsOther": "استخدام حساب آخر",
-  "continueAsFailed": "تسجيل الدخول المحفوظ لم يعد يعمل. اطلب رمزًا جديدًا من شخص بالغ."
+  "continueAsFailed": "تسجيل الدخول المحفوظ لم يعد يعمل. اطلب رمزًا جديدًا من شخص بالغ.",
+  "requestIgnoreButton": "تجاهل",
+  "requestIgnoredToast": "نُقل إلى المتجاهَلة. لن يُبلَّغ الطرف الآخر.",
+  "requestUndo": "تراجع",
+  "requestsIgnoredRowTitle": "المتجاهَلة",
+  "requestsIgnoredRowSubtitle": "خارج صندوقك. ما زال الطرف الآخر يراه قيد الانتظار.",
+  "ignoredRequestsTitle": "الطلبات المتجاهَلة",
+  "ignoredRequestsCount": "{count, plural, =1{طلب واحد} other{{count} طلبات}}",
+  "ignoredRequestsExplainer": "لا أحد يعرف أنك تجاهلته، ولا يمكنه إرسال طلب آخر ما دام هذا ينتظر. اقبله متى شئت أو احذفه نهائيًا.",
+  "ignoredRequestsEmpty": "لا شيء متجاهَل",
+  "requestRestoreButton": "أعِده",
+  "requestDeleteButton": "حذف",
+  "requestDeleteConfirmHeadline": "حذف هذا الطلب؟",
+  "requestDeleteConfirmBody": "سيُحذف نهائيًا ولن تتمكن من قبوله لاحقًا. لن يُبلَّغ الطرف الآخر ويمكنه إرسال طلب جديد.",
+  "requestActionFailed": "لم ينجح ذلك. حاول مرة أخرى."
 }

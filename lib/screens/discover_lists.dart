@@ -8,6 +8,8 @@ import '../models/chat_user.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/discover_rows.dart';
 import '../widgets/ios_kit.dart';
+import '../widgets/request_cards.dart';
+import '../theme/theme_scope.dart';
 import '../widgets/search_field.dart' show SearchField;
 
 import 'navigation/open_room.dart';
@@ -240,6 +242,76 @@ class _RoomsListScreenState extends State<RoomsListScreen> {
                 ),
             ],
           ),
+      ],
+    );
+  }
+}
+
+/// The requests you set aside from Discover's inbox.
+///
+/// The same card as the inbox, so a request looks like itself wherever it is;
+/// only the two secondary actions change (back to the inbox, delete for good).
+/// Pops itself when the last one leaves, so accepting or restoring the final
+/// request never strands you on an empty page.
+class IgnoredRequestsScreen extends StatefulWidget {
+  const IgnoredRequestsScreen({super.key, required this.repo, required this.api});
+  final ChatRepository repo;
+  final ChatApi api;
+
+  @override
+  State<IgnoredRequestsScreen> createState() => _IgnoredRequestsScreenState();
+}
+
+class _IgnoredRequestsScreenState extends State<IgnoredRequestsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    widget.repo.addListener(_onChange);
+  }
+
+  @override
+  void dispose() {
+    widget.repo.removeListener(_onChange);
+    super.dispose();
+  }
+
+  void _onChange() {
+    if (!mounted) return;
+    if (widget.repo.ignoredRequests.isEmpty && ModalRoute.of(context)?.isCurrent == true) {
+      Navigator.of(context).maybePop();
+      return;
+    }
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = ThemeScope.of(context);
+    final ignored = widget.repo.ignoredRequests;
+    return _ListScaffold(
+      title: l10n.ignoredRequestsTitle,
+      caption: l10n.ignoredRequestsCount(ignored.length),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 18),
+          child: Text(
+            l10n.ignoredRequestsExplainer,
+            style: groupedFooterStyle(theme),
+          ),
+        ),
+        if (ignored.isEmpty)
+          DiscoverEmptyLine(l10n.ignoredRequestsEmpty)
+        else
+          for (var i = 0; i < ignored.length; i++) ...[
+            if (i > 0) const SizedBox(height: 12),
+            IncomingRequestCard(
+              key: ValueKey('ignored_${ignored[i].user.id}'),
+              req: ignored[i],
+              repo: widget.repo,
+              api: widget.api,
+            ),
+          ],
       ],
     );
   }

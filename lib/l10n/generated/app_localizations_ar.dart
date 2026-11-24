@@ -17219,4 +17219,58 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get continueAsFailed =>
       'تسجيل الدخول المحفوظ لم يعد يعمل. اطلب رمزًا جديدًا من شخص بالغ.';
+
+  @override
+  String get requestIgnoreButton => 'تجاهل';
+
+  @override
+  String get requestIgnoredToast =>
+      'نُقل إلى المتجاهَلة. لن يُبلَّغ الطرف الآخر.';
+
+  @override
+  String get requestUndo => 'تراجع';
+
+  @override
+  String get requestsIgnoredRowTitle => 'المتجاهَلة';
+
+  @override
+  String get requestsIgnoredRowSubtitle =>
+      'خارج صندوقك. ما زال الطرف الآخر يراه قيد الانتظار.';
+
+  @override
+  String get ignoredRequestsTitle => 'الطلبات المتجاهَلة';
+
+  @override
+  String ignoredRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count طلبات',
+      one: 'طلب واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ignoredRequestsExplainer =>
+      'لا أحد يعرف أنك تجاهلته، ولا يمكنه إرسال طلب آخر ما دام هذا ينتظر. اقبله متى شئت أو احذفه نهائيًا.';
+
+  @override
+  String get ignoredRequestsEmpty => 'لا شيء متجاهَل';
+
+  @override
+  String get requestRestoreButton => 'أعِده';
+
+  @override
+  String get requestDeleteButton => 'حذف';
+
+  @override
+  String get requestDeleteConfirmHeadline => 'حذف هذا الطلب؟';
+
+  @override
+  String get requestDeleteConfirmBody =>
+      'سيُحذف نهائيًا ولن تتمكن من قبوله لاحقًا. لن يُبلَّغ الطرف الآخر ويمكنه إرسال طلب جديد.';
+
+  @override
+  String get requestActionFailed => 'لم ينجح ذلك. حاول مرة أخرى.';
 }

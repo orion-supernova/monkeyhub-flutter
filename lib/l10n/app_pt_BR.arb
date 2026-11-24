@@ -4631,5 +4631,19 @@
   "continueAsIntro": "Sua conta está salva na conta Apple ou Google deste dispositivo, então você pode continuar aqui mesmo. Sem código.",
   "continueAsButton": "Continuar como {name}",
   "continueAsOther": "Usar outra conta",
-  "continueAsFailed": "Esse login salvo parou de funcionar. Peça um código novo para um adulto."
+  "continueAsFailed": "Esse login salvo parou de funcionar. Peça um código novo para um adulto.",
+  "requestIgnoreButton": "Ignorar",
+  "requestIgnoredToast": "Movido para Ignorados. A pessoa não fica sabendo.",
+  "requestUndo": "Desfazer",
+  "requestsIgnoredRowTitle": "Ignorados",
+  "requestsIgnoredRowSubtitle": "Fora da sua caixa. Para a outra pessoa continua pendente.",
+  "ignoredRequestsTitle": "Pedidos ignorados",
+  "ignoredRequestsCount": "{count, plural, =1{1 pedido} other{{count} pedidos}}",
+  "ignoredRequestsExplainer": "Ninguém fica sabendo que você ignorou, e não dá para enviar outro enquanto este espera. Aceite quando quiser ou apague de vez.",
+  "ignoredRequestsEmpty": "Nada ignorado",
+  "requestRestoreButton": "Devolver",
+  "requestDeleteButton": "Apagar",
+  "requestDeleteConfirmHeadline": "Apagar este pedido?",
+  "requestDeleteConfirmBody": "Ele some de vez e você não poderá aceitar depois. A pessoa não fica sabendo e pode enviar um novo.",
+  "requestActionFailed": "Não deu certo. Tente de novo."
 }

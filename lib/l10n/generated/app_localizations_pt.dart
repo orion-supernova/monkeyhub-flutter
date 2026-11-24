@@ -17128,6 +17128,60 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get continueAsFailed =>
       'Esse início de sessão guardado deixou de funcionar. Pede um código novo a um adulto.';
+
+  @override
+  String get requestIgnoreButton => 'Ignorar';
+
+  @override
+  String get requestIgnoredToast =>
+      'Movido para Ignorados. A pessoa não é avisada.';
+
+  @override
+  String get requestUndo => 'Anular';
+
+  @override
+  String get requestsIgnoredRowTitle => 'Ignorados';
+
+  @override
+  String get requestsIgnoredRowSubtitle =>
+      'Fora da tua caixa. Para a outra pessoa continua pendente.';
+
+  @override
+  String get ignoredRequestsTitle => 'Pedidos ignorados';
+
+  @override
+  String ignoredRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pedidos',
+      one: '1 pedido',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ignoredRequestsExplainer =>
+      'Ninguém sabe que o ignoraste, e não podem enviar outro enquanto este espera. Aceita quando quiseres ou apaga-o de vez.';
+
+  @override
+  String get ignoredRequestsEmpty => 'Nada ignorado';
+
+  @override
+  String get requestRestoreButton => 'Repor';
+
+  @override
+  String get requestDeleteButton => 'Apagar';
+
+  @override
+  String get requestDeleteConfirmHeadline => 'Apagar este pedido?';
+
+  @override
+  String get requestDeleteConfirmBody =>
+      'Desaparece de vez e não o poderás aceitar depois. A pessoa não é avisada e pode enviar um novo.';
+
+  @override
+  String get requestActionFailed => 'Não resultou. Tenta outra vez.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -34232,4 +34286,58 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get continueAsFailed =>
       'Esse login salvo parou de funcionar. Peça um código novo para um adulto.';
+
+  @override
+  String get requestIgnoreButton => 'Ignorar';
+
+  @override
+  String get requestIgnoredToast =>
+      'Movido para Ignorados. A pessoa não fica sabendo.';
+
+  @override
+  String get requestUndo => 'Desfazer';
+
+  @override
+  String get requestsIgnoredRowTitle => 'Ignorados';
+
+  @override
+  String get requestsIgnoredRowSubtitle =>
+      'Fora da sua caixa. Para a outra pessoa continua pendente.';
+
+  @override
+  String get ignoredRequestsTitle => 'Pedidos ignorados';
+
+  @override
+  String ignoredRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pedidos',
+      one: '1 pedido',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ignoredRequestsExplainer =>
+      'Ninguém fica sabendo que você ignorou, e não dá para enviar outro enquanto este espera. Aceite quando quiser ou apague de vez.';
+
+  @override
+  String get ignoredRequestsEmpty => 'Nada ignorado';
+
+  @override
+  String get requestRestoreButton => 'Devolver';
+
+  @override
+  String get requestDeleteButton => 'Apagar';
+
+  @override
+  String get requestDeleteConfirmHeadline => 'Apagar este pedido?';
+
+  @override
+  String get requestDeleteConfirmBody =>
+      'Ele some de vez e você não poderá aceitar depois. A pessoa não fica sabendo e pode enviar um novo.';
+
+  @override
+  String get requestActionFailed => 'Não deu certo. Tente de novo.';
 }

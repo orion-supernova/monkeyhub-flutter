@@ -16884,4 +16884,58 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get continueAsFailed =>
       'Kayıtlı giriş artık çalışmıyor. Bir büyüğünden yeni bir kod iste.';
+
+  @override
+  String get requestIgnoreButton => 'Yoksay';
+
+  @override
+  String get requestIgnoredToast =>
+      'Yoksayılanlara taşındı. Karşı tarafa söylenmez.';
+
+  @override
+  String get requestUndo => 'Geri al';
+
+  @override
+  String get requestsIgnoredRowTitle => 'Yoksayılanlar';
+
+  @override
+  String get requestsIgnoredRowSubtitle =>
+      'Gelen kutunda görünmez. Karşı taraf hâlâ bekliyor olarak görür.';
+
+  @override
+  String get ignoredRequestsTitle => 'Yoksayılan istekler';
+
+  @override
+  String ignoredRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count istek',
+      one: '1 istek',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ignoredRequestsExplainer =>
+      'Yoksaydığın kimseye söylenmez ve bu istek beklerken yenisini gönderemezler. İstediğin zaman kabul et ya da kalıcı olarak sil.';
+
+  @override
+  String get ignoredRequestsEmpty => 'Yoksayılan istek yok';
+
+  @override
+  String get requestRestoreButton => 'Geri taşı';
+
+  @override
+  String get requestDeleteButton => 'Sil';
+
+  @override
+  String get requestDeleteConfirmHeadline => 'Bu istek silinsin mi?';
+
+  @override
+  String get requestDeleteConfirmBody =>
+      'Kalıcı olarak silinir, sonradan kabul edemezsin. Karşı tarafa söylenmez ve yeni bir istek gönderebilir.';
+
+  @override
+  String get requestActionFailed => 'Olmadı. Tekrar dene.';
 }

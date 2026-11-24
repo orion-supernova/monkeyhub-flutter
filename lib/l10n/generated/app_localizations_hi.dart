@@ -16937,4 +16937,58 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get continueAsFailed =>
       'सेव किया गया साइन-इन अब काम नहीं कर रहा। किसी बड़े से नया कोड मांगें।';
+
+  @override
+  String get requestIgnoreButton => 'अनदेखा करें';
+
+  @override
+  String get requestIgnoredToast =>
+      'अनदेखा में भेजा गया। उन्हें पता नहीं चलेगा।';
+
+  @override
+  String get requestUndo => 'पूर्ववत करें';
+
+  @override
+  String get requestsIgnoredRowTitle => 'अनदेखा';
+
+  @override
+  String get requestsIgnoredRowSubtitle =>
+      'आपके इनबॉक्स से हटा। उन्हें यह अब भी प्रतीक्षा में दिखता है।';
+
+  @override
+  String get ignoredRequestsTitle => 'अनदेखे अनुरोध';
+
+  @override
+  String ignoredRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count अनुरोध',
+      one: '1 अनुरोध',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ignoredRequestsExplainer =>
+      'किसी को नहीं बताया जाता कि आपने अनदेखा किया, और जब तक यह प्रतीक्षा में है वे दूसरा अनुरोध नहीं भेज सकते। कभी भी स्वीकार करें या हमेशा के लिए हटाएँ।';
+
+  @override
+  String get ignoredRequestsEmpty => 'कुछ भी अनदेखा नहीं';
+
+  @override
+  String get requestRestoreButton => 'वापस ले जाएँ';
+
+  @override
+  String get requestDeleteButton => 'हटाएँ';
+
+  @override
+  String get requestDeleteConfirmHeadline => 'यह अनुरोध हटाएँ?';
+
+  @override
+  String get requestDeleteConfirmBody =>
+      'यह हमेशा के लिए हट जाएगा और बाद में स्वीकार नहीं कर पाएँगे। उन्हें नहीं बताया जाता, और वे नया भेज सकते हैं।';
+
+  @override
+  String get requestActionFailed => 'यह नहीं हुआ। फिर से कोशिश करें।';
 }

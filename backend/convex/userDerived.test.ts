@@ -158,6 +158,58 @@ describe("userBadgeCounts", () => {
     expect((await countsRow(t, b.userId)).requests).toBe(0);
   });
 
+  test("an ignored request leaves the badge, stays pending, and can still be accepted", async () => {
+    const t = convexTest(schema);
+    const a = await signUp(t, "hal");
+    const b = await signUp(t, "ivy");
+    const setIgnored = (ignored: boolean) =>
+      t.mutation(api.friends.setDirectRequestIgnored, {
+        sessionToken: b.token, userId: b.userId, requesterId: a.userId, ignored,
+      } as any);
+    const incoming = () =>
+      t.query(api.friends.listIncomingDirectRequests, {
+        sessionToken: b.token, userId: b.userId,
+      } as any) as Promise<any[]>;
+    const outgoing = () =>
+      t.query(api.friends.listOutgoingDirectRequests, {
+        sessionToken: a.token, userId: a.userId,
+      } as any) as Promise<any[]>;
+
+    await t.mutation(api.friends.sendRequest, {
+      sessionToken: a.token, userId: a.userId, friendUsername: "ivy",
+    } as any);
+    expect((await countsRow(t, b.userId)).requests).toBe(1);
+
+    await setIgnored(true);
+    expect((await countsRow(t, b.userId)).requests).toBe(0);
+    expect(await total(t, b.userId)).toBe(0);
+    expect((await incoming()).map((r) => r.ignored)).toEqual([true]);
+    // The sender sees a request that is simply still waiting.
+    const out = await outgoing();
+    expect(out).toHaveLength(1);
+    expect(out[0]).not.toHaveProperty("ignored");
+    // And the pending row keeps them from asking again.
+    await expect(
+      t.mutation(api.friends.sendRequest, {
+        sessionToken: a.token, userId: a.userId, friendUsername: "ivy",
+      } as any),
+    ).rejects.toThrow("ALREADY_FRIENDS_OR_PENDING");
+
+    // Ignoring twice is a no-op; bringing it back restores the count.
+    await setIgnored(true);
+    expect((await countsRow(t, b.userId)).requests).toBe(0);
+    await setIgnored(false);
+    expect((await countsRow(t, b.userId)).requests).toBe(1);
+    expect((await incoming()).map((r) => r.ignored)).toEqual([false]);
+
+    await setIgnored(true);
+    await t.mutation(api.friends.approveDirectRequest, {
+      sessionToken: b.token, userId: b.userId, requesterId: a.userId,
+    } as any);
+    expect((await countsRow(t, b.userId)).requests).toBe(0);
+    expect(await incoming()).toEqual([]);
+  });
+
   test("a missing row falls back to the scan and a later write rebuilds it", async () => {
     const t = convexTest(schema);
     const a = await signUp(t, "hal");

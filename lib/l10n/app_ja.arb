@@ -4631,5 +4631,19 @@
   "continueAsIntro": "アカウントはこのデバイスの Apple または Google アカウントに保存されているので、ここからすぐに続けられます。コードは不要です。",
   "continueAsButton": "{name} として続ける",
   "continueAsOther": "別のアカウントを使う",
-  "continueAsFailed": "保存されたサインインは使えなくなりました。大人に新しいコードをもらってください。"
+  "continueAsFailed": "保存されたサインインは使えなくなりました。大人に新しいコードをもらってください。",
+  "requestIgnoreButton": "無視",
+  "requestIgnoredToast": "無視済みに移動しました。相手には通知されません。",
+  "requestUndo": "元に戻す",
+  "requestsIgnoredRowTitle": "無視済み",
+  "requestsIgnoredRowSubtitle": "受信箱には表示されません。相手には承認待ちのまま見えます。",
+  "ignoredRequestsTitle": "無視したリクエスト",
+  "ignoredRequestsCount": "{count, plural, other{{count}件のリクエスト}}",
+  "ignoredRequestsExplainer": "無視したことは誰にも通知されず、このリクエストが残っている間は相手は新しく送れません。いつでも承認するか、完全に削除できます。",
+  "ignoredRequestsEmpty": "無視したリクエストはありません",
+  "requestRestoreButton": "戻す",
+  "requestDeleteButton": "削除",
+  "requestDeleteConfirmHeadline": "このリクエストを削除しますか？",
+  "requestDeleteConfirmBody": "完全に削除され、あとから承認できなくなります。相手には通知されず、新しく送ることができます。",
+  "requestActionFailed": "うまくいきませんでした。もう一度お試しください。"
 }

@@ -17,6 +17,7 @@ import '../theme/theme_scope.dart';
 import '../l10n/text_case.dart';
 import 'app_toast.dart';
 import 'approval_gate.dart';
+import 'destructive_sheet.dart';
 import 'ios_kit.dart';
 import 'remote_image.dart';
 import 'user_avatar.dart';
@@ -54,6 +55,8 @@ class IncomingRequestCard extends StatefulWidget {
 class _IncomingRequestCardState extends State<IncomingRequestCard> {
   bool _busy = false;
 
+  bool get _ignored => widget.req.ignored;
+
   Future<void> _accept() async {
     if (_busy) return;
     setState(() => _busy = true);
@@ -80,6 +83,60 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Sets the request aside: out of the inbox and the badge, still pending, so
+  /// the sender sees it waiting and cannot ask again. The repository moves the
+  /// card on the tap; the toast offers the way back.
+  Future<void> _ignore() async {
+    if (_busy) return;
+    HapticFeedback.lightImpact();
+    final toast = AppToast.of(context);
+    final l10n = AppLocalizations.of(context);
+    final repo = widget.repo;
+    final requesterId = widget.req.user.id;
+    try {
+      await repo.setDirectRequestIgnored(requesterId, true);
+      toast.show(
+        l10n.requestIgnoredToast,
+        icon: CupertinoIcons.eye_slash,
+        actionLabel: l10n.requestUndo,
+        onAction: () => repo
+            .setDirectRequestIgnored(requesterId, false)
+            .catchError((_) => toast.error(l10n.requestActionFailed)),
+      );
+    } catch (_) {
+      toast.error(l10n.requestActionFailed);
+    }
+  }
+
+  /// Back to the inbox, where it counts toward the badge again.
+  Future<void> _restore() async {
+    if (_busy) return;
+    HapticFeedback.selectionClick();
+    final toast = AppToast.of(context);
+    final l10n = AppLocalizations.of(context);
+    try {
+      await widget.repo.setDirectRequestIgnored(widget.req.user.id, false);
+    } catch (_) {
+      toast.error(l10n.requestActionFailed);
+    }
+  }
+
+  /// The ignored list's decline. Asked first: unlike ignoring, there is no way
+  /// back, and the person reaching for it came here to keep their options open.
+  Future<void> _delete() async {
+    if (_busy) return;
+    final l10n = AppLocalizations.of(context);
+    final ok = await showConfirmSheet(
+      context,
+      headline: l10n.requestDeleteConfirmHeadline,
+      body: l10n.requestDeleteConfirmBody,
+      confirmLabel: l10n.requestDeleteButton,
+      icon: CupertinoIcons.trash,
+    );
+    if (!ok || !mounted) return;
+    await _reject();
   }
 
   void _openDraft() {
@@ -208,23 +265,39 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
               ),
             ],
             const SizedBox(height: 14),
-            // The shared capsules: solid to accept, tonal to decline, a
-            // same-size spinner on the one in flight.
+            // The shared capsules: solid to accept, tonal for the rest, a
+            // same-size spinner on the one in flight. Accept takes the whole
+            // width (three side by side broke "Approve" mid-word); the two
+            // ways of not accepting share the row under it. Ignore leads that
+            // row because it keeps the question open. On an ignored card it
+            // becomes the way back to the inbox, and decline becomes an
+            // explicit, confirmed delete.
+            SheetActionButton(
+              label: l10n.fileMessageApproveButton,
+              busy: _busy,
+              onTap: _busy ? null : _accept,
+            ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: SheetActionButton(
-                    label: l10n.fileMessageApproveButton,
-                    busy: _busy,
-                    onTap: _busy ? null : _accept,
+                    label: _ignored
+                        ? l10n.requestRestoreButton
+                        : l10n.requestIgnoreButton,
+                    tonal: true,
+                    onTap: _busy ? null : (_ignored ? _restore : _ignore),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: SheetActionButton(
-                    label: l10n.fileMessageDeclineButton,
+                    label: _ignored
+                        ? l10n.requestDeleteButton
+                        : l10n.fileMessageDeclineButton,
                     tonal: true,
-                    onTap: _busy ? null : _reject,
+                    destructive: _ignored,
+                    onTap: _busy ? null : (_ignored ? _delete : _reject),
                   ),
                 ),
               ],

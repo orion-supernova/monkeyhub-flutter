@@ -16964,4 +16964,57 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get continueAsFailed =>
       'That saved sign-in has stopped working. Ask a grown-up for a new code.';
+
+  @override
+  String get requestIgnoreButton => 'Ignore';
+
+  @override
+  String get requestIgnoredToast => 'Moved to Ignored. They won\'t be told.';
+
+  @override
+  String get requestUndo => 'Undo';
+
+  @override
+  String get requestsIgnoredRowTitle => 'Ignored';
+
+  @override
+  String get requestsIgnoredRowSubtitle =>
+      'Out of your inbox. They still see it as waiting.';
+
+  @override
+  String get ignoredRequestsTitle => 'Ignored requests';
+
+  @override
+  String ignoredRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count requests',
+      one: '1 request',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ignoredRequestsExplainer =>
+      'Nobody is told you ignored them, and they can\'t send another request while this one waits. Accept it any time, or delete it for good.';
+
+  @override
+  String get ignoredRequestsEmpty => 'Nothing ignored';
+
+  @override
+  String get requestRestoreButton => 'Move back';
+
+  @override
+  String get requestDeleteButton => 'Delete';
+
+  @override
+  String get requestDeleteConfirmHeadline => 'Delete this request?';
+
+  @override
+  String get requestDeleteConfirmBody =>
+      'It\'s gone for good and you can\'t accept it later. They aren\'t told, and they can send a new one.';
+
+  @override
+  String get requestActionFailed => 'That didn\'t work. Try again.';
 }

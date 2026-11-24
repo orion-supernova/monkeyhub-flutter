@@ -679,6 +679,36 @@ export const rejectDirectRequest = mutation({
   },
 });
 
+/**
+ * Sets a pending request aside, or brings it back. Recipient-only: the row
+ * stays pending, so the sender still sees it waiting and cannot send another;
+ * the badge drops it through the `friendships` hook (`friendContribution`).
+ * One read, one patch. A no-op when nothing changes, so a double tap costs no
+ * write and re-runs nothing.
+ */
+export const setDirectRequestIgnored = mutation({
+  args: {
+    userId: v.id("users"),
+    requesterId: v.id("users"),
+    ignored: v.boolean(),
+  },
+  handler: async (ctx, { userId, requesterId, ignored }) => {
+    const request = await ctx.db
+      .query("friendships")
+      .withIndex("by_pair", (q) =>
+        q.eq("userId", requesterId).eq("friendId", userId)
+      )
+      .first();
+    // Same gate as approve and reject: a row a guardian still holds is not the
+    // recipient's to touch.
+    if (!request || request.status !== "pending" || !isReleasedToRecipient(request.stage)) {
+      throw new Error("REQUEST_NOT_FOUND");
+    }
+    if ((request.ignoredAt !== undefined) === ignored) return;
+    await ctx.db.patch(request._id, { ignoredAt: ignored ? Date.now() : undefined });
+  },
+});
+
 export const listIncomingDirectRequests = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
@@ -712,6 +742,8 @@ export const listIncomingDirectRequests = query({
           messageClock: request.messageClock ?? null,
           initialMessage: request.initialMessage ?? "",
           messageCount: messages.length,
+          // Recipient-only; the outgoing list never carries it.
+          ignored: request.ignoredAt !== undefined,
           // A pending request is not a friendship, so a requester at
           // "avatar: friends" arrives faceless — which is the setting working,
           // not a bug. Their handle and name still identify them well enough

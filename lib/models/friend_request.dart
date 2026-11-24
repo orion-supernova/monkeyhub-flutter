@@ -14,6 +14,7 @@ class FriendRequest {
     this.messageClock,
     this.initialMessage = '',
     this.stage,
+    this.ignored = false,
     List<FriendRequestMessage>? messages,
   }) : messages = messages ?? [];
 
@@ -35,6 +36,11 @@ class FriendRequest {
   /// requests never carry it: by the time one is visible it has already
   /// been released, so there is nothing to disclose.
   final RequestStage? stage;
+
+  /// INCOMING only: the viewer set this request aside. It is still pending
+  /// (the sender sees it waiting and cannot send another), just out of the
+  /// inbox and the badge until the viewer accepts, deletes or restores it.
+  final bool ignored;
   List<FriendRequestMessage> messages;
 
   factory FriendRequest.fromJson(Map<String, dynamic> j) {
@@ -50,6 +56,7 @@ class FriendRequest {
       initialMessage: (j['initialMessage'] ?? '') as String,
       messageCount: ((j['messageCount'] ?? 0) as num).toInt(),
       stage: RequestStage.parse(j['stage'] as String?),
+      ignored: j['ignored'] == true,
     );
   }
 }

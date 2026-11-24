@@ -4631,5 +4631,19 @@
   "continueAsIntro": "Hesabın bu cihazın Apple veya Google hesabına kayıtlı, kaldığın yerden devam edebilirsin. Kod gerekmez.",
   "continueAsButton": "{name} olarak devam et",
   "continueAsOther": "Başka bir hesap kullan",
-  "continueAsFailed": "Kayıtlı giriş artık çalışmıyor. Bir büyüğünden yeni bir kod iste."
+  "continueAsFailed": "Kayıtlı giriş artık çalışmıyor. Bir büyüğünden yeni bir kod iste.",
+  "requestIgnoreButton": "Yoksay",
+  "requestIgnoredToast": "Yoksayılanlara taşındı. Karşı tarafa söylenmez.",
+  "requestUndo": "Geri al",
+  "requestsIgnoredRowTitle": "Yoksayılanlar",
+  "requestsIgnoredRowSubtitle": "Gelen kutunda görünmez. Karşı taraf hâlâ bekliyor olarak görür.",
+  "ignoredRequestsTitle": "Yoksayılan istekler",
+  "ignoredRequestsCount": "{count, plural, =1{1 istek} other{{count} istek}}",
+  "ignoredRequestsExplainer": "Yoksaydığın kimseye söylenmez ve bu istek beklerken yenisini gönderemezler. İstediğin zaman kabul et ya da kalıcı olarak sil.",
+  "ignoredRequestsEmpty": "Yoksayılan istek yok",
+  "requestRestoreButton": "Geri taşı",
+  "requestDeleteButton": "Sil",
+  "requestDeleteConfirmHeadline": "Bu istek silinsin mi?",
+  "requestDeleteConfirmBody": "Kalıcı olarak silinir, sonradan kabul edemezsin. Karşı tarafa söylenmez ve yeni bir istek gönderebilir.",
+  "requestActionFailed": "Olmadı. Tekrar dene."
 }

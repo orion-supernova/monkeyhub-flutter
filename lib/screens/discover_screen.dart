@@ -231,6 +231,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     final theme = ThemeScope.of(context);
     final friends = widget.repo.friends;
     final incoming = widget.repo.incomingRequests;
+    final ignored = widget.repo.ignoredRequests;
     final outgoing = widget.repo.outgoingRequests;
     final groupInvites = widget.repo.roomInvitations;
     // Group chats you're already in — DMs don't count here, the way a DM
@@ -312,7 +313,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           children: [
             // With no outgoing half there is nothing to switch between, so
             // the incoming list stands alone.
-            if (!showOutgoing || _requestsTab == _RequestsTab.incoming)
+            if (!showOutgoing || _requestsTab == _RequestsTab.incoming) ...[
               // Group invites share the incoming list rather than getting a
               // section of their own. They are the same question — somebody is
               // proposing to connect you to something and you decide — and a
@@ -337,8 +338,33 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       repo: widget.repo,
                       api: widget.api,
                     ),
-                ])
-            else if (outgoing.isEmpty)
+                ]),
+              // Ignored requests fold into one row under the inbox, present
+              // only while there are any: out of the way, never lost.
+              if (ignored.isNotEmpty) ...[
+                const SizedBox(height: _withinSection),
+                GroupedSection(
+                  margin: EdgeInsets.zero,
+                  children: [
+                    GroupedRow(
+                      key: const ValueKey('ignored_requests_row'),
+                      icon: CupertinoIcons.eye_slash_fill,
+                      tone: TileTone.gray,
+                      title: t.requestsIgnoredRowTitle,
+                      subtitle: t.requestsIgnoredRowSubtitle,
+                      value: '${ignored.length}',
+                      chevron: true,
+                      onTap: () => _push(
+                        IgnoredRequestsScreen(
+                          repo: widget.repo,
+                          api: widget.api,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ] else if (outgoing.isEmpty)
               DiscoverEmptyLine(t.discoverScreenNothingPending)
             else
               ..._spaced([

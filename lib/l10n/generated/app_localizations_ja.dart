@@ -16230,4 +16230,55 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get continueAsFailed => '保存されたサインインは使えなくなりました。大人に新しいコードをもらってください。';
+
+  @override
+  String get requestIgnoreButton => '無視';
+
+  @override
+  String get requestIgnoredToast => '無視済みに移動しました。相手には通知されません。';
+
+  @override
+  String get requestUndo => '元に戻す';
+
+  @override
+  String get requestsIgnoredRowTitle => '無視済み';
+
+  @override
+  String get requestsIgnoredRowSubtitle => '受信箱には表示されません。相手には承認待ちのまま見えます。';
+
+  @override
+  String get ignoredRequestsTitle => '無視したリクエスト';
+
+  @override
+  String ignoredRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のリクエスト',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ignoredRequestsExplainer =>
+      '無視したことは誰にも通知されず、このリクエストが残っている間は相手は新しく送れません。いつでも承認するか、完全に削除できます。';
+
+  @override
+  String get ignoredRequestsEmpty => '無視したリクエストはありません';
+
+  @override
+  String get requestRestoreButton => '戻す';
+
+  @override
+  String get requestDeleteButton => '削除';
+
+  @override
+  String get requestDeleteConfirmHeadline => 'このリクエストを削除しますか？';
+
+  @override
+  String get requestDeleteConfirmBody =>
+      '完全に削除され、あとから承認できなくなります。相手には通知されず、新しく送ることができます。';
+
+  @override
+  String get requestActionFailed => 'うまくいきませんでした。もう一度お試しください。';
 }

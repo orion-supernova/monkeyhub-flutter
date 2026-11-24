@@ -170,8 +170,9 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
     final id = _requestId;
     if (id.isEmpty) return;
 
+    // Ignored is still pending: moving a request aside is not an answer.
     final live = _isIncoming
-        ? widget.repo.incomingRequests
+        ? [...widget.repo.incomingRequests, ...widget.repo.ignoredRequests]
         : widget.repo.outgoingRequests;
     final present = live.any((r) => r.id == id);
     if (present) {

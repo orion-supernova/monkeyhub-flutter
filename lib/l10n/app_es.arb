@@ -4631,5 +4631,19 @@
   "continueAsIntro": "Tu cuenta está guardada en la cuenta de Apple o Google de este dispositivo, así que puedes seguir aquí mismo. Sin código.",
   "continueAsButton": "Continuar como {name}",
   "continueAsOther": "Usar otra cuenta",
-  "continueAsFailed": "Ese inicio de sesión guardado ya no funciona. Pide a un adulto un código nuevo."
+  "continueAsFailed": "Ese inicio de sesión guardado ya no funciona. Pide a un adulto un código nuevo.",
+  "requestIgnoreButton": "Ignorar",
+  "requestIgnoredToast": "Movida a Ignoradas. No se le avisará.",
+  "requestUndo": "Deshacer",
+  "requestsIgnoredRowTitle": "Ignoradas",
+  "requestsIgnoredRowSubtitle": "Fuera de tu bandeja. Para la otra persona sigue pendiente.",
+  "ignoredRequestsTitle": "Solicitudes ignoradas",
+  "ignoredRequestsCount": "{count, plural, =1{1 solicitud} other{{count} solicitudes}}",
+  "ignoredRequestsExplainer": "Nadie sabe que la ignoraste, y no pueden enviar otra mientras esta espera. Acéptala cuando quieras o bórrala para siempre.",
+  "ignoredRequestsEmpty": "Nada ignorado",
+  "requestRestoreButton": "Devolver",
+  "requestDeleteButton": "Borrar",
+  "requestDeleteConfirmHeadline": "¿Borrar esta solicitud?",
+  "requestDeleteConfirmBody": "Se borra para siempre y no podrás aceptarla después. No se le avisa y puede enviar una nueva.",
+  "requestActionFailed": "No funcionó. Inténtalo de nuevo."
 }

@@ -2516,6 +2516,19 @@ class ChatApi {
     await _cv.mutation('friends:rejectDirectRequest', {'userId': userId, 'requesterId': requesterId});
   }
 
+  /// Sets an incoming request aside ([ignored] true) or brings it back.
+  Future<void> setDirectRequestIgnored({
+    required String userId,
+    required String requesterId,
+    required bool ignored,
+  }) async {
+    await _cv.mutation('friends:setDirectRequestIgnored', {
+      'userId': userId,
+      'requesterId': requesterId,
+      'ignored': ignored,
+    });
+  }
+
   Future<void> removeFriend({required String userId, required String friendId}) async {
     await _cv.mutation('friends:removeFriend', {'userId': userId, 'friendId': friendId});
   }

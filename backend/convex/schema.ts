@@ -316,6 +316,11 @@ export default defineSchema({
     //   "awaitingSenderGuardian" | "awaitingRecipientGuardian" | "awaitingRecipient"
     deniedBy: v.optional(v.string()),
     //   "senderGuardian" | "recipientGuardian" | "recipient"
+    // When the recipient set a pending request aside ("Ignore"). Recipient-only
+    // state: the sender's outgoing list never returns it, so to them the
+    // request just waits. Out of the badge, still acceptable at any time, and
+    // the pending row keeps blocking re-sends.
+    ignoredAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
     .index("by_friend", ["friendId"])

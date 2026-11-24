@@ -17194,4 +17194,58 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get continueAsFailed =>
       'Cette connexion enregistrée ne fonctionne plus. Demande un nouveau code à un adulte.';
+
+  @override
+  String get requestIgnoreButton => 'Ignorer';
+
+  @override
+  String get requestIgnoredToast =>
+      'Déplacée dans Ignorées. La personne n\'est pas prévenue.';
+
+  @override
+  String get requestUndo => 'Annuler';
+
+  @override
+  String get requestsIgnoredRowTitle => 'Ignorées';
+
+  @override
+  String get requestsIgnoredRowSubtitle =>
+      'Hors de ta boîte. Pour l\'autre personne, elle est toujours en attente.';
+
+  @override
+  String get ignoredRequestsTitle => 'Demandes ignorées';
+
+  @override
+  String ignoredRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count demandes',
+      one: '1 demande',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ignoredRequestsExplainer =>
+      'Personne ne sait que tu l\'as ignorée, et aucune nouvelle demande ne peut être envoyée tant que celle-ci attend. Accepte-la quand tu veux, ou supprime-la définitivement.';
+
+  @override
+  String get ignoredRequestsEmpty => 'Rien d\'ignoré';
+
+  @override
+  String get requestRestoreButton => 'Remettre';
+
+  @override
+  String get requestDeleteButton => 'Supprimer';
+
+  @override
+  String get requestDeleteConfirmHeadline => 'Supprimer cette demande ?';
+
+  @override
+  String get requestDeleteConfirmBody =>
+      'Elle disparaît définitivement et tu ne pourras plus l\'accepter. La personne n\'est pas prévenue et peut en envoyer une nouvelle.';
+
+  @override
+  String get requestActionFailed => 'Ça n\'a pas marché. Réessaie.';
 }

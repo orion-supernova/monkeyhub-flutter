@@ -27948,6 +27948,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That saved sign-in has stopped working. Ask a grown-up for a new code.'**
   String get continueAsFailed;
+
+  /// Button on an incoming friend request card: set the request aside without answering. The sender is not told.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore'**
+  String get requestIgnoreButton;
+
+  /// Toast after ignoring a friend request. 'They' is the sender.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved to Ignored. They won\'t be told.'**
+  String get requestIgnoredToast;
+
+  /// Toast action that reverses ignoring a request.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get requestUndo;
+
+  /// Row title under the incoming requests list that opens the list of ignored requests.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignored'**
+  String get requestsIgnoredRowTitle;
+
+  /// Subtitle of the Ignored row: ignored requests are hidden from you, the sender still sees theirs as pending.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of your inbox. They still see it as waiting.'**
+  String get requestsIgnoredRowSubtitle;
+
+  /// Title of the screen listing ignored friend requests.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignored requests'**
+  String get ignoredRequestsTitle;
+
+  /// Count under the ignored requests title.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 request} other{{count} requests}}'**
+  String ignoredRequestsCount(int count);
+
+  /// Explainer at the top of the ignored requests screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody is told you ignored them, and they can\'t send another request while this one waits. Accept it any time, or delete it for good.'**
+  String get ignoredRequestsExplainer;
+
+  /// Empty state of the ignored requests screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing ignored'**
+  String get ignoredRequestsEmpty;
+
+  /// Button on an ignored request: move it back to the inbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Move back'**
+  String get requestRestoreButton;
+
+  /// Button on an ignored request: delete it permanently.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get requestDeleteButton;
+
+  /// Confirm sheet headline before deleting an ignored request.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this request?'**
+  String get requestDeleteConfirmHeadline;
+
+  /// Confirm sheet body: deleting is permanent, the sender isn't told and may send again.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s gone for good and you can\'t accept it later. They aren\'t told, and they can send a new one.'**
+  String get requestDeleteConfirmBody;
+
+  /// Toast when ignoring, restoring or deleting a request fails.
+  ///
+  /// In en, this message translates to:
+  /// **'That didn\'t work. Try again.'**
+  String get requestActionFailed;
 }
 
 class _AppLocalizationsDelegate

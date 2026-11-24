@@ -22,6 +22,7 @@ copy a rule into a second doc; link to its owner instead.
 | `design/rewarded-ads.md` | Rewarded ads and bananas: what they buy, caps, AdMob ids, SSV, platforms, cost table. |
 | `design/age-check.md` | Age check: 9+ with family accounts for 9 to 12, own account at 13, the age sheet, restriction, staff reset/lower, cost table. |
 | `design/e2ee.html` | End-to-end encryption: protocol (MLS), data model, push decrypt, media, history, phases, cost table. |
+| `design/friend-requests.md` | Friend requests: approve, ignore, decline/delete, what the sender sees, the Ignored list, cost table. |
 | `fighting-game/` | Jungle Fist plan and its style and roster labs. |
 | `GLASS_SPEC.md` | The Signal iOS 26 visual and motion target for sheets and glass (reference frames in `glass_reference/`). |
 

@@ -276,7 +276,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         held: outgoing.stage == RequestStage.senderGuardian,
       );
     }
-    final incoming = repo.incomingRequests.where((r) => r.user.id == userId).firstOrNull;
+    final incoming = repo.incomingRequestFrom(userId);
     if (incoming != null) {
       // Released by construction: `listIncomingDirectRequests` drops anything
       // a guardian still holds.

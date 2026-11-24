@@ -4631,5 +4631,19 @@
   "continueAsIntro": "Ton compte est enregistré dans le compte Apple ou Google de cet appareil, tu peux reprendre ici. Aucun code nécessaire.",
   "continueAsButton": "Continuer en tant que {name}",
   "continueAsOther": "Utiliser un autre compte",
-  "continueAsFailed": "Cette connexion enregistrée ne fonctionne plus. Demande un nouveau code à un adulte."
+  "continueAsFailed": "Cette connexion enregistrée ne fonctionne plus. Demande un nouveau code à un adulte.",
+  "requestIgnoreButton": "Ignorer",
+  "requestIgnoredToast": "Déplacée dans Ignorées. La personne n'est pas prévenue.",
+  "requestUndo": "Annuler",
+  "requestsIgnoredRowTitle": "Ignorées",
+  "requestsIgnoredRowSubtitle": "Hors de ta boîte. Pour l'autre personne, elle est toujours en attente.",
+  "ignoredRequestsTitle": "Demandes ignorées",
+  "ignoredRequestsCount": "{count, plural, =1{1 demande} other{{count} demandes}}",
+  "ignoredRequestsExplainer": "Personne ne sait que tu l'as ignorée, et aucune nouvelle demande ne peut être envoyée tant que celle-ci attend. Accepte-la quand tu veux, ou supprime-la définitivement.",
+  "ignoredRequestsEmpty": "Rien d'ignoré",
+  "requestRestoreButton": "Remettre",
+  "requestDeleteButton": "Supprimer",
+  "requestDeleteConfirmHeadline": "Supprimer cette demande ?",
+  "requestDeleteConfirmBody": "Elle disparaît définitivement et tu ne pourras plus l'accepter. La personne n'est pas prévenue et peut en envoyer une nouvelle.",
+  "requestActionFailed": "Ça n'a pas marché. Réessaie."
 }

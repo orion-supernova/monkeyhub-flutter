@@ -16263,4 +16263,55 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get continueAsFailed => '저장된 로그인이 더 이상 작동하지 않아요. 어른에게 새 코드를 받아 주세요.';
+
+  @override
+  String get requestIgnoreButton => '무시';
+
+  @override
+  String get requestIgnoredToast => '무시함으로 옮겼어요. 상대에게 알리지 않아요.';
+
+  @override
+  String get requestUndo => '실행 취소';
+
+  @override
+  String get requestsIgnoredRowTitle => '무시함';
+
+  @override
+  String get requestsIgnoredRowSubtitle => '받은함에서 사라져요. 상대에게는 계속 대기 중으로 보여요.';
+
+  @override
+  String get ignoredRequestsTitle => '무시한 요청';
+
+  @override
+  String ignoredRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '요청 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ignoredRequestsExplainer =>
+      '무시한 사실은 아무에게도 알리지 않으며, 이 요청이 대기 중인 동안 상대는 새 요청을 보낼 수 없어요. 언제든 수락하거나 완전히 삭제하세요.';
+
+  @override
+  String get ignoredRequestsEmpty => '무시한 요청 없음';
+
+  @override
+  String get requestRestoreButton => '되돌리기';
+
+  @override
+  String get requestDeleteButton => '삭제';
+
+  @override
+  String get requestDeleteConfirmHeadline => '이 요청을 삭제할까요?';
+
+  @override
+  String get requestDeleteConfirmBody =>
+      '완전히 삭제되어 나중에 수락할 수 없어요. 상대에게 알리지 않으며 새 요청을 보낼 수 있어요.';
+
+  @override
+  String get requestActionFailed => '잘 안 됐어요. 다시 시도해 주세요.';
 }

@@ -16088,4 +16088,54 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get continueAsFailed => '保存的登录已失效。请向大人要一个新代码。';
+
+  @override
+  String get requestIgnoreButton => '忽略';
+
+  @override
+  String get requestIgnoredToast => '已移到已忽略。对方不会收到通知。';
+
+  @override
+  String get requestUndo => '撤销';
+
+  @override
+  String get requestsIgnoredRowTitle => '已忽略';
+
+  @override
+  String get requestsIgnoredRowSubtitle => '不在你的收件箱中。对方仍看到请求在等待。';
+
+  @override
+  String get ignoredRequestsTitle => '已忽略的请求';
+
+  @override
+  String ignoredRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个请求',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ignoredRequestsExplainer =>
+      '没有人会知道你忽略了请求，而且在此请求等待期间对方无法再次发送。你可以随时接受，或永久删除。';
+
+  @override
+  String get ignoredRequestsEmpty => '没有已忽略的请求';
+
+  @override
+  String get requestRestoreButton => '移回';
+
+  @override
+  String get requestDeleteButton => '删除';
+
+  @override
+  String get requestDeleteConfirmHeadline => '删除此请求？';
+
+  @override
+  String get requestDeleteConfirmBody => '删除后无法恢复，之后也不能再接受。对方不会收到通知，并且可以重新发送。';
+
+  @override
+  String get requestActionFailed => '操作失败，请重试。';
 }

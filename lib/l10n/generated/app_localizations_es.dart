@@ -17123,4 +17123,57 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get continueAsFailed =>
       'Ese inicio de sesión guardado ya no funciona. Pide a un adulto un código nuevo.';
+
+  @override
+  String get requestIgnoreButton => 'Ignorar';
+
+  @override
+  String get requestIgnoredToast => 'Movida a Ignoradas. No se le avisará.';
+
+  @override
+  String get requestUndo => 'Deshacer';
+
+  @override
+  String get requestsIgnoredRowTitle => 'Ignoradas';
+
+  @override
+  String get requestsIgnoredRowSubtitle =>
+      'Fuera de tu bandeja. Para la otra persona sigue pendiente.';
+
+  @override
+  String get ignoredRequestsTitle => 'Solicitudes ignoradas';
+
+  @override
+  String ignoredRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count solicitudes',
+      one: '1 solicitud',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ignoredRequestsExplainer =>
+      'Nadie sabe que la ignoraste, y no pueden enviar otra mientras esta espera. Acéptala cuando quieras o bórrala para siempre.';
+
+  @override
+  String get ignoredRequestsEmpty => 'Nada ignorado';
+
+  @override
+  String get requestRestoreButton => 'Devolver';
+
+  @override
+  String get requestDeleteButton => 'Borrar';
+
+  @override
+  String get requestDeleteConfirmHeadline => '¿Borrar esta solicitud?';
+
+  @override
+  String get requestDeleteConfirmBody =>
+      'Se borra para siempre y no podrás aceptarla después. No se le avisa y puede enviar una nueva.';
+
+  @override
+  String get requestActionFailed => 'No funcionó. Inténtalo de nuevo.';
 }
