@@ -24,6 +24,7 @@ copy a rule into a second doc; link to its owner instead.
 | `design/e2ee.html` | End-to-end encryption: protocol (MLS), data model, push decrypt, media, history, phases, cost table. |
 | `design/friend-requests.md` | Friend requests: approve, ignore, decline/delete, what the sender sees, the Ignored list, cost table. |
 | `fighting-game/` | Jungle Fist plan and its style and roster labs. |
+| `store/app-store-keywords.html` | App Store keywords for both records (MonkeyHub set on 1.3.149, legacy MonkeyChat set), per language, and the keyword experiment log. |
 | `GLASS_SPEC.md` | The Signal iOS 26 visual and motion target for sheets and glass (reference frames in `glass_reference/`). |
 
 ## Records (dated snapshots, not maintained)
