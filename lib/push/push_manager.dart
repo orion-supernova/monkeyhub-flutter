@@ -53,6 +53,7 @@ class PushManager {
   VoidCallback? _onOpenRequests;
   VoidCallback? _onOpenGames;
   VoidCallback? _onOpenGameResult;
+  void Function(Map<String, String> data)? _onBananaAnswer;
   void Function(String momentId, {bool comments})? _onOpenMoment;
   String? Function()? _activeRoomIdProvider;
 
@@ -175,6 +176,15 @@ class PushManager {
   /// handler is wired.
   void setOnOpenGameResult(VoidCallback handler) {
     _onOpenGameResult = handler;
+  }
+
+  /// Where a tap on a banana-request answer ("Mom said yes!") lands. [data]
+  /// is the push's own payload: `type: "bananaRequest"`, `requestId`, `item`,
+  /// `status` (`approved` | `gifted` | `declined`), `guardianId` and
+  /// `guardianName`. See `BananaAnswerPush` in
+  /// lib/family/banana_requests_strip.dart.
+  void setOnBananaAnswer(void Function(Map<String, String> data) handler) {
+    _onBananaAnswer = handler;
   }
 
   /// Where a friend-activity tap should land: the Feed, with that moment's
@@ -327,6 +337,14 @@ class PushManager {
         }
         return null;
       case 'onOpenRequests':
+        // A banana answer rides the approval channel with its fields packed
+        // into `focus` as `banana?<query>` (backend `answerData`), so the
+        // native handlers need no banana vocabulary of their own.
+        final focus = ((call.arguments as Map?)?['focus'] ?? '').toString();
+        if (focus.startsWith('banana?') && _onBananaAnswer != null) {
+          _onBananaAnswer!(Uri.splitQueryString(focus.substring(7)));
+          return null;
+        }
         _onOpenRequests?.call();
         return null;
       case 'onOpenGames':
@@ -334,6 +352,12 @@ class PushManager {
         return null;
       case 'onOpenGameResult':
         (_onOpenGameResult ?? _onOpenGames)?.call();
+        return null;
+      case 'onOpenBananaRequest':
+        final args = (call.arguments as Map?) ?? const {};
+        _onBananaAnswer?.call({
+          for (final e in args.entries) e.key.toString(): e.value?.toString() ?? '',
+        });
         return null;
       case 'onOpenMoment':
         final args = (call.arguments as Map?) ?? const {};

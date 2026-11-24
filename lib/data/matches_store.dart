@@ -286,7 +286,11 @@ enum MoveRejection {
   tooManyGames,
 
   /// A first move refused because the room's messages self-destruct.
-  ephemeral;
+  ephemeral,
+
+  /// The player does not own this game, so cannot start or rematch it
+  /// (`LOCKED_GAME`); the screen offers the unlock sheet.
+  lockedGame;
 
   static MoveRejection fromCode(String code) => switch (code) {
     'STALE' => MoveRejection.stale,
@@ -298,6 +302,7 @@ enum MoveRejection {
     'NOT_SOLVED' => MoveRejection.notSolved,
     'TOO_MANY_GAMES' => MoveRejection.tooManyGames,
     'EPHEMERAL_ROOM' => MoveRejection.ephemeral,
+    'LOCKED_GAME' => MoveRejection.lockedGame,
     _ => MoveRejection.network,
   };
 }

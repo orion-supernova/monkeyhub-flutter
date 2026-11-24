@@ -1,6 +1,9 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../ads/banana_wallet.dart';
+import '../../games/catalog.dart' show fighterItemId;
 import '../../l10n/generated/app_localizations.dart';
 import '../../widgets/adaptive_sheet.dart';
 import '../../widgets/sheet_drag.dart' show SheetScrollBody;
@@ -51,7 +54,24 @@ const List<(FightFamily, List<int>)> kFightFamilies = [
 /// family. The picked one is alive (only it animates, so twenty portraits
 /// cost one ticker); rows scroll sideways when the screen is too narrow.
 class FightCharacterGrid extends StatelessWidget {
-  const FightCharacterGrid({super.key, required this.selected, required this.onPick, this.look = FightLook.cartoon, this.maxCardWidth});
+  const FightCharacterGrid({
+    super.key,
+    required this.selected,
+    required this.onPick,
+    this.look = FightLook.cartoon,
+    this.maxCardWidth,
+    this.showLocks = true,
+    this.onLockedTap,
+  });
+
+  /// Locked fighters (not free, not unlocked) are greyed with a lock and a
+  /// price. Training passes false: every fighter is free to try there.
+  final bool showLocks;
+
+  /// Set where a locked fighter may not be picked at all (online): a tap on
+  /// one calls this instead of [onPick]. Null = a locked card is still
+  /// selectable, to preview it.
+  final ValueChanged<int>? onLockedTap;
 
   /// Caps a card's width (desktop); the rows then sit left-aligned.
   final double? maxCardWidth;
@@ -67,6 +87,12 @@ class FightCharacterGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    // The wallet is a ChangeNotifier: an unlock repaints the locks away.
+    if (!showLocks) return _body(l10n);
+    return ListenableBuilder(listenable: BananaWallet.instance, builder: (context, _) => _body(l10n));
+  }
+
+  Widget _body(AppLocalizations l10n) {
     return LayoutBuilder(
       builder: (context, box) {
         const gap = 8.0;
@@ -103,6 +129,7 @@ class FightCharacterGrid extends StatelessWidget {
                   separatorBuilder: (_, _) => const SizedBox(width: gap),
                   itemBuilder: (context, i) {
                     final c = roster[ids[i]];
+                    final locked = showLocks && !BananaWallet.instance.ownsFighter(c.id);
                     return SizedBox(
                       width: w,
                       child: _Card(
@@ -111,9 +138,14 @@ class FightCharacterGrid extends StatelessWidget {
                         family: fightFamilyName(l10n, fam),
                         selected: c.id == selected,
                         look: look,
+                        price: locked ? BananaWallet.instance.priceOf(fighterItemId(c.id)) : null,
                         onTap: () {
                           HapticFeedback.selectionClick();
-                          onPick(c.id);
+                          if (locked && onLockedTap != null) {
+                            onLockedTap!(c.id);
+                          } else {
+                            onPick(c.id);
+                          }
                         },
                       ),
                     );
@@ -129,8 +161,10 @@ class FightCharacterGrid extends StatelessWidget {
 }
 
 class _Card extends StatelessWidget {
-  const _Card({super.key, required this.char, required this.family, required this.selected, required this.look, required this.onTap});
+  const _Card({super.key, required this.char, required this.family, required this.selected, required this.look, required this.onTap, this.price});
 
+  /// Bananas to unlock; non-null means the fighter is locked.
+  final int? price;
   final CharacterDef char;
   final String family;
   final bool selected;
@@ -165,8 +199,39 @@ class _Card extends StatelessWidget {
             children: [
               Positioned.fill(
                 bottom: 22,
-                child: FighterPortrait(charId: char.id, animate: selected, ready: selected, look: look, glow: glow),
+                child: price == null
+                    ? FighterPortrait(charId: char.id, animate: selected, ready: selected, look: look, glow: glow)
+                    // Locked: greyed and dimmed, still selectable to preview.
+                    : Opacity(
+                        opacity: .6,
+                        child: ColorFiltered(
+                          colorFilter: const ColorFilter.matrix(<double>[
+                            .33, .59, .11, 0, 0, //
+                            .33, .59, .11, 0, 0,
+                            .33, .59, .11, 0, 0,
+                            0, 0, 0, 1, 0,
+                          ]),
+                          child: FighterPortrait(charId: char.id, animate: selected, ready: selected, look: look, glow: glow),
+                        ),
+                      ),
               ),
+              if (price != null)
+                Positioned(
+                  top: 5,
+                  right: 5,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(color: const Color(0xb3000000), borderRadius: BorderRadius.circular(8)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(CupertinoIcons.lock_fill, size: 9, color: Colors.white),
+                        const SizedBox(width: 2),
+                        Text('\u{1F34C}$price', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white)),
+                      ],
+                    ),
+                  ),
+                ),
               Positioned(
                 left: 7,
                 right: 5,
@@ -198,7 +263,7 @@ class _Card extends StatelessWidget {
 }
 
 /// A sheet with the grid; resolves to the picked id (null if dismissed).
-Future<int?> showFightCharacterPicker(BuildContext context, {required int current, FightLook look = FightLook.cartoon}) {
+Future<int?> showFightCharacterPicker(BuildContext context, {required int current, FightLook look = FightLook.cartoon, bool showLocks = true}) {
   return showAdaptiveSheet<int>(
     context,
     builder: (context) {
@@ -209,7 +274,7 @@ Future<int?> showFightCharacterPicker(BuildContext context, {required int curren
         padding: EdgeInsets.zero,
         child: SheetScrollBody(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-          child: FightCharacterGrid(selected: current, look: look, onPick: (id) => Navigator.of(context).pop(id)),
+          child: FightCharacterGrid(selected: current, look: look, showLocks: showLocks, onPick: (id) => Navigator.of(context).pop(id)),
         ),
       );
     },

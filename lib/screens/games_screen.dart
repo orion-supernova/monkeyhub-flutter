@@ -3,6 +3,8 @@ import '../ads/banana_pill.dart';
 import 'package:flutter/material.dart';
 
 import '../ads/banana_sheet.dart';
+import '../ads/banana_shop.dart';
+import '../widgets/app_toast.dart';
 import '../ads/banana_wallet.dart';
 import '../backend/feed_api.dart';
 import '../chat_games/bot_hub_screen.dart' show BotHubPanel;
@@ -72,6 +74,7 @@ class _GamesScreenState extends State<GamesScreen>
     FeedStore.instance.addListener(_onChange);
     GamesStore.instance.addListener(_onChange);
     widget.repo.addListener(_onChange);
+    BananaWallet.instance.addListener(_onChange);
     GamesStore.instance.loadBoards();
     _loadStandings();
     // A tapped daily-games notification, before or while this tab is up.
@@ -84,6 +87,7 @@ class _GamesScreenState extends State<GamesScreen>
     FeedStore.instance.removeListener(_onChange);
     GamesStore.instance.removeListener(_onChange);
     widget.repo.removeListener(_onChange);
+    BananaWallet.instance.removeListener(_onChange);
     UiSelectionStore.instance.removeListener(_consumePendingGames);
     _scroll.dispose();
     super.dispose();
@@ -105,7 +109,18 @@ class _GamesScreenState extends State<GamesScreen>
     if (userId == null) return;
     _standingsAsked = true;
     GamesStore.instance.load(userId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _welcome(userId);
+    });
     _loadSavable(userId);
+  }
+
+  /// The launch gift and a child's allowance, paid once per open of the tab.
+  Future<void> _welcome(String userId) async {
+    final toast = AppToast.of(context);
+    final l10n = AppLocalizations.of(context);
+    final gift = await BananaWallet.instance.welcome(userId);
+    if (gift > 0 && mounted) toast.show(l10n.bananasShopWelcome(gift));
   }
 
   /// A streak that missed exactly one day and can be kept with bananas.
@@ -288,6 +303,30 @@ class _GamesScreenState extends State<GamesScreen>
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: BotHubPanel(key: const ValueKey('games_tab_bots'), userId: widget.repo.userId),
+      ),
+      const SizedBox(height: 32),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: _gutter),
+        child: PageSectionHeader(l10n.bananasShopUnlocks),
+      ),
+      GroupedSection(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          if (BananaWallet.instance.firstPickReady)
+            GroupedRow(
+              title: l10n.bananasShopFirstPickTitle,
+              subtitle: l10n.bananasShopFirstPickSub,
+              icon: CupertinoIcons.gift_fill,
+              value: l10n.bananasShopFree,
+              onTap: () => showBananaShop(context),
+            ),
+          GroupedRow(
+            title: l10n.bananasShopTitle,
+            subtitle: l10n.bananasShopRowSub,
+            icon: CupertinoIcons.bag_fill,
+            onTap: () => showBananaShop(context),
+          ),
+        ],
       ),
     ];
 

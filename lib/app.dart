@@ -1,4 +1,5 @@
 import 'theme/low_power.dart';
+import 'ads/banana_store.dart';
 import 'ads/banana_wallet.dart';
 import 'theme/motion.dart' show MotionScope;
 import 'theme/glass_page_transitions.dart';
@@ -64,6 +65,7 @@ import 'diagnostics/diag_buffer.dart';
 import 'diagnostics/diag_log.dart';
 import 'diagnostics/metrics_watch.dart';
 import 'diagnostics/route_tracker.dart';
+import 'family/banana_requests_strip.dart';
 import 'family/family_service.dart';
 import 'companions/brain_manager.dart';
 import 'env.dart';
@@ -656,6 +658,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     PushManager.instance.setOnOpenGames(_openGamesFromPush);
     PushManager.instance.setOnOpenGameResult(_openGameResultFromPush);
     PushManager.instance.setOnOpenMoment(_openMomentFromPush);
+    PushManager.instance.setOnBananaAnswer(_openBananaAnswerFromPush);
     // Midnight passed with the app open. Daylight saving moves at 3am, when
     // nobody resumes anything, so without this a phone left on a nightstand
     // would keep reporting yesterday's offset until it was next picked up —
@@ -946,6 +949,27 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     final nav = rootNavigatorKey.currentState;
     if (nav == null) return;
     nav.popUntil((r) => r.isFirst);
+  }
+
+  /// A tapped "yes" or gift on a child's banana request: the celebration
+  /// sheet over whatever is open, and "Play now" lands on the Games tab. A
+  /// decline (or a payload this build can't read) just opens the requests
+  /// view, like any approval push.
+  void _openBananaAnswerFromPush(Map<String, String> data) {
+    final push = BananaAnswerPush.fromData(data);
+    final userId = _auth.session?.userId;
+    final ctx = rootNavigatorKey.currentContext;
+    if (push == null || userId == null || ctx == null) {
+      _openRequestsFromPush();
+      return;
+    }
+    unawaited(showBananaAnswerCelebration(
+      ctx,
+      api: _api,
+      userId: userId,
+      push: push,
+      onPlay: _openGamesFromPush,
+    ));
   }
 
   /// A tapped shared game result: the Feed's Activity board, where friends'
@@ -1835,6 +1859,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   void _onAuthChange() {
     // Rewarded videos never play for a supervised account.
     BananaWallet.instance.childAccount = _auth.isChild;
+    BananaWallet.instance.userId = _auth.session?.userId;
+    unawaited(BananaStore.instance.configure(_auth.session?.userId));
     _authTransition = _applyAuthChange();
   }
 

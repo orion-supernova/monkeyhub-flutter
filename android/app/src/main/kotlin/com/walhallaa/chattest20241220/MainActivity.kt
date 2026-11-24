@@ -834,7 +834,9 @@ class MainActivity : FlutterActivity(), GamepadsCompatibleActivity {
             // every ordinary message tap, and Dart treats empty as absent.
             roomId.isNotEmpty() ->
                 mapOf("method" to "onOpenRoom", "roomId" to roomId, "focus" to focus)
-            kind == "approval" -> mapOf("method" to "onOpenRequests")
+            // `focus` carries a banana answer (`banana?...`) for the child's
+            // celebration; empty for every other approval push.
+            kind == "approval" -> mapOf("method" to "onOpenRequests", "focus" to focus)
             // The daily games nudge: the Feed, with today's games open. It
             // carries no roomId, which is why it falls past the first branch.
             kind == "daily_games" -> mapOf("method" to "onOpenGames")

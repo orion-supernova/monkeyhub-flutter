@@ -2,7 +2,10 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../ads/banana_wallet.dart';
+import '../ads/unlock_sheet.dart';
 import '../fight/core/bot.dart' as fb;
+import '../games/catalog.dart' show gameItemId;
 import '../data/settings_store.dart';
 import '../fight/view/fight_character_grid.dart' show fightCharOf;
 import '../fight/view/fight_lobby_screen.dart';
@@ -93,7 +96,13 @@ class _BotHubPanelState extends State<BotHubPanel> {
     );
   }
 
-  void _play(String game) {
+  /// Bot play follows ownership: a game you have not unlocked asks first.
+  Future<void> _play(String game) async {
+    if (!BananaWallet.instance.canSendGame(game)) {
+      final reason = AppLocalizations.of(context).bananasReasonGame;
+      if (!await showUnlockSheet(context, gameItemId(game), reason: reason) || !mounted) return;
+    }
+    if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => BotMatchScreen(game: game, level: _level, userId: widget.userId),
@@ -162,20 +171,24 @@ class _BotHubPanelState extends State<BotHubPanel> {
             const gap = 12.0;
             final across = box.maxWidth >= Breakpoints.botHubThreeUp ? 3 : 2;
             final w = (box.maxWidth - gap * (across - 1)) / across;
-            return Wrap(
-              spacing: gap,
-              runSpacing: gap,
-              children: [
-                for (final g in kChatGames)
-                  SizedBox(
-                    width: w,
-                    child: _BotGameTile(
-                      key: ValueKey('bot_game_$g'),
-                      game: g,
-                      onTap: () => _play(g),
+            return ListenableBuilder(
+              listenable: BananaWallet.instance,
+              builder: (context, _) => Wrap(
+                spacing: gap,
+                runSpacing: gap,
+                children: [
+                  for (final g in kChatGames)
+                    SizedBox(
+                      width: w,
+                      child: _BotGameTile(
+                        key: ValueKey('bot_game_$g'),
+                        game: g,
+                        price: BananaWallet.instance.canSendGame(g) ? null : BananaWallet.instance.priceOf(gameItemId(g)),
+                        onTap: () => _play(g),
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             );
           },
         ),
@@ -386,9 +399,12 @@ class _Meter extends StatelessWidget {
 }
 
 class _BotGameTile extends StatelessWidget {
-  const _BotGameTile({super.key, required this.game, required this.onTap});
+  const _BotGameTile({super.key, required this.game, required this.onTap, this.price});
 
   final String game;
+
+  /// Bananas to unlock when the game is locked; null when it can be played.
+  final int? price;
   final VoidCallback onTap;
 
   @override
@@ -427,11 +443,17 @@ class _BotGameTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                Icon(
-                  CupertinoIcons.play_circle_fill,
-                  size: 22,
-                  color: theme.accent,
-                ),
+                if (price == null)
+                  Icon(
+                    CupertinoIcons.play_circle_fill,
+                    size: 22,
+                    color: theme.accent,
+                  )
+                else
+                  Text(
+                    '\u{1F512} \u{1F34C} $price',
+                    style: groupedMetaStyle(theme).copyWith(fontWeight: FontWeight.w700, color: theme.ink),
+                  ),
               ],
             ),
             const SizedBox(height: 2),

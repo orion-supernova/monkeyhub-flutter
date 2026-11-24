@@ -246,6 +246,12 @@ export const REFERENCE_RULES: Record<string, ReferenceRule> = {
   // ── puzzles, records ──────────────────────────────────────────────────────
   "puzzleResults.userId": { rule: "cascade", index: "by_user_day", why: "Daily results are the user's own; retention policy is a separate decision (plan section 7)." },
   "lifelines.userId": { rule: "cascade", index: "by_user", why: "The rewarded-ad wallet is the user's own (one row); generic step." },
+  "lifelines.allowanceFrom": { rule: "history", why: "The guardian who pays the weekly allowance; a deleted guardian simply stops paying (readers check the guardianship)." },
+  "lifelines.autoYesFrom": { rule: "history", why: "The guardian whose auto-yes budget applies; a deleted guardian simply stops approving (readers check the guardianship)." },
+  "bananaLedger.userId": { rule: "cascade", index: "by_user", why: "A person's banana history goes with their account; generic step." },
+  "bananaLedger.otherUserId": { rule: "history", why: "The other side of a gift or guardian payment; attribution only, a deleted account reads as deleted." },
+  "bananaRequests.childId": { rule: "cascade", index: "by_child_status", why: "A child's banana asks are theirs; generic step." },
+  "bananaRequests.decidedBy": { rule: "history", why: "The guardian who answered; attribution only." },
   "reactions.messageId": { rule: "cascade", index: "by_message", why: "removeMessageImmediate (capped) and the `message` job." },
   "reactions.userId": { rule: "cascade", index: "by_user", why: "Reactions left on other people's messages go with the account." },
   "recordReactions.recordId": { rule: "cascade", index: "by_record_user", why: "Reactions die with the record (user plan, `records` step)." },

@@ -2613,6 +2613,233 @@ class AppLocalizationsTr extends AppLocalizations {
   String get familyScreenEmptyStateTitle => 'henüz çocuk yok';
 
   @override
+  String bananasAskHeadline(String child, String item) {
+    return '$child, $item istiyor';
+  }
+
+  @override
+  String bananasPrice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count muz',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananasYes => 'Evet';
+
+  @override
+  String get bananasYesGetBananas => 'Evet · muz al ve kilidi aç';
+
+  @override
+  String get bananasSendBananas => 'Muz gönder';
+
+  @override
+  String get bananasNotNow => 'Şimdi değil';
+
+  @override
+  String bananasYesFooter(String child) {
+    return 'Evet, kendi muzlarınla ödenir. $child hesabında, tüm cihazlarda açılır.';
+  }
+
+  @override
+  String bananasShortFooter(int balance, String child) {
+    return '🍌 $balance muzun var. Biraz daha al, doğrudan $child için kullanılır.';
+  }
+
+  @override
+  String bananasSendTitle(String child) {
+    return '$child için muz gönder';
+  }
+
+  @override
+  String get bananasCustom => 'Başka';
+
+  @override
+  String get bananasCustomHint => 'Kaç tane? (1 ile 1000)';
+
+  @override
+  String bananasSendAction(int count) {
+    return '🍌 $count gönder';
+  }
+
+  @override
+  String bananasSentToast(String child, int count) {
+    return '$child için 🍌 $count gönderildi';
+  }
+
+  @override
+  String bananasApprovedToast(String child, String item) {
+    return '$child için $item açıldı';
+  }
+
+  @override
+  String bananasDeclinedToast(String child) {
+    return '$child bilgilendirildi: şimdi değil';
+  }
+
+  @override
+  String get bananasErrNoBananas => 'Bunun için yeterli muzun yok.';
+
+  @override
+  String get bananasErrAnswered => 'Buna biri çoktan yanıt verdi.';
+
+  @override
+  String get bananasErrGeneric => 'Olmadı. Tekrar dene.';
+
+  @override
+  String get bananasBundleAnimals => 'Hayvan dövüşçüler';
+
+  @override
+  String get bananasBundleLegends => 'Efsane dövüşçüler';
+
+  @override
+  String get bananasBundleStages => 'Tüm sahneler';
+
+  @override
+  String get bananasBundleLooks => 'İki görünüm birden';
+
+  @override
+  String get bananasBundleFist => 'Jungle Fist, tam set';
+
+  @override
+  String get bananasBundleGamenight => 'Oyun gecesi';
+
+  @override
+  String get bananasItemFallback => 'bir kilit açma';
+
+  @override
+  String get bananasKindFighter => 'Jungle Fist dövüşçüsü';
+
+  @override
+  String get bananasKindStage => 'Jungle Fist sahnesi';
+
+  @override
+  String get bananasKindLook => 'Jungle Fist görünümü';
+
+  @override
+  String get bananasKindGame => 'Sohbet oyunu';
+
+  @override
+  String get bananasKindBundle => 'Paket';
+
+  @override
+  String get bananasTitle => 'Muzlar';
+
+  @override
+  String get bananasBalance => 'Bakiye';
+
+  @override
+  String get bananasAsking => 'İstek';
+
+  @override
+  String bananasAskingFooter(String child) {
+    return 'Açıkken $child senden kilit açmanı isteyebilir. Kapalıyken kilitli şeylerde sadece bir kilit görünür.';
+  }
+
+  @override
+  String get bananasAllowance => 'Haftalık harçlık';
+
+  @override
+  String bananasAllowanceValue(int count) {
+    return 'Haftada 🍌 $count';
+  }
+
+  @override
+  String get bananasOff => 'Kapalı';
+
+  @override
+  String get bananasAllowanceFooter =>
+      'Cüzdanını bir sonraki açışında senin muzlarından ödenir. Yetmezse bekler.';
+
+  @override
+  String get bananasSpendHeader => 'Kendi muzlarını şunlara harcayabilir';
+
+  @override
+  String get bananasSpendAll => 'Her şey';
+
+  @override
+  String get bananasSpendLifelines => 'Sadece can simitleri';
+
+  @override
+  String get bananasSpendNone => 'Hiçbir şey';
+
+  @override
+  String get bananasSpendFooter =>
+      '\"Sadece can simitleri\" kilit açmayı isteğe bağlar. Günlük muzu ve harçlığı kendilerine ait.';
+
+  @override
+  String get bananasAutoYes => 'Otomatik evet sınırı';
+
+  @override
+  String get bananasAutoYesFooter =>
+      'Haftalık bütçenin altındaki istekler otomatik onaylanır ve muzlarından ödenir.';
+
+  @override
+  String get bananasHistory => 'Geçmiş';
+
+  @override
+  String get bananasHistoryEmpty => 'Henüz bir şey yok.';
+
+  @override
+  String get bananasLedgerGift => 'Bir yetişkinden hediye';
+
+  @override
+  String get bananasLedgerAllowance => 'Haftalık harçlık';
+
+  @override
+  String bananasLedgerUnlock(String item) {
+    return '$item açıldı';
+  }
+
+  @override
+  String get bananasLedgerEarned => 'Kazanıldı';
+
+  @override
+  String get bananasLedgerSpent => 'Harcandı';
+
+  @override
+  String get bananasWaitingTitle => 'Bir yetişkini bekliyor';
+
+  @override
+  String get bananasWithdraw => 'Geri al';
+
+  @override
+  String bananasYesTitle(String guardian) {
+    return '$guardian evet dedi!';
+  }
+
+  @override
+  String bananasYesBody(String item) {
+    return '$item artık senin, tüm cihazlarda.';
+  }
+
+  @override
+  String bananasGiftTitle(String guardian) {
+    return '$guardian sana muz gönderdi!';
+  }
+
+  @override
+  String get bananasGiftBody => 'İstediğin şeye harca.';
+
+  @override
+  String get bananasPlayNow => 'Şimdi oyna';
+
+  @override
+  String get bananasThanks => 'Teşekkür et 💛';
+
+  @override
+  String get bananasThanksMessage => 'Teşekkürler! 💛';
+
+  @override
+  String get bananasThanksSent => 'Gönderildi 💛';
+
+  @override
+  String get bananasGrownUp => 'Bir yetişkin';
+
+  @override
   String get familyScreenEmptyStateBody =>
       'Çocuğun için bir hesap oluştur, sonra telefonuyla eşleştir.';
 
@@ -14813,6 +15040,46 @@ class AppLocalizationsTr extends AppLocalizations {
       'Sadece dövüşlerin senin ekranında nasıl göründüğünü değiştirir. İstediğin zaman, dövüş sırasında bile duraklatma menüsünden değiştirebilirsin.';
 
   @override
+  String get bananasTryInTraining => 'Antrenmanda dene';
+
+  @override
+  String bananasUnlockFor(int price) {
+    return 'Kilidi aç · 🍌 $price';
+  }
+
+  @override
+  String get bananasYours => 'Sende';
+
+  @override
+  String get bananasHostFootnote =>
+      'Oyunu sen başlatınca, sahip olmasalar bile herkes oynar.';
+
+  @override
+  String bananasHostChip(String host) {
+    return '$host oyunu';
+  }
+
+  @override
+  String get bananasAskRematch => 'Rövanş iste';
+
+  @override
+  String get bananasRematchText => 'Rövanş? 🎮';
+
+  @override
+  String get bananasReasonFighter =>
+      'Çevrimiçi dövüşlerde kullanmak için bu dövüşçünün kilidini aç.';
+
+  @override
+  String get bananasReasonStage => 'Bu sahnede dövüş açmak için kilidini aç.';
+
+  @override
+  String get bananasReasonLook =>
+      'Görünümü beğendin mi? Kalması için kilidini aç.';
+
+  @override
+  String get bananasReasonGame => 'Bu oyunu kendin başlatmak için kilidini aç.';
+
+  @override
   String get fightFighterTitle => 'Dövüşçü';
 
   @override
@@ -16532,6 +16799,204 @@ class AppLocalizationsTr extends AppLocalizations {
   String bananaGot(int count) {
     return '+$count';
   }
+
+  @override
+  String bananasSheetUnlockTitle(String name) {
+    return '$name kilidini aç';
+  }
+
+  @override
+  String bananasSheetAskTitle(String name) {
+    return '$name ister misin?';
+  }
+
+  @override
+  String get bananasSheetForever => 'Sonsuza dek senin, her cihazda.';
+
+  @override
+  String get bananasSheetYourBananas => 'Muzların';
+
+  @override
+  String bananasSheetAfter(int count) {
+    return 'Açtıktan sonra: 🍌 $count';
+  }
+
+  @override
+  String bananasSheetShort(int count) {
+    return '🍌 $count muz daha lazım.';
+  }
+
+  @override
+  String get bananasSheetGetBananas => 'Muz al';
+
+  @override
+  String get bananasSheetFirstPick => 'Bedava ilk seçimimi kullan';
+
+  @override
+  String get bananasSheetFirstPickNote => 'İlk dövüşçün ya da sahnen bizden.';
+
+  @override
+  String bananasSheetBundleHint(int count, String name, int price) {
+    return 'Ya da $name ile $count öğenin hepsi 🍌 $price';
+  }
+
+  @override
+  String get bananasSheetOwned => 'Bu zaten sende.';
+
+  @override
+  String bananasSheetUnlocked(String name) {
+    return '$name senin!';
+  }
+
+  @override
+  String get bananasSheetFailed => 'Olmadı. Tekrar dene.';
+
+  @override
+  String get bananasAskBody =>
+      'Anneni ya da babanı iste. Onlara mesaj gidecek.';
+
+  @override
+  String get bananasAskNoteHint => 'Not ekle (isteğe bağlı)';
+
+  @override
+  String get bananasAskButton => 'Bir yetişkine sor';
+
+  @override
+  String get bananasAskWaiting => 'İstendi, bir yetişkinin cevabı bekleniyor';
+
+  @override
+  String bananasAskOwn(int have, int price) {
+    return 'Ya da kendi muzlarını kullan: 🍌 $have / $price';
+  }
+
+  @override
+  String get bananasAskOwnButton => 'Muzlarımla aç';
+
+  @override
+  String get bananasAskSent => 'İstendi! Bir yetişkine mesaj gidecek.';
+
+  @override
+  String get bananasAskTooMany => 'Zaten 3 açık isteğin var.';
+
+  @override
+  String get bananasAskCooldown =>
+      'Bir yetişkin şimdi olmaz dedi. Yarın tekrar dene.';
+
+  @override
+  String get bananasAskOff => 'Hesabında istek özelliği kapalı.';
+
+  @override
+  String get bananasShopTitle => 'Muz Mağazası';
+
+  @override
+  String get bananasShopRowSub => 'Dövüşçüler, sahneler, görünümler, oyunlar';
+
+  @override
+  String get bananasShopGetMore => 'Daha fazla muz al';
+
+  @override
+  String get bananasShopPacks => 'Muz paketleri';
+
+  @override
+  String get bananasShopFirstDouble => 'İlk paketin çift sayılır.';
+
+  @override
+  String get bananasShopRibbon => 'Muz ×2';
+
+  @override
+  String get bananasShopEarn => 'Ya da kazan';
+
+  @override
+  String get bananasShopEarnRow => 'Video izle ya da bugünkü muzunu al';
+
+  @override
+  String get bananasShopAppOnly =>
+      'Paketler telefondaki MonkeyHub uygulamasında satılır. Elindeki muzlar burada da geçerli.';
+
+  @override
+  String get bananasShopChild =>
+      'Muzlar videolardan, günlük muzdan ve yetişkinlerinden gelir.';
+
+  @override
+  String get bananasShopNoPacks =>
+      'Paketler şu an yok. Biraz sonra tekrar dene.';
+
+  @override
+  String get bananasShopFailed => 'Satın alma tamamlanmadı.';
+
+  @override
+  String get bananasShopLate => 'Teşekkürler! Muzların yolda.';
+
+  @override
+  String get bananasShopUnlocks => 'Kilitler';
+
+  @override
+  String get bananasShopFirstPickTitle => 'İlk kilidini seç';
+
+  @override
+  String get bananasShopFirstPickSub =>
+      'Herhangi bir dövüşçü ya da sahne bizden';
+
+  @override
+  String get bananasShopFree => 'Bedava';
+
+  @override
+  String get bananasShopOwned => 'Sende';
+
+  @override
+  String bananasShopOwnedCount(int owned, int total) {
+    return '$total içinden $owned';
+  }
+
+  @override
+  String bananasShopWelcome(int count) {
+    return '+$count hoş geldin muzu';
+  }
+
+  @override
+  String get bananasPackHandful => 'Avuç';
+
+  @override
+  String get bananasPackBasket => 'Sepet';
+
+  @override
+  String get bananasPackCrate => 'Kasa';
+
+  @override
+  String get bananasPackTree => 'Ağaç';
+
+  @override
+  String get bananasPackJungle => 'Orman';
+
+  @override
+  String get bananasGroupFighters => 'Jungle Fist dövüşçüleri';
+
+  @override
+  String get bananasGroupStages => 'Jungle Fist sahneleri';
+
+  @override
+  String get bananasGroupLooks => 'Jungle Fist görünümleri';
+
+  @override
+  String get bananasGroupGames => 'Sohbet oyunları';
+
+  @override
+  String get bananasGroupBundles => 'Setler';
+
+  @override
+  String get bananasStageTemple => 'Tapınak';
+
+  @override
+  String get bananasStageNeon => 'Neon';
+
+  @override
+  String get bananasStageAurora => 'Aurora';
+
+  @override
+  String get bananasStageCanyon => 'Kanyon';
+
+  @override
+  String get bananasStageDeck => 'Güverte';
 
   @override
   String get bananaPhoneOnly =>

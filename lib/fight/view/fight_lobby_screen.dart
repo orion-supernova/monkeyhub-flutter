@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
+import '../../ads/banana_wallet.dart';
+import '../../ads/unlock_sheet.dart';
 import '../../data/settings_store.dart';
+import '../../games/catalog.dart' show fighterItemId, stageItemId;
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/text_case.dart';
 import '../../theme/theme_scope.dart';
@@ -62,6 +65,7 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
     _resetDemo();
     _ticker = createTicker(_tick)..start();
     SettingsStore.instance.addListener(_onSettings);
+    BananaWallet.instance.addListener(_onSettings);
   }
 
   void _resetDemo() {
@@ -114,6 +118,7 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
   @override
   void dispose() {
     SettingsStore.instance.removeListener(_onSettings);
+    BananaWallet.instance.removeListener(_onSettings);
     _ticker.dispose();
     _hero.dispose();
     for (final r in _previews.values) {
@@ -124,7 +129,24 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
     super.dispose();
   }
 
+  /// The first picked thing that is still locked (fighter, then stage), as a
+  /// catalog id, or null when the pick can fight. Bot fights use only what
+  /// the player owns.
+  String? _lockedPick() {
+    final w = BananaWallet.instance;
+    final c = fightCharOf(SettingsStore.instance.fightChar);
+    if (!w.ownsFighter(c)) return fighterItemId(c);
+    final st = SettingsStore.instance.fightStage;
+    if (st != kFightStageRandom && !w.ownsStage(fightStageOf(st))) return stageItemId(fightStageOf(st));
+    return null;
+  }
+
+  Future<void> _unlockPick(String itemId, String reason) async {
+    if (await showUnlockSheet(context, itemId, reason: reason) && mounted) setState(() {});
+  }
+
   void _fight() {
+    if (_lockedPick() != null) return;
     final me = fightCharOf(SettingsStore.instance.fightChar);
     // The bot takes a random fighter (never a mirror, unless there's one).
     var foe = DateTime.now().microsecondsSinceEpoch % roster.length;
@@ -142,7 +164,7 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final look = fightLookOf(SettingsStore.instance.fightLook);
+    final look = fightLookNow();
     final text = fightHudText(l10n);
     final names = [_demo.chars[0].name, _demo.chars[1].name];
 
@@ -177,16 +199,18 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
           Expanded(
             child: _LookCard(
               key: ValueKey('fight_look_${l.name}'),
-              label: switch (l) {
-                FightLook.cartoon => l10n.fightLookCartoon,
-                FightLook.painted => l10n.fightLookPainted,
-                FightLook.pixel => l10n.fightLookPixel,
-              },
+              label: (BananaWallet.instance.ownsLook(l) ? '' : '\u{1F512} ') +
+                  switch (l) {
+                    FightLook.cartoon => l10n.fightLookCartoon,
+                    FightLook.painted => l10n.fightLookPainted,
+                    FightLook.pixel => l10n.fightLookPixel,
+                  },
               selected: l == look,
               preview: RepaintBoundary(child: view(_previews[l]!, l, still: true)),
               onTap: () {
                 HapticFeedback.selectionClick();
-                SettingsStore.instance.setFightLook(fightLookWire(l));
+                // A locked look opens the unlock sheet; nothing locked is saved.
+                FightLookPicker.pick(context, l, preview: false);
               },
             ),
           ),
@@ -201,7 +225,15 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
       padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
       child: Text(l10n.fightLobbyIntro, style: theme.body.copyWith(color: theme.inkSoft, height: 1.35)),
     );
-    final buttons = _ActionPair(onFight: _fight, onTraining: () => openFightTraining(context, charId: fightCharOf(SettingsStore.instance.fightChar)));
+    final locked = _lockedPick();
+    final buttons = _ActionPair(
+      onFight: _fight,
+      onTraining: () => openFightTraining(context, charId: fightCharOf(SettingsStore.instance.fightChar)),
+      lockedPrice: locked == null ? null : BananaWallet.instance.priceOf(locked),
+      onUnlock: locked == null
+          ? null
+          : () => _unlockPick(locked, locked.startsWith('stage.') ? l10n.bananasReasonStage : l10n.bananasReasonFighter),
+    );
 
     return LayoutBuilder(
       builder: (context, box) {
@@ -291,8 +323,13 @@ class _FightLobbyScreenState extends State<FightLobbyScreen> with SingleTickerPr
 /// Fight (the primary, gradient pill) and Training (the same pill, outlined and
 /// quiet) as one pair: equal height and radius, an icon each.
 class _ActionPair extends StatelessWidget {
-  const _ActionPair({required this.onFight, required this.onTraining});
+  const _ActionPair({required this.onFight, required this.onTraining, this.lockedPrice, this.onUnlock});
   final VoidCallback onFight, onTraining;
+
+  /// Set when the picked fighter or stage is locked: Fight becomes Unlock,
+  /// and Training becomes the free try.
+  final int? lockedPrice;
+  final VoidCallback? onUnlock;
 
   @override
   Widget build(BuildContext context) {
@@ -305,8 +342,8 @@ class _ActionPair extends StatelessWidget {
           flex: 5,
           child: SpringPress(
             key: const ValueKey('fight_start'),
-            onTap: onFight,
-            semanticLabel: l10n.fightStart,
+            onTap: lockedPrice == null ? onFight : (onUnlock ?? onFight),
+            semanticLabel: lockedPrice == null ? l10n.fightStart : l10n.bananasUnlockFor(lockedPrice!),
             child: Container(
               height: h,
               padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -320,9 +357,9 @@ class _ActionPair extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(CupertinoIcons.flame_fill, size: 22, color: Color(0xff1b0d02)),
+                    Icon(lockedPrice == null ? CupertinoIcons.flame_fill : CupertinoIcons.lock_open_fill, size: 22, color: const Color(0xff1b0d02)),
                     const SizedBox(width: 8),
-                    Text(l10n.fightStart, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xff1b0d02), letterSpacing: 0.5)),
+                    Text(lockedPrice == null ? l10n.fightStart : l10n.bananasUnlockFor(lockedPrice!), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xff1b0d02), letterSpacing: 0.5)),
                   ],
                 ),
               ),
@@ -336,7 +373,7 @@ class _ActionPair extends StatelessWidget {
           child: SpringPress(
             key: const ValueKey('fight_training'),
             onTap: onTraining,
-            semanticLabel: l10n.fightTrainingTitle,
+            semanticLabel: lockedPrice == null ? l10n.fightTrainingTitle : l10n.bananasTryInTraining,
             child: Container(
               height: h,
               padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -352,7 +389,7 @@ class _ActionPair extends StatelessWidget {
                   children: [
                     const Icon(Icons.sports_mma, size: 20, color: Color(0xffffcf6e)),
                     const SizedBox(width: 8),
-                    Text(l10n.fightTrainingTitle, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white)),
+                    Text(lockedPrice == null ? l10n.fightTrainingTitle : l10n.bananasTryInTraining, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white)),
                   ],
                 ),
               ),

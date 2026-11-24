@@ -275,10 +275,16 @@ enum QueueItemType {
   /// writes the child a room grant (see `roomInvitations.advance`), because
   /// this card has already asked the guardian the exact question the grant
   /// answers — this child, this room.
-  roomInviteIncoming;
+  roomInviteIncoming,
+
+  /// My child asked for an unlock and wants me to pay for it in bananas.
+  /// Wire shape: `kind: "banana"` (see [QueueItem.fromJson]).
+  bananaRequest;
 
   static QueueItemType? parse(String? s) {
     switch (s) {
+      case 'banana':
+        return QueueItemType.bananaRequest;
       case 'contactOutgoing':
         return QueueItemType.contactOutgoing;
       case 'contactIncoming':
@@ -306,6 +312,9 @@ enum QueueRelay {
 
   /// `roomInvitations:advance` — either direction of a group invite.
   roomInvite,
+
+  /// `bananaRequests:answer` — a child's ask for an unlock.
+  banana,
 }
 
 /// A room as it appears inside a queue item — deliberately lighter than
@@ -349,9 +358,19 @@ class QueueItem {
     this.other,
     this.room,
     this.note = '',
+    this.bananaItem,
+    this.bananaPrice = 0,
+    this.sticker,
   });
 
   final QueueItemType type;
+
+  /// [QueueItemType.bananaRequest] only: the catalog id asked for
+  /// (`fighter.golem`), its price in bananas at the time of the last read, and
+  /// the sticker the child picked, if any.
+  final String? bananaItem;
+  final int bananaPrice;
+  final String? sticker;
 
   /// Which table this row lives in depends on [type], and so does the mutation
   /// that answers it: a `friendships` id for the contact types, an
@@ -385,12 +404,16 @@ class QueueItem {
         QueueItemType.roomInviteOutgoing ||
         QueueItemType.roomInviteIncoming =>
           QueueRelay.roomInvite,
+        QueueItemType.bananaRequest => QueueRelay.banana,
       };
 
   @Deprecated('Use `relay` — there are three destinations now, not two.')
   bool get isContact => relay == QueueRelay.contact;
 
   static QueueItem? fromJson(Map<String, dynamic> j) {
+    // Banana requests are tagged `kind: "banana"`; every older item uses
+    // `type`. Accept both spellings on the banana one.
+    if (j['kind'] == 'banana' || j['type'] == 'banana') return _banana(j);
     final type = QueueItemType.parse(j['type'] as String?);
     if (type == null) return null; // unknown kind from a newer backend
     final other = j['other'];
@@ -408,6 +431,31 @@ class QueueItem {
       note: (j['note'] ?? '') as String,
     );
   }
+}
+
+QueueItem? _banana(Map<String, dynamic> j) {
+  final item = j['item'];
+  final id = j['requestId'] ?? j['_id'];
+  if (item is! String || id == null) return null;
+  final child = j['child'];
+  return QueueItem(
+    type: QueueItemType.bananaRequest,
+    id: id.toString(),
+    createdAt:
+        DateTime.fromMillisecondsSinceEpoch(((j['createdAt'] ?? 0) as num).toInt()),
+    child: child is Map
+        ? ChatUser.fromJson(child.cast<String, dynamic>())
+        : ChatUser(
+            id: (j['childId'] ?? '').toString(),
+            username: '',
+            name: (j['childName'] ?? '') as String,
+            avatarStorageId: j['childAvatarStorageId'] as String?,
+          ),
+    note: (j['note'] ?? '') as String,
+    bananaItem: item,
+    bananaPrice: ((j['price'] ?? 0) as num).toInt(),
+    sticker: j['sticker'] as String?,
+  );
 }
 
 /// A child's own "waiting on a grown-up" entry.

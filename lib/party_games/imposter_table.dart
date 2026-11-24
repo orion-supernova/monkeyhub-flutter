@@ -319,6 +319,7 @@ class _RoleCardState extends State<_RoleCard>
   }
 
   void _up() {
+    if (!mounted) return;
     if (_open) setState(() => _open = false);
     _hold.reverse();
   }

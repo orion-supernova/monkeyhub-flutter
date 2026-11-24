@@ -2,6 +2,9 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../ads/banana_wallet.dart';
+import '../ads/unlock_sheet.dart';
+import '../games/catalog.dart' show gameItemId, isFreeGame;
 import '../games/how_to/chat_guides.dart';
 import '../games/how_to/how_to_play.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -147,6 +150,16 @@ class _StartSheetState extends State<StartGameSheet> {
     });
   }
 
+  /// A shelf tap. A locked game asks for the unlock first (hosting needs it;
+  /// guests play a host's game free) and, once it is bought, starts at once.
+  Future<void> _pickGame(String game) async {
+    if (BananaWallet.instance.canSendGame(game)) return _openGame(game);
+    final reason = AppLocalizations.of(context).bananasReasonGame;
+    if (!await showUnlockSheet(context, gameItemId(game), reason: reason) || !mounted) return;
+    _openGame(game);
+    _start(game);
+  }
+
   void _back() {
     HapticFeedback.selectionClick();
     setState(() {
@@ -194,7 +207,7 @@ class _StartSheetState extends State<StartGameSheet> {
             key: const ValueKey('shelf'),
             isDm: widget.isDm,
             memberCount: widget.memberCount,
-            onPick: _openGame,
+            onPick: _pickGame,
           )
         : _GamePage(
             key: ValueKey('page_$open'),
@@ -322,6 +335,8 @@ class _Shelf extends StatelessWidget {
                         game: g,
                         styles: playStylesOf(g, isDm: isDm),
                         tooSmall: isTooSmallFor(g, memberCount),
+                        lock: isFreeGame(g) ? _Lock.free : (BananaWallet.instance.canSendGame(g) ? _Lock.yours : _Lock.locked),
+                        price: BananaWallet.instance.priceOf(gameItemId(g)),
                         onTap: () => onPick(g),
                       ),
                     ),
@@ -332,7 +347,7 @@ class _Shelf extends StatelessWidget {
         ),
       ],
     );
-    return ListView(
+    final list = ListView(
       shrinkWrap: true,
       padding: sheetListPadding(context),
       children: [
@@ -346,9 +361,18 @@ class _Shelf extends StatelessWidget {
           section(l10n.chatGameSectionParty, l10n.chatGamePartyHint, party),
         ],
         const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text(
+            '\u{1F39F}\u{FE0F} ${l10n.bananasHostFootnote}',
+            style: groupedFooterStyle(theme),
+          ),
+        ),
         _NotRanked(),
       ],
     );
+    // An unlock (or a purchase made from the sheet) repaints the rows.
+    return ListenableBuilder(listenable: BananaWallet.instance, builder: (context, _) => list);
   }
 }
 
@@ -392,6 +416,9 @@ class ChatGameArt extends StatelessWidget {
   }
 }
 
+/// What the player's unlocks say about a chat game.
+enum _Lock { free, yours, locked }
+
 class _GameTile extends StatelessWidget {
   const _GameTile({
     super.key,
@@ -399,7 +426,14 @@ class _GameTile extends StatelessWidget {
     required this.styles,
     required this.onTap,
     this.tooSmall = false,
+    this.lock = _Lock.free,
+    this.price = 0,
   });
+
+  final _Lock lock;
+
+  /// Bananas to unlock, for a [_Lock.locked] game.
+  final int price;
 
   final String game;
   final List<PlayStyle> styles;
@@ -451,7 +485,14 @@ class _GameTile extends StatelessWidget {
           Wrap(
             spacing: 4,
             runSpacing: 4,
-            children: [for (final s in styles) PlayStyleBadge(s)],
+            children: [
+              for (final s in styles) PlayStyleBadge(s),
+              if (lock != _Lock.free)
+                Text(
+                  lock == _Lock.yours ? '\u{1F39F}\u{FE0F} ${l10n.bananasYours}' : '\u{1F34C} $price',
+                  style: groupedMetaStyle(theme).copyWith(fontSize: 12, fontWeight: FontWeight.w700, color: theme.ink),
+                ),
+            ],
           ),
         ],
       ),

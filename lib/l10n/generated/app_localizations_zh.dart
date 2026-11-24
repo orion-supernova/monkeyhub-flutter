@@ -2494,6 +2494,230 @@ class AppLocalizationsZh extends AppLocalizations {
   String get familyScreenEmptyStateTitle => '还没有孩子';
 
   @override
+  String bananasAskHeadline(String child, String item) {
+    return '$child想要$item';
+  }
+
+  @override
+  String bananasPrice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count根香蕉',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananasYes => '好';
+
+  @override
+  String get bananasYesGetBananas => '好 · 获取香蕉并解锁';
+
+  @override
+  String get bananasSendBananas => '发送香蕉';
+
+  @override
+  String get bananasNotNow => '现在不行';
+
+  @override
+  String bananasYesFooter(String child) {
+    return '选“好”会用你自己的香蕉支付，并在$child的账号上解锁，所有设备都能用。';
+  }
+
+  @override
+  String bananasShortFooter(int balance, String child) {
+    return '你有 🍌 $balance。再获取一些,会直接给$child。';
+  }
+
+  @override
+  String bananasSendTitle(String child) {
+    return '给$child发送香蕉';
+  }
+
+  @override
+  String get bananasCustom => '其他';
+
+  @override
+  String get bananasCustomHint => '多少？（1到1000）';
+
+  @override
+  String bananasSendAction(int count) {
+    return '发送 🍌 $count';
+  }
+
+  @override
+  String bananasSentToast(String child, int count) {
+    return '已给$child发送 🍌 $count';
+  }
+
+  @override
+  String bananasApprovedToast(String child, String item) {
+    return '已为$child解锁$item';
+  }
+
+  @override
+  String bananasDeclinedToast(String child) {
+    return '已告诉$child：现在不行';
+  }
+
+  @override
+  String get bananasErrNoBananas => '你的香蕉不够。';
+
+  @override
+  String get bananasErrAnswered => '已经有人回复了。';
+
+  @override
+  String get bananasErrGeneric => '没成功，请再试一次。';
+
+  @override
+  String get bananasBundleAnimals => '动物角色';
+
+  @override
+  String get bananasBundleLegends => '传奇角色';
+
+  @override
+  String get bananasBundleStages => '全部场景';
+
+  @override
+  String get bananasBundleLooks => '两种画风';
+
+  @override
+  String get bananasBundleFist => 'Jungle Fist 全套';
+
+  @override
+  String get bananasBundleGamenight => '游戏之夜';
+
+  @override
+  String get bananasItemFallback => '一项解锁';
+
+  @override
+  String get bananasKindFighter => 'Jungle Fist 战士';
+
+  @override
+  String get bananasKindStage => 'Jungle Fist 场景';
+
+  @override
+  String get bananasKindLook => 'Jungle Fist 画风';
+
+  @override
+  String get bananasKindGame => '聊天游戏';
+
+  @override
+  String get bananasKindBundle => '合集';
+
+  @override
+  String get bananasTitle => '香蕉';
+
+  @override
+  String get bananasBalance => '余额';
+
+  @override
+  String get bananasAsking => '请求';
+
+  @override
+  String bananasAskingFooter(String child) {
+    return '开启后，$child可以向你请求解锁。关闭后，锁定的内容只显示一把锁。';
+  }
+
+  @override
+  String get bananasAllowance => '每周零花香蕉';
+
+  @override
+  String bananasAllowanceValue(int count) {
+    return '每周 🍌 $count';
+  }
+
+  @override
+  String get bananasOff => '关闭';
+
+  @override
+  String get bananasAllowanceFooter => '对方下次打开钱包时，会从你的香蕉中支付。如果不够，就会等待。';
+
+  @override
+  String get bananasSpendHeader => '可以用自己的香蕉购买';
+
+  @override
+  String get bananasSpendAll => '全部';
+
+  @override
+  String get bananasSpendLifelines => '仅限救援';
+
+  @override
+  String get bananasSpendNone => '都不可以';
+
+  @override
+  String get bananasSpendFooter => '“仅限救援”会让解锁必须经过请求。每日香蕉和零花香蕉由他们自己支配。';
+
+  @override
+  String get bananasAutoYes => '自动同意上限';
+
+  @override
+  String get bananasAutoYesFooter => '在每周额度内的请求会自动同意，并用你的香蕉支付。';
+
+  @override
+  String get bananasHistory => '记录';
+
+  @override
+  String get bananasHistoryEmpty => '还没有记录。';
+
+  @override
+  String get bananasLedgerGift => '来自家长的礼物';
+
+  @override
+  String get bananasLedgerAllowance => '每周零花香蕉';
+
+  @override
+  String bananasLedgerUnlock(String item) {
+    return '解锁了$item';
+  }
+
+  @override
+  String get bananasLedgerEarned => '获得';
+
+  @override
+  String get bananasLedgerSpent => '花费';
+
+  @override
+  String get bananasWaitingTitle => '等待家长回复';
+
+  @override
+  String get bananasWithdraw => '撤回';
+
+  @override
+  String bananasYesTitle(String guardian) {
+    return '$guardian同意了！';
+  }
+
+  @override
+  String bananasYesBody(String item) {
+    return '$item归你了，所有设备都能用。';
+  }
+
+  @override
+  String bananasGiftTitle(String guardian) {
+    return '$guardian给你发了香蕉！';
+  }
+
+  @override
+  String get bananasGiftBody => '想买什么都可以。';
+
+  @override
+  String get bananasPlayNow => '马上玩';
+
+  @override
+  String get bananasThanks => '说声谢谢 💛';
+
+  @override
+  String get bananasThanksMessage => '谢谢！ 💛';
+
+  @override
+  String get bananasThanksSent => '已发送 💛';
+
+  @override
+  String get bananasGrownUp => '家长';
+
+  @override
   String get familyScreenEmptyStateBody => '给孩子创建一个账号,然后绑定到他们的手机。';
 
   @override
@@ -14080,6 +14304,43 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fightLookFootnote => '只改变你屏幕上的战斗画面。随时可以切换，战斗中也能在暂停菜单里换。';
 
   @override
+  String get bananasTryInTraining => '在训练中试玩';
+
+  @override
+  String bananasUnlockFor(int price) {
+    return '解锁 · 🍌 $price';
+  }
+
+  @override
+  String get bananasYours => '已拥有';
+
+  @override
+  String get bananasHostFootnote => '你发起的游戏，所有人都能玩，即使他们没有解锁。';
+
+  @override
+  String bananasHostChip(String host) {
+    return '$host的游戏';
+  }
+
+  @override
+  String get bananasAskRematch => '请求再来一局';
+
+  @override
+  String get bananasRematchText => '再来一局？🎮';
+
+  @override
+  String get bananasReasonFighter => '解锁这位格斗家，才能在线上对战中使用。';
+
+  @override
+  String get bananasReasonStage => '解锁这个场景，才能在上面开战。';
+
+  @override
+  String get bananasReasonLook => '喜欢这个画风？解锁后可以一直使用。';
+
+  @override
+  String get bananasReasonGame => '解锁这个游戏，才能自己发起。';
+
+  @override
   String get fightFighterTitle => '角色';
 
   @override
@@ -15749,6 +16010,198 @@ class AppLocalizationsZh extends AppLocalizations {
   String bananaGot(int count) {
     return '+$count';
   }
+
+  @override
+  String bananasSheetUnlockTitle(String name) {
+    return '解锁$name';
+  }
+
+  @override
+  String bananasSheetAskTitle(String name) {
+    return '想要$name吗?';
+  }
+
+  @override
+  String get bananasSheetForever => '永久属于你,所有设备通用。';
+
+  @override
+  String get bananasSheetYourBananas => '你的香蕉';
+
+  @override
+  String bananasSheetAfter(int count) {
+    return '解锁后:🍌 $count';
+  }
+
+  @override
+  String bananasSheetShort(int count) {
+    return '还差 🍌 $count。';
+  }
+
+  @override
+  String get bananasSheetGetBananas => '获取香蕉';
+
+  @override
+  String get bananasSheetFirstPick => '使用免费首选';
+
+  @override
+  String get bananasSheetFirstPickNote => '第一个角色或场景由我们送你。';
+
+  @override
+  String bananasSheetBundleHint(int count, String name, int price) {
+    return '或者用 🍌 $price 获取$name中的全部 $count 项';
+  }
+
+  @override
+  String get bananasSheetOwned => '你已经拥有了。';
+
+  @override
+  String bananasSheetUnlocked(String name) {
+    return '$name归你了!';
+  }
+
+  @override
+  String get bananasSheetFailed => '没有成功,请再试一次。';
+
+  @override
+  String get bananasAskBody => '问问爸爸妈妈吧,他们会收到消息。';
+
+  @override
+  String get bananasAskNoteHint => '添加留言(可选)';
+
+  @override
+  String get bananasAskButton => '请大人帮忙';
+
+  @override
+  String get bananasAskWaiting => '已请求,等待大人回复';
+
+  @override
+  String bananasAskOwn(int have, int price) {
+    return '或用你自己的:你有 🍌 $have / $price';
+  }
+
+  @override
+  String get bananasAskOwnButton => '用我的香蕉解锁';
+
+  @override
+  String get bananasAskSent => '已请求!大人会收到消息。';
+
+  @override
+  String get bananasAskTooMany => '你已经有 3 个待处理的请求。';
+
+  @override
+  String get bananasAskCooldown => '大人说现在不行。明天再问问吧。';
+
+  @override
+  String get bananasAskOff => '你的账号已关闭请求功能。';
+
+  @override
+  String get bananasShopTitle => '香蕉商店';
+
+  @override
+  String get bananasShopRowSub => '角色、场景、画风、游戏';
+
+  @override
+  String get bananasShopGetMore => '获取更多香蕉';
+
+  @override
+  String get bananasShopPacks => '香蕉包';
+
+  @override
+  String get bananasShopFirstDouble => '首次购买的香蕉包双倍计算。';
+
+  @override
+  String get bananasShopRibbon => '香蕉 ×2';
+
+  @override
+  String get bananasShopEarn => '或者免费赚取';
+
+  @override
+  String get bananasShopEarnRow => '看视频或领取今日香蕉';
+
+  @override
+  String get bananasShopAppOnly => '香蕉包在手机上的 MonkeyHub 应用里销售。你已有的香蕉在这里同样可用。';
+
+  @override
+  String get bananasShopChild => '香蕉可以通过视频、每日香蕉和家长获得。';
+
+  @override
+  String get bananasShopNoPacks => '香蕉包暂时不可用,请稍后再试。';
+
+  @override
+  String get bananasShopFailed => '购买没有完成。';
+
+  @override
+  String get bananasShopLate => '谢谢!你的香蕉马上到账。';
+
+  @override
+  String get bananasShopUnlocks => '解锁内容';
+
+  @override
+  String get bananasShopFirstPickTitle => '选择你的第一个解锁';
+
+  @override
+  String get bananasShopFirstPickSub => '任选一个角色或场景,免费送你';
+
+  @override
+  String get bananasShopFree => '免费';
+
+  @override
+  String get bananasShopOwned => '已拥有';
+
+  @override
+  String bananasShopOwnedCount(int owned, int total) {
+    return '已拥有 $owned/$total';
+  }
+
+  @override
+  String bananasShopWelcome(int count) {
+    return '欢迎香蕉 +$count';
+  }
+
+  @override
+  String get bananasPackHandful => '一把';
+
+  @override
+  String get bananasPackBasket => '一篮';
+
+  @override
+  String get bananasPackCrate => '一箱';
+
+  @override
+  String get bananasPackTree => '一棵树';
+
+  @override
+  String get bananasPackJungle => '丛林';
+
+  @override
+  String get bananasGroupFighters => 'Jungle Fist 角色';
+
+  @override
+  String get bananasGroupStages => 'Jungle Fist 场景';
+
+  @override
+  String get bananasGroupLooks => 'Jungle Fist 画风';
+
+  @override
+  String get bananasGroupGames => '聊天游戏';
+
+  @override
+  String get bananasGroupBundles => '套装';
+
+  @override
+  String get bananasStageTemple => '神殿';
+
+  @override
+  String get bananasStageNeon => '霓虹';
+
+  @override
+  String get bananasStageAurora => '极光';
+
+  @override
+  String get bananasStageCanyon => '峡谷';
+
+  @override
+  String get bananasStageDeck => '甲板';
 
   @override
   String get bananaPhoneOnly => '香蕉要在手机 App 里看短视频获得。你已有的香蕉在这里也能用。';

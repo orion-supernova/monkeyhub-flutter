@@ -2508,7 +2508,59 @@ export default defineSchema({
     recentTx: v.optional(v.array(v.string())),
     totalAds: v.optional(v.number()),
     updatedAt: v.number(),
+    // Bananas & unlocks (docs/design/bananas-and-unlocks.html): SINGLE catalog
+    // ids this user owns (<= 60; bundles store their members), and the
+    // one-time flags.
+    owned: v.optional(v.array(v.string())),
+    firstPickUsed: v.optional(v.boolean()),
+    firstPackUsed: v.optional(v.boolean()),
+    launchGiftAt: v.optional(v.number()),
+    // Child rules, set by a guardian (`family:setBananaRules`). Absent: the
+    // child may ask, spends on everything, no allowance, no auto-yes.
+    askOff: v.optional(v.boolean()),
+    spend: v.optional(v.string()), // "all" | "lifelines" | "none"
+    allowancePerWeek: v.optional(v.number()),
+    allowanceFrom: v.optional(v.id("users")),
+    allowanceWeek: v.optional(v.number()), // weekOrdinal last paid
+    autoYesPerWeek: v.optional(v.number()),
+    autoYesFrom: v.optional(v.id("users")),
+    autoYesWeek: v.optional(v.number()),
+    autoYesSpent: v.optional(v.number()),
   }).index("by_user", ["userId"]),
+
+  // Append-only banana ledger: one row per purchase, unlock, gift, allowance
+  // or refund (signed `amount`). Support and refunds read it; nothing
+  // subscribes to it. Kept for the life of the account (financial record,
+  // cascades with it). `by_storeTx` dedupes store webhooks.
+  bananaLedger: defineTable({
+    userId: v.id("users"),
+    kind: v.string(),
+    amount: v.number(),
+    item: v.optional(v.string()),
+    storeTx: v.optional(v.string()),
+    otherUserId: v.optional(v.id("users")),
+    at: v.number(),
+  })
+    .index("by_user", ["userId", "at"])
+    .index("by_storeTx", ["storeTx"]),
+
+  // A child asking a guardian to unlock something. At most 3 open per child;
+  // open rows expire after 7 days (checked on read, no cron). Cascades with
+  // the child; decided rows are kept as history of what the guardian paid for.
+  bananaRequests: defineTable({
+    childId: v.id("users"),
+    item: v.string(),
+    price: v.number(),
+    note: v.optional(v.string()),
+    sticker: v.optional(v.string()),
+    // "open" | "approved" | "declined" | "gifted" | "withdrawn" | "done"
+    status: v.string(),
+    decidedBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    decidedAt: v.optional(v.number()),
+  })
+    .index("by_child_status", ["childId", "status"])
+    .index("by_child_item", ["childId", "item"]),
 
   puzzleResults: defineTable({
     userId: v.id("users"),

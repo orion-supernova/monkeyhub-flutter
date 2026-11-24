@@ -2643,6 +2643,235 @@ class AppLocalizationsSv extends AppLocalizations {
   String get familyScreenEmptyStateTitle => 'inga barn än';
 
   @override
+  String bananasAskHeadline(String child, String item) {
+    return '$child frågar efter $item';
+  }
+
+  @override
+  String bananasPrice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bananer',
+      one: '1 banan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananasYes => 'Ja';
+
+  @override
+  String get bananasYesGetBananas => 'Ja · skaffa bananer och lås upp';
+
+  @override
+  String get bananasSendBananas => 'Skicka bananer';
+
+  @override
+  String get bananasNotNow => 'Inte nu';
+
+  @override
+  String bananasYesFooter(String child) {
+    return 'Ja betalar med dina egna bananer. Det låses upp på ${child}s konto, på alla enheter.';
+  }
+
+  @override
+  String bananasShortFooter(int balance, String child) {
+    return 'Du har 🍌 $balance. Skaffa fler så går de direkt till $child.';
+  }
+
+  @override
+  String bananasSendTitle(String child) {
+    return 'Skicka bananer till $child';
+  }
+
+  @override
+  String get bananasCustom => 'Annan';
+
+  @override
+  String get bananasCustomHint => 'Hur många? (1 till 1000)';
+
+  @override
+  String bananasSendAction(int count) {
+    return 'Skicka 🍌 $count';
+  }
+
+  @override
+  String bananasSentToast(String child, int count) {
+    return 'Skickade 🍌 $count till $child';
+  }
+
+  @override
+  String bananasApprovedToast(String child, String item) {
+    return '$item upplåst för $child';
+  }
+
+  @override
+  String bananasDeclinedToast(String child) {
+    return '$child har fått beskedet: inte nu';
+  }
+
+  @override
+  String get bananasErrNoBananas =>
+      'Du har inte tillräckligt med bananer för det.';
+
+  @override
+  String get bananasErrAnswered => 'Någon har redan svarat på den här.';
+
+  @override
+  String get bananasErrGeneric => 'Det funkade inte. Försök igen.';
+
+  @override
+  String get bananasBundleAnimals => 'Djurfighters';
+
+  @override
+  String get bananasBundleLegends => 'Legendfighters';
+
+  @override
+  String get bananasBundleStages => 'Alla banor';
+
+  @override
+  String get bananasBundleLooks => 'Båda looksen';
+
+  @override
+  String get bananasBundleFist => 'Jungle Fist, komplett';
+
+  @override
+  String get bananasBundleGamenight => 'Spelkväll';
+
+  @override
+  String get bananasItemFallback => 'en upplåsning';
+
+  @override
+  String get bananasKindFighter => 'Jungle Fist-fighter';
+
+  @override
+  String get bananasKindStage => 'Jungle Fist-bana';
+
+  @override
+  String get bananasKindLook => 'Jungle Fist-look';
+
+  @override
+  String get bananasKindGame => 'Chattspel';
+
+  @override
+  String get bananasKindBundle => 'Paket';
+
+  @override
+  String get bananasTitle => 'Bananer';
+
+  @override
+  String get bananasBalance => 'Saldo';
+
+  @override
+  String get bananasAsking => 'Fråga';
+
+  @override
+  String bananasAskingFooter(String child) {
+    return 'När det är på kan $child be dig om upplåsningar. När det är av visas bara ett lås.';
+  }
+
+  @override
+  String get bananasAllowance => 'Veckopeng';
+
+  @override
+  String bananasAllowanceValue(int count) {
+    return '🍌 $count i veckan';
+  }
+
+  @override
+  String get bananasOff => 'Av';
+
+  @override
+  String get bananasAllowanceFooter =>
+      'Betalas med dina bananer nästa gång de öppnar plånboken. Räcker de inte väntar det.';
+
+  @override
+  String get bananasSpendHeader => 'Får använda sina egna bananer till';
+
+  @override
+  String get bananasSpendAll => 'Allt';
+
+  @override
+  String get bananasSpendLifelines => 'Bara livlinor';
+
+  @override
+  String get bananasSpendNone => 'Inget';
+
+  @override
+  String get bananasSpendFooter =>
+      'Bara livlinor håller upplåsningar bakom en fråga. Deras dagliga banan och veckopeng får de spendera själva.';
+
+  @override
+  String get bananasAutoYes => 'Automatiskt ja upp till';
+
+  @override
+  String get bananasAutoYesFooter =>
+      'Förfrågningar under veckobudgeten godkänns och betalas automatiskt med dina bananer.';
+
+  @override
+  String get bananasHistory => 'Historik';
+
+  @override
+  String get bananasHistoryEmpty => 'Inget ännu.';
+
+  @override
+  String get bananasLedgerGift => 'Present från en vuxen';
+
+  @override
+  String get bananasLedgerAllowance => 'Veckopeng';
+
+  @override
+  String bananasLedgerUnlock(String item) {
+    return 'Låste upp $item';
+  }
+
+  @override
+  String get bananasLedgerEarned => 'Intjänade';
+
+  @override
+  String get bananasLedgerSpent => 'Spenderade';
+
+  @override
+  String get bananasWaitingTitle => 'Väntar på en vuxen';
+
+  @override
+  String get bananasWithdraw => 'Ta tillbaka';
+
+  @override
+  String bananasYesTitle(String guardian) {
+    return '$guardian sa ja!';
+  }
+
+  @override
+  String bananasYesBody(String item) {
+    return '$item är ditt, på alla enheter.';
+  }
+
+  @override
+  String bananasGiftTitle(String guardian) {
+    return '$guardian skickade bananer till dig!';
+  }
+
+  @override
+  String get bananasGiftBody => 'Använd dem till vad du vill.';
+
+  @override
+  String get bananasPlayNow => 'Spela nu';
+
+  @override
+  String get bananasThanks => 'Säg tack 💛';
+
+  @override
+  String get bananasThanksMessage => 'Tack! 💛';
+
+  @override
+  String get bananasThanksSent => 'Skickat 💛';
+
+  @override
+  String get bananasGrownUp => 'En vuxen';
+
+  @override
   String get familyScreenEmptyStateBody =>
       'Skapa ett konto åt ditt barn och parkoppla det sedan med deras telefon.';
 
@@ -14917,6 +15146,48 @@ class AppLocalizationsSv extends AppLocalizations {
       'Ändrar bara hur striderna ser ut på din skärm. Du kan byta när som helst, även mitt i en strid från pausmenyn.';
 
   @override
+  String get bananasTryInTraining => 'Prova i träningen';
+
+  @override
+  String bananasUnlockFor(int price) {
+    return 'Lås upp · 🍌 $price';
+  }
+
+  @override
+  String get bananasYours => 'Din';
+
+  @override
+  String get bananasHostFootnote =>
+      'När du är värd spelar alla i spelet det, även om de inte äger det.';
+
+  @override
+  String bananasHostChip(String host) {
+    return '${host}s spel';
+  }
+
+  @override
+  String get bananasAskRematch => 'Be om revansch';
+
+  @override
+  String get bananasRematchText => 'Revansch? 🎮';
+
+  @override
+  String get bananasReasonFighter =>
+      'Lås upp den här fightern för att använda den i onlinestrider.';
+
+  @override
+  String get bananasReasonStage =>
+      'Lås upp den här arenan för att köra strider på den.';
+
+  @override
+  String get bananasReasonLook =>
+      'Gillar du looken? Lås upp den för att behålla den.';
+
+  @override
+  String get bananasReasonGame =>
+      'Lås upp det här spelet för att starta det själv.';
+
+  @override
   String get fightFighterTitle => 'Fighter';
 
   @override
@@ -16648,6 +16919,204 @@ class AppLocalizationsSv extends AppLocalizations {
   String bananaGot(int count) {
     return '+$count';
   }
+
+  @override
+  String bananasSheetUnlockTitle(String name) {
+    return 'Lås upp $name';
+  }
+
+  @override
+  String bananasSheetAskTitle(String name) {
+    return 'Vill du ha $name?';
+  }
+
+  @override
+  String get bananasSheetForever => 'Din för alltid, på alla dina enheter.';
+
+  @override
+  String get bananasSheetYourBananas => 'Dina bananer';
+
+  @override
+  String bananasSheetAfter(int count) {
+    return 'Efter upplåsning: 🍌 $count';
+  }
+
+  @override
+  String bananasSheetShort(int count) {
+    return 'Du behöver 🍌 $count till.';
+  }
+
+  @override
+  String get bananasSheetGetBananas => 'Skaffa bananer';
+
+  @override
+  String get bananasSheetFirstPick => 'Använd mitt första gratisval';
+
+  @override
+  String get bananasSheetFirstPickNote =>
+      'Din första fighter eller bana bjuder vi på.';
+
+  @override
+  String bananasSheetBundleHint(int count, String name, int price) {
+    return 'Eller ta alla $count i $name för 🍌 $price';
+  }
+
+  @override
+  String get bananasSheetOwned => 'Du har redan den här.';
+
+  @override
+  String bananasSheetUnlocked(String name) {
+    return '$name är din!';
+  }
+
+  @override
+  String get bananasSheetFailed => 'Det gick inte igenom. Försök igen.';
+
+  @override
+  String get bananasAskBody =>
+      'Fråga mamma eller pappa. De får ett meddelande.';
+
+  @override
+  String get bananasAskNoteHint => 'Lägg till ett meddelande (valfritt)';
+
+  @override
+  String get bananasAskButton => 'Fråga en vuxen';
+
+  @override
+  String get bananasAskWaiting => 'Förfrågan skickad, väntar på en vuxen';
+
+  @override
+  String bananasAskOwn(int have, int price) {
+    return 'Eller använd dina egna: du har 🍌 $have av $price';
+  }
+
+  @override
+  String get bananasAskOwnButton => 'Lås upp med mina bananer';
+
+  @override
+  String get bananasAskSent =>
+      'Förfrågan skickad! En vuxen får ett meddelande.';
+
+  @override
+  String get bananasAskTooMany => 'Du har redan 3 öppna förfrågningar.';
+
+  @override
+  String get bananasAskCooldown => 'En vuxen sa inte nu. Försök igen i morgon.';
+
+  @override
+  String get bananasAskOff => 'Att fråga är avstängt för ditt konto.';
+
+  @override
+  String get bananasShopTitle => 'Bananbutiken';
+
+  @override
+  String get bananasShopRowSub => 'Fighters, banor, looks, spel';
+
+  @override
+  String get bananasShopGetMore => 'Skaffa fler bananer';
+
+  @override
+  String get bananasShopPacks => 'Bananpaket';
+
+  @override
+  String get bananasShopFirstDouble => 'Ditt första paket räknas dubbelt.';
+
+  @override
+  String get bananasShopRibbon => 'Bananer ×2';
+
+  @override
+  String get bananasShopEarn => 'Eller tjäna dem';
+
+  @override
+  String get bananasShopEarnRow => 'Titta på en video eller hämta dagens banan';
+
+  @override
+  String get bananasShopAppOnly =>
+      'Paketen säljs i MonkeyHub-appen i mobilen. Bananer du redan har fungerar även här.';
+
+  @override
+  String get bananasShopChild =>
+      'Bananer får du från videor, dagens banan och dina vuxna.';
+
+  @override
+  String get bananasShopNoPacks =>
+      'Paketen är inte tillgängliga just nu. Försök igen om en stund.';
+
+  @override
+  String get bananasShopFailed => 'Köpet gick inte igenom.';
+
+  @override
+  String get bananasShopLate => 'Tack! Dina bananer är på väg.';
+
+  @override
+  String get bananasShopUnlocks => 'Upplåsningar';
+
+  @override
+  String get bananasShopFirstPickTitle => 'Välj din första upplåsning';
+
+  @override
+  String get bananasShopFirstPickSub => 'Valfri fighter eller bana, på oss';
+
+  @override
+  String get bananasShopFree => 'Gratis';
+
+  @override
+  String get bananasShopOwned => 'Din';
+
+  @override
+  String bananasShopOwnedCount(int owned, int total) {
+    return '$owned av $total';
+  }
+
+  @override
+  String bananasShopWelcome(int count) {
+    return '+$count välkomstbananer';
+  }
+
+  @override
+  String get bananasPackHandful => 'Näve';
+
+  @override
+  String get bananasPackBasket => 'Korg';
+
+  @override
+  String get bananasPackCrate => 'Låda';
+
+  @override
+  String get bananasPackTree => 'Träd';
+
+  @override
+  String get bananasPackJungle => 'Djungel';
+
+  @override
+  String get bananasGroupFighters => 'Fighters i Jungle Fist';
+
+  @override
+  String get bananasGroupStages => 'Banor i Jungle Fist';
+
+  @override
+  String get bananasGroupLooks => 'Looks i Jungle Fist';
+
+  @override
+  String get bananasGroupGames => 'Chattspel';
+
+  @override
+  String get bananasGroupBundles => 'Paket';
+
+  @override
+  String get bananasStageTemple => 'Templet';
+
+  @override
+  String get bananasStageNeon => 'Neon';
+
+  @override
+  String get bananasStageAurora => 'Norrsken';
+
+  @override
+  String get bananasStageCanyon => 'Kanjonen';
+
+  @override
+  String get bananasStageDeck => 'Däck';
 
   @override
   String get bananaPhoneOnly =>

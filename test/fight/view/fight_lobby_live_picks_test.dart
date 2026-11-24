@@ -12,6 +12,7 @@ import 'package:monkeyhub/fight/core/core.dart';
 import 'package:monkeyhub/fight/view/art/stages/stages.dart';
 import 'package:monkeyhub/fight/view/fight_online_screen.dart';
 import 'package:monkeyhub/fight/view/fight_stage_picker.dart';
+import 'package:monkeyhub/games/catalog.dart' show isFreeFighter;
 import 'package:monkeyhub/fight/view/fighter_portrait.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/chat_match.dart';
@@ -141,8 +142,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     expect(api.sent, hasLength(1), reason: 'the match already shows it');
 
-    // Three quick taps across the grid: one write, the last fighter.
-    final others = [for (final c in roster) if (c.id != first) c.id].take(3).toList();
+    // Three quick taps across the grid: one write, the last fighter. Free
+    // fighters only: a locked one opens the unlock sheet instead of picking.
+    final others = [for (final c in roster) if (c.id != first && isFreeFighter(c.id)) c.id].take(3).toList();
     for (final id in others) {
       await tester.tap(find.byKey(ValueKey('fight_char_$id')));
       await tester.pump(const Duration(milliseconds: 100));

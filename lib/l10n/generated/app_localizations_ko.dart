@@ -2530,6 +2530,231 @@ class AppLocalizationsKo extends AppLocalizations {
   String get familyScreenEmptyStateTitle => '아직 자녀가 없어요';
 
   @override
+  String bananasAskHeadline(String child, String item) {
+    return '$child님이 $item을(를) 요청해요';
+  }
+
+  @override
+  String bananasPrice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '바나나 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananasYes => '좋아요';
+
+  @override
+  String get bananasYesGetBananas => '좋아요 · 바나나 받고 잠금 해제';
+
+  @override
+  String get bananasSendBananas => '바나나 보내기';
+
+  @override
+  String get bananasNotNow => '지금은 안 돼요';
+
+  @override
+  String bananasYesFooter(String child) {
+    return '\"좋아요\"를 누르면 내 바나나로 결제돼요. $child님의 계정에서 모든 기기에 잠금 해제돼요.';
+  }
+
+  @override
+  String bananasShortFooter(int balance, String child) {
+    return '🍌 $balance개 있어요. 더 받으면 바로 $child님에게 가요.';
+  }
+
+  @override
+  String bananasSendTitle(String child) {
+    return '$child님에게 바나나 보내기';
+  }
+
+  @override
+  String get bananasCustom => '직접 입력';
+
+  @override
+  String get bananasCustomHint => '몇 개? (1~1000)';
+
+  @override
+  String bananasSendAction(int count) {
+    return '🍌 $count개 보내기';
+  }
+
+  @override
+  String bananasSentToast(String child, int count) {
+    return '$child님에게 🍌 $count개를 보냈어요';
+  }
+
+  @override
+  String bananasApprovedToast(String child, String item) {
+    return '$child님의 $item 잠금 해제됨';
+  }
+
+  @override
+  String bananasDeclinedToast(String child) {
+    return '$child님에게 \"지금은 안 돼요\"라고 알렸어요';
+  }
+
+  @override
+  String get bananasErrNoBananas => '바나나가 부족해요.';
+
+  @override
+  String get bananasErrAnswered => '이미 다른 분이 답했어요.';
+
+  @override
+  String get bananasErrGeneric => '실패했어요. 다시 시도해 주세요.';
+
+  @override
+  String get bananasBundleAnimals => '동물 파이터';
+
+  @override
+  String get bananasBundleLegends => '전설 파이터';
+
+  @override
+  String get bananasBundleStages => '모든 스테이지';
+
+  @override
+  String get bananasBundleLooks => '두 가지 룩';
+
+  @override
+  String get bananasBundleFist => 'Jungle Fist 올인원';
+
+  @override
+  String get bananasBundleGamenight => '게임의 밤';
+
+  @override
+  String get bananasItemFallback => '잠금 해제 항목';
+
+  @override
+  String get bananasKindFighter => 'Jungle Fist 파이터';
+
+  @override
+  String get bananasKindStage => 'Jungle Fist 스테이지';
+
+  @override
+  String get bananasKindLook => 'Jungle Fist 룩';
+
+  @override
+  String get bananasKindGame => '채팅 게임';
+
+  @override
+  String get bananasKindBundle => '묶음';
+
+  @override
+  String get bananasTitle => '바나나';
+
+  @override
+  String get bananasBalance => '잔액';
+
+  @override
+  String get bananasAsking => '요청하기';
+
+  @override
+  String bananasAskingFooter(String child) {
+    return '켜면 $child님이 잠금 해제를 요청할 수 있어요. 끄면 잠긴 항목에 자물쇠만 표시돼요.';
+  }
+
+  @override
+  String get bananasAllowance => '주간 용돈';
+
+  @override
+  String bananasAllowanceValue(int count) {
+    return '주 🍌 $count';
+  }
+
+  @override
+  String get bananasOff => '끔';
+
+  @override
+  String get bananasAllowanceFooter => '다음에 지갑을 열 때 내 바나나로 지급돼요. 부족하면 기다려요.';
+
+  @override
+  String get bananasSpendHeader => '내 바나나로 쓸 수 있는 것';
+
+  @override
+  String get bananasSpendAll => '전부';
+
+  @override
+  String get bananasSpendLifelines => '라이프라인만';
+
+  @override
+  String get bananasSpendNone => '없음';
+
+  @override
+  String get bananasSpendFooter =>
+      '\"라이프라인만\"을 고르면 잠금 해제는 요청해야 해요. 매일 받는 바나나와 용돈은 마음대로 쓸 수 있어요.';
+
+  @override
+  String get bananasAutoYes => '자동 승인 한도';
+
+  @override
+  String get bananasAutoYesFooter => '주간 한도 안의 요청은 자동으로 승인되고 내 바나나로 결제돼요.';
+
+  @override
+  String get bananasHistory => '기록';
+
+  @override
+  String get bananasHistoryEmpty => '아직 없어요.';
+
+  @override
+  String get bananasLedgerGift => '보호자의 선물';
+
+  @override
+  String get bananasLedgerAllowance => '주간 용돈';
+
+  @override
+  String bananasLedgerUnlock(String item) {
+    return '$item 잠금 해제';
+  }
+
+  @override
+  String get bananasLedgerEarned => '획득';
+
+  @override
+  String get bananasLedgerSpent => '사용';
+
+  @override
+  String get bananasWaitingTitle => '보호자를 기다리는 중';
+
+  @override
+  String get bananasWithdraw => '취소';
+
+  @override
+  String bananasYesTitle(String guardian) {
+    return '$guardian님이 좋다고 했어요!';
+  }
+
+  @override
+  String bananasYesBody(String item) {
+    return '$item은(는) 이제 내 거예요. 모든 기기에서요.';
+  }
+
+  @override
+  String bananasGiftTitle(String guardian) {
+    return '$guardian님이 바나나를 보냈어요!';
+  }
+
+  @override
+  String get bananasGiftBody => '마음에 드는 곳에 쓰세요.';
+
+  @override
+  String get bananasPlayNow => '지금 플레이';
+
+  @override
+  String get bananasThanks => '고마워요 보내기 💛';
+
+  @override
+  String get bananasThanksMessage => '고마워요! 💛';
+
+  @override
+  String get bananasThanksSent => '보냈어요 💛';
+
+  @override
+  String get bananasGrownUp => '보호자';
+
+  @override
   String get familyScreenEmptyStateBody => '자녀 계정을 만든 뒤, 자녀의 휴대폰과 연결해 보세요.';
 
   @override
@@ -14248,6 +14473,43 @@ class AppLocalizationsKo extends AppLocalizations {
       '내 화면에서 보이는 모습만 바뀝니다. 언제든, 싸우는 도중에도 일시정지 메뉴에서 바꿀 수 있어요.';
 
   @override
+  String get bananasTryInTraining => '트레이닝에서 체험';
+
+  @override
+  String bananasUnlockFor(int price) {
+    return '잠금 해제 · 🍌 $price';
+  }
+
+  @override
+  String get bananasYours => '보유';
+
+  @override
+  String get bananasHostFootnote => '내가 시작한 게임은 없는 사람도 모두 함께 즐길 수 있어요.';
+
+  @override
+  String bananasHostChip(String host) {
+    return '$host님의 게임';
+  }
+
+  @override
+  String get bananasAskRematch => '재대결 요청';
+
+  @override
+  String get bananasRematchText => '재대결? 🎮';
+
+  @override
+  String get bananasReasonFighter => '온라인 대전에서 쓰려면 이 파이터를 잠금 해제하세요.';
+
+  @override
+  String get bananasReasonStage => '이 스테이지에서 대전을 열려면 잠금 해제하세요.';
+
+  @override
+  String get bananasReasonLook => '이 스타일이 마음에 드나요? 잠금 해제하면 계속 쓸 수 있어요.';
+
+  @override
+  String get bananasReasonGame => '이 게임을 직접 시작하려면 잠금 해제하세요.';
+
+  @override
   String get fightFighterTitle => '파이터';
 
   @override
@@ -15923,6 +16185,199 @@ class AppLocalizationsKo extends AppLocalizations {
   String bananaGot(int count) {
     return '+$count';
   }
+
+  @override
+  String bananasSheetUnlockTitle(String name) {
+    return '$name 잠금 해제';
+  }
+
+  @override
+  String bananasSheetAskTitle(String name) {
+    return '$name을(를) 갖고 싶어?';
+  }
+
+  @override
+  String get bananasSheetForever => '영원히 내 것, 모든 기기에서.';
+
+  @override
+  String get bananasSheetYourBananas => '내 바나나';
+
+  @override
+  String bananasSheetAfter(int count) {
+    return '잠금 해제 후: 🍌 $count';
+  }
+
+  @override
+  String bananasSheetShort(int count) {
+    return '🍌 $count개가 더 필요해요.';
+  }
+
+  @override
+  String get bananasSheetGetBananas => '바나나 받기';
+
+  @override
+  String get bananasSheetFirstPick => '무료 첫 선택 사용하기';
+
+  @override
+  String get bananasSheetFirstPickNote => '첫 파이터나 스테이지는 우리가 쏩니다.';
+
+  @override
+  String bananasSheetBundleHint(int count, String name, int price) {
+    return '또는 $name으로 $count개 전부 🍌 $price에';
+  }
+
+  @override
+  String get bananasSheetOwned => '이미 가지고 있어요.';
+
+  @override
+  String bananasSheetUnlocked(String name) {
+    return '$name이(가) 내 것이 됐어요!';
+  }
+
+  @override
+  String get bananasSheetFailed => '처리되지 않았어요. 다시 시도해 주세요.';
+
+  @override
+  String get bananasAskBody => '엄마나 아빠에게 부탁해 보세요. 메시지가 가요.';
+
+  @override
+  String get bananasAskNoteHint => '메모 추가 (선택)';
+
+  @override
+  String get bananasAskButton => '어른에게 부탁하기';
+
+  @override
+  String get bananasAskWaiting => '요청했어요. 어른의 답을 기다리는 중';
+
+  @override
+  String bananasAskOwn(int have, int price) {
+    return '아니면 내 바나나로: 🍌 $have / $price';
+  }
+
+  @override
+  String get bananasAskOwnButton => '내 바나나로 잠금 해제';
+
+  @override
+  String get bananasAskSent => '요청했어요! 어른에게 메시지가 가요.';
+
+  @override
+  String get bananasAskTooMany => '이미 열린 요청이 3개 있어요.';
+
+  @override
+  String get bananasAskCooldown => '어른이 지금은 안 된대요. 내일 다시 해 보세요.';
+
+  @override
+  String get bananasAskOff => '이 계정에서는 요청이 꺼져 있어요.';
+
+  @override
+  String get bananasShopTitle => '바나나 상점';
+
+  @override
+  String get bananasShopRowSub => '파이터, 스테이지, 룩, 게임';
+
+  @override
+  String get bananasShopGetMore => '바나나 더 받기';
+
+  @override
+  String get bananasShopPacks => '바나나 팩';
+
+  @override
+  String get bananasShopFirstDouble => '첫 팩은 두 배로 들어와요.';
+
+  @override
+  String get bananasShopRibbon => '바나나 ×2';
+
+  @override
+  String get bananasShopEarn => '또는 모으기';
+
+  @override
+  String get bananasShopEarnRow => '영상을 보거나 오늘의 바나나 받기';
+
+  @override
+  String get bananasShopAppOnly =>
+      '팩은 휴대폰의 MonkeyHub 앱에서 판매해요. 가진 바나나는 여기서도 쓸 수 있어요.';
+
+  @override
+  String get bananasShopChild => '바나나는 영상, 매일 주는 바나나, 보호자에게서 받을 수 있어요.';
+
+  @override
+  String get bananasShopNoPacks => '지금은 팩을 살 수 없어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get bananasShopFailed => '구매가 완료되지 않았어요.';
+
+  @override
+  String get bananasShopLate => '감사합니다! 바나나가 곧 도착해요.';
+
+  @override
+  String get bananasShopUnlocks => '잠금 해제';
+
+  @override
+  String get bananasShopFirstPickTitle => '첫 잠금 해제를 골라 보세요';
+
+  @override
+  String get bananasShopFirstPickSub => '어떤 파이터나 스테이지든 무료';
+
+  @override
+  String get bananasShopFree => '무료';
+
+  @override
+  String get bananasShopOwned => '보유 중';
+
+  @override
+  String bananasShopOwnedCount(int owned, int total) {
+    return '$total개 중 $owned개 보유';
+  }
+
+  @override
+  String bananasShopWelcome(int count) {
+    return '환영 바나나 +$count';
+  }
+
+  @override
+  String get bananasPackHandful => '한 줌';
+
+  @override
+  String get bananasPackBasket => '바구니';
+
+  @override
+  String get bananasPackCrate => '상자';
+
+  @override
+  String get bananasPackTree => '나무';
+
+  @override
+  String get bananasPackJungle => '정글';
+
+  @override
+  String get bananasGroupFighters => 'Jungle Fist 파이터';
+
+  @override
+  String get bananasGroupStages => 'Jungle Fist 스테이지';
+
+  @override
+  String get bananasGroupLooks => 'Jungle Fist 룩';
+
+  @override
+  String get bananasGroupGames => '채팅 게임';
+
+  @override
+  String get bananasGroupBundles => '번들';
+
+  @override
+  String get bananasStageTemple => '사원';
+
+  @override
+  String get bananasStageNeon => '네온';
+
+  @override
+  String get bananasStageAurora => '오로라';
+
+  @override
+  String get bananasStageCanyon => '협곡';
+
+  @override
+  String get bananasStageDeck => '갑판';
 
   @override
   String get bananaPhoneOnly =>

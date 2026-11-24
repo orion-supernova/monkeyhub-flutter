@@ -361,6 +361,7 @@ dependencies:
   flutter_map: ^8.3.2
   latlong2: ^0.10.1
   google_mobile_ads: ^9.2.0
+  purchases_flutter: ^11.0.4
 
 dependency_overrides:
   # record 5.x ships with a stale record_linux that doesn't implement the

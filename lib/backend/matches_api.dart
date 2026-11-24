@@ -368,6 +368,9 @@ String matchErrorCode(Object e) {
     'NOT_MEMBER',
     'UNKNOWN_GAME',
     'EPHEMERAL_ROOM',
+    'LOCKED_GAME',
+    'LOCKED_FIGHTER',
+    'LOCKED_STAGE',
   ];
   final text = e.toString();
   return known.firstWhere(text.contains, orElse: () => 'UNKNOWN');

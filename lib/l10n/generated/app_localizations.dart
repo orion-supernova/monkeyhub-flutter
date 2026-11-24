@@ -4623,6 +4623,384 @@ abstract class AppLocalizations {
   /// **'no children yet'**
   String get familyScreenEmptyStateTitle;
 
+  /// Headline of a banana request card in the guardian approvals list.
+  ///
+  /// In en, this message translates to:
+  /// **'{child} asks for {item}'**
+  String bananasAskHeadline(String child, String item);
+
+  /// A price or amount in bananas.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 banana} other{{count} bananas}}'**
+  String bananasPrice(int count);
+
+  /// Guardian button: approve a banana request.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get bananasYes;
+
+  /// Guardian button when their wallet is short: buy bananas, then approve.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes · get bananas & unlock'**
+  String get bananasYesGetBananas;
+
+  /// Guardian button: send bananas to the child instead of unlocking.
+  ///
+  /// In en, this message translates to:
+  /// **'Send bananas'**
+  String get bananasSendBananas;
+
+  /// Guardian button: decline a banana request for now.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get bananasNotNow;
+
+  /// Footer under a banana request card.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes pays from your own bananas. It unlocks on {child}’s account, on every device.'**
+  String bananasYesFooter(String child);
+
+  /// Footer when the guardian cannot afford a request.
+  ///
+  /// In en, this message translates to:
+  /// **'You have 🍌 {balance}. Get more and it goes straight to {child}.'**
+  String bananasShortFooter(int balance, String child);
+
+  /// Title of the amount picker sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Send bananas to {child}'**
+  String bananasSendTitle(String child);
+
+  /// Option to type a custom banana amount.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get bananasCustom;
+
+  /// Placeholder for a custom banana amount.
+  ///
+  /// In en, this message translates to:
+  /// **'How many? (1 to 1000)'**
+  String get bananasCustomHint;
+
+  /// Confirm button of the send bananas sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Send 🍌 {count}'**
+  String bananasSendAction(int count);
+
+  /// Toast after sending bananas.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent 🍌 {count} to {child}'**
+  String bananasSentToast(String child, int count);
+
+  /// Toast after a guardian said yes.
+  ///
+  /// In en, this message translates to:
+  /// **'{item} unlocked for {child}'**
+  String bananasApprovedToast(String child, String item);
+
+  /// Toast after a guardian declined a banana request.
+  ///
+  /// In en, this message translates to:
+  /// **'Told {child}: not now'**
+  String bananasDeclinedToast(String child);
+
+  /// Error when the guardian is short on bananas.
+  ///
+  /// In en, this message translates to:
+  /// **'You don’t have enough bananas for that.'**
+  String get bananasErrNoBananas;
+
+  /// Error when another guardian answered first.
+  ///
+  /// In en, this message translates to:
+  /// **'Someone already answered this one.'**
+  String get bananasErrAnswered;
+
+  /// Generic banana error.
+  ///
+  /// In en, this message translates to:
+  /// **'That didn’t work. Try again.'**
+  String get bananasErrGeneric;
+
+  /// Bundle name: Animals.
+  ///
+  /// In en, this message translates to:
+  /// **'Animal fighters'**
+  String get bananasBundleAnimals;
+
+  /// Bundle name: Legends.
+  ///
+  /// In en, this message translates to:
+  /// **'Legend fighters'**
+  String get bananasBundleLegends;
+
+  /// Bundle name: Stages.
+  ///
+  /// In en, this message translates to:
+  /// **'All stages'**
+  String get bananasBundleStages;
+
+  /// Bundle name: Looks.
+  ///
+  /// In en, this message translates to:
+  /// **'Both looks'**
+  String get bananasBundleLooks;
+
+  /// Bundle name: Fist.
+  ///
+  /// In en, this message translates to:
+  /// **'Jungle Fist, complete'**
+  String get bananasBundleFist;
+
+  /// Bundle name: Gamenight.
+  ///
+  /// In en, this message translates to:
+  /// **'Game night'**
+  String get bananasBundleGamenight;
+
+  /// Fallback when an item id is not known to this app version.
+  ///
+  /// In en, this message translates to:
+  /// **'an unlock'**
+  String get bananasItemFallback;
+
+  /// Subtitle of a banana request for a fighter.
+  ///
+  /// In en, this message translates to:
+  /// **'Jungle Fist fighter'**
+  String get bananasKindFighter;
+
+  /// Subtitle of a banana request for a stage.
+  ///
+  /// In en, this message translates to:
+  /// **'Jungle Fist stage'**
+  String get bananasKindStage;
+
+  /// Subtitle of a banana request for a look.
+  ///
+  /// In en, this message translates to:
+  /// **'Jungle Fist look'**
+  String get bananasKindLook;
+
+  /// Subtitle of a banana request for a chat game.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat game'**
+  String get bananasKindGame;
+
+  /// Subtitle of a banana request for a bundle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bundle'**
+  String get bananasKindBundle;
+
+  /// Title of the per-child bananas screen and its entry in the family screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Bananas'**
+  String get bananasTitle;
+
+  /// Label of the child’s banana balance.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get bananasBalance;
+
+  /// Switch: whether the child may ask a guardian for unlocks.
+  ///
+  /// In en, this message translates to:
+  /// **'Asking'**
+  String get bananasAsking;
+
+  /// Footer under the Asking switch.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, {child} can ask you for unlocks. When off, locked things just show a lock.'**
+  String bananasAskingFooter(String child);
+
+  /// Row: weekly banana allowance for the child.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly allowance'**
+  String get bananasAllowance;
+
+  /// Value of the allowance or auto-yes row.
+  ///
+  /// In en, this message translates to:
+  /// **'🍌 {count} a week'**
+  String bananasAllowanceValue(int count);
+
+  /// Value when a banana rule is switched off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get bananasOff;
+
+  /// Footer under the allowance row.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid from your bananas when they next open their wallet. If you are short, it waits.'**
+  String get bananasAllowanceFooter;
+
+  /// Header of the spend-policy options.
+  ///
+  /// In en, this message translates to:
+  /// **'May spend their own bananas on'**
+  String get bananasSpendHeader;
+
+  /// Spend policy: everything.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything'**
+  String get bananasSpendAll;
+
+  /// Spend policy: only lifelines.
+  ///
+  /// In en, this message translates to:
+  /// **'Lifelines only'**
+  String get bananasSpendLifelines;
+
+  /// Spend policy: nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing'**
+  String get bananasSpendNone;
+
+  /// Footer under the spend-policy options.
+  ///
+  /// In en, this message translates to:
+  /// **'Lifelines only keeps unlocks behind Ask. Their daily banana and allowance are theirs to spend.'**
+  String get bananasSpendFooter;
+
+  /// Row: weekly budget under which requests are approved automatically.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-yes up to'**
+  String get bananasAutoYes;
+
+  /// Footer under the auto-yes row.
+  ///
+  /// In en, this message translates to:
+  /// **'Requests under the weekly budget are approved and paid from your bananas automatically.'**
+  String get bananasAutoYesFooter;
+
+  /// Section: the child’s banana ledger.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get bananasHistory;
+
+  /// Empty history.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing yet.'**
+  String get bananasHistoryEmpty;
+
+  /// History row: bananas a guardian sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Gift from a grown-up'**
+  String get bananasLedgerGift;
+
+  /// History row: allowance.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly allowance'**
+  String get bananasLedgerAllowance;
+
+  /// History row: an unlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlocked {item}'**
+  String bananasLedgerUnlock(String item);
+
+  /// History row: bananas earned.
+  ///
+  /// In en, this message translates to:
+  /// **'Earned'**
+  String get bananasLedgerEarned;
+
+  /// History row: bananas spent.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent'**
+  String get bananasLedgerSpent;
+
+  /// Header of the child’s list of open banana requests.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for a grown-up'**
+  String get bananasWaitingTitle;
+
+  /// Child button: withdraw an open request.
+  ///
+  /// In en, this message translates to:
+  /// **'Take back'**
+  String get bananasWithdraw;
+
+  /// Celebration headline when a guardian approves.
+  ///
+  /// In en, this message translates to:
+  /// **'{guardian} said yes!'**
+  String bananasYesTitle(String guardian);
+
+  /// Celebration body when a guardian approves.
+  ///
+  /// In en, this message translates to:
+  /// **'{item} is yours, on every device.'**
+  String bananasYesBody(String item);
+
+  /// Celebration headline when a guardian sends bananas.
+  ///
+  /// In en, this message translates to:
+  /// **'{guardian} sent you bananas!'**
+  String bananasGiftTitle(String guardian);
+
+  /// Celebration body when bananas were sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Spend them on whatever you like.'**
+  String get bananasGiftBody;
+
+  /// Celebration button.
+  ///
+  /// In en, this message translates to:
+  /// **'Play now'**
+  String get bananasPlayNow;
+
+  /// Celebration button that sends a thank-you message.
+  ///
+  /// In en, this message translates to:
+  /// **'Say thanks 💛'**
+  String get bananasThanks;
+
+  /// Message sent to the guardian’s DM.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you! 💛'**
+  String get bananasThanksMessage;
+
+  /// Toast after sending thanks.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent 💛'**
+  String get bananasThanksSent;
+
+  /// Fallback name for a guardian.
+  ///
+  /// In en, this message translates to:
+  /// **'A grown-up'**
+  String get bananasGrownUp;
+
   /// Body copy under the empty-state headline on the Family screen, explaining the next step to onboard a child.
   ///
   /// In en, this message translates to:
@@ -24751,6 +25129,72 @@ abstract class AppLocalizations {
   /// **'Only changes how fights look on your screen. You can switch it any time, even mid-fight from the pause menu.'**
   String get fightLookFootnote;
 
+  /// Button: try a locked fighter free in the Training room.
+  ///
+  /// In en, this message translates to:
+  /// **'Try in Training'**
+  String get bananasTryInTraining;
+
+  /// Button: unlock the selected item; price in bananas.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock · 🍌 {price}'**
+  String bananasUnlockFor(int price);
+
+  /// Chip on an unlocked game in the game picker: the player owns it.
+  ///
+  /// In en, this message translates to:
+  /// **'Yours'**
+  String get bananasYours;
+
+  /// Footnote in the game picker: the host's unlock covers every guest.
+  ///
+  /// In en, this message translates to:
+  /// **'When you host, everyone in the game plays it, even if they don’t own it.'**
+  String get bananasHostFootnote;
+
+  /// Chip on a match: the host's name, whose unlock the guest plays on.
+  ///
+  /// In en, this message translates to:
+  /// **'{host}’s game'**
+  String bananasHostChip(String host);
+
+  /// Button: a guest without the game asks the host for a rematch.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for rematch'**
+  String get bananasAskRematch;
+
+  /// Short chat message sent to ask the host for a rematch.
+  ///
+  /// In en, this message translates to:
+  /// **'Rematch? 🎮'**
+  String get bananasRematchText;
+
+  /// Shown in the unlock sheet when a locked fighter is picked online.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock this fighter to use them in online fights.'**
+  String get bananasReasonFighter;
+
+  /// Shown in the unlock sheet when a locked stage is picked as host.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock this stage to host fights on it.'**
+  String get bananasReasonStage;
+
+  /// Shown in the unlock sheet after the 10 second look preview ends.
+  ///
+  /// In en, this message translates to:
+  /// **'Liked the look? Unlock it to keep it.'**
+  String get bananasReasonLook;
+
+  /// Shown in the unlock sheet when a locked chat game is started.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock this game to host it.'**
+  String get bananasReasonGame;
+
   /// Section header: choose your fighter.
   ///
   /// In en, this message translates to:
@@ -27360,6 +27804,354 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'+{count}'**
   String bananaGot(int count);
+
+  /// Unlock sheet title for an adult; {name} is the item.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock {name}'**
+  String bananasSheetUnlockTitle(String name);
+
+  /// Unlock sheet title for a child, who asks instead of buying.
+  ///
+  /// In en, this message translates to:
+  /// **'Want {name}?'**
+  String bananasSheetAskTitle(String name);
+
+  /// Reassurance under the unlock title.
+  ///
+  /// In en, this message translates to:
+  /// **'Yours forever, on every device.'**
+  String get bananasSheetForever;
+
+  /// Label before the player’s banana balance.
+  ///
+  /// In en, this message translates to:
+  /// **'Your bananas'**
+  String get bananasSheetYourBananas;
+
+  /// Balance left after the purchase.
+  ///
+  /// In en, this message translates to:
+  /// **'After unlocking: 🍌 {count}'**
+  String bananasSheetAfter(int count);
+
+  /// How many more bananas the player needs.
+  ///
+  /// In en, this message translates to:
+  /// **'You need 🍌 {count} more.'**
+  String bananasSheetShort(int count);
+
+  /// Button when the wallet is short.
+  ///
+  /// In en, this message translates to:
+  /// **'Get bananas'**
+  String get bananasSheetGetBananas;
+
+  /// Button that spends the free first pick.
+  ///
+  /// In en, this message translates to:
+  /// **'Use my free first pick'**
+  String get bananasSheetFirstPick;
+
+  /// Note about the free first pick.
+  ///
+  /// In en, this message translates to:
+  /// **'Your first fighter or stage is on us.'**
+  String get bananasSheetFirstPickNote;
+
+  /// Hint to buy the whole set instead.
+  ///
+  /// In en, this message translates to:
+  /// **'Or get all {count} in {name} for 🍌 {price}'**
+  String bananasSheetBundleHint(int count, String name, int price);
+
+  /// Shown when the item is already owned.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have this.'**
+  String get bananasSheetOwned;
+
+  /// Celebration title after unlocking.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is yours!'**
+  String bananasSheetUnlocked(String name);
+
+  /// Generic unlock failure.
+  ///
+  /// In en, this message translates to:
+  /// **'That didn’t go through. Try again.'**
+  String get bananasSheetFailed;
+
+  /// Child ask sheet body.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Mom or Dad. They’ll get a message.'**
+  String get bananasAskBody;
+
+  /// Placeholder of the optional note.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a note (optional)'**
+  String get bananasAskNoteHint;
+
+  /// Child’s primary button.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a grown-up'**
+  String get bananasAskButton;
+
+  /// Shown when the child already asked.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested, waiting for a grown-up'**
+  String get bananasAskWaiting;
+
+  /// Child may use their own bananas.
+  ///
+  /// In en, this message translates to:
+  /// **'Or use your own: you have 🍌 {have} of {price}'**
+  String bananasAskOwn(int have, int price);
+
+  /// Child unlocks with own bananas.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock with my bananas'**
+  String get bananasAskOwnButton;
+
+  /// Toast after asking.
+  ///
+  /// In en, this message translates to:
+  /// **'Asked! A grown-up will get a message.'**
+  String get bananasAskSent;
+
+  /// Too many open requests.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have 3 open requests.'**
+  String get bananasAskTooMany;
+
+  /// Declined recently.
+  ///
+  /// In en, this message translates to:
+  /// **'A grown-up said not now. Try again tomorrow.'**
+  String get bananasAskCooldown;
+
+  /// Asking disabled by a guardian.
+  ///
+  /// In en, this message translates to:
+  /// **'Asking is turned off for your account.'**
+  String get bananasAskOff;
+
+  /// Title of the banana shop.
+  ///
+  /// In en, this message translates to:
+  /// **'Banana Shop'**
+  String get bananasShopTitle;
+
+  /// Subtitle of the Games tab row.
+  ///
+  /// In en, this message translates to:
+  /// **'Fighters, stages, looks, games'**
+  String get bananasShopRowSub;
+
+  /// Entry in the wallet sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Get more bananas'**
+  String get bananasShopGetMore;
+
+  /// Section header for banana packs.
+  ///
+  /// In en, this message translates to:
+  /// **'Banana packs'**
+  String get bananasShopPacks;
+
+  /// Note under the packs.
+  ///
+  /// In en, this message translates to:
+  /// **'Your first pack counts double.'**
+  String get bananasShopFirstDouble;
+
+  /// Ribbon on a pack that will be doubled.
+  ///
+  /// In en, this message translates to:
+  /// **'2× bananas'**
+  String get bananasShopRibbon;
+
+  /// Section header: other ways to get bananas.
+  ///
+  /// In en, this message translates to:
+  /// **'Or earn them'**
+  String get bananasShopEarn;
+
+  /// Row that opens the wallet sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch a video or claim today’s banana'**
+  String get bananasShopEarnRow;
+
+  /// Where packs cannot be bought.
+  ///
+  /// In en, this message translates to:
+  /// **'Packs are sold in the MonkeyHub app on your phone. Bananas you already have work here too.'**
+  String get bananasShopAppOnly;
+
+  /// Child accounts see no packs.
+  ///
+  /// In en, this message translates to:
+  /// **'Bananas come from videos, daily bananas and your grown-ups.'**
+  String get bananasShopChild;
+
+  /// Store configured but offering missing.
+  ///
+  /// In en, this message translates to:
+  /// **'Packs aren’t available right now. Try again in a moment.'**
+  String get bananasShopNoPacks;
+
+  /// Purchase failure toast.
+  ///
+  /// In en, this message translates to:
+  /// **'The purchase didn’t go through.'**
+  String get bananasShopFailed;
+
+  /// Purchase done, credit not yet seen.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks! Your bananas are on the way.'**
+  String get bananasShopLate;
+
+  /// Section header: things to unlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlocks'**
+  String get bananasShopUnlocks;
+
+  /// Games tab row.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick your first unlock'**
+  String get bananasShopFirstPickTitle;
+
+  /// Games tab row subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Any fighter or stage, on us'**
+  String get bananasShopFirstPickSub;
+
+  /// Badge for free.
+  ///
+  /// In en, this message translates to:
+  /// **'Free'**
+  String get bananasShopFree;
+
+  /// Badge for owned.
+  ///
+  /// In en, this message translates to:
+  /// **'Owned'**
+  String get bananasShopOwned;
+
+  /// Group progress.
+  ///
+  /// In en, this message translates to:
+  /// **'{owned} of {total} owned'**
+  String bananasShopOwnedCount(int owned, int total);
+
+  /// Games tab toast for the launch gift.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} welcome bananas'**
+  String bananasShopWelcome(int count);
+
+  /// Name of the handful banana pack.
+  ///
+  /// In en, this message translates to:
+  /// **'Handful'**
+  String get bananasPackHandful;
+
+  /// Name of the basket banana pack.
+  ///
+  /// In en, this message translates to:
+  /// **'Basket'**
+  String get bananasPackBasket;
+
+  /// Name of the crate banana pack.
+  ///
+  /// In en, this message translates to:
+  /// **'Crate'**
+  String get bananasPackCrate;
+
+  /// Name of the tree banana pack.
+  ///
+  /// In en, this message translates to:
+  /// **'Tree'**
+  String get bananasPackTree;
+
+  /// Name of the jungle banana pack.
+  ///
+  /// In en, this message translates to:
+  /// **'Jungle'**
+  String get bananasPackJungle;
+
+  /// Unlocks section: Fighters.
+  ///
+  /// In en, this message translates to:
+  /// **'Jungle Fist fighters'**
+  String get bananasGroupFighters;
+
+  /// Unlocks section: Stages.
+  ///
+  /// In en, this message translates to:
+  /// **'Jungle Fist stages'**
+  String get bananasGroupStages;
+
+  /// Unlocks section: Looks.
+  ///
+  /// In en, this message translates to:
+  /// **'Jungle Fist looks'**
+  String get bananasGroupLooks;
+
+  /// Unlocks section: Games.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat games'**
+  String get bananasGroupGames;
+
+  /// Unlocks section: Bundles.
+  ///
+  /// In en, this message translates to:
+  /// **'Bundles'**
+  String get bananasGroupBundles;
+
+  /// Name of the Temple fight stage.
+  ///
+  /// In en, this message translates to:
+  /// **'Temple'**
+  String get bananasStageTemple;
+
+  /// Name of the Neon fight stage.
+  ///
+  /// In en, this message translates to:
+  /// **'Neon'**
+  String get bananasStageNeon;
+
+  /// Name of the Aurora fight stage.
+  ///
+  /// In en, this message translates to:
+  /// **'Aurora'**
+  String get bananasStageAurora;
+
+  /// Name of the Canyon fight stage.
+  ///
+  /// In en, this message translates to:
+  /// **'Canyon'**
+  String get bananasStageCanyon;
+
+  /// Name of the Deck fight stage.
+  ///
+  /// In en, this message translates to:
+  /// **'Deck'**
+  String get bananasStageDeck;
 
   /// On computers and the web, where videos cannot play: bananas are earned in the phone app, and the ones you already have work here too.
   ///

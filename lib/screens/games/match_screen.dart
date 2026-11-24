@@ -7,7 +7,12 @@ import 'package:flutter/services.dart';
 import '../../chat_games/play_style.dart';
 import '../../games/how_to/chat_guides.dart';
 import '../../games/how_to/how_to_play.dart';
+import '../../ads/banana_wallet.dart';
+import '../../ads/unlock_sheet.dart';
+import '../../backend/chat_api.dart';
+import '../../backend/convex_client.dart';
 import '../../backend/matches_api.dart';
+import '../../games/catalog.dart' show gameItemId;
 import '../../chat_games/match_copy.dart';
 import '../../chat_games/game_side_panel.dart';
 import '../../chat_games/go_live.dart';
@@ -180,6 +185,7 @@ class _MatchScreenState extends State<MatchScreen> {
     _lastStatus = widget.initial?.status;
     _lastMode = widget.initial?.mode;
     _c.addListener(_onChange);
+    BananaWallet.instance.addListener(_onWallet);
     _c.start();
     // A draft (and a game opened with its row in hand) is complete before
     // anything changes, so waiting for [_onChange] would hold the guide back
@@ -193,10 +199,16 @@ class _MatchScreenState extends State<MatchScreen> {
     _countdownTimer?.cancel();
     _clock?.cancel();
     _liveTimer?.cancel();
+    BananaWallet.instance.removeListener(_onWallet);
     _c
       ..removeListener(_onChange)
       ..dispose();
     super.dispose();
+  }
+
+  /// An unlock made from this screen turns Ask for rematch back into Rematch.
+  void _onWallet() {
+    if (mounted) setState(() {});
   }
 
   void _onChange() {
@@ -353,6 +365,9 @@ class _MatchScreenState extends State<MatchScreen> {
         toast.show(sentenceCaseOf(context, l10n.chatGameErrTooMany));
       case MoveRejection.ephemeral:
         toast.show(sentenceCaseOf(context, l10n.chatGameErrEphemeral));
+      case MoveRejection.lockedGame:
+        final game = _c.match?.game;
+        if (game != null) _unlockGame(game);
       case MoveRejection.illegal:
       case MoveRejection.network:
         toast.error(sentenceCaseOf(context, l10n.chatGameMoveFailed));
@@ -373,6 +388,12 @@ class _MatchScreenState extends State<MatchScreen> {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context);
       final code = matchErrorCode(e);
+      if (code == 'LOCKED_GAME') {
+        // A rematch the server refused: this player does not own the game.
+        final game = _c.match?.game;
+        if (game != null) unawaited(_unlockGame(game));
+        return;
+      }
       AppToast.of(context).show(
         sentenceCaseOf(
           context,
@@ -441,6 +462,73 @@ class _MatchScreenState extends State<MatchScreen> {
     if (ok == true) {
       HapticFeedback.selectionClick();
       await _act(() => _api.requestSeat(widget.userId, _c.matchId, seat));
+    }
+  }
+
+  /// The result card: Rematch for a player who can host this game; for a
+  /// guest who cannot, Ask for rematch (a short message in the room, so the
+  /// host can start it on their own unlock) beside Unlock.
+  Widget _resultCard(ChatMatch m, String me) {
+    final seated = m.isSeated(me);
+    final canHost = BananaWallet.instance.canSendGame(m.game);
+    return _Result(
+      match: m,
+      viewerId: me,
+      busy: _busy,
+      onRematch: seated && canHost ? () => _rematch(m) : null,
+      onAsk: seated && !canHost && !_askedRematch ? () => _askRematch(m) : null,
+      asked: seated && !canHost && _askedRematch,
+      unlockPrice: seated && !canHost ? BananaWallet.instance.priceOf(gameItemId(m.game)) : null,
+      onUnlock: seated && !canHost ? () => _unlockGame(m.game) : null,
+    );
+  }
+
+  bool _askedRematch = false;
+
+  /// A guest playing a game they have not unlocked sees whose unlock it is.
+  /// The "🎟️ {host}'s game" line for a guest playing a locked game on the
+  /// host's unlock. Always one widget, an empty one when there is nothing to
+  /// say: the chip appears when the wallet loads, and a child that came and
+  /// went would shift every sibling below it and remount the board (it reset a
+  /// held Imposter role card).
+  Widget _hostChip(ChatMatch m, String me) {
+    String? host;
+    if (m.isSeated(me) && m.createdBy != me && !BananaWallet.instance.canSendGame(m.game)) {
+      for (final s in m.seats) {
+        if (s.userId == m.createdBy && s.name.isNotEmpty) host = s.name;
+      }
+    }
+    if (host == null) return const SizedBox.shrink();
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Text(
+        '\u{1F39F}\u{FE0F} ${AppLocalizations.of(context).bananasHostChip(host)}',
+        key: const ValueKey('match_host_chip'),
+        style: groupedMetaStyle(theme).copyWith(fontWeight: FontWeight.w600, color: theme.inkSoft),
+      ),
+    );
+  }
+
+  Future<void> _unlockGame(String game) async {
+    final reason = AppLocalizations.of(context).bananasReasonGame;
+    await showUnlockSheet(context, gameItemId(game), reason: reason);
+  }
+
+  Future<void> _askRematch(ChatMatch m) async {
+    final l10n = AppLocalizations.of(context);
+    HapticFeedback.selectionClick();
+    setState(() => _askedRematch = true);
+    try {
+      await ChatApi(ConvexBackend.instance).sendMessage(
+        roomId: m.roomId,
+        userId: widget.userId,
+        content: l10n.bananasRematchText,
+        clientId: 'rq_${DateTime.now().microsecondsSinceEpoch}',
+      );
+    } catch (e) {
+      if (mounted) setState(() => _askedRematch = false);
+      debugPrint('match: rematch ask failed: $e');
     }
   }
 
@@ -517,6 +605,7 @@ class _MatchScreenState extends State<MatchScreen> {
             fontWeight: m.isTurnOf(me) ? FontWeight.w600 : null,
           ),
         ),
+      m != null ? _hostChip(m, me) : const SizedBox.shrink(),
       const SizedBox(height: 10),
     ];
 
@@ -557,12 +646,7 @@ class _MatchScreenState extends State<MatchScreen> {
       body = [
         _partyPlay(m),
         ..._requestCards(m),
-        if (!m.status.isOpen) _Result(
-          match: m,
-          viewerId: me,
-          busy: _busy,
-          onRematch: m.isSeated(me) ? () => _rematch(m) : null,
-        ),
+        if (!m.status.isOpen) _resultCard(m, me),
         const SizedBox(height: 24),
       ];
     } else {
@@ -573,12 +657,7 @@ class _MatchScreenState extends State<MatchScreen> {
         // viewer's own tiles.
         ..._requestCards(m),
         if (actions != null) ...[const SizedBox(height: 14), actions],
-        if (!m.status.isOpen) _Result(
-          match: m,
-          viewerId: me,
-          busy: _busy,
-          onRematch: m.isSeated(me) ? () => _rematch(m) : null,
-        ),
+        if (!m.status.isOpen) _resultCard(m, me),
         const SizedBox(height: 24),
       ];
     }
@@ -862,12 +941,7 @@ class _MatchScreenState extends State<MatchScreen> {
                 ..._turnPanel(m),
                 ..._requestCards(m),
                 if (actions != null) ...[const SizedBox(height: 14), actions],
-                if (!m.status.isOpen) _Result(
-                  match: m,
-                  viewerId: me,
-                  busy: _busy,
-                  onRematch: m.isSeated(me) ? () => _rematch(m) : null,
-                ),
+                if (!m.status.isOpen) _resultCard(m, me),
                 const SizedBox(height: 12),
                 _Sidebar(match: m, viewerId: me),
               ],
@@ -1062,12 +1136,7 @@ class _MatchScreenState extends State<MatchScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   ..._requestCards(m),
-                  if (!m.status.isOpen) _Result(
-                    match: m,
-                    viewerId: me,
-                    busy: _busy,
-                    onRematch: m.isSeated(me) ? () => _rematch(m) : null,
-                  ),
+                  if (!m.status.isOpen) _resultCard(m, me),
                   const SizedBox(height: 12),
                   _Sidebar(match: m, viewerId: me),
                 ],
@@ -1930,12 +1999,22 @@ class _Result extends StatelessWidget {
     required this.viewerId,
     required this.busy,
     this.onRematch,
+    this.onAsk,
+    this.asked = false,
+    this.unlockPrice,
+    this.onUnlock,
   });
 
   final ChatMatch match;
   final String viewerId;
   final bool busy;
   final VoidCallback? onRematch;
+
+  /// A guest without the game: ask the host, or unlock it themselves.
+  final VoidCallback? onAsk;
+  final bool asked;
+  final int? unlockPrice;
+  final VoidCallback? onUnlock;
 
   @override
   Widget build(BuildContext context) {
@@ -1981,6 +2060,19 @@ class _Result extends StatelessWidget {
                   label: sentenceCaseOf(context, l10n.chatGameRematch),
                   busy: busy,
                   onTap: onRematch,
+                ),
+              ],
+              if (unlockPrice != null) ...[
+                const SizedBox(height: 14),
+                SheetActionButton(
+                  label: sentenceCaseOf(context, l10n.bananasAskRematch),
+                  onTap: onAsk,
+                ),
+                const SizedBox(height: 8),
+                SheetActionButton(
+                  label: l10n.bananasUnlockFor(unlockPrice!),
+                  tonal: true,
+                  onTap: onUnlock,
                 ),
               ],
             ],

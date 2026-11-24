@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/ads/banana_wallet.dart';
 import 'package:monkeyhub/widgets/sheet_kit.dart' show SheetBackCloseButton;
 import 'package:monkeyhub/backend/matches_api.dart';
 import 'package:monkeyhub/chat_games/game_start_sheet.dart';
@@ -1029,6 +1030,10 @@ void main() {
   });
 
   group('the start sheet', () {
+    // The party games are unlocks: these tests start them, so they own them.
+    setUp(() => BananaWallet.instance.owned = {'game.imposter', 'game.race', 'game.liarsdice'});
+    tearDown(() => BananaWallet.instance.owned = {});
+
     Future<void> settle(WidgetTester tester) async {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));

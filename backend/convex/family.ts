@@ -55,6 +55,8 @@ import {
 import { isRetiredHandle } from "./retiredHandles";
 import { hashPassword, verifyPassword } from "./passwords";
 import { assertNoCaseTwin, normaliseUsername } from "./socialAuth";
+import { walletRow, weekOrdinal } from "./bananaCore";
+import { MAX_GIFT, isExpired, sendBananas as payBananas } from "./bananaRequests";
 
 /** Pairing codes are deliberately short-lived — they're six digits read aloud. */
 const PAIRING_TTL_MS = 5 * 60 * 1000;
@@ -795,6 +797,33 @@ export const listGuardianQueue = query({
           child: childBrief,
           other: briefOf(lens, other),
           room: roomBriefOf(room),
+        });
+      }
+
+      // 6. My child asked me to unlock something with bananas. Expired asks
+      // (7 days) are filtered here, on read.
+      const bananas = await ctx.db
+        .query("bananaRequests")
+        .withIndex("by_child_status", (q) =>
+          q.eq("childId", childId).eq("status", "open"),
+        )
+        .take(8);
+      const now = Date.now();
+      for (const b of bananas) {
+        if (isExpired(b, now)) continue;
+        items.push({
+          type: "banana",
+          kind: "banana",
+          _id: b._id,
+          requestId: b._id,
+          childId,
+          childName: childBrief.name,
+          item: b.item,
+          price: b.price,
+          note: b.note ?? "",
+          sticker: b.sticker ?? null,
+          createdAt: b.createdAt,
+          child: childBrief,
         });
       }
     }
@@ -1606,5 +1635,126 @@ export const deleteChildAccount = mutation({
   handler: async (ctx, { guardianId, childId }) => {
     await assertGuardian(ctx, guardianId, childId);
     await ctx.runMutation(internal.auth.purgeAccount, { userId: childId });
+  },
+});
+
+// ─────────────────────────────── bananas ───────────────────────────────
+
+const SPEND_POLICIES = ["all", "lifelines", "none"] as const;
+const ALLOWANCES = [0, 25, 50, 100];
+const AUTO_YES = [0, 60, 120];
+
+/** The child's banana rules, as the guardian's screen shows them. */
+function bananaRulesOf(row: any, guardianId: any, now: number) {
+  const week = weekOrdinal(now);
+  return {
+    ask: row?.askOff !== true,
+    spend: row?.spend ?? "all",
+    allowancePerWeek: row?.allowancePerWeek ?? 0,
+    autoYesPerWeek: row?.autoYesPerWeek ?? 0,
+    autoYesSpent: row?.autoYesWeek === week ? (row?.autoYesSpent ?? 0) : 0,
+    // Whether this guardian is the one paying the allowance / auto-yes.
+    allowanceByMe: row?.allowanceFrom?.toString() === guardianId.toString(),
+    autoYesByMe: row?.autoYesFrom?.toString() === guardianId.toString(),
+    balance: row?.balance ?? 0,
+  };
+}
+
+/**
+ * Sets what a child may do with bananas. Every field is optional (omitted =
+ * unchanged). `allowancePerWeek` (0|25|50|100) and `autoYesPerWeek` (0|60|120)
+ * are paid from, and approved by, THIS guardian from now on. Refusals:
+ * `BAD_RULE`.
+ */
+export const setBananaRules = mutation({
+  identityArg: "guardianId" as const,
+  args: {
+    guardianId: v.id("users"),
+    childId: v.id("users"),
+    ask: v.optional(v.boolean()),
+    spend: v.optional(v.string()),
+    allowancePerWeek: v.optional(v.number()),
+    autoYesPerWeek: v.optional(v.number()),
+  },
+  handler: async (ctx, { guardianId, childId, ask, spend, allowancePerWeek, autoYesPerWeek }) => {
+    await assertGuardian(ctx, guardianId, childId);
+    if (spend !== undefined && !(SPEND_POLICIES as readonly string[]).includes(spend)) {
+      throw new Error("BAD_RULE");
+    }
+    if (allowancePerWeek !== undefined && !ALLOWANCES.includes(allowancePerWeek)) {
+      throw new Error("BAD_RULE");
+    }
+    if (autoYesPerWeek !== undefined && !AUTO_YES.includes(autoYesPerWeek)) {
+      throw new Error("BAD_RULE");
+    }
+    const patch: Record<string, unknown> = {};
+    if (ask !== undefined) patch.askOff = ask ? undefined : true;
+    if (spend !== undefined) patch.spend = spend;
+    if (allowancePerWeek !== undefined) {
+      patch.allowancePerWeek = allowancePerWeek || undefined;
+      patch.allowanceFrom = allowancePerWeek ? guardianId : undefined;
+    }
+    if (autoYesPerWeek !== undefined) {
+      patch.autoYesPerWeek = autoYesPerWeek || undefined;
+      patch.autoYesFrom = autoYesPerWeek ? guardianId : undefined;
+    }
+    const row = await walletRow(ctx, childId);
+    const next = row
+      ? (await ctx.db.patch(row._id, { ...patch, updatedAt: Date.now() }), { ...row, ...patch })
+      : await (async () => {
+          const fields = { userId: childId, balance: 0, updatedAt: Date.now(), ...patch };
+          await ctx.db.insert("lifelines", fields as any);
+          return fields;
+        })();
+    return bananaRulesOf(next, guardianId, Date.now());
+  },
+});
+
+/** The child's banana rules and balance. */
+export const bananaRules = query({
+  identityArg: "guardianId" as const,
+  args: { guardianId: v.id("users"), childId: v.id("users") },
+  handler: async (ctx, { guardianId, childId }) => {
+    await assertGuardian(ctx, guardianId, childId);
+    return bananaRulesOf(await walletRow(ctx, childId), guardianId, Date.now());
+  },
+});
+
+/** Bananas from the guardian's own wallet to the child's. */
+export const sendBananas = mutation({
+  identityArg: "guardianId" as const,
+  args: {
+    guardianId: v.id("users"),
+    childId: v.id("users"),
+    amount: v.number(),
+  },
+  handler: async (ctx, { guardianId, childId, amount }) => {
+    await assertGuardian(ctx, guardianId, childId);
+    if (!Number.isInteger(amount) || amount < 1 || amount > MAX_GIFT) {
+      throw new Error("BAD_AMOUNT");
+    }
+    return { guardianBalance: await payBananas(ctx, guardianId, childId, amount) };
+  },
+});
+
+/** The last 50 ledger rows of the child, newest first. */
+export const bananaHistory = query({
+  identityArg: "guardianId" as const,
+  args: { guardianId: v.id("users"), childId: v.id("users") },
+  handler: async (ctx, { guardianId, childId }) => {
+    await assertGuardian(ctx, guardianId, childId);
+    const rows = await ctx.db
+      .query("bananaLedger")
+      .withIndex("by_user", (q) => q.eq("userId", childId))
+      .order("desc")
+      .take(50);
+    return rows.map((r) => ({
+      _id: r._id,
+      kind: r.kind,
+      amount: r.amount,
+      item: r.item ?? null,
+      otherUserId: r.otherUserId ?? null,
+      at: r.at,
+    }));
   },
 });

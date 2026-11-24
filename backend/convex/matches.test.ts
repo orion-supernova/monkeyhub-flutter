@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import { drainDeletions } from "./deletionTestUtils";
 import schema from "./schema";
+import { LIST_PRICES } from "./catalog";
+
+const ALL_UNLOCKS = Object.keys(LIST_PRICES).filter((k) => !k.startsWith("bundle."));
 import {
   ASYNC_EXPIRE_MS,
   LIVE_GRACE_MS,
@@ -30,7 +33,7 @@ type Who = { token: string; userId: any };
 const DEVICE = "device-a";
 
 async function signUp(t: ReturnType<typeof convexTest>, username: string) {
-  return (await t.mutation(api.auth.signup, {
+  const u = (await t.mutation(api.auth.signup, {
     username,
     name: username,
     passwordHash: `hash-${username}`,
@@ -39,6 +42,16 @@ async function signUp(t: ReturnType<typeof convexTest>, username: string) {
     // on it signs out whoever was there before.
     deviceId: `device-${username}`,
   })) as Who;
+  // These tests are about the game, not the shop: everything is owned.
+  await t.run(async (ctx) => {
+    await ctx.db.insert("lifelines", {
+      userId: u.userId,
+      balance: 0,
+      updatedAt: 0,
+      owned: [...ALL_UNLOCKS],
+    });
+  });
+  return u;
 }
 
 async function dm(t: ReturnType<typeof convexTest>, a: Who, b: Who) {

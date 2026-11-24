@@ -3033,6 +3033,307 @@
   "@familyScreenEmptyStateTitle": {
     "description": "Lowercase headline shown in the empty state when the guardian has no children set up yet."
   },
+  "bananasAskHeadline": "{child} asks for {item}",
+  "@bananasAskHeadline": {
+    "description": "Headline of a banana request card in the guardian approvals list.",
+    "placeholders": {
+      "child": {"type": "String"},
+      "item": {"type": "String"}
+    }
+  },
+  "bananasPrice": "{count, plural, one{1 banana} other{{count} bananas}}",
+  "@bananasPrice": {
+    "description": "A price or amount in bananas.",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "bananasYes": "Yes",
+  "@bananasYes": {
+    "description": "Guardian button: approve a banana request."
+  },
+  "bananasYesGetBananas": "Yes · get bananas & unlock",
+  "@bananasYesGetBananas": {
+    "description": "Guardian button when their wallet is short: buy bananas, then approve."
+  },
+  "bananasSendBananas": "Send bananas",
+  "@bananasSendBananas": {
+    "description": "Guardian button: send bananas to the child instead of unlocking."
+  },
+  "bananasNotNow": "Not now",
+  "@bananasNotNow": {
+    "description": "Guardian button: decline a banana request for now."
+  },
+  "bananasYesFooter": "Yes pays from your own bananas. It unlocks on {child}’s account, on every device.",
+  "@bananasYesFooter": {
+    "description": "Footer under a banana request card.",
+    "placeholders": {
+      "child": {"type": "String"}
+    }
+  },
+  "bananasShortFooter": "You have 🍌 {balance}. Get more and it goes straight to {child}.",
+  "@bananasShortFooter": {
+    "description": "Footer when the guardian cannot afford a request.",
+    "placeholders": {
+      "balance": {"type": "int"},
+      "child": {"type": "String"}
+    }
+  },
+  "bananasSendTitle": "Send bananas to {child}",
+  "@bananasSendTitle": {
+    "description": "Title of the amount picker sheet.",
+    "placeholders": {
+      "child": {"type": "String"}
+    }
+  },
+  "bananasCustom": "Other",
+  "@bananasCustom": {
+    "description": "Option to type a custom banana amount."
+  },
+  "bananasCustomHint": "How many? (1 to 1000)",
+  "@bananasCustomHint": {
+    "description": "Placeholder for a custom banana amount."
+  },
+  "bananasSendAction": "Send 🍌 {count}",
+  "@bananasSendAction": {
+    "description": "Confirm button of the send bananas sheet.",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "bananasSentToast": "Sent 🍌 {count} to {child}",
+  "@bananasSentToast": {
+    "description": "Toast after sending bananas.",
+    "placeholders": {
+      "child": {"type": "String"},
+      "count": {"type": "int"}
+    }
+  },
+  "bananasApprovedToast": "{item} unlocked for {child}",
+  "@bananasApprovedToast": {
+    "description": "Toast after a guardian said yes.",
+    "placeholders": {
+      "child": {"type": "String"},
+      "item": {"type": "String"}
+    }
+  },
+  "bananasDeclinedToast": "Told {child}: not now",
+  "@bananasDeclinedToast": {
+    "description": "Toast after a guardian declined a banana request.",
+    "placeholders": {
+      "child": {"type": "String"}
+    }
+  },
+  "bananasErrNoBananas": "You don’t have enough bananas for that.",
+  "@bananasErrNoBananas": {
+    "description": "Error when the guardian is short on bananas."
+  },
+  "bananasErrAnswered": "Someone already answered this one.",
+  "@bananasErrAnswered": {
+    "description": "Error when another guardian answered first."
+  },
+  "bananasErrGeneric": "That didn’t work. Try again.",
+  "@bananasErrGeneric": {
+    "description": "Generic banana error."
+  },
+  "bananasBundleAnimals": "All animal fighters",
+  "@bananasBundleAnimals": {
+    "description": "Name of the animal fighters bundle."
+  },
+  "bananasBundleLegends": "All legend fighters",
+  "@bananasBundleLegends": {
+    "description": "Name of the legend fighters bundle."
+  },
+  "bananasBundleStages": "All stages",
+  "@bananasBundleStages": {
+    "description": "Name of the stages bundle."
+  },
+  "bananasBundleLooks": "All looks",
+  "@bananasBundleLooks": {
+    "description": "Name of the looks bundle."
+  },
+  "bananasBundleFist": "The whole Jungle Fist pack",
+  "@bananasBundleFist": {
+    "description": "Name of the all-in Jungle Fist bundle."
+  },
+  "bananasBundleGamenight": "The game night pack",
+  "@bananasBundleGamenight": {
+    "description": "Name of the chat games bundle."
+  },
+  "bananasItemFallback": "an unlock",
+  "@bananasItemFallback": {
+    "description": "Fallback when an item id is not known to this app version."
+  },
+  "bananasKindFighter": "Jungle Fist fighter",
+  "@bananasKindFighter": {
+    "description": "Subtitle of a banana request for a fighter."
+  },
+  "bananasKindStage": "Jungle Fist stage",
+  "@bananasKindStage": {
+    "description": "Subtitle of a banana request for a stage."
+  },
+  "bananasKindLook": "Jungle Fist look",
+  "@bananasKindLook": {
+    "description": "Subtitle of a banana request for a look."
+  },
+  "bananasKindGame": "Chat game",
+  "@bananasKindGame": {
+    "description": "Subtitle of a banana request for a chat game."
+  },
+  "bananasKindBundle": "Bundle",
+  "@bananasKindBundle": {
+    "description": "Subtitle of a banana request for a bundle."
+  },
+  "bananasTitle": "Bananas",
+  "@bananasTitle": {
+    "description": "Title of the per-child bananas screen and its entry in the family screen."
+  },
+  "bananasBalance": "Balance",
+  "@bananasBalance": {
+    "description": "Label of the child’s banana balance."
+  },
+  "bananasAsking": "Asking",
+  "@bananasAsking": {
+    "description": "Switch: whether the child may ask a guardian for unlocks."
+  },
+  "bananasAskingFooter": "When on, {child} can ask you for unlocks. When off, locked things just show a lock.",
+  "@bananasAskingFooter": {
+    "description": "Footer under the Asking switch.",
+    "placeholders": {
+      "child": {"type": "String"}
+    }
+  },
+  "bananasAllowance": "Weekly allowance",
+  "@bananasAllowance": {
+    "description": "Row: weekly banana allowance for the child."
+  },
+  "bananasAllowanceValue": "🍌 {count} a week",
+  "@bananasAllowanceValue": {
+    "description": "Value of the allowance or auto-yes row.",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "bananasOff": "Off",
+  "@bananasOff": {
+    "description": "Value when a banana rule is switched off."
+  },
+  "bananasAllowanceFooter": "Paid from your bananas when they next open their wallet. If you are short, it waits.",
+  "@bananasAllowanceFooter": {
+    "description": "Footer under the allowance row."
+  },
+  "bananasSpendHeader": "May spend their own bananas on",
+  "@bananasSpendHeader": {
+    "description": "Header of the spend-policy options."
+  },
+  "bananasSpendAll": "Everything",
+  "@bananasSpendAll": {
+    "description": "Spend policy: everything."
+  },
+  "bananasSpendLifelines": "Lifelines only",
+  "@bananasSpendLifelines": {
+    "description": "Spend policy: only lifelines."
+  },
+  "bananasSpendNone": "Nothing",
+  "@bananasSpendNone": {
+    "description": "Spend policy: nothing."
+  },
+  "bananasSpendFooter": "Lifelines only keeps unlocks behind Ask. Their daily banana and allowance are theirs to spend.",
+  "@bananasSpendFooter": {
+    "description": "Footer under the spend-policy options."
+  },
+  "bananasAutoYes": "Auto-yes up to",
+  "@bananasAutoYes": {
+    "description": "Row: weekly budget under which requests are approved automatically."
+  },
+  "bananasAutoYesFooter": "Requests under the weekly budget are approved and paid from your bananas automatically.",
+  "@bananasAutoYesFooter": {
+    "description": "Footer under the auto-yes row."
+  },
+  "bananasHistory": "History",
+  "@bananasHistory": {
+    "description": "Section: the child’s banana ledger."
+  },
+  "bananasHistoryEmpty": "Nothing yet.",
+  "@bananasHistoryEmpty": {
+    "description": "Empty history."
+  },
+  "bananasLedgerGift": "Gift from a grown-up",
+  "@bananasLedgerGift": {
+    "description": "History row: bananas a guardian sent."
+  },
+  "bananasLedgerAllowance": "Weekly allowance",
+  "@bananasLedgerAllowance": {
+    "description": "History row: allowance."
+  },
+  "bananasLedgerUnlock": "Unlocked {item}",
+  "@bananasLedgerUnlock": {
+    "description": "History row: an unlock.",
+    "placeholders": {
+      "item": {"type": "String"}
+    }
+  },
+  "bananasLedgerEarned": "Earned",
+  "@bananasLedgerEarned": {
+    "description": "History row: bananas earned."
+  },
+  "bananasLedgerSpent": "Spent",
+  "@bananasLedgerSpent": {
+    "description": "History row: bananas spent."
+  },
+  "bananasWaitingTitle": "Waiting for a grown-up",
+  "@bananasWaitingTitle": {
+    "description": "Header of the child’s list of open banana requests."
+  },
+  "bananasWithdraw": "Take back",
+  "@bananasWithdraw": {
+    "description": "Child button: withdraw an open request."
+  },
+  "bananasYesTitle": "{guardian} said yes!",
+  "@bananasYesTitle": {
+    "description": "Celebration headline when a guardian approves.",
+    "placeholders": {
+      "guardian": {"type": "String"}
+    }
+  },
+  "bananasYesBody": "{item} is yours, on every device.",
+  "@bananasYesBody": {
+    "description": "Celebration body when a guardian approves.",
+    "placeholders": {
+      "item": {"type": "String"}
+    }
+  },
+  "bananasGiftTitle": "{guardian} sent you bananas!",
+  "@bananasGiftTitle": {
+    "description": "Celebration headline when a guardian sends bananas.",
+    "placeholders": {
+      "guardian": {"type": "String"}
+    }
+  },
+  "bananasGiftBody": "Spend them on whatever you like.",
+  "@bananasGiftBody": {
+    "description": "Celebration body when bananas were sent."
+  },
+  "bananasPlayNow": "Play now",
+  "@bananasPlayNow": {
+    "description": "Celebration button."
+  },
+  "bananasThanks": "Say thanks 💛",
+  "@bananasThanks": {
+    "description": "Celebration button that sends a thank-you message."
+  },
+  "bananasThanksMessage": "Thank you! 💛",
+  "@bananasThanksMessage": {
+    "description": "Message sent to the guardian’s DM."
+  },
+  "bananasThanksSent": "Sent 💛",
+  "@bananasThanksSent": {
+    "description": "Toast after sending thanks."
+  },
+  "bananasGrownUp": "A grown-up",
+  "@bananasGrownUp": {
+    "description": "Fallback name for a guardian."
+  },
   "familyScreenEmptyStateBody": "Add an account for your child, then pair it to their phone.",
   "@familyScreenEmptyStateBody": {
     "description": "Body copy under the empty-state headline on the Family screen, explaining the next step to onboard a child."
@@ -17741,6 +18042,28 @@
   "@fightLookFootnote": {
     "description": "Footnote under the look picker."
   },
+  "bananasTryInTraining": "Try in Training",
+  "@bananasTryInTraining": {"description": "Button: try a locked fighter free in the Training room."},
+  "bananasUnlockFor": "Unlock · 🍌 {price}",
+  "@bananasUnlockFor": {"description": "Button: unlock the selected item; price in bananas.", "placeholders": {"price": {"type": "int"}}},
+  "bananasYours": "Yours",
+  "@bananasYours": {"description": "Chip on an unlocked game in the game picker: the player owns it."},
+  "bananasHostFootnote": "When you host, everyone in the game plays it, even if they don’t own it.",
+  "@bananasHostFootnote": {"description": "Footnote in the game picker: the host's unlock covers every guest."},
+  "bananasHostChip": "{host}’s game",
+  "@bananasHostChip": {"description": "Chip on a match: the host's name, whose unlock the guest plays on.", "placeholders": {"host": {"type": "String"}}},
+  "bananasAskRematch": "Ask for rematch",
+  "@bananasAskRematch": {"description": "Button: a guest without the game asks the host for a rematch."},
+  "bananasRematchText": "Rematch? 🎮",
+  "@bananasRematchText": {"description": "Short chat message sent to ask the host for a rematch."},
+  "bananasReasonFighter": "Unlock this fighter to use them in online fights.",
+  "@bananasReasonFighter": {"description": "Shown in the unlock sheet when a locked fighter is picked online."},
+  "bananasReasonStage": "Unlock this stage to host fights on it.",
+  "@bananasReasonStage": {"description": "Shown in the unlock sheet when a locked stage is picked as host."},
+  "bananasReasonLook": "Liked the look? Unlock it to keep it.",
+  "@bananasReasonLook": {"description": "Shown in the unlock sheet after the 10 second look preview ends."},
+  "bananasReasonGame": "Unlock this game to host it.",
+  "@bananasReasonGame": {"description": "Shown in the unlock sheet when a locked chat game is started."},
   "fightFighterTitle": "Fighter",
   "@fightFighterTitle": {
     "description": "Section header: choose your fighter."
@@ -19565,6 +19888,319 @@
         "type": "int"
       }
     }
+  },
+  "bananasSheetUnlockTitle": "Unlock {name}",
+  "@bananasSheetUnlockTitle": {
+    "description": "Unlock sheet title for an adult; {name} is the item.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bananasSheetAskTitle": "Want {name}?",
+  "@bananasSheetAskTitle": {
+    "description": "Unlock sheet title for a child, who asks instead of buying.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bananasSheetForever": "Yours forever, on every device.",
+  "@bananasSheetForever": {
+    "description": "Reassurance under the unlock title."
+  },
+  "bananasSheetYourBananas": "Your bananas",
+  "@bananasSheetYourBananas": {
+    "description": "Label before the player’s banana balance."
+  },
+  "bananasSheetAfter": "After unlocking: 🍌 {count}",
+  "@bananasSheetAfter": {
+    "description": "Balance left after the purchase.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bananasSheetShort": "You need 🍌 {count} more.",
+  "@bananasSheetShort": {
+    "description": "How many more bananas the player needs.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bananasSheetGetBananas": "Get bananas",
+  "@bananasSheetGetBananas": {
+    "description": "Button when the wallet is short."
+  },
+  "bananasSheetFirstPick": "Use my free first pick",
+  "@bananasSheetFirstPick": {
+    "description": "Button that spends the free first pick."
+  },
+  "bananasSheetFirstPickNote": "Your first fighter or stage is on us.",
+  "@bananasSheetFirstPickNote": {
+    "description": "Note about the free first pick."
+  },
+  "bananasSheetBundleHint": "Or get all {count} in {name} for 🍌 {price}",
+  "@bananasSheetBundleHint": {
+    "description": "Hint to buy the whole set instead.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      },
+      "price": {
+        "type": "int"
+      }
+    }
+  },
+  "bananasSheetOwned": "You already have this.",
+  "@bananasSheetOwned": {
+    "description": "Shown when the item is already owned."
+  },
+  "bananasSheetUnlocked": "{name} is yours!",
+  "@bananasSheetUnlocked": {
+    "description": "Celebration title after unlocking.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "bananasSheetFailed": "That didn’t go through. Try again.",
+  "@bananasSheetFailed": {
+    "description": "Generic unlock failure."
+  },
+  "bananasAskBody": "Ask Mom or Dad. They’ll get a message.",
+  "@bananasAskBody": {
+    "description": "Child ask sheet body."
+  },
+  "bananasAskNoteHint": "Add a note (optional)",
+  "@bananasAskNoteHint": {
+    "description": "Placeholder of the optional note."
+  },
+  "bananasAskButton": "Ask a grown-up",
+  "@bananasAskButton": {
+    "description": "Child’s primary button."
+  },
+  "bananasAskWaiting": "Requested, waiting for a grown-up",
+  "@bananasAskWaiting": {
+    "description": "Shown when the child already asked."
+  },
+  "bananasAskOwn": "Or use your own: you have 🍌 {have} of {price}",
+  "@bananasAskOwn": {
+    "description": "Child may use their own bananas.",
+    "placeholders": {
+      "have": {
+        "type": "int"
+      },
+      "price": {
+        "type": "int"
+      }
+    }
+  },
+  "bananasAskOwnButton": "Unlock with my bananas",
+  "@bananasAskOwnButton": {
+    "description": "Child unlocks with own bananas."
+  },
+  "bananasAskSent": "Asked! A grown-up will get a message.",
+  "@bananasAskSent": {
+    "description": "Toast after asking."
+  },
+  "bananasAskTooMany": "You already have 3 open requests.",
+  "@bananasAskTooMany": {
+    "description": "Too many open requests."
+  },
+  "bananasAskCooldown": "A grown-up said not now. Try again tomorrow.",
+  "@bananasAskCooldown": {
+    "description": "Declined recently."
+  },
+  "bananasAskOff": "Asking is turned off for your account.",
+  "@bananasAskOff": {
+    "description": "Asking disabled by a guardian."
+  },
+  "bananasShopTitle": "Banana Shop",
+  "@bananasShopTitle": {
+    "description": "Title of the banana shop."
+  },
+  "bananasShopRowSub": "Fighters, stages, looks, games",
+  "@bananasShopRowSub": {
+    "description": "Subtitle of the Games tab row."
+  },
+  "bananasShopGetMore": "Get more bananas",
+  "@bananasShopGetMore": {
+    "description": "Entry in the wallet sheet."
+  },
+  "bananasShopPacks": "Banana packs",
+  "@bananasShopPacks": {
+    "description": "Section header for banana packs."
+  },
+  "bananasShopFirstDouble": "Your first pack counts double.",
+  "@bananasShopFirstDouble": {
+    "description": "Note under the packs."
+  },
+  "bananasShopRibbon": "2× bananas",
+  "@bananasShopRibbon": {
+    "description": "Ribbon on a pack that will be doubled."
+  },
+  "bananasShopEarn": "Or earn them",
+  "@bananasShopEarn": {
+    "description": "Section header: other ways to get bananas."
+  },
+  "bananasShopEarnRow": "Watch a video or claim today’s banana",
+  "@bananasShopEarnRow": {
+    "description": "Row that opens the wallet sheet."
+  },
+  "bananasShopAppOnly": "Packs are sold in the MonkeyHub app on your phone. Bananas you already have work here too.",
+  "@bananasShopAppOnly": {
+    "description": "Where packs cannot be bought."
+  },
+  "bananasShopChild": "Bananas come from videos, daily bananas and your grown-ups.",
+  "@bananasShopChild": {
+    "description": "Child accounts see no packs."
+  },
+  "bananasShopNoPacks": "Packs aren’t available right now. Try again in a moment.",
+  "@bananasShopNoPacks": {
+    "description": "Store configured but offering missing."
+  },
+  "bananasShopFailed": "The purchase didn’t go through.",
+  "@bananasShopFailed": {
+    "description": "Purchase failure toast."
+  },
+  "bananasShopLate": "Thanks! Your bananas are on the way.",
+  "@bananasShopLate": {
+    "description": "Purchase done, credit not yet seen."
+  },
+  "bananasShopUnlocks": "Unlocks",
+  "@bananasShopUnlocks": {
+    "description": "Section header: things to unlock."
+  },
+  "bananasShopFirstPickTitle": "Pick your first unlock",
+  "@bananasShopFirstPickTitle": {
+    "description": "Games tab row."
+  },
+  "bananasShopFirstPickSub": "Any fighter or stage, on us",
+  "@bananasShopFirstPickSub": {
+    "description": "Games tab row subtitle."
+  },
+  "bananasShopFree": "Free",
+  "@bananasShopFree": {
+    "description": "Badge for free."
+  },
+  "bananasShopOwned": "Owned",
+  "@bananasShopOwned": {
+    "description": "Badge for owned."
+  },
+  "bananasShopOwnedCount": "{owned} of {total} owned",
+  "@bananasShopOwnedCount": {
+    "description": "Group progress.",
+    "placeholders": {
+      "owned": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "bananasShopWelcome": "+{count} welcome bananas",
+  "@bananasShopWelcome": {
+    "description": "Games tab toast for the launch gift.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bananasPackHandful": "Handful",
+  "@bananasPackHandful": {
+    "description": "Name of the handful banana pack."
+  },
+  "bananasPackBasket": "Basket",
+  "@bananasPackBasket": {
+    "description": "Name of the basket banana pack."
+  },
+  "bananasPackCrate": "Crate",
+  "@bananasPackCrate": {
+    "description": "Name of the crate banana pack."
+  },
+  "bananasPackTree": "Tree",
+  "@bananasPackTree": {
+    "description": "Name of the tree banana pack."
+  },
+  "bananasPackJungle": "Jungle",
+  "@bananasPackJungle": {
+    "description": "Name of the jungle banana pack."
+  },
+  "bananasGroupFighters": "Jungle Fist fighters",
+  "@bananasGroupFighters": {
+    "description": "Unlocks section: Fighters."
+  },
+  "bananasGroupStages": "Jungle Fist stages",
+  "@bananasGroupStages": {
+    "description": "Unlocks section: Stages."
+  },
+  "bananasGroupLooks": "Jungle Fist looks",
+  "@bananasGroupLooks": {
+    "description": "Unlocks section: Looks."
+  },
+  "bananasGroupGames": "Chat games",
+  "@bananasGroupGames": {
+    "description": "Unlocks section: Games."
+  },
+  "bananasGroupBundles": "Bundles",
+  "@bananasGroupBundles": {
+    "description": "Unlocks section: Bundles."
+  },
+  "bananasBundleAnimals": "Animal fighters",
+  "@bananasBundleAnimals": {
+    "description": "Bundle name: Animals."
+  },
+  "bananasBundleLegends": "Legend fighters",
+  "@bananasBundleLegends": {
+    "description": "Bundle name: Legends."
+  },
+  "bananasBundleStages": "All stages",
+  "@bananasBundleStages": {
+    "description": "Bundle name: Stages."
+  },
+  "bananasBundleLooks": "Both looks",
+  "@bananasBundleLooks": {
+    "description": "Bundle name: Looks."
+  },
+  "bananasBundleFist": "Jungle Fist, complete",
+  "@bananasBundleFist": {
+    "description": "Bundle name: Fist."
+  },
+  "bananasBundleGamenight": "Game night",
+  "@bananasBundleGamenight": {
+    "description": "Bundle name: Gamenight."
+  },
+  "bananasStageTemple": "Temple",
+  "@bananasStageTemple": {
+    "description": "Name of the Temple fight stage."
+  },
+  "bananasStageNeon": "Neon",
+  "@bananasStageNeon": {
+    "description": "Name of the Neon fight stage."
+  },
+  "bananasStageAurora": "Aurora",
+  "@bananasStageAurora": {
+    "description": "Name of the Aurora fight stage."
+  },
+  "bananasStageCanyon": "Canyon",
+  "@bananasStageCanyon": {
+    "description": "Name of the Canyon fight stage."
+  },
+  "bananasStageDeck": "Deck",
+  "@bananasStageDeck": {
+    "description": "Name of the Deck fight stage."
   },
   "bananaPhoneOnly": "Bananas come from short videos in the phone app. The ones you have work here too.",
   "@bananaPhoneOnly": {

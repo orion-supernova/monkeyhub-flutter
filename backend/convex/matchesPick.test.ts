@@ -2,6 +2,9 @@ import { convexTest } from "convex-test";
 import { expect, test } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
+import { LIST_PRICES } from "./catalog";
+
+const ALL_UNLOCKS = Object.keys(LIST_PRICES).filter((k) => !k.startsWith("bundle."));
 
 /**
  * `matches.setPick`: lobby choices shown live to the other seat. Seated
@@ -18,6 +21,17 @@ async function signUp(t: ReturnType<typeof convexTest>, username: string): Promi
     passwordHash: `hash-${username}`,
     recoveryKeyHash: `recovery-${username}`,
     deviceId: `device-${username}`,
+  });
+  // These tests are about the lobby, not the shop: everything is owned.
+  await t.run(async (ctx) => {
+    await ctx.db.insert("lifelines", {
+      userId: u.userId,
+      balance: 0,
+      updatedAt: 0,
+      owned: [
+        ...ALL_UNLOCKS,
+      ],
+    });
   });
   return { ...u, username } as any;
 }

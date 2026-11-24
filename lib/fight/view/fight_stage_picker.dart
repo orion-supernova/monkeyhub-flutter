@@ -1,9 +1,12 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../ads/banana_wallet.dart';
+import '../../games/catalog.dart' show stageItemId;
 import '../../l10n/generated/app_localizations.dart';
 import '../../widgets/spring_press.dart';
 import 'art/art_common.dart' show FightLook;
@@ -89,11 +92,43 @@ class FightStageThumbs {
   }
 }
 
+/// Turns a stage pick into the stage that is played, from the stages [owns]
+/// says are usable. Random picks only among those; a locked pick (kept after
+/// a refund, say) falls back to the free Rooftop.
+int fightStageResolveOwned(int pick, bool Function(int stageId) owns, [math.Random? rng]) {
+  if (pick == kFightStageRandom) {
+    final usable = [for (final d in kFightStages) if (owns(d.id)) d.id];
+    return usable.isEmpty ? 0 : usable[(rng ?? math.Random()).nextInt(usable.length)];
+  }
+  final id = fightStageOf(pick);
+  return owns(id) ? id : 0;
+}
+
+/// [fightStageResolveOwned] against the signed-in player's unlocks.
+int fightStageResolveMine(int pick, [math.Random? rng]) => fightStageResolveOwned(pick, BananaWallet.instance.ownsStage, rng);
+
 /// A sideways row of stage thumbnails: tap one to pick it. [selected] is a
 /// stage id, or [kFightStageRandom]. [readOnly] shows just the selected stage
 /// (the online guest, who cannot change the host's choice).
 class FightStagePicker extends StatelessWidget {
-  const FightStagePicker({super.key, required this.selected, required this.onPick, this.readOnly = false, this.allowRandom = true, this.look});
+  const FightStagePicker({
+    super.key,
+    required this.selected,
+    required this.onPick,
+    this.readOnly = false,
+    this.allowRandom = true,
+    this.look,
+    this.showLocks = true,
+    this.onLockedTap,
+  });
+
+  /// Locked stages show a lock and a price (still selectable to preview).
+  /// Training and a read-only guest view pass false / ignore it.
+  final bool showLocks;
+
+  /// Where a locked stage may not be picked (online host): called instead of
+  /// [onPick] for a locked card.
+  final ValueChanged<int>? onLockedTap;
 
   /// The look the thumbnails are drawn in; null = the player's setting.
   final FightLook? look;
@@ -107,6 +142,11 @@ class FightStagePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (readOnly || !showLocks) return _build(context);
+    return ListenableBuilder(listenable: BananaWallet.instance, builder: (context, _) => _build(context));
+  }
+
+  Widget _build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final ids = [for (final d in kFightStages) d.id, if (allowRandom && !readOnly) kFightStageRandom];
     final look = this.look ?? fightLookOf(SettingsStore.instance.fightLook);
@@ -142,6 +182,7 @@ class FightStagePicker extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
           final id = ids[i];
+          final locked = showLocks && id != kFightStageRandom && !BananaWallet.instance.ownsStage(id);
           return SizedBox(
             width: _cardW,
             child: _StageCard(
@@ -152,9 +193,14 @@ class FightStagePicker extends StatelessWidget {
               w: _cardW,
               h: _cardH,
               label: id == kFightStageRandom ? l10n.fightStageRandom : fightStageName(l10n, id),
+              price: locked ? BananaWallet.instance.priceOf(stageItemId(id)) : null,
               onTap: () {
                 HapticFeedback.selectionClick();
-                onPick(id);
+                if (locked && onLockedTap != null) {
+                  onLockedTap!(id);
+                } else {
+                  onPick(id);
+                }
               },
             ),
           );
@@ -165,8 +211,10 @@ class FightStagePicker extends StatelessWidget {
 }
 
 class _StageCard extends StatelessWidget {
-  const _StageCard({super.key, required this.id, required this.look, required this.selected, required this.w, required this.h, required this.label, required this.onTap});
+  const _StageCard({super.key, required this.id, required this.look, required this.selected, required this.w, required this.h, required this.label, required this.onTap, this.price});
 
+  /// Bananas to unlock; non-null means the stage is locked.
+  final int? price;
   final int id;
   final FightLook look;
   final bool selected;
@@ -201,7 +249,29 @@ class _StageCard extends StatelessWidget {
           ),
           child: random
               ? const Center(child: Icon(CupertinoIcons.shuffle, color: Colors.white, size: 26))
-              : _Thumb(key: ValueKey(look), id: id, look: look),
+              : Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    price == null ? _Thumb(key: ValueKey(look), id: id, look: look) : Opacity(opacity: .55, child: _Thumb(key: ValueKey(look), id: id, look: look)),
+                    if (price != null)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(color: const Color(0xb3000000), borderRadius: BorderRadius.circular(8)),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(CupertinoIcons.lock_fill, size: 9, color: Colors.white),
+                              const SizedBox(width: 2),
+                              Text('\u{1F34C}$price', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
         ),
         const SizedBox(height: 4),
         Text(

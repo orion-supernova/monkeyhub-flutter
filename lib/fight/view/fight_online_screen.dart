@@ -4,7 +4,10 @@ import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator, Cuperti
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../ads/banana_wallet.dart';
+import '../../ads/unlock_sheet.dart';
 import '../../data/matches_store.dart';
+import '../../games/catalog.dart' show fighterItemId, stageItemId;
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/chat_match.dart';
 import '../../push/device_identity.dart';
@@ -248,6 +251,11 @@ class FightOnlineScreen extends StatefulWidget {
   State<FightOnlineScreen> createState() => _FightOnlineScreenState();
 }
 
+/// Online you fight with your own fighters and host your own stages: a saved
+/// pick you do not own (a preview from the lobby, a refund) becomes free ones.
+int _ownedFighter(int id) => BananaWallet.instance.ownsFighter(id) ? id : 0;
+int _ownedStage(int id) => id == kFightStageRandom || BananaWallet.instance.ownsStage(fightStageOf(id)) ? id : 0;
+
 class _FightOnlineScreenState extends State<FightOnlineScreen> {
   late final MatchController _mc;
   FightLink? _link;
@@ -258,7 +266,7 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
   /// opponent's. The picks the FIGHT uses are swapped phone to phone when the
   /// link opens ([_peerPick]); in the lobby each seat also publishes its
   /// choice on the match ([_publishPicks]) so the other watches it change.
-  int _myPick = fightCharOf(SettingsStore.instance.fightChar);
+  int _myPick = _ownedFighter(fightCharOf(SettingsStore.instance.fightChar));
   int? _peerPick;
 
   /// The opponent's last published lobby choice, kept after the game starts
@@ -278,7 +286,7 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
   /// lobby ([_stagePick], possibly Random) and sends the resolved id with its
   /// fighter pick; the guest takes whatever arrives, and a build from before
   /// stages (no `s` in the pick) plays the rooftop.
-  int _stagePick = SettingsStore.instance.fightStage;
+  int _stagePick = _ownedStage(SettingsStore.instance.fightStage);
   int _stage = 0;
   Timer? _peerPickTimeout;
   DateTime? _revealUntil;
@@ -351,10 +359,38 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
       } catch (e) {
         // The game starting under the call is not a reason to stop; anything
         // else is a server without this, so stop asking.
-        if (!'$e'.contains('NOT_IN_LOBBY')) _publishOff = true;
+        final err = '$e';
+        if (err.contains('LOCKED_FIGHTER') || err.contains('LOCKED_STAGE')) {
+          // The server's word that the pick is not this player's: back to a
+          // free one and offer the unlock. Not a reason to stop publishing.
+          _lockedByServer(err.contains('LOCKED_FIGHTER'));
+          return;
+        }
+        if (!err.contains('NOT_IN_LOBBY')) _publishOff = true;
         debugPrint('FightOnlineScreen: setPick failed: $e');
       }
     });
+  }
+
+  /// LOCKED_FIGHTER / LOCKED_STAGE from the server: fall back to something
+  /// free and offer the unlock sheet for what was refused.
+  void _lockedByServer(bool fighter) {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final id = fighter ? _myPick : fightStageOf(_stagePick);
+    setState(() {
+      if (fighter) {
+        _myPick = 0;
+      } else {
+        _stagePick = 0;
+      }
+    });
+    _publishPicks(changed: true);
+    showUnlockSheet(
+      context,
+      fighter ? fighterItemId(id) : stageItemId(id),
+      reason: fighter ? l10n.bananasReasonFighter : l10n.bananasReasonStage,
+    );
   }
 
   Future<void> _connect(ChatMatch m) async {
@@ -380,7 +416,7 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
       case FightLinkState.open when _driver == null && _peerPickTimeout == null:
         HapticFeedback.mediumImpact();
         final host = _mySeat == 0;
-        if (host) _stage = fightStageResolve(_stagePick);
+        if (host) _stage = fightStageResolveMine(_stagePick);
         link.onControl = (m) {
           if (m['t'] == 'pick' && _peerPick == null) {
             _peerPick = fightCharOf((m['c'] as num?)?.toInt() ?? 0);
@@ -582,6 +618,18 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
     ),
   );
 
+  /// A locked fighter cannot be picked online: offer the unlock, and pick it
+  /// if that goes through.
+  Future<void> _unlockFighter(int id) async {
+    final reason = AppLocalizations.of(context).bananasReasonFighter;
+    if (await showUnlockSheet(context, fighterItemId(id), reason: reason) && mounted) _setPick(id);
+  }
+
+  Future<void> _unlockStage(int id) async {
+    final reason = AppLocalizations.of(context).bananasReasonStage;
+    if (await showUnlockSheet(context, stageItemId(id), reason: reason) && mounted) _pickStage(id);
+  }
+
   void _setPick(int id) {
     if (id == _myPick) return;
     setState(() => _myPick = id);
@@ -672,7 +720,7 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
     // A seated player in the lobby picks right here: fighter, look and (the
     // host) the stage, all on the page, with Ready pinned at the bottom.
     final picking = _phase == _Phase.lobby && mine >= 0;
-    final look = fightLookOf(SettingsStore.instance.fightLook);
+    final look = fightLookNow();
 
     final int? rightChar = _phase == _Phase.fighting
         ? _peerPick
@@ -728,12 +776,12 @@ class _FightOnlineScreenState extends State<FightOnlineScreen> {
         final options = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _section(l10n.fightFighterTitle, FightCharacterGrid(selected: _myPick, look: look, onPick: _setPick)),
-            _section(l10n.fightLookTitle, FightLookPicker(look: look)),
+            _section(l10n.fightFighterTitle, FightCharacterGrid(selected: _myPick, look: look, onPick: _setPick, onLockedTap: _unlockFighter)),
+            _section(l10n.fightLookTitle, FightLookPicker(look: look, preview: false)),
             _section(
               l10n.fightStageTitle,
               mine == 0
-                  ? FightStagePicker(selected: _stagePick, onPick: _pickStage)
+                  ? FightStagePicker(selected: _stagePick, onPick: _pickStage, onLockedTap: _unlockStage)
                   : hostStageView(14),
             ),
             const SizedBox(height: 12),
@@ -850,7 +898,7 @@ class FightSeatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = tone == 0 ? const [Color(0xff1fb5a8), Color(0xff0c3d3a)] : const [Color(0xffc8313b), Color(0xff3d0c14)];
-    final look = fightLookOf(SettingsStore.instance.fightLook);
+    final look = fightLookNow();
     final card = SizedBox(
       height: height,
       child: AnimatedContainer(

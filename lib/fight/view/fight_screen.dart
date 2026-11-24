@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 
 import '../../ads/banana_sheet.dart';
 import '../../ads/banana_wallet.dart';
+import '../../ads/unlock_sheet.dart';
+import '../../games/catalog.dart' show lookItemId;
 import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../widgets/glass_buttons.dart';
@@ -23,6 +25,7 @@ import 'fight_audio_toggles.dart';
 import 'fight_controls.dart';
 import 'fight_quality.dart';
 import 'fight_renderer.dart';
+import 'fight_stage_picker.dart' show fightStageResolveMine;
 import '../../ui/foundation/caps.dart';
 
 FightLook fightLookOf(String wire) => switch (wire) {
@@ -32,6 +35,58 @@ FightLook fightLookOf(String wire) => switch (wire) {
 };
 
 String fightLookWire(FightLook l) => l.name;
+
+/// A look being tried before it is owned: the pause menu's 10-second live
+/// preview, or Training's free try. Never persisted; the setting stays what
+/// the player owns.
+class FightLookTrial extends ChangeNotifier {
+  FightLookTrial._();
+  static final FightLookTrial instance = FightLookTrial._();
+
+  static const Duration previewLength = Duration(seconds: 10);
+
+  FightLook? _look;
+  Timer? _timer;
+
+  /// The look on trial, or null.
+  FightLook? get look => _look;
+
+  /// Shows [look] now. With [limit] it snaps back after that long and calls
+  /// [onEnd]; without, it stays until [clear] (Training).
+  void start(FightLook look, {Duration? limit, VoidCallback? onEnd}) {
+    _timer?.cancel();
+    _timer = null;
+    _look = look;
+    if (limit != null) {
+      _timer = Timer(limit, () {
+        _timer = null;
+        _look = null;
+        notifyListeners();
+        onEnd?.call();
+      });
+    }
+    notifyListeners();
+  }
+
+  void clear() {
+    _timer?.cancel();
+    _timer = null;
+    if (_look == null) return;
+    _look = null;
+    notifyListeners();
+  }
+}
+
+/// The look a real fight is drawn in: a look on trial, else the setting, but
+/// only if the player owns it (Cartoon otherwise; a refund or an old setting
+/// never shows a locked look). Until the wallet has loaded the setting stands.
+FightLook fightLookNow() {
+  final trial = FightLookTrial.instance.look;
+  if (trial != null) return trial;
+  final l = fightLookOf(SettingsStore.instance.fightLook);
+  final w = BananaWallet.instance;
+  return !w.loaded || w.ownsLook(l) ? l : FightLook.cartoon;
+}
 
 FightHudText fightHudText(AppLocalizations l10n) => FightHudText(
   round: l10n.fightHudRound,
@@ -200,6 +255,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
     final hz = displays.isEmpty ? 60.0 : displays.first.refreshRate;
     if (hz > 0) _governor.setRefreshInterval(Duration(microseconds: (1e6 / hz).round()));
     SettingsStore.instance.addListener(_onSettings);
+    FightLookTrial.instance.addListener(_onSettings);
     _input.startGamepad(onActivity: _onPadActivity, onStart: () => _setPaused(!_paused));
     unawaited(FightAudio.instance.open().then((_) => FightAudio.instance.startMusic()));
   }
@@ -207,7 +263,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
   int _stage = 0;
 
   void _newMatch() {
-    _stage = widget.stage != null ? fightStageOf(widget.stage!) : fightStageResolve(SettingsStore.instance.fightStage);
+    _stage = widget.stage != null ? fightStageOf(widget.stage!) : fightStageResolveMine(SettingsStore.instance.fightStage);
     _renderer.resetCamera();
     _seenEventFrame = -1;
     _over = false;
@@ -329,6 +385,8 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
   @override
   void dispose() {
     SettingsStore.instance.removeListener(_onSettings);
+    FightLookTrial.instance.removeListener(_onSettings);
+    FightLookTrial.instance.clear();
     _input.stopGamepad();
     _input.gamepadConnected.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -363,7 +421,7 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final look = fightLookOf(SettingsStore.instance.fightLook);
+    final look = fightLookNow();
     final view = CustomPaint(
       painter: FightPainter(
         renderer: _renderer,
@@ -602,10 +660,48 @@ class _FightScreenState extends State<FightScreen> with SingleTickerProviderStat
   }
 }
 
-/// The three looks as chips; changing one restyles the fight live.
+/// The three looks as chips; changing one restyles the fight live. A look the
+/// player does not own is shown for 10 seconds, then snaps back to Cartoon and
+/// offers the unlock sheet. In [training] every look is free to try (kept only
+/// for as long as the room is open) and nothing locked is saved.
 class FightLookPicker extends StatelessWidget {
-  const FightLookPicker({super.key, required this.look});
+  const FightLookPicker({super.key, required this.look, this.training = false, this.preview = true});
   final FightLook look;
+  final bool training;
+
+  /// False outside a running fight (a lobby): a locked look opens the unlock
+  /// sheet at once, there being nothing to preview it on.
+  final bool preview;
+
+  /// Applies a tap on look [l]: set it when owned, otherwise try it (see the
+  /// class doc). Public so Training's look chip behaves the same.
+  static void pick(BuildContext context, FightLook l, {bool training = false, bool preview = true}) {
+    final trial = FightLookTrial.instance;
+    final w = BananaWallet.instance;
+    if (w.ownsLook(l)) {
+      trial.clear();
+      SettingsStore.instance.setFightLook(fightLookWire(l));
+    } else if (training) {
+      trial.start(l);
+    } else if (!preview) {
+      showUnlockSheet(context, lookItemId(l), reason: AppLocalizations.of(context).bananasReasonLook).then((ok) {
+        if (ok) SettingsStore.instance.setFightLook(fightLookWire(l));
+      });
+    } else {
+      final reason = AppLocalizations.of(context).bananasReasonLook;
+      trial.start(
+        l,
+        limit: FightLookTrial.previewLength,
+        onEnd: () async {
+          // Snapped back; offer the unlock only if the menu is still open.
+          if (!context.mounted) return;
+          if (await showUnlockSheet(context, lookItemId(l), reason: reason)) {
+            SettingsStore.instance.setFightLook(fightLookWire(l));
+          }
+        },
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -615,33 +711,36 @@ class FightLookPicker extends StatelessWidget {
       FightLook.painted => l10n.fightLookPainted,
       FightLook.pixel => l10n.fightLookPixel,
     };
-    return Row(
-      children: [
-        for (final (i, l) in FightLook.values.indexed) ...[
-          if (i > 0) const SizedBox(width: 8),
-          Expanded(
-            child: SpringPress(
-              onTap: () => SettingsStore.instance.setFightLook(fightLookWire(l)),
-              semanticLabel: name(l),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: l == look ? Colors.white : const Color(0x1fffffff),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  name(l),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: l == look ? const Color(0xff0b0a12) : Colors.white),
+    return ListenableBuilder(
+      listenable: BananaWallet.instance,
+      builder: (context, _) => Row(
+        children: [
+          for (final (i, l) in FightLook.values.indexed) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Expanded(
+              child: SpringPress(
+                onTap: () => pick(context, l, training: training, preview: preview),
+                semanticLabel: name(l),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: l == look ? Colors.white : const Color(0x1fffffff),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    !training && !BananaWallet.instance.ownsLook(l) ? '\u{1F512} ${name(l)}' : name(l),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: l == look ? const Color(0xff0b0a12) : Colors.white),
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

@@ -65,6 +65,13 @@ class Env {
   /// app stays shippable between now and the console work.
   static bool get googleSignInConfigured => googleServerClientId.isNotEmpty;
 
+  /// RevenueCat public SDK keys (`appl_...` / `goog_...`), one per store.
+  /// PUBLIC by design, like the Google client ids. Banana packs are for sale
+  /// only where the platform's key is set; not in [missing], since an absent
+  /// key just hides the packs.
+  static String get revenueCatAppleKey => _get('REVENUECAT_APPLE_KEY');
+  static String get revenueCatGoogleKey => _get('REVENUECAT_GOOGLE_KEY');
+
   static const String clientId = 'monkeyhub-flutter';
 
   /// Returns missing required keys so the app can surface a clean error.

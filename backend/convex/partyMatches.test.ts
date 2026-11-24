@@ -2,6 +2,9 @@ import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
+import { LIST_PRICES } from "./catalog";
+
+const ALL_UNLOCKS = Object.keys(LIST_PRICES).filter((k) => !k.startsWith("bundle."));
 import * as sudoku from "./games/sudoku";
 import { TURN_MS } from "./partyGames/liarsDice";
 import { CLUE_MS, REVEAL_MS } from "./partyGames/imposter";
@@ -24,7 +27,7 @@ type Who = { token: string; userId: any };
 type T = ReturnType<typeof convexTest>;
 
 async function signUp(t: T, username: string) {
-  return (await t.mutation(api.auth.signup, {
+  const u = (await t.mutation(api.auth.signup, {
     username,
     name: username,
     passwordHash: `hash-${username}`,
@@ -33,6 +36,16 @@ async function signUp(t: T, username: string) {
     // on it signs out whoever was there before.
     deviceId: `device-${username}`,
   })) as Who;
+  // These tests are about the game, not the shop: everything is owned.
+  await t.run(async (ctx) => {
+    await ctx.db.insert("lifelines", {
+      userId: u.userId,
+      balance: 0,
+      updatedAt: 0,
+      owned: [...ALL_UNLOCKS],
+    });
+  });
+  return u;
 }
 
 function as(who: Who) {

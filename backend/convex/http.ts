@@ -20,6 +20,7 @@ import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { verifyReceipt, verifyRing, verifyRingDevice } from "./receiptToken";
 import { allowedAdUnits, parseSsv, verifySsv } from "./adSsv";
+import { webhookAuthOk } from "./store";
 
 const http = httpRouter();
 
@@ -336,6 +337,51 @@ http.route({
     } catch (e) {
       // A user id that is not ours (AdMob's test call) lands here.
       console.warn(`admob/ssv: credit refused: ${(e as Error).message}`);
+    }
+    return new Response("ok");
+  }),
+});
+
+/**
+ * RevenueCat webhook: a banana pack bought (credit, first pack doubled) or
+ * refunded (debit). `Authorization` must equal env REVENUECAT_WEBHOOK_AUTH
+ * (`store.ts`). 401 for a bad header; 200 for everything else, handled or
+ * ignored, so RevenueCat never retries forever (500 only on a database
+ * failure, which RevenueCat should retry).
+ */
+http.route({
+  path: "/revenuecat",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!webhookAuthOk(request.headers.get("Authorization"))) {
+      return new Response("unauthorized", { status: 401 });
+    }
+    let event: any;
+    try {
+      event = ((await request.json()) as any)?.event;
+    } catch {
+      return new Response("ok");
+    }
+    const type = String(event?.type ?? "");
+    const kind =
+      type === "NON_RENEWING_PURCHASE" || type === "INITIAL_PURCHASE"
+        ? "credit"
+        : type === "CANCELLATION" || type === "REFUND"
+          ? "refund"
+          : null;
+    if (kind && event?.app_user_id && event?.product_id && event?.transaction_id) {
+      try {
+        await ctx.runMutation(internal.store.apply, {
+          kind,
+          appUserId: String(event.app_user_id),
+          productId: String(event.product_id),
+          transactionId: String(event.transaction_id),
+        });
+      } catch (e) {
+        // Transient (not an ignorable event): let RevenueCat retry.
+        console.warn(`revenuecat: ${type} failed: ${(e as Error).message}`);
+        return new Response("retry", { status: 500 });
+      }
     }
     return new Response("ok");
   }),

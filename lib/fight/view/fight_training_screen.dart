@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
+import '../../ads/banana_wallet.dart';
 import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../widgets/adaptive_sheet.dart';
@@ -20,7 +21,7 @@ import 'fight_controls.dart';
 import 'fight_renderer.dart';
 import 'art/stages/stages.dart';
 import 'fight_stage_picker.dart';
-import 'fight_screen.dart' show FightLookPicker, fightHudText, fightLookOf, fightLookWire;
+import 'fight_screen.dart' show FightLookPicker, FightLookTrial, fightHudText, fightLookOf;
 import 'fight_training_moves.dart';
 import '../../ui/foundation/caps.dart';
 import '../../theme/layout.dart';
@@ -112,6 +113,7 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
     _loadFighter();
     _ticker = createTicker(_tick)..start();
     SettingsStore.instance.addListener(_onSettings);
+    FightLookTrial.instance.addListener(_onSettings);
     _input.startGamepad();
   }
 
@@ -203,6 +205,9 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
     });
   }
 
+  /// Training draws any look: the one on trial, else the raw setting.
+  FightLook _trainingLook() => FightLookTrial.instance.look ?? fightLookOf(SettingsStore.instance.fightLook);
+
   void _reset() {
     HapticFeedback.selectionClick();
     _script = null;
@@ -214,8 +219,8 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
   }
 
   Future<void> _changeFighter() async {
-    final look = fightLookOf(SettingsStore.instance.fightLook);
-    final id = await showFightCharacterPicker(context, current: _charId, look: look);
+    final look = _trainingLook();
+    final id = await showFightCharacterPicker(context, current: _charId, look: look, showLocks: false);
     if (!mounted) return;
     _focus.requestFocus();
     if (id == null || id == _charId) return;
@@ -232,7 +237,7 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
       context,
       builder: (context) => SheetFrame(
         title: l10n.fightStageTitle,
-        child: FightStagePicker(selected: _stage, allowRandom: false, onPick: (id) => Navigator.of(context).pop(id)),
+        child: FightStagePicker(selected: _stage, allowRandom: false, showLocks: false, onPick: (id) => Navigator.of(context).pop(id)),
       ),
     );
     if (!mounted) return;
@@ -240,7 +245,8 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
     if (id == null || id == _stage) return;
     HapticFeedback.selectionClick();
     setState(() => _stage = id);
-    SettingsStore.instance.setFightStage(id);
+    // A locked stage is only tried here, never saved as the fight's stage.
+    if (BananaWallet.instance.ownsStage(id)) SettingsStore.instance.setFightStage(id);
   }
 
   void _setPaused(bool p) {
@@ -251,6 +257,8 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
   @override
   void dispose() {
     SettingsStore.instance.removeListener(_onSettings);
+    FightLookTrial.instance.removeListener(_onSettings);
+    FightLookTrial.instance.clear();
     _input.stopGamepad();
     _input.gamepadConnected.dispose();
     _ticker.dispose();
@@ -269,7 +277,7 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final look = fightLookOf(SettingsStore.instance.fightLook);
+    final look = _trainingLook();
     final name = _char.name;
     final bag = _bagShown;
     final view = RepaintBoundary(
@@ -399,7 +407,7 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
       _stepChip(l10n),
       SizedBox(width: 62, child: _readoutText(TextAlign.start)),
       ..._toggles(l10n, withLook: false),
-      SizedBox(width: 250, child: FightLookPicker(look: fightLookOf(SettingsStore.instance.fightLook))),
+      SizedBox(width: 250, child: FightLookPicker(look: _trainingLook(), training: true)),
     ];
     return Column(
       children: [
@@ -588,7 +596,7 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
   /// Loop, hitboxes, dummy, reset and (phone) look / free play. A Wrap, so a
   /// narrow screen reflows to another row instead of cutting a label.
   List<Widget> _toggles(AppLocalizations l10n, {bool withLook = true}) {
-    final look = fightLookOf(SettingsStore.instance.fightLook);
+    final look = _trainingLook();
     String lookName(FightLook l) => switch (l) {
       FightLook.cartoon => l10n.fightLookCartoon,
       FightLook.painted => l10n.fightLookPainted,
@@ -614,7 +622,7 @@ class _FightTrainingScreenState extends State<FightTrainingScreen> with SingleTi
           icon: CupertinoIcons.paintbrush,
           label: lookName(look),
           semantic: lookName(look),
-          onTap: () => SettingsStore.instance.setFightLook(fightLookWire(FightLook.values[(look.index + 1) % FightLook.values.length])),
+          onTap: () => FightLookPicker.pick(context, FightLook.values[(look.index + 1) % FightLook.values.length], training: true),
         ),
       if (_touchFirst)
         _Chip(

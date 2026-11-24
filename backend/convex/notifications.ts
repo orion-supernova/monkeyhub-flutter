@@ -43,8 +43,10 @@ export const sendApprovalPush = internalAction({
      * requests view, and a guardian holding a hop is not in the room at all.
      */
     roomId: v.optional(v.id("rooms")),
+    /** Extra string fields for the app (banana pushes: type, status, ...). */
+    extra: v.optional(v.record(v.string(), v.string())),
   },
-  handler: async (ctx, { userIds, title, body, roomId }) => {
+  handler: async (ctx, { userIds, title, body, roomId, extra }) => {
     if (userIds.length === 0) return;
     await ctx.runAction(internal.push.sendAlert, {
       userIds: userIds as any,
@@ -52,6 +54,7 @@ export const sendApprovalPush = internalAction({
       title,
       body,
       data: {
+        ...(extra ?? {}),
         kind: "approval",
         ...(roomId ? { roomId: roomId.toString() } : {}),
       },

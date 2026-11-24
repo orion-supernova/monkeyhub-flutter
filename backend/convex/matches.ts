@@ -1,4 +1,6 @@
 import { mutation, query } from "./functions";
+import { assertOwnsGame, walletRow } from "./bananaCore";
+import { fighterItem, ownsFighter, ownsStage, stageItem } from "./catalog";
 import { internalAction, internalQuery } from "./_generated/server";
 import { internalMutation } from "./dbHooks";
 import { internal } from "./_generated/api";
@@ -497,6 +499,8 @@ export const create = mutation({
     if (mode !== "live" && mode !== "async") throw new Error("BAD_MODE");
     const id = cleanId(clientId);
     if (!seatLimits(game)) throw new Error("UNKNOWN_GAME");
+    // Locked games need the CALLER to own them (guests never do: they join).
+    await assertOwnsGame(ctx, userId, game);
     const party = partyRulesFor(game);
     if (party && mode !== "live") throw new Error("LIVE_ONLY");
     const chosen: PartyOptions | undefined = party
@@ -561,6 +565,7 @@ export const rematch = mutation({
     const old = await loadMatch(ctx, matchId);
     if (isOpen(old.status)) throw new Error("NOT_FINISHED");
     if (seatOf(old, userId) < 0) throw new Error("NOT_SEATED");
+    await assertOwnsGame(ctx, userId, old.game);
     const room = await getRoomOrThrow(ctx, old.roomId);
     await assertMember(ctx, old.roomId, userId);
     const id = cleanId(clientId);
@@ -661,6 +666,7 @@ export const startTurns = mutation({
     if (partyRulesFor(game)) throw new Error("LIVE_ONLY");
     const rules = rulesFor(game);
     if (!rules) throw new Error("UNKNOWN_GAME");
+    await assertOwnsGame(ctx, userId, game);
     if (room.name.startsWith("dm:self:")) throw new Error("NO_OPPONENT");
     // See `startMatch`: nothing that outlives its messages starts here.
     if (room.messageLifetime) throw new Error("EPHEMERAL_ROOM");
@@ -826,6 +832,17 @@ export const setPick = mutation({
     const small = (n: number | undefined) =>
       n === undefined || (Number.isInteger(n) && n >= -1 && n <= 255);
     if (!small(pick) || !small(stage)) throw new Error("BAD_PICK");
+    // A locked fighter (or, for the host, stage) must be the picker's own;
+    // -1 (random) is always fine. One wallet read, only when something locked
+    // is asked for.
+    const lockedFighter = pick !== undefined && pick >= 0 && fighterItem(pick) !== null;
+    const lockedStage =
+      seat === 0 && stage !== undefined && stage >= 0 && stageItem(stage) !== null;
+    if (lockedFighter || lockedStage) {
+      const owned = (await walletRow(ctx, userId))?.owned;
+      if (lockedFighter && !ownsFighter(owned, pick!)) throw new Error("LOCKED_FIGHTER");
+      if (lockedStage && !ownsStage(owned, stage!)) throw new Error("LOCKED_STAGE");
+    }
     const mine = match.seats[seat];
     const next = {
       ...mine,

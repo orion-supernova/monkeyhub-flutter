@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../family/banana_requests_strip.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/link_opener.dart';
 import '../theme/motion.dart';
@@ -13,6 +14,7 @@ import '../widgets/adaptive_sheet.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/sheet_kit.dart' show SheetActionButton, SheetFrame;
 import 'banana_glyph.dart';
+import 'banana_shop.dart';
 import 'banana_wallet.dart';
 
 /// Offers to spend bananas on [use], and to earn them right here when the
@@ -314,6 +316,19 @@ class _BananaPanelState extends State<_BananaPanel>
             tonal: true,
             onTap: _busy ? null : _free,
           ),
+        ],
+        const SizedBox(height: 10),
+        SheetActionButton(
+          label: l10n.bananasShopGetMore,
+          icon: CupertinoIcons.bag_fill,
+          tonal: true,
+          onTap: () => showBananaShop(context),
+        ),
+        // A child's open asks ("waiting for a grown-up"), with take-back.
+        // Renders nothing when there are none.
+        if (w.childAccount) ...[
+          const SizedBox(height: 14),
+          BananaRequestsStrip(userId: widget.userId),
         ],
       ],
     );

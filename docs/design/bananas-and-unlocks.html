@@ -224,7 +224,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
     <p class="lede">Every game starts free with a taste of everything. The rest is unlocked with bananas, once, forever, for that person. In a chat, the friends you invite play your game for free, but to send a game themselves they need their own unlock. Kids can't buy; they ask, and a parent pays from their own bananas.</p>
     <div class="meta">
       <span class="pill">📅 Proposed 2026-11-25</span>
-      <span class="pill">🟡 Status: design, nothing built</span>
+      <span class="pill">🟢 Status: built 2026-11-25 on dev, not deployed, never on a device</span>
       <span class="pill">🧩 Extends <code>design/rewarded-ads.md</code></span>
       <span class="pill">👪 Builds on <code>design/age-check.md</code> family accounts</span>
     </div>
@@ -801,9 +801,17 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
     <tbody>
       <tr><td><b>App Store Connect</b> (app 1610516543)</td><td>5 consumables, all 175 regions, USD base price, en-US name and description: <code>monkeyhub.bananas.handful</code> $0.99 · <code>.basket</code> $4.99 · <code>.crate</code> $9.99 · <code>.tree</code> $19.99 · <code>.jungle</code> $49.99. State "Missing Metadata" until a review screenshot of the shop is added; the first IAP must ship with an app version. Paid Apps agreement active.</td></tr>
       <tr><td><b>RevenueCat</b> project MonkeyHub (<code>71bfa585</code>)</td><td>App Store app <code>com.walhallaa.MonkeyChatUIKit</code> (covers iOS and macOS), IAP key 3XXSQHLZG5, ASC API key BQWTG6XXNF. 5 products imported. Default offering <code>bananas</code>, packages <code>handful</code>, <code>basket</code>, <code>crate</code>, <code>tree</code>, <code>jungle</code>. No entitlements (consumables).</td></tr>
-      <tr><td><b>Still to do</b></td><td>Apple server notification URL from RevenueCat into App Store Connect (production and sandbox); Google Play app and products; RevenueCat webhook to the backend once <code>http /revenuecat</code> exists; review screenshots. Windows deferred (no RevenueCat SDK).</td></tr>
+      <tr><td><b>Still to do</b></td><td>Apple server notification URL from RevenueCat into App Store Connect (production and sandbox); Google Play app and products; RevenueCat webhook to <code>https://termio-api.walhallaa.com/http/revenuecat</code> (route built) with the Authorization header set to the Convex env <code>REVENUECAT_WEBHOOK_AUTH</code> (unset = every call refused); review screenshots. Windows deferred (no RevenueCat SDK).</td></tr>
     </tbody>
   </table>
+
+  <h3>As built (2026-11-25)</h3>
+  <ul class="small" style="padding-left:18px">
+    <li>Backend: <code>catalog.ts</code>, <code>bananaCore.ts</code>, <code>unlocks.ts</code>, <code>bananaRequests.ts</code>, <code>store.ts</code> (route <code>/http/revenuecat</code>, env <code>REVENUECAT_WEBHOOK_AUTH</code>), gates in <code>matches.ts</code> (<code>LOCKED_GAME</code>, <code>LOCKED_FIGHTER</code>, <code>LOCKED_STAGE</code>), guardian queue and rules in <code>family.ts</code>. Ledger kinds: <code>unlock</code>, <code>firstPick</code>, <code>launchGift</code>, <code>allowance</code>/<code>allowanceSent</code>, <code>paidFor</code>/<code>unlockedBy</code>, <code>giftSent</code>/<code>giftReceived</code>, <code>pack</code>, <code>refund</code>. A child's spend policy defaults to everything.</li>
+    <li>App: <code>lib/games/catalog.dart</code> (mirror of <code>catalog.ts</code>), <code>BananaWallet</code> ownership, <code>banana_store.dart</code> (RevenueCat, app user id = Convex user id), <code>unlock_sheet.dart</code> (adult and child Ask), <code>banana_shop.dart</code>, family screens in <code>lib/family/</code> and <code>family_bananas_screen.dart</code>, locks in Jungle Fist and the chat game picker, bot hub and match screen.</li>
+    <li>The child's "yes" push rides the approval channel: its fields are packed into <code>focus</code> as <code>banana?&lt;query&gt;</code>, which iOS, macOS and Android already forward on an approval tap; Dart opens the celebration. Native changes need a native build.</li>
+    <li>Not done: try-a-locked-chat-game demo board, a retention sweep for old <code>bananaRequests</code> rows, a re-ask cooldown after a withdraw, Play Store products (blocked until an Android build with billing permission is uploaded), the RevenueCat webhook (needs the env secret on the server and in RevenueCat).</li>
+  </ul>
 
   <h3>Cost table (R17)</h3>
   <table class="tbl">

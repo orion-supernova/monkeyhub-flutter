@@ -2660,6 +2660,234 @@ class AppLocalizationsPt extends AppLocalizations {
   String get familyScreenEmptyStateTitle => 'ainda sem crianças';
 
   @override
+  String bananasAskHeadline(String child, String item) {
+    return '$child pede $item';
+  }
+
+  @override
+  String bananasPrice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bananas',
+      one: '1 banana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananasYes => 'Sim';
+
+  @override
+  String get bananasYesGetBananas => 'Sim · obter bananas e desbloquear';
+
+  @override
+  String get bananasSendBananas => 'Enviar bananas';
+
+  @override
+  String get bananasNotNow => 'Agora não';
+
+  @override
+  String bananasYesFooter(String child) {
+    return 'Sim paga com as tuas próprias bananas. Desbloqueia na conta de $child, em todos os dispositivos.';
+  }
+
+  @override
+  String bananasShortFooter(int balance, String child) {
+    return 'Tens 🍌 $balance. Obtém mais e vai direto para $child.';
+  }
+
+  @override
+  String bananasSendTitle(String child) {
+    return 'Enviar bananas a $child';
+  }
+
+  @override
+  String get bananasCustom => 'Outra';
+
+  @override
+  String get bananasCustomHint => 'Quantas? (1 a 1000)';
+
+  @override
+  String bananasSendAction(int count) {
+    return 'Enviar 🍌 $count';
+  }
+
+  @override
+  String bananasSentToast(String child, int count) {
+    return 'Enviaste 🍌 $count a $child';
+  }
+
+  @override
+  String bananasApprovedToast(String child, String item) {
+    return '$item desbloqueado para $child';
+  }
+
+  @override
+  String bananasDeclinedToast(String child) {
+    return 'Avisámos $child: agora não';
+  }
+
+  @override
+  String get bananasErrNoBananas => 'Não tens bananas suficientes para isso.';
+
+  @override
+  String get bananasErrAnswered => 'Alguém já respondeu a este pedido.';
+
+  @override
+  String get bananasErrGeneric => 'Não funcionou. Tenta novamente.';
+
+  @override
+  String get bananasBundleAnimals => 'Lutadores animais';
+
+  @override
+  String get bananasBundleLegends => 'Lutadores lendários';
+
+  @override
+  String get bananasBundleStages => 'Todos os cenários';
+
+  @override
+  String get bananasBundleLooks => 'Os dois estilos';
+
+  @override
+  String get bananasBundleFist => 'Jungle Fist completo';
+
+  @override
+  String get bananasBundleGamenight => 'Noite de jogos';
+
+  @override
+  String get bananasItemFallback => 'um desbloqueio';
+
+  @override
+  String get bananasKindFighter => 'Lutador do Jungle Fist';
+
+  @override
+  String get bananasKindStage => 'Cenário do Jungle Fist';
+
+  @override
+  String get bananasKindLook => 'Visual do Jungle Fist';
+
+  @override
+  String get bananasKindGame => 'Jogo de chat';
+
+  @override
+  String get bananasKindBundle => 'Pack';
+
+  @override
+  String get bananasTitle => 'Bananas';
+
+  @override
+  String get bananasBalance => 'Saldo';
+
+  @override
+  String get bananasAsking => 'Pedidos';
+
+  @override
+  String bananasAskingFooter(String child) {
+    return 'Quando ativado, $child pode pedir-te desbloqueios. Quando desativado, o que está bloqueado mostra só um cadeado.';
+  }
+
+  @override
+  String get bananasAllowance => 'Mesada semanal';
+
+  @override
+  String bananasAllowanceValue(int count) {
+    return '🍌 $count por semana';
+  }
+
+  @override
+  String get bananasOff => 'Desativado';
+
+  @override
+  String get bananasAllowanceFooter =>
+      'Pago com as tuas bananas quando abrirem a carteira. Se não tiveres o suficiente, fica à espera.';
+
+  @override
+  String get bananasSpendHeader => 'Pode gastar as próprias bananas em';
+
+  @override
+  String get bananasSpendAll => 'Tudo';
+
+  @override
+  String get bananasSpendLifelines => 'Só ajudas';
+
+  @override
+  String get bananasSpendNone => 'Nada';
+
+  @override
+  String get bananasSpendFooter =>
+      '«Só ajudas» mantém os desbloqueios atrás de um pedido. A banana diária e a mesada são deles para gastar.';
+
+  @override
+  String get bananasAutoYes => 'Sim automático até';
+
+  @override
+  String get bananasAutoYesFooter =>
+      'Os pedidos dentro do limite semanal são aprovados e pagos automaticamente com as tuas bananas.';
+
+  @override
+  String get bananasHistory => 'Histórico';
+
+  @override
+  String get bananasHistoryEmpty => 'Ainda nada.';
+
+  @override
+  String get bananasLedgerGift => 'Presente de um adulto';
+
+  @override
+  String get bananasLedgerAllowance => 'Mesada semanal';
+
+  @override
+  String bananasLedgerUnlock(String item) {
+    return 'Desbloqueou $item';
+  }
+
+  @override
+  String get bananasLedgerEarned => 'Ganhas';
+
+  @override
+  String get bananasLedgerSpent => 'Gastas';
+
+  @override
+  String get bananasWaitingTitle => 'À espera de um adulto';
+
+  @override
+  String get bananasWithdraw => 'Retirar';
+
+  @override
+  String bananasYesTitle(String guardian) {
+    return '$guardian disse que sim!';
+  }
+
+  @override
+  String bananasYesBody(String item) {
+    return '$item é teu, em todos os dispositivos.';
+  }
+
+  @override
+  String bananasGiftTitle(String guardian) {
+    return '$guardian enviou-te bananas!';
+  }
+
+  @override
+  String get bananasGiftBody => 'Gasta-as no que quiseres.';
+
+  @override
+  String get bananasPlayNow => 'Jogar agora';
+
+  @override
+  String get bananasThanks => 'Agradecer 💛';
+
+  @override
+  String get bananasThanksMessage => 'Obrigado! 💛';
+
+  @override
+  String get bananasThanksSent => 'Enviado 💛';
+
+  @override
+  String get bananasGrownUp => 'Um adulto';
+
+  @override
   String get familyScreenEmptyStateBody =>
       'Cria uma conta para a tua criança e depois emparelha-a com o telemóvel dela.';
 
@@ -15029,6 +15257,47 @@ class AppLocalizationsPt extends AppLocalizations {
       'Muda apenas o aspeto dos combates no teu ecrã. Podes trocar quando quiseres, até a meio de um combate no menu de pausa.';
 
   @override
+  String get bananasTryInTraining => 'Experimentar no Treino';
+
+  @override
+  String bananasUnlockFor(int price) {
+    return 'Desbloquear · 🍌 $price';
+  }
+
+  @override
+  String get bananasYours => 'Teu';
+
+  @override
+  String get bananasHostFootnote =>
+      'Quando começas o jogo, todos os que estão nele jogam, mesmo sem o ter.';
+
+  @override
+  String bananasHostChip(String host) {
+    return 'Jogo de $host';
+  }
+
+  @override
+  String get bananasAskRematch => 'Pedir desforra';
+
+  @override
+  String get bananasRematchText => 'Desforra? 🎮';
+
+  @override
+  String get bananasReasonFighter =>
+      'Desbloqueia este lutador para o usares em combates online.';
+
+  @override
+  String get bananasReasonStage =>
+      'Desbloqueia este cenário para criares combates nele.';
+
+  @override
+  String get bananasReasonLook =>
+      'Gostaste do aspeto? Desbloqueia para o manteres.';
+
+  @override
+  String get bananasReasonGame => 'Desbloqueia este jogo para o começares tu.';
+
+  @override
   String get fightFighterTitle => 'Lutador';
 
   @override
@@ -16771,6 +17040,207 @@ class AppLocalizationsPt extends AppLocalizations {
   String bananaGot(int count) {
     return '+$count';
   }
+
+  @override
+  String bananasSheetUnlockTitle(String name) {
+    return 'Desbloquear $name';
+  }
+
+  @override
+  String bananasSheetAskTitle(String name) {
+    return 'Queres $name?';
+  }
+
+  @override
+  String get bananasSheetForever =>
+      'Teu para sempre, em todos os dispositivos.';
+
+  @override
+  String get bananasSheetYourBananas => 'As tuas bananas';
+
+  @override
+  String bananasSheetAfter(int count) {
+    return 'Depois: 🍌 $count';
+  }
+
+  @override
+  String bananasSheetShort(int count) {
+    return 'Faltam-te 🍌 $count.';
+  }
+
+  @override
+  String get bananasSheetGetBananas => 'Obter bananas';
+
+  @override
+  String get bananasSheetFirstPick => 'Usar a minha primeira escolha grátis';
+
+  @override
+  String get bananasSheetFirstPickNote =>
+      'O teu primeiro lutador ou cenário é por nossa conta.';
+
+  @override
+  String bananasSheetBundleHint(int count, String name, int price) {
+    return 'Ou leva todos os $count em $name por 🍌 $price';
+  }
+
+  @override
+  String get bananasSheetOwned => 'Já tens isto.';
+
+  @override
+  String bananasSheetUnlocked(String name) {
+    return '$name é teu!';
+  }
+
+  @override
+  String get bananasSheetFailed => 'Não correu bem. Tenta de novo.';
+
+  @override
+  String get bananasAskBody =>
+      'Pede à mãe ou ao pai. Vão receber uma mensagem.';
+
+  @override
+  String get bananasAskNoteHint => 'Junta um recado (opcional)';
+
+  @override
+  String get bananasAskButton => 'Pedir a um adulto';
+
+  @override
+  String get bananasAskWaiting => 'Pedido enviado, a aguardar um adulto';
+
+  @override
+  String bananasAskOwn(int have, int price) {
+    return 'Ou usa as tuas: tens 🍌 $have de $price';
+  }
+
+  @override
+  String get bananasAskOwnButton => 'Desbloquear com as minhas bananas';
+
+  @override
+  String get bananasAskSent =>
+      'Pedido enviado! Um adulto vai receber uma mensagem.';
+
+  @override
+  String get bananasAskTooMany => 'Já tens 3 pedidos em aberto.';
+
+  @override
+  String get bananasAskCooldown =>
+      'Um adulto disse \"agora não\". Tenta de novo amanhã.';
+
+  @override
+  String get bananasAskOff => 'Pedir está desativado na tua conta.';
+
+  @override
+  String get bananasShopTitle => 'Loja de bananas';
+
+  @override
+  String get bananasShopRowSub => 'Lutadores, cenários, estilos, jogos';
+
+  @override
+  String get bananasShopGetMore => 'Obter mais bananas';
+
+  @override
+  String get bananasShopPacks => 'Pacotes de bananas';
+
+  @override
+  String get bananasShopFirstDouble => 'O teu primeiro pacote vale a dobrar.';
+
+  @override
+  String get bananasShopRibbon => 'Bananas ×2';
+
+  @override
+  String get bananasShopEarn => 'Ou ganha de graça';
+
+  @override
+  String get bananasShopEarnRow => 'Vê um vídeo ou recolhe a banana de hoje';
+
+  @override
+  String get bananasShopAppOnly =>
+      'Os pacotes vendem-se na app MonkeyHub do telemóvel. As bananas que já tens também funcionam aqui.';
+
+  @override
+  String get bananasShopChild =>
+      'As bananas vêm de vídeos, da banana diária e dos teus responsáveis.';
+
+  @override
+  String get bananasShopNoPacks =>
+      'Os pacotes não estão disponíveis agora. Tenta de novo daqui a pouco.';
+
+  @override
+  String get bananasShopFailed => 'A compra não foi concluída.';
+
+  @override
+  String get bananasShopLate => 'Obrigado! As tuas bananas estão a caminho.';
+
+  @override
+  String get bananasShopUnlocks => 'Desbloqueios';
+
+  @override
+  String get bananasShopFirstPickTitle => 'Escolhe o teu primeiro desbloqueio';
+
+  @override
+  String get bananasShopFirstPickSub =>
+      'Qualquer lutador ou cenário, por nossa conta';
+
+  @override
+  String get bananasShopFree => 'Grátis';
+
+  @override
+  String get bananasShopOwned => 'Teu';
+
+  @override
+  String bananasShopOwnedCount(int owned, int total) {
+    return '$owned de $total';
+  }
+
+  @override
+  String bananasShopWelcome(int count) {
+    return '+$count bananas de boas-vindas';
+  }
+
+  @override
+  String get bananasPackHandful => 'Punhado';
+
+  @override
+  String get bananasPackBasket => 'Cesta';
+
+  @override
+  String get bananasPackCrate => 'Caixote';
+
+  @override
+  String get bananasPackTree => 'Árvore';
+
+  @override
+  String get bananasPackJungle => 'Selva';
+
+  @override
+  String get bananasGroupFighters => 'Lutadores do Jungle Fist';
+
+  @override
+  String get bananasGroupStages => 'Cenários do Jungle Fist';
+
+  @override
+  String get bananasGroupLooks => 'Estilos do Jungle Fist';
+
+  @override
+  String get bananasGroupGames => 'Jogos de chat';
+
+  @override
+  String get bananasGroupBundles => 'Pacotes';
+
+  @override
+  String get bananasStageTemple => 'Templo';
+
+  @override
+  String get bananasStageNeon => 'Neon';
+
+  @override
+  String get bananasStageAurora => 'Aurora';
+
+  @override
+  String get bananasStageCanyon => 'Desfiladeiro';
+
+  @override
+  String get bananasStageDeck => 'Convés';
 
   @override
   String get bananaPhoneOnly =>
@@ -19832,6 +20302,235 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get familyScreenEmptyStateTitle => 'nenhuma criança ainda';
+
+  @override
+  String bananasAskHeadline(String child, String item) {
+    return '$child pede $item';
+  }
+
+  @override
+  String bananasPrice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bananas',
+      one: '1 banana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bananasYes => 'Sim';
+
+  @override
+  String get bananasYesGetBananas => 'Sim · pegar bananas e desbloquear';
+
+  @override
+  String get bananasSendBananas => 'Enviar bananas';
+
+  @override
+  String get bananasNotNow => 'Agora não';
+
+  @override
+  String bananasYesFooter(String child) {
+    return 'Sim paga com as suas próprias bananas. Desbloqueia na conta de $child, em todos os aparelhos.';
+  }
+
+  @override
+  String bananasShortFooter(int balance, String child) {
+    return 'Você tem 🍌 $balance. Pegue mais e vai direto para $child.';
+  }
+
+  @override
+  String bananasSendTitle(String child) {
+    return 'Enviar bananas para $child';
+  }
+
+  @override
+  String get bananasCustom => 'Outra';
+
+  @override
+  String get bananasCustomHint => 'Quantas? (1 a 1000)';
+
+  @override
+  String bananasSendAction(int count) {
+    return 'Enviar 🍌 $count';
+  }
+
+  @override
+  String bananasSentToast(String child, int count) {
+    return 'Enviou 🍌 $count para $child';
+  }
+
+  @override
+  String bananasApprovedToast(String child, String item) {
+    return '$item desbloqueado para $child';
+  }
+
+  @override
+  String bananasDeclinedToast(String child) {
+    return 'Avisamos $child: agora não';
+  }
+
+  @override
+  String get bananasErrNoBananas =>
+      'Você não tem bananas suficientes para isso.';
+
+  @override
+  String get bananasErrAnswered => 'Alguém já respondeu a este pedido.';
+
+  @override
+  String get bananasErrGeneric => 'Não funcionou. Tente de novo.';
+
+  @override
+  String get bananasBundleAnimals => 'Lutadores animais';
+
+  @override
+  String get bananasBundleLegends => 'Lutadores lendários';
+
+  @override
+  String get bananasBundleStages => 'Todos os cenários';
+
+  @override
+  String get bananasBundleLooks => 'Os dois estilos';
+
+  @override
+  String get bananasBundleFist => 'Jungle Fist completo';
+
+  @override
+  String get bananasBundleGamenight => 'Noite de jogos';
+
+  @override
+  String get bananasItemFallback => 'um desbloqueio';
+
+  @override
+  String get bananasKindFighter => 'Lutador do Jungle Fist';
+
+  @override
+  String get bananasKindStage => 'Cenário do Jungle Fist';
+
+  @override
+  String get bananasKindLook => 'Visual do Jungle Fist';
+
+  @override
+  String get bananasKindGame => 'Jogo de chat';
+
+  @override
+  String get bananasKindBundle => 'Pacote';
+
+  @override
+  String get bananasTitle => 'Bananas';
+
+  @override
+  String get bananasBalance => 'Saldo';
+
+  @override
+  String get bananasAsking => 'Pedidos';
+
+  @override
+  String bananasAskingFooter(String child) {
+    return 'Quando ativado, $child pode pedir desbloqueios a você. Quando desativado, o que está bloqueado mostra só um cadeado.';
+  }
+
+  @override
+  String get bananasAllowance => 'Mesada semanal';
+
+  @override
+  String bananasAllowanceValue(int count) {
+    return '🍌 $count por semana';
+  }
+
+  @override
+  String get bananasOff => 'Desativado';
+
+  @override
+  String get bananasAllowanceFooter =>
+      'Pago com as suas bananas quando abrirem a carteira. Se não tiver o suficiente, fica esperando.';
+
+  @override
+  String get bananasSpendHeader => 'Pode gastar as próprias bananas em';
+
+  @override
+  String get bananasSpendAll => 'Tudo';
+
+  @override
+  String get bananasSpendLifelines => 'Só ajudas';
+
+  @override
+  String get bananasSpendNone => 'Nada';
+
+  @override
+  String get bananasSpendFooter =>
+      '«Só ajudas» mantém os desbloqueios atrás de um pedido. A banana diária e a mesada são deles para gastar.';
+
+  @override
+  String get bananasAutoYes => 'Sim automático até';
+
+  @override
+  String get bananasAutoYesFooter =>
+      'Os pedidos dentro do limite semanal são aprovados e pagos automaticamente com as suas bananas.';
+
+  @override
+  String get bananasHistory => 'Histórico';
+
+  @override
+  String get bananasHistoryEmpty => 'Nada por enquanto.';
+
+  @override
+  String get bananasLedgerGift => 'Presente de um adulto';
+
+  @override
+  String get bananasLedgerAllowance => 'Mesada semanal';
+
+  @override
+  String bananasLedgerUnlock(String item) {
+    return 'Desbloqueou $item';
+  }
+
+  @override
+  String get bananasLedgerEarned => 'Ganhas';
+
+  @override
+  String get bananasLedgerSpent => 'Gastas';
+
+  @override
+  String get bananasWaitingTitle => 'Esperando um adulto';
+
+  @override
+  String get bananasWithdraw => 'Retirar';
+
+  @override
+  String bananasYesTitle(String guardian) {
+    return '$guardian disse sim!';
+  }
+
+  @override
+  String bananasYesBody(String item) {
+    return '$item é seu, em todos os aparelhos.';
+  }
+
+  @override
+  String bananasGiftTitle(String guardian) {
+    return '$guardian enviou bananas para você!';
+  }
+
+  @override
+  String get bananasGiftBody => 'Gaste no que quiser.';
+
+  @override
+  String get bananasPlayNow => 'Jogar agora';
+
+  @override
+  String get bananasThanks => 'Agradecer 💛';
+
+  @override
+  String get bananasThanksMessage => 'Obrigado! 💛';
+
+  @override
+  String get bananasThanksSent => 'Enviado 💛';
+
+  @override
+  String get bananasGrownUp => 'Um adulto';
 
   @override
   String get familyScreenEmptyStateBody =>
@@ -32190,6 +32889,47 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Muda só a aparência das lutas na sua tela. Dá para trocar a qualquer momento, até no meio da luta pelo menu de pausa.';
 
   @override
+  String get bananasTryInTraining => 'Testar no Treino';
+
+  @override
+  String bananasUnlockFor(int price) {
+    return 'Desbloquear · 🍌 $price';
+  }
+
+  @override
+  String get bananasYours => 'Seu';
+
+  @override
+  String get bananasHostFootnote =>
+      'Quando você inicia, todo mundo no jogo joga, mesmo sem ter.';
+
+  @override
+  String bananasHostChip(String host) {
+    return 'Jogo de $host';
+  }
+
+  @override
+  String get bananasAskRematch => 'Pedir revanche';
+
+  @override
+  String get bananasRematchText => 'Revanche? 🎮';
+
+  @override
+  String get bananasReasonFighter =>
+      'Desbloqueie este lutador para usá-lo em lutas online.';
+
+  @override
+  String get bananasReasonStage =>
+      'Desbloqueie este cenário para criar lutas nele.';
+
+  @override
+  String get bananasReasonLook => 'Gostou do visual? Desbloqueie para manter.';
+
+  @override
+  String get bananasReasonGame =>
+      'Desbloqueie este jogo para iniciá-lo você mesmo.';
+
+  @override
   String get fightFighterTitle => 'Lutador';
 
   @override
@@ -33929,6 +34669,208 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String bananaGot(int count) {
     return '+$count';
   }
+
+  @override
+  String bananasSheetUnlockTitle(String name) {
+    return 'Desbloquear $name';
+  }
+
+  @override
+  String bananasSheetAskTitle(String name) {
+    return 'Quer $name?';
+  }
+
+  @override
+  String get bananasSheetForever =>
+      'Seu para sempre, em todos os dispositivos.';
+
+  @override
+  String get bananasSheetYourBananas => 'Suas bananas';
+
+  @override
+  String bananasSheetAfter(int count) {
+    return 'Depois: 🍌 $count';
+  }
+
+  @override
+  String bananasSheetShort(int count) {
+    return 'Faltam 🍌 $count.';
+  }
+
+  @override
+  String get bananasSheetGetBananas => 'Pegar bananas';
+
+  @override
+  String get bananasSheetFirstPick => 'Usar minha primeira escolha grátis';
+
+  @override
+  String get bananasSheetFirstPickNote =>
+      'Seu primeiro lutador ou cenário é por nossa conta.';
+
+  @override
+  String bananasSheetBundleHint(int count, String name, int price) {
+    return 'Ou leve todos os $count em $name por 🍌 $price';
+  }
+
+  @override
+  String get bananasSheetOwned => 'Você já tem isso.';
+
+  @override
+  String bananasSheetUnlocked(String name) {
+    return '$name é seu!';
+  }
+
+  @override
+  String get bananasSheetFailed => 'Não deu certo. Tente de novo.';
+
+  @override
+  String get bananasAskBody =>
+      'Peça para a mamãe ou o papai. Eles vão receber uma mensagem.';
+
+  @override
+  String get bananasAskNoteHint => 'Adicione um recado (opcional)';
+
+  @override
+  String get bananasAskButton => 'Pedir a um adulto';
+
+  @override
+  String get bananasAskWaiting => 'Pedido enviado, aguardando um adulto';
+
+  @override
+  String bananasAskOwn(int have, int price) {
+    return 'Ou use as suas: você tem 🍌 $have de $price';
+  }
+
+  @override
+  String get bananasAskOwnButton => 'Desbloquear com minhas bananas';
+
+  @override
+  String get bananasAskSent =>
+      'Pedido enviado! Um adulto vai receber uma mensagem.';
+
+  @override
+  String get bananasAskTooMany => 'Você já tem 3 pedidos abertos.';
+
+  @override
+  String get bananasAskCooldown =>
+      'Um adulto disse \"agora não\". Tente de novo amanhã.';
+
+  @override
+  String get bananasAskOff => 'Pedir está desativado na sua conta.';
+
+  @override
+  String get bananasShopTitle => 'Loja de bananas';
+
+  @override
+  String get bananasShopRowSub => 'Lutadores, cenários, estilos, jogos';
+
+  @override
+  String get bananasShopGetMore => 'Pegar mais bananas';
+
+  @override
+  String get bananasShopPacks => 'Pacotes de bananas';
+
+  @override
+  String get bananasShopFirstDouble => 'Seu primeiro pacote vale em dobro.';
+
+  @override
+  String get bananasShopRibbon => 'Bananas ×2';
+
+  @override
+  String get bananasShopEarn => 'Ou ganhe de graça';
+
+  @override
+  String get bananasShopEarnRow =>
+      'Assista a um vídeo ou pegue a banana de hoje';
+
+  @override
+  String get bananasShopAppOnly =>
+      'Os pacotes são vendidos no app MonkeyHub do celular. As bananas que você já tem funcionam aqui também.';
+
+  @override
+  String get bananasShopChild =>
+      'As bananas vêm de vídeos, da banana diária e dos seus responsáveis.';
+
+  @override
+  String get bananasShopNoPacks =>
+      'Os pacotes não estão disponíveis agora. Tente de novo em instantes.';
+
+  @override
+  String get bananasShopFailed => 'A compra não foi concluída.';
+
+  @override
+  String get bananasShopLate => 'Obrigado! Suas bananas estão a caminho.';
+
+  @override
+  String get bananasShopUnlocks => 'Desbloqueios';
+
+  @override
+  String get bananasShopFirstPickTitle => 'Escolha seu primeiro desbloqueio';
+
+  @override
+  String get bananasShopFirstPickSub =>
+      'Qualquer lutador ou cenário, por nossa conta';
+
+  @override
+  String get bananasShopFree => 'Grátis';
+
+  @override
+  String get bananasShopOwned => 'Seu';
+
+  @override
+  String bananasShopOwnedCount(int owned, int total) {
+    return '$owned de $total';
+  }
+
+  @override
+  String bananasShopWelcome(int count) {
+    return '+$count bananas de boas-vindas';
+  }
+
+  @override
+  String get bananasPackHandful => 'Punhado';
+
+  @override
+  String get bananasPackBasket => 'Cesta';
+
+  @override
+  String get bananasPackCrate => 'Caixote';
+
+  @override
+  String get bananasPackTree => 'Árvore';
+
+  @override
+  String get bananasPackJungle => 'Selva';
+
+  @override
+  String get bananasGroupFighters => 'Lutadores do Jungle Fist';
+
+  @override
+  String get bananasGroupStages => 'Cenários do Jungle Fist';
+
+  @override
+  String get bananasGroupLooks => 'Estilos do Jungle Fist';
+
+  @override
+  String get bananasGroupGames => 'Jogos de chat';
+
+  @override
+  String get bananasGroupBundles => 'Pacotes';
+
+  @override
+  String get bananasStageTemple => 'Templo';
+
+  @override
+  String get bananasStageNeon => 'Neon';
+
+  @override
+  String get bananasStageAurora => 'Aurora';
+
+  @override
+  String get bananasStageCanyon => 'Cânion';
+
+  @override
+  String get bananasStageDeck => 'Convés';
 
   @override
   String get bananaPhoneOnly =>

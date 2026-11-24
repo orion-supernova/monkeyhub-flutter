@@ -14,6 +14,7 @@ import '../widgets/user_avatar.dart';
 import 'approvals_screen.dart';
 import 'child_policy_screen.dart';
 import 'child_setup_screen.dart';
+import 'family_bananas_screen.dart';
 import 'pairing_code_screen.dart';
 
 /// The parent's family dashboard: who their children are, how they're doing,
@@ -128,6 +129,11 @@ class _FamilyScreenState extends State<FamilyScreen> {
                 child: c.user,
                 purpose: CodePurpose.release,
               )),
+              onBananas: () => _open(FamilyBananasScreen(
+                api: widget.api,
+                guardianId: widget.userId,
+                child: c.user,
+              )),
             ),
         GroupedSection(
           children: [
@@ -156,6 +162,7 @@ class _ChildCard extends StatelessWidget {
     required this.onOpen,
     required this.onPair,
     required this.onRelease,
+    required this.onBananas,
   });
 
   final ChildSummary summary;
@@ -165,6 +172,9 @@ class _ChildCard extends StatelessWidget {
 
   /// Opens the code a grown-up reads into the child's phone to hand it back.
   final VoidCallback onRelease;
+
+  /// Opens this child's banana rules, gifts and history.
+  final VoidCallback onBananas;
 
   /// The summary carries its own status for a guardian's eyes; the store wins
   /// once it has a value, and the summary stands in until then (and on a
@@ -272,6 +282,11 @@ class _ChildCard extends StatelessWidget {
                 icon: CupertinoIcons.square_arrow_right,
                 label: l10n.famRelease,
                 onTap: onRelease,
+              ),
+              QuickAction(
+                icon: CupertinoIcons.gift,
+                label: l10n.bananasTitle,
+                onTap: onBananas,
               ),
               QuickAction(
                 icon: CupertinoIcons.slider_horizontal_3,

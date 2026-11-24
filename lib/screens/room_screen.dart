@@ -16,7 +16,9 @@ import 'package:flutter/rendering.dart' show OverflowBoxFit, ScrollDirection;
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../ads/unlock_sheet.dart';
 import '../backend/chat_api.dart';
+import '../games/catalog.dart' show gameItemId;
 import '../backend/convex_client.dart';
 import '../backend/group_call_api.dart';
 import '../calls/call_button.dart';
@@ -3691,6 +3693,12 @@ class _RoomScreenState extends State<_RoomView>
       );
     } catch (e) {
       if (!mounted) return;
+      if (matchErrorCode(e) == 'LOCKED_GAME') {
+        // The picker mirrors the check; this is the server's word (an unlock
+        // lost since the sheet opened). Offer it again.
+        unawaited(showUnlockSheet(context, gameItemId(draft.game), reason: l10n.bananasReasonGame));
+        return;
+      }
       toast.show(switch (matchErrorCode(e)) {
         'ALREADY_LIVE' => l10n.chatGameErrAlreadyLive,
         'TOO_MANY_GAMES' => l10n.chatGameErrTooMany,
