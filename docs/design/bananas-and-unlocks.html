@@ -330,7 +330,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
     <div class="stage locked"><div class="sky" style="background:linear-gradient(180deg,#6fb6e8,#d9703a)"></div><div class="lbl">Canyon <span class="price">🍌 40</span></div></div>
     <div class="stage locked"><div class="sky" style="background:linear-gradient(180deg,#0a1230,#1f3b5c)"></div><div class="lbl">Deck <span class="price">🍌 40</span></div></div>
   </div>
-  <p class="small muted">"Random stage" picks only from stages the picker owns (or the host owns, online).</p>
+  <p class="small muted">"Random stage" picks only from stages the picker owns (online, the host picks the stage from the host's own, and both players see it).</p>
 
   <h3>Looks <span class="muted small">· Cartoon free · 2 to unlock</span></h3>
   <div class="grid g3">
@@ -409,8 +409,8 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
       <tr><td><b>Send a game back</b></td><td>A guest who doesn't own it can't send it. The picker shows the lock and the unlock sheet. Being invited never grants the right to send.</td></tr>
       <tr><td><b>Rematch</b></td><td>Counts as sending. The host can rematch any time. A guest who owns the game can rematch too; a guest who doesn't gets <b>Ask Murat for a rematch</b> (a ping; Murat's tap starts it on his unlock) next to <b>Unlock · 🍌 150</b>.</td></tr>
       <tr><td><b>Jungle Fist stage</b></td><td>The host picks from <b>the host's</b> stages (or Random among them).</td></tr>
-      <tr><td><b>Jungle Fist fighters</b></td><td>Each player picks from <b>their own fighters plus the host's</b>. A borrowed fighter shows a small 🎟️ "Murat's" badge. The host's unlock is enough, so a guest can pick Golem in Murat's match.</td></tr>
-      <tr><td><b>Jungle Fist look</b></td><td>Never borrowed: each screen shows its owner's look (Cartoon if they own nothing else).</td></tr>
+      <tr><td><b>Jungle Fist fighters</b></td><td>Each player picks only from <b>their own</b> fighters. A guest with no unlocks plays the 5 free humans. Unlocks are never shared, even when both players own the game.</td></tr>
+      <tr><td><b>Jungle Fist look</b></td><td>Each screen shows its owner's look (Cartoon if they own nothing else).</td></tr>
       <tr><td><b>Host loses the unlock mid-match</b> (refund clawback)</td><td>The running match finishes. New sends and rematches check again.</td></tr>
       <tr><td><b>Host is a child</b></td><td>Same rule. A child who was given Chess can host Chess for friends.</td></tr>
       <tr><td><b>Bot games &amp; Training</b></td><td>Solo, so you are the host: your own unlocks (plus free Training trials, see section 3).</td></tr>
@@ -423,7 +423,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
 <!-- ───────────── 7. PACKS ───────────── -->
 <section id="packs">
   <div class="sec-head"><div class="sec-num" style="background:var(--banana2)">7</div>
-    <div><h2>Banana packs</h2><p>Consumable in-app purchases (App Store, Google Play, Mac App Store, Microsoft Store). Bought bananas land in the same wallet as earned ones and never expire.</p></div></div>
+    <div><h2>Banana packs</h2><p>Consumable in-app purchases through <b>RevenueCat</b> (App Store for iOS and macOS, Google Play). Windows is open, see section 10. Bought bananas land in the same wallet as earned ones and never expire.</p></div></div>
   <div class="packs">
     <div class="pack"><div class="art"><span>🍌</span></div><div class="name">Handful</div><div class="amt">80 🍌</div><div class="bonus">&nbsp;</div><span class="buy">$0.99</span></div>
     <div class="pack"><div class="art"><span class="basket"><i class="b1">🍌</i><i class="b2">🍌</i><i class="b3">🍌</i><i class="bk">🧺</i></span></div><div class="name">Basket</div><div class="amt">450 🍌</div><div class="bonus">+12% bonus</div><span class="buy">$4.99</span></div>
@@ -532,7 +532,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
           <div style="text-align:center">
             <div style="width:84px;height:84px;margin:6px auto 8px;border-radius:50%;background:linear-gradient(135deg,#a07bff,#6b45f0);display:grid;place-items:center;font-weight:900;font-size:24px;color:#fff;box-shadow:0 10px 24px rgba(107,69,240,.35)">GO</div>
             <div style="font-size:20px;font-weight:900">Unlock Golem</div>
-            <div class="sub" style="margin-top:2px">Yours forever, on every device.<br>Friends can fight with him in your matches.</div>
+            <div class="sub" style="margin-top:2px">Yours forever, on every device.</div>
           </div>
           <div style="margin:14px 0 10px;background:#f7f3ea;border-radius:14px;padding:10px 12px">
             <div style="display:flex;justify-content:space-between"><span class="sub">Your bananas</span><b>🍌 212</b></div>
@@ -752,9 +752,9 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
   <table class="tbl">
     <thead><tr><th>Case</th><th>Answer</th></tr></thead>
     <tbody>
-      <tr><td><b>Web, Linux</b></td><td>Unlocks and bananas work everywhere (it's the account's wallet). Packs are sold only where a store exists: iOS, Android, macOS, Windows. Web and Linux show "Get bananas in the app", like videos today.</td></tr>
+      <tr><td><b>Web, Linux, Windows</b></td><td>Unlocks and bananas work everywhere (it's the account's wallet). Packs are sold through RevenueCat on iOS, macOS and Android. RevenueCat has no Windows SDK; until that's decided, Windows, web and Linux show "Get bananas in the app", like videos today.</td></tr>
       <tr><td><b>Apple cross-platform rule</b></td><td>Content bought on one platform can be used on others, as long as it's also buyable through IAP on iOS (guideline 3.1.3(b)). Every pack is.</td></tr>
-      <tr><td><b>Refund</b></td><td>Store refund notification (App Store Server Notifications V2, Google RTDN) takes the pack's bananas back. The balance may go below zero; spending stops until it's positive. Unlocks are never removed.</td></tr>
+      <tr><td><b>Refund</b></td><td>RevenueCat's <code>REFUND</code> / <code>CANCELLATION</code> webhook takes the pack's bananas back. The balance may go below zero; spending stops until it's positive. Unlocks are never removed.</td></tr>
       <tr><td><b>Restore purchases</b></td><td>Not needed: packs are consumables credited to the account server-side, and unlocks live on the account. A "Missing bananas?" row re-checks unfinished transactions.</td></tr>
       <tr><td><b>Account deleted</b></td><td>Wallet, unlocks, ledger and requests are cascaded with the account (<code>referenceRules.ts</code>). Bought bananas are not refundable by us; the delete sheet says how many will be lost.</td></tr>
       <tr><td><b>Old app builds</b></td><td>The server enforces the host rule on <code>matches:create</code>, so an old build can't start a locked game; it gets a "Update to play" error. Ships with a minimum-version bump (R19).</td></tr>
@@ -786,8 +786,8 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
       <ul class="small" style="padding-left:18px;margin:8px 0 0">
         <li><code>lifelines:mine</code> also returns <code>owned</code> and the price list.</li>
         <li><code>unlocks:buy {item}</code>: price check, complete-the-set math, one patch + one ledger row.</li>
-        <li><code>store:verify</code> (action): StoreKit 2 JWS / Play Developer API / Microsoft Store, then <code>internal.store:credit</code> deduped on transaction id. Same shape as AdMob SSV.</li>
-        <li><code>http /store/apple</code>, <code>/store/google</code>: refund and revoke notifications.</li>
+        <li><b>RevenueCat</b>: <code>purchases_flutter</code> in the app, app user id = the Convex user id. RevenueCat validates receipts; its webhook (<code>http /revenuecat</code>, bearer secret) calls <code>internal.store:credit</code>, deduped on the store transaction id. Same shape as AdMob SSV: the app never credits itself.</li>
+        <li>Refunds arrive on the same webhook.</li>
         <li><code>matches:create</code>: +1 check against the host's <code>owned</code>.</li>
         <li><code>bananaRequests:ask / answer / withdraw</code>; <code>family:listGuardianQueue</code> folds open requests in.</li>
         <li><code>family:setBananaRules</code>, <code>family:sendBananas</code>.</li>
@@ -821,7 +821,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
     <div><h2>Rollout</h2><p>Four phases, each shippable on its own. Backend first, then the app, as always.</p></div></div>
   <div class="grid g4">
     <div class="card tint-leaf"><span class="tag t-free">Phase 1</span><h4 style="margin-top:8px">Catalog &amp; locks</h4><p class="small">Catalog, <code>owned</code>, unlock sheet, locked states in Jungle Fist and the picker, host rule, Training trials, first free pick, launch-day 🍌 150. Bananas only (ads + daily). Minimum-version bump.</p></div>
-    <div class="card tint-banana"><span class="tag t-lock">Phase 2</span><h4 style="margin-top:8px">Banana packs</h4><p class="small">5 consumables in App Store Connect, Play Console, Partner Center. <code>store:verify</code>, refund webhooks, ledger, shop sheet, first pack doubled. Privacy labels: purchases.</p></div>
+    <div class="card tint-banana"><span class="tag t-lock">Phase 2</span><h4 style="margin-top:8px">Banana packs</h4><p class="small">5 consumables in App Store Connect and Play Console, wired into RevenueCat (offering <code>bananas</code>). RevenueCat webhook, ledger, shop sheet, first pack doubled. Privacy labels: purchases.</p></div>
     <div class="card tint-grape"><span class="tag t-grape">Phase 3</span><h4 style="margin-top:8px">Kids ask</h4><p class="small">Ask sheet, requests table, guardian queue cards, push both ways, Send bananas, allowance, auto-yes, history.</p></div>
     <div class="card tint-sky"><span class="tag t-sky">Phase 4</span><h4 style="margin-top:8px">Polish &amp; later</h4><p class="small">Complete-the-set pricing, bundles, puzzle archive, seasonal stage drops, gifting to friends (needs abuse limits), new fighters as their own unlocks.</p></div>
   </div>
@@ -830,14 +830,14 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
 <!-- ───────────── 13. DECISIONS ───────────── -->
 <section id="decide">
   <div class="sec-head"><div class="sec-num" style="background:var(--banana2)">13</div>
-    <div><h2>Decisions for you</h2><p>Defaults are picked so work can start; each one is a single line to change.</p></div></div>
+    <div><h2>Decisions</h2><p>Answered 2026-11-25. Each is still a single line to change.</p></div></div>
   <div class="grid g2">
-    <div class="card decision"><div class="q">1</div><div><h4>Which chat games are free?</h4><p class="small">Tic-tac-toe, Connect Four, Dots, Jungle Fist (Imposter moved to paid, 2026-11-25). Chess is locked; it's the one most people expect free, so it's the first candidate to swap in if conversion is fine without it.</p></div></div>
-    <div class="card decision"><div class="q">2</div><div><h4>"Drawing theme" = Cartoon?</h4><p class="small">Read as the Cartoon look (the drawn one, today's default). If you meant Painted, swap the two; Painted would then be free and Cartoon 🍌 120.</p></div></div>
-    <div class="card decision"><div class="q">3</div><div><h4>Fighters borrowed from the host?</h4><p class="small">Proposed yes: a guest can pick the host's fighters in that match, since "one unlock is enough" was the ask. The alternative (guests use only their own) keeps more reason to buy fighters.</p></div></div>
-    <div class="card decision"><div class="q">4</div><div><h4>Prices and pack sizes</h4><p class="small">80 🍌 per $0.99 base, fighter 60, Chess 150, Complete 990. Tuned so an animal fighter is 3 max-video days. Worth one round of tester feedback before Phase 2.</p></div></div>
-    <div class="card decision"><div class="q">5</div><div><h4>Launch-day gift size</h4><p class="small">🍌 150 + first free pick for every existing account, instead of grandfathering whatever they played. Simpler, and it teaches the shop on day one.</p></div></div>
-    <div class="card decision"><div class="q">6</div><div><h4>Web purchases (Stripe)?</h4><p class="small">Not in v1. Web and Linux spend but don't sell. Stripe later would need its own tax and refund handling.</p></div></div>
+    <div class="card decision"><div class="q">1</div><div><h4>Which chat games are free? <span class="tag t-free">Decided</span></h4><p class="small">Tic-tac-toe, Connect Four, Dots, Jungle Fist (Imposter moved to paid, 2026-11-25). Chess is locked; it's the one most people expect free, so it's the first candidate to swap in if conversion is fine without it.</p></div></div>
+        <div class="card decision"><div class="q">2</div><div><h4>Free look <span class="tag t-free">Decided</span></h4><p class="small">Cartoon is the free default look (user, 2026-11-25).</p></div></div>
+        <div class="card decision"><div class="q">3</div><div><h4>No sharing <span class="tag t-free">Decided</span></h4><p class="small">The host's chat game unlock lets guests play that match. Fighters, looks and packs are never shared: a guest uses their own, or the free defaults (user, 2026-11-25).</p></div></div>
+    <div class="card decision"><div class="q">4</div><div><h4>Prices and pack sizes <span class="tag t-free">Decided</span></h4><p class="small">80 🍌 per $0.99 base, fighter 60, Chess 150, Complete 990. Tuned so an animal fighter is 3 max-video days. Worth one round of tester feedback before Phase 2.</p></div></div>
+    <div class="card decision"><div class="q">5</div><div><h4>Launch-day gift size <span class="tag t-free">Decided</span></h4><p class="small">🍌 150 + first free pick for every existing account, instead of grandfathering whatever they played. Simpler, and it teaches the shop on day one.</p></div></div>
+        <div class="card decision"><div class="q">6</div><div><h4>Payments via RevenueCat <span class="tag t-free">Decided</span></h4><p class="small">RevenueCat for every store (user, 2026-11-25). Open: Windows, which RevenueCat has no SDK for.</p></div></div>
   </div>
 </section>
 
