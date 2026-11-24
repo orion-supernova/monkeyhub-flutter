@@ -372,7 +372,9 @@ import WebRTC
       return
     }
     if (info["kind"] as? String) == "approval" {
-      invokeNotifOrQueue("onOpenRequests", args: [:])
+      // `focus` carries a banana answer (`banana?...`) for the child's
+      // celebration; empty for every other approval push.
+      invokeNotifOrQueue("onOpenRequests", args: ["focus": info["focus"] as? String ?? ""])
       completionHandler()
       return
     }
@@ -1808,6 +1810,15 @@ import WebRTC
           let args = call.arguments as? [String: Any] ?? [:]
           let iconName = args["iconName"] as? String  // nil → primary icon
           DispatchQueue.main.async {
+            // iOS shows "You have changed the icon" on EVERY successful call,
+            // even when the icon is already the one asked for. First-run
+            // onboarding re-applies the default icon, so without this every
+            // new install opened on that alert. Same icon → nothing to do.
+            if UIApplication.shared.alternateIconName == iconName {
+              NSLog("[launcher_icon] skip: already \(iconName ?? "<nil/primary>")")
+              result(nil)
+              return
+            }
             NSLog("[launcher_icon] setAlternateIconName(\(iconName ?? "<nil/primary>")) — supportsAlternateIcons=\(UIApplication.shared.supportsAlternateIcons)")
             UIApplication.shared.setAlternateIconName(iconName) { error in
               if let error = error as NSError? {
