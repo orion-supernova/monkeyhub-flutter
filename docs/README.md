@@ -20,6 +20,7 @@ copy a rule into a second doc; link to its owner instead.
 | `design/chat-chrome-language.md` | Chat chrome motion and look. |
 | `design/swipe-up-fork.html` | Swipe-up fork (huddle, vanish, room sheet, dock). |
 | `design/rewarded-ads.md` | Rewarded ads and bananas: what they buy, caps, AdMob ids, SSV, platforms, cost table. |
+| `design/bananas-and-unlocks.html` | Unlocks (Jungle Fist fighters/stages/looks, chat games), the host rule, banana packs (IAP), kids ask / guardians pay, cost table. |
 | `design/age-check.md` | Age check: 9+ with family accounts for 9 to 12, own account at 13, the age sheet, restriction, staff reset/lower, cost table. |
 | `design/e2ee.html` | End-to-end encryption: protocol (MLS), data model, push decrypt, media, history, phases, cost table. |
 | `design/friend-requests.md` | Friend requests: approve, ignore, decline/delete, what the sender sees, the Ignored list, cost table. |

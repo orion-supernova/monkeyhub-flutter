@@ -110,4 +110,4 @@ Hints used to be free and unlimited. Now 3 free per puzzle (`FREE_HINTS` in
 ## Open
 
 - Link both AdMob apps to their store listings once public.
-- Jungle Fist stages and paints as in-app purchases: undecided (user, 2026-11-16).
+- Jungle Fist stages and paints as purchases: proposed 2026-11-25 as banana unlocks, see `bananas-and-unlocks.html`.

@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bananas &amp; Unlocks</title>
+<style>
+:root{
+  --bg:#fffaf0; --bg2:#fff4dc; --card:#ffffff; --line:#f0e6d2; --line2:#e7dcc6;
+  --ink:#231d14; --ink2:#5d5446; --ink3:#958a77;
+  --banana:#ffd23f; --banana2:#f5b300; --banana3:#fff1b8;
+  --leaf:#22b26b; --leaf2:#127a47; --leaf3:#dcf6e8;
+  --sky:#3d9bff; --sky3:#e1efff;
+  --grape:#8a62ff; --grape3:#eee7ff;
+  --coral:#ff6b5e; --coral3:#ffe5e1;
+  --pink:#ff5fa8; --pink3:#ffe3f0;
+  --shadow:0 1px 2px rgba(60,40,0,.05),0 8px 24px rgba(60,40,0,.06);
+  --r:20px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1140px;margin:0 auto;padding:0 24px 140px}
+a{color:var(--leaf2)}
+h1{font-size:54px;line-height:1.02;letter-spacing:-.03em;margin:0 0 16px}
+h2{font-size:32px;letter-spacing:-.02em;margin:0 0 6px;line-height:1.15}
+h3{font-size:19px;margin:30px 0 10px;letter-spacing:-.01em}
+h4{font-size:15px;margin:0 0 6px}
+p,li{color:var(--ink2)} b,strong{color:var(--ink)}
+code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:#f6eedc;padding:1px 6px;border-radius:6px;color:#5b4210}
+.muted{color:var(--ink3)} .small{font-size:13.5px}
+
+/* hero */
+.hero{background:radial-gradient(1200px 400px at 80% -10%,#ffe57a 0,transparent 60%),radial-gradient(700px 380px at -10% 10%,#c8f5dc 0,transparent 60%),var(--bg);padding:64px 0 40px;border-bottom:1px solid var(--line)}
+.kicker{display:inline-flex;gap:8px;align-items:center;font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--leaf2);background:var(--leaf3);padding:6px 12px;border-radius:999px;margin-bottom:18px}
+.lede{font-size:20px;max-width:760px;color:var(--ink2);margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:5px 12px;border-radius:999px;background:#fff;border:1px solid var(--line2);color:var(--ink2)}
+.hero .wrap{padding-bottom:0}
+.toc{position:sticky;top:0;z-index:20;background:rgba(255,250,240,.86);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid var(--line)}
+.toc .wrap{display:flex;gap:6px;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
+.toc a{flex:none;font-size:13.5px;font-weight:600;color:var(--ink2);text-decoration:none;padding:6px 12px;border-radius:999px}
+.toc a:hover{background:var(--bg2);color:var(--ink)}
+
+section{padding-top:72px}
+.sec-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:18px}
+.sec-num{flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-weight:800;font-size:18px;color:#fff}
+.sec-head p{margin:2px 0 0;max-width:780px}
+
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)} .g5{grid-template-columns:repeat(5,1fr)}
+@media(max-width:900px){.g3,.g4,.g5{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:620px){.g2,.g3,.g4,.g5{grid-template-columns:1fr} h1{font-size:38px}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow)}
+.card p{margin:6px 0 0}
+.card.tint-banana{background:linear-gradient(160deg,#fff8d6,#fff);border-color:#f7e3a1}
+.card.tint-leaf{background:linear-gradient(160deg,#e4f8ee,#fff);border-color:#c5ecd7}
+.card.tint-grape{background:linear-gradient(160deg,#f1ebff,#fff);border-color:#ded2ff}
+.card.tint-sky{background:linear-gradient(160deg,#e6f1ff,#fff);border-color:#cfe2ff}
+.card.tint-coral{background:linear-gradient(160deg,#ffece8,#fff);border-color:#ffd3cc}
+.big-emoji{font-size:34px;line-height:1;margin-bottom:10px}
+
+/* principles */
+.rule{position:relative;overflow:hidden}
+.rule .n{position:absolute;right:16px;top:10px;font-size:64px;font-weight:900;opacity:.07}
+.rule h4{font-size:17px}
+
+/* tables */
+.tbl{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);font-size:14.5px}
+.tbl th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);background:#fffbf1;padding:11px 14px;border-bottom:1px solid var(--line)}
+.tbl td{padding:11px 14px;border-bottom:1px solid #f6efe0;color:var(--ink2);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td b{color:var(--ink)}
+.tbl .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* tags */
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.t-free{background:var(--leaf3);color:var(--leaf2)}
+.t-lock{background:var(--banana3);color:#8a5d00}
+.t-new{background:var(--pink3);color:#b3226a}
+.t-sky{background:var(--sky3);color:#1d64b8}
+.t-grape{background:var(--grape3);color:#5a37c9}
+.t-coral{background:var(--coral3);color:#b8372b}
+.price{display:inline-flex;align-items:center;gap:3px;font-weight:800;color:#7a5200;font-variant-numeric:tabular-nums}
+
+/* fighters */
+.roster{display:grid;grid-template-columns:repeat(10,1fr);gap:10px}
+@media(max-width:900px){.roster{grid-template-columns:repeat(5,1fr)}}
+.fighter{border-radius:16px;padding:10px 6px 9px;text-align:center;border:1px solid var(--line);background:#fff;position:relative}
+.fighter .av{width:46px;height:46px;margin:0 auto 6px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:16px;color:#fff}
+.fighter .nm{font-size:12px;font-weight:800;letter-spacing:.04em}
+.fighter .pr{font-size:11.5px;margin-top:2px}
+.fighter.locked .av{filter:saturate(.35);opacity:.75}
+.fighter.locked::after{content:"🔒";position:absolute;top:6px;right:7px;font-size:11px}
+.fh .av{background:linear-gradient(135deg,#ff8a6b,#ff5e57)}
+.fa .av{background:linear-gradient(135deg,#3ccf85,#16995a)}
+.ff .av{background:linear-gradient(135deg,#a07bff,#6b45f0)}
+
+.stages{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+@media(max-width:900px){.stages{grid-template-columns:repeat(3,1fr)}}
+.stage{border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#fff;position:relative}
+.stage .sky{height:74px;position:relative}
+.stage .sky::after{content:"";position:absolute;left:0;right:0;bottom:0;height:22px;background:inherit;filter:brightness(.55)}
+.stage .lbl{padding:8px 10px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.stage.locked .sky{filter:saturate(.5) brightness(.95)}
+.stage.locked::after{content:"🔒";position:absolute;top:8px;right:9px;font-size:12px}
+
+/* packs */
+.packs{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+@media(max-width:1000px){.packs{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:620px){.packs{grid-template-columns:repeat(2,1fr)}}
+.pack{border-radius:22px;padding:18px 14px 16px;text-align:center;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);position:relative}
+.pack .art{height:86px;display:grid;place-items:center;font-size:40px;letter-spacing:-12px;margin-bottom:6px}
+.pack .art span{display:inline-block}
+.pack .name{font-weight:800;font-size:16px}
+.pack .amt{font-size:26px;font-weight:900;letter-spacing:-.02em;margin-top:2px}
+.pack .bonus{font-size:12px;font-weight:800;color:var(--leaf2);min-height:18px}
+.pack .buy{margin-top:12px;display:block;border-radius:14px;padding:9px 0;font-weight:800;background:var(--ink);color:#fff}
+.pack .ribbon{position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:999px;color:#fff;white-space:nowrap}
+.pack.hot{border:2px solid var(--banana2);background:linear-gradient(180deg,#fff7d1,#fff 60%)}
+.pack.hot .buy{background:linear-gradient(180deg,#ffd23f,#f5b300);color:#3a2600}
+.pack.best{border:2px solid var(--leaf)}
+.pack.best .buy{background:var(--leaf2)}
+
+/* phones */
+.phones{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;margin-top:8px}
+.ph-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:272px}
+.ph-cap{font-size:13.5px;color:var(--ink2);text-align:center;max-width:260px}
+.ph-cap b{display:block;color:var(--ink);font-size:14.5px}
+.phone{width:272px;height:560px;border-radius:44px;background:#16130e;padding:9px;box-shadow:0 30px 60px -20px rgba(60,40,0,.35),0 0 0 1px #000 inset}
+.scr{width:100%;height:100%;border-radius:36px;overflow:hidden;position:relative;background:#f7f5f1;color:#1b1813;font:13px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
+.scr.dark{background:#0f1014;color:#f2f2f4}
+.sb{height:40px;display:flex;justify-content:space-between;align-items:center;padding:0 22px 0 26px;font-size:12.5px;font-weight:700}
+.island{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:82px;height:24px;border-radius:14px;background:#000}
+.nav{display:flex;justify-content:space-between;align-items:center;padding:2px 14px 8px}
+.nav .t{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.bp{display:inline-flex;align-items:center;gap:4px;background:#fff;border-radius:999px;padding:4px 10px 4px 7px;font-weight:800;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.dark .bp{background:#24262c;color:#fff;box-shadow:none}
+.sect{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8c8577;padding:8px 16px 6px}
+.dark .sect{color:#8a8d96}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px}
+.tile{border-radius:16px;padding:10px;height:78px;position:relative;color:#fff;font-weight:800;font-size:13px;display:flex;flex-direction:column;justify-content:flex-end}
+.tile .e{position:absolute;top:8px;left:10px;font-size:22px}
+.tile .lk{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.28);border-radius:999px;font-size:10.5px;padding:2px 7px;font-weight:800}
+.tile.lockd{filter:saturate(.55)}
+.row{display:flex;align-items:center;gap:10px;padding:9px 14px}
+.ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:18px;flex:none}
+.grow{flex:1;min-width:0}
+.sub{font-size:11.5px;color:#8c8577}
+.dark .sub{color:#8a8d96}
+.btn{display:block;text-align:center;border-radius:14px;padding:11px 0;font-weight:800;font-size:14px}
+.b-ban{background:linear-gradient(180deg,#ffd84f,#f5b300);color:#3a2600}
+.b-ink{background:#1b1813;color:#fff}
+.b-ghost{background:rgba(0,0,0,.06);color:#1b1813}
+.dark .b-ghost{background:rgba(255,255,255,.1);color:#fff}
+.b-leaf{background:var(--leaf);color:#fff}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:10px 16px 22px;box-shadow:0 -10px 40px rgba(0,0,0,.18)}
+.dark .sheet{background:#1b1c21}
+.grab{width:36px;height:5px;border-radius:3px;background:#d8d3c8;margin:0 auto 10px}
+.dim{position:absolute;inset:0;background:rgba(10,8,4,.35)}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px}
+.bubble{max-width:200px;border-radius:18px;padding:8px 11px;margin:4px 12px;font-size:12.5px}
+.bin{background:#fff;align-self:flex-start;box-shadow:0 1px 1px rgba(0,0,0,.06)}
+.bout{background:#2f7cf6;color:#fff;align-self:flex-end}
+.chatcol{display:flex;flex-direction:column}
+.gamecard{margin:6px 12px;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.1);align-self:flex-start;width:200px}
+.gamecard .top{height:84px;display:grid;place-items:center;font-size:36px}
+.gamecard .bt{padding:8px 10px 10px}
+.fsel{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:0 10px}
+.fs{aspect-ratio:1;border-radius:10px;display:grid;place-items:center;font-size:10px;font-weight:900;color:#fff;position:relative}
+.fs.l{filter:saturate(.25) brightness(.6)}
+.fs.l::after{content:"🔒";position:absolute;bottom:1px;right:2px;font-size:8px}
+.fs.sel{outline:2px solid #ffd23f;outline-offset:1px}
+.notif{margin:8px 10px;border-radius:20px;background:rgba(255,255,255,.78);backdrop-filter:blur(20px);padding:10px 12px;display:flex;gap:10px;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.lockscreen{background:linear-gradient(170deg,#ffcf6b 0%,#ff8f70 45%,#8a62ff 100%)}
+.clock{text-align:center;color:#fff;font-weight:300;font-size:64px;letter-spacing:-2px;margin-top:20px;line-height:1}
+.date{text-align:center;color:#fff;font-weight:600;font-size:14px;margin-top:4px;margin-bottom:22px}
+.seg{display:flex;background:rgba(0,0,0,.06);border-radius:10px;padding:2px;margin:0 14px}
+.seg span{flex:1;text-align:center;font-size:11.5px;font-weight:700;padding:5px 0;border-radius:8px;color:#6b6457}
+.seg span.on{background:#fff;color:#1b1813;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.burst{position:absolute;inset:0;pointer-events:none}
+.burst i{position:absolute;font-style:normal;font-size:18px}
+
+/* flow */
+.flow{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap}
+.step{flex:1;min-width:170px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow);position:relative}
+.step .s{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:13px;color:#fff;margin-bottom:8px}
+.arrow{align-self:center;font-size:22px;color:var(--ink3)}
+@media(max-width:900px){.arrow{display:none}}
+
+.callout{border-radius:18px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start;margin:18px 0}
+.callout .e{font-size:24px;line-height:1}
+.callout p{margin:0}
+.c-leaf{background:var(--leaf3)} .c-ban{background:var(--banana3)} .c-sky{background:var(--sky3)} .c-grape{background:var(--grape3)} .c-coral{background:var(--coral3)}
+
+.svgbox{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px;overflow-x:auto}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--ink2);margin-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+.bar{height:10px;border-radius:6px;background:#f3ead6;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:6px}
+
+.decision{display:flex;gap:12px;align-items:flex-start}
+.decision .q{flex:none;width:30px;height:30px;border-radius:10px;background:var(--banana);display:grid;place-items:center;font-weight:900}
+footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-size:13px;color:var(--ink3)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">🍌 Feature design · games economy</div>
+    <h1>Bananas &amp; Unlocks</h1>
+    <p class="lede">Every game starts free with a taste of everything. The rest is unlocked with bananas, once, forever, for that person. In a chat, one player's unlock opens the game for the whole table. Kids can't buy; they ask, and a parent pays from their own bananas.</p>
+    <div class="meta">
+      <span class="pill">📅 Proposed 2026-11-25</span>
+      <span class="pill">🟡 Status: design, nothing built</span>
+      <span class="pill">🧩 Extends <code>design/rewarded-ads.md</code></span>
+      <span class="pill">👪 Builds on <code>design/age-check.md</code> family accounts</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc"><div class="wrap">
+  <a href="#rules">The four rules</a>
+  <a href="#today">Today</a>
+  <a href="#catalog">What's free</a>
+  <a href="#fist">Jungle Fist</a>
+  <a href="#chat">Chat games</a>
+  <a href="#host">One key opens the room</a>
+  <a href="#packs">Banana packs</a>
+  <a href="#prices">Prices</a>
+  <a href="#screens">Screens</a>
+  <a href="#kids">Kids ask, parents pay</a>
+  <a href="#edges">Edge cases</a>
+  <a href="#backend">Backend &amp; cost</a>
+  <a href="#rollout">Rollout</a>
+  <a href="#decide">Decisions</a>
+</div></nav>
+
+<main class="wrap">
+
+<!-- ───────────── 1. RULES ───────────── -->
+<section id="rules">
+  <div class="sec-head"><div class="sec-num" style="background:var(--banana2)">1</div>
+    <div><h2>The four rules</h2><p>Everything below follows from these. If a screen or a server check contradicts one, the screen is wrong.</p></div></div>
+  <div class="grid g4">
+    <div class="card rule tint-leaf"><div class="n">1</div><div class="big-emoji">🌱</div><h4>Free to start, never a wall</h4><p>Every mode is playable on day one: 5 fighters, a stage, the Cartoon look, 5 chat games, every daily. Locked things are visible, previewable and priced, never hidden.</p></div>
+    <div class="card rule tint-banana"><div class="n">2</div><div class="big-emoji">🔑</div><h4>Unlock once, yours forever</h4><p>An unlock belongs to the <b>account</b>, not the phone. It follows you to Mac, web, a new phone. No rentals, no expiry, no subscriptions.</p></div>
+    <div class="card rule tint-sky"><div class="n">3</div><div class="big-emoji">🎟️</div><h4>One key opens the room</h4><p>In a chat, the player who <b>starts</b> a game is its host. If the host owns it, everyone in that match plays it. Nobody else needs to unlock anything.</p></div>
+    <div class="card rule tint-grape"><div class="n">4</div><div class="big-emoji">👪</div><h4>Kids ask, parents pay</h4><p>Child accounts never see a price in money. They tap <b>Ask</b>; a guardian approves and pays in their own bananas, and the unlock lands on the child's account.</p></div>
+  </div>
+</section>
+
+<!-- ───────────── 2. TODAY ───────────── -->
+<section id="today">
+  <div class="sec-head"><div class="sec-num" style="background:var(--ink3)">2</div>
+    <div><h2>What exists today</h2><p>The banana is already the currency (built 2026-11-16, <code>design/rewarded-ads.md</code>). It only buys <b>lifelines</b>: small rescues in the moment you are stuck. There is no in-app purchase and nothing is locked.</p></div></div>
+  <div class="grid g3">
+    <div class="card"><h4>💰 Earn</h4><p class="small">Rewarded video: 1 🍌, every 3rd video of the day 2 🍌. Cap 15 videos a UTC day (≈ 20 🍌). Free daily banana for every account, children included. iOS and Android only for videos.</p></div>
+    <div class="card"><h4>🛟 Spend (lifelines)</h4><p class="small">Extra Code guess 1, extra hint 1, bot takeback 1, Jungle Fist get-back-up 1, streak save 2. These stay exactly as they are.</p></div>
+    <div class="card"><h4>🧱 Pieces we reuse</h4><p class="small"><code>lifelines</code> wallet row (one per user), <code>BananaPill</code> + <code>showBananaWallet</code> sheet, AdMob SSV crediting, the guardian queue (<code>family:listGuardianQueue</code>) and its push, <code>BananaWallet.childAccount</code>.</p></div>
+  </div>
+  <div class="callout c-ban"><div class="e">💡</div><p><b>The gap:</b> bananas have nothing to <i>save up for</i>. Lifelines are spent the moment they're earned. Unlocks give bananas a goal, give videos a reason past "I'm stuck", and give paying players a way to skip the wait.</p></div>
+</section>
+
+<!-- ───────────── 3. CATALOG ───────────── -->
+<section id="catalog">
+  <div class="sec-head"><div class="sec-num" style="background:var(--leaf)">3</div>
+    <div><h2>What's free, what's unlockable</h2><p>The whole Games tab at a glance. Green is free for everyone, yellow is a one-time unlock. Prices are in section 7.</p></div></div>
+  <table class="tbl">
+    <thead><tr><th>Area</th><th>Free for everyone</th><th>Unlock with bananas</th><th>Why this split</th></tr></thead>
+    <tbody>
+      <tr><td><b>🥊 Jungle Fist</b></td><td><span class="tag t-free">5 humans</span> <span class="tag t-free">Rooftop stage</span> <span class="tag t-free">Cartoon look</span> <span class="tag t-free">All modes</span></td><td>10 animals, 5 legends, 5 stages, Painted and Pixel looks</td><td>A complete game for free; the roster is the collection.</td></tr>
+      <tr><td><b>💬 Chat games</b></td><td><span class="tag t-free">Tic-tac-toe</span> <span class="tag t-free">Connect Four</span> <span class="tag t-free">Dots</span> <span class="tag t-free">Imposter</span> <span class="tag t-free">Jungle Fist</span></td><td>Checkers, Reversi, Chess, Liar's Dice, Puzzle Race</td><td>Something quick, something deep and a party game stay free; the rest is the upgrade.</td></tr>
+      <tr><td><b>🤖 Bot play</b></td><td>Every game you own, all levels</td><td>Follows the game: unlock Chess, play Chess bots</td><td>One ownership rule, not two.</td></tr>
+      <tr><td><b>🧩 Dailies</b></td><td><span class="tag t-free">All 10, every day</span></td><td><span class="tag t-new">Later</span> Puzzle archive (past days)</td><td>The daily habit is what brings people back to earn bananas. Never lock it.</td></tr>
+      <tr><td><b>🛟 Lifelines</b></td><td>3 free hints a puzzle, free takebacks per level</td><td>Unchanged (1 to 2 🍌 each)</td><td>Already shipped and balanced.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout c-leaf"><div class="e">🧪</div><p><b>Try before you buy.</b> Every locked fighter, stage and look can be tried in Jungle Fist's <b>Training room</b> for free, and every locked chat game opens its How to Play with a playable demo board. Locks stop real matches, never curiosity.</p></div>
+</section>
+
+<!-- ───────────── 4. JUNGLE FIST ───────────── -->
+<section id="fist">
+  <div class="sec-head"><div class="sec-num" style="background:var(--coral)">4</div>
+    <div><h2>Jungle Fist</h2><p>20 fighters in three families (<code>CharacterDef.kind</code>), 6 stages, 3 looks. The humans are the free starter cast; animals and legends are the collection.</p></div></div>
+
+  <h3>Fighters <span class="muted small">· 5 free · 15 to unlock</span></h3>
+  <div class="roster">
+    <div class="fighter fh"><div class="av">KA</div><div class="nm">KAI</div><div class="pr"><span class="tag t-free">Free</span></div></div>
+    <div class="fighter fh"><div class="av">LU</div><div class="nm">LUZ</div><div class="pr"><span class="tag t-free">Free</span></div></div>
+    <div class="fighter fh"><div class="av">DE</div><div class="nm">DEX</div><div class="pr"><span class="tag t-free">Free</span></div></div>
+    <div class="fighter fh"><div class="av">HA</div><div class="nm">HANA</div><div class="pr"><span class="tag t-free">Free</span></div></div>
+    <div class="fighter fh"><div class="av">BO</div><div class="nm">BOOM</div><div class="pr"><span class="tag t-free">Free</span></div></div>
+    <div class="fighter fa locked"><div class="av">MO</div><div class="nm">MOJO</div><div class="pr price">🍌 60</div></div>
+    <div class="fighter fa locked"><div class="av">TA</div><div class="nm">TANK</div><div class="pr price">🍌 60</div></div>
+    <div class="fighter fa locked"><div class="av">BR</div><div class="nm">BRUNO</div><div class="pr price">🍌 60</div></div>
+    <div class="fighter fa locked"><div class="av">SA</div><div class="nm">SAGE</div><div class="pr price">🍌 60</div></div>
+    <div class="fighter fa locked"><div class="av">RA</div><div class="nm">RAZZ</div><div class="pr price">🍌 60</div></div>
+    <div class="fighter fa locked"><div class="av">PI</div><div class="nm">PIP</div><div class="pr price">🍌 60</div></div>
+    <div class="fighter fa locked"><div class="av">RY</div><div class="nm">RYOKO</div><div class="pr price">🍌 60</div></div>
+    <div class="fighter fa locked"><div class="av">BA</div><div class="nm">BAO</div><div class="pr price">🍌 60</div></div>
+    <div class="fighter fa locked"><div class="av">VE</div><div class="nm">VEX</div><div class="pr price">🍌 60</div></div>
+    <div class="fighter fa locked"><div class="av">GA</div><div class="nm">GALE</div><div class="pr price">🍌 60</div></div>
+    <div class="fighter ff locked"><div class="av">NY</div><div class="nm">NYX</div><div class="pr price">🍌 90</div></div>
+    <div class="fighter ff locked"><div class="av">KG</div><div class="nm">KAGE</div><div class="pr price">🍌 90</div></div>
+    <div class="fighter ff locked"><div class="av">U7</div><div class="nm">UNIT-7</div><div class="pr price">🍌 90</div></div>
+    <div class="fighter ff locked"><div class="av">EM</div><div class="nm">EMBER</div><div class="pr price">🍌 90</div></div>
+    <div class="fighter ff locked"><div class="av">GO</div><div class="nm">GOLEM</div><div class="pr price">🍌 90</div></div>
+  </div>
+  <div class="legend"><span><i style="background:#ff6b5e"></i>Humans (free)</span><span><i style="background:#22b26b"></i>Animals · 60 🍌</span><span><i style="background:#8a62ff"></i>Legends · 90 🍌</span></div>
+
+  <h3>Stages <span class="muted small">· Rooftop free · 5 to unlock</span></h3>
+  <div class="stages">
+    <div class="stage"><div class="sky" style="background:linear-gradient(180deg,#3b1f5e,#e2575a)"></div><div class="lbl">Rooftop <span class="tag t-free">Free</span></div></div>
+    <div class="stage locked"><div class="sky" style="background:linear-gradient(180deg,#0f3b3a,#d98a3a)"></div><div class="lbl">Temple <span class="price">🍌 40</span></div></div>
+    <div class="stage locked"><div class="sky" style="background:linear-gradient(180deg,#1a0f3a,#ff4fa0)"></div><div class="lbl">Neon <span class="price">🍌 40</span></div></div>
+    <div class="stage locked"><div class="sky" style="background:linear-gradient(180deg,#0b1a3a,#9fd4ff)"></div><div class="lbl">Aurora <span class="price">🍌 40</span></div></div>
+    <div class="stage locked"><div class="sky" style="background:linear-gradient(180deg,#6fb6e8,#d9703a)"></div><div class="lbl">Canyon <span class="price">🍌 40</span></div></div>
+    <div class="stage locked"><div class="sky" style="background:linear-gradient(180deg,#0a1230,#1f3b5c)"></div><div class="lbl">Deck <span class="price">🍌 40</span></div></div>
+  </div>
+  <p class="small muted">"Random stage" picks only from stages the picker owns (or the host owns, online).</p>
+
+  <h3>Looks <span class="muted small">· Cartoon free · 2 to unlock</span></h3>
+  <div class="grid g3">
+    <div class="card tint-leaf"><h4>✏️ Cartoon <span class="tag t-free">Free · default</span></h4><p class="small">The drawn look every player starts with (<code>SettingsStore.fightLook = 'cartoon'</code> today).</p></div>
+    <div class="card"><h4>🎨 Painted <span class="price">🍌 120</span></h4><p class="small">Brush-textured, lit stages. Preview it on the pause menu's look switch: 10 seconds live, then it snaps back.</p></div>
+    <div class="card"><h4>👾 Pixel art <span class="price">🍌 120</span></h4><p class="small">Palette-snapped and dithered. Same 10-second live preview.</p></div>
+  </div>
+  <div class="callout c-sky"><div class="e">👀</div><p><b>Looks are personal.</b> A look only changes <i>your</i> screen (the setting's own footnote already says so), so it never travels with the host rule. Your friend can be in Pixel while you're in Cartoon, in the same fight.</p></div>
+</section>
+
+<!-- ───────────── 5. CHAT GAMES ───────────── -->
+<section id="chat">
+  <div class="sec-head"><div class="sec-num" style="background:var(--sky)">5</div>
+    <div><h2>Chat games</h2><p>The game picker in a room (<code>game_start_sheet.dart</code>) lists 6 turn games and 4 party games. Five stay free so every room can play something right now.</p></div></div>
+  <div class="grid g5">
+    <div class="card tint-leaf"><div class="big-emoji">❌</div><h4>Tic-tac-toe</h4><span class="tag t-free">Free</span></div>
+    <div class="card tint-leaf"><div class="big-emoji">🔴</div><h4>Connect Four</h4><span class="tag t-free">Free</span></div>
+    <div class="card tint-leaf"><div class="big-emoji">🔲</div><h4>Dots</h4><span class="tag t-free">Free</span></div>
+    <div class="card tint-leaf"><div class="big-emoji">🕵️</div><h4>Imposter</h4><span class="tag t-free">Free · party</span></div>
+    <div class="card tint-leaf"><div class="big-emoji">🥊</div><h4>Jungle Fist</h4><span class="tag t-free">Free · starter cast</span></div>
+    <div class="card"><div class="big-emoji">⛀</div><h4>Checkers</h4><span class="price">🍌 80</span></div>
+    <div class="card"><div class="big-emoji">⚫</div><h4>Reversi</h4><span class="price">🍌 80</span></div>
+    <div class="card"><div class="big-emoji">♟️</div><h4>Chess</h4><span class="price">🍌 150</span></div>
+    <div class="card"><div class="big-emoji">🎲</div><h4>Liar's Dice</h4><span class="price">🍌 120</span> <span class="tag t-sky">party</span></div>
+    <div class="card"><div class="big-emoji">🏁</div><h4>Puzzle Race</h4><span class="price">🍌 120</span> <span class="tag t-sky">party</span></div>
+  </div>
+  <p class="small muted" style="margin-top:12px">Which five are free is one list on the server (<code>catalog.ts</code> <code>FREE</code>), so swapping Chess into the free set is a one-line change and a deploy, no app release.</p>
+</section>
+
+<!-- ───────────── 6. HOST RULE ───────────── -->
+<section id="host">
+  <div class="sec-head"><div class="sec-num" style="background:var(--grape)">6</div>
+    <div><h2>One key opens the room</h2><p>The <b>host</b> is whoever sends the game into the chat (the match row's creator). The host's unlocks <b>sponsor</b> the match: every seat plays with them. One unlock is always enough; nobody ever needs a matching one.</p></div></div>
+
+  <div class="svgbox">
+    <svg viewBox="0 0 1060 250" width="100%" role="img" aria-label="Host sponsorship flow">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#958a77"/></marker>
+      </defs>
+      <rect x="10" y="70" width="190" height="110" rx="18" fill="#fff4d0" stroke="#f5b300"/>
+      <text x="105" y="104" text-anchor="middle" font-size="26">🙋</text>
+      <text x="105" y="134" text-anchor="middle" font-size="15" font-weight="800" fill="#231d14">Murat taps Chess</text>
+      <text x="105" y="156" text-anchor="middle" font-size="12.5" fill="#5d5446">in the group chat</text>
+      <line x1="205" y1="125" x2="275" y2="125" stroke="#958a77" stroke-width="2" marker-end="url(#ah)"/>
+      <rect x="280" y="50" width="230" height="150" rx="18" fill="#fff" stroke="#e7dcc6"/>
+      <text x="395" y="80" text-anchor="middle" font-size="13" font-weight="800" fill="#958a77" letter-spacing="1">SERVER CHECK</text>
+      <text x="395" y="108" text-anchor="middle" font-size="14" fill="#231d14">Is Chess free?  <tspan font-weight="800">no</tspan></text>
+      <text x="395" y="134" text-anchor="middle" font-size="14" fill="#231d14">Does Murat own it?  <tspan font-weight="800" fill="#127a47">yes ✓</tspan></text>
+      <text x="395" y="168" text-anchor="middle" font-size="12.5" fill="#5d5446">sponsorId = Murat on the match</text>
+      <text x="395" y="186" text-anchor="middle" font-size="12.5" fill="#5d5446">(1 extra read, 0 extra writes)</text>
+      <line x1="515" y1="125" x2="585" y2="125" stroke="#958a77" stroke-width="2" marker-end="url(#ah)"/>
+      <rect x="590" y="20" width="210" height="64" rx="16" fill="#dcf6e8" stroke="#22b26b"/>
+      <text x="695" y="48" text-anchor="middle" font-size="14" font-weight="800" fill="#127a47">Ela joins · plays free</text>
+      <text x="695" y="68" text-anchor="middle" font-size="12" fill="#127a47">doesn't own Chess</text>
+      <rect x="590" y="93" width="210" height="64" rx="16" fill="#dcf6e8" stroke="#22b26b"/>
+      <text x="695" y="121" text-anchor="middle" font-size="14" font-weight="800" fill="#127a47">Deniz watches · free</text>
+      <text x="695" y="141" text-anchor="middle" font-size="12" fill="#127a47">spectators never need it</text>
+      <rect x="590" y="166" width="210" height="64" rx="16" fill="#dcf6e8" stroke="#22b26b"/>
+      <text x="695" y="194" text-anchor="middle" font-size="14" font-weight="800" fill="#127a47">Rematch · still sponsored</text>
+      <text x="695" y="214" text-anchor="middle" font-size="12" fill="#127a47">whoever taps it</text>
+      <line x1="805" y1="125" x2="855" y2="125" stroke="#958a77" stroke-width="2" marker-end="url(#ah)"/>
+      <rect x="860" y="70" width="190" height="110" rx="18" fill="#f1ebff" stroke="#8a62ff"/>
+      <text x="955" y="104" text-anchor="middle" font-size="24">🍌</text>
+      <text x="955" y="132" text-anchor="middle" font-size="14" font-weight="800" fill="#5a37c9">Soft nudge for Ela</text>
+      <text x="955" y="152" text-anchor="middle" font-size="12" fill="#5a37c9">"Get Chess to host your</text>
+      <text x="955" y="168" text-anchor="middle" font-size="12" fill="#5a37c9">own games · 🍌 150"</text>
+    </svg>
+  </div>
+
+  <h3>The rules, exactly</h3>
+  <table class="tbl">
+    <thead><tr><th>Situation</th><th>What happens</th></tr></thead>
+    <tbody>
+      <tr><td><b>Start a game</b></td><td>Allowed if the game is free or the <b>host</b> owns it. The server checks at <code>matches:create</code>; the picker only mirrors it.</td></tr>
+      <tr><td><b>Join / accept</b></td><td>Always allowed, for every seat (2 players or a party of 8). Joining never checks the joiner's unlocks.</td></tr>
+      <tr><td><b>Rematch</b></td><td>Copies the original <code>sponsorId</code>, so a rematch is allowed no matter who taps it. A new game from scratch is a new host.</td></tr>
+      <tr><td><b>Jungle Fist stage</b></td><td>The host picks from <b>the host's</b> stages (or Random among them).</td></tr>
+      <tr><td><b>Jungle Fist fighters</b></td><td>Each player picks from <b>their own fighters plus the host's</b>. A borrowed fighter shows a small 🎟️ "Murat's" badge. The host's unlock is enough, so a guest can pick Golem in Murat's match.</td></tr>
+      <tr><td><b>Jungle Fist look</b></td><td>Never borrowed: each screen shows its owner's look (Cartoon if they own nothing else).</td></tr>
+      <tr><td><b>Host loses the unlock mid-match</b> (refund clawback)</td><td>The running match and its rematches finish. Only new starts check again.</td></tr>
+      <tr><td><b>Host is a child</b></td><td>Same rule. A child who was given Chess can host Chess for friends.</td></tr>
+      <tr><td><b>Bot games &amp; Training</b></td><td>Solo, so you are the host: your own unlocks (plus free Training trials, see section 3).</td></tr>
+      <tr><td><b>Public rooms</b></td><td>Same rule. A sponsored public game is a nice reason to host.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout c-grape"><div class="e">🎟️</div><p><b>Why this works for growth:</b> one paying friend makes the game fun for a whole group, and every guest sees the game, plays it, and gets a gentle "host your own" nudge on the result card. It's the opposite of a paywall: the locked game is the invitation.</p></div>
+</section>
+
+<!-- ───────────── 7. PACKS ───────────── -->
+<section id="packs">
+  <div class="sec-head"><div class="sec-num" style="background:var(--banana2)">7</div>
+    <div><h2>Banana packs</h2><p>Consumable in-app purchases (App Store, Google Play, Mac App Store, Microsoft Store). Bought bananas land in the same wallet as earned ones and never expire.</p></div></div>
+  <div class="packs">
+    <div class="pack"><div class="art"><span>🍌</span></div><div class="name">Handful</div><div class="amt">80 🍌</div><div class="bonus">&nbsp;</div><span class="buy">$0.99</span></div>
+    <div class="pack"><div class="art"><span>🍌</span><span>🍌</span><span>🍌</span></div><div class="name">Bunch</div><div class="amt">450 🍌</div><div class="bonus">+12% bonus</div><span class="buy">$4.99</span></div>
+    <div class="pack hot"><div class="ribbon" style="background:var(--banana2)">Most popular</div><div class="art"><span>📦</span></div><div class="name">Crate</div><div class="amt">1,000 🍌</div><div class="bonus">+25% bonus</div><span class="buy">$9.99</span></div>
+    <div class="pack"><div class="art"><span>🌴</span></div><div class="name">Banana Tree</div><div class="amt">2,200 🍌</div><div class="bonus">+37% bonus</div><span class="buy">$19.99</span></div>
+    <div class="pack best"><div class="ribbon" style="background:var(--leaf2)">Best value</div><div class="art"><span>🏝️</span></div><div class="name">Jungle</div><div class="amt">6,000 🍌</div><div class="bonus">+50% bonus</div><span class="buy">$49.99</span></div>
+  </div>
+  <p class="small muted" style="margin-top:14px">Base rate 80 🍌 per $0.99. Prices shown in USD; each store localises its own tier. Bonus % is against the base rate.</p>
+
+  <div class="grid g3" style="margin-top:18px">
+    <div class="card tint-banana"><h4>🎁 First pack doubled</h4><p class="small">The account's first purchase of any pack credits twice the bananas, once per account. The shop shows it as a ribbon on every pack until used.</p></div>
+    <div class="card tint-leaf"><h4>🌱 First pick free</h4><p class="small">Every account gets one free unlock of anything up to 🍌 90 (any fighter or stage). It's the onboarding moment: "Pick your first fighter". Existing accounts get it on launch day too.</p></div>
+    <div class="card tint-sky"><h4>📺 Earning stays real</h4><p class="small">A max-video day is ≈ 21 🍌 with the free daily one. An animal fighter is 3 such days, Chess a week. Paying is a shortcut, never the only way.</p></div>
+  </div>
+
+  <h3 id="prices">Prices at a glance</h3>
+  <div class="grid g2">
+    <table class="tbl">
+      <thead><tr><th>Single unlock</th><th class="num">Price</th><th class="num">≈ max-video days</th></tr></thead>
+      <tbody>
+        <tr><td>Animal fighter (×10)</td><td class="num price">🍌 60</td><td class="num">3</td></tr>
+        <tr><td>Legend fighter (×5)</td><td class="num price">🍌 90</td><td class="num">4</td></tr>
+        <tr><td>Stage (×5)</td><td class="num price">🍌 40</td><td class="num">2</td></tr>
+        <tr><td>Look: Painted, Pixel</td><td class="num price">🍌 120</td><td class="num">6</td></tr>
+        <tr><td>Checkers, Reversi</td><td class="num price">🍌 80</td><td class="num">4</td></tr>
+        <tr><td>Liar's Dice, Puzzle Race</td><td class="num price">🍌 120</td><td class="num">6</td></tr>
+        <tr><td>Chess</td><td class="num price">🍌 150</td><td class="num">7</td></tr>
+      </tbody>
+    </table>
+    <table class="tbl">
+      <thead><tr><th>Bundle</th><th class="num">Separately</th><th class="num">Bundle</th></tr></thead>
+      <tbody>
+        <tr><td>🐒 Animal Pack (10 fighters)</td><td class="num muted">600</td><td class="num price">🍌 450</td></tr>
+        <tr><td>🔮 Legends Pack (5 fighters)</td><td class="num muted">450</td><td class="num price">🍌 340</td></tr>
+        <tr><td>🗺️ World Pack (5 stages)</td><td class="num muted">200</td><td class="num price">🍌 150</td></tr>
+        <tr><td>🎨 Looks Pack (2 looks)</td><td class="num muted">240</td><td class="num price">🍌 180</td></tr>
+        <tr><td><b>🥊 Jungle Fist Complete</b></td><td class="num muted">1,490</td><td class="num price">🍌 990</td></tr>
+        <tr><td><b>🎲 Game Night</b> (5 chat games)</td><td class="num muted">550</td><td class="num price">🍌 400</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout c-leaf"><div class="e">🧮</div><p><b>Complete the set:</b> a bundle's price drops by what you already own (at the bundle's discount rate), so owning 3 animals never makes the Animal Pack a worse deal. The sheet shows "You own 3 · 🍌 315 for the other 7". Jungle Fist Complete is about the Crate, which is the point.</p></div>
+</section>
+
+<!-- ───────────── 8. SCREENS ───────────── -->
+<section id="screens">
+  <div class="sec-head"><div class="sec-num" style="background:var(--pink)">8</div>
+    <div><h2>Screens</h2><p>Sketches of the moments that matter. Native chrome per the UI kit (<code>ui-architecture.html</code>); the banana glyph is the platform 🍌, as in <code>BananaPill</code>.</p></div></div>
+
+  <div class="phones">
+    <!-- Games tab -->
+    <div class="ph-wrap">
+      <div class="phone"><div class="scr">
+        <div class="island"></div><div class="sb"><span>9:41</span><span>100%</span></div>
+        <div class="nav"><span class="t">Games</span><span class="bp">🍌 212</span></div>
+        <div class="sect">Play with friends</div>
+        <div class="tiles">
+          <div class="tile" style="background:linear-gradient(135deg,#ff8a6b,#ff4f6e)"><span class="e">🥊</span>Jungle Fist<span class="lk" style="background:rgba(255,255,255,.3)">5/20</span></div>
+          <div class="tile" style="background:linear-gradient(135deg,#3d9bff,#2a6ad8)"><span class="e">🔴</span>Connect Four</div>
+          <div class="tile lockd" style="background:linear-gradient(135deg,#5c5c6e,#2c2c38)"><span class="e">♟️</span>Chess<span class="lk">🍌 150</span></div>
+          <div class="tile lockd" style="background:linear-gradient(135deg,#d49a2a,#9a5c10)"><span class="e">🎲</span>Liar's Dice<span class="lk">🍌 120</span></div>
+        </div>
+        <div class="sect" style="margin-top:6px">Collection</div>
+        <div class="row" style="background:#fff;margin:0 12px;border-radius:16px">
+          <div class="ic" style="background:#fff1b8">🏪</div>
+          <div class="grow"><b>Banana Shop</b><div class="sub">Fighters, stages, looks, games</div></div><span style="color:#b9b2a3">›</span>
+        </div>
+        <div class="row" style="background:#fff;margin:8px 12px 0;border-radius:16px">
+          <div class="ic" style="background:#dcf6e8">🌱</div>
+          <div class="grow"><b>Pick your first unlock</b><div class="sub">Any fighter or stage, on us</div></div><span class="chip" style="background:#22b26b;color:#fff">Free</span>
+        </div>
+      </div></div>
+      <div class="ph-cap"><b>Games tab</b>Locked games stay in place, dimmed, with their price. The Jungle Fist tile counts owned fighters. The Shop is a row, never a takeover.</div>
+    </div>
+
+    <!-- JF select -->
+    <div class="ph-wrap">
+      <div class="phone"><div class="scr dark">
+        <div class="island"></div><div class="sb"><span>9:41</span><span>100%</span></div>
+        <div class="nav"><span class="t" style="font-size:20px">Choose fighter</span><span class="bp">🍌 212</span></div>
+        <div style="height:150px;margin:0 12px 10px;border-radius:18px;background:radial-gradient(circle at 50% 70%,#6b45f0,#1a1030);display:grid;place-items:center;position:relative">
+          <div style="width:74px;height:74px;border-radius:50%;background:linear-gradient(135deg,#a07bff,#6b45f0);display:grid;place-items:center;font-weight:900;font-size:22px">GO</div>
+          <div style="position:absolute;bottom:10px;left:12px;font-weight:900;font-size:18px;letter-spacing:.04em">GOLEM</div>
+          <div style="position:absolute;bottom:12px;right:12px" class="chip" ><span style="background:#2a2b33;padding:3px 8px;border-radius:999px">Legend · 1400 HP</span></div>
+        </div>
+        <div class="fsel">
+          <div class="fs" style="background:#ff6b5e">KAI</div><div class="fs" style="background:#ff6b5e">LUZ</div><div class="fs" style="background:#ff6b5e">DEX</div><div class="fs" style="background:#ff6b5e">HANA</div><div class="fs" style="background:#ff6b5e">BOOM</div>
+          <div class="fs" style="background:#22b26b">MOJO</div><div class="fs l" style="background:#22b26b">TANK</div><div class="fs l" style="background:#22b26b">BRU</div><div class="fs l" style="background:#22b26b">SAGE</div><div class="fs l" style="background:#22b26b">RAZZ</div>
+          <div class="fs l" style="background:#8a62ff">NYX</div><div class="fs l" style="background:#8a62ff">KAGE</div><div class="fs l" style="background:#8a62ff">U-7</div><div class="fs l" style="background:#8a62ff">EMB</div><div class="fs l sel" style="background:#8a62ff">GOL</div>
+        </div>
+        <div style="padding:12px 12px 0;display:grid;grid-template-columns:1fr 1.3fr;gap:8px">
+          <span class="btn b-ghost">Try in Training</span><span class="btn b-ban">Unlock · 🍌 90</span>
+        </div>
+      </div></div>
+      <div class="ph-cap"><b>Fighter select</b>Locked fighters are greyed with a 🔒 but fully selectable to preview. The two buttons replace "Fight": try free, or unlock.</div>
+    </div>
+
+    <!-- unlock sheet -->
+    <div class="ph-wrap">
+      <div class="phone"><div class="scr">
+        <div class="island"></div><div class="sb"><span>9:41</span><span>100%</span></div>
+        <div class="nav"><span class="t" style="font-size:20px">Choose fighter</span></div>
+        <div class="dim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div style="text-align:center">
+            <div style="width:84px;height:84px;margin:6px auto 8px;border-radius:50%;background:linear-gradient(135deg,#a07bff,#6b45f0);display:grid;place-items:center;font-weight:900;font-size:24px;color:#fff;box-shadow:0 10px 24px rgba(107,69,240,.35)">GO</div>
+            <div style="font-size:20px;font-weight:900">Unlock Golem</div>
+            <div class="sub" style="margin-top:2px">Yours forever, on every device.<br>Friends can fight with him in your matches.</div>
+          </div>
+          <div style="margin:14px 0 10px;background:#f7f3ea;border-radius:14px;padding:10px 12px">
+            <div style="display:flex;justify-content:space-between"><span class="sub">Your bananas</span><b>🍌 212</b></div>
+            <div style="display:flex;justify-content:space-between;margin-top:4px"><span class="sub">Golem</span><b>− 90</b></div>
+            <div style="height:1px;background:#e7dcc6;margin:7px 0"></div>
+            <div style="display:flex;justify-content:space-between"><span class="sub">Left after</span><b>🍌 122</b></div>
+          </div>
+          <div style="background:#f1ebff;border-radius:14px;padding:9px 12px;font-size:12px;margin-bottom:12px">🔮 <b>Legends Pack</b>: all 5 for 🍌 340 <span style="color:#5a37c9;font-weight:800">· save 110</span></div>
+          <span class="btn b-ban">Unlock for 🍌 90</span>
+        </div>
+      </div></div>
+      <div class="ph-cap"><b>Unlock sheet</b>One sheet for every unlock. Always shows the balance after, and the bundle only when it's cheaper. One tap, no second confirm (bananas, not money).</div>
+    </div>
+
+    <!-- shop -->
+    <div class="ph-wrap">
+      <div class="phone"><div class="scr">
+        <div class="island"></div><div class="sb"><span>9:41</span><span>100%</span></div>
+        <div class="nav"><span class="t" style="font-size:22px">Get bananas</span><span class="bp">🍌 30</span></div>
+        <div style="margin:0 12px 10px;border-radius:16px;padding:10px 12px;background:linear-gradient(135deg,#ffd84f,#ff9f43);color:#3a2600;font-weight:800;font-size:12.5px">🎁 Your first pack is doubled</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px">
+          <div style="background:#fff;border-radius:16px;padding:10px;text-align:center"><div style="font-size:24px">🍌</div><b>80</b><div class="sub">$0.99</div></div>
+          <div style="background:#fff;border-radius:16px;padding:10px;text-align:center"><div style="font-size:24px">🍌🍌</div><b>450</b><div class="sub">$4.99 · +12%</div></div>
+          <div style="background:#fff7d1;border:2px solid #f5b300;border-radius:16px;padding:8px;text-align:center"><div style="font-size:24px">📦</div><b>1,000</b><div class="sub">$9.99 · +25%</div></div>
+          <div style="background:#fff;border-radius:16px;padding:10px;text-align:center"><div style="font-size:24px">🌴</div><b>2,200</b><div class="sub">$19.99 · +37%</div></div>
+        </div>
+        <div style="margin:8px 12px 0;background:#fff;border:2px solid #22b26b;border-radius:16px;padding:10px;display:flex;align-items:center;gap:10px"><span style="font-size:24px">🏝️</span><div class="grow"><b>Jungle · 6,000</b><div class="sub">+50% · best value</div></div><b>$49.99</b></div>
+        <div class="sect" style="margin-top:6px">Or earn them</div>
+        <div class="row" style="background:#fff;margin:0 12px;border-radius:16px"><div class="ic" style="background:#e1efff">▶️</div><div class="grow"><b>Watch a short video</b><div class="sub">+1 🍌 · ●●◉ next one pays 2</div></div></div>
+      </div></div>
+      <div class="ph-cap"><b>Banana shop</b>Opens from the 🍌 pill and from "Not enough bananas". Packs on top, the free ways right underneath, so earning never feels hidden.</div>
+    </div>
+
+    <!-- chat picker -->
+    <div class="ph-wrap">
+      <div class="phone"><div class="scr">
+        <div class="island"></div><div class="sb"><span>9:41</span><span>100%</span></div>
+        <div class="nav"><span class="t" style="font-size:18px">Weekend crew</span></div>
+        <div class="dim"></div>
+        <div class="sheet" style="padding-bottom:16px">
+          <div class="grab"></div>
+          <div style="font-weight:900;font-size:17px;margin-bottom:8px">Start a game</div>
+          <div class="row" style="padding:7px 0"><div class="ic" style="background:#e1efff">🔴</div><div class="grow"><b>Connect Four</b></div><span class="chip" style="background:#dcf6e8;color:#127a47">Free</span></div>
+          <div class="row" style="padding:7px 0"><div class="ic" style="background:#eee7ff">♟️</div><div class="grow"><b>Chess</b><div class="sub">You own it · everyone plays</div></div><span class="chip" style="background:#e1efff;color:#1d64b8">🎟️ Yours</span></div>
+          <div class="row" style="padding:7px 0"><div class="ic" style="background:#dcf6e8">🕵️</div><div class="grow"><b>Imposter</b><div class="sub">3 to 8 players</div></div><span class="chip" style="background:#dcf6e8;color:#127a47">Free</span></div>
+          <div class="row" style="padding:7px 0;opacity:.75"><div class="ic" style="background:#fff1b8">🎲</div><div class="grow"><b>Liar's Dice</b><div class="sub">Unlock once, host forever</div></div><span class="chip" style="background:#fff1b8;color:#8a5d00">🍌 120</span></div>
+          <div class="row" style="padding:7px 0;opacity:.75"><div class="ic" style="background:#fff1b8">🏁</div><div class="grow"><b>Puzzle Race</b><div class="sub">Unlock once, host forever</div></div><span class="chip" style="background:#fff1b8;color:#8a5d00">🍌 120</span></div>
+          <div style="margin-top:8px;background:#f7f3ea;border-radius:12px;padding:8px 10px;font-size:11.5px;color:#5d5446">🎟️ When you host, everyone in the game plays it, even if they don't own it.</div>
+        </div>
+      </div></div>
+      <div class="ph-cap"><b>Chat game picker</b>Free, owned and locked in one list. Owned shows 🎟️ Yours. Tapping a locked row opens the unlock sheet, and on success starts the game straight away.</div>
+    </div>
+
+    <!-- chat bubble guest -->
+    <div class="ph-wrap">
+      <div class="phone"><div class="scr" style="background:#efe9df">
+        <div class="island"></div><div class="sb"><span>9:41</span><span>100%</span></div>
+        <div class="nav" style="background:#f7f5f1;padding-bottom:10px"><span class="t" style="font-size:18px">Murat</span></div>
+        <div class="chatcol" style="padding-top:8px">
+          <div class="bubble bin">rematch? 😤</div>
+          <div class="gamecard">
+            <div class="top" style="background:linear-gradient(135deg,#2c2c38,#5c5c6e)">♟️</div>
+            <div class="bt"><b>Chess</b> <span class="sub">· your move</span>
+              <div style="margin-top:6px"><span class="chip" style="background:#e1efff;color:#1d64b8">🎟️ Murat's game</span></div>
+            </div>
+          </div>
+          <div class="bubble bout">ok one more</div>
+          <div class="gamecard" style="width:220px">
+            <div class="bt" style="padding:10px">
+              <b>Murat won · 1 to 0</b>
+              <div class="sub" style="margin:4px 0 8px">Liked it? Get Chess to host your own games.</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><span class="btn b-ghost" style="font-size:12px;padding:7px 0">Rematch</span><span class="btn b-ban" style="font-size:12px;padding:7px 0">🍌 150</span></div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+      <div class="ph-cap"><b>As a guest</b>A small 🎟️ chip says whose unlock you're playing on. The nudge appears once, on the result card, and never mid-game. Rematch still works for the guest.</div>
+    </div>
+  </div>
+
+  <h3>Motion</h3>
+  <div class="grid g3">
+    <div class="card"><h4>🍌 Unlock</h4><p class="small">A real moment: the lock shakes, pops open, a short banana burst from the button and the item lifts into place with a jelly spring and a success haptic. Under a second.</p></div>
+    <div class="card"><h4>💸 Spend</h4><p class="small">The pill's number counts down while one banana flies from the button to the pill. Same animation everywhere a banana is spent, lifelines included.</p></div>
+    <div class="card"><h4>📦 Pack bought</h4><p class="small">Bananas rain into the pill and the count rolls up. A bigger moment for the first doubled pack. No confetti for routine things like opening the shop.</p></div>
+  </div>
+</section>
+
+<!-- ───────────── 9. KIDS ───────────── -->
+<section id="kids">
+  <div class="sec-head"><div class="sec-num" style="background:var(--grape)">9</div>
+    <div><h2>Kids ask, parents pay</h2><p>Child accounts (ages 9 to 12, family accounts per <code>design/age-check.md</code>) never see a store, a money price, or a pack. Where an adult sees "Unlock", a child sees <b>Ask</b>. The guardian answers from their own phone and pays in their own bananas.</p></div></div>
+
+  <div class="flow">
+    <div class="step"><div class="s" style="background:var(--grape)">1</div><h4>Ela taps Ask</h4><p class="small">On a locked fighter, stage, look or game. Optional: pick a sticker and a short note ("for Ali's birthday fight 🙏").</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="s" style="background:var(--sky)">2</div><h4>Mom gets a push</h4><p class="small">"Ela asks for Golem · 🍌 90". It lands in the existing <b>guardian queue</b>, next to contact requests.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="s" style="background:var(--leaf)">3</div><h4>Mom decides</h4><p class="small"><b>Yes</b> (pays 90 from her wallet), <b>Send bananas</b> instead, or <b>Not now</b>. Low on bananas? Buying a pack continues straight into the yes.</p></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="s" style="background:var(--banana2)">4</div><h4>Ela's unlock lands</h4><p class="small">Push: "Mom said yes! Golem is yours 🎉". The unlock sits on Ela's account, so it's on every device she uses.</p></div>
+  </div>
+
+  <div class="phones" style="margin-top:26px">
+    <!-- child ask -->
+    <div class="ph-wrap">
+      <div class="phone"><div class="scr">
+        <div class="island"></div><div class="sb"><span>9:41</span><span>100%</span></div>
+        <div class="nav"><span class="t" style="font-size:20px">Choose fighter</span></div>
+        <div class="dim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div style="text-align:center">
+            <div style="width:78px;height:78px;margin:4px auto 8px;border-radius:50%;background:linear-gradient(135deg,#a07bff,#6b45f0);display:grid;place-items:center;font-weight:900;font-size:22px;color:#fff">GO</div>
+            <div style="font-size:19px;font-weight:900">Want Golem?</div>
+            <div class="sub" style="margin-top:2px">Ask Mom or Dad. They'll get a message.</div>
+          </div>
+          <div style="display:flex;gap:6px;justify-content:center;margin:12px 0 8px;font-size:22px">
+            <span style="background:#f1ebff;border-radius:12px;padding:4px 8px;outline:2px solid #8a62ff">🙏</span><span style="background:#f7f3ea;border-radius:12px;padding:4px 8px">🥺</span><span style="background:#f7f3ea;border-radius:12px;padding:4px 8px">🎂</span><span style="background:#f7f3ea;border-radius:12px;padding:4px 8px">⭐</span>
+          </div>
+          <div style="background:#f7f3ea;border-radius:12px;padding:9px 11px;font-size:12px;color:#5d5446;margin-bottom:8px">for Ali's birthday fight on Saturday</div>
+          <div class="sub" style="text-align:center;margin-bottom:10px">or use your own: you have 🍌 34 of 90</div>
+          <span class="btn" style="background:#8a62ff;color:#fff">🙋 Ask a grown-up</span>
+        </div>
+      </div></div>
+      <div class="ph-cap"><b>Child: Ask</b>Same sheet shape as Unlock. The note is optional and goes through the content filter. The child can still save up and unlock with their own bananas.</div>
+    </div>
+
+    <!-- parent lockscreen -->
+    <div class="ph-wrap">
+      <div class="phone"><div class="scr lockscreen">
+        <div class="island"></div><div class="sb" style="color:#fff"><span></span><span>100%</span></div>
+        <div class="clock">9:42</div>
+        <div class="date">Wednesday 25 November</div>
+        <div class="notif">
+          <div class="ic" style="background:#ffd23f;width:30px;height:30px;border-radius:8px;font-size:16px">🐒</div>
+          <div class="grow"><div style="display:flex;justify-content:space-between"><b style="font-size:12.5px">MonkeyHub</b><span class="sub">now</span></div>
+          <div style="font-size:12.5px"><b>Ela asks for Golem 🙏</b><br>🍌 90 · "for Ali's birthday fight on Saturday"</div></div>
+        </div>
+        <div class="notif" style="opacity:.8">
+          <div class="ic" style="background:#ffd23f;width:30px;height:30px;border-radius:8px;font-size:16px">🐒</div>
+          <div class="grow"><div style="display:flex;justify-content:space-between"><b style="font-size:12.5px">MonkeyHub</b><span class="sub">2h ago</span></div>
+          <div style="font-size:12.5px">Ela wants to add a friend: <b>ali.k</b></div></div>
+        </div>
+      </div></div>
+      <div class="ph-cap"><b>Guardian: push</b>The same channel as contact approvals today. No price in money anywhere, only bananas.</div>
+    </div>
+
+    <!-- parent approve -->
+    <div class="ph-wrap">
+      <div class="phone"><div class="scr">
+        <div class="island"></div><div class="sb"><span>9:42</span><span>100%</span></div>
+        <div class="nav"><span class="t" style="font-size:22px">Family</span><span class="bp">🍌 40</span></div>
+        <div class="seg"><span class="on">Requests · 2</span><span>Ela</span><span>Rules</span></div>
+        <div style="margin:12px;background:#fff;border-radius:20px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+          <div style="display:flex;gap:10px;align-items:center">
+            <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#a07bff,#6b45f0);display:grid;place-items:center;font-weight:900;color:#fff">GO</div>
+            <div class="grow"><b>Ela asks for Golem</b> 🙏<div class="sub">Jungle Fist legend · 🍌 90</div></div>
+          </div>
+          <div style="background:#f7f3ea;border-radius:12px;padding:8px 10px;font-size:12px;margin:10px 0">"for Ali's birthday fight on Saturday"</div>
+          <div style="background:#fff1b8;border-radius:12px;padding:8px 10px;font-size:11.5px;margin-bottom:10px;color:#6b4a00">You have 🍌 40. Get a pack and it goes straight to Ela.</div>
+          <span class="btn b-ban" style="margin-bottom:6px">Yes · get bananas &amp; unlock</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><span class="btn b-ghost" style="font-size:12.5px">Send bananas</span><span class="btn b-ghost" style="font-size:12.5px">Not now</span></div>
+        </div>
+        <div style="margin:0 12px;background:#fff;border-radius:20px;padding:12px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 1px 3px rgba(0,0,0,.08)"><div class="ic" style="background:#e1efff">👋</div><div class="grow"><b>ali.k</b><div class="sub">Friend request for Ela</div></div><span style="color:#b9b2a3">›</span></div>
+      </div></div>
+      <div class="ph-cap"><b>Guardian: decide</b>Banana requests and contact requests share one queue. Short on bananas, "Yes" becomes "get bananas &amp; unlock": one purchase, one tap, done.</div>
+    </div>
+
+    <!-- child celebrate -->
+    <div class="ph-wrap">
+      <div class="phone"><div class="scr dark" style="background:radial-gradient(circle at 50% 40%,#3b2a7a,#0f1014 70%)">
+        <div class="island"></div><div class="sb"><span>9:43</span><span>100%</span></div>
+        <div class="burst"><i style="left:30px;top:120px">🍌</i><i style="left:210px;top:110px">🍌</i><i style="left:60px;top:250px;font-size:14px">✨</i><i style="left:200px;top:240px">🍌</i><i style="left:120px;top:80px;font-size:14px">✨</i></div>
+        <div style="text-align:center;margin-top:90px">
+          <div style="width:110px;height:110px;margin:0 auto 14px;border-radius:50%;background:linear-gradient(135deg,#a07bff,#6b45f0);display:grid;place-items:center;font-weight:900;font-size:30px;box-shadow:0 0 0 8px rgba(138,98,255,.25),0 0 60px rgba(138,98,255,.6)">GO</div>
+          <div style="font-size:24px;font-weight:900">Mom said yes!</div>
+          <div class="sub" style="margin-top:4px;font-size:13px">Golem is yours, on every device.</div>
+        </div>
+        <div style="position:absolute;left:16px;right:16px;bottom:24px">
+          <span class="btn b-ban" style="margin-bottom:8px">Fight as Golem</span>
+          <span class="btn b-ghost">Say thanks 💛</span>
+        </div>
+      </div></div>
+      <div class="ph-cap"><b>Child: yes!</b>A real moment, so it gets the big celebration. "Say thanks" sends a ready-made heart message to the guardian's DM.</div>
+    </div>
+  </div>
+
+  <h3>Guardian controls <span class="muted small">· Family › Ela › Bananas</span></h3>
+  <table class="tbl">
+    <thead><tr><th>Setting</th><th>Options</th><th>Default</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><b>Asking</b></td><td>On · Off</td><td><span class="tag t-free">On</span></td><td>Off hides Ask; locked items just show the lock.</td></tr>
+      <tr><td><b>Weekly allowance</b></td><td>0 · 25 · 50 · 100 🍌</td><td>0</td><td>Moves bananas from the guardian's wallet to the child's once a week. Paid when the child next opens the wallet (no job). If the guardian is short, it waits and the guardian gets one nudge.</td></tr>
+      <tr><td><b>Child may spend own bananas on</b></td><td>Everything · Lifelines only · Nothing</td><td>Everything</td><td>Free daily banana and allowance are the child's to spend. "Lifelines only" keeps unlocks behind Ask.</td></tr>
+      <tr><td><b>Auto-yes up to</b></td><td>Off · 🍌 60 · 🍌 120 a week</td><td><span class="tag t-lock">Off</span></td><td>Requests under the weekly budget are approved and paid automatically; the guardian gets a summary instead of a question.</td></tr>
+      <tr><td><b>Send bananas</b></td><td>25 · 50 · 100 · custom</td><td>(action)</td><td>A one-off gift from the guardian's wallet, any time.</td></tr>
+      <tr><td><b>History</b></td><td>(list)</td><td></td><td>Every request, gift, allowance and spend on the child's account, newest first.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Request rules</h3>
+  <div class="grid g3">
+    <div class="card"><h4>🧺 Limits</h4><p class="small">At most 3 open requests per child, one per item. A "Not now" can be re-asked after 24 hours. Open requests close themselves after 7 days.</p></div>
+    <div class="card"><h4>👥 Two guardians</h4><p class="small">Every guardian gets it; the first answer wins (approvals are never quorum, same as contact requests). The other guardian's card turns into "Dad said yes".</p></div>
+    <div class="card"><h4>🔁 Already sorted</h4><p class="small">If the child saves up and unlocks it with their own bananas, or the other guardian already said yes, the open request closes itself as "done".</p></div>
+    <div class="card"><h4>🛡️ Safety</h4><p class="small">Children never reach a store, a pack, or a money price. The note is filtered like any message. Guardians pay from their own wallet, so an approved request can never spend the child's bananas.</p></div>
+    <div class="card"><h4>🎓 Turning 13</h4><p class="small">When a family account graduates, every unlock and every banana stays. It's the same account.</p></div>
+    <div class="card"><h4>🍎 Apple &amp; Google</h4><p class="small">The guardian buys packs on their own device with normal IAP (and Ask to Buy if they use it there). The child app has no purchase code path at all.</p></div>
+  </div>
+</section>
+
+<!-- ───────────── 10. EDGES ───────────── -->
+<section id="edges">
+  <div class="sec-head"><div class="sec-num" style="background:var(--coral)">10</div>
+    <div><h2>Edge cases &amp; platform rules</h2><p>The questions support will get, answered up front.</p></div></div>
+  <table class="tbl">
+    <thead><tr><th>Case</th><th>Answer</th></tr></thead>
+    <tbody>
+      <tr><td><b>Web, Linux</b></td><td>Unlocks and bananas work everywhere (it's the account's wallet). Packs are sold only where a store exists: iOS, Android, macOS, Windows. Web and Linux show "Get bananas in the app", like videos today.</td></tr>
+      <tr><td><b>Apple cross-platform rule</b></td><td>Content bought on one platform can be used on others, as long as it's also buyable through IAP on iOS (guideline 3.1.3(b)). Every pack is.</td></tr>
+      <tr><td><b>Refund</b></td><td>Store refund notification (App Store Server Notifications V2, Google RTDN) takes the pack's bananas back. The balance may go below zero; spending stops until it's positive. Unlocks are never removed.</td></tr>
+      <tr><td><b>Restore purchases</b></td><td>Not needed: packs are consumables credited to the account server-side, and unlocks live on the account. A "Missing bananas?" row re-checks unfinished transactions.</td></tr>
+      <tr><td><b>Account deleted</b></td><td>Wallet, unlocks, ledger and requests are cascaded with the account (<code>referenceRules.ts</code>). Bought bananas are not refundable by us; the delete sheet says how many will be lost.</td></tr>
+      <tr><td><b>Old app builds</b></td><td>The server enforces the host rule on <code>matches:create</code>, so an old build can't start a locked game; it gets a "Update to play" error. Ships with a minimum-version bump (R19).</td></tr>
+      <tr><td><b>Existing players on launch day</b></td><td>Nothing they've played is taken away silently: every account gets a <b>🍌 150 thank-you</b> plus the free first pick, and in-progress matches of now-locked games finish normally.</td></tr>
+      <tr><td><b>Gifting to friends</b></td><td>Not in v1. Only guardians can pay for someone else. Friend gifting is a later idea (section 12).</td></tr>
+      <tr><td><b>Lifelines</b></td><td>Unchanged. They draw from the same wallet.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ───────────── 11. BACKEND ───────────── -->
+<section id="backend">
+  <div class="sec-head"><div class="sec-num" style="background:var(--leaf2)">11</div>
+    <div><h2>Backend &amp; cost</h2><p>Follows <code>backend/backend-handbook.html</code>: no per-user jobs, no fan-out, zero cost for people who never touch it. Ownership rides on the wallet row everyone already has.</p></div></div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h4>🗄️ Data</h4>
+      <ul class="small" style="padding-left:18px;margin:8px 0 0">
+        <li><b><code>lifelines</code></b> (existing, one row per user) gains <code>owned: string[]</code> (catalog ids, ≤ 40), <code>firstPickUsed</code>, <code>firstPackUsed</code>, <code>allowance</code> fields. Ownership costs 0 extra reads anywhere the wallet is already read.</li>
+        <li><b><code>bananaLedger</code></b> (new, append-only): one row per purchase, unlock, gift, allowance, refund. <code>by_user</code>, <code>by_storeTx</code> (dedupe). Support and refunds read it; nothing subscribes to it.</li>
+        <li><b><code>bananaRequests</code></b> (new): child, item, price, note, status, decidedBy. <code>by_child_status</code>. Expiry is checked on read, no cron.</li>
+        <li><b><code>matches</code></b> (existing) gains <code>sponsorId</code>; rematch copies it.</li>
+        <li><b>Catalog</b>: <code>backend/convex/catalog.ts</code> is the truth (ids, prices, bundles, free set), mirrored by <code>lib/games/catalog.dart</code> like the game registries. Prices come back in <code>lifelines:mine</code>, so a price change needs no app release.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>⚙️ Functions</h4>
+      <ul class="small" style="padding-left:18px;margin:8px 0 0">
+        <li><code>lifelines:mine</code> also returns <code>owned</code> and the price list.</li>
+        <li><code>unlocks:buy {item}</code>: price check, complete-the-set math, one patch + one ledger row.</li>
+        <li><code>store:verify</code> (action): StoreKit 2 JWS / Play Developer API / Microsoft Store, then <code>internal.store:credit</code> deduped on transaction id. Same shape as AdMob SSV.</li>
+        <li><code>http /store/apple</code>, <code>/store/google</code>: refund and revoke notifications.</li>
+        <li><code>matches:create</code>: +1 check against the host's <code>owned</code>.</li>
+        <li><code>bananaRequests:ask / answer / withdraw</code>; <code>family:listGuardianQueue</code> folds open requests in.</li>
+        <li><code>family:setBananaRules</code>, <code>family:sendBananas</code>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Cost table (R17)</h3>
+  <table class="tbl">
+    <thead><tr><th>Action</th><th>Reads</th><th>Writes</th><th>Re-runs per recipient</th><th>Idle</th></tr></thead>
+    <tbody>
+      <tr><td><b>Open Games tab / shop</b></td><td>1 (own wallet, already read today)</td><td>0</td><td>none (no subscription)</td><td>0</td></tr>
+      <tr><td><b>Unlock with bananas</b></td><td>1</td><td>2 (wallet patch, ledger)</td><td>none</td><td>0</td></tr>
+      <tr><td><b>Buy a pack</b></td><td>2 (ledger by tx, wallet) + 1 store HTTPS call</td><td>2</td><td>none</td><td>0</td></tr>
+      <tr><td><b>Start a chat game</b></td><td>+1 (host wallet)</td><td>0 extra (field on the existing insert)</td><td>unchanged</td><td>0</td></tr>
+      <tr><td><b>Rematch / join</b></td><td>0 extra</td><td>0 extra</td><td>unchanged</td><td>0</td></tr>
+      <tr><td><b>Child asks</b></td><td>≤ 4 (wallet, open requests ≤ 3, guardianships)</td><td>1 + 1 push per guardian</td><td>guardians' queue, once</td><td>0</td></tr>
+      <tr><td><b>Guardian answers yes</b></td><td>3 (request, 2 wallets)</td><td>5 (request, 2 wallets, 2 ledger) + 1 push</td><td>each guardian's queue, once</td><td>0</td></tr>
+      <tr><td><b>Guardian queue (existing subscription)</b></td><td>+1 index read per child</td><td>0</td><td>only when a request changes</td><td>0</td></tr>
+      <tr><td><b>Weekly allowance</b> (lazy, on child's wallet open)</td><td>0 extra when not due · 2 when due</td><td>0 · 4 when due (once a week)</td><td>none</td><td>0</td></tr>
+      <tr><td><b>Refund notification</b></td><td>2</td><td>2</td><td>none</td><td>0 (rare)</td></tr>
+    </tbody>
+  </table>
+  <p class="small muted" style="margin-top:10px">No crons, no scheduled jobs, no new subscriptions. The child's app learns about a yes from the push and refreshes its wallet once, as after a watched video today.</p>
+</section>
+
+<!-- ───────────── 12. ROLLOUT ───────────── -->
+<section id="rollout">
+  <div class="sec-head"><div class="sec-num" style="background:var(--sky)">12</div>
+    <div><h2>Rollout</h2><p>Four phases, each shippable on its own. Backend first, then the app, as always.</p></div></div>
+  <div class="grid g4">
+    <div class="card tint-leaf"><span class="tag t-free">Phase 1</span><h4 style="margin-top:8px">Catalog &amp; locks</h4><p class="small">Catalog, <code>owned</code>, unlock sheet, locked states in Jungle Fist and the picker, host rule, Training trials, first free pick, launch-day 🍌 150. Bananas only (ads + daily). Minimum-version bump.</p></div>
+    <div class="card tint-banana"><span class="tag t-lock">Phase 2</span><h4 style="margin-top:8px">Banana packs</h4><p class="small">5 consumables in App Store Connect, Play Console, Partner Center. <code>store:verify</code>, refund webhooks, ledger, shop sheet, first pack doubled. Privacy labels: purchases.</p></div>
+    <div class="card tint-grape"><span class="tag t-grape">Phase 3</span><h4 style="margin-top:8px">Kids ask</h4><p class="small">Ask sheet, requests table, guardian queue cards, push both ways, Send bananas, allowance, auto-yes, history.</p></div>
+    <div class="card tint-sky"><span class="tag t-sky">Phase 4</span><h4 style="margin-top:8px">Polish &amp; later</h4><p class="small">Complete-the-set pricing, bundles, puzzle archive, seasonal stage drops, gifting to friends (needs abuse limits), new fighters as their own unlocks.</p></div>
+  </div>
+</section>
+
+<!-- ───────────── 13. DECISIONS ───────────── -->
+<section id="decide">
+  <div class="sec-head"><div class="sec-num" style="background:var(--banana2)">13</div>
+    <div><h2>Decisions for you</h2><p>Defaults are picked so work can start; each one is a single line to change.</p></div></div>
+  <div class="grid g2">
+    <div class="card decision"><div class="q">1</div><div><h4>Which chat games are free?</h4><p class="small">Proposed: Tic-tac-toe, Connect Four, Dots, Imposter, Jungle Fist. Chess is locked; it's the one most people expect free, so it's the first candidate to swap in if conversion is fine without it.</p></div></div>
+    <div class="card decision"><div class="q">2</div><div><h4>"Drawing theme" = Cartoon?</h4><p class="small">Read as the Cartoon look (the drawn one, today's default). If you meant Painted, swap the two; Painted would then be free and Cartoon 🍌 120.</p></div></div>
+    <div class="card decision"><div class="q">3</div><div><h4>Fighters borrowed from the host?</h4><p class="small">Proposed yes: a guest can pick the host's fighters in that match, since "one unlock is enough" was the ask. The alternative (guests use only their own) keeps more reason to buy fighters.</p></div></div>
+    <div class="card decision"><div class="q">4</div><div><h4>Prices and pack sizes</h4><p class="small">80 🍌 per $0.99 base, fighter 60, Chess 150, Complete 990. Tuned so an animal fighter is 3 max-video days. Worth one round of tester feedback before Phase 2.</p></div></div>
+    <div class="card decision"><div class="q">5</div><div><h4>Launch-day gift size</h4><p class="small">🍌 150 + first free pick for every existing account, instead of grandfathering whatever they played. Simpler, and it teaches the shop on day one.</p></div></div>
+    <div class="card decision"><div class="q">6</div><div><h4>Web purchases (Stripe)?</h4><p class="small">Not in v1. Web and Linux spend but don't sell. Stripe later would need its own tax and refund handling.</p></div></div>
+  </div>
+</section>
+
+<footer>
+  Owner doc for unlocks, banana packs and family banana requests. Earning bananas and lifelines stay in <code>design/rewarded-ads.md</code>; family accounts in <code>design/age-check.md</code>; backend rules and budgets in <code>backend/backend-handbook.html</code>.
+</footer>
+</main>
+</body>
+</html>
