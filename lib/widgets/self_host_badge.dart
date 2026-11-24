@@ -109,7 +109,14 @@ class ServerMarkBanner extends StatelessWidget {
   /// bar's contract, and the reason it existed. Kept because the Server screen
   /// and Settings both ask the same question to decide whether to highlight
   /// the row.
-  static bool get isShowing => ServerStore.instance.announcesRole;
+  static bool get isShowing =>
+      ServerStore.instance.announcesRole && !hideForCapture;
+
+  /// Store-asset recordings run against a local demo backend, which is a
+  /// self-hosted address and would otherwise wear the ribbon on camera. Only
+  /// the capture harness sets this.
+  @visibleForTesting
+  static bool hideForCapture = false;
 
   @override
   Widget build(BuildContext context) {
