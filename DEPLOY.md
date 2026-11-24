@@ -336,6 +336,7 @@ Windows → Linux → web, then the site last. In the interactive picker they sh
 in the order you tick them instead; each ticked row shows its number.
 | `--convex-only` | Backend only (no builds, no version bump) |
 | `--no-convex` / `--no-upload` / `--no-git` / `--skip-version-bump` / `--dry` | Same as before |
+| `--set-version X.Y.Z` | Ship as X.Y.Z instead of the next patch (a major or minor jump, e.g. `2.0.0` for the MonkeyChat rebrand). Refused unless higher than the current version, or if the run skips the bump. Later runs patch-bump from it. |
 
 ### Per-platform stages
 

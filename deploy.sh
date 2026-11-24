@@ -111,6 +111,7 @@ DL_MANIFEST="$VM_DL_DIR/artifacts.json"
 
 # ----- flags -----
 SKIP_VERSION_BUMP=false
+SET_VERSION=""
 RUN_CONVEX=""      # ""=undecided (menu/default), true/false once resolved
 # The home server is RETIRED as a standby (2026-11-06, the user's call: it had
 # been offline for weeks and missed every deploy since 2026-10-23). Deploys go
@@ -237,6 +238,9 @@ it — check the per-platform summary at the end for what to retry.
 
 Behavior flags:
   --skip-version-bump   Re-ship the same version.
+  --set-version X.Y.Z   Ship as X.Y.Z instead of the next patch (a major or
+                        minor jump, e.g. 2.0.0). Must be higher than the
+                        current version; later runs patch-bump from it.
   --no-upload           Build/export but skip ASC upload AND the VM upload.
   --no-git              Don't commit/push the version bump.
   --no-announce <channels>
@@ -257,6 +261,12 @@ EOF
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --skip-version-bump) SKIP_VERSION_BUMP=true ;;
+        --set-version)
+            shift
+            if ! [[ "${1:-}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                echo "❌ --set-version needs X.Y.Z (got '${1:-}')"; exit 1
+            fi
+            SET_VERSION="$1" ;;
         --no-convex)         RUN_CONVEX=false ;;
         --no-homeserver)     RUN_HOMESERVER=false ;;
         --homeserver)        RUN_HOMESERVER=true ;;
@@ -2288,8 +2298,21 @@ if [ "$SKIP_VERSION_BUMP" = false ]; then
     PATCH=$(echo "$VERSION" | cut -d. -f3 | cut -d+ -f1)
     BUILD=$(echo "$VERSION" | cut -d+ -f2)
 
-    NEW_PATCH=$((PATCH + 1))
-    NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH+$BUILD"
+    if [ -n "$SET_VERSION" ]; then
+        # An explicit jump (--set-version). Refuse anything not higher than
+        # what shipped: stores reject it and Android's versionCode would
+        # go backwards.
+        NEW_MAJOR=$(echo "$SET_VERSION" | cut -d. -f1)
+        NEW_MINOR=$(echo "$SET_VERSION" | cut -d. -f2)
+        NEW_PATCH=$(echo "$SET_VERSION" | cut -d. -f3)
+        if [ $((NEW_MAJOR*1000000 + NEW_MINOR*1000 + NEW_PATCH)) -le $((MAJOR*1000000 + MINOR*1000 + PATCH)) ]; then
+            echo "❌ --set-version $SET_VERSION is not higher than $MAJOR.$MINOR.$PATCH"; exit 1
+        fi
+        NEW_VERSION="$SET_VERSION+$BUILD"
+    else
+        NEW_PATCH=$((PATCH + 1))
+        NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH+$BUILD"
+    fi
 
     echo "  • New:     $NEW_VERSION"
     sed -i '' "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
@@ -2297,6 +2320,10 @@ if [ "$SKIP_VERSION_BUMP" = false ]; then
     VERSION_BUMP_APPLIED=true
     echo "  ✅ pubspec.yaml updated"
 else
+    if [ -n "$SET_VERSION" ]; then
+        echo "❌ --set-version $SET_VERSION was given, but this run skips the version bump (stage-only or --skip-version-bump)."
+        exit 1
+    fi
     NEW_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
     echo "⏭️  Skipping version bump — using $NEW_VERSION"
 fi
