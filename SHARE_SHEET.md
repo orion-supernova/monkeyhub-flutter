@@ -176,8 +176,8 @@ build**, because two of the three fail silently.
 
 | App ID | Bundle id |
 |---|---|
-| The app | `com.walhallaa.chatTest-20241220` |
-| The extension | `com.walhallaa.chatTest-20241220.ShareExtension` |
+| The app | `com.walhallaa.MonkeyChatUIKit` |
+| The extension | `com.walhallaa.MonkeyChatUIKit.ShareExtension` |
 
 Enable **App Groups** on both, with the group `group.com.walhallaa.monkeyhub`
 selected on each.

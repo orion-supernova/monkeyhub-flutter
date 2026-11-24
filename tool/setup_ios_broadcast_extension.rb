@@ -21,7 +21,7 @@
 # or simply `pod install` — this script is invoked from the Podfile post_install.
 #
 # PROVISIONING: the extension has its own App ID
-# (com.walhallaa.chatTest-20241220.BroadcastExtension) which must exist in the
+# (com.walhallaa.MonkeyChatUIKit.BroadcastExtension) which must exist in the
 # developer portal with App Groups enabled (group.com.walhallaa.monkeyhub), and
 # a profile for it. Nothing here can do that; the build fails signing until it
 # is done. It cannot run in the simulator.
@@ -30,7 +30,7 @@ require 'xcodeproj'
 
 TARGET_NAME   = 'BroadcastExtension'
 APP_TARGET    = 'Runner'
-APP_BUNDLE_ID = 'com.walhallaa.chatTest-20241220'
+APP_BUNDLE_ID = 'com.walhallaa.MonkeyChatUIKit'
 EXT_BUNDLE_ID = "#{APP_BUNDLE_ID}.BroadcastExtension"
 TEAM          = '37TC2VKVJ6'
 DEPLOYMENT    = '15.0'

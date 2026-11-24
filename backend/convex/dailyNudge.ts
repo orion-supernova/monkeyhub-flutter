@@ -799,6 +799,7 @@ type NudgeDevice = {
   platform: string;
   apnsToken?: string;
   apnsEnv?: "sandbox" | "production";
+  apnsBundle?: string;
   fcmToken?: string;
   locale?: string;
 };
@@ -815,6 +816,7 @@ const vNudgeDevice = v.object({
   apnsEnv: v.optional(
     v.union(v.literal("sandbox"), v.literal("production")),
   ),
+  apnsBundle: v.optional(v.string()),
   fcmToken: v.optional(v.string()),
   locale: v.optional(v.string()),
 });
@@ -856,6 +858,7 @@ function nudgeableDevice(r: Doc<"userDevices">): NudgeDevice | null {
     platform: r.platform,
     apnsToken: r.apnsToken,
     apnsEnv: r.apnsEnv,
+    apnsBundle: r.apnsBundle,
     fcmToken: r.fcmToken,
     locale: r.locale,
   };

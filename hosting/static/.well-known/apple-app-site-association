@@ -2,7 +2,10 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["37TC2VKVJ6.com.walhallaa.chatTest-20241220"],
+        "appIDs": [
+          "37TC2VKVJ6.com.walhallaa.MonkeyChatUIKit",
+          "37TC2VKVJ6.com.walhallaa.chatTest-20241220"
+        ],
         "components": [
           {
             "/": "/j/*",

@@ -25,7 +25,7 @@ require 'xcodeproj'
 
 TARGET_NAME   = 'ShareExtension'
 APP_TARGET    = 'Runner'
-APP_BUNDLE_ID = 'com.walhallaa.chatTest-20241220'
+APP_BUNDLE_ID = 'com.walhallaa.MonkeyChatUIKit'
 # Apple requires an extension's bundle id to be prefixed by its container's.
 # A mismatch is an "invalid bundle" rejection at upload time, not a build error.
 EXT_BUNDLE_ID = "#{APP_BUNDLE_ID}.ShareExtension"

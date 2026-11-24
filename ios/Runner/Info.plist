@@ -689,7 +689,7 @@
 	<key>RTCAppGroupIdentifier</key>
 	<string>group.com.walhallaa.monkeyhub</string>
 	<key>RTCScreenSharingExtension</key>
-	<string>com.walhallaa.chatTest-20241220.BroadcastExtension</string>
+	<string>com.walhallaa.MonkeyChatUIKit.BroadcastExtension</string>
 	<key>NSCameraUsageDescription</key>
 	<string>MonkeyHub uses your camera for video calls and to take photos and videos you send in chats.</string>
 	<key>NSMicrophoneUsageDescription</key>

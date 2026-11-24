@@ -57,6 +57,7 @@ export const _loadUserDevices = internalQuery({
           platform: r.platform,
           voipToken: r.voipToken,
           apnsEnv: r.apnsEnv,
+          apnsBundle: r.apnsBundle,
           fcmToken: r.fcmToken,
         }));
     }
@@ -536,6 +537,7 @@ type DeviceRow =
       platform: string;
       voipToken?: string;
       apnsEnv?: ApnsEnv;
+      apnsBundle?: string;
       fcmToken?: string;
     }
   | {
@@ -545,6 +547,7 @@ type DeviceRow =
       platform: string;
       voipToken?: string;
       apnsEnv?: ApnsEnv;
+      apnsBundle?: string;
       fcmToken?: string;
     };
 
@@ -667,7 +670,7 @@ async function pushToDevice(
   // realtime subscription path covers them.
   if (d.voipToken && d.platform !== "ios-simulator") {
     try {
-      await sendApnsVoip(ctx, d.voipToken, payload, d.apnsEnv);
+      await sendApnsVoip(ctx, d.voipToken, payload, d.apnsEnv, d.apnsBundle);
       delivered = true;
       console.log(
         `sendVoip: APNs OK device=${d.deviceId} env=${d.apnsEnv ?? "default"}`,
@@ -788,10 +791,12 @@ async function sendApnsVoip(
   voipToken: string,
   payload: Record<string, unknown>,
   apnsEnv?: ApnsEnv,
+  apnsBundle?: string,
 ): Promise<void> {
   await apnsPost(ctx, {
     token: voipToken,
     env: apnsEnv,
+    bundle: apnsBundle,
     topicSuffix: ".voip",
     pushType: "voip",
     priority: "10",

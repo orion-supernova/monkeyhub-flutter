@@ -205,6 +205,13 @@ export default defineSchema({
     apnsEnv: v.optional(
       v.union(v.literal("sandbox"), v.literal("production")),
     ),
+    // Bundle id of the build that minted both iOS/macOS tokens; the APNs
+    // topic is `<apnsBundle>` / `<apnsBundle>.voip`. Same idea as apnsEnv: the
+    // app moved bundles on 2026-11-24 (chatTest-20241220 → MonkeyChatUIKit),
+    // and old and new installs live side by side. Missing → the first entry
+    // of APNS_BUNDLE_ID, i.e. a build from before the field existed. Only ids
+    // in `pushTransport.APNS_BUNDLES` are stored.
+    apnsBundle: v.optional(v.string()),
     fcmToken: v.optional(v.string()),        // Android FCM
     // Web Push subscription (RFC 8030), on `platform: "web"` rows only. The
     // three fields are what `PushSubscription.toJSON()` yields, and all three
@@ -482,6 +489,7 @@ export default defineSchema({
         apnsEnv: v.optional(
           v.union(v.literal("sandbox"), v.literal("production")),
         ),
+        apnsBundle: v.optional(v.string()),
         fcmToken: v.optional(v.string()),
         web: v.optional(
           v.object({

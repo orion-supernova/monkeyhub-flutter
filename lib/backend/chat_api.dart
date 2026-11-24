@@ -472,6 +472,7 @@ class ChatApi {
     required String token,
     String? deviceName,
     String? apnsEnv, // "sandbox" | "production"
+    String? apnsBundle, // the build's bundle id = its APNs topic
     String? locale,
     int? tzOffsetMinutes,
   }) async {
@@ -482,6 +483,7 @@ class ChatApi {
       'token': token,
       'deviceName': ?deviceName,
       'apnsEnv': ?apnsEnv,
+      'apnsBundle': ?apnsBundle,
       'locale': ?locale,
       'tzOffsetMinutes': ?tzOffsetMinutes,
     });
@@ -501,6 +503,7 @@ class ChatApi {
     required String token,
     String? deviceName,
     String? apnsEnv, // "sandbox" | "production"
+    String? apnsBundle, // the build's bundle id = its APNs topic
     String? locale,
     int? tzOffsetMinutes,
   }) async {
@@ -511,6 +514,7 @@ class ChatApi {
       'token': token,
       'deviceName': ?deviceName,
       'apnsEnv': ?apnsEnv,
+      'apnsBundle': ?apnsBundle,
       'locale': ?locale,
       'tzOffsetMinutes': ?tzOffsetMinutes,
     });

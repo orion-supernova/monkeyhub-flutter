@@ -150,9 +150,10 @@ export async function assertNoCaseTwin(ctx: any, username: string) {
 async function captureAppleRefresh(
   provider: Provider,
   authorizationCode: string | undefined,
+  audience: string,
 ): Promise<string | undefined> {
   if (provider !== PROVIDER_APPLE || !authorizationCode) return undefined;
-  return (await exchangeAuthorizationCode(authorizationCode)) ?? undefined;
+  return (await exchangeAuthorizationCode(authorizationCode, audience)) ?? undefined;
 }
 
 // ────────────────────────────── public actions ──────────────────────────────
@@ -206,7 +207,7 @@ export const signIn = publicAction({
 
     const appleRefreshToken = existing.hasAppleRefreshToken
       ? undefined
-      : await captureAppleRefresh(args.provider, args.authorizationCode);
+      : await captureAppleRefresh(args.provider, args.authorizationCode, identity.audience);
 
     return await ctx.runMutation(internal.socialAuth.touchIdentity, {
       deviceId: args.deviceId,
@@ -257,6 +258,7 @@ export const completeSignUp = publicAction({
     const appleRefreshToken = await captureAppleRefresh(
       args.provider,
       args.authorizationCode,
+      identity.audience,
     );
 
     return await ctx.runMutation(internal.socialAuth.createWithIdentity, {
@@ -314,6 +316,7 @@ export const linkExistingAccount = publicAction({
     const appleRefreshToken = await captureAppleRefresh(
       args.provider,
       args.authorizationCode,
+      identity.audience,
     );
     return await ctx.runMutation(internal.socialAuth.attachToExistingAccount, {
       deviceId: args.deviceId,
@@ -401,6 +404,7 @@ export const link = action({
     const appleRefreshToken = await captureAppleRefresh(
       args.provider,
       args.authorizationCode,
+      identity.audience,
     );
 
     await ctx.runMutation(internal.socialAuth.attachIdentity, {

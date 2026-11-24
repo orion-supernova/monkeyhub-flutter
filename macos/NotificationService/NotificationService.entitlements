@@ -4,7 +4,7 @@
 <dict>
 	<!-- The Mac twin of ios/NotificationService. Same source file
 	     (ios/NotificationService/NotificationService.swift), same App ID
-	     (com.walhallaa.chatTest-20241220.NotificationService), so the
+	     (com.walhallaa.MonkeyChatUIKit.NotificationService), so the
 	     capabilities below are the ones the iOS extension already has on that
 	     App ID; automatic signing makes the macOS profile for it. -->
 

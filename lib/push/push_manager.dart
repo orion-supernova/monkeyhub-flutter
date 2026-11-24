@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' show WidgetsBinding, AppLifecycleState;
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../auth/session_guard.dart';
 import '../backend/chat_api.dart';
@@ -591,6 +592,7 @@ class PushManager {
         // native side for the authoritative value; fall back to the build-
         // mode heuristic only if it's unavailable (e.g. App Store build).
         apnsEnv: await _resolveApnsEnv(),
+        apnsBundle: await _resolveApnsBundle(),
         // Stamped with the token, and duplicated from [syncDeviceContext] on
         // purpose — see the note there. A row with a credential and no time
         // zone is one the daily nudge can push to and cannot find.
@@ -625,12 +627,27 @@ class PushManager {
         token: token,
         deviceName: _deviceName,
         apnsEnv: await _resolveApnsEnv(),
+        apnsBundle: await _resolveApnsBundle(),
         locale: _appLocale,
         tzOffsetMinutes: _tzOffsetMinutes,
       );
       if (_isMacPush) _macTokenRegistered = true;
     } catch (e) {
       debugPrint('PushManager: setApnsToken failed: $e');
+    }
+  }
+
+  /// This build's bundle id, which is its APNs topic. The app moved bundles on
+  /// 2026-11-24 (chatTest-20241220 → MonkeyChatUIKit) and both live side by
+  /// side for a while, so the backend sends each token on the topic of the
+  /// build that minted it (`userDevices.apnsBundle`). Null if unavailable: the
+  /// backend then uses its default, which is what every older build meant.
+  Future<String?> _resolveApnsBundle() async {
+    try {
+      final id = (await PackageInfo.fromPlatform()).packageName;
+      return id.isEmpty ? null : id;
+    } catch (_) {
+      return null;
     }
   }
 

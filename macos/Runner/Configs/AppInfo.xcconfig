@@ -8,7 +8,7 @@
 PRODUCT_NAME = MonkeyHub
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.walhallaa.chatTest-20241220
+PRODUCT_BUNDLE_IDENTIFIER = com.walhallaa.MonkeyChatUIKit
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 Walhallaa. All rights reserved.

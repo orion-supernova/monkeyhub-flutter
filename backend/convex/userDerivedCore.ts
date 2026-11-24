@@ -23,6 +23,7 @@ import { isReleasedToRecipient } from "./childGuard";
 /** Fields of `userDevices` that change who a push can reach. */
 export const PUSH_DEVICE_FIELDS = [
   "userId", "deviceId", "platform", "pushEnabled", "apnsToken", "apnsEnv",
+  "apnsBundle",
   "fcmToken", "webEndpoint", "webP256dh", "webAuth", "locale",
 ] as const;
 
@@ -38,6 +39,7 @@ export type PushDevice = {
   platform: string;
   apnsToken?: string;
   apnsEnv?: "sandbox" | "production";
+  apnsBundle?: string;
   fcmToken?: string;
   web?: { endpoint: string; p256dh: string; auth: string };
   locale?: string;
@@ -61,6 +63,7 @@ export function buildPushDevices(rows: any[], live: Set<string>): PushDevice[] {
     };
     if (r.apnsToken !== undefined) d.apnsToken = r.apnsToken;
     if (r.apnsEnv !== undefined) d.apnsEnv = r.apnsEnv;
+    if (r.apnsBundle !== undefined) d.apnsBundle = r.apnsBundle;
     if (r.fcmToken !== undefined) d.fcmToken = r.fcmToken;
     if (web) d.web = web;
     if (r.locale !== undefined) d.locale = r.locale;

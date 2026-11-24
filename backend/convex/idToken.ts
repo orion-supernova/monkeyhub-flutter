@@ -100,6 +100,11 @@ export interface VerifiedIdentity {
   emailVerified: boolean;
   /** Apple's `@privaterelay.appleid.com` addresses. */
   isPrivateRelay: boolean;
+  /**
+   * The `aud` that matched [audiencesFor]: for Apple, the bundle id of the app
+   * that signed in. Apple's code exchange must use that same client id.
+   */
+  audience: string;
 }
 
 /** Apple sends these as the STRINGS "true"/"false"; Google sends real booleans. */
@@ -178,7 +183,14 @@ export async function verifyIdToken(
     email,
     emailVerified: truthy(payload.email_verified),
     isPrivateRelay: truthy(payload.is_private_email),
+    audience: matchedAudience(payload.aud, audiencesFor(provider)),
   };
+}
+
+/** The first configured audience the token names; jwtVerify proved one does. */
+function matchedAudience(aud: unknown, allowed: string[]): string {
+  const named = Array.isArray(aud) ? aud : [aud];
+  return named.find((a): a is string => typeof a === "string" && allowed.includes(a)) ?? allowed[0];
 }
 
 /**

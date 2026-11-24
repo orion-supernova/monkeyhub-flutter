@@ -332,7 +332,7 @@ is needed for it. What is new:
 
 **Enable "Time Sensitive Notifications" on the App ID**
 (developer.apple.com → Certificates, IDs & Profiles → Identifiers →
-`com.walhallaa.chatTest-20241220`), then regenerate provisioning profiles.
+`com.walhallaa.MonkeyChatUIKit`), then regenerate provisioning profiles.
 
 Both entitlement files already declare
 `com.apple.developer.usernotifications.time-sensitive`. If the capability is not
@@ -354,14 +354,14 @@ Extension iOS wakes for any push carrying `mutable-content: 1`.
 Two things are needed, and **both fail the build loudly** — this is a
 §1-shaped capability, not an associated-domains-shaped one:
 
-1. **An App ID for the extension**, `com.walhallaa.chatTest-20241220.NotificationService`,
+1. **An App ID for the extension**, `com.walhallaa.MonkeyChatUIKit.NotificationService`,
    exactly as the Share Extension has one. Without it:
 
-       No profiles for 'com.walhallaa.chatTest-20241220.NotificationService'
+       No profiles for 'com.walhallaa.MonkeyChatUIKit.NotificationService'
        were found.
 
 2. **"Communication Notifications" enabled on the app's App ID**
-   `com.walhallaa.chatTest-20241220`, then regenerated profiles. Without it:
+   `com.walhallaa.MonkeyChatUIKit`, then regenerated profiles. Without it:
 
        Provisioning profile "..." doesn't include the
        com.apple.developer.usernotifications.communication entitlement.

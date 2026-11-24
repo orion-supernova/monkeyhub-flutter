@@ -6,8 +6,10 @@ import 'store_updates.dart';
 import 'web_reload.dart';
 
 /// MonkeyHub's App Store Connect app id, shared by the iOS and macOS listings
-/// (and by TestFlight). Mirrored server-side in `releases.APPLE_APP_ID`.
-const kAppleAppId = '6739744338';
+/// (and by TestFlight). Since the 2026-11-24 rebundle this is the legacy
+/// MonkeyChat listing (bundle `com.walhallaa.MonkeyChatUIKit`); the old
+/// MonkeyHub record (6739744338, `com.walhallaa.chatTest-20241220`) is retired.
+const kAppleAppId = '1610516543';
 
 /// The hosted download page. Two audiences share it: the retired Android APK,
 /// which is sent here to be told how to move to Play, and the DMG or

@@ -546,6 +546,7 @@ type SocialDevice = {
   platform: string;
   apnsToken?: string;
   apnsEnv?: "sandbox" | "production";
+  apnsBundle?: string;
   fcmToken?: string;
   web?: { endpoint: string; p256dh: string; auth: string };
   locale?: string;
@@ -583,6 +584,7 @@ function reachableDevice(r: Doc<"userDevices">): SocialDevice | null {
     platform: r.platform,
     apnsToken: r.apnsToken,
     apnsEnv: r.apnsEnv,
+    apnsBundle: r.apnsBundle,
     fcmToken: r.fcmToken,
     web,
     locale: r.locale,

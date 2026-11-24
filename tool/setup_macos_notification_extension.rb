@@ -22,7 +22,7 @@ require 'xcodeproj'
 
 TARGET_NAME   = 'NotificationService'
 APP_TARGET    = 'Runner'
-APP_BUNDLE_ID = 'com.walhallaa.chatTest-20241220'
+APP_BUNDLE_ID = 'com.walhallaa.MonkeyChatUIKit'
 EXT_BUNDLE_ID = "#{APP_BUNDLE_ID}.NotificationService"
 TEAM          = '37TC2VKVJ6'
 # Communication notifications are macOS 12, which is also the app's floor.

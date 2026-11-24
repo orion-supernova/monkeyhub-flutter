@@ -438,7 +438,7 @@ as their storefront serves it (Apple's cache can lag a few hours, which makes
 the prompt late, never early). The old `releases:publish` one-liner for
 `ios-appstore`/`macos-appstore` is only needed to change notes or the store
 link. Verify the macOS lookup once the Mac listing is live: if
-`https://itunes.apple.com/lookup?id=6739744338&entity=macSoftware` returns no
+`https://itunes.apple.com/lookup?id=1610516543&entity=macSoftware` returns no
 `mac-software` record, macOS store installs get no answer and no prompt
 (safe, but silent).
 
@@ -743,6 +743,46 @@ The `android-apk` migration notice stays non-mandatory until production — see
 [Retired: the APK](#retired-the-apk) for why, and for the one-liner that makes
 it blocking afterwards.
 
+## Bundle ID: the 2026-11-24 rebundle
+
+iOS and macOS ship as **`com.walhallaa.MonkeyChatUIKit`** on the legacy
+MonkeyChat App Store listing (ASC app id **1610516543**), renamed to MonkeyHub.
+The old MonkeyHub record (`com.walhallaa.chatTest-20241220`, app id
+6739744338) is retired: its submissions were pulled from review and it gets no
+more builds. Apple never lets a record change its bundle id, so this was the
+only way to keep MonkeyChat's installs, ratings and age. Android is unaffected
+(`com.walhallaa.chattest20241220`; there was never a Play listing to reuse).
+
+Installs from the two bundles live side by side until the old one ages out:
+
+| | How both keep working |
+|---|---|
+| Push and VoIP | Each device reports its bundle with its tokens (`userDevices.apnsBundle`); the APNs topic is `<apnsBundle>` / `<apnsBundle>.voip`. Rows without one are old builds and use `APNS_BUNDLE_ID`, which therefore stays `com.walhallaa.chatTest-20241220`. Allowed ids: `pushTransport.APNS_BUNDLES`. One `.p8` covers both topics (same team). |
+| Sign in with Apple | `APPLE_BUNDLE_ID` is a list: `com.walhallaa.MonkeyChatUIKit,com.walhallaa.chatTest-20241220`. The code exchange uses the token's own `aud`; revocation and the daily grant check try each id. |
+| Universal links | The AASA lists both app ids. |
+| Login | Not carried over: the keychain belongs to the bundle, so people moving from the old app sign in once. |
+
+Removal step (handbook R19): once the minimum supported version is a
+rebundled build, drop the old id from `APNS_BUNDLES`, `APPLE_BUNDLE_ID` and the
+AASA, and set `APNS_BUNDLE_ID` to the new id.
+
+Developer-portal checklist (team 37TC2VKVJ6), all done before the first upload:
+
+1. App ID `com.walhallaa.MonkeyChatUIKit`: enable Push Notifications, App
+   Groups (`group.com.walhallaa.monkeyhub`), Sign in with Apple (group it with
+   the primary App ID `com.walhallaa.chatTest-20241220`, so Apple hands back
+   the same user ids and relay emails), Associated Domains, and every other
+   capability the old App ID has. Compare them side by side.
+2. New App IDs, each with App Groups, plus Push on the NotificationService
+   ones: `.ShareExtension`, `.BroadcastExtension`, `.NotificationService`.
+   Automatic signing creates them on the first archive, but it does not turn
+   on App Groups; check them afterwards.
+3. The Sign in with Apple key (`APPLE_SIWA_KEY_ID`) must be enabled for the
+   new App ID's group. `npx convex run idToken:selfTest` checks every id.
+4. In App Store Connect on app 1610516543: rename to MonkeyHub, add macOS as a
+   platform, and copy over the listing (screenshots, description, privacy
+   answers, age rating, export compliance).
+
 ## iOS
 
 Unchanged: ASC API key in `~/.appstoreconnect/private_keys/`, IDs in
@@ -751,7 +791,7 @@ Optional extension setup: see `NOTIFICATION_SETUP.md`.
 
 **The build now ships a second binary.** `ShareExtension.appex` is the app's
 entry in the system share sheet; it has its own bundle id
-(`com.walhallaa.chatTest-20241220.ShareExtension`), which needs its own App ID
+(`com.walhallaa.MonkeyChatUIKit.ShareExtension`), which needs its own App ID
 in the developer portal with **App Groups** enabled — on the app's App ID too.
 Neither is optional and only one of them fails loudly. Do both before the first
 upload; the checklist and the failure modes are in `SHARE_SHEET.md`.
@@ -769,7 +809,7 @@ before this shipped; same team as iOS, `37TC2VKVJ6`, since it's one Apple
 Developer account).
 
 **No new app record needed** — macOS's bundle ID
-(`com.walhallaa.chatTest-20241220`, set in `macos/Runner/Configs/AppInfo.xcconfig`)
+(`com.walhallaa.MonkeyChatUIKit`, set in `macos/Runner/Configs/AppInfo.xcconfig`)
 is identical to iOS's, so a macOS build lands on the *same* App Store Connect
 app that already has iOS TestFlight testers on it, not a separate one.
 

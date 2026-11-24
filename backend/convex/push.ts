@@ -363,6 +363,7 @@ type AlertDevice = {
   platform: string;
   apnsToken?: string;
   apnsEnv?: ApnsEnv;
+  apnsBundle?: string;
   fcmToken?: string;
   web?: WebPushSubscription;
   /**
@@ -728,6 +729,7 @@ async function alertToDevice(
       await apnsPost(ctx, {
         token: d.apnsToken,
         env: d.apnsEnv,
+        bundle: d.apnsBundle,
         topicSuffix: "",
         // Every kind is an `alert` push, including the invisible dismiss —
         // see buildApnsBody on why that one carries a badge. `background` at

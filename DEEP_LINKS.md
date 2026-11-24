@@ -81,7 +81,7 @@ Three things, and **only the first fails loudly**:
    file has no extension and Caddy would otherwise serve `application/octet-stream`
    — which iOS rejects silently.
 
-App ID: `37TC2VKVJ6.com.walhallaa.chatTest-20241220` (same bundle id on both
+App ID: `37TC2VKVJ6.com.walhallaa.MonkeyChatUIKit` (same bundle id on both
 platforms, so one entry covers iOS and macOS).
 
 **Apple's CDN caches the AASA for up to 24h.** A device that already fetched a

@@ -17,7 +17,7 @@
 	     (ios/NotificationService/), which carries the matching key.
 
 	     REQUIRES "Communication Notifications" enabled on the App ID
-	     (com.walhallaa.chatTest-20241220), then regenerated profiles. This one
+	     (com.walhallaa.MonkeyChatUIKit), then regenerated profiles. This one
 	     fails LOUDLY, like time-sensitive above and unlike associated-domains
 	     below — automatic signing compares this file against the profile and
 	     refuses:

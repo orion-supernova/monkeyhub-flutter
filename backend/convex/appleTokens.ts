@@ -41,17 +41,40 @@ interface AppleConfig {
 }
 
 /**
+ * Every bundle id the app has shipped under, primary first, from the
+ * comma-separated APPLE_BUNDLE_ID (the same list `idToken.audiencesFor`
+ * accepts as `aud`).
+ *
+ * More than one because of the 2026-11-24 rebundle: MonkeyHub moved from
+ * `com.walhallaa.chatTest-20241220` onto the legacy MonkeyChat listing,
+ * `com.walhallaa.MonkeyChatUIKit`. A grant belongs to the client id that
+ * issued it, so a token captured by an old build only answers to the old id.
+ */
+export function appleClientIds(): string[] {
+  return (process.env.APPLE_BUNDLE_ID ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+/**
  * Null when Sign in with Apple revocation has not been configured yet. Reuses
  * APNS_TEAM_ID because it is the same developer team — but the .p8 is a
  * SEPARATE key from the APNs one; they are not interchangeable.
+ *
+ * [clientId] picks one of [appleClientIds]; anything else is refused rather
+ * than signed for, so a caller can never mint a secret for a foreign app.
  */
-function appleConfig(): AppleConfig | null {
+function appleConfig(clientId?: string): AppleConfig | null {
   const keyP8 = process.env.APPLE_SIWA_KEY_P8;
   const keyId = process.env.APPLE_SIWA_KEY_ID;
   const teamId = process.env.APNS_TEAM_ID;
-  const clientId = process.env.APPLE_BUNDLE_ID;
-  if (!keyP8 || !keyId || !teamId || !clientId) return null;
-  return { keyP8, keyId, teamId, clientId };
+  const ids = appleClientIds();
+  const chosen = clientId ?? ids[0];
+  if (!keyP8 || !keyId || !teamId || !chosen || !ids.includes(chosen)) {
+    return null;
+  }
+  return { keyP8, keyId, teamId, clientId: chosen };
 }
 
 /**
@@ -89,11 +112,15 @@ async function postForm(
  *
  * The code is single-use and expires in five minutes, so this is called inline
  * during sign-in rather than deferred to a scheduled job.
+ *
+ * [clientId] is the verified ID token's `aud`: the code was minted for the app
+ * that signed in, and Apple refuses it under any other client id.
  */
 export async function exchangeAuthorizationCode(
   code: string,
+  clientId?: string,
 ): Promise<string | null> {
-  const cfg = appleConfig();
+  const cfg = appleConfig(clientId);
   if (!cfg) {
     console.warn(
       "[appleTokens] APPLE_SIWA_KEY_P8/APPLE_SIWA_KEY_ID unset — skipping refresh-token capture. " +
@@ -130,31 +157,35 @@ export async function exchangeAuthorizationCode(
  * Callers MUST NOT block account deletion on a false return — log and continue.
  */
 export async function revokeRefreshToken(refreshToken: string): Promise<boolean> {
-  const cfg = appleConfig();
-  if (!cfg) {
+  if (!appleConfig()) {
     console.error(
       "[appleTokens] cannot revoke — Apple SIWA key not configured. " +
         "This account's Apple grant will outlive its account.",
     );
     return false;
   }
-  try {
-    const res = await postForm(APPLE_REVOKE_URL, {
-      client_id: cfg.clientId,
-      client_secret: await clientSecret(cfg),
-      token: refreshToken,
-      token_type_hint: "refresh_token",
-    });
-    // Apple answers 200 with an empty body on success.
-    if (!res.ok) {
-      console.error(`[appleTokens] revoke HTTP ${res.status}: ${await res.text()}`);
-      return false;
+  // The row does not record which bundle captured the grant, so ask under
+  // each client id until one accepts. Two calls at most, twice in an
+  // account's life.
+  for (const id of appleClientIds()) {
+    const cfg = appleConfig(id)!;
+    try {
+      const res = await postForm(APPLE_REVOKE_URL, {
+        client_id: cfg.clientId,
+        client_secret: await clientSecret(cfg),
+        token: refreshToken,
+        token_type_hint: "refresh_token",
+      });
+      // Apple answers 200 with an empty body on success.
+      if (res.ok) return true;
+      console.error(
+        `[appleTokens] revoke HTTP ${res.status} as ${id}: ${await res.text()}`,
+      );
+    } catch (err) {
+      console.error(`[appleTokens] revoke as ${id} threw:`, err);
     }
-    return true;
-  } catch (err) {
-    console.error("[appleTokens] revoke threw:", err);
-    return false;
   }
+  return false;
 }
 
 /**
@@ -172,10 +203,17 @@ export async function revokeRefreshToken(refreshToken: string): Promise<boolean>
  *   `invalid_client` → the credentials themselves are wrong.
  */
 export async function verifyAppleCredentials(): Promise<string> {
-  const cfg = appleConfig();
-  if (!cfg) {
+  if (!appleConfig()) {
     return "not configured — sign-in still works, revocation does not";
   }
+  const out: string[] = [];
+  for (const id of appleClientIds()) {
+    out.push(`${id}: ${await verifyAppleCredentialsFor(appleConfig(id)!)}`);
+  }
+  return out.join(" | ");
+}
+
+async function verifyAppleCredentialsFor(cfg: AppleConfig): Promise<string> {
 
   let secret: string;
   try {
@@ -213,23 +251,30 @@ export async function verifyAppleCredentials(): Promise<string> {
 export async function refreshTokenStillValid(
   refreshToken: string,
 ): Promise<boolean | null> {
-  const cfg = appleConfig();
-  if (!cfg) return null;
-  try {
-    const res = await postForm(APPLE_TOKEN_URL, {
-      client_id: cfg.clientId,
-      client_secret: await clientSecret(cfg),
-      grant_type: "refresh_token",
-      refresh_token: refreshToken,
-    });
-    if (res.ok) return true;
-    // 400 invalid_grant is the definitive "this grant is gone". Anything else
-    // (5xx, network) is inconclusive and must not be treated as revoked.
-    if (res.status === 400) return false;
-    console.error(`[appleTokens] refresh check HTTP ${res.status}`);
-    return null;
-  } catch (err) {
-    console.error("[appleTokens] refresh check threw:", err);
-    return null;
+  if (!appleConfig()) return null;
+  // As in [revokeRefreshToken], the grant answers to one client id only, and
+  // under the other one Apple says 400 too. So a grant is gone only when
+  // EVERY client id says 400; one 200 is valid, and any 5xx or network
+  // failure without a 200 is inconclusive.
+  let allRefused = true;
+  for (const id of appleClientIds()) {
+    const cfg = appleConfig(id)!;
+    try {
+      const res = await postForm(APPLE_TOKEN_URL, {
+        client_id: cfg.clientId,
+        client_secret: await clientSecret(cfg),
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+      });
+      if (res.ok) return true;
+      if (res.status !== 400) {
+        console.error(`[appleTokens] refresh check HTTP ${res.status} as ${id}`);
+        allRefused = false;
+      }
+    } catch (err) {
+      console.error(`[appleTokens] refresh check as ${id} threw:`, err);
+      allRefused = false;
+    }
   }
+  return allRefused ? false : null;
 }

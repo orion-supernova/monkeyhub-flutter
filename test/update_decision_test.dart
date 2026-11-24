@@ -168,8 +168,8 @@ void main() {
   group('App Store lookup', () {
     const body = '''
 {"resultCount":2,"results":[
- {"kind":"software","trackId":6739744338,"version":"1.3.135"},
- {"kind":"mac-software","trackId":6739744338,"version":"1.3.131"}]}''';
+ {"kind":"software","trackId":1610516543,"version":"1.3.135"},
+ {"kind":"mac-software","trackId":1610516543,"version":"1.3.131"}]}''';
 
     test('picks the record for the asking platform', () {
       expect(parseAppStoreLookup(body, mac: false), '1.3.135');
@@ -178,7 +178,7 @@ void main() {
 
     test('a record of the wrong kind is no answer, never a version', () {
       const iosOnly =
-          '{"results":[{"kind":"software","trackId":6739744338,"version":"1.3.135"}]}';
+          '{"results":[{"kind":"software","trackId":1610516543,"version":"1.3.135"}]}';
       expect(parseAppStoreLookup(iosOnly, mac: true), isNull);
     });
 

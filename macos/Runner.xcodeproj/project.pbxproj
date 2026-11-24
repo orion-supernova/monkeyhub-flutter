@@ -668,7 +668,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.walhallaa.chatTest-20241220.NotificationService";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.walhallaa.MonkeyChatUIKit.NotificationService";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -695,7 +695,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.walhallaa.chatTest-20241220.NotificationService";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.walhallaa.MonkeyChatUIKit.NotificationService";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -1009,7 +1009,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.walhallaa.chatTest-20241220.NotificationService";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.walhallaa.MonkeyChatUIKit.NotificationService";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;

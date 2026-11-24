@@ -3,6 +3,7 @@ import { markOffline } from "./presenceCore";
 import { internalQuery } from "./_generated/server";
 import { internalMutation } from "./dbHooks";
 import { mutation, query } from "./functions";
+import { knownApnsBundle } from "./pushTransport";
 import {
   revokeSessionsForDevice,
   revokeOtherSessions,
@@ -30,6 +31,7 @@ type DevicePatch = Partial<
     | "voipToken"
     | "apnsToken"
     | "apnsEnv"
+    | "apnsBundle"
     | "fcmToken"
     | "webEndpoint"
     | "webP256dh"
@@ -232,15 +234,20 @@ export const setVoipToken = mutation({
     // "sandbox" for debug/dev builds, "production" for TestFlight/App Store.
     // Lets the backend pick the matching APNs host per token.
     apnsEnv: v.optional(v.union(v.literal("sandbox"), v.literal("production"))),
+    // The build's bundle id, so the push goes out on its topic. See
+    // `userDevices.apnsBundle`. Unknown ids are dropped, never stored.
+    apnsBundle: v.optional(v.string()),
     ...vDeviceContext,
   },
   handler: async (
     ctx,
-    { userId, deviceId, platform, token, deviceName, apnsEnv, ...context },
+    { userId, deviceId, platform, token, deviceName, apnsEnv, apnsBundle, ...context },
   ) => {
+    const bundle = knownApnsBundle(apnsBundle);
     await upsertDevice(ctx, userId, deviceId, platform, deviceName, {
       voipToken: token,
       ...(apnsEnv ? { apnsEnv } : {}),
+      ...(bundle ? { apnsBundle: bundle } : {}),
       ...deviceContextPatch(context),
     });
     const dupes = await ctx.db
@@ -267,15 +274,20 @@ export const setApnsToken = mutation({
     token: v.string(),
     deviceName: v.optional(v.string()),
     apnsEnv: v.optional(v.union(v.literal("sandbox"), v.literal("production"))),
+    // The build's bundle id, so the push goes out on its topic. See
+    // `userDevices.apnsBundle`. Unknown ids are dropped, never stored.
+    apnsBundle: v.optional(v.string()),
     ...vDeviceContext,
   },
   handler: async (
     ctx,
-    { userId, deviceId, platform, token, deviceName, apnsEnv, ...context },
+    { userId, deviceId, platform, token, deviceName, apnsEnv, apnsBundle, ...context },
   ) => {
+    const bundle = knownApnsBundle(apnsBundle);
     await upsertDevice(ctx, userId, deviceId, platform, deviceName, {
       apnsToken: token,
       ...(apnsEnv ? { apnsEnv } : {}),
+      ...(bundle ? { apnsBundle: bundle } : {}),
       ...deviceContextPatch(context),
     });
     const dupes = await ctx.db

@@ -177,3 +177,40 @@ describe("voipTokens.upsertDevice — one physical device, one account", () => {
     expect(aDevices).not.toContain("phone");
   });
 });
+
+describe("voipTokens — apnsBundle (2026-11-24 rebundle)", () => {
+  async function bundleAfter(apnsBundle: string | undefined) {
+    const t = convexTest(schema);
+    const a = await signUp(t, "bundle_user", "bundle-phone");
+    await t.mutation(api.voipTokens.setApnsToken, {
+      userId: a.userId,
+      sessionToken: a.token,
+      deviceId: "bundle-phone",
+      platform: "ios",
+      token: "apns-token",
+      apnsEnv: "production",
+      ...(apnsBundle !== undefined ? { apnsBundle } : {}),
+    });
+    const row = await t.run(async (ctx) =>
+      ctx.db
+        .query("userDevices")
+        .withIndex("by_device", (q) => q.eq("deviceId", "bundle-phone"))
+        .first(),
+    );
+    return row?.apnsBundle;
+  }
+
+  test("a known bundle is stored, so the push goes out on its topic", async () => {
+    expect(await bundleAfter("com.walhallaa.MonkeyChatUIKit")).toBe(
+      "com.walhallaa.MonkeyChatUIKit",
+    );
+  });
+
+  test("an unknown bundle is dropped, never stored", async () => {
+    expect(await bundleAfter("com.someone.else")).toBeUndefined();
+  });
+
+  test("an old build that sends none leaves it unset (APNS_BUNDLE_ID default)", async () => {
+    expect(await bundleAfter(undefined)).toBeUndefined();
+  });
+});

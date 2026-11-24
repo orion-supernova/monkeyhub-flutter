@@ -172,9 +172,34 @@ export async function cachedProviderToken(
 
 export type ApnsEnv = "sandbox" | "production";
 
+/**
+ * Every bundle id MonkeyHub has shipped under on Apple platforms. A device
+ * reports its own (`userDevices.apnsBundle`); anything not listed here is
+ * dropped at registration, so a client can never point our APNs key at a
+ * topic of its choosing.
+ *
+ * `com.walhallaa.chatTest-20241220` is the original id; the app moved onto the
+ * legacy MonkeyChat listing (`com.walhallaa.MonkeyChatUIKit`) on 2026-11-24.
+ * Remove the old one once the minimum supported version is a rebundled build.
+ */
+export const APNS_BUNDLES = [
+  "com.walhallaa.MonkeyChatUIKit",
+  "com.walhallaa.chatTest-20241220",
+] as const;
+
+/** [bundle] if it is one of ours, else undefined. */
+export function knownApnsBundle(bundle: string | undefined): string | undefined {
+  return bundle !== undefined && (APNS_BUNDLES as readonly string[]).includes(bundle)
+    ? bundle
+    : undefined;
+}
+
 export type ApnsRequest = {
   token: string;
   env?: ApnsEnv;
+  // The device's own bundle (`userDevices.apnsBundle`). Missing → the
+  // APNS_BUNDLE_ID env, which is what every row from before the field means.
+  bundle?: string;
   // "" targets the ALERT topic (the bare bundle id); ".voip" targets PushKit.
   // These are two different tokens on two different topics — crossing them
   // gets a 400 DeviceTokenNotForTopic. See `push.ts` on why the alert sender
@@ -196,7 +221,7 @@ export type ApnsRequest = {
 export async function apnsPost(ctx: any, req: ApnsRequest): Promise<void> {
   const keyId = process.env.APNS_KEY_ID;
   const teamId = process.env.APNS_TEAM_ID;
-  const bundleId = process.env.APNS_BUNDLE_ID;
+  const bundleId = knownApnsBundle(req.bundle) ?? process.env.APNS_BUNDLE_ID;
   const keyP8 = process.env.APNS_KEY_P8;
   if (!keyId || !teamId || !bundleId || !keyP8) {
     throw new Error(
