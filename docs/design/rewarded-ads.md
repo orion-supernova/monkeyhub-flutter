@@ -109,5 +109,6 @@ Hints used to be free and unlimited. Now 3 free per puzzle (`FREE_HINTS` in
 
 ## Open
 
-- Link both AdMob apps to their store listings once public.
+- iOS AdMob app linked to App Store 1610516543 on 2026-11-25 (in Google's review; ads limited until it passes). The 2026-11-24 rebundle changed nothing for AdMob: the app id is not bundle-bound and the app had never been linked. `app-ads.txt` on walhallaa.com (the listing's developer site) carries the publisher line.
+- Android AdMob app: link once MonkeyHub is public on Google Play (internal testing only today).
 - Jungle Fist stages and paints as purchases: proposed 2026-11-25 as banana unlocks, see `bananas-and-unlocks.html`.
