@@ -423,7 +423,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
 <!-- ───────────── 7. PACKS ───────────── -->
 <section id="packs">
   <div class="sec-head"><div class="sec-num" style="background:var(--banana2)">7</div>
-    <div><h2>Banana packs</h2><p>Consumable in-app purchases through <b>RevenueCat</b> (App Store for iOS and macOS, Google Play). Windows is open, see section 10. Bought bananas land in the same wallet as earned ones and never expire.</p></div></div>
+    <div><h2>Banana packs</h2><p>Consumable in-app purchases through <b>RevenueCat</b> (App Store for iOS and macOS, Google Play). Windows is deferred, see section 10. Bought bananas land in the same wallet as earned ones and never expire.</p></div></div>
   <div class="packs">
     <div class="pack"><div class="art"><span>🍌</span></div><div class="name">Handful</div><div class="amt">80 🍌</div><div class="bonus">&nbsp;</div><span class="buy">$0.99</span></div>
     <div class="pack"><div class="art"><span class="basket"><i class="b1">🍌</i><i class="b2">🍌</i><i class="b3">🍌</i><i class="bk">🧺</i></span></div><div class="name">Basket</div><div class="amt">450 🍌</div><div class="bonus">+12% bonus</div><span class="buy">$4.99</span></div>
@@ -801,7 +801,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
     <tbody>
       <tr><td><b>App Store Connect</b> (app 1610516543)</td><td>5 consumables, all 175 regions, USD base price, en-US name and description: <code>monkeyhub.bananas.handful</code> $0.99 · <code>.basket</code> $4.99 · <code>.crate</code> $9.99 · <code>.tree</code> $19.99 · <code>.jungle</code> $49.99. State "Missing Metadata" until a review screenshot of the shop is added; the first IAP must ship with an app version. Paid Apps agreement active.</td></tr>
       <tr><td><b>RevenueCat</b> project MonkeyHub (<code>71bfa585</code>)</td><td>App Store app <code>com.walhallaa.MonkeyChatUIKit</code> (covers iOS and macOS), IAP key 3XXSQHLZG5, ASC API key BQWTG6XXNF. 5 products imported. Default offering <code>bananas</code>, packages <code>handful</code>, <code>basket</code>, <code>crate</code>, <code>tree</code>, <code>jungle</code>. No entitlements (consumables).</td></tr>
-      <tr><td><b>Still to do</b></td><td>Apple server notification URL from RevenueCat into App Store Connect (production and sandbox); Google Play app and products; RevenueCat webhook to the backend once <code>http /revenuecat</code> exists; review screenshots; Windows (no RevenueCat SDK).</td></tr>
+      <tr><td><b>Still to do</b></td><td>Apple server notification URL from RevenueCat into App Store Connect (production and sandbox); Google Play app and products; RevenueCat webhook to the backend once <code>http /revenuecat</code> exists; review screenshots. Windows deferred (no RevenueCat SDK).</td></tr>
     </tbody>
   </table>
 
@@ -847,7 +847,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
         <div class="card decision"><div class="q">3</div><div><h4>No sharing <span class="tag t-free">Decided</span></h4><p class="small">The host's chat game unlock lets guests play that match. Fighters, looks and packs are never shared: a guest uses their own, or the free defaults (user, 2026-11-25).</p></div></div>
     <div class="card decision"><div class="q">4</div><div><h4>Prices and pack sizes <span class="tag t-free">Decided</span></h4><p class="small">80 🍌 per $0.99 base, fighter 60, Chess 150, Complete 990. Tuned so an animal fighter is 3 max-video days. Worth one round of tester feedback before Phase 2.</p></div></div>
     <div class="card decision"><div class="q">5</div><div><h4>Launch-day gift size <span class="tag t-free">Decided</span></h4><p class="small">🍌 150 + first free pick for every existing account, instead of grandfathering whatever they played. Simpler, and it teaches the shop on day one.</p></div></div>
-        <div class="card decision"><div class="q">6</div><div><h4>Payments via RevenueCat <span class="tag t-free">Decided</span></h4><p class="small">RevenueCat for every store (user, 2026-11-25). Open: Windows, which RevenueCat has no SDK for.</p></div></div>
+        <div class="card decision"><div class="q">6</div><div><h4>Payments via RevenueCat <span class="tag t-free">Decided</span></h4><p class="small">RevenueCat for every store (user, 2026-11-25). Windows deferred: RevenueCat has no Windows SDK; Windows spends bananas but sells no packs until decided.</p></div></div>
   </div>
 </section>
 
