@@ -211,7 +211,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
   <div class="wrap">
     <div class="kicker">🍌 Feature design · games economy</div>
     <h1>Bananas &amp; Unlocks</h1>
-    <p class="lede">Every game starts free with a taste of everything. The rest is unlocked with bananas, once, forever, for that person. In a chat, one player's unlock opens the game for the whole table. Kids can't buy; they ask, and a parent pays from their own bananas.</p>
+    <p class="lede">Every game starts free with a taste of everything. The rest is unlocked with bananas, once, forever, for that person. In a chat, the friends you invite play your game for free, but to send a game themselves they need their own unlock. Kids can't buy; they ask, and a parent pays from their own bananas.</p>
     <div class="meta">
       <span class="pill">📅 Proposed 2026-11-25</span>
       <span class="pill">🟡 Status: design, nothing built</span>
@@ -227,7 +227,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
   <a href="#catalog">What's free</a>
   <a href="#fist">Jungle Fist</a>
   <a href="#chat">Chat games</a>
-  <a href="#host">One key opens the room</a>
+  <a href="#host">Your key, your invites</a>
   <a href="#packs">Banana packs</a>
   <a href="#prices">Prices</a>
   <a href="#screens">Screens</a>
@@ -247,7 +247,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
   <div class="grid g4">
     <div class="card rule tint-leaf"><div class="n">1</div><div class="big-emoji">🌱</div><h4>Free to start, never a wall</h4><p>Every mode is playable on day one: 5 fighters, a stage, the Cartoon look, 5 chat games, every daily. Locked things are visible, previewable and priced, never hidden.</p></div>
     <div class="card rule tint-banana"><div class="n">2</div><div class="big-emoji">🔑</div><h4>Unlock once, yours forever</h4><p>An unlock belongs to the <b>account</b>, not the phone. It follows you to Mac, web, a new phone. No rentals, no expiry, no subscriptions.</p></div>
-    <div class="card rule tint-sky"><div class="n">3</div><div class="big-emoji">🎟️</div><h4>One key opens the room</h4><p>In a chat, the player who <b>starts</b> a game is its host. If the host owns it, everyone in that match plays it. Nobody else needs to unlock anything.</p></div>
+    <div class="card rule tint-sky"><div class="n">3</div><div class="big-emoji">🎟️</div><h4>Your key, your invites</h4><p>To <b>send</b> a game you must own it. Everyone you invite plays that match free. To send one back, they need their own unlock.</p></div>
     <div class="card rule tint-grape"><div class="n">4</div><div class="big-emoji">👪</div><h4>Kids ask, parents pay</h4><p>Child accounts never see a price in money. They tap <b>Ask</b>; a guardian approves and pays in their own bananas, and the unlock lands on the child's account.</p></div>
   </div>
 </section>
@@ -353,7 +353,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
 <!-- ───────────── 6. HOST RULE ───────────── -->
 <section id="host">
   <div class="sec-head"><div class="sec-num" style="background:var(--grape)">6</div>
-    <div><h2>One key opens the room</h2><p>The <b>host</b> is whoever sends the game into the chat (the match row's creator). The host's unlocks <b>sponsor</b> the match: every seat plays with them. One unlock is always enough; nobody ever needs a matching one.</p></div></div>
+    <div><h2>Your key, your invites</h2><p>The <b>host</b> is whoever sends the game into the chat (the match row's creator). Sending needs the host to own it. The host's unlock <b>sponsors</b> that match, so everyone invited plays free. It does not carry over: a guest who wants to send the game back needs their own unlock.</p></div></div>
 
   <div class="svgbox">
     <svg viewBox="0 0 1060 250" width="100%" role="img" aria-label="Host sponsorship flow">
@@ -379,8 +379,8 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
       <text x="695" y="121" text-anchor="middle" font-size="14" font-weight="800" fill="#127a47">Deniz watches · free</text>
       <text x="695" y="141" text-anchor="middle" font-size="12" fill="#127a47">spectators never need it</text>
       <rect x="590" y="166" width="210" height="64" rx="16" fill="#dcf6e8" stroke="#22b26b"/>
-      <text x="695" y="194" text-anchor="middle" font-size="14" font-weight="800" fill="#127a47">Rematch · still sponsored</text>
-      <text x="695" y="214" text-anchor="middle" font-size="12" fill="#127a47">whoever taps it</text>
+      <text x="695" y="194" text-anchor="middle" font-size="14" font-weight="800" fill="#127a47">Ela sends one back · 🔒</text>
+      <text x="695" y="214" text-anchor="middle" font-size="12" fill="#127a47">needs her own Chess</text>
       <line x1="805" y1="125" x2="855" y2="125" stroke="#958a77" stroke-width="2" marker-end="url(#ah)"/>
       <rect x="860" y="70" width="190" height="110" rx="18" fill="#f1ebff" stroke="#8a62ff"/>
       <text x="955" y="104" text-anchor="middle" font-size="24">🍌</text>
@@ -396,17 +396,18 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
     <tbody>
       <tr><td><b>Start a game</b></td><td>Allowed if the game is free or the <b>host</b> owns it. The server checks at <code>matches:create</code>; the picker only mirrors it.</td></tr>
       <tr><td><b>Join / accept</b></td><td>Always allowed, for every seat (2 players or a party of 8). Joining never checks the joiner's unlocks.</td></tr>
-      <tr><td><b>Rematch</b></td><td>Copies the original <code>sponsorId</code>, so a rematch is allowed no matter who taps it. A new game from scratch is a new host.</td></tr>
+      <tr><td><b>Send a game back</b></td><td>A guest who doesn't own it can't send it. The picker shows the lock and the unlock sheet. Being invited never grants the right to send.</td></tr>
+      <tr><td><b>Rematch</b></td><td>Counts as sending. The host can rematch any time. A guest who owns the game can rematch too; a guest who doesn't gets <b>Ask Murat for a rematch</b> (a ping; Murat's tap starts it on his unlock) next to <b>Unlock · 🍌 150</b>.</td></tr>
       <tr><td><b>Jungle Fist stage</b></td><td>The host picks from <b>the host's</b> stages (or Random among them).</td></tr>
       <tr><td><b>Jungle Fist fighters</b></td><td>Each player picks from <b>their own fighters plus the host's</b>. A borrowed fighter shows a small 🎟️ "Murat's" badge. The host's unlock is enough, so a guest can pick Golem in Murat's match.</td></tr>
       <tr><td><b>Jungle Fist look</b></td><td>Never borrowed: each screen shows its owner's look (Cartoon if they own nothing else).</td></tr>
-      <tr><td><b>Host loses the unlock mid-match</b> (refund clawback)</td><td>The running match and its rematches finish. Only new starts check again.</td></tr>
+      <tr><td><b>Host loses the unlock mid-match</b> (refund clawback)</td><td>The running match finishes. New sends and rematches check again.</td></tr>
       <tr><td><b>Host is a child</b></td><td>Same rule. A child who was given Chess can host Chess for friends.</td></tr>
       <tr><td><b>Bot games &amp; Training</b></td><td>Solo, so you are the host: your own unlocks (plus free Training trials, see section 3).</td></tr>
-      <tr><td><b>Public rooms</b></td><td>Same rule. A sponsored public game is a nice reason to host.</td></tr>
+      <tr><td><b>Public rooms</b></td><td>Same rule. Hosting a game you own in a public room lets everyone in it play.</td></tr>
     </tbody>
   </table>
-  <div class="callout c-grape"><div class="e">🎟️</div><p><b>Why this works for growth:</b> one paying friend makes the game fun for a whole group, and every guest sees the game, plays it, and gets a gentle "host your own" nudge on the result card. It's the opposite of a paywall: the locked game is the invitation.</p></div>
+  <div class="callout c-grape"><div class="e">🎟️</div><p><b>Why this works for growth:</b> one paying friend can invite anyone, so every guest gets to play the game first. When they want to send it back, that's the moment to unlock, after they already know they like it. The locked game is the invitation, not a paywall.</p></div>
 </section>
 
 <!-- ───────────── 7. PACKS ───────────── -->
@@ -593,12 +594,12 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
             <div class="bt" style="padding:10px">
               <b>Murat won · 1 to 0</b>
               <div class="sub" style="margin:4px 0 8px">Liked it? Get Chess to host your own games.</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><span class="btn b-ghost" style="font-size:12px;padding:7px 0">Rematch</span><span class="btn b-ban" style="font-size:12px;padding:7px 0">🍌 150</span></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><span class="btn b-ghost" style="font-size:12px;padding:7px 0">Ask for rematch</span><span class="btn b-ban" style="font-size:12px;padding:7px 0">🍌 150</span></div>
             </div>
           </div>
         </div>
       </div></div>
-      <div class="ph-cap"><b>As a guest</b>A small 🎟️ chip says whose unlock you're playing on. The nudge appears once, on the result card, and never mid-game. Rematch still works for the guest.</div>
+      <div class="ph-cap"><b>As a guest</b>A small 🎟️ chip says whose unlock you're playing on. The nudge appears once, on the result card, and never mid-game. A guest without the game can only ask the host for a rematch; to send Chess herself she unlocks it.</div>
     </div>
   </div>
 
@@ -766,7 +767,7 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
         <li><b><code>lifelines</code></b> (existing, one row per user) gains <code>owned: string[]</code> (catalog ids, ≤ 40), <code>firstPickUsed</code>, <code>firstPackUsed</code>, <code>allowance</code> fields. Ownership costs 0 extra reads anywhere the wallet is already read.</li>
         <li><b><code>bananaLedger</code></b> (new, append-only): one row per purchase, unlock, gift, allowance, refund. <code>by_user</code>, <code>by_storeTx</code> (dedupe). Support and refunds read it; nothing subscribes to it.</li>
         <li><b><code>bananaRequests</code></b> (new): child, item, price, note, status, decidedBy. <code>by_child_status</code>. Expiry is checked on read, no cron.</li>
-        <li><b><code>matches</code></b> (existing) gains <code>sponsorId</code>; rematch copies it.</li>
+        <li><b><code>matches</code></b> (existing) gains <code>sponsorId</code> (= creator, set only when they own the game; rematches re-check like any new send).</li>
         <li><b>Catalog</b>: <code>backend/convex/catalog.ts</code> is the truth (ids, prices, bundles, free set), mirrored by <code>lib/games/catalog.dart</code> like the game registries. Prices come back in <code>lifelines:mine</code>, so a price change needs no app release.</li>
       </ul>
     </div>
@@ -792,7 +793,8 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--line);font-si
       <tr><td><b>Unlock with bananas</b></td><td>1</td><td>2 (wallet patch, ledger)</td><td>none</td><td>0</td></tr>
       <tr><td><b>Buy a pack</b></td><td>2 (ledger by tx, wallet) + 1 store HTTPS call</td><td>2</td><td>none</td><td>0</td></tr>
       <tr><td><b>Start a chat game</b></td><td>+1 (host wallet)</td><td>0 extra (field on the existing insert)</td><td>unchanged</td><td>0</td></tr>
-      <tr><td><b>Rematch / join</b></td><td>0 extra</td><td>0 extra</td><td>unchanged</td><td>0</td></tr>
+      <tr><td><b>Join</b></td><td>0 extra</td><td>0 extra</td><td>unchanged</td><td>0</td></tr>
+      <tr><td><b>Rematch</b></td><td>+1 (sender's wallet, like any send)</td><td>0 extra</td><td>unchanged</td><td>0</td></tr>
       <tr><td><b>Child asks</b></td><td>≤ 4 (wallet, open requests ≤ 3, guardianships)</td><td>1 + 1 push per guardian</td><td>guardians' queue, once</td><td>0</td></tr>
       <tr><td><b>Guardian answers yes</b></td><td>3 (request, 2 wallets)</td><td>5 (request, 2 wallets, 2 ledger) + 1 push</td><td>each guardian's queue, once</td><td>0</td></tr>
       <tr><td><b>Guardian queue (existing subscription)</b></td><td>+1 index read per child</td><td>0</td><td>only when a request changes</td><td>0</td></tr>
