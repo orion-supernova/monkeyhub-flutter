@@ -19,6 +19,10 @@ class MainFlutterWindow: NSWindow, NSDraggingDestination {
   /// receive it.
   private var dropDestination: DropDestination?
 
+  /// The kernel's memory-pressure source, held for the window's lifetime.
+  /// See [EngineMemory].
+  private var memoryPressure: DispatchSourceMemoryPressure?
+
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     let windowFrame = self.frame
@@ -227,6 +231,39 @@ class MainFlutterWindow: NSWindow, NSDraggingDestination {
       with: flutterViewController.engine.binaryMessenger
     )
 
+    // monkeyhub/memory — MemoryTrim (lib/services/memory_trim.dart) asks for
+    // an engine purge once the window has been hidden a while. The kernel's
+    // own memory pressure purges too, and tells Dart the way iOS does
+    // (`flutter/system` memoryPressure), which the Mac embedder never does.
+    let engine = flutterViewController.engine
+    let memoryChannel = FlutterMethodChannel(
+      name: "monkeyhub/memory",
+      binaryMessenger: engine.binaryMessenger
+    )
+    memoryChannel.setMethodCallHandler { [weak engine] call, result in
+      switch call.method {
+      case "purgeEngine":
+        result(engine.map { EngineMemory.purge($0) } ?? false)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    let pressure = DispatchSource.makeMemoryPressureSource(
+      eventMask: [.warning, .critical],
+      queue: .main
+    )
+    pressure.setEventHandler { [weak engine] in
+      guard let engine = engine else { return }
+      EngineMemory.purge(engine)
+      FlutterBasicMessageChannel(
+        name: "flutter/system",
+        binaryMessenger: engine.binaryMessenger,
+        codec: FlutterJSONMessageCodec.sharedInstance()
+      ).sendMessage(["type": "memoryPressure"])
+    }
+    pressure.resume()
+    memoryPressure = pressure
+
     // monkeyhub/map_snapshot — Apple Maps picture for a location bubble.
     MapSnapshot.register(
       with: flutterViewController.engine.binaryMessenger
@@ -327,5 +364,69 @@ class MainFlutterWindow: NSWindow, NSDraggingDestination {
       self?.orderOut(nil)
     }
     toggleFullScreen(sender)
+  }
+}
+
+/// The engine purge iOS and Android get from a memory warning, which Flutter's
+/// macOS embedder never asks for.
+///
+/// `Shell::NotifyLowMemoryWarning` runs a Dart GC and drops Impeller's
+/// render-target and texture caches: most of the 200 MB of GPU memory a window
+/// hidden for hours was measured holding (2026-11-26). Its entry point,
+/// `FlutterEngineNotifyLowMemoryWarning`, is in the embedder proc table the Mac
+/// `FlutterEngine` keeps privately, and is not exported, so this reads it off
+/// the engine. The proc table's layout is the embedder's stable ABI (fields
+/// are only ever appended), and every lookup fails closed: a Flutter that
+/// renames the ivars or reorders the table makes this a no-op that returns
+/// false, never a crash. Re-check after a Flutter upgrade that `purgeEngine` still answers true
+/// (the `memory trim` diagnostics line).
+enum EngineMemory {
+  private typealias NotifyLowMemory = @convention(c) (OpaquePointer?) -> Int32
+
+  /// Byte offset of `NotifyLowMemoryWarning` in the proc table, read from the
+  /// ivar's own type encoding (`{?="struct_size"Q"CreateAOTData"^?…}`), which
+  /// names every field. Accepted only when every field before it is one
+  /// machine word (`Q` or a function pointer `^?`); 256 on Flutter 3.50.
+  private static func notifyOffset(_ encoding: String) -> Int? {
+    let parts = encoding.split(separator: "\"", omittingEmptySubsequences: false)
+    // parts: [`{?=`, name0, type0, name1, type1, …]; the last type ends `}`.
+    var field = 0
+    var i = 1
+    while i + 1 < parts.count {
+      let name = parts[i]
+      let type = parts[i + 1].hasSuffix("}") ? parts[i + 1].dropLast() : parts[i + 1]
+      if name == "NotifyLowMemoryWarning" {
+        return type == "^?" ? field * MemoryLayout<UnsafeRawPointer>.size : nil
+      }
+      guard type == "Q" || type == "^?" else { return nil }
+      field += 1
+      i += 2
+    }
+    return nil
+  }
+
+  @discardableResult
+  static func purge(_ engine: FlutterEngine) -> Bool {
+    guard
+      let handleIvar = class_getInstanceVariable(FlutterEngine.self, "_engine"),
+      let tableIvar = class_getInstanceVariable(FlutterEngine.self, "_embedderAPI"),
+      let tableType = ivar_getTypeEncoding(tableIvar),
+      let offset = notifyOffset(String(cString: tableType))
+    else { return false }
+    let base = UnsafeRawPointer(Unmanaged.passUnretained(engine).toOpaque())
+    guard
+      let handle = base.load(
+        fromByteOffset: ivar_getOffset(handleIvar),
+        as: OpaquePointer?.self
+      )
+    else { return false }
+    let table = base + ivar_getOffset(tableIvar)
+    let word = MemoryLayout<UnsafeRawPointer>.size
+    guard
+      table.load(as: Int.self) >= offset + word,
+      let fn = table.load(fromByteOffset: offset, as: UnsafeRawPointer?.self)
+    else { return false }
+    // 0 is kSuccess.
+    return unsafeBitCast(fn, to: NotifyLowMemory.self)(handle) == 0
   }
 }

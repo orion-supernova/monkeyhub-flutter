@@ -32,6 +32,9 @@ import 'transcripts/voice_transcriber.dart';
 import 'transcripts/whisper_engine.dart';
 import 'screens/navigation/native_tab_bar.dart' show NativeChrome;
 import 'ui/foundation/caps.dart';
+import 'services/memory_trim.dart';
+import 'widgets/location_map_snapshot.dart';
+import 'widgets/open_free_map_snapshot.dart';
 
 /// Root navigator key — exposed so non-widget code (push handlers, native
 /// callbacks) can push routes without a BuildContext.
@@ -173,6 +176,12 @@ Future<void> main() async {
   }
 
   PaintingBinding.instance.imageCache.maximumSize = 1500;
+  // Gives caches back while the app is hidden or backgrounded; desktop
+  // embedders never relay the OS's memory warnings. See [MemoryTrim].
+  MemoryTrim.instance
+    ..install()
+    ..register(LocationMapSnapshot.trim)
+    ..register(OpenFreeMapSnapshot.trim);
 
   // Wi-Fi or cellular, for auto-download, data usage and the calls data saver.
   NetworkKindMonitor.instance.start();

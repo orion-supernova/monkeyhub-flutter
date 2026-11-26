@@ -57,6 +57,10 @@ abstract final class OpenFreeMapSnapshot {
   static final Map<String, Future<vtr.Tile?>> _tiles = {};
   static const _tileCapacity = 32;
 
+  /// Drops the decoded tiles ([MemoryTrim] hook). A render in flight keeps
+  /// its own future; the next one re-fetches through the HTTP cache.
+  static void trim() => _tiles.clear();
+
   /// Renders the view [spanMeters] wide around the point, at [size] logical
   /// pixels and [scale] device pixels per logical pixel.
   static Future<ui.Image?> render({

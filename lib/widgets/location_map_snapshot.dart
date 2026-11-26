@@ -29,6 +29,13 @@ abstract final class LocationMapSnapshot {
   static final Map<String, Future<MapPicture?>> _cache = {}; // insertion-ordered
   static final _done = <String, MapPicture>{};
 
+  /// Drops every remembered snapshot ([MemoryTrim] hook). Safe mid-fetch: a
+  /// fetch only records its result while its key is still in [_cache].
+  static void trim() {
+    _cache.clear();
+    _done.clear();
+  }
+
   static String keyFor({
     required double latitude,
     required double longitude,
